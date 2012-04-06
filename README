@@ -6,3 +6,26 @@ AUTHORS:
    - William Stein
 
 COPYRIGHT: Modified BSD
+
+
+
+
+
+
+Components
+----------
+
+- Sage Session Server: serves a persistent http-based Sage compute
+  session that pushes results, via HTTP, websockets, etc.
+
+  API: 
+
+   - new_session(push_protocol) --> id
+   - execute_code(code)
+   - put(path) --> upload url
+   - get(path)
+   - status(id)
+   
+
+       
+     
