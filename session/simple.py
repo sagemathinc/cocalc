@@ -97,7 +97,29 @@ class SimpleSessionServer(object):
         return self.session(id).execute(code)
 
     def interrupt(self, id):
+        """
+        EXAMPLES::
+
+            >>> S = SimpleSessionServer()
+            >>> id = S.new_session('doctest')
+            >>> S.interrupt(id)
+        """
         self.session(id).interrupt()
+
+    def status(self, id):
+        """
+        EXAMPLES::
+
+            >>> S = SimpleSessionServer(); id = S.new_session('doctest')
+            >>> S.status(id)
+            'ok'
+            >>> S = SimpleSessionServer(); id = S.new_session('doctest')
+            >>> S.status(-1)
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session -1
+        """
+        return self.session(id).status()
 
     def put(self, id, path, content):
         """
@@ -153,21 +175,6 @@ class SimpleSessionServer(object):
             ValueError: no file 'a/b/c/file.txt'
         """
         self.session(id).delete(path)
-
-    def status(self, id):
-        """
-        EXAMPLES::
-
-            >>> S = SimpleSessionServer(); id = S.new_session('doctest')
-            >>> S.status(id)
-            'ok'
-            >>> S = SimpleSessionServer(); id = S.new_session('doctest')
-            >>> S.status(-1)
-            Traceback (most recent call last):
-            ...
-            ValueError: unknown session -1
-        """
-        return self.session(id).status()
 
     def files(self, id):
         """

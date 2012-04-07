@@ -15,16 +15,20 @@ COPYRIGHT: Modified BSD
 Components
 ----------
 
-- Sage Session Server: serves a persistent http-based Sage compute
-  session that pushes results, via HTTP, websockets, etc.
+- Sage Session Server: serves a compute session that pushes results.
 
   API: 
 
    - new_session(push_protocol) --> id
-   - execute_code(code)
-   - put(path) --> upload url
-   - get(path)
+
+   - execute(id, code)
+   - interrupt(id)
    - status(id)
+
+   - put(id, path, content)
+   - get(id, path)
+   - delete(id, path)
+   - files(id)
    
 
        
