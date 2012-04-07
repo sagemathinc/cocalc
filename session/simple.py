@@ -521,7 +521,7 @@ class SimpleStreamingSession(SimpleSession):
                 self._session._output_callback({'exec_id':exec_id, 'done':True})
 
         self._curpath = streaming_execute(self._curpath, code, self._namespace,
-                                          OutStream(self, 0.1))
+                                          OutStream(self, 0.05))
         return exec_id
     
         

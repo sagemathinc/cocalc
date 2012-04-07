@@ -1,28 +1,29 @@
+import time
+
 import zmq
 
 context = zmq.Context()
 
-pub_port = 5555
-sub_port = 5556
+port = 5555
 
-socket_pub = context.socket(zmq.PUB)
-socket_pub.bind("tcp://*:%s"%pub_port)
-
-socket_sub = context.socket(zmq.SUB)
-socket_sub.connect("tcp://localhost:%s"%sub_port)
-socket_sub.setsockopt(zmq.SUBSCRIBE, '')
+socket = context.socket(zmq.REQ)
+socket.connect("tcp://localhost:%s"%port)
 
 for request in range (1,5):
-    #cmd = "import time\nfor n in range(4):\n   time.sleep(1); print n"
-
-    cmd = "print(%s*3)"%request
-    print "sending on port %s: %s"%(pub_port, cmd)
-    socket_pub.send(cmd)
+    #cmd = "import time\nfor n in range(4):\n   time.sleep(.2); print n,"
+    #cmd = "print(%s*3)"%request
+    print "sending on port %s: %s"%(port, cmd)
+    socket.send(cmd)
+    
     while True:
-        print "waiting for output..."
-        message = str(socket_sub.recv())
-        # temporary hack
-        print "Received reply ", request, "[", message, "]"
-        if 'True' in message:
-            break
-
+        try:
+            #print "waiting for output..."
+            message = str(socket.recv(zmq.NOBLOCK))
+            print "Received reply ", request, "[", message, "]"
+            if 'True' in message:
+                break
+            socket.send('')
+        except zmq.ZMQError:
+            # no activity so sleep for 1 msec
+            time.sleep(0.001)
+    

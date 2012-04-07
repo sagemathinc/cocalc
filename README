@@ -64,12 +64,25 @@ Components:
  [ ] define simplest possible message protocol between frontend and
      python process:
 
-         frontend --> process:
-              - execute(code)
+     Using zeromq's REQ/REP pattern we do the following:
 
-         process --> frontend:
-              - put(my_id, mesg)
-                 mesg = {'output':..., 'modified_files':..., 'done':...}
+       * Start a Python session as a separate process and parameters:
+              python session_zmq_url.py port url done_url
+          port = ZMQ port to bind to as a REP socket
+          url = URL to post results to (e.g., appengine)
+
+       * The session_zmq_url process does the following in a loop:
+             - using zmq, read block of code to execute, and send ack (ignored).
+             - execute, sending output text (and list of created files) to url
+             - when execution finishes, send zmq message saying "done" *and* GET's a certain url
+      
+       * When frontend receives code exec request:
+             - checks for "done" zmq message from session
+	     - if done, sends new code directly to session via zmq
+             - if not, puts code in database for later.
+             - when session calls frontend done url, it sends next
+               block of code that is ready for evaluation to session,
+               if there is any.
              
  [ ] implement message protocol between frontend and python process
 
