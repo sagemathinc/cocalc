@@ -2,7 +2,7 @@
 Simple Session Server
 """
 # Standard Python modules
-import os, posixpath, shutil, StringIO, sys, tempfile
+import os, posixpath, shutil, StringIO, sys, tempfile, time
 
 # A simple session server
 class SimpleSessionServer(object):
@@ -95,6 +95,9 @@ class SimpleSessionServer(object):
             0
         """
         return self.session(id).execute(code)
+
+    def interrupt(self, id):
+        self.session(id).interrupt()
 
     def put(self, id, path, content):
         """
@@ -203,13 +206,28 @@ class SimpleSession(object):
         self._curpath = self._execpath
         self._pathtree = PathTree(self._execpath)
 
+    def interrupt(self):
+        """
+        Wait until no computations are running.
+
+        EXAMPLES::
+
+            >>> s = SimpleSession(0, 'doctest'); p = s._execpath
+            >>> s.interrupt()
+        """
+        # impossible to call if computation running, so trivial to implement
+        pass
+
     def wait(self):
         """
         Wait until no computations are running.
 
         EXAMPLES::
 
+            >>> s = SimpleSession(0, 'doctest'); p = s._execpath
+            >>> s.wait()
         """
+        # impossible to call if computation running, so trivial to implement
         pass
 
     def __del__(self):
@@ -452,6 +470,135 @@ class SimpleSession(object):
         """
         return self._pathtree.files()
 
+class SimpleStreamingSession(SimpleSession):
+    def execute(self, code):
+        r"""
+        EXAMPLES::
+
+            >>> v = []
+            >>> def callback(x): v.append(x)
+            ...
+            >>> s = SimpleStreamingSession(0, callback)
+            >>> s.execute('import sys,time\nfor n in range(3):\n   print str(n)*10; time.sleep(0.2);')
+            0
+            >>> len(v)
+            4
+            >>> ''.join([x['output'] for x in v if 'output' in x])
+            '0000000000\n1111111111\n2222222222\n'
+        """
+        exec_id = self._exec_id
+        self._exec_id += 1
+
+        class OutStream(object):
+            def __init__(self, session, flush_interval):
+                self._buf = ''
+                self._session = session
+                self._last_flush = time.time()
+                self._flush_interval = flush_interval
+
+            def write(self, output):
+                self._buf += output
+                w = time.time()
+                if w - self._last_flush >= self._flush_interval:
+                    self._last_flush = w
+                    self.flush()
+
+            def flush(self):
+                modified_files = self._session._pathtree.modified_files()                
+                msg = {'exec_id':exec_id, 'done':False,
+                       'output':self._buf, 'modified_files':modified_files}
+                self._buf = ''
+                self._session._output_callback(msg)
+                
+            def __del__(self):
+                self._session._output_callback({'exec_id':exec_id, 'done':True})
+
+        self._curpath = streaming_execute(self._curpath, code, self._namespace,
+                                          OutStream(self, 0.1))
+        return exec_id
+    
+        
+
+def blocking_execute(path, code, namespace):
+    r"""
+    Change current directory to path, then execute code in the
+    namespace.  Return the output of executing the code and the new
+    path.
+
+    INPUT:
+    - ``path`` -- path in which to run code
+    - ``code`` -- code to run
+    - ``namespace`` -- namespace in which to exec the code
+
+    OUTPUT:
+
+    - the output (with stdout and stderr mixed) of exec'ing
+      the code, and of course the namespace may be modified.
+    - the path after executing the code
+
+    EXAMPLES::
+
+        >>> g = {}; output, path = blocking_execute('.', 'a=2\nb=3\nprint(a*b)', g)
+        >>> output
+        '6\n'
+        >>> path == os.path.abspath(os.curdir)
+        True
+        >>> g.keys()
+        ['__builtins__', 'a', 'b']
+        >>> g['a'], g['b']
+        (2, 3)
+    """
+    outstream = StringIO.StringIO()
+    newpath = streaming_execute(path, code, namespace, outstream)
+    return outstream.getvalue(), newpath
+
+def streaming_execute(path, code, namespace, outstream):
+    r"""
+    Change current directory to path, then execute code in the
+    namespace.  Return the output of executing the code and the new
+    path.
+
+    INPUT:
+    - ``path`` -- path in which to run code
+    - ``code`` -- code to run
+    - ``namespace`` -- namespace in which to exec the code
+    - ``outstream`` -- where to write output as it appears
+
+    OUTPUT:
+
+    - the path after executing the code
+
+    EXAMPLES::
+
+        >>> outstream = StringIO.StringIO()
+        >>> g = {}; path = streaming_execute('.', 'a=2\nb=3\nprint(a*b)', g, outstream)
+        >>> outstream.getvalue()
+        '6\n'
+        >>> path = streaming_execute('.', 'print("hello")', g, outstream)
+        >>> outstream.getvalue()
+        '6\nhello\n'
+    """
+    stdout = sys.stdout
+    stderr = sys.stderr
+    sys.stdout = outstream
+    sys.stderr = outstream
+    curdir = os.path.abspath(os.curdir)
+    try:
+        os.chdir(path)
+        exec code in namespace
+    except:
+        outstream.write(repr(sys.exc_info()[1]))
+    finally:
+        newpath = os.path.abspath(os.curdir)
+        os.chdir(curdir)
+        sys.stdout = stdout
+        sys.stderr = stderr
+        outstream.flush()
+
+    return newpath
+
+
+
 class PathTree(object):
     """
     Watches the tree of files in a path.
@@ -542,55 +689,7 @@ class PathTree(object):
             return modified_files
 
 
-def blocking_execute(path, code, namespace):
-    r"""
-    Change current directory to path, then execute code in the
-    namespace.  Return the output of executing the code and the new
-    path.
 
-    INPUT:
-    - ``path`` -- path in which to run code
-    - ``code`` -- code to run
-    - ``namespace`` -- namespace in which to exec the code
-
-    OUTPUT:
-
-    - the output (with stdout and stderr mixed) of exec'ing
-      the code, and of course the namespace may be modified.
-    - the path after executing the code
-
-    EXAMPLES::
-
-        >>> g = {}; output, path = blocking_execute('.', 'a=2\nb=3\nprint(a*b)', g)
-        >>> output
-        '6\n'
-        >>> path == os.path.abspath(os.curdir)
-        True
-        >>> g.keys()
-        ['__builtins__', 'a', 'b']
-        >>> g['a'], g['b']
-        (2, 3)
-    """
-    out = StringIO.StringIO()
-
-    stdout = sys.stdout
-    stderr = sys.stderr
-    sys.stdout = out
-    sys.stderr = out
-    curdir = os.path.abspath(os.curdir)
-
-    try:
-        os.chdir(path)
-        exec code in namespace
-    except:
-        out.write(repr(sys.exc_info()[1]))
-    finally:
-        newpath = os.path.abspath(os.curdir)
-        os.chdir(curdir)
-        sys.stdout = stdout
-        sys.stderr = stderr
-
-    return out.getvalue(), newpath
 
 
 ################################
