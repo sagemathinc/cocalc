@@ -62,7 +62,10 @@ Components:
     [     running on same machine ]
 
  [ ] define simplest possible message protocol between frontend and
-     python process:
+     python process and implement message protocol between frontend
+     and python process
+
+Approach 1: zeromq
 
      Using zeromq's REQ/REP pattern we do the following:
 
@@ -83,8 +86,51 @@ Components:
              - when session calls frontend done url, it sends next
                block of code that is ready for evaluation to session,
                if there is any.
-             
- [ ] implement message protocol between frontend and python process
+
+-- experiments show that something using zmq can work.  However, I'm
+   not convinced it is the best approach.  Let's try a demo with a
+   pure service-based HTTP approach. So...
+
+Approach 2: HTTP-based approach
+
+1. Start an HTTP session service
+
+    python http_session.py WORK_URL OUTPUT_URL
+
+      WORK_URL = url to get more work
+      OUTPUT_URL = url to send output to
+     
+This will itself be an http server.  To get it to do work, one does a
+POST request to the / path.  It immediately returns from the POST
+request some "ok" response.  Then it stops being an http server and
+starts exec'ing a block of code.  As output is produced, it is sent to
+the OUTPUT_URL via POST's (using urllib2).  Once the code is done
+being evaluated, it GET's the WORK_URL, which establishes that it is
+done. The result of the GET to the WORK_URL may be another block of
+code to execute, in which case the code execution starts again.  Or
+the result may be a message to "stand by" (etc.).  In that case, it
+switches back to webserver mode, as above.
+
+2. Start a frontend service
+
+    python http_frontend.py 
+
+This will be a (maybe) multithreaded (partially) scalable http
+server. It does not have to scale up that much really.  It provides
+the session API. When asked for a new session, it will start a
+session_http.py process as in 1 above, with WORK_URL itself and
+OUTPUT_URL as requested.  It deals with all file put/get/delete
+itself.  When asked to execute code it:
+
+    * checks if session is in wait state (stored in database); if so,
+      POST's code to the / URL of session
+    * if session is running, it saves code to a database
+    * when WORK_URL is hit, it checks database for code that needs to
+      be executed; if there is any, it returns that.  If not, it sets
+      (in database) that session is in wait state.
+
+
+
 
  [ ] write unit/doctests for messaging
  [ ] define the data model for the frontend
