@@ -19,17 +19,63 @@ Components
 
   API: 
 
-   - new_session(push_protocol) --> id
+   - new_session(push) --> id
 
-   - execute(id, code)
+   - execute(id, code) --> exec_id
    - interrupt(id)
    - status(id)
 
-   - put(id, path, content)
-   - get(id, path)
-   - delete(id, path)
-   - files(id)
+   - put(id, path, content):  creates file
+   - get(id, path)     --> file
+   - delete(id, path) 
+   - files(id)         --> list of filenames
    
+- simple.py -- a reference implementation of the above API.       
 
-       
-     
+NEXT PLAN: Implement scalable http-based version of the above API. 
+
+Components:
+
+  - frontend_XXX.py -- A scalable web server that provides each of the
+    above functions.  Scalable in the sense that it will of necessity
+    queue up computations in a SQLAlchemy-based database and use
+    memcache.
+
+    [ hundreds of requests per second ]
+    [     from appengine (say)        ]
+
+                /|\
+                 |
+                 | http
+                 |
+                \|/
+
+            [frontend]    (one frontend for each compute machine)
+
+               /|||\
+                |||
+                |||    zeromq?
+                |||
+               \|||/
+
+    [ 10-100s of Python processes (as different uid than frontend) ]
+    [     running on same machine ]
+
+ [ ] define simplest possible message protocol between frontend and
+     python process:
+
+         frontend --> process:
+              - execute(code)
+
+         process --> frontend:
+              - put(my_id, mesg)
+                 mesg = {'output':..., 'modified_files':..., 'done':...}
+             
+ [ ] implement message protocol between frontend and python process
+
+ [ ] write unit/doctests for messaging
+ [ ] define the data model for the frontend
+ [ ] write sqlalchemy code for the frontend model
+ [ ] implement using flask the frontend webserver
+ [ ] write unit/doctests for frontend
+
