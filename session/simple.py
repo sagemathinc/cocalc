@@ -478,6 +478,10 @@ class SimpleSession(object):
         return self._pathtree.files()
 
 class SimpleStreamingSession(SimpleSession):
+    def __init__(self, id, output_callback, flush_interval=0.05):
+        self._flush_interval = flush_interval
+        SimpleSession.__init__(self, id, output_callback)
+
     def execute(self, code):
         r"""
         EXAMPLES::
@@ -521,7 +525,7 @@ class SimpleStreamingSession(SimpleSession):
                 self._session._output_callback({'exec_id':exec_id, 'done':True})
 
         self._curpath = streaming_execute(self._curpath, code, self._namespace,
-                                          OutStream(self, 0.05))
+                                          OutStream(self, self._flush_interval))
         return exec_id
     
         
