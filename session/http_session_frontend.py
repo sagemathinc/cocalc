@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 app_port = 5000 # default
 
-from http_session import post
+from http_session import get, post
 
 import frontend_db_model as db
 
@@ -115,13 +115,16 @@ def execute(id):
 
 @app.route('/ready/<int:id>')
 def ready(id):
-    # running compute session has finished whatever it was doing and
-    # is now ready.
+
+    # The compute session has finished whatever it was doing and is
+    # nearly ready for more.  If there is anything left to do, tell it
+    # to do all that; otherwise, tell it to wait for a new request
+    # when it comes later.
     S = db.session()
     session = S.query(db.Session).filter_by(id=id).one()
 
     # if there is anything to compute for this session, start it going.
-    if session.last_active_exec_id < session.next_exec_id-1:
+    if session.last_active_exec_id+1 < session.next_exec_id:
         # get next cell to compute
         cell = S.query(db.Cell).filter_by(exec_id = session.last_active_exec_id + 1,
                                           session_id=session.id).one()
@@ -192,15 +195,15 @@ def status(id):
     return ''
 
 @app.route('/put/<int:id>/<path>', methods=['POST'])
-def put(id, path):
+def put_file(id, path):
     return ''
 
 @app.route('/get/<int:id>/<path>')
-def get(id, path):
+def get_file(id, path):
     return ''
 
 @app.route('/delete/<int:id>/<path>')
-def delete(id, path):
+def delete_file(id, path):
     return ''
 
 @app.route('/files/<int:id>')
@@ -249,3 +252,24 @@ if __name__ == '__main__':
     except:
         pass
     
+########################
+class TestAPI(object):
+    def __init__(self, port):
+        self._port = port
+        self._url = 'http://localhost:%s'%port
+        
+    def new_session(self):
+        return get('%s/new_session'%self._url)
+    
+    def execute(self, session_id, code):
+        return post('%s/execute/%s'%(self._url, session_id), {'code':code}, read=True)
+
+    def sigint(self, session_id):
+        return get('%s/sigint/%s'%(self._url, session_id))
+
+    def sigkill(self, session_id):
+        return get('%s/sigkill/%s'%(self._url, session_id))
+
+    def cells(self, session_id):
+        return get('%s/cells/%s'%(self._url, session_id))
+        

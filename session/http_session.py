@@ -13,6 +13,12 @@ def post(url, data, read=False, timeout=10):
     r = urllib2.urlopen(urllib2.Request(url, urllib.urlencode(data)), timeout=timeout)
     if read:
         return r.read()
+
+def get(url, data=None, timeout=10):
+    if data is not None:
+        url += '?' + urllib.urlencode(data)
+    return urllib2.urlopen(url, timeout=timeout).read()
+
     
 ##############################
 # compute session object
@@ -73,10 +79,16 @@ class ComputeSession(object):
                 code = self._postvars['code'][0]
                 self.log("code = ", code)
                 self._session.execute(code)
-                # report that we are done, and get next task if there is one
-                code = urllib2.urlopen(self._frontend_url).read()
+                # get next task if there is one
+                code = get(self._frontend_url)
+                # TODO: code should be JSON (or something) list of tasks, not just one;
+                # TODO: and of course empty strings should be allowed as input.
                 while code:
                     self._session.execute(code)
+                    code = get(self._frontend_url)
+                # no more tasks: we go back to top of while loop and
+                # which means switching back into webserver state
+                
 
     def output(self, msg):
         post(self._output_url, msg, timeout=60)

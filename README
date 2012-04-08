@@ -1,6 +1,6 @@
 
-Sage Workspace
---------------
+The Sage Workspace
+------------------
 
 https://github.com/williamstein/sagews
 
@@ -9,6 +9,11 @@ AUTHORS:
 
 COPYRIGHT: Modified BSD
 
+DEPENDENCIES:
+
+  * flask (hence jinja2)
+  * sqlalchemy
+  * 
 
 
 Components
