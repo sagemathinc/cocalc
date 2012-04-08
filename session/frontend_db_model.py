@@ -17,7 +17,7 @@ class Session(Base):
     url = Column(String)
     status = Column(String)
     next_exec_id = Column(Integer)
-    cells = relation("Cell", backref='session', cascade='all, delete, delete-orphan')
+    cells = relation("Cell", backref='session')#, cascade='all, delete, delete-orphan')
     
     def __init__(self, id, pid, path, url, status='ready', next_exec_id=0):
         self.id = int(id)
@@ -52,15 +52,16 @@ class Cell(Base):
         return "Cell(%s, session_id=%s, input='%s', output='%s', modified_files='%s')"%(
             self.exec_id, self.session_id, self.input, self.output, self.modified_files)
 
-def create():
-    # TODO: should be a tempfile
-    os.unlink('frontend.sqlite3')
-    Base.metadata.create_all(engine)
+def drop_all():
+    Base.metadata.drop_all(engine)
 
 def session():
     from sqlalchemy.orm import sessionmaker
     Session = sessionmaker(bind=engine)
     return Session()
+
+def create():
+    Base.metadata.create_all(engine)
 
 
 

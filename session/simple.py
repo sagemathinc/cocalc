@@ -56,7 +56,8 @@ class SimpleSessionServer(object):
     def new_session(self, output_callback=None):
         """
         INPUT:
-        - ``output_callback`` -- None (system fallback) or callable that takes as input a single argument
+        - ``output_callback`` -- None (system fallback) or callable
+          that takes as input a single argument
 
         EXAMPLES::
 
@@ -194,7 +195,7 @@ class SimpleSessionServer(object):
 
 
 class SimpleSession(object):
-    def __init__(self, id, output_callback):
+    def __init__(self, id, output_callback, execpath=None):
         """
         EXAMPLES::
 
@@ -209,7 +210,7 @@ class SimpleSession(object):
         self._exec_id = 0
         self._namespace = {}
         self._output_callback = output_callback
-        self._execpath = tempfile.mkdtemp()
+        self._execpath = tempfile.mkdtemp() if execpath is None else execpath
         self._curpath = self._execpath
         self._pathtree = PathTree(self._execpath)
 
@@ -478,9 +479,9 @@ class SimpleSession(object):
         return self._pathtree.files()
 
 class SimpleStreamingSession(SimpleSession):
-    def __init__(self, id, output_callback, flush_interval=0.05):
+    def __init__(self, id, output_callback, flush_interval=0.05, execpath=None):
         self._flush_interval = flush_interval
-        SimpleSession.__init__(self, id, output_callback)
+        SimpleSession.__init__(self, id, output_callback, execpath=execpath)
 
     def execute(self, code):
         r"""

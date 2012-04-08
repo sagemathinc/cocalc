@@ -2,7 +2,9 @@
 HTTP Session Service
 """
 
-import os, subprocess, sys, time, urllib2
+import os, subprocess, sys, tempfile, time, urllib2
+
+from sqlalchemy.exc import OperationalError
 
 from flask import Flask, request
 app = Flask(__name__)
@@ -13,47 +15,39 @@ from http_session import post
 
 import frontend_db_model as db
 
-def launch_compute_session(url, output_url='debug', timeout=1):
+def launch_compute_session(url, output_url='debug'):
     """
     Launch a compute server listening on the given port, and return
     its UNIX process id and absolute path.
     """
     if output_url == 'debug':
         output_url = "http://localhost:%s/debug"%app_port
+    execpath = tempfile.mkdtemp()
     args = ['python',
             'http_session.py',
             url, 
             'http://localhost:%s/ready/0'%app_port,
-            output_url]
+            output_url,
+            execpath]
     pid = subprocess.Popen(args).pid
     t = time.time()
-    return pid, '/tmp/'
-    # TODO: GET RID OF CRAP BELOW -- instead pass in a temp dir!
-    while True:
-        try:
-            path = urllib2.urlopen('%s/execpath'%url).read()
-            break
-        except urllib2.URLError, msg:
-            if time.time() - t >= timeout:
-                try:
-                    os.kill(pid, 9)
-                except OSError:
-                    pass
-                return -1, None
-            time.sleep(0.01)
-    return pid, path
+    return pid, execpath
 
-def kill_compute_sessions():
+def cleanup_sessions():
     S = db.session()
-    for z in S.query(db.Session).all():
+    sessions = S.query(db.Session).all()
+    for z in sessions:
         try:
             print "Sending kill -9 signal to %s"%z.pid
             os.kill(z.pid, 9)
-            # TODO: clean up temp dir
-            os.unlink(z.path)
-        except OSError:
+            if os.path.exists(z.path):
+                shutil.rmtree(z.path)
+        except:
             pass
-
+        finally:
+            S.delete(z)
+            S.commit()
+    
 @app.route('/new_session')
 def new_session():
     # TODO: add ability to specify the output url
@@ -130,10 +124,16 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         print "Usage: %s port"%sys.argv[0]
         sys.exit(1)
-    app_port = int(sys.argv[1])
+
     db.create()
+    cleanup_sessions()
+    app_port = int(sys.argv[1])
+    app.run(debug=True, port=app_port)
+    
+    # TODO: this is wrong below with the try/except, and
+    # has something to do with how flask is threaded, maybe.
     try:
-        app.run(debug=True, port=app_port)
-    finally:
-        kill_compute_sessions()
+        cleanup_sessions()
+    except:
+        pass
     

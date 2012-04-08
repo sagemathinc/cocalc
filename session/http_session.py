@@ -19,7 +19,7 @@ def post(url, data, read=False):
 ##############################
 
 class ComputeSession(object):
-    def __init__(self, url, frontend_url, output_url):
+    def __init__(self, url, frontend_url, output_url, execpath):
         class Handler(BaseHTTPRequestHandler):
             session = self
             def do_GET(self):
@@ -50,8 +50,9 @@ class ComputeSession(object):
         self._output_url = output_url
         port = int(url.split(':')[-1])
         # TODO: the '' in the next line is probably wrong
-        self._server = HTTPServer(('', int(port)), Handler)
-        self._session = SimpleStreamingSession(0, lambda msg: self.output(msg))
+        self._server  = HTTPServer(('', int(port)), Handler)
+        self._session = SimpleStreamingSession(
+                          0, lambda msg: self.output(msg), execpath=execpath)
 
     def run(self):
         while True:
@@ -75,12 +76,13 @@ class ComputeSession(object):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print "Usage: %s URL FRONTEND_URL OUTPUT_URL"%sys.argv[0]
+    if len(sys.argv) != 5:
+        print "Usage: %s URL FRONTEND_URL OUTPUT_URL EXEC_PATH"%sys.argv[0]
         sys.exit(1)
-    url = sys.argv[1]
+    url          = sys.argv[1]
     frontend_url = sys.argv[2]
-    output_url = sys.argv[3]
-    S = ComputeSession(url, frontend_url, output_url)
+    output_url   = sys.argv[3]
+    execpath     = sys.argv[4]
+    S = ComputeSession(url, frontend_url, output_url, execpath)
     S.run()
     
