@@ -127,6 +127,18 @@ def ready(id):
             return 'dead'
     return 'ok'
 
+@app.route('/cells/')
+def all_cells():
+    # TODO -- JSON and/or proper templates
+    S = db.session()
+    s = '<pre>'
+    for C in S.query(db.Cell).order_by(db.Cell.session_id, db.Cell.exec_id).all():
+        s += '<a href="%s">(session %s)</a> '%(C.session_id, C.session_id)
+        s += str(C) + '\n\n'
+    s += '</pre>'
+    return s
+    
+
 @app.route('/cells/<int:id>')
 def cells(id):
     S = db.session()
@@ -167,11 +179,17 @@ def output(id):
     if request.method == 'POST':
         print request.form
         S = db.session()
-        cell = S.query(db.Cell).filter_by(exec_id=request.form['exec_id'], session_id=id).one()
-        if cell.output is None:
-            cell.output = str(request.form)
-        else:
-            cell.output += str(request.form)
+        m = request.form
+        exec_id = m['exec_id']
+        cell = S.query(db.Cell).filter_by(exec_id=exec_id, session_id=id).one()
+        msg = db.OutputMsg(number=len(cell.output), exec_id=exec_id, session_id=id)
+        if 'done' in m:
+            msg.done = m['done']
+        if 'output' in m:
+            msg.output = m['output']
+        if 'modified_files' in m:
+            msg.modified_files = m['modified_files']
+        cell.output.append(msg)
         S.commit()
         return 'ok'
     return 'error'
