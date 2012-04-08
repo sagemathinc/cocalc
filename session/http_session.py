@@ -66,7 +66,7 @@ class ComputeSession(object):
                 print "code = ", code
                 self._session.execute(code)
                 # done
-                urllib2.urlopen(self._frontend_url)
+                urllib2.urlopen(self._frontend_url).read()
 
     def output(self, msg):
         post(self._output_url, msg)

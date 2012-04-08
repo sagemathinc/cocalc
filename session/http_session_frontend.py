@@ -15,18 +15,18 @@ from http_session import post
 
 import frontend_db_model as db
 
-def launch_compute_session(url, output_url='debug'):
+def launch_compute_session(url, id=id, output_url='output'):
     """
     Launch a compute server listening on the given port, and return
     its UNIX process id and absolute path.
     """
-    if output_url == 'debug':
-        output_url = "http://localhost:%s/debug"%app_port
+    if output_url == 'output':
+        output_url = "http://localhost:%s/output/%s"%(app_port, id)
     execpath = tempfile.mkdtemp()
     args = ['python',
             'http_session.py',
             url, 
-            'http://localhost:%s/ready/0'%app_port,
+            'http://localhost:%s/ready/%s'%(app_port, id),
             output_url,
             execpath]
     pid = subprocess.Popen(args).pid
@@ -64,7 +64,7 @@ def new_session():
         print last_session
     url = 'http://localhost:%s'%port
     print url
-    pid, path = launch_compute_session(url)
+    pid, path = launch_compute_session(url=url, id=id)
     if pid == -1:
         return "fail"
     session = db.Session(id, pid, path, url)
@@ -78,22 +78,66 @@ def execute(id):
         if request.form.has_key('code'):
             code = request.form['code']
             print "code = '%s'"%code
-            s = db.session()
-            z = s.query(db.Session).filter_by(id=id).one()
-            print z
-            # TODO: decide what to do based on status...
-            try:
-                post(z.url, {'code':code})
-                return 'ok'
-            except urllib2.URLError:
-                # session not started for some reason
-                return 'error - no session'
-    return 'error - nothing done'
+            S = db.session()
+            # todo: handle invalid id
+            session = S.query(db.Session).filter_by(id=id).one()
+            print session
+            # store code in database.
+            cell = db.Cell(session.next_exec_id, session.id, code)
+            session.cells.append(cell)
+            # increment id for next code execution
+            session.next_exec_id += 1
+            # commit our *transaction* -- if things go wrong, definitely
+            # don't want any of the above db stuff to happen
+            S.commit()
+            if session.status == 'ready':
+                try:
+                    session.last_active_exec_id = cell.exec_id
+                    post(session.url, {'code':code})  # todo -- timeout?
+                    S.commit()  
+                    return 'running'
+                except urllib2.URLError:
+                    # session not alive and responding -- client can decide how to handle
+                    return 'dead'
+            else:
+                # do nothing -- the calculation is enqueued in the database
+                # and will get run when the running session tells  us it is
+                # no longer running.
+                return 'enqueued'
 
 @app.route('/ready/<int:id>')
 def ready(id):
-    return ''
+    # running compute session has finished whatever it was doing and
+    # is now ready.
+    S = db.session()
+    session = S.query(db.Session).filter_by(id=id).one()
+    session.status = 'ready'
+    S.commit()
+    # if there is anything to compute for this session, start it going.
+    if session.last_active_exec_id < session.next_exec_id-1:
+        try:
+            # get next cell to compute
+            cell = S.query(db.Cell).filter_by(exec_id = session.last_active_exec_id + 1,
+                                              session_id=session.id).one()
+            session.last_active_exec_id = cell.exec_id
+            post(session.url, {'code':cell.code})  # todo -- timeout
+            S.commit()
+            return 'running'
+        except urllib2.URLError:
+            return 'dead'
+    return 'ok'
 
+@app.route('/cells/<int:id>')
+def cells(id):
+    S = db.session()
+    session = S.query(db.Session).filter_by(id=id).one()
+    # TODO -- JSON and/or proper templates
+    s = '<pre>'
+    for C in session.cells:
+        s += str(C) + '\n\n'
+    s += '</pre>'
+    return s
+    
 @app.route('/interrupt/<int:id>')
 def interrupt(id):
     return ''
@@ -118,11 +162,19 @@ def delete(id, path):
 def files(id):
     return ''
 
-@app.route('/debug', methods=['POST'])
-def debug():
+@app.route('/output/<int:id>', methods=['POST'])
+def output(id):
     if request.method == 'POST':
         print request.form
-    return ''
+        S = db.session()
+        cell = S.query(db.Cell).filter_by(exec_id=request.form['exec_id'], session_id=id).one()
+        if cell.output is None:
+            cell.output = str(request.form)
+        else:
+            cell.output += str(request.form)
+        S.commit()
+        return 'ok'
+    return 'error'
 
 
 if __name__ == '__main__':
