@@ -124,14 +124,26 @@ itself.  When asked to execute code it:
 
     * checks if session is in wait state (stored in database); if so,
       POST's code to the / URL of session
-    * if session is running, it saves code to a database
+    * if session is running a computation now, it saves code to a database for later
     * when FRONTEND_URL is hit, it checks database for code that needs to
-      be executed; if there is any, it returns that.  If not, it sets
-      (in database) that session is in wait state.
+      be executed; if there is any, it executes that.   If not, it sets
+      (in database) that session is in 'ready' state.
 
 Data Model:
-  
 
+sessions
+   - id  (integer >= 0)
+   - pid (UNIX process id)
+   - path (e.g., '/tmp/foo/bar')
+   - url (e.g., 'http://localhost:5000')
+   - status ('running' or 'ready' or 'dead')
+   - exec_id -- next exec_id (starts at 0)
+
+code
+   - exec_id -- the exec_id it will have when it is finally run
+   - session_id  -- ForiegnKey (id of sessions table above)
+   - input -- the actual code to evaluate
+   - output -- usually blank (used in mode when frontend also stores results)
 
 
 

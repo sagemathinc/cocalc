@@ -2,19 +2,45 @@
 HTTP Session Service
 """
 
-import urllib2
+import subprocess, sys, time, urllib2
 
 from flask import Flask, request
 app = Flask(__name__)
 
+app_port = 5000 # default
+
 from http_session import post
 
-"""
-python http_session.py 5100 http://localhost:5000/waiting/0 http://localhost:5000/debug
-from http_session import ComputeSession
-S = ComputeSession(5100, 'http://localhost:5000/waiting/0', 'http://localhost:5000/debug')
-S.run()
-"""
+
+def launch_compute_session(port, output_url='debug', timeout=5):
+    """
+    Launch a compute server listening on the given port, and return
+    its UNIX process id and absolute path.
+    """
+    if output_url == 'debug':
+        output_url = "http://localhost:%s/debug"%app_port
+    args = ['python',
+            'http_session.py', str(port), 
+            'http://localhost:%s/ready/0'%app_port,
+            output_url]
+    pid = subprocess.Popen(args).pid
+    t = time.time()
+    # TODO: GET RID OF CRAP BELOW -- instead pass in a temp dir!
+    while True:
+        try:
+            path = urllib2.urlopen('http://localhost:%s/execpath'%port).read()
+            break
+        except urllib2.URLError, msg:
+            if time.time() - t >= timeout:
+                try:
+                    os.kill(pid, 9)
+                except OSError:
+                    pass
+                return
+            time.sleep(0.01)
+    return pid, path
+
+
 
 @app.route('/new_session')
 def new_session():
@@ -33,8 +59,8 @@ def execute(id):
                 return 'error - no session'
     return 'error - nothing done'
 
-@app.route('/waiting/<int:id>')
-def waiting(id):
+@app.route('/ready/<int:id>')
+def ready(id):
     return ''
 
 @app.route('/interrupt/<int:id>')
@@ -69,4 +95,8 @@ def debug():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    if len(sys.argv) != 2:
+        print "Usage: %s port"%sys.argv[0]
+        sys.exit(1)
+    app_port = int(sys.argv[1])
+    app.run(debug=True, port=app_port)

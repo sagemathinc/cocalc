@@ -22,6 +22,15 @@ class ComputeSession(object):
     def __init__(self, port, frontend_url, output_url):
         class Handler(BaseHTTPRequestHandler):
             session = self
+            def do_GET(self):
+                if self.path == '/execpath':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(Handler.session._session._execpath)
+                else:
+                    self.send_error(404,'File Not Found: %s' % self.path)
+                    
             def do_POST(self):
                 try:
                     ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
@@ -45,6 +54,7 @@ class ComputeSession(object):
     def run(self):
         while True:
             print "waiting to handle a request on port %s"%self._port
+            self._postvars = {}
             self._server.handle_request()
             print self._postvars
             if self._postvars.has_key('code'):
@@ -69,6 +79,6 @@ if __name__ == '__main__':
     port = int(sys.argv[1])
     frontend_url = sys.argv[2]
     output_url = sys.argv[3]
-    S = ComputeSession(5100, frontend_url, output_url)
+    S = ComputeSession(port, frontend_url, output_url)
     S.run()
     
