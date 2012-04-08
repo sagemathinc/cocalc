@@ -152,9 +152,10 @@ code
 
 
 
+ [x] define the data model for the frontend
+ [x] write sqlalchemy code for the frontend model
+ [x] implement using flask the frontend webserver
+ [ ] polish 
  [ ] write unit/doctests for messaging
- [ ] define the data model for the frontend
- [ ] write sqlalchemy code for the frontend model
- [ ] implement using flask the frontend webserver
  [ ] write unit/doctests for frontend
 

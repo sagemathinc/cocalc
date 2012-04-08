@@ -4,7 +4,7 @@ HTTP Session Service
 killemall http_session.py; trash frontend.sqlite3; sage http_session_frontend.py 5000
 """
 
-import os, subprocess, sys, tempfile, time, urllib2
+import json, os, subprocess, sys, tempfile, time, urllib2
 
 from sqlalchemy.exc import OperationalError
 
@@ -97,7 +97,8 @@ def execute(id):
                     session.last_active_exec_id = cell.exec_id
                     session.status = 'running'
                     print "sending code to eval to compute session %s..."%session
-                    post(session.url, {'code':code}, timeout=10)
+                    cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
+                    post(session.url, {'cells':json.dumps(cells)}, timeout=10)
                     S.commit()  
                     return 'running'
                 except urllib2.URLError:
@@ -125,18 +126,25 @@ def ready(id):
 
     # if there is anything to compute for this session, start it going.
     if session.last_active_exec_id+1 < session.next_exec_id:
-        # get next cell to compute
-        cell = S.query(db.Cell).filter_by(exec_id = session.last_active_exec_id + 1,
-                                          session_id=session.id).one()
-        session.last_active_exec_id = cell.exec_id
+        # send all enqueued cells
+        cells = []
+        for cell in S.query(db.Cell).filter(db.Cell.exec_id >= session.last_active_exec_id + 1
+             ).filter(db.Cell.session_id == session.id).order_by(db.Cell.exec_id):
+        #for cell in S.query(db.Cell).filter(db.Cell.exec_id >= session.last_active_exec_id + 1,
+        #                                    db.Cell.session_id == session.id).order_by(db.Cell.exec_id):
+            cells.append({'code':cell.code, 'exec_id':cell.exec_id})
+        
+        session.last_active_exec_id = cells[-1]['exec_id']
         session.status = 'running'
         S.commit()
-        #todo: json message?
-        return cell.code
+        return json.dumps(cells)
+    
     else:
+        
         session.status = 'ready'
         S.commit()
-        return ''
+        # nothing more to do
+        return json.dumps([])
 
 @app.route('/sessions/')
 def all_sessins():

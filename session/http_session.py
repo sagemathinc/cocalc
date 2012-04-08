@@ -1,6 +1,7 @@
 
 
-import cgi, sys, urllib, urllib2
+import cgi, json, sys, urllib, urllib2
+
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from simple import SimpleStreamingSession
@@ -74,21 +75,28 @@ class ComputeSession(object):
             self.log('handle_request')
             self._server.handle_request()
             self.log(self._postvars)
-            if self._postvars.has_key('code'):
+            if self._postvars.has_key('cells'):
                 # the request resulted in a POST request with code to execute
-                code = self._postvars['code'][0]
-                self.log("code = ", code)
-                self._session.execute(code)
-                # get next task if there is one
-                code = get(self._frontend_url)
-                # TODO: code should be JSON (or something) list of tasks, not just one;
-                # TODO: and of course empty strings should be allowed as input.
-                while code:
-                    self._session.execute(code)
-                    code = get(self._frontend_url)
+                cells = json.loads(self._postvars['cells'][0])
+                self.log("cells = ", cells)
+                for cell in cells:
+                    # TODO: we are temporarily ignoring the double check of cell['exec_id']. Use it!
+                    self._session.execute(str(cell['code']))
+
+                # Next, get mores cells to evaluate, if there are some:
+                cells = json.loads(get(self._frontend_url))
+                self.log('more cells = ', cells)
+                while len(cells) > 0:
+                    for cell in cells:
+                        # TODO: we are temporarily ignoring the double check of cell['exec_id']. Use it!
+                        self._session.execute(str(cell['code']))
+                    cells = json.loads(get(self._frontend_url))
+                    self.log('even more cells = ', cells)
+
                 # no more tasks: we go back to top of while loop and
                 # which means switching back into webserver state
                 
+                # TODO: above code is way too redundant.  Needs clever refactoring!
 
     def output(self, msg):
         post(self._output_url, msg, timeout=60)
