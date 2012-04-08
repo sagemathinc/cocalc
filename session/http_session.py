@@ -19,7 +19,7 @@ def post(url, data, read=False):
 ##############################
 
 class ComputeSession(object):
-    def __init__(self, port, frontend_url, output_url):
+    def __init__(self, url, frontend_url, output_url):
         class Handler(BaseHTTPRequestHandler):
             session = self
             def do_GET(self):
@@ -45,15 +45,17 @@ class ComputeSession(object):
                     self.wfile.write('ok')
                 except IOError:
                     self.send_error(404,'File Not Found: %s' % self.path)
-        self._port = port
+        self._url = url
         self._frontend_url = frontend_url
         self._output_url = output_url
-        self._server = HTTPServer(('', port), Handler)
+        port = int(url.split(':')[-1])
+        # TODO: the '' in the next line is probably wrong
+        self._server = HTTPServer(('', int(port)), Handler)
         self._session = SimpleStreamingSession(0, lambda msg: self.output(msg))
 
     def run(self):
         while True:
-            print "waiting to handle a request on port %s"%self._port
+            print "waiting to handle a request: %s"%self._url
             self._postvars = {}
             self._server.handle_request()
             print self._postvars
@@ -74,11 +76,11 @@ class ComputeSession(object):
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print "Usage: %s port FRONTEND_URL OUTPUT_URL"%sys.argv[0]
+        print "Usage: %s URL FRONTEND_URL OUTPUT_URL"%sys.argv[0]
         sys.exit(1)
-    port = int(sys.argv[1])
+    url = sys.argv[1]
     frontend_url = sys.argv[2]
     output_url = sys.argv[3]
-    S = ComputeSession(port, frontend_url, output_url)
+    S = ComputeSession(url, frontend_url, output_url)
     S.run()
     

@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy import create_engine
 engine = create_engine('sqlite:///frontend.sqlite3')
 
@@ -50,10 +52,15 @@ class Cell(Base):
         return "Cell(%s, session_id=%s, input='%s', output='%s', modified_files='%s')"%(
             self.exec_id, self.session_id, self.input, self.output, self.modified_files)
 
-Base.metadata.create_all(engine) 
+def create():
+    # TODO: should be a tempfile
+    os.unlink('frontend.sqlite3')
+    Base.metadata.create_all(engine)
 
 def session():
     from sqlalchemy.orm import sessionmaker
     Session = sessionmaker(bind=engine)
     return Session()
+
+
 
