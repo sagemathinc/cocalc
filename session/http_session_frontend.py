@@ -74,15 +74,15 @@ def new_session():
     S.commit()
     return str(id)
 
-@app.route('/execute/<int:id>', methods=['POST'])
-def execute(id):
+@app.route('/execute/<int:session_id>', methods=['POST'])
+def execute(session_id):
     if request.method == 'POST':
         if request.form.has_key('code'):
             code = request.form['code']
-            print "code = '%s'"%code
+            
             S = db.session()
-            # todo: handle invalid id
-            session = S.query(db.Session).filter_by(id=id).one()
+            # todo: handle invalid session_id
+            session = S.query(db.Session).filter_by(id=session_id).one()
             if session.status == 'dead':
                 return 'dead'
             # store code in database.
@@ -90,8 +90,7 @@ def execute(id):
             session.cells.append(cell)
             # increment id for next code execution
             session.next_exec_id += 1
-            S.commit()
-            
+
             if session.status == 'ready':
                 try:
                     session.last_active_exec_id = cell.exec_id
@@ -99,13 +98,13 @@ def execute(id):
                     print "sending code to eval to compute session %s..."%session
                     cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
                     post(session.url, {'cells':json.dumps(cells)}, timeout=10)
-                    S.commit()  
                     return 'running'
                 except urllib2.URLError:
                     # session not alive and responding as we thought it would be doing
                     session.status = 'dead'
-                    S.commit()
                     return 'dead'
+                finally:
+                    S.commit()
             elif session.status == 'running':
                 # do nothing -- the calculation is enqueued in the database
                 # and will get run when the running session tells  us it is
@@ -173,12 +172,10 @@ def all_cells():
 def cells(id):
     S = db.session()
     session = S.query(db.Session).filter_by(id=id).one()
-    # TODO -- JSON and/or proper templates
-    s = '<pre>'
-    for C in session.cells:
-        s += str(C) + '\n\n'
-    s += '</pre>'
-    return s
+    return json.dumps([{'exec_id':c.exec_id, 'code':c.code,
+                'output':[{'done':o.done, 'output':o.output,
+                           'modified_files':o.modified_files} for o in c.output]}
+                for c in session.cells])
     
 @app.route('/sigint/<int:id>')
 def signal_interrupt(id):
@@ -251,7 +248,7 @@ if __name__ == '__main__':
     db.create()
     cleanup_sessions()
     app_port = int(sys.argv[1])
-    app.run(debug=True, port=app_port)
+    app.run(debug=False, port=app_port)
     
     # TODO: this is wrong below with the try/except, and
     # has something to do with how flask is threaded, maybe.
@@ -279,5 +276,5 @@ class TestAPI(object):
         return get('%s/sigkill/%s'%(self._url, session_id))
 
     def cells(self, session_id):
-        return get('%s/cells/%s'%(self._url, session_id))
+        return json.loads(get('%s/cells/%s'%(self._url, session_id)))
         

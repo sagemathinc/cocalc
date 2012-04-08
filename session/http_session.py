@@ -1,4 +1,4 @@
-
+LOG = False
 
 import cgi, json, sys, urllib, urllib2
 
@@ -65,8 +65,9 @@ class ComputeSession(object):
                           0, lambda msg: self.output(msg), execpath=execpath)
 
     def log(self, *msg):
-        # todo -- proper logging
-        open('logs/%s'%self._port,'a').write(''.join([str(x) for x in msg]) + '\n')
+        if LOG:
+            # todo -- proper logging
+            open('logs/%s'%self._port,'a').write(''.join([str(x) for x in msg]) + '\n')
 
     def run(self):
         while True:
