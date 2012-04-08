@@ -77,8 +77,13 @@ def execute(id):
     if request.method == 'POST':
         if request.form.has_key('code'):
             code = request.form['code']
+            print "code = '%s'"%code
+            s = db.session()
+            z = s.query(db.Session).filter_by(id=id).one()
+            print z
+            # TODO: decide what to do based on status...
             try:
-                post('http://localhost:5100', {'code':code})
+                post(z.url, {'code':code})
                 return 'ok'
             except urllib2.URLError:
                 # session not started for some reason
