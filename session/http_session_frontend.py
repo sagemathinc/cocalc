@@ -1,5 +1,7 @@
 """
 HTTP Session Service
+
+killemall http_session.py; trash frontend.sqlite3; sage http_session_frontend.py 5000
 """
 
 import os, subprocess, sys, tempfile, time, urllib2
@@ -81,29 +83,35 @@ def execute(id):
             S = db.session()
             # todo: handle invalid id
             session = S.query(db.Session).filter_by(id=id).one()
-            print session
+            if session.status == 'dead':
+                return 'dead'
             # store code in database.
             cell = db.Cell(session.next_exec_id, session.id, code)
             session.cells.append(cell)
             # increment id for next code execution
             session.next_exec_id += 1
-            # commit our *transaction* -- if things go wrong, definitely
-            # don't want any of the above db stuff to happen
             S.commit()
+            
             if session.status == 'ready':
                 try:
                     session.last_active_exec_id = cell.exec_id
-                    post(session.url, {'code':code})  # todo -- timeout?
+                    session.status = 'running'
+                    print "sending code to eval to compute session %s..."%session
+                    post(session.url, {'code':code}, timeout=10)
                     S.commit()  
                     return 'running'
                 except urllib2.URLError:
-                    # session not alive and responding -- client can decide how to handle
+                    # session not alive and responding as we thought it would be doing
+                    session.status = 'dead'
+                    S.commit()
                     return 'dead'
-            else:
+            elif session.status == 'running':
                 # do nothing -- the calculation is enqueued in the database
                 # and will get run when the running session tells  us it is
                 # no longer running.
                 return 'enqueued'
+            else:
+                raise RuntimeError, "invalid session status (='%s')"%session.status
 
 @app.route('/ready/<int:id>')
 def ready(id):
@@ -111,21 +119,32 @@ def ready(id):
     # is now ready.
     S = db.session()
     session = S.query(db.Session).filter_by(id=id).one()
-    session.status = 'ready'
-    S.commit()
+
     # if there is anything to compute for this session, start it going.
     if session.last_active_exec_id < session.next_exec_id-1:
-        try:
-            # get next cell to compute
-            cell = S.query(db.Cell).filter_by(exec_id = session.last_active_exec_id + 1,
-                                              session_id=session.id).one()
-            session.last_active_exec_id = cell.exec_id
-            post(session.url, {'code':cell.code})  # todo -- timeout
-            S.commit()
-            return 'running'
-        except urllib2.URLError:
-            return 'dead'
-    return 'ok'
+        # get next cell to compute
+        cell = S.query(db.Cell).filter_by(exec_id = session.last_active_exec_id + 1,
+                                          session_id=session.id).one()
+        session.last_active_exec_id = cell.exec_id
+        session.status = 'running'
+        S.commit()
+        #todo: json message?
+        return cell.code
+    else:
+        session.status = 'ready'
+        S.commit()
+        return ''
+
+@app.route('/sessions/')
+def all_sessins():
+    # TODO -- JSON and/or proper templates
+    S = db.session()
+    s = '<pre>'
+    for session in S.query(db.Session).order_by(db.Session.id).all():
+        s += '<a href="/cells/%s">(cells)</a> '%session.id
+        s += str(session) + '\n\n'
+    s += '</pre>'
+    return s
 
 @app.route('/cells/')
 def all_cells():
@@ -150,9 +169,23 @@ def cells(id):
     s += '</pre>'
     return s
     
-@app.route('/interrupt/<int:id>')
-def interrupt(id):
-    return ''
+@app.route('/sigint/<int:id>')
+def signal_interrupt(id):
+    # todo: add error handling
+    S = db.session()
+    session = S.query(db.Session).filter_by(id=id).one()
+    os.kill(session.pid, 2)  # 2 = INT
+    return 'ok'
+
+@app.route('/sigkill/<int:id>')
+def signal_kill(id):
+    # todo: add error handling
+    S = db.session()
+    session = S.query(db.Session).filter_by(id=id).one()
+    os.kill(session.pid, 9)  # 9 = KILL
+    session.status = 'dead'
+    S.commit()
+    return 'ok'
 
 @app.route('/status/<int:id>')
 def status(id):
@@ -178,19 +211,23 @@ def files(id):
 def output(id):
     if request.method == 'POST':
         print request.form
-        S = db.session()
-        m = request.form
-        exec_id = m['exec_id']
-        cell = S.query(db.Cell).filter_by(exec_id=exec_id, session_id=id).one()
-        msg = db.OutputMsg(number=len(cell.output), exec_id=exec_id, session_id=id)
-        if 'done' in m:
-            msg.done = m['done']
-        if 'output' in m:
-            msg.output = m['output']
-        if 'modified_files' in m:
-            msg.modified_files = m['modified_files']
-        cell.output.append(msg)
-        S.commit()
+        try:
+            S = db.session()
+            m = request.form
+            exec_id = m['exec_id']
+            print "id=%s, m=%s"%(id, m)
+            cell = S.query(db.Cell).filter_by(exec_id=exec_id, session_id=id).one()
+            msg = db.OutputMsg(number=len(cell.output), exec_id=exec_id, session_id=id)
+            if 'done' in m:
+                msg.done = m['done']
+            if 'output' in m:
+                msg.output = m['output']
+            if 'modified_files' in m:
+                msg.modified_files = m['modified_files']
+            cell.output.append(msg)
+            S.commit()
+        except Exception, msg:
+            return str(msg)
         return 'ok'
     return 'error'
 

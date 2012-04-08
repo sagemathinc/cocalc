@@ -5,12 +5,12 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from simple import SimpleStreamingSession
 
-def post(url, data, read=False):
+def post(url, data, read=False, timeout=10):
     """
     POST the dictionary of data to the url.  If read=True return the
     response from the server.
     """
-    r = urllib2.urlopen(urllib2.Request(url, urllib.urlencode(data)))
+    r = urllib2.urlopen(urllib2.Request(url, urllib.urlencode(data)), timeout=timeout)
     if read:
         return r.read()
     
@@ -20,6 +20,7 @@ def post(url, data, read=False):
 
 class ComputeSession(object):
     def __init__(self, url, frontend_url, output_url, execpath):
+        
         class Handler(BaseHTTPRequestHandler):
             session = self
             def do_GET(self):
@@ -43,33 +44,42 @@ class ComputeSession(object):
                     self.send_response(200)
                     self.end_headers()
                     self.wfile.write('ok')
-                except IOError:
+                except IOError, msg:
+                    self.log('error in do_POST', msg)
                     self.send_error(404,'File Not Found: %s' % self.path)
+                    
         self._url = url
         self._frontend_url = frontend_url
         self._output_url = output_url
-        port = int(url.split(':')[-1])
+        self._port = int(url.split(':')[-1])
         # TODO: the '' in the next line is probably wrong
-        self._server  = HTTPServer(('', int(port)), Handler)
+        self._server  = HTTPServer(('', self._port), Handler)
         self._session = SimpleStreamingSession(
                           0, lambda msg: self.output(msg), execpath=execpath)
+
+    def log(self, *msg):
+        # todo -- proper logging
+        open('logs/%s'%self._port,'a').write(''.join([str(x) for x in msg]) + '\n')
 
     def run(self):
         while True:
             print "waiting to handle a request: %s"%self._url
             self._postvars = {}
+            self.log('handle_request')
             self._server.handle_request()
-            print self._postvars
+            self.log(self._postvars)
             if self._postvars.has_key('code'):
                 # the request resulted in a POST request with code to execute
                 code = self._postvars['code'][0]
-                print "code = ", code
+                self.log("code = ", code)
                 self._session.execute(code)
-                # done
-                urllib2.urlopen(self._frontend_url).read()
+                # report that we are done, and get next task if there is one
+                code = urllib2.urlopen(self._frontend_url).read()
+                while code:
+                    self._session.execute(code)
 
     def output(self, msg):
-        post(self._output_url, msg)
+        post(self._output_url, msg, timeout=60)
             
 
         
