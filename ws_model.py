@@ -1,7 +1,13 @@
+"""
+Workspace Server Database Model
+"""
+
+db_file = 'ws_model.sqlite3'
+
 import os
 
 from sqlalchemy import create_engine
-engine = create_engine('sqlite:///frontend.sqlite3')
+engine = create_engine('sqlite:///%s'%db_file)
 
 from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()

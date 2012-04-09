@@ -1,19 +1,17 @@
 """
-HTTP Session Service
-
-killemall compute_backend.py; trash frontend.sqlite3; sage compute_frontend.py 5000
+Workspace Server Frontend
 """
 
-import json, os, subprocess, sys, tempfile, time, urllib2
+import json, os, signal, subprocess, sys, tempfile, time, urllib2
 
 from flask import Flask, request
 app = Flask(__name__)
 
 app_port = 5000 # default
 
-from compute_backend import get, post
+from misc import get, post
 
-import compute_model as db
+import ws_model as db
 
 def launch_compute_session(url, id=id, output_url='output'):
     """
@@ -26,7 +24,7 @@ def launch_compute_session(url, id=id, output_url='output'):
     # TODO: do this instead by just forking and importing the right
     # module, then running the right function.
     args = ['python',
-            'compute_backend.py',
+            'ws_backend.py',
             url, 
             'http://localhost:%s/ready/%s'%(app_port, id),
             output_url,
@@ -36,8 +34,13 @@ def launch_compute_session(url, id=id, output_url='output'):
     return pid, execpath
 
 def cleanup_sessions():
-    S = db.session()
-    sessions = S.query(db.Session).all()
+    try:
+        S = db.session()
+        sessions = S.query(db.Session).all()
+    except:
+        # TODO: use meta information again.
+        # no sessions in db
+        return
     for z in sessions:
         try:
             print "kill -9 %s"%z.pid
@@ -50,6 +53,10 @@ def cleanup_sessions():
             S.delete(z)
             S.commit()
     
+@app.route('/')
+def root():
+    return "Sage Workspaces Server"
+
 @app.route('/new_session')
 def new_session():
     # TODO: add ability to specify the output url
@@ -94,7 +101,6 @@ def execute(session_id):
                 try:
                     session.last_active_exec_id = cell.exec_id
                     session.status = 'running'
-                    print "sending code to eval to compute session %s..."%session
                     cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
                     post(session.url, {'cells':json.dumps(cells)}, timeout=10)
                     return 'running'
@@ -126,10 +132,11 @@ def ready(id):
     if session.last_active_exec_id+1 < session.next_exec_id:
         # send all enqueued cells
         cells = []
-        for cell in S.query(db.Cell).filter(db.Cell.exec_id >= session.last_active_exec_id + 1
-             ).filter(db.Cell.session_id == session.id).order_by(db.Cell.exec_id):
-        #for cell in S.query(db.Cell).filter(db.Cell.exec_id >= session.last_active_exec_id + 1,
-        #                                    db.Cell.session_id == session.id).order_by(db.Cell.exec_id):
+        
+        for cell in S.query(db.Cell).filter(
+                        db.Cell.exec_id >= session.last_active_exec_id + 1).filter(
+                        db.Cell.session_id == session.id).order_by(db.Cell.exec_id):
+
             cells.append({'code':cell.code, 'exec_id':cell.exec_id})
         
         session.last_active_exec_id = cells[-1]['exec_id']
@@ -181,7 +188,7 @@ def signal_interrupt(id):
     # todo: add error handling
     S = db.session()
     session = S.query(db.Session).filter_by(id=id).one()
-    os.kill(session.pid, 2)  # 2 = INT
+    os.kill(session.pid, signal.SIGINT)
     return 'ok'
 
 @app.route('/sigkill/<int:id>')
@@ -189,7 +196,7 @@ def signal_kill(id):
     # todo: add error handling
     S = db.session()
     session = S.query(db.Session).filter_by(id=id).one()
-    os.kill(session.pid, 9)  # 9 = KILL
+    os.kill(session.pid, signal.SIGKILL)
     session.status = 'dead'
     S.commit()
     return 'ok'
@@ -217,12 +224,10 @@ def files(id):
 @app.route('/output/<int:id>', methods=['POST'])
 def output(id):
     if request.method == 'POST':
-        print request.form
         try:
             S = db.session()
             m = request.form
             exec_id = m['exec_id']
-            print "id=%s, m=%s"%(id, m)
             cell = S.query(db.Cell).filter_by(exec_id=exec_id, session_id=id).one()
             msg = db.OutputMsg(number=len(cell.output), exec_id=exec_id, session_id=id)
             if 'done' in m:
@@ -238,42 +243,77 @@ def output(id):
         return 'ok'
     return 'error'
 
+def run(port=5000):
+    port = int(port)
+    
+    global app_port
+    app_port = int(port)
+    
+    db.create()
+    cleanup_sessions()
+    try:
+        app.run(port=port)
+    finally:
+        cleanup_sessions()
+
+class Runner(object):
+    """
+    EXAMPLES::
+    
+        >>> Runner(5000)
+        Workspace Frontend Runner on port 5000
+    """
+    def __init__(self, port):
+        """
+        EXAMPLES::
+
+            >>> r = Runner(5001)
+            >>> type(r)
+            <class 'ws_frontend.Runner'>
+            >>> r._port
+            5001
+            >>> r._server
+            <subprocess.Popen object at 0x...>
+        """
+        self._port = port
+        self._server = subprocess.Popen("python %s.py %s"%(__name__, port), shell=True)
+        while True:
+            try:
+                get('http://localhost:%s/'%port)
+            except urllib2.URLError:
+                time.sleep(0.05)
+            else:
+                return
+
+    def __repr__(self):
+        """
+        EXAMPLES::
+
+            >>> Runner(5002).__repr__()
+            'Workspace Frontend Runner on port 5002'
+        """
+        return "Workspace Frontend Runner on port %s"%self._port
+        
+    def __del__(self):
+        self.kill()
+
+    def kill(self):
+        """
+        EXAMPLES:
+
+            >>> r = Runner(5000)
+            >>> r.kill()
+        """
+        cleanup_sessions()
+        if hasattr(self, '_server'):
+            os.kill(self._server.pid, signal.SIGTERM)
+
+        
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print "Usage: %s port"%sys.argv[0]
         sys.exit(1)
+    run(sys.argv[1])
 
-    db.create()
-    cleanup_sessions()
-    app_port = int(sys.argv[1])
-    app.run(debug=False, port=app_port)
-    
-    # TODO: this is wrong below with the try/except, and
-    # has something to do with how flask is threaded, maybe.
-    try:
-        cleanup_sessions()
-    except:
-        pass
-    
-########################
-class TestAPI(object):
-    def __init__(self, port):
-        self._port = port
-        self._url = 'http://localhost:%s'%port
-        
-    def new_session(self):
-        return get('%s/new_session'%self._url)
-    
-    def execute(self, session_id, code):
-        return post('%s/execute/%s'%(self._url, session_id), {'code':code}, read=True)
-
-    def sigint(self, session_id):
-        return get('%s/sigint/%s'%(self._url, session_id))
-
-    def sigkill(self, session_id):
-        return get('%s/sigkill/%s'%(self._url, session_id))
-
-    def cells(self, session_id):
-        return json.loads(get('%s/cells/%s'%(self._url, session_id)))
-        

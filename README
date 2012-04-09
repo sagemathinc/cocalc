@@ -179,7 +179,8 @@ code
       - rethink what everything is named
       - better logs
       - refactor/shrink code
-      - documentation 
+      - documentation
+      - pylint 
  [ ] write some unit tests
  [ ] write some doctests, when it makes sense
 
