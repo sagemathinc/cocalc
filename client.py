@@ -11,16 +11,14 @@ class Client(object):
     r"""
     EXAMPLES::
 
-        >>> import frontend; r = frontend.Runner(5000)
-        >>> import client;   c = client.Client(5000)
-        >>> c.wait()
+        >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
         >>> c.new_session()
         '0'
         >>> c.cells(0)
         []
         >>> c.wait(0)
         >>> c.execute(0, 'print(2+3)')
-        'running'
+        (0, 'running')
         >>> c.wait(0)
         >>> c.cells(0)
         [{u'output': [{u'output': u'5\n', u'modified_files': u'[]', u'done': False}, {u'output': None, u'modified_files': None, u'done': True}], u'exec_id': 0, u'code': u'print(2+3)'}]
@@ -66,9 +64,7 @@ class Client(object):
 
         EXAMPLES::
 
-            >>> import frontend; r = frontend.Runner(5000)
-            >>> import client;   c = client.Client(5000)
-            >>> c.wait()
+            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
             >>> c.new_session()
             '0'
             >>> c.new_session()
@@ -85,12 +81,12 @@ class Client(object):
         - ``code`` -- string
 
         OUTPUT:
-        - status code 
+        - exec_id -- execution id number
+        - status message
         
         EXAMPLES::
         
-            >>> import frontend; r = frontend.Runner(5000)
-            >>> import client;   c = client.Client(5000)
+            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
             >>> c.new_session()
             '0'
             >>> c.wait()
@@ -98,9 +94,9 @@ class Client(object):
             '1'
             >>> c.wait()
             >>> c.execute(0, 'print(2+3)')
-            'running'
+            (0, 'running')
             >>> c.execute(1, 'print(5*8)')
-            'running'
+            (0, 'running')
             >>> c.wait(0)
             >>> c.cells(0)
             [{u'output': [{u'output': u'5\n', u'modified_files': u'[]', u'done': False}, {u'output': None, u'modified_files': None, u'done': True}], u'exec_id': 0, u'code': u'print(2+3)'}]
@@ -108,27 +104,30 @@ class Client(object):
             >>> c.cells(1)
             [{u'output': [{u'output': u'40\n', u'modified_files': u'[]', u'done': False}, {u'output': None, u'modified_files': None, u'done': True}], u'exec_id': 0, u'code': u'print(5*8)'}]
         """
-        return post('%s/execute/%s'%(self._url, session_id), {'code':code}, read=True)
-
+        msg = post('%s/execute/%s'%(self._url, session_id), {'code':code}, read=True)
+        m = json.loads(msg)
+        if m['status'] == 'error':
+            raise RuntimeError(m['data'])
+        return int(m['exec_id']), str(m['cell_status'])
+    
     def sigint(self, session_id):
         r"""
         Send interrupt signal to a running process.
 
         EXAMPLES::
 
-            >>> import frontend; r = frontend.Runner(5000)
-            >>> import client;   c = client.Client(5000)
-            >>> c.wait(); c.new_session(); c.wait()
+            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> c.new_session(); c.wait()
             '0'
             >>> c.execute(0, 'import time; time.sleep(60)')
-            'running'
+            (0, 'running')
             >>> c.sigint(0)
             'ok'
             >>> c.wait(0)
             >>> c.cells(0)
             [{u'output': [{u'output': u'KeyboardInterrupt()', u'modified_files': u'[]', u'done': False}, {u'output': None, u'modified_files': None, u'done': True}], u'exec_id': 0, u'code': u'import time; time.sleep(60)'}]
             >>> c.execute(0, 'print(2+3)')
-            'running'
+            (1, 'running')
             >>> c.wait(0)
             >>> c.cells(0)[-1]
             {u'output': [{u'output': u'5\n', u'modified_files': u'[]', u'done': False}, {u'output': None, u'modified_files': None, u'done': True}], u'exec_id': 1, u'code': u'print(2+3)'}
@@ -138,26 +137,67 @@ class Client(object):
     def sigkill(self, session_id):
         """
         EXAMPLES::
-        
-            >>> import frontend; r = frontend.Runner(5000)
-            >>> import client;   c = client.Client(5000)
-            >>> c.wait(); c.new_session(); c.wait()
+
+            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> c.new_session(); c.wait()
             '0'
             >>> c.execute(0, 'import time; time.sleep(60)')
-            'running'
+            (0, 'running')
             >>> c.sigkill(0)
             'ok'
             >>> c.execute(0, 'print(2+3)')
-            'dead'
+            Traceback (most recent call last):
+            ...
+            RuntimeError: session is dead
         """
         return get('%s/sigkill/%s'%(self._url, session_id))
 
     def cells(self, session_id):
-        return json.loads(get('%s/cells/%s'%(self._url, session_id)))
+        r"""
+        EXAMPLES::
+
+            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> id = c.new_session(); c.wait(id)
+            >>> c.cells(id)
+            []
+            >>> c.execute(id, 'print(2+2)')
+            (0, 'running')
+            >>> c.wait(id)
+            >>> c.cells(id)
+            [{u'output': [{u'output': u'4\n', u'modified_files': u'[]', u'done': False}, {u'output': None, u'modified_files': None, u'done': True}], u'exec_id': 0, u'code': u'print(2+2)'}]
+            
+        We get a ValueError exception if we ask for the cells of an invalid session::
+        
+            >>> c.cells(int(id)+1)
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 1
+        """
+        msg = json.loads(get('%s/cells/%s'%(self._url, int(session_id))))
+        if msg['status'] == u'ok':
+            return msg['data']
+        else:
+            raise ValueError(msg['data'])
+    
+    def output_messages(self, session_id, exec_id, number=0):
+        """
+        Return all output messages of at least the number for the cell
+        with given session_id and exec_id.
+        """
+        url = '%s/output_messages/%s/%s/%s'%(self._url, int(session_id), int(exec_id), int(number))
+        msg = json.loads(get(url))
+        if msg['status'] == u'ok':
+            return msg['data']
+        else:
+            raise RuntimeError(msg['data'])
 
     def wait(self, session_id=None):
+        """
+        EXAMPLES::
+        
+        """
         if session_id is None:
-            time.sleep(0.4)
+            time.sleep(1)
         else:
             # TODO: other case
             time.sleep(0.4)

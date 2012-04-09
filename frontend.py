@@ -13,6 +13,8 @@ from misc import get, post
 
 import model as db
 
+from sqlalchemy.orm import exc as orm_exc
+
 def launch_compute_session(url, id=id, output_url='output'):
     """
     Launch a compute server listening on the given port, and return
@@ -82,41 +84,54 @@ def new_session():
 
 @app.route('/execute/<int:session_id>', methods=['POST'])
 def execute(session_id):
-    if request.method == 'POST':
-        if request.form.has_key('code'):
-            code = request.form['code']
-            
-            S = db.session()
-            # todo: handle invalid session_id
-            session = S.query(db.Session).filter_by(id=session_id).one()
-            if session.status == 'dead':
-                return 'dead'
-            # store code in database.
-            cell = db.Cell(session.next_exec_id, session.id, code)
-            session.cells.append(cell)
-            # increment id for next code execution
-            session.next_exec_id += 1
-            S.commit()
-            if session.status == 'ready':
-                try:
-                    session.last_active_exec_id = cell.exec_id
-                    session.status = 'running'
-                    cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
-                    post(session.url, {'cells':json.dumps(cells)}, timeout=10)
-                    return 'running'
-                except urllib2.URLError:
-                    # session not alive and responding as we thought it would be doing
-                    session.status = 'dead'
-                    return 'dead'
-                finally:
-                    S.commit()
-            elif session.status == 'running':
-                # do nothing -- the calculation is enqueued in the database
-                # and will get run when the running session tells  us it is
-                # no longer running.
-                return 'enqueued'
-            else:
-                raise RuntimeError, "invalid session status (='%s')"%session.status
+    if request.method == 'POST' and request.form.has_key('code'):
+        code = request.form['code']
+
+        S = db.session()
+        # todo: handle invalid session_id
+        session = S.query(db.Session).filter_by(id=session_id).one()
+        if session.status == 'dead':
+            return json.dumps({'data':'session is dead', 'status':'error'})
+        
+        # store code in database.
+        cell = db.Cell(session.next_exec_id, session.id, code)
+        session.cells.append(cell)
+        # increment id for next code execution
+        session.next_exec_id += 1
+        S.commit()
+        msg = {'exec_id':cell.exec_id}
+        if session.status == 'ready':
+            try:
+                session.last_active_exec_id = cell.exec_id
+                session.status = 'running'
+                cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
+                # TODO: this timeout scares the shit out of me. 
+                post(session.url, {'cells':json.dumps(cells)}, timeout=5)
+                msg['cell_status'] = 'running'
+                msg['status'] = 'ok'
+            except urllib2.URLError:
+                # session not alive and responding as we thought it would be doing
+                session.status = 'dead'
+                msg['data'] = 'session is dead'
+                msg['status'] = 'error'
+            finally:
+                S.commit()
+        elif session.status == 'running':
+            # do nothing -- the calculation is enqueued in the database
+            # and will get run when the running session tells  us it is
+            # no longer running.
+            msg['status'] = 'ok'
+            msg['cell_status'] = 'enqueued'
+        else:
+            # This should never ever happen -- it would only
+            # result from database corruption or a bug.
+            raise RuntimeError, "invalid session status (='%s')"%session.status
+    else:
+        msg['status'] = 'error'
+        msg['data'] = 'must POST code variable'
+        
+    return json.dumps(msg)
+
 
 @app.route('/ready/<int:id>')
 def ready(id):
@@ -174,15 +189,36 @@ def all_cells():
     return s
     
 
-@app.route('/cells/<int:id>')
-def cells(id):
+@app.route('/cells/<int:session_id>')
+def cells(session_id):
     S = db.session()
-    session = S.query(db.Session).filter_by(id=id).one()
-    return json.dumps([{'exec_id':cell.exec_id, 'code':cell.code,
+    try:
+        session = S.query(db.Session).filter_by(id=session_id).one()
+        msg = {'status':'ok',
+               'data':[{'exec_id':cell.exec_id, 'code':cell.code,
                 'output':[{'done':o.done, 'output':o.output,
                            'modified_files':o.modified_files} for o in cell.output]}
-                       for cell in session.cells])
+                       for cell in session.cells]
+               }
+    except orm_exc.NoResultFound:
+        msg = {'status':'error',
+               'data':'unknown session %s'%session_id}
+    return json.dumps(msg)
     
+@app.route('/output_messages/<int:session_id>/<int:exec_id>/<int:number>')
+def output_messages(session_id, exec_id, number):
+    """
+    Return all output messages of at least the number for the cell
+    with given session_id and exec_id.
+    """
+    S = db.session()
+    output_msgs = S.query(db.OutputMsg).filter_by(session_id=session_id, exec_id=exec_id).\
+                  filter('number>=:number').params(number=number).\
+                  order_by(db.OutputMsg.number)
+    data = [{'number':number, 'done':m.done, 'output':m.output, 'modified_files':m.modified_files}
+              for m in output_msgs]
+    return json.dumps({'status':'ok', 'data':data})
+
 @app.route('/sigint/<int:id>')
 def signal_interrupt(id):
     # todo: add error handling
@@ -252,7 +288,7 @@ def run(port=5000):
     db.create()
     cleanup_sessions()
     try:
-        app.run(port=port)
+        app.run(port=port, debug=True)
     finally:
         cleanup_sessions()
 
@@ -322,16 +358,17 @@ class Runner(object):
         """
         cleanup_sessions()
         if hasattr(self, '_server'):
-            try:
-                os.kill(self._server.pid, signal.SIGTERM)
-            except:
-                pass
-            try:
-                os.kill(self._server.pid, signal.SIGKILL)
-            except:
-                pass
-        # TODO -- do better to wait until port is available again.
-        time.sleep(1)
+            for i in range(10):
+                try:
+                    os.kill(self._server.pid, signal.SIGTERM)
+                except:
+                    pass
+                try:
+                    os.kill(self._server.pid, signal.SIGKILL)
+                except:
+                    pass
+            # TODO -- do better
+            time.sleep(1)
 
 
 if __name__ == '__main__':
