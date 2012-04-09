@@ -4,7 +4,7 @@ Workspace Server Database Model
 
 db_file = 'model.sqlite3'
 
-import os
+import datetime, os
 
 from sqlalchemy import create_engine
 engine = create_engine('sqlite:///%s'%db_file)
@@ -12,7 +12,7 @@ engine = create_engine('sqlite:///%s'%db_file)
 from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
-from sqlalchemy import (Boolean, Column, Integer, String, ForeignKey)
+from sqlalchemy import (Boolean, Column, DateTime, Integer, String, ForeignKey)
 from sqlalchemy.orm import relation, backref
 
 class Session(Base):
@@ -24,6 +24,7 @@ class Session(Base):
     status = Column(String)
     next_exec_id = Column(Integer)
     last_active_exec_id = Column(Integer)
+    start_time = Column(DateTime)
     cells = relation("Cell", order_by="Cell.exec_id",
                      backref='session', cascade='all, delete, delete-orphan')
     
@@ -34,12 +35,20 @@ class Session(Base):
         self.url = str(url)
         self.status = str(status)
         self.next_exec_id = int(next_exec_id)  # 
-        self.last_active_exec_id = int(last_active_exec_id)  # 
+        self.last_active_exec_id = int(last_active_exec_id)  #
+        self.start_time = datetime.datetime.now()
+
+    def to_json(self):
+        return {'id':self.id, 'pid':self.pid, 'path':self.path,
+                'url':self.url, 'status':self.status,
+                'next_exec_id':self.next_exec_id,
+                'last_active_exec_id':self.last_active_exec_id,
+                'start_time':self.start_time}
 
     def __repr__(self):
-        return "Session(%s, pid=%s, path='%s', url='%s', status='%s', next_exec_id=%s, last_active_exec_id=%s)"%(
+        return "Session(%s, pid=%s, path='%s', url='%s', status='%s', next_exec_id=%s, last_active_exec_id=%s, start_time=%s)"%(
             self.id, self.pid, self.path, self.url, self.status,
-            self.next_exec_id, self.last_active_exec_id)
+            self.next_exec_id, self.last_active_exec_id, self.start_time)
 
 class Cell(Base):
     __tablename__ = 'cells'
@@ -54,6 +63,9 @@ class Cell(Base):
         self.exec_id = int(exec_id)
         self.session_id = int(session_id)
         self.code = str(code)
+
+    def to_json(self):
+        return {'exec_id':self.exec_id, 'code':self.code}
 
     def __repr__(self):
         return "Cell(%s, session_id=%s, code='%s', output=%s)"%(

@@ -2,7 +2,7 @@
 Workspace Server Frontend
 """
 
-import json, os, signal, subprocess, sys, tempfile, time, urllib2
+import json, os, signal, shutil, subprocess, sys, tempfile, time, urllib2
 
 from flask import Flask, request
 app = Flask(__name__)
@@ -35,35 +35,45 @@ def launch_compute_session(url, id=id, output_url='output'):
     t = time.time()
     return pid, execpath
 
-def cleanup_sessions():
+def reap_session(pid, path):
     try:
-        S = db.session()
-        sessions = S.query(db.Session).all()
+        print "kill -9 %s"%pid
+        os.kill(pid, 9)
     except:
-        # TODO: use meta information again.
-        # no sessions in db
+        pass
+    if 'tmp' not in path:
+        raise RuntimeError("worrisome path = '%s'"%path)
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    
+
+def cleanup_sessions():
+    S = db.session()
+    try:
+        sessions = S.query(db.Session)
+    except orm_exc.NoResultFound:
+        # easy case -- no sessions to cleanup; maybe database schema not even made
         return
+    
     for z in sessions:
         try:
-            print "kill -9 %s"%z.pid
-            os.kill(z.pid, 9)
-            if os.path.exists(z.path):
-                shutil.rmtree(z.path)
-        except:
-            pass
+            reap_session(z.pid, z.path)
         finally:
             S.delete(z)
             S.commit()
+
     
 @app.route('/')
 def root():
+    # TODO: template that explains the API goes here
     return "Sage Workspaces Server"
 
 @app.route('/new_session')
 def new_session():
-    # TODO: add ability to specify the output url
-    # TODO: we are assuming for now that compute session is on
-    # localhost, but it could be on another machine.
+    """
+    Create a new session, and return its id number as the 'id' key of
+    the JSON message.
+    """
     S = db.session()
     if S.query(db.Session).count() == 0:
         id = 0
@@ -73,53 +83,77 @@ def new_session():
         id = last_session.id + 1
         port = int(last_session.url.split(':')[-1]) + 1
     url = 'http://localhost:%s'%port
-    print url
     pid, path = launch_compute_session(url=url, id=id)
     if pid == -1:
-        return "fail"
-    session = db.Session(id, pid, path, url)
-    S.add(session)
-    S.commit()
-    return str(id)
+        msg = {'status':'error', 'data':'failed to create new session'}
+    else:
+        session = db.Session(id, pid, path, url)
+        S.add(session)
+        S.commit()
+        msg = {'status':'ok', 'id':int(id)}
+    return json.dumps(msg)
 
 @app.route('/execute/<int:session_id>', methods=['POST'])
 def execute(session_id):
+    """
+    Create a new cell with given input code, and start it executing in
+    the session with given URL.
+    """
     if request.method == 'POST' and request.form.has_key('code'):
         code = request.form['code']
 
         S = db.session()
-        # todo: handle invalid session_id
-        session = S.query(db.Session).filter_by(id=session_id).one()
-        if session.status == 'dead':
-            return json.dumps({'data':'session is dead', 'status':'error'})
         
-        # store code in database.
+        try:
+            # get the session in which to execute this code
+            session = S.query(db.Session).filter_by(id=session_id).one()
+        except orm_exc.NoResultFound:
+            # handle invalid session_id
+            return json.dumps({'status':'error', 'data':'unknown session %s'%session_id})
+        
+        if session.status == 'dead':
+            # according to the database, we've had trouble with this session,
+            # so just raise an error.  
+            return json.dumps({'status':'error', 'data':'session is dead'})
+        
+        # store the code to evaluate in database.
         cell = db.Cell(session.next_exec_id, session.id, code)
         session.cells.append(cell)
         # increment id for next code execution
         session.next_exec_id += 1
         S.commit()
         msg = {'exec_id':cell.exec_id}
+
+        # if the session is in ready state, that means it has a web server
+        # listening and waiting for us to send it something to evaluate.
         if session.status == 'ready':
             try:
                 session.last_active_exec_id = cell.exec_id
                 session.status = 'running'
                 cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
-                # TODO: this timeout scares the shit out of me. 
-                post(session.url, {'cells':json.dumps(cells)}, timeout=5)
+                # TODO: this timeout maybe scares me, since it will
+                # lock the server when running in single threaded mode
+                # (which we should never do in production).
+                post(session.url, {'cells':json.dumps(cells)}, timeout=2)
                 msg['cell_status'] = 'running'
                 msg['status'] = 'ok'
             except urllib2.URLError:
-                # session not alive and responding as we thought it would be doing
+                # The session not alive and responding as we thought
+                # it would be doing, so we mark it is as such in the
+                # database, and send it a kill -9 just for good measure.
                 session.status = 'dead'
                 msg['data'] = 'session is dead'
                 msg['status'] = 'error'
+                try:
+                    reap_session(session.pid, session.path)
+                except OSError:
+                    pass
             finally:
                 S.commit()
         elif session.status == 'running':
-            # do nothing -- the calculation is enqueued in the database
-            # and will get run when the running session tells  us it is
-            # no longer running.
+            # The calculation is enqueued in the database and will get
+            # run (along with everything else that is waiting to run)
+            # when the session tells us it is no longer running.
             msg['status'] = 'ok'
             msg['cell_status'] = 'enqueued'
         else:
@@ -145,120 +179,157 @@ def ready(id):
 
     # if there is anything to compute for this session, start it going.
     if session.last_active_exec_id+1 < session.next_exec_id:
-        # send all enqueued cells
+        # Iterate over every cell in this session that has not
+        # yet been sent off to be computed, and make a list of their
+        # code and exec_id's.
         cells = []
-        
         for cell in S.query(db.Cell).filter(
                         db.Cell.exec_id >= session.last_active_exec_id + 1).filter(
                         db.Cell.session_id == session.id).order_by(db.Cell.exec_id):
 
             cells.append({'code':cell.code, 'exec_id':cell.exec_id})
-        
+            
+        # Record what will be the last exec_id sent off to be computed.
         session.last_active_exec_id = cells[-1]['exec_id']
+        # This session is now supposed to be running, so when new cells
+        # come in to be computed, we do not send them off immediately.
         session.status = 'running'
         S.commit()
         return json.dumps(cells)
     
     else:
-        
+
+        # There is nothing waiting to compute, so tell the compute session
+        # it should switch to a ready state, and listen on HTTP for more
+        # work to do.
         session.status = 'ready'
         S.commit()
-        # nothing more to do
         return json.dumps([])
 
 @app.route('/sessions/')
 def all_sessions():
-    # TODO -- JSON and/or proper templates
+    """
+    Return JSON representation of all the sessions.
+    """
     S = db.session()
-    s = '<pre>'
-    for session in S.query(db.Session).order_by(db.Session.id).all():
-        s += '<a href="/cells/%s">(cells)</a> '%session.id
-        s += str(session) + '\n\n'
-    s += '</pre>'
-    return s
+    v = [s.to_json() for s in S.query(db.Session).order_by(db.Session.id).all()]
+    return json.dumps({'status':'ok', 'data':v})
 
-@app.route('/cells/')
-def all_cells():
-    # TODO -- JSON and/or proper templates
-    S = db.session()
-    s = '<pre>'
-    for C in S.query(db.Cell).order_by(db.Cell.session_id, db.Cell.exec_id).all():
-        s += '<a href="%s">(session %s)</a> '%(C.session_id, C.session_id)
-        s += str(C) + '\n\n'
-    s += '</pre>'
-    return s
-    
 
 @app.route('/cells/<int:session_id>')
 def cells(session_id):
+    """
+    Return JSON representation of all cells in the session with given id.
+    """
     S = db.session()
     try:
         session = S.query(db.Session).filter_by(id=session_id).one()
-        msg = {'status':'ok',
-               'data':[{'exec_id':cell.exec_id, 'code':cell.code,
-                'output':[{'done':o.done, 'output':o.output,
-                           'modified_files':o.modified_files} for o in cell.output]}
-                       for cell in session.cells]
-               }
+        msg = {'status':'ok', 'data':[cell.to_json() for cell in session.cells]}
     except orm_exc.NoResultFound:
-        msg = {'status':'error',
-               'data':'unknown session %s'%session_id}
+        msg = {'status':'error', 'data':'unknown session %s'%session_id}
     return json.dumps(msg)
     
 @app.route('/output_messages/<int:session_id>/<int:exec_id>/<int:number>')
 def output_messages(session_id, exec_id, number):
     """
-    Return all output messages of at least the number for the cell
-    with given session_id and exec_id.
+    Return all output messages for the cell with given session_id and
+    exec_id, starting with the message labled with the given number.
     """
     S = db.session()
     output_msgs = S.query(db.OutputMsg).filter_by(session_id=session_id, exec_id=exec_id).\
                   filter('number>=:number').params(number=number).\
                   order_by(db.OutputMsg.number)
-    data = [{'number':number, 'done':m.done, 'output':m.output, 'modified_files':m.modified_files}
+    data = [{'number':m.number, 'done':m.done, 'output':m.output, 'modified_files':m.modified_files}
               for m in output_msgs]
     return json.dumps({'status':'ok', 'data':data})
 
+def send_signal(id, sig):
+    """
+    Send signal sig to session with given id. 
+    """
+    S = db.session()
+    try:
+        session = S.query(db.Session).filter_by(id=id).one()
+    except orm_exc.NoResultFound:
+        msg = {'status':'error', 'data':'unknown session %s'%id}
+    else:
+        try:
+            os.kill(session.pid, sig)
+            msg = {'status':'ok'}
+        except OSError, err:
+            msg = {'status':'error', 'data':str(err)}
+    return json.dumps(msg)
+
 @app.route('/sigint/<int:id>')
 def signal_interrupt(id):
-    # todo: add error handling
-    S = db.session()
-    session = S.query(db.Session).filter_by(id=id).one()
-    os.kill(session.pid, signal.SIGINT)
-    return 'ok'
+    """
+    Send an interrupt signal to the given session.
+    """
+    return send_signal(id, signal.SIGINT)
 
 @app.route('/sigkill/<int:id>')
 def signal_kill(id):
-    # todo: add error handling
-    S = db.session()
-    session = S.query(db.Session).filter_by(id=id).one()
-    os.kill(session.pid, signal.SIGKILL)
-    session.status = 'dead'
-    S.commit()
-    return 'ok'
+    """
+    Send a kill signal to the given session.
+    """
+    return send_signal(id, signal.SIGKILL)
 
 @app.route('/status/<int:id>')
 def status(id):
-    return ''
+    """
+    Return the status of the given session as a JSON message:
+
+       {'status':'ok', 'session_status':'ready'}
+    """
+    S = db.session()
+    try:
+        session = S.query(db.Session).filter_by(id=id).one()
+        msg = {'status':'ok', 'session_status':session.status}
+    except orm_exc.NoResultFound:
+        msg = {'status':'error', 'data':'unknown session %s'%id}
+    return json.dumps(msg)
 
 @app.route('/put/<int:id>/<path>', methods=['POST'])
 def put_file(id, path):
-    return ''
+    """
+    Place the file with attached to the POST variable 'file' in the
+    given path in the session with given id.
+    """
+    # TODO: implement this
+    return json.dumps({'status':'error', 'data':'not implemented'})
 
 @app.route('/get/<int:id>/<path>')
 def get_file(id, path):
-    return ''
+    """
+    Return the file in the given path in the session with given id. 
+    """
+    # TODO: implement this
+    return json.dumps({'status':'error', 'data':'not implemented'})    
 
 @app.route('/delete/<int:id>/<path>')
 def delete_file(id, path):
-    return ''
+    """
+    Delete the file with given path in the session with given id.
+    """
+    # TODO: implement this
+    return json.dumps({'status':'error', 'data':'not implemented'})        
 
 @app.route('/files/<int:id>')
 def files(id):
-    return ''
+    """
+    Return a list of all files in the session with given id.
+    """
+    # TODO: implement this
+    return json.dumps({'status':'error', 'data':'not implemented'})            
 
 @app.route('/output/<int:id>', methods=['POST'])
 def output(id):
+    """
+    The compute sessions call this function via a POST request to
+    report the output that they produce.  The POST request contains a
+    subset of the following fields: 'done', 'output',
+    'modified_files'.
+    """
     if request.method == 'POST':
         try:
             S = db.session()
@@ -279,23 +350,33 @@ def output(id):
         return 'ok'
     return 'error'
 
-def run(port=5000):
+def run(port=5000, debug=False):
+    """
+    Run a blocking instance of the frontend server serving on the
+    given port.  If debug=True (not the default), then Flask is started
+    in debug mode.
+
+    INPUT:
+    - ``port`` -- integer (default: 5000)
+    - ``debug`` -- bool (default: False)
+    """
     port = int(port)
-    
+
     global app_port
     app_port = int(port)
     
     db.create()
     cleanup_sessions()
     try:
-        app.run(port=port, debug=True)
+        app.run(port=port, debug=debug)
     finally:
         cleanup_sessions()
 
 
-
 class Runner(object):
     """
+    Running workspace frontend server.
+    
     EXAMPLES::
     
         >>> Runner(5000)
@@ -314,7 +395,7 @@ class Runner(object):
             <subprocess.Popen object at 0x...>
         """
         self._port = port
-        self._server = subprocess.Popen("python %s.py %s"%(__name__, port), shell=True)
+        self._server = subprocess.Popen("python %s.py %s 1>server.log 2>server.err"%(__name__, port), shell=True)
         while True:
             # Next wait to see if it is listening.
             try:
@@ -367,13 +448,17 @@ class Runner(object):
                     os.kill(self._server.pid, signal.SIGKILL)
                 except:
                     pass
-            # TODO -- do better
+            # TODO -- do better====
             time.sleep(1)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print "Usage: %s port"%sys.argv[0]
+    if len(sys.argv) == 1:
+        print "Usage: %s port [debug]"%sys.argv[0]
         sys.exit(1)
-    run(sys.argv[1])
+    if len(sys.argv) >= 3:
+        debug = eval(sys.argv[2])
+    else:
+        debug = False
+    run(sys.argv[1], debug=debug)
 

@@ -13,7 +13,7 @@ class Client(object):
 
         >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
         >>> c.new_session()
-        '0'
+        0
         >>> c.cells(0)
         []
         >>> c.wait(0)
@@ -60,19 +60,23 @@ class Client(object):
         session on success.
 
         OUTPUT:
-        - ``string``
+        - integer -- id of new session
 
         EXAMPLES::
 
             >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
             >>> c.new_session()
-            '0'
+            0
             >>> c.new_session()
-            '1'
+            1
             >>> c.new_session()
-            '2'
+            2
         """
-        return get('%s/new_session'%self._url)
+        msg = json.loads(get('%s/new_session'%self._url))
+        if msg['status'] == 'ok':
+            return int(msg['id'])
+        else:
+            raise RuntimeError(msg['data'])
     
     def execute(self, session_id, code):
         r"""
@@ -88,10 +92,10 @@ class Client(object):
         
             >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
             >>> c.new_session()
-            '0'
+            0
             >>> c.wait()
             >>> c.new_session()
-            '1'
+            1
             >>> c.wait()
             >>> c.execute(0, 'print(2+3)')
             (0, 'running')
@@ -118,7 +122,7 @@ class Client(object):
 
             >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
             >>> c.new_session(); c.wait()
-            '0'
+            0
             >>> c.execute(0, 'import time; time.sleep(60)')
             (0, 'running')
             >>> c.sigint(0)
@@ -140,7 +144,7 @@ class Client(object):
 
             >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
             >>> c.new_session(); c.wait()
-            '0'
+            0
             >>> c.execute(0, 'import time; time.sleep(60)')
             (0, 'running')
             >>> c.sigkill(0)
@@ -180,9 +184,40 @@ class Client(object):
             raise ValueError(msg['data'])
     
     def output_messages(self, session_id, exec_id, number=0):
-        """
+        r"""
         Return all output messages of at least the number for the cell
-        with given session_id and exec_id.
+        with given session_id and exec_id.  All inputs must be
+        nonnegative integers.
+
+        INPUT:
+        - ``session_id`` -- integer; id of a session (need not be valid)
+        - ``exec_id`` -- integer; execution id of a cell
+        - ``number`` -- integer; output number
+
+        OUTPUT:
+        - list of dictionaries ordered by number
+
+        EXAMPLES::
+
+            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> id = c.new_session(); c.wait(id)
+            >>> c.execute(0, 'import time\nfor n in range(3):\n print(n); time.sleep(0.5)')
+            (0, 'running')
+            >>> c.output_messages(0,0,0)
+            [{u'output': u'0\n1', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': u'\n2', u'modified_files': u'[]', u'done': False, u'number': 1}, {u'output': u'\n', u'modified_files': u'[]', u'done': False, u'number': 2}, {u'output': None, u'modified_files': None, u'done': True, u'number': 3}]
+            >>> c.output_messages(0,0,2)
+            [{u'output': u'\n', u'modified_files': u'[]', u'done': False, u'number': 2}, {u'output': None, u'modified_files': None, u'done': True, u'number': 3}]
+            >>> c.output_messages(0,0,4)
+            []
+
+        Evaluate some more code and look at the corresponding messages::
+        
+            sage: c.execute(0, 'print(3**100)')
+            (1, 'running')
+            sage: c.output_messages(0,1)
+            [{u'output': u'515377520732011331036461129765621272702107522001\n', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            sage: c.output_messages(0,1,1)
+            [{u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
         """
         url = '%s/output_messages/%s/%s/%s'%(self._url, int(session_id), int(exec_id), int(number))
         msg = json.loads(get(url))
