@@ -21,7 +21,7 @@ def launch_compute_session(url, id=id, output_url='output'):
     its UNIX process id and absolute path.
     """
     if output_url == 'output':
-        output_url = "http://localhost:%s/output/%s"%(app_port, id)
+        output_url = "http://localhost:%s/submit_output/%s"%(app_port, id)
     execpath = tempfile.mkdtemp()
     # TODO: do this instead by just forking and importing the right
     # module, then running the right function.
@@ -131,10 +131,18 @@ def execute(session_id):
                 session.last_active_exec_id = cell.exec_id
                 session.status = 'running'
                 cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
+                
                 # TODO: this timeout maybe scares me, since it will
                 # lock the server when running in single threaded mode
                 # (which we should never do in production).
-                post(session.url, {'cells':json.dumps(cells)}, timeout=2)
+                # This post needs to happen in a forked off "fire and forget" thread...
+                tm = time.time()
+                while time.time() - tm <= 5:  # try for up to 5 seconds before declaring it dead.
+                    try:
+                        post(session.url, {'cells':json.dumps(cells)}, timeout=0.1)
+                        break
+                    except urllib2.URLError:
+                        time.sleep(0.05)
                 msg['cell_status'] = 'running'
                 msg['status'] = 'ok'
             except urllib2.URLError:
@@ -254,6 +262,10 @@ def send_signal(id, sig):
         msg = {'status':'error', 'data':'unknown session %s'%id}
     else:
         try:
+            if sig == signal.SIGKILL:
+                session.status = 'dead'
+                S.commit()
+                
             os.kill(session.pid, sig)
             msg = {'status':'ok'}
         except OSError, err:
@@ -322,8 +334,8 @@ def files(id):
     # TODO: implement this
     return json.dumps({'status':'error', 'data':'not implemented'})            
 
-@app.route('/output/<int:id>', methods=['POST'])
-def output(id):
+@app.route('/submit_output/<int:id>', methods=['POST'])
+def submit_output(id):
     """
     The compute sessions call this function via a POST request to
     report the output that they produce.  The POST request contains a
@@ -395,7 +407,8 @@ class Runner(object):
             <subprocess.Popen object at 0x...>
         """
         self._port = port
-        self._server = subprocess.Popen("python %s.py %s 1>server.log 2>server.err"%(__name__, port), shell=True)
+        cmd = "python %s.py %s"%(__name__, port)
+        self._server = subprocess.Popen(cmd, shell=True)
         while True:
             # Next wait to see if it is listening.
             try:
@@ -439,11 +452,7 @@ class Runner(object):
         """
         cleanup_sessions()
         if hasattr(self, '_server'):
-            for i in range(10):
-                try:
-                    os.kill(self._server.pid, signal.SIGTERM)
-                except:
-                    pass
+            for i in range(5):
                 try:
                     os.kill(self._server.pid, signal.SIGKILL)
                 except:
