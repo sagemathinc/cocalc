@@ -47,7 +47,7 @@ class Cell(Base):
     code = Column(String)
     output = relation("OutputMsg", order_by="OutputMsg.number",
                       backref='cell', cascade='all, delete, delete-orphan',
-                      primaryjoin='Cell.exec_id==OutputMsg.exec_id')
+                      primaryjoin='Cell.exec_id==OutputMsg.exec_id and Cell.session_id==OutputMsg.session_id')
 
     def __init__(self, exec_id, session_id, code):
         self.exec_id = int(exec_id)

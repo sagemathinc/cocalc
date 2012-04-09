@@ -231,7 +231,7 @@ def output(id):
             cell = S.query(db.Cell).filter_by(exec_id=exec_id, session_id=id).one()
             msg = db.OutputMsg(number=len(cell.output), exec_id=exec_id, session_id=id)
             if 'done' in m:
-                msg.done = m['done']
+                msg.done = False if m['done'] == u'False' else True
             if 'output' in m:
                 msg.output = m['output']
             if 'modified_files' in m:
