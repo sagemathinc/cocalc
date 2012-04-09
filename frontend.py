@@ -11,7 +11,7 @@ app_port = 5000 # default
 
 from misc import get, post
 
-import ws_model as db
+import model as db
 
 def launch_compute_session(url, id=id, output_url='output'):
     """
@@ -24,7 +24,7 @@ def launch_compute_session(url, id=id, output_url='output'):
     # TODO: do this instead by just forking and importing the right
     # module, then running the right function.
     args = ['python',
-            'ws_backend.py',
+            'backend.py',
             url, 
             'http://localhost:%s/ready/%s'%(app_port, id),
             output_url,
@@ -269,7 +269,7 @@ class Runner(object):
 
             >>> r = Runner(5001)
             >>> type(r)
-            <class 'ws_frontend.Runner'>
+            <class 'frontend.Runner'>
             >>> r._port
             5001
             >>> r._server
@@ -278,12 +278,20 @@ class Runner(object):
         self._port = port
         self._server = subprocess.Popen("python %s.py %s"%(__name__, port), shell=True)
         while True:
+            # First ensure that the process is actually running, to
+            # avoid an infinite loop.
+            try:
+                os.kill(self._server.pid, 0)
+            except OSError:
+                raise RuntimeError, "unable to start frontend"
+            # Next wait to see if it is listening.
             try:
                 get('http://localhost:%s/'%port)
             except urllib2.URLError:
                 time.sleep(0.05)
             else:
-                return
+                # It is listening - done!
+                break
 
     def __repr__(self):
         """
@@ -295,10 +303,15 @@ class Runner(object):
         return "Workspace Frontend Runner on port %s"%self._port
         
     def __del__(self):
-        self.kill()
+        try:
+            self.kill()
+        except:
+            pass
 
     def kill(self):
         """
+        Terminate the server subprocess.
+        
         EXAMPLES:
 
             >>> r = Runner(5000)
@@ -307,8 +320,6 @@ class Runner(object):
         cleanup_sessions()
         if hasattr(self, '_server'):
             os.kill(self._server.pid, signal.SIGTERM)
-
-        
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ import cgi, json, sys, urllib, urllib2
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-from ws_session import SimpleStreamingSession
+from session import SimpleStreamingSession
 
 from misc import get, post
     

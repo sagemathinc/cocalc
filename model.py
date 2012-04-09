@@ -2,7 +2,7 @@
 Workspace Server Database Model
 """
 
-db_file = 'ws_model.sqlite3'
+db_file = 'model.sqlite3'
 
 import os
 

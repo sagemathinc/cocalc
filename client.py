@@ -11,8 +11,8 @@ class Client(object):
     r"""
     EXAMPLES::
 
-        >>> import ws_frontend; r = ws_frontend.Runner(5000)
-        >>> import ws_client;   c = ws_client.Client(5000)
+        >>> import frontend; r = frontend.Runner(5000)
+        >>> import client;   c = client.Client(5000)
         >>> c.wait()
         >>> c.new_session()
         '0'
@@ -34,12 +34,12 @@ class Client(object):
 
         We illustrate examples of valid inputs for url::
 
-            >>> import ws_client
-            >>> ws_client.Client('http://localhost:5002')
+            >>> import client
+            >>> client.Client('http://localhost:5002')
             Client('http://localhost:5002')
-            >>> ws_client.Client('http://sagews.com')
+            >>> client.Client('http://sagews.com')
             Client('http://sagews.com')
-            >>> ws_client.Client(5000)
+            >>> client.Client(5000)
             Client('http://localhost:5000')
         """
         url = str(url)
@@ -51,7 +51,7 @@ class Client(object):
         """
         EXAMPLES::
 
-            >>> import ws_client; ws_client.Client(5001).__repr__()
+            >>> import client; client.Client(5001).__repr__()
             "Client('http://localhost:5001')"
         """
         return "Client('%s')"%self._url
@@ -66,8 +66,8 @@ class Client(object):
 
         EXAMPLES::
 
-            >>> import ws_frontend; r = ws_frontend.Runner(5000)
-            >>> import ws_client;   c = ws_client.Client(5000)
+            >>> import frontend; r = frontend.Runner(5000)
+            >>> import client;   c = client.Client(5000)
             >>> c.wait()
             >>> c.new_session()
             '0'
@@ -89,8 +89,8 @@ class Client(object):
         
         EXAMPLES::
         
-            >>> import ws_frontend; r = ws_frontend.Runner(5000)
-            >>> import ws_client;   c = ws_client.Client(5000)
+            >>> import frontend; r = frontend.Runner(5000)
+            >>> import client;   c = client.Client(5000)
             >>> c.new_session()
             '0'
             >>> c.wait()
@@ -116,8 +116,8 @@ class Client(object):
 
         EXAMPLES::
 
-            >>> import ws_frontend; r = ws_frontend.Runner(5000)
-            >>> import ws_client;   c = ws_client.Client(5000)
+            >>> import frontend; r = frontend.Runner(5000)
+            >>> import client;   c = client.Client(5000)
             >>> c.wait(); c.new_session(); c.wait()
             '0'
             >>> c.execute(0, 'import time; time.sleep(60)')
@@ -139,8 +139,8 @@ class Client(object):
         """
         EXAMPLES::
         
-            >>> import ws_frontend; r = ws_frontend.Runner(5000)
-            >>> import ws_client;   c = ws_client.Client(5000)
+            >>> import frontend; r = frontend.Runner(5000)
+            >>> import client;   c = client.Client(5000)
             >>> c.wait(); c.new_session(); c.wait()
             '0'
             >>> c.execute(0, 'import time; time.sleep(60)')
@@ -164,7 +164,7 @@ class Client(object):
 
 
 def test_client1():
-    import ws_frontend; r = ws_frontend.Runner(5000)
+    import frontend; r = frontend.Runner(5000)
     c = Client(5000)
     c.wait(); i = c.new_session(); c.wait()
     for j in range(2000,2010):
