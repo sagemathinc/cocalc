@@ -13,7 +13,7 @@ class Client(object):
 
         >>> import ws_frontend; r = ws_frontend.Runner(5000)
         >>> import ws_client;   c = ws_client.Client(5000)
-        >>> c.wait(0)
+        >>> c.wait()
         >>> c.new_session()
         '0'
         >>> c.cells(0)
@@ -68,7 +68,7 @@ class Client(object):
 
             >>> import ws_frontend; r = ws_frontend.Runner(5000)
             >>> import ws_client;   c = ws_client.Client(5000)
-            >>> c.wait(0)
+            >>> c.wait()
             >>> c.new_session()
             '0'
             >>> c.new_session()
@@ -93,10 +93,10 @@ class Client(object):
             >>> import ws_client;   c = ws_client.Client(5000)
             >>> c.new_session()
             '0'
-            >>> c.wait(0)
+            >>> c.wait()
             >>> c.new_session()
             '1'
-            >>> c.wait(1)
+            >>> c.wait()
             >>> c.execute(0, 'print(2+3)')
             'running'
             >>> c.execute(1, 'print(5*8)')
@@ -111,6 +111,27 @@ class Client(object):
         return post('%s/execute/%s'%(self._url, session_id), {'code':code}, read=True)
 
     def sigint(self, session_id):
+        """
+        Send interrupt signal to a running process.
+
+        EXAMPLES::
+
+            >>> import ws_frontend; r = ws_frontend.Runner(5000)
+            >>> import ws_client;   c = ws_client.Client(5000)
+            >>> c.wait(); c.new_session(); c.wait()
+            '0'
+            >>> c.execute(0, 'import time; time.sleep(60)')
+            'running'
+            >>> c.sigint(0)
+            'ok'
+            >>> c.wait(0)
+            >>> c.cells(0)
+            [{u'output': [{u'output': u'KeyboardInterrupt()', u'modified_files': u'[]', u'done': False}, {u'output': None, u'modified_files': None, u'done': True}], u'exec_id': 0, u'code': u'import time; time.sleep(60)'}]
+            >>> c.execute(0, 'print(2+3)')
+            'running'
+            >>> c.wait(0)
+            >>> c.cells(0)[-1]
+        """
         return get('%s/sigint/%s'%(self._url, session_id))
 
     def sigkill(self, session_id):
@@ -119,5 +140,9 @@ class Client(object):
     def cells(self, session_id):
         return json.loads(get('%s/cells/%s'%(self._url, session_id)))
 
-    def wait(self, session_id):
-        time.sleep(0.5)
+    def wait(self, session_id=None):
+        if session_id is None:
+            time.sleep(0.4)
+        else:
+            # TODO: other case
+            time.sleep(0.4)
