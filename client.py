@@ -111,7 +111,7 @@ class Client(object):
         return post('%s/execute/%s'%(self._url, session_id), {'code':code}, read=True)
 
     def sigint(self, session_id):
-        """
+        r"""
         Send interrupt signal to a running process.
 
         EXAMPLES::
@@ -131,7 +131,7 @@ class Client(object):
             'running'
             >>> c.wait(0)
             >>> c.cells(0)[-1]
-            # output is definitely wrong!
+            {u'output': [{u'output': u'5\n', u'modified_files': u'[]', u'done': False}, {u'output': None, u'modified_files': None, u'done': True}], u'exec_id': 1, u'code': u'print(2+3)'}
         """
         return get('%s/sigint/%s'%(self._url, session_id))
 
@@ -147,7 +147,7 @@ class Client(object):
             'running'
             >>> c.sigkill(0)
             'ok'
-            sage: c.execute(0, 'print(2+3)')
+            >>> c.execute(0, 'print(2+3)')
             'dead'
         """
         return get('%s/sigkill/%s'%(self._url, session_id))
@@ -163,15 +163,20 @@ class Client(object):
             time.sleep(0.4)
 
 
-def test_client1():
+def test1(n=10):
+    """
+    Unit test -- send n simple execute requests in rapid fire, then
+    verify that they were received.  We do not check that they were in
+    fact computed here.
+    """
     import frontend; r = frontend.Runner(5000)
     c = Client(5000)
-    c.wait(); i = c.new_session(); c.wait()
-    for j in range(2000,2010):
-        c.execute(i, 'print(%s)'%j)
-    c.wait(0)
-    time.sleep(1)  # TODO
-    s = str(c.cells(0))
-    for j in range(2000,2010):
-        assert str(j) in s
-    assert False
+    c.wait(); id = c.new_session(); c.wait()
+    requests = ['print(%s)'%j for j in range(n)]
+    print requests
+    for x in requests:
+        c.execute(id, x)
+    c.wait(id)
+    cells = c.cells(id)
+    for i, x in enumerate(requests):
+        assert x == cells[i]['code']

@@ -96,7 +96,7 @@ def execute(session_id):
             session.cells.append(cell)
             # increment id for next code execution
             session.next_exec_id += 1
-
+            S.commit()
             if session.status == 'ready':
                 try:
                     session.last_active_exec_id = cell.exec_id
@@ -152,7 +152,7 @@ def ready(id):
         return json.dumps([])
 
 @app.route('/sessions/')
-def all_sessins():
+def all_sessions():
     # TODO -- JSON and/or proper templates
     S = db.session()
     s = '<pre>'
@@ -178,10 +178,10 @@ def all_cells():
 def cells(id):
     S = db.session()
     session = S.query(db.Session).filter_by(id=id).one()
-    return json.dumps([{'exec_id':c.exec_id, 'code':c.code,
+    return json.dumps([{'exec_id':cell.exec_id, 'code':cell.code,
                 'output':[{'done':o.done, 'output':o.output,
-                           'modified_files':o.modified_files} for o in c.output]}
-                for c in session.cells])
+                           'modified_files':o.modified_files} for o in cell.output]}
+                       for cell in session.cells])
     
 @app.route('/sigint/<int:id>')
 def signal_interrupt(id):
@@ -256,6 +256,8 @@ def run(port=5000):
     finally:
         cleanup_sessions()
 
+
+
 class Runner(object):
     """
     EXAMPLES::
@@ -278,17 +280,18 @@ class Runner(object):
         self._port = port
         self._server = subprocess.Popen("python %s.py %s"%(__name__, port), shell=True)
         while True:
-            # First ensure that the process is actually running, to
-            # avoid an infinite loop.
-            try:
-                os.kill(self._server.pid, 0)
-            except OSError:
-                raise RuntimeError, "unable to start frontend"
             # Next wait to see if it is listening.
             try:
                 get('http://localhost:%s/'%port)
             except urllib2.URLError:
-                time.sleep(0.05)
+                time.sleep(0.1)
+                # Ensure that the process is actually running, to
+                # avoid an infinite loop trying to get from a URL
+                # that will never come alive. 
+                try:
+                    os.kill(self._server.pid, 0)
+                except OSError:
+                    raise RuntimeError, "unable to start frontend"
             else:
                 # It is listening - done!
                 break
@@ -319,7 +322,16 @@ class Runner(object):
         """
         cleanup_sessions()
         if hasattr(self, '_server'):
-            os.kill(self._server.pid, signal.SIGTERM)
+            try:
+                os.kill(self._server.pid, signal.SIGTERM)
+            except:
+                pass
+            try:
+                os.kill(self._server.pid, signal.SIGKILL)
+            except:
+                pass
+        # TODO -- do better to wait until port is available again.
+        time.sleep(1)
 
 
 if __name__ == '__main__':

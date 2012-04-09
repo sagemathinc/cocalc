@@ -24,7 +24,8 @@ class Session(Base):
     status = Column(String)
     next_exec_id = Column(Integer)
     last_active_exec_id = Column(Integer)
-    cells = relation("Cell", order_by="Cell.exec_id", backref='session', cascade='all, delete, delete-orphan')
+    cells = relation("Cell", order_by="Cell.exec_id",
+                     backref='session', cascade='all, delete, delete-orphan')
     
     def __init__(self, id, pid, path, url, status='ready', next_exec_id=0, last_active_exec_id=-1):
         self.id = int(id)
@@ -47,7 +48,7 @@ class Cell(Base):
     code = Column(String)
     output = relation("OutputMsg", order_by="OutputMsg.number",
                       backref='cell', cascade='all, delete, delete-orphan',
-                      primaryjoin='Cell.exec_id==OutputMsg.exec_id and Cell.session_id==OutputMsg.session_id')
+                      primaryjoin='and_(Cell.session_id==OutputMsg.session_id, Cell.exec_id==OutputMsg.exec_id)')
 
     def __init__(self, exec_id, session_id, code):
         self.exec_id = int(exec_id)
