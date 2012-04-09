@@ -40,7 +40,7 @@ def cleanup_sessions():
     sessions = S.query(db.Session).all()
     for z in sessions:
         try:
-            print "Sending kill -9 signal to %s"%z.pid
+            print "kill -9 %s"%z.pid
             os.kill(z.pid, 9)
             if os.path.exists(z.path):
                 shutil.rmtree(z.path)
@@ -63,7 +63,6 @@ def new_session():
         last_session = S.query(db.Session).order_by(db.Session.id.desc())[0]
         id = last_session.id + 1
         port = int(last_session.url.split(':')[-1]) + 1
-        print last_session
     url = 'http://localhost:%s'%port
     print url
     pid, path = launch_compute_session(url=url, id=id)

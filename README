@@ -155,7 +155,15 @@ code
  [x] define the data model for the frontend
  [x] write sqlalchemy code for the frontend model
  [x] implement using flask the frontend webserver
- [ ] polish 
- [ ] write unit/doctests for messaging
- [ ] write unit/doctests for frontend
+ [ ] polish:
+      - deal with every todo in code that matters
+      - rethink what everything is named
+      - better logs
+      - refactor/shrink code
+      - documentation 
+ [ ] write some unit tests
+ [ ] write some doctests, when it makes sense
+
+
+ 
 

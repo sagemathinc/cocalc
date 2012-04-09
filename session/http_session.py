@@ -1,4 +1,8 @@
+# todo -- implement proper logging
 LOG = False
+if LOG:
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
 
 import cgi, json, sys, urllib, urllib2
 
@@ -66,12 +70,10 @@ class ComputeSession(object):
 
     def log(self, *msg):
         if LOG:
-            # todo -- proper logging
             open('logs/%s'%self._port,'a').write(''.join([str(x) for x in msg]) + '\n')
 
     def run(self):
         while True:
-            print "waiting to handle a request: %s"%self._url
             self._postvars = {}
             self.log('handle_request')
             self._server.handle_request()
