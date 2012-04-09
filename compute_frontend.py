@@ -1,21 +1,19 @@
 """
 HTTP Session Service
 
-killemall http_session.py; trash frontend.sqlite3; sage http_session_frontend.py 5000
+killemall compute_backend.py; trash frontend.sqlite3; sage compute_frontend.py 5000
 """
 
 import json, os, subprocess, sys, tempfile, time, urllib2
-
-from sqlalchemy.exc import OperationalError
 
 from flask import Flask, request
 app = Flask(__name__)
 
 app_port = 5000 # default
 
-from http_session import get, post
+from compute_backend import get, post
 
-import frontend_db_model as db
+import compute_model as db
 
 def launch_compute_session(url, id=id, output_url='output'):
     """
@@ -25,8 +23,10 @@ def launch_compute_session(url, id=id, output_url='output'):
     if output_url == 'output':
         output_url = "http://localhost:%s/output/%s"%(app_port, id)
     execpath = tempfile.mkdtemp()
+    # TODO: do this instead by just forking and importing the right
+    # module, then running the right function.
     args = ['python',
-            'http_session.py',
+            'compute_backend.py',
             url, 
             'http://localhost:%s/ready/%s'%(app_port, id),
             output_url,

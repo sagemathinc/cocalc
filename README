@@ -11,11 +11,30 @@ COPYRIGHT: Modified BSD
 
 DEPENDENCIES:
 
-  * flask (hence jinja2)
+easy_install flask sqlalchemy pytest
+
+  * flask (includes: jinja2, werkzeug)
   * sqlalchemy
-  * 
+  * jsquery (included)
+  * pytest (for testing only)
+
+  
+Testing
+-------
+
+The code includes both doctests written using the standard Python
+doctest format, and unit tests.  The point of the doctests is to
+ensure that every function is tested and that it is easy to
+interactively try out any given function.  The unit tests ensure that
+more complicated examples behave as they should.
+
+To run the test suite, install py.test (see http://pytest.org/) and
+run the command
+
+   py.test *.py
 
 
+   
 Components
 ----------
 

@@ -8,7 +8,7 @@ import cgi, json, sys, urllib, urllib2
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-from simple import SimpleStreamingSession
+from compute_session import SimpleStreamingSession
 
 def post(url, data, read=False, timeout=10):
     """
