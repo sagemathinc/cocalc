@@ -131,10 +131,25 @@ class Client(object):
             'running'
             >>> c.wait(0)
             >>> c.cells(0)[-1]
+            # output is definitely wrong!
         """
         return get('%s/sigint/%s'%(self._url, session_id))
 
     def sigkill(self, session_id):
+        """
+        EXAMPLES::
+        
+            >>> import ws_frontend; r = ws_frontend.Runner(5000)
+            >>> import ws_client;   c = ws_client.Client(5000)
+            >>> c.wait(); c.new_session(); c.wait()
+            '0'
+            >>> c.execute(0, 'import time; time.sleep(60)')
+            'running'
+            >>> c.sigkill(0)
+            'ok'
+            sage: c.execute(0, 'print(2+3)')
+            'dead'
+        """
         return get('%s/sigkill/%s'%(self._url, session_id))
 
     def cells(self, session_id):
@@ -146,3 +161,17 @@ class Client(object):
         else:
             # TODO: other case
             time.sleep(0.4)
+
+
+def test_client1():
+    import ws_frontend; r = ws_frontend.Runner(5000)
+    c = Client(5000)
+    c.wait(); i = c.new_session(); c.wait()
+    for j in range(2000,2010):
+        c.execute(i, 'print(%s)'%j)
+    c.wait(0)
+    time.sleep(1)  # TODO
+    s = str(c.cells(0))
+    for j in range(2000,2010):
+        assert str(j) in s
+    assert False
