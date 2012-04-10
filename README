@@ -11,12 +11,13 @@ COPYRIGHT: Modified BSD
 
 DEPENDENCIES:
 
-easy_install flask sqlalchemy pytest
+easy_install flask sqlalchemy requests pytest 
 
-  * flask (includes: jinja2, werkzeug)
-  * sqlalchemy
-  * jsquery (included)
-  * pytest (for testing only)
+  * flask (includes: jinja2, werkzeug); BSD licensed
+  * sqlalchemy; MIT license
+  * jsquery (included); MIT license
+  * pytest (for testing only); MIT license
+  * requests (http://docs.python-requests.org/); ISC license (basically BSD)
 
   
 Testing

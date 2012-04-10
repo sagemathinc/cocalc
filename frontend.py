@@ -2,14 +2,14 @@
 Workspace Server Frontend
 """
 
-import json, os, signal, shutil, subprocess, sys, tempfile, time, urllib2
+import json, os, posixpath, signal, shutil, subprocess, sys, tempfile, time
 
-from flask import Flask, request
+from flask import Flask, request, safe_join, send_from_directory, jsonify
 app = Flask(__name__)
 
-app_port = 5000 # default
+app_port = None # must be set before running
 
-from misc import get, post
+from misc import get, post, ConnectionError, all_files
 
 import model as db
 
@@ -37,7 +37,7 @@ def launch_compute_session(url, id=id, output_url='output'):
 
 def reap_session(pid, path):
     try:
-        print "kill -9 %s"%pid
+        #print "kill -9 %s"%pid
         os.kill(pid, 9)
     except:
         pass
@@ -91,13 +91,37 @@ def new_session():
         S.add(session)
         S.commit()
         msg = {'status':'ok', 'id':int(id)}
-    return json.dumps(msg)
+    return jsonify(msg)
 
 @app.route('/execute/<int:session_id>', methods=['POST'])
 def execute(session_id):
-    """
+    r"""
     Create a new cell with given input code, and start it executing in
     the session with given URL.
+
+    EXAMPLES::
+    
+        >>> import frontend, misc; R = frontend.Runner(5000)
+
+    We start a session and ask for execution of one cell::
+
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+
+        >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+
+    We request execution of code in a session that does not exist::
+
+        >>> misc.post('http://localhost:5000/execute/389', {'code':'print(2+3)'})
+        u'{\n  "status": "error", \n  "data": "unknown session 389"\n}'
+
+    We try a POST request that is missing the code variable, hence
+    results in an error::
+    
+        >>> misc.post('http://localhost:5000/execute/0', {'foo':'bar'})
+        u'{\n  "status": "error", \n  "data": "must POST \'code\' variable"\n}'
+    
     """
     if request.method == 'POST' and request.form.has_key('code'):
         code = request.form['code']
@@ -109,12 +133,12 @@ def execute(session_id):
             session = S.query(db.Session).filter_by(id=session_id).one()
         except orm_exc.NoResultFound:
             # handle invalid session_id
-            return json.dumps({'status':'error', 'data':'unknown session %s'%session_id})
+            return jsonify({'status':'error', 'data':'unknown session %s'%session_id})
         
         if session.status == 'dead':
             # according to the database, we've had trouble with this session,
             # so just raise an error.  
-            return json.dumps({'status':'error', 'data':'session is dead'})
+            return jsonify({'status':'error', 'data':'session is dead'})
         
         # store the code to evaluate in database.
         cell = db.Cell(session.next_exec_id, session.id, code)
@@ -141,11 +165,11 @@ def execute(session_id):
                     try:
                         post(session.url, {'cells':json.dumps(cells)}, timeout=0.1)
                         break
-                    except urllib2.URLError:
+                    except ConnectionError:
                         time.sleep(0.05)
                 msg['cell_status'] = 'running'
                 msg['status'] = 'ok'
-            except urllib2.URLError:
+            except ConnectionError:
                 # The session not alive and responding as we thought
                 # it would be doing, so we mark it is as such in the
                 # database, and send it a kill -9 just for good measure.
@@ -169,10 +193,9 @@ def execute(session_id):
             # result from database corruption or a bug.
             raise RuntimeError, "invalid session status (='%s')"%session.status
     else:
-        msg['status'] = 'error'
-        msg['data'] = 'must POST code variable'
+        msg = {'status':'error', 'data':"must POST 'code' variable"}
         
-    return json.dumps(msg)
+    return jsonify(msg)
 
 
 @app.route('/ready/<int:id>')
@@ -203,7 +226,7 @@ def ready(id):
         # come in to be computed, we do not send them off immediately.
         session.status = 'running'
         S.commit()
-        return json.dumps(cells)
+        return jsonify(status='ok', cells=cells)
     
     else:
 
@@ -212,7 +235,7 @@ def ready(id):
         # work to do.
         session.status = 'ready'
         S.commit()
-        return json.dumps([])
+        return jsonify(status='done')
 
 @app.route('/sessions/')
 def all_sessions():
@@ -221,7 +244,7 @@ def all_sessions():
     """
     S = db.session()
     v = [s.to_json() for s in S.query(db.Session).order_by(db.Session.id).all()]
-    return json.dumps({'status':'ok', 'data':v})
+    return jsonify({'status':'ok', 'data':v})
 
 
 @app.route('/cells/<int:session_id>')
@@ -235,7 +258,7 @@ def cells(session_id):
         msg = {'status':'ok', 'data':[cell.to_json() for cell in session.cells]}
     except orm_exc.NoResultFound:
         msg = {'status':'error', 'data':'unknown session %s'%session_id}
-    return json.dumps(msg)
+    return jsonify(msg)
     
 @app.route('/output_messages/<int:session_id>/<int:exec_id>/<int:number>')
 def output_messages(session_id, exec_id, number):
@@ -249,7 +272,7 @@ def output_messages(session_id, exec_id, number):
                   order_by(db.OutputMsg.number)
     data = [{'number':m.number, 'done':m.done, 'output':m.output, 'modified_files':m.modified_files}
               for m in output_msgs]
-    return json.dumps({'status':'ok', 'data':data})
+    return jsonify({'status':'ok', 'data':data})
 
 def send_signal(id, sig):
     """
@@ -270,7 +293,7 @@ def send_signal(id, sig):
             msg = {'status':'ok'}
         except OSError, err:
             msg = {'status':'error', 'data':str(err)}
-    return json.dumps(msg)
+    return jsonify(msg)
 
 @app.route('/sigint/<int:id>')
 def signal_interrupt(id):
@@ -299,40 +322,145 @@ def status(id):
         msg = {'status':'ok', 'session_status':session.status}
     except orm_exc.NoResultFound:
         msg = {'status':'error', 'data':'unknown session %s'%id}
-    return json.dumps(msg)
+    return jsonify(msg)
 
-@app.route('/put/<int:id>/<path>', methods=['POST'])
-def put_file(id, path):
-    """
-    Place the file with attached to the POST variable 'file' in the
-    given path in the session with given id.
-    """
-    # TODO: implement this
-    return json.dumps({'status':'error', 'data':'not implemented'})
+def file_path(id, path):
+    S = db.session()
+    try:
+        session = S.query(db.Session).filter_by(id=id).one()
+        path = posixpath.normpath(path)
+        if '..' in path or os.path.isabs(path):
+            raise ValueError("insecure path '%s'"%path)
+        return safe_join(session.path, path)
+    except orm_exc.NoResultFound:
+        raise ValueError('unknown session %s'%id)
 
-@app.route('/get/<int:id>/<path>')
+@app.route('/files/<int:id>')
+def files(id):
+    r"""
+    Return list of all files in the session with given id.
+
+    INPUT:
+    - ``id`` -- nonnegative integer
+
+    EXAMPLES::
+    
+        >>> import frontend, misc; R = frontend.Runner(5000)
+
+    First we get back an error, since session 0 doesn't exist yet::
+    
+        >>> misc.get('http://localhost:5000/files/0')
+        u'{\n  "status": "error", \n  "data": "unknown session 0"\n}'
+
+    Create session 0 and get back empty list of files::
+    
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> misc.get('http://localhost:5000/files/0')
+        u'{\n  "status": "ok", \n  "data": []\n}'
+
+
+    Create a file (via a computation) and check the list::
+
+        >>> misc.post('http://localhost:5000/execute/0', {'code':'open("a_file.txt","w").write("hello")'})
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        >>> import client; c = client.Client(5000); c.wait(0)
+        >>> misc.get('http://localhost:5000/files/0')
+        u'{\n  "status": "ok", \n  "data": [\n    "a_file.txt"\n  ]\n}'
+
+    Also, note that the file we uploaded has the right contents::
+    
+        >>> misc.get('http://localhost:5000/get_file/0/a_file.txt')
+        u'hello'
+
+    We start a new session and make sure the file list is empty for
+    that session::
+    
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 1\n}'
+        >>> misc.get('http://localhost:5000/files/1')
+        u'{\n  "status": "ok", \n  "data": []\n}'
+
+    We delete the file we just created and check the list of files::
+
+        >>> misc.get('http://localhost:5000/delete_file/0/a_file.txt')
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/files/0')
+        u'{\n  "status": "ok", \n  "data": []\n}'
+
+    Next we upload two files using the put_file function, which
+    automatically creates directory paths, then check that our newly
+    uploaded files appear in the list of files::
+
+
+        >>> misc.post('http://localhost:5000/put_file/0', files={'a/b/c/file.txt':'hawk', 'a/b/c/file2.txt':'hosoi'})
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/files/0')
+        u'{\n  "status": "ok", \n  "data": [\n    "a/b/c/file.txt", \n    "a/b/c/file2.txt"\n  ]\n}'
+
+    For completeness, we grab and delete the first file we just uploaded. 
+
+        >>> misc.get('http://localhost:5000/get_file/0/a/b/c/file.txt')
+        u'hawk'
+        >>> misc.get('http://localhost:5000/delete_file/0/a/b/c/file.txt')
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/files/0')
+        u'{\n  "status": "ok", \n  "data": [\n    "a/b/c/file2.txt"\n  ]\n}'
+
+    """
+    S = db.session()
+    try:
+        session = S.query(db.Session).filter_by(id=id).one()
+        msg = {'status':'ok', 'data':all_files(session.path)}
+    except orm_exc.NoResultFound:
+        msg = {'status':'error', 'data':'unknown session %s'%id}
+    return jsonify(msg)
+
+    
+
+@app.route('/put_file/<int:id>', methods=['POST'])
+def put_file(id):
+    """
+    Place the file with given 'content' (POST variable) in the given
+    'path' (POST variable) in the session with given id.
+    """
+    if request.method == 'POST':
+        for file in request.files.itervalues():
+            try:
+                path = file_path(id, file.filename)
+            except ValueError, msg:
+                return jsonify({'status':'error', 'data':str(msg)})
+            base, fname = os.path.split(path)
+            if not os.path.exists(base):
+                os.makedirs(base)
+            file.save(path)
+        return jsonify({'status':'ok'})
+    else:
+        return jsonify({'status':'error', 'data':"must POST file"})
+
+@app.route('/get_file/<int:id>/<path:path>')
 def get_file(id, path):
     """
     Return the file in the given path in the session with given id. 
     """
-    # TODO: implement this
-    return json.dumps({'status':'error', 'data':'not implemented'})    
+    try:
+        path = file_path(id, path)
+    except ValueError, msg:
+        return send_from_directory('/','') # invalid file -- gives right error (ugly/hackish?)
+    base, fname = os.path.split(path)
+    return send_from_directory(base, fname, as_attachment=True)
 
-@app.route('/delete/<int:id>/<path>')
+@app.route('/delete_file/<int:id>/<path:path>')
 def delete_file(id, path):
     """
     Delete the file with given path in the session with given id.
     """
-    # TODO: implement this
-    return json.dumps({'status':'error', 'data':'not implemented'})        
-
-@app.route('/files/<int:id>')
-def files(id):
-    """
-    Return a list of all files in the session with given id.
-    """
-    # TODO: implement this
-    return json.dumps({'status':'error', 'data':'not implemented'})            
+    try:
+        path = file_path(id, path)
+    except ValueError, msg:
+        return jsonify({'status':'error', 'data':str(msg)})
+    os.unlink(path)
+    return jsonify({'status':'ok'})
 
 @app.route('/submit_output/<int:id>', methods=['POST'])
 def submit_output(id):
@@ -394,7 +522,7 @@ class Runner(object):
         >>> Runner(5000)
         Workspace Frontend Runner on port 5000
     """
-    def __init__(self, port):
+    def __init__(self, port, debug=False):
         """
         EXAMPLES::
 
@@ -408,12 +536,14 @@ class Runner(object):
         """
         self._port = port
         cmd = "python %s.py %s"%(__name__, port)
+        if debug:
+            cmd += ' True'
         self._server = subprocess.Popen(cmd, shell=True)
         while True:
             # Next wait to see if it is listening.
             try:
                 get('http://localhost:%s/'%port)
-            except urllib2.URLError:
+            except ConnectionError:
                 time.sleep(0.1)
                 # Ensure that the process is actually running, to
                 # avoid an infinite loop trying to get from a URL

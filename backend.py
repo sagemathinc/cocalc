@@ -9,7 +9,7 @@ if LOG:
     if not os.path.exists('logs'):
         os.makedirs('logs')
 
-import cgi, json, sys, urllib, urllib2
+import cgi, json, sys
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
@@ -78,15 +78,14 @@ class ComputeSession(object):
                     # TODO: we are temporarily ignoring the double check of cell['exec_id']. Use it!
                     self._session.execute(str(cell['code']))
 
-                # Next, get mores cells to evaluate, if there are some:
-                cells = json.loads(get(self._frontend_url))
-                self.log('more cells = ', cells)
-                while len(cells) > 0:
-                    for cell in cells:
-                        # TODO: we are temporarily ignoring the double check of cell['exec_id']. Use it!
+                # Next, get more cells to evaluate, if there are some:
+                while True:
+                    msg = json.loads(get(self._frontend_url))
+                    if msg['status'] == 'done':
+                        break
+                    for cell in msg['cells']:
+                        # TODO: we are ignoring the double check of cell['exec_id']. Use it somehow?
                         self._session.execute(str(cell['code']))
-                    cells = json.loads(get(self._frontend_url))
-                    self.log('even more cells = ', cells)
 
                 # no more tasks: we go back to top of while loop and
                 # which means switching back into webserver state

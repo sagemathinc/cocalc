@@ -3,6 +3,8 @@ Python client for the workspace compute server.
 
 """
 
+# import client, doctest; doctest.testmod(client)
+
 import json, time
 
 from misc import get, post
@@ -23,7 +25,7 @@ class Client(object):
         >>> c.cells(0)
         [{u'exec_id': 0, u'code': u'print(2+3)'}]
         >>> c.output(0,0)
-        [{u'output': u'5\n', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+        [{u'output': u'5\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
     """
     def __init__(self, url):
         """
@@ -107,16 +109,16 @@ class Client(object):
             >>> c.cells(0)
             [{u'exec_id': 0, u'code': u'print(2+3)'}]
             >>> c.output(0,0)
-            [{u'output': u'5\n', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            [{u'output': u'5\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.wait(1)
             >>> c.cells(1)
             [{u'exec_id': 0, u'code': u'print(5*8)'}]
             >>> c.output(1,0)
-            [{u'output': u'40\n', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            [{u'output': u'40\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
         """
-        msg = post('%s/execute/%s'%(self._url, session_id), {'code':code}, read=True)
+        msg = post('%s/execute/%s'%(self._url, session_id), {'code':code})
         m = json.loads(msg)
-        if m['status'] == 'error':
+        if m['status'] == u'error':
             raise RuntimeError(m['data'])
         return int(m['exec_id']), str(m['cell_status'])
     
@@ -137,14 +139,14 @@ class Client(object):
             >>> c.cells(0)
             [{u'exec_id': 0, u'code': u'import time; time.sleep(60)'}]
             >>> c.output(0,0)
-            [{u'output': u'KeyboardInterrupt()', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            [{u'output': u'KeyboardInterrupt()', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.execute(0, 'print(2+3)')
             (1, 'running')
             >>> c.wait(0)
             >>> c.cells(0)[1]
             {u'exec_id': 1, u'code': u'print(2+3)'}
             >>> c.output(0,1,0)
-            [{u'output': u'5\n', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            [{u'output': u'5\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
         """
         return json.loads(get('%s/sigint/%s'%(self._url, session_id)))
 
@@ -182,7 +184,7 @@ class Client(object):
             >>> c.cells(id)
             [{u'exec_id': 0, u'code': u'print(2+2)'}]
             >>> c.output(id, 0)
-            [{u'output': u'4\n', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            [{u'output': u'4\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             
         We get a ValueError exception if we ask for the cells of an invalid session::
         
@@ -220,9 +222,9 @@ class Client(object):
             (0, 'running')
             >>> c.wait(0)
             >>> c.output(0,0,0)
-            [{u'output': u'0\n1', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': u'\n2', u'modified_files': u'[]', u'done': False, u'number': 1}, {u'output': u'\n', u'modified_files': u'[]', u'done': False, u'number': 2}, {u'output': None, u'modified_files': None, u'done': True, u'number': 3}]
+            [{u'output': u'0\n1', u'modified_files': None, u'done': False, u'number': 0}, {u'output': u'\n2', u'modified_files': None, u'done': False, u'number': 1}, {u'output': u'\n', u'modified_files': None, u'done': False, u'number': 2}, {u'output': None, u'modified_files': None, u'done': True, u'number': 3}]
             >>> c.output(0,0,2)
-            [{u'output': u'\n', u'modified_files': u'[]', u'done': False, u'number': 2}, {u'output': None, u'modified_files': None, u'done': True, u'number': 3}]
+            [{u'output': u'\n', u'modified_files': None, u'done': False, u'number': 2}, {u'output': None, u'modified_files': None, u'done': True, u'number': 3}]
             >>> c.output(0,0,4)
             []
 
@@ -232,7 +234,7 @@ class Client(object):
             (1, 'running')
             sage: c.wait(0)
             sage: c.output(0,1)
-            [{u'output': u'515377520732011331036461129765621272702107522001\n', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            [{u'output': u'515377520732011331036461129765621272702107522001\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             sage: c.output(0,1,1)
             [{u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
         """
@@ -252,7 +254,7 @@ class Client(object):
         """
         url = '%s/status/%s'%(self._url, int(session_id))
         msg = json.loads(get(url))
-        if msg['status'] == 'error':
+        if msg['status'] == u'error':
             raise ValueError(msg['data'])
         return str(msg['session_status'])
 
@@ -272,7 +274,7 @@ class Client(object):
             >>> c.execute(0, 'import time; time.sleep(3)'); c.wait(0)
             (0, 'running')
             >>> c.output(0,0)
-            [{u'output': u'', u'modified_files': u'[]', u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            [{u'output': u'', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
 
         We can only wait for known sessions::
         
@@ -293,12 +295,39 @@ class Client(object):
                 if delta < 30:
                     delta *= 2  # exponential backoff up to 30 seconds
 
+    def put_file(self, id, files):
+        """
+        Create files in the session with given id, where files is a
+        dictionary of filename:content pairs, and content is a string
+        or file-like object.
+        
+        EXAMPLES::
+
+        """
+        msg = post('%s/put_file/%s'%(self._url, id), files=files)
+        m = json.loads(msg)
+        if m['status'] == u'error':
+            raise ValueError(str(m['data']))
+
+    def get_file(self, id, path):
+        return get('%s/get_file/%s/%s'%(self._url, id, path))
+
+    def delete_file(self, id, path):
+        m = json.loads(get('%s/delete_file/%s/%s'%(self._url, id, path)))
+        if m['status'] == u'error':
+            raise ValueError(str(m['data']))
+        
 
 def test1(n=10):
     """
     Unit test -- send n simple execute requests in rapid fire, then
     verify that they were received.  We do not check that they were in
     fact computed here.
+
+    EXAMPLES::
+
+        >>> test1(2)
+        ['print(0)', 'print(1)']
     """
     import frontend; r = frontend.Runner(5000)
     c = Client(5000)
