@@ -490,7 +490,7 @@ def submit_output(id):
         return 'ok'
     return 'error'
 
-def run(port=5000, debug=False):
+def run(port=5000, debug=False, log=False):
     """
     Run a blocking instance of the frontend server serving on the
     given port.  If debug=True (not the default), then Flask is started
@@ -504,6 +504,11 @@ def run(port=5000, debug=False):
 
     global app_port
     app_port = int(port)
+
+    if not log:
+        import logging
+        logger = logging.getLogger('werkzeug')
+        logger.setLevel(logging.ERROR)    
     
     db.create()
     cleanup_sessions()

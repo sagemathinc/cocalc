@@ -6,6 +6,7 @@ from doctest import testmod, NORMALIZE_WHITESPACE, ELLIPSIS
 import backend, client, frontend, misc, model, session
 
 def tm(module):
+    print module
     testmod(module, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS)
 
 def run_doctests():
