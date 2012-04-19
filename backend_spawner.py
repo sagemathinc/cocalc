@@ -1,21 +1,23 @@
 """
 Backend Spawner
+
+Responsible for launching and killing Python processes.
 """
 
-import subprocess
+import subprocess, sys
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 def run(port):
     class Handler(BaseHTTPRequestHandler):
-         def do_GET(self):
+        def do_GET(self):
             if self.path == '/spawn':
+                print ctype, pdict
                 self.send_response(200)
-                self.send_header('Content-type', 'text/html')
                 self.end_headers()
+                self.wfile.write('49596')
             elif self.path == '/kill':
                 self.send_response(200)
-                self.send_header('Content-type', 'text/html')
                 self.end_headers()
             else:
                 self.send_error(404,'File Not Found: %s' % self.path)
