@@ -38,7 +38,7 @@ from misc import get, post
 ##############################
 
 class ComputeSession(object):
-    def __init__(self, url, finished_url, output_url, execpath):
+    def __init__(self, port, finished_url, output_url, execpath):
         
         class Handler(BaseHTTPRequestHandler):
             session = self
@@ -66,13 +66,12 @@ class ComputeSession(object):
                 except IOError, msg:
                     self.send_error(404,'File Not Found: %s' % self.path)
                     
-        self._url = url
         self._finished_url = finished_url
-        self._output_url = output_url
-        self._port = int(url.split(':')[-1])
-        self._server  = HTTPServer(('', self._port), Handler)
-        self._session = SimpleStreamingSession(
-                          0, lambda msg: self.output(msg), execpath=execpath)
+        self._output_url   = output_url
+        self._port         = port
+        self._server       = HTTPServer(('', self._port), Handler)
+        self._session      = SimpleStreamingSession(
+                             0, lambda msg: self.output(msg), execpath=execpath)
 
     def execute_cells(self, cells):
         """
@@ -126,13 +125,13 @@ class ComputeSession(object):
 
 if __name__ == '__main__':
     if len(sys.argv) != 5:
-        print "Usage: %s URL FINISHED_URL OUTPUT_URL EXEC_PATH"%sys.argv[0]
+        print "Usage: %s PORT FINISHED_URL OUTPUT_URL EXEC_PATH"%sys.argv[0]
         sys.exit(1)
-    url          = sys.argv[1]
+    port         = int(sys.argv[1])
     finished_url = sys.argv[2]
     output_url   = sys.argv[3]
     execpath     = sys.argv[4]
     
-    S = ComputeSession(url, finished_url, output_url, execpath)
+    S = ComputeSession(port, finished_url, output_url, execpath)
     S.run()
     

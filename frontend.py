@@ -15,7 +15,7 @@ import model as db
 
 from sqlalchemy.orm import exc as orm_exc
 
-def launch_backend_session(url, id=id, output_url='output'):
+def launch_backend_session(port, id=id, output_url='output'):
     """
     Launch a backend session listening on the given port, and return
     its UNIX process id and absolute path.
@@ -25,7 +25,7 @@ def launch_backend_session(url, id=id, output_url='output'):
     execpath = tempfile.mkdtemp()
     args = ['python',
             'backend.py',
-            url, 
+            port, 
             'http://localhost:%s/ready/%s'%(app_port, id),
             output_url,
             execpath]
@@ -109,8 +109,7 @@ def new_session():
         last_session = S.query(db.Session).order_by(db.Session.id.desc())[0]
         id = last_session.id + 1
         port = int(last_session.url.split(':')[-1]) + 1
-    url = 'http://localhost:%s'%port
-    pid, path = launch_backend_session(url=url, id=id)
+    pid, path = launch_backend_session(port=port, id=id)
     if pid == -1:
         msg = {'status':'error', 'data':'failed to create new session'}
     else:
