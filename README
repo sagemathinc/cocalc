@@ -176,11 +176,6 @@ code
  [x] write sqlalchemy code for the frontend model
  [x] implement using flask the frontend webserver
 
- [ ] make it so the frontend is completely persistent over restarts,
-     which is do-able given the database.  Add a command to the server
-     the kills all backends and empties their corresponding data from
-     the database.
-
  [ ] polish:
       - deal with every todo in code that matters
       - rethink what everything is named
@@ -188,6 +183,7 @@ code
       - refactor/shrink code
       - documentation
       - pylint 
+
  [ ] write some unit tests
  [ ] write some doctests, when it makes sense
 

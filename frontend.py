@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 app_port = None # must be set before running
 
-from misc import get, post, ConnectionError, all_files
+from misc import get, post, ConnectionError, all_files, is_temp_directory
 
 import model as db
 
@@ -36,13 +36,18 @@ def launch_compute_session(url, id=id, output_url='output'):
     return pid, execpath
 
 def reap_session(pid, path):
+    """
+    Send kill signal to the process with given pid, then delete the
+    directory pointed to by the path.
+
+    Raise a runtime error if path is not a tempory directory.
+    """
     try:
-        #print "kill -9 %s"%pid
-        os.kill(pid, 9)
+        os.kill(pid, signal.SIGKILL)
     except:
         pass
-    if 'tmp' not in path:
-        raise RuntimeError("worrisome path = '%s'"%path)
+    if not is_temp_directory(path):
+        raise RuntimeError("worrisome path = '%s' appears to not be a temp directory"%path)
     if os.path.exists(path):
         shutil.rmtree(path)
     
@@ -308,6 +313,30 @@ def signal_kill(id):
     Send a kill signal to the given session.
     """
     return send_signal(id, signal.SIGKILL)
+
+@app.route('/delete_session/<int:id>')
+def delete_session(id):
+    """
+    Kill and delete from the database the session with the given id.
+    Also, clear up its allocated directory.
+    """
+    # get the session object
+    S = db.session()
+    try:
+        session = S.query(db.Session).filter_by(id=id).one()
+    except orm_exc.NoResultFound:
+        # error message if try to delete session that doesn't exist
+        msg = {'status':'error', 'data':'unknown session %s'%id}
+        return jsonify(msg)
+    try:
+        reap_session(session.pid, session.path)
+    finally:
+        # All cells and output messages linked to this session should
+        # automatically be deleted by a cascade:
+        S.delete(session)
+        S.commit()
+    return jsonify({'status':'ok'})
+
 
 @app.route('/status/<int:id>')
 def status(id):
