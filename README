@@ -176,6 +176,28 @@ code
  [x] write sqlalchemy code for the frontend model
  [x] implement using flask the frontend webserver
 
+ [ ] We *must* find a way to make the frontend separate from the
+     backend processes that are spawned.  There must be no
+     parent/child relationship, and the frontend must be fully
+     restartable without affecting the backend session.  This is
+     because of *scalability*.
+
+     This might be relevant: http://stackoverflow.com/questions/6442428/how-to-use-popen-to-run-backgroud-process-and-avoid-zombie
+
+Ideas to solve this:
+
+   * Create a backend spawner.  This will be a single very simple http
+     server with two function: /spawn and /kill (same inputs as
+     frontend.launch_backend_session), which when called spawns a
+     blank new backend process and returns the pid.
+     In production this would be run by the backend *user account*.
+     There would also be some authentication, so only the frontend 
+     would be able to call the given function.  
+     Finally, a crontab could restart the backend-spawner if it is 
+     killed, e.g., by a user doing "killall -u".
+ 
+
+------------
  [ ] polish:
       - deal with every todo in code that matters
       - rethink what everything is named

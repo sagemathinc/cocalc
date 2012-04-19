@@ -15,16 +15,14 @@ import model as db
 
 from sqlalchemy.orm import exc as orm_exc
 
-def launch_compute_session(url, id=id, output_url='output'):
+def launch_backend_session(url, id=id, output_url='output'):
     """
-    Launch a compute server listening on the given port, and return
+    Launch a backend session listening on the given port, and return
     its UNIX process id and absolute path.
     """
     if output_url == 'output':
         output_url = "http://localhost:%s/submit_output/%s"%(app_port, id)
     execpath = tempfile.mkdtemp()
-    # TODO: do this instead by just forking and importing the right
-    # module, then running the right function.
     args = ['python',
             'backend.py',
             url, 
@@ -41,6 +39,30 @@ def reap_session(pid, path):
     directory pointed to by the path.
 
     Raise a runtime error if path is not a tempory directory.
+
+    EXAMPLES::
+
+    We make a directory and spawn a process, setting the signal handler
+    so that we don't make zombies::
+
+        >>> import tempfile; path = tempfile.mkdtemp()
+        >>> import subprocess
+        >>> proc = subprocess.Popen(['python', '-c' 'while True: pass'])
+
+    Now reap the "session"::
+    
+        >>> import frontend; frontend.reap_session(proc.pid, path)
+        >>> proc.wait()
+        -9
+
+    Observe that the path is gone and the subprocess is also killed::
+    
+        >>> os.path.exists(path)
+        False
+        >>> os.kill(proc.pid, 0)
+        Traceback (most recent call last):
+        ...
+        OSError: [Errno 3] No such process
     """
     try:
         os.kill(pid, signal.SIGKILL)
@@ -88,7 +110,7 @@ def new_session():
         id = last_session.id + 1
         port = int(last_session.url.split(':')[-1]) + 1
     url = 'http://localhost:%s'%port
-    pid, path = launch_compute_session(url=url, id=id)
+    pid, path = launch_backend_session(url=url, id=id)
     if pid == -1:
         msg = {'status':'error', 'data':'failed to create new session'}
     else:
