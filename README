@@ -11,7 +11,7 @@ COPYRIGHT: Modified BSD
 
 DEPENDENCIES:
 
-easy_install flask sqlalchemy requests pytest 
+easy_install flask sqlalchemy requests pytest
 
   * flask (includes: jinja2, werkzeug); BSD licensed
   * sqlalchemy; MIT license
