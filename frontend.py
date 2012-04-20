@@ -637,6 +637,7 @@ class Runner(object):
         """
         cleanup_sessions()
         if hasattr(self, '_server'):
+            # TODO: instead use self._server.kill(); self._server.wait()
             for i in range(5):
                 try:
                     os.kill(self._server.pid, signal.SIGKILL)
