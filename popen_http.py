@@ -8,7 +8,7 @@ parent of several children processes.  There is nothing special about
 the subprocesses that are popen'd having anything to do with Python.
 """
 
-import os, shutil, signal, subprocess, sys, tempfile, threading, time
+import os, shutil, signal, subprocess, sys, tempfile, time
 
 from misc import is_temp_directory, get, ConnectionError
 
@@ -34,7 +34,7 @@ def popen():
     
     EXAMPLES::
 
-        >>> r = Runner(5000, idle=1)
+        >>> r = Daemon(5000)
         >>> s = get('http://localhost:5000/popen', {'command':'python'}); print s
         {
           "status": "ok", 
@@ -165,7 +165,7 @@ def delete(pid):
 
     EXAMPLES::
 
-        >>> r = Runner(5000, idle=1)
+        >>> r = Daemon(5000)
         >>> import json
         >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
         >>> os.path.isdir(s['execpath'])
@@ -179,6 +179,36 @@ def delete(pid):
     # todo -- error if not process with given pid
     return jsonify({'status':'ok'})
 
+@app.route('/send_signal/<int:pid>/<int:sig>')
+def send_signal(pid, sig):
+    """
+    Send sig signal to the process with pid.
+
+    INPUT:
+
+    - ``pid`` -- integer
+    - ``sig`` -- integer
+      
+    EXAMPLES::
+    
+        >>> r = Daemon(5000)
+        >>> import json
+        >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
+        >>> url = 'http://localhost:5000/send_signal/%s/%s'%(s['pid'], signal.SIGINT); url
+        'http://localhost:5000/send_signal/.../2'
+        >>> print get(url)
+        {
+          "status": "ok"
+        }
+    """
+    if pid not in processes:
+        return jsonify({'status':'error', 'mesg':'no such process'})
+    try:
+        processes[pid].proc.send_signal(sig)
+        return jsonify({'status':'ok'})
+    except OSError, err:
+        return jsonify({'status':'error', 'mesg':str(err)})
+
 @app.route('/sigint/<int:pid>')
 def sigint(pid):
     """
@@ -186,7 +216,7 @@ def sigint(pid):
 
     EXAMPLES::
     
-        >>> r = Runner(5000, idle=1)
+        >>> r = Daemon(5000)
         >>> import json
         >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
 
@@ -204,7 +234,7 @@ def exitcode(pid):
     """
     EXAMPLES::
 
-        >>> r = Runner(5000, idle=1)
+        >>> r = Daemon(5000)
         >>> import json
         >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
         >>> pid = s['pid']
@@ -223,29 +253,41 @@ def exitcode(pid):
 # Todo -- factor out; use same code for frontend.py, and maybe for
 # backends too.
 
-class Runner(object):
-    def __init__(self, port, idle=None, debug=False):
+class Daemon(object):
+    def __init__(self, port, debug=False, pidfile=None):
         """
         Run as a subprocess, wait for http server to start.
 
         INPUT:
 
         - ``port`` -- port to listen on
-        - ``idle`` -- kill subprocess if no CPU activity for this many seconds
         - ``debug`` -- (default: False) whether or not to start server in
           debug mode
+        - ``pidfile`` -- pid of this daemon
 
         EXAMPLES::
 
-            >>> r = Runner(5000)
+            >>> r = Daemon(5000)
+            >>> open(r._pidfile).read()
+            '...'
             >>> del r
-            >>> r = Runner(5000, idle=0.2)
-            >>> import time; time.sleep(0.5)
-            >>> r.p.returncode in [0,2]   # 0 (unix); 2 (windows)
-            True
         """
+        if pidfile is None:
+            self._pidfile = '%s.pid'%__name__
+        else:
+            self._pidfile = pidfile
+        if os.path.exists(self._pidfile):
+            while True:
+                try:
+                    os.kill(int(open(self._pidfile).read()), signal.SIGKILL)
+                    time.sleep(0.05)
+                except OSError:
+                    # error means process is gone
+                    break
+                
         # open a subprocess
         self.p = subprocess.Popen(('python %s.py %s %s'%(__name__, port, debug)).split())
+        open(self._pidfile, 'w').write(str(self.p.pid))
         # wait for http server to start
         while True:
             try:
@@ -253,30 +295,16 @@ class Runner(object):
                 break
             except ConnectionError:
                 time.sleep(0.05)
-        if idle:
-            # Start a thread that will check whether the subprocess has been
-            # idle for idle number of seconds.  If so, kill the subprocess.
-            self._sub_cputime = sum(os.times()[2:4])
-            self._idle = idle
-            threading.Timer(self._idle, lambda : self._check_idle()).start()
-
-    def _check_idle(self):
-        new_cputime = sum(os.times()[2:4])
-        if new_cputime == self._sub_cputime:
-            self.__del__()
-            return  # don't check anymore
-        # record new times
-        self._sub_cputime = new_cputime
-        # call again after self._idle seconds
-        threading.Timer(self._idle, lambda : self._check_idle()).start()
 
     def __del__(self):
-        if not self.p.returncode:
+        if hasattr(self, 'p') and not self.p.returncode:
             try:
                 os.kill(self.p.pid, signal.SIGINT)
+                self.p.wait()
             except OSError:
-                pass
-            self.p.wait()
+                pass # already dead?
+        if os.path.exists(self._pidfile):
+            os.unlink(self._pidfile)
         
 
 if __name__ == '__main__':
