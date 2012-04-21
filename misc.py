@@ -58,7 +58,7 @@ def post(url, data=None, files=None, timeout=10):
 
 def all_files(path):
     """
-    Return a list of the names of all files in the given path, and in
+    Return a sorted list of the names of all files in the given path, and in
     all subdirectories.  Empty directories are ignored.
 
     INPUT:
@@ -82,13 +82,14 @@ def all_files(path):
     completely ignores the empty directory::
     
         >>> all_files(d)
-        ['a', 'xyz.abc', 'm/n/k/foo']
+        ['a', 'm/n/k/foo', 'xyz.abc']
     """
     all = []
     n = len(path)
     for root, dirs, files in os.walk(path):
         for fname in files:
             all.append(os.path.join(root[n+1:], fname))
+    all.sort()
     return all
 
 
