@@ -69,26 +69,14 @@ def popen_process(command):
         >>> delete_process(p0['pid']); delete_process(p1['pid'])
     """
     execpath = tempfile.mkdtemp()
-    proc = subprocess.Popen(command.split(), cwd=execpath)
+    if sys.platform == 'win32':
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        creationflags = 0
+    proc = subprocess.Popen(command.split(), cwd=execpath, 
+                creationflags=creationflags)
     processes[proc.pid] = Process(proc, execpath)
     return {'status':'ok', 'pid':proc.pid, 'execpath':execpath}
-
-def send_signal(pid, sig):
-    """
-    Send signal to the session with given pid.
-
-    EXAMPLES::
-
-        >>> p = popen_process('python')
-        >>> send_signal(p['pid'], signal.SIGINT)
-        >>> delete_all_processes()
-    """
-    if pid not in processes:
-        return
-    try:
-        processes[pid].proc.send_signal(sig)
-    except OSError, err:
-        pass
 
 def delete_execpath(pid):
     """
@@ -123,20 +111,22 @@ def delete_process(pid):
         >>> delete_process(p['pid'])
         >>> os.path.isdir(p['execpath'])
         False
-        >>> processes[p['pid']].proc.wait()
-        -9
-        >>> processes[p['pid']].proc.returncode
-        -9
+        >>> w = processes[p['pid']].proc.wait()    # output OS dependent
+        >>> processes[p['pid']].proc.returncode is not None
+        True
     """
     if pid not in processes:
         # nothing to do 
         return
     p = processes[pid].proc
     if p.returncode is None:
-        p.kill()
-        # TODO: is this going to hang the web server? do we need a timeout.
-        p.wait()
-        # At least on windows subprocess must finish before we can delete its files.
+        try:
+            p.terminate()
+            # TODO: is this going to hang the web server? do we need a timeout.
+            p.wait() 
+        except Exception, msg:
+            # Maybe process already dead (sometimes happens on windows)
+            pass
     delete_execpath(pid)
     
 def delete_all_processes():
@@ -151,8 +141,8 @@ def delete_all_processes():
         >>> delete_all_processes()
         >>> os.path.isdir(p0['execpath']), os.path.isdir(p1['execpath'])
         (False, False)
-        >>> processes[p0['pid']].proc.returncode, processes[p1['pid']].proc.returncode
-        (-9, -9)
+        >>> processes[p0['pid']].proc.returncode is not None, processes[p1['pid']].proc.returncode is not None
+        (True, True)
     """
     for pid in processes:
         delete_process(pid)
@@ -167,16 +157,22 @@ def delete(pid):
 
         >>> r = Daemon(5000)
         >>> import json
-        >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
+        >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'})); s
+        {u'status': u'ok', u'pid': ..., u'execpath': u'...tmp...'}
         >>> os.path.isdir(s['execpath'])
         True
-        >>> json.loads(get('http://localhost:5000/delete/%s'%s['pid'], timeout=10))
-        {u'status': u'ok'}
+        >>> time.sleep(1)
+        >>> print get('http://localhost:5000/delete/%s'%s['pid'], timeout=10)
+        {
+          "status": "ok"
+        }
         >>> os.path.isdir(s['execpath'])
         False
     """
-    delete_process(pid)
-    # todo -- error if not process with given pid
+    try:
+        delete_process(pid)
+    except Exception, mesg:
+        return jsonify({'status':'error', 'mesg':str(mesg)})
     return jsonify({'status':'ok'})
 
 @app.route('/send_signal/<int:pid>/<int:sig>')
@@ -204,30 +200,12 @@ def send_signal(pid, sig):
     if pid not in processes:
         return jsonify({'status':'error', 'mesg':'no such process'})
     try:
+        if sys.platform=='win32' and sig == signal.SIGINT:
+            sig = signal.CTRL_C_EVENT
         processes[pid].proc.send_signal(sig)
         return jsonify({'status':'ok'})
-    except OSError, err:
+    except Exception, err:
         return jsonify({'status':'error', 'mesg':str(err)})
-
-@app.route('/sigint/<int:pid>')
-def sigint(pid):
-    """
-    Send one interrupt signal to the given session.
-
-    EXAMPLES::
-    
-        >>> r = Daemon(5000)
-        >>> import json
-        >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
-
-    There's no easy way to test for sure that the sigint really happened::
-    
-        >>> json.loads(get('http://localhost:5000/sigint/%s'%s['pid']))
-        {u'status': u'ok'}
-    """
-    send_signal(pid, signal.SIGINT)
-    # todo -- error if not process with given pid    
-    return jsonify({'status':'ok'})
 
 @app.route('/exitcode/<int:pid>')
 def exitcode(pid):
@@ -242,8 +220,9 @@ def exitcode(pid):
         {u'status': u'ok', u'exitcode': None}
         >>> json.loads(get('http://localhost:5000/delete/%s'%pid))
         {u'status': u'ok'}
-        >>> json.loads(get('http://localhost:5000/exitcode/%s'%pid))
-        {u'status': u'ok', u'exitcode': -9}
+        >>> a = json.loads(get('http://localhost:5000/exitcode/%s'%pid)); a   # exitcode is OS dependent
+        {u'status': u'ok', u'exitcode': ...}
+        >>> # TODO: a['exitcode'] is not None
     """
     if pid not in processes:
         return jsonify({'status':'error', 'mesg':'no session with given pid'})
