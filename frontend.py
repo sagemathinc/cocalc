@@ -25,7 +25,7 @@ def launch_backend_session(port, id=id, output_url='output'):
     execpath = tempfile.mkdtemp()
     args = ['python',
             'backend.py',
-            port, 
+            str(port), 
             'http://localhost:%s/ready/%s'%(app_port, id),
             output_url,
             execpath]
@@ -113,7 +113,7 @@ def new_session():
     if pid == -1:
         msg = {'status':'error', 'data':'failed to create new session'}
     else:
-        session = db.Session(id, pid, path, url)
+        session = db.Session(id, pid, path, 'http://localhost:%s'%port)
         S.add(session)
         S.commit()
         msg = {'status':'ok', 'id':int(id)}
