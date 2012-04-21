@@ -74,15 +74,15 @@ def all_files(path):
         >>> d = tempfile.mkdtemp()
         >>> o = open(os.path.join(d,'a'),'w')
         >>> o = open(os.path.join(d,'xyz.abc'),'w')
-        >>> os.makedirs(os.path.join(d,'x/y/z'))
-        >>> os.makedirs(os.path.join(d,'m/n/k'))
-        >>> o = open(os.path.join(d,'m/n/k/foo'),'w')
+        >>> os.makedirs(os.path.join(d, 'x', 'y', 'z'))
+        >>> os.makedirs(os.path.join(d, 'm', 'n', 'k'))
+        >>> o = open(os.path.join(d,'m', 'n', 'k', 'foo'),'w')
 
     This all_files function returns a list of the 3 files, but
     completely ignores the empty directory::
     
-        >>> all_files(d)
-        ['a', 'm/n/k/foo', 'xyz.abc']
+        >>> all_files(d)       # ... = / on unix but \\ windows
+        ['a', 'm...n...k...foo', 'xyz.abc']
     """
     all = []
     n = len(path)
