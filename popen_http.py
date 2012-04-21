@@ -128,10 +128,15 @@ def delete_process(pid):
         >>> processes[p['pid']].proc.returncode
         -9
     """
-    processes[pid].proc.kill()
-    # TODO: is this going to hang the web server? do we need a timeout.
-    processes[pid].proc.wait()
-    # At least on windows subprocess must finish before we can delete its files.
+    if pid not in processes:
+        # nothing to do 
+        return
+    p = processes[pid].proc
+    if p.returncode is None:
+        p.kill()
+        # TODO: is this going to hang the web server? do we need a timeout.
+        p.wait()
+        # At least on windows subprocess must finish before we can delete its files.
     delete_execpath(pid)
     
 def delete_all_processes():
@@ -160,7 +165,7 @@ def delete(pid):
 
     EXAMPLES::
 
-        >>> r = Runner(5000, idle=10)
+        >>> r = Runner(5000, idle=1)
         >>> import json
         >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
         >>> os.path.isdir(s['execpath'])
@@ -238,7 +243,6 @@ class Runner(object):
             >>> import time; time.sleep(0.5)
             >>> r.p.returncode in [0,2]   # 0 (unix); 2 (windows)
             True
-            >>> r = Runner(5000, idle=1)
         """
         # open a subprocess
         self.p = subprocess.Popen(('python %s.py %s %s'%(__name__, port, debug)).split())
