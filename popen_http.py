@@ -96,7 +96,10 @@ def delete_execpath(pid):
         return
     path = processes[pid].execpath
     if os.path.exists(path):
-        shutil.rmtree(path)
+        try:
+            shutil.rmtree(path)
+        except OSError:
+            pass
 
 def delete_process(pid):
     """
