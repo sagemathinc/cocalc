@@ -34,40 +34,15 @@ def launch_backend_session(port, id=id, output_url='output'):
     execpath = mesg['execpath']
     return pid, execpath
 
-# todo: dumb name
-def reap_session(pid):
+def delete_subprocess(pid):
     """
-    Send kill signal to the process with given pid, then delete the
-    directory pointed to by the path.
-
-    Raise a runtime error if path is not a tempory directory.
+    Send kill signal to the process with given pid.
 
     EXAMPLES::
 
-    We make a directory and spawn a process, setting the signal handler
-    so that we don't make zombies::
-
-        >>> import tempfile; path = tempfile.mkdtemp()
-        >>> import subprocess
-        >>> proc = subprocess.Popen(['python', '-c' 'while True: pass'])
-
-    Now reap the "session"::
-    
-        >>> import frontend; frontend.reap_session(proc.pid)
-        >>> proc.wait()
-        -9
-
-    Observe that the path is gone and the subprocess is also killed::
-    
-        >>> os.path.exists(path)
-        False
-        >>> os.kill(proc.pid, 0)
-        Traceback (most recent call last):
-        ...
-        OSError: [Errno 3] No such process
     """
-    return json.loads(get('http://localhost:%s/delete/%s'%(
-        subprocess_port, pid)))
+    url = 'http://localhost:%s/delete/%s'%(subprocess_port, pid)
+    return json.loads(get(url))
 
 def cleanup_sessions():
     S = db.session()
@@ -79,7 +54,7 @@ def cleanup_sessions():
     
     for z in sessions:
         try:
-            reap_session(z.pid)
+            delete_subprocess(z.pid)
         finally:
             S.delete(z)
             S.commit()
@@ -122,7 +97,7 @@ def execute(session_id):
 
     EXAMPLES::
     
-        >>> import frontend, misc; R = frontend.Runner(5000)
+        >>> import frontend, misc; R = frontend.Daemon(5000)
 
     We start a session and ask for execution of one cell::
 
@@ -198,7 +173,7 @@ def execute(session_id):
                 msg['data'] = 'session is dead'
                 msg['status'] = 'error'
                 try:
-                    reap_session(session.pid)
+                    delete_subprocess(session.pid)
                 except OSError:
                     pass
             finally:
@@ -345,7 +320,7 @@ def delete_session(id):
         msg = {'status':'error', 'data':'unknown session %s'%id}
         return jsonify(msg)
     try:
-        reap_session(session.pid)
+        delete_subprocess(session.pid)
     finally:
         # All cells and output messages linked to this session should
         # automatically be deleted by a cascade:
@@ -390,7 +365,7 @@ def files(id):
 
     EXAMPLES::
     
-        >>> import frontend, misc; R = frontend.Runner(5000)
+        >>> import frontend, misc; R = frontend.Daemon(5000)
 
     First we get back an error, since session 0 doesn't exist yet::
     
@@ -564,33 +539,49 @@ def run(port=5000, debug=False, log=False, sub_port=4999):
         cleanup_sessions()
 
 
-class Runner(object):
+class Daemon(object):
     """
     Run workspace frontend server.
     
     EXAMPLES::
     
-        >>> Runner(5000)
-        Workspace Frontend Runner on port 5000
+        >>> Daemon(5000)
+        Workspace Frontend Daemon on port 5000
     """
-    def __init__(self, port, debug=False):
+    def __init__(self, port, debug=False, pidfile=None):
         """
         EXAMPLES::
 
-            >>> r = Runner(5001)
+            >>> r = Daemon(5001)
             >>> type(r)
-            <class 'frontend.Runner'>
+            <class 'frontend.Daemon'>
             >>> r._port
             5001
-            >>> r._server
-            <subprocess.Popen object at 0x...>
         """
+        if pidfile is None:
+            self._pidfile = '%s-%s.pid'%(__name__, port)
+        else:
+            self._pidfile = pidfile
+        if os.path.exists(self._pidfile):
+            pid = int(open(self._pidfile).read())
+            max_tries = 10
+            while True:
+                max_tries -= 1
+                if max_tries == 0:
+                    break # TODO: here we should just check that it is a zombie
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                    time.sleep(0.05)
+                except OSError:
+                    # error means process is gone
+                    break
         self._port = port
         cmd = "python %s.py %s"%(__name__, port)
         if debug:
             cmd += ' True'
         import subprocess # import here to ensure only used here
         self._server = subprocess.Popen(cmd, shell=True)
+        open(self._pidfile, 'w').write(str(self._server.pid))
         while True:
             # Next wait to see if it is listening.
             try:
@@ -612,16 +603,18 @@ class Runner(object):
         """
         EXAMPLES::
 
-            >>> Runner(5002).__repr__()
-            'Workspace Frontend Runner on port 5002'
+            >>> Daemon(5002).__repr__()
+            'Workspace Frontend Daemon on port 5002'
         """
-        return "Workspace Frontend Runner on port %s"%self._port
+        return "Workspace Frontend Daemon on port %s"%self._port
         
     def __del__(self):
         try:
             self.kill()
         except:
             pass
+        #if os.path.exists(self._pidfile):
+        #    os.unlink(self._pidfile)
 
     def kill(self):
         """
@@ -629,7 +622,7 @@ class Runner(object):
         
         EXAMPLES:
 
-            >>> r = Runner(5000)
+            >>> r = Daemon(5000)
             >>> r.kill()
         """
         cleanup_sessions()
