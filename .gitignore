@@ -3,3 +3,4 @@
 *.pyc
 *.sqlite3
 logs
+.DS_Store
