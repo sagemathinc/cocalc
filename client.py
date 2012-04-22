@@ -9,11 +9,12 @@ import json, time
 
 from misc import get, post
 
+
 class Client(object):
     r"""
     EXAMPLES::
 
-        >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+        >>> from client import TestClient; c = TestClient()
         >>> c.new_session()
         0
         >>> c.cells(0)
@@ -64,11 +65,12 @@ class Client(object):
         session on success.
 
         OUTPUT:
+
         - integer -- id of new session
 
         EXAMPLES::
 
-            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> from client import TestClient; c = TestClient()
             >>> c.new_session()
             0
             >>> c.new_session()
@@ -94,7 +96,7 @@ class Client(object):
         
         EXAMPLES::
         
-            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> from client import TestClient; c = TestClient()
             >>> c.new_session()
             0
             >>> c.wait()
@@ -128,16 +130,16 @@ class Client(object):
 
         EXAMPLES::
 
-            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000)
+            >>> from client import TestClient; c = TestClient()
             >>> c.new_session()
             0
-            >>> c.execute(0, 'import time; time.sleep(60)')
+            >>> c.execute(0, 'import time; time.sleep(10)')
             (0, 'running')
             >>> c.sigint(0)
             {u'status': u'ok'}
-            >>> c.wait(0)
+            >>> c.wait(0)  
             >>> c.cells(0)
-            [{u'exec_id': 0, u'code': u'import time; time.sleep(60)'}]
+            [{u'exec_id': 0, u'code': u'import time; time.sleep(10)'}]
             >>> c.output(0,0)
             [{u'output': u'KeyboardInterrupt()', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.execute(0, 'print(2+3)')
@@ -154,7 +156,7 @@ class Client(object):
         """
         EXAMPLES::
 
-            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000)
+            >>> from client import TestClient; c = TestClient()
             >>> c.new_session()
             0
             >>> c.execute(0, 'import time; time.sleep(60)')
@@ -170,11 +172,14 @@ class Client(object):
         """
         return json.loads(get('%s/sigkill/%s'%(self._url, session_id)))
 
+    def killall(self):
+        return json.loads(get('%s/killall'%self._url))
+
     def cells(self, session_id):
         r"""
         EXAMPLES::
 
-            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> from client import TestClient; c = TestClient()
             >>> id = c.new_session(); c.wait(id)
             >>> c.cells(id)
             []
@@ -206,16 +211,18 @@ class Client(object):
         nonnegative integers.
 
         INPUT:
+
         - ``session_id`` -- integer; id of a session (need not be valid)
         - ``exec_id`` -- integer; execution id of a cell
         - ``number`` -- integer; output number
 
         OUTPUT:
+
         - list of dictionaries ordered by number
 
         EXAMPLES::
 
-            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> from client import TestClient; c = TestClient()
             >>> c.new_session(); c.wait(0)
             0
             >>> c.execute(0, 'import time\nfor n in range(3):\n print(n); time.sleep(0.5)')
@@ -230,12 +237,12 @@ class Client(object):
 
         Evaluate some more code and look at the corresponding messages::
         
-            sage: c.execute(0, 'print(3**100)')
+            >>> c.execute(0, 'print(3**100)')
             (1, 'running')
-            sage: c.wait(0)
-            sage: c.output(0,1)
+            >>> c.wait(0)
+            >>> c.output(0,1)
             [{u'output': u'515377520732011331036461129765621272702107522001\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
-            sage: c.output(0,1,1)
+            >>> c.output(0,1,1)
             [{u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
         """
         url = '%s/output_messages/%s/%s/%s'%(self._url, int(session_id), int(exec_id), int(number))
@@ -244,6 +251,12 @@ class Client(object):
             return msg['data']
         else:
             raise RuntimeError(msg['data'])
+
+    def sessions(self):
+        return json.loads(get('%s/sessions'%self._url))
+
+    def session(self, session_id):
+        return json.loads(get('%s/session/%s'%(self._url, session_id)))
 
     def session_status(self, session_id):
         """
@@ -258,7 +271,7 @@ class Client(object):
             raise ValueError(msg['data'])
         return str(msg['session_status'])
 
-    def wait(self, session_id=None, delta=0.05):
+    def wait(self, session_id=None, delta=0.05, timeout=5):
         """
         Wait until the session with given id is in the 'ready' state.
 
@@ -268,7 +281,7 @@ class Client(object):
         
         EXAMPLES::
 
-            >>> import frontend; r = frontend.Runner(5000); import client; c = client.Client(5000); c.wait()
+            >>> from client import TestClient; c = TestClient()
             >>> c.new_session()
             0
             >>> c.execute(0, 'import time; time.sleep(3)'); c.wait(0)
@@ -278,7 +291,7 @@ class Client(object):
 
         We can only wait for known sessions::
         
-            >>> c.wait(1)
+            >>> c.wait(1, timeout=5)
             Traceback (most recent call last):
             ...
             ValueError: unknown session 1
@@ -288,12 +301,14 @@ class Client(object):
             # todo -- fully implement this! -- what should it even mean?
             time.sleep(1)
         else:
-            while True:
+            t = time.time()
+            while time.time() <= t + timeout:
                 if self.session_status(session_id) == 'ready':
                     return
                 time.sleep(delta)
-                if delta < 30:
-                    delta *= 2  # exponential backoff up to 30 seconds
+                if delta < 5:
+                    delta *= 2  # exponential backoff
+            raise RuntimeError('timeout')
 
     def put_file(self, id, files):
         """
@@ -317,6 +332,19 @@ class Client(object):
         if m['status'] == u'error':
             raise ValueError(str(m['data']))
         
+class TestClient(Client):
+    def __init__(self, port=5000):
+        Client.__init__(self, port)
+        import frontend
+        self.r = frontend.Daemon(port)
+        self.wait()
+        self.killall()
+
+    def __del__(self):
+        try:
+            self.killall()
+        except:
+            pass
 
 def test1(n=10):
     """
@@ -329,8 +357,7 @@ def test1(n=10):
         >>> test1(2)
         ['print(0)', 'print(1)']
     """
-    import frontend; r = frontend.Runner(5000)
-    c = Client(5000)
+    c = TestClient()
     c.wait(); id = c.new_session(); c.wait()
     requests = ['print(%s)'%j for j in range(n)]
     print requests

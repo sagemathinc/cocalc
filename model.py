@@ -43,7 +43,7 @@ class Session(Base):
                 'url':self.url, 'status':self.status,
                 'next_exec_id':self.next_exec_id,
                 'last_active_exec_id':self.last_active_exec_id,
-                'start_time':self.start_time}
+                'start_time':str(self.start_time)}
 
     def __repr__(self):
         return "Session(%s, pid=%s, path='%s', url='%s', status='%s', next_exec_id=%s, last_active_exec_id=%s, start_time=%s)"%(

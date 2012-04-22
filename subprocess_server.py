@@ -36,8 +36,8 @@ def popen():
     
     EXAMPLES::
 
-        >>> r = Daemon(5000)
-        >>> s = get('http://localhost:5000/popen', {'command':'python'}); print s
+        >>> r = Daemon(5100)
+        >>> s = get('http://localhost:5100/popen', {'command':'python'}); print s
         {
           "status": "ok", 
           "pid": ..., 
@@ -45,13 +45,17 @@ def popen():
         }
         >>> import json; mesg = json.loads(s); mesg
         {u'status': u'ok', u'pid': ..., u'execpath': u'...tmp...'}
-        >>> json.loads(get('http://localhost:5000/delete/%s'%mesg['pid']))
+        >>> json.loads(get('http://localhost:5100/delete/%s'%mesg['pid']))
         {u'status': u'ok'}
         >>> del r
     """
     if request.method == 'GET':
-        return jsonify(popen_process(request.args.get('command')))
-    return jsonify({'status':'error'})
+        try:
+            return jsonify(popen_process(request.args.get('command')))
+        except Exception, msg:
+            return jsonify({'status':'error', 'mesg':str(msg)})
+            
+    return jsonify({'status':'error', 'mesg':'must use GET with "command" arg'})
 
 def popen_process(command):
     """
@@ -75,7 +79,6 @@ def popen_process(command):
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         creationflags = 0
-    print command.split()
     proc = subprocess.Popen(command.split(), cwd=execpath, 
                 creationflags=creationflags)
     processes[proc.pid] = Process(proc, execpath)
@@ -132,7 +135,7 @@ def delete_process(pid):
             p.wait() 
         except Exception, msg:
             # Maybe process already dead (sometimes happens on windows)
-            pass
+            print msg
     
 def delete_all_processes():
     """
@@ -160,14 +163,14 @@ def delete(pid):
 
     EXAMPLES::
 
-        >>> r = Daemon(5000)
+        >>> r = Daemon(5100)
         >>> import json
-        >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'})); s
+        >>> s = json.loads(get('http://localhost:5100/popen', {'command':'python'})); s
         {u'status': u'ok', u'pid': ..., u'execpath': u'...tmp...'}
         >>> os.path.isdir(s['execpath'])
         True
         >>> time.sleep(1)
-        >>> print get('http://localhost:5000/delete/%s'%s['pid'], timeout=10)
+        >>> print get('http://localhost:5100/delete/%s'%s['pid'], timeout=10)
         {
           "status": "ok"
         }
@@ -192,11 +195,11 @@ def send_signal(pid, sig):
       
     EXAMPLES::
     
-        >>> r = Daemon(5000)
+        >>> r = Daemon(5100)
         >>> import json
-        >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
-        >>> url = 'http://localhost:5000/send_signal/%s/%s'%(s['pid'], signal.SIGINT); url
-        'http://localhost:5000/send_signal/.../2'
+        >>> s = json.loads(get('http://localhost:5100/popen', {'command':'python'}))
+        >>> url = 'http://localhost:5100/send_signal/%s/%s'%(s['pid'], signal.SIGINT); url
+        'http://localhost:5100/send_signal/.../2'
         >>> print get(url)
         {
           "status": "ok"
@@ -217,15 +220,15 @@ def exitcode(pid):
     """
     EXAMPLES::
 
-        >>> r = Daemon(5000)
+        >>> r = Daemon(5100)
         >>> import json
-        >>> s = json.loads(get('http://localhost:5000/popen', {'command':'python'}))
+        >>> s = json.loads(get('http://localhost:5100/popen', {'command':'python'}))
         >>> pid = s['pid']
-        >>> json.loads(get('http://localhost:5000/exitcode/%s'%pid))
+        >>> json.loads(get('http://localhost:5100/exitcode/%s'%pid))
         {u'status': u'ok', u'exitcode': None}
-        >>> json.loads(get('http://localhost:5000/delete/%s'%pid))
+        >>> json.loads(get('http://localhost:5100/delete/%s'%pid))
         {u'status': u'ok'}
-        >>> a = json.loads(get('http://localhost:5000/exitcode/%s'%pid)); a   # exitcode is OS dependent
+        >>> a = json.loads(get('http://localhost:5100/exitcode/%s'%pid)); a   # exitcode is OS dependent
         {u'status': u'ok', u'exitcode': ...}
         >>> # TODO: a['exitcode'] is not None
     """
@@ -251,7 +254,7 @@ class Daemon(object):
 
         EXAMPLES::
 
-            >>> r = Daemon(5000)
+            >>> r = Daemon(5100)
             >>> open(r._pidfile).read()
             '...'
             >>> del r

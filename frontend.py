@@ -44,20 +44,24 @@ def delete_subprocess(pid):
     url = 'http://localhost:%s/delete/%s'%(subprocess_port, pid)
     return json.loads(get(url))
 
-def cleanup_sessions():
+@app.route('/killall')
+def killall():
     S = db.session()
     try:
         sessions = S.query(db.Session)
     except orm_exc.NoResultFound:
         # easy case -- no sessions to cleanup; maybe database schema not even made
-        return
-    
+        return jsonify({'status':'ok', 'killed':[]})
+
+    killed = []
     for z in sessions:
         try:
             delete_subprocess(z.pid)
         finally:
             S.delete(z)
             S.commit()
+            killed.append(z.id)
+    return jsonify({'status':'ok', 'killed':killed})
 
     
 @app.route('/')
@@ -98,6 +102,7 @@ def execute(session_id):
     EXAMPLES::
     
         >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
 
     We start a session and ask for execution of one cell::
 
@@ -117,7 +122,8 @@ def execute(session_id):
     
         >>> misc.post('http://localhost:5000/execute/0', {'foo':'bar'})
         u'{\n  "status": "error", \n  "data": "must POST \'code\' variable"\n}'
-    
+
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
     """
     if request.method == 'POST' and request.form.has_key('code'):
         code = request.form['code']
@@ -234,14 +240,28 @@ def ready(id):
         return jsonify(status='done')
 
 @app.route('/sessions/')
-def all_sessions():
+def sessions():
     """
     Return JSON representation of all the sessions.
+
+    EXAMPLES::
+    
     """
     S = db.session()
     v = [s.to_json() for s in S.query(db.Session).order_by(db.Session.id).all()]
-    return jsonify({'status':'ok', 'data':v})
+    return jsonify({'status':'ok', 'sessions':v})
 
+
+@app.route('/session/<int:session_id>')
+def session(session_id):
+    """
+    Return data about session with given id.
+
+    EXAMPLES::
+    """
+    S = db.session()
+    v = S.query(db.Session).filter_by(id=session_id).one().to_json()
+    return jsonify({'status':'ok', 'data':v})
 
 @app.route('/cells/<int:session_id>')
 def cells(session_id):
@@ -364,8 +384,9 @@ def files(id):
     - ``id`` -- nonnegative integer
 
     EXAMPLES::
-    
+
         >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
 
     First we get back an error, since session 0 doesn't exist yet::
     
@@ -384,7 +405,7 @@ def files(id):
 
         >>> misc.post('http://localhost:5000/execute/0', {'code':'open("a_file.txt","w").write("hello")'})
         u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
-        >>> import client; c = client.Client(5000); c.wait(0)
+        >>> time.sleep(1)
         >>> misc.get('http://localhost:5000/files/0')
         u'{\n  "status": "ok", \n  "data": [\n    "a_file.txt"\n  ]\n}'
 
@@ -427,6 +448,7 @@ def files(id):
         >>> misc.get('http://localhost:5000/files/0')
         u'{\n  "status": "ok", \n  "data": [\n    "a/b/c/file2.txt"\n  ]\n}'
 
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
     """
     S = db.session()
     try:
@@ -532,12 +554,7 @@ def run(port=5000, debug=False, log=False, sub_port=4999):
         logger.setLevel(logging.ERROR)    
     
     db.create()
-    cleanup_sessions()
-    try:
-        app.run(port=port, debug=debug)
-    finally:
-        cleanup_sessions()
-
+    app.run(port=port, debug=debug)
 
 class Daemon(object):
     """
@@ -552,11 +569,11 @@ class Daemon(object):
         """
         EXAMPLES::
 
-            >>> r = Daemon(5001)
+            >>> r = Daemon(5002)
             >>> type(r)
             <class 'frontend.Daemon'>
             >>> r._port
-            5001
+            5002
         """
         if pidfile is None:
             self._pidfile = '%s-%s.pid'%(__name__, port)
@@ -625,7 +642,6 @@ class Daemon(object):
             >>> r = Daemon(5000)
             >>> r.kill()
         """
-        cleanup_sessions()
         if hasattr(self, '_server'):
             # TODO: instead use self._server.kill(); self._server.wait()
             for i in range(5):
