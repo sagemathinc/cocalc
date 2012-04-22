@@ -1,6 +1,8 @@
 """
-HTTP-based popen -- responsible for launching, interupting and killing
-processes.
+Subprocess server
+
+The subprocess server launches, signals, and cleans up after
+subprocesses.
 
 This is a not-too-scalable HTTP server.  It must be served as a
 *single process*, though it could be multithreaded, since it is the
@@ -73,6 +75,7 @@ def popen_process(command):
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         creationflags = 0
+    print command.split()
     proc = subprocess.Popen(command.split(), cwd=execpath, 
                 creationflags=creationflags)
     processes[proc.pid] = Process(proc, execpath)
@@ -107,7 +110,6 @@ def delete_process(pid):
 
     EXAMPLES::
 
-
         >>> p = popen_process('python')
         >>> os.path.isdir(p['execpath'])
         True
@@ -121,6 +123,7 @@ def delete_process(pid):
     if pid not in processes:
         # nothing to do 
         return
+    delete_execpath(pid)
     p = processes[pid].proc
     if p.returncode is None:
         try:
@@ -130,7 +133,6 @@ def delete_process(pid):
         except Exception, msg:
             # Maybe process already dead (sometimes happens on windows)
             pass
-    delete_execpath(pid)
     
 def delete_all_processes():
     """
@@ -153,7 +155,7 @@ def delete_all_processes():
 @app.route('/delete/<int:pid>')
 def delete(pid):
     """
-    Delete the session with given id. This kills the session process,
+    Delete the session with given pid. This kills the session process,
     and deletes the files in its execpath.
 
     EXAMPLES::

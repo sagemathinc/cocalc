@@ -2,12 +2,13 @@
 Workspace Server Frontend
 """
 
-import json, os, posixpath, signal, shutil, subprocess, sys, tempfile, time
+import json, os, posixpath, signal, shutil, sys, tempfile, time
 
 from flask import Flask, request, safe_join, send_from_directory, jsonify
 app = Flask(__name__)
 
 app_port = None # must be set before running
+subprocess_port = None
 
 from misc import get, post, ConnectionError, all_files, is_temp_directory
 
@@ -22,18 +23,19 @@ def launch_backend_session(port, id=id, output_url='output'):
     """
     if output_url == 'output':
         output_url = "http://localhost:%s/submit_output/%s"%(app_port, id)
-    execpath = tempfile.mkdtemp()
-    args = ['python',
-            'backend.py',
-            str(port), 
-            'http://localhost:%s/ready/%s'%(app_port, id),
-            output_url,
-            execpath]
-    pid = subprocess.Popen(args).pid
-    t = time.time()
+    command = ' '.join(['python',
+                        os.path.abspath('backend.py'),
+                        str(port), 
+                        'http://localhost:%s/ready/%s'%(app_port, id),
+                        output_url])
+    mesg = json.loads(get('http://localhost:%s/popen'%subprocess_port,
+                   {'command':command}))
+    pid = mesg['pid']
+    execpath = mesg['execpath']
     return pid, execpath
 
-def reap_session(pid, path):
+# todo: dumb name
+def reap_session(pid):
     """
     Send kill signal to the process with given pid, then delete the
     directory pointed to by the path.
@@ -51,7 +53,7 @@ def reap_session(pid, path):
 
     Now reap the "session"::
     
-        >>> import frontend; frontend.reap_session(proc.pid, path)
+        >>> import frontend; frontend.reap_session(proc.pid)
         >>> proc.wait()
         -9
 
@@ -64,15 +66,8 @@ def reap_session(pid, path):
         ...
         OSError: [Errno 3] No such process
     """
-    try:
-        os.kill(pid, signal.SIGKILL)
-    except:
-        pass
-    if not is_temp_directory(path):
-        raise RuntimeError("worrisome path = '%s' appears to not be a temp directory"%path)
-    if os.path.exists(path):
-        shutil.rmtree(path)
-    
+    return json.loads(get('http://localhost:%s/delete/%s'%(
+        subprocess_port, pid)))
 
 def cleanup_sessions():
     S = db.session()
@@ -84,7 +79,7 @@ def cleanup_sessions():
     
     for z in sessions:
         try:
-            reap_session(z.pid, z.path)
+            reap_session(z.pid)
         finally:
             S.delete(z)
             S.commit()
@@ -203,7 +198,7 @@ def execute(session_id):
                 msg['data'] = 'session is dead'
                 msg['status'] = 'error'
                 try:
-                    reap_session(session.pid, session.path)
+                    reap_session(session.pid)
                 except OSError:
                     pass
             finally:
@@ -314,9 +309,9 @@ def send_signal(id, sig):
             if sig == signal.SIGKILL:
                 session.status = 'dead'
                 S.commit()
-                
-            os.kill(session.pid, sig)
-            msg = {'status':'ok'}
+            url = 'http://localhost:%s/send_signal/%s/%s'%(
+                subprocess_port, session.pid, sig)
+            msg = json.loads(get(url))
         except OSError, err:
             msg = {'status':'error', 'data':str(err)}
     return jsonify(msg)
@@ -350,7 +345,7 @@ def delete_session(id):
         msg = {'status':'error', 'data':'unknown session %s'%id}
         return jsonify(msg)
     try:
-        reap_session(session.pid, session.path)
+        reap_session(session.pid)
     finally:
         # All cells and output messages linked to this session should
         # automatically be deleted by a cascade:
@@ -540,7 +535,7 @@ def submit_output(id):
         return 'ok'
     return 'error'
 
-def run(port=5000, debug=False, log=False):
+def run(port=5000, debug=False, log=False, sub_port=4999):
     """
     Run a blocking instance of the frontend server serving on the
     given port.  If debug=True (not the default), then Flask is started
@@ -552,8 +547,9 @@ def run(port=5000, debug=False, log=False):
     """
     port = int(port)
 
-    global app_port
+    global app_port, subprocess_port
     app_port = int(port)
+    subprocess_port = int(sub_port)
 
     if not log:
         import logging
@@ -570,7 +566,7 @@ def run(port=5000, debug=False, log=False):
 
 class Runner(object):
     """
-    Running workspace frontend server.
+    Run workspace frontend server.
     
     EXAMPLES::
     
@@ -593,6 +589,7 @@ class Runner(object):
         cmd = "python %s.py %s"%(__name__, port)
         if debug:
             cmd += ' True'
+        import subprocess # import here to ensure only used here
         self._server = subprocess.Popen(cmd, shell=True)
         while True:
             # Next wait to see if it is listening.
@@ -655,5 +652,5 @@ if __name__ == '__main__':
         debug = eval(sys.argv[2])
     else:
         debug = False
-    run(sys.argv[1], debug=debug)
+    run(sys.argv[1], debug=debug, log=True)
 

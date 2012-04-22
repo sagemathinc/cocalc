@@ -25,7 +25,7 @@ nothing happens until the POST in 1 occurs.
 # to make it so the backend ignores POST requests that aren't
 # digitally signed by the frontend.
 
-import cgi, json, sys
+import cgi, json, os, sys
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
@@ -38,7 +38,7 @@ from misc import get, post
 ##############################
 
 class ComputeSession(object):
-    def __init__(self, port, finished_url, output_url, execpath):
+    def __init__(self, port, finished_url, output_url):
         
         class Handler(BaseHTTPRequestHandler):
             session = self
@@ -71,7 +71,8 @@ class ComputeSession(object):
         self._port         = port
         self._server       = HTTPServer(('', self._port), Handler)
         self._session      = SimpleStreamingSession(
-                             0, lambda msg: self.output(msg), execpath=execpath)
+                             0, lambda msg: self.output(msg),
+                             execpath=os.path.abspath(os.curdir))
 
     def execute_cells(self, cells):
         """
@@ -124,14 +125,13 @@ class ComputeSession(object):
             
 
 if __name__ == '__main__':
-    if len(sys.argv) != 5:
-        print "Usage: %s PORT FINISHED_URL OUTPUT_URL EXEC_PATH"%sys.argv[0]
+    if len(sys.argv) != 4:
+        print "Usage: %s PORT FINISHED_URL OUTPUT_URL"%sys.argv[0]
         sys.exit(1)
     port         = int(sys.argv[1])
     finished_url = sys.argv[2]
     output_url   = sys.argv[3]
-    execpath     = sys.argv[4]
     
-    S = ComputeSession(port, finished_url, output_url, execpath)
+    S = ComputeSession(port, finished_url, output_url)
     S.run()
     
