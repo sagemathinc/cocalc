@@ -451,14 +451,36 @@ def sigkill(id):
 
 @app.route('/close_session/<int:id>')
 def close_session(id):
-    """
-    Kill and delete from the database the session with the given id.
-    Also, clear up its allocated directory.
+    r"""
+    Close the session with given id.
+
+    This removes everything related to the session from the temporary
+    database and removes its working directory.
 
     INPUT:
 
     - ``id`` -- integer
+
+    EXAMPLES::
+
+        >>> import frontend, misc, signal
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> a = misc.get('http://localhost:5000/new_session')
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
+        >>> misc.get('http://localhost:5000/close_session/0')
+        u'{\n  "status": "ok"\n}'
+
+    After closing the session, it is completely gone, so we get an
+    error when asking for its status::
     
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "error", \n  "data": "unknown session 0"\n}'
+
+    Closing an unknown session is also an error::
+
+        >>> misc.get('http://localhost:5000/close_session/1')
+        u'{\n  "status": "error", \n  "data": "unknown session 1"\n}'
     """
     # get the session object
     S = db.session()
@@ -480,15 +502,44 @@ def close_session(id):
 
 @app.route('/status/<int:id>')
 def status(id):
-    """
+    r"""
     Return the status of the given session as a JSON message:
 
        {'status':'ok', 'session_status':'ready'}
 
+    Note the return JSON has a field status as usual, and the
+    session's status is in a different field 'session_status'.
+
+    The possible status values are: 'ready', 'running', 'dead'
+
     INPUT:
 
     - ``id`` -- integer
-       
+
+    EXAMPLES::
+
+    We illustrate each status value::
+    
+        >>> import frontend, misc, signal
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> a = misc.get('http://localhost:5000/new_session')
+
+    First, the 'ready' status::
+
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
+
+    Next the 'running' status::
+    
+        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
+        >>> time.sleep(0.1); misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "running"\n}'
+
+    Next the 'dead' status::
+
+        >>> a = misc.get('http://localhost:5000/sigkill/0')  # indirect doctest
+        >>> time.sleep(0.1); misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "dead"\n}'
     """
     S = db.session()
     try:
@@ -499,6 +550,33 @@ def status(id):
     return jsonify(msg)
 
 def file_path(id, path):
+    """
+    Return absolute (hopefully safe) path to the file with given path
+    inside the temporary execution directory corresponding to the
+    session with given id.
+    
+    INPUT:
+
+    - ``id`` -- nonnegative integer
+    - ``path`` -- string
+
+    OUTPUT:
+
+    - string
+
+    EXAMPLES::
+
+        >>> import frontend, misc, signal
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> a = misc.get('http://localhost:5000/new_session')
+        >>> frontend.file_path(0, 'a/b/xyz.txt')
+        u'/.../a/b/xyz.txt'
+        >>> frontend.file_path(0, '../a/b/xyz.txt')
+        Traceback (most recent call last):
+        ...
+        ValueError: insecure path '../a/b/xyz.txt'
+    """
+    id = int(id)
     S = db.session()
     try:
         session = S.query(db.Session).filter_by(id=id).one()
@@ -567,7 +645,6 @@ def files(id):
     automatically creates directory paths, then check that our newly
     uploaded files appear in the list of files::
 
-
         >>> misc.post('http://localhost:5000/put_file/0', files={'a/b/c/file.txt':'hawk', 'a/b/c/file2.txt':'hosoi'})
         u'{\n  "status": "ok"\n}'
         >>> misc.get('http://localhost:5000/files/0')
@@ -596,9 +673,46 @@ def files(id):
 
 @app.route('/put_file/<int:id>', methods=['POST'])
 def put_file(id):
-    """
+    r"""
     Place the file with given 'content' (POST variable) in the given
     'path' (POST variable) in the session with given id.
+
+    EXAMPLES::
+
+        >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')   # for doctesting
+        >>> a=misc.get('http://localhost:5000/new_session') # session 0
+        >>> a=misc.get('http://localhost:5000/new_session') # session 1
+
+    Put two files in session 0::
+    
+        >>> misc.post('http://localhost:5000/put_file/0', files={'foo/bar/sphere.txt':'sphere', 'a/b/c/d/e/box.txt':'box'})
+        u'{\n  "status": "ok"\n}'
+
+    Confirm that they are there::
+
+        sage: print misc.get('http://localhost:5000/files/0')
+        {
+          "status": "ok", 
+          "data": [
+            "a/b/c/d/e/box.txt", 
+            "foo/bar/sphere.txt"
+          ]
+        }    
+        >>> misc.get('http://localhost:5000/files/0')
+        u'{\n  "status": "ok", \n  "data": [\n    "a/b/c/d/e/box.txt", \n    "foo/bar/sphere.txt"\n  ]\n}'
+
+    Edge case -- 0 files::
+    
+        >>> misc.post('http://localhost:5000/put_file/0', files={})
+        u'{\n  "status": "ok"\n}'
+
+    Put a file in session 1::
+
+        >>> misc.post('http://localhost:5000/put_file/1', files={'foo/bar/sphere2.txt':'sphere2'})
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/files/1')
+        u'{\n  "status": "ok", \n  "data": [\n    "foo/bar/sphere2.txt"\n  ]\n}'
     """
     if request.method == 'POST':
         for file in request.files.itervalues():
