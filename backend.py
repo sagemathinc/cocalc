@@ -1,36 +1,36 @@
 """
-Backend Workspace Server
+Backend Compute Process
 
-There is no polling at all.  
+The backend has wait and compute states that it switches back and
+forth between as explained below.
 
-   1. HTTP server, with two functions:
-      - /execpath (GET) -- returns the execpath temporary directory
-        where the Python process is running.
+   1. WAIT STATE: HTTP server that handles one kind of request:
       - / (POST) with variable 'cells' -- JSON that describes the
         cells to execute.
-   2. Compute mode (disables HTTP server):
-      - reports output messages when computing cells to output_url
+            |                  /|\
+            |                   |
+      start computing           |
+            |              done computing
+           \|/                  |
+   2. COMPUTE STATE: 
+      - http server disabled
+      - reports output to sys.std* via POST to output_url, as they appear
+      - reports on files that are created or modified
       - reports done with all cells so far and gets more cells to
-        execute from finished_url.
+        execute via a GET request to finished_url.
 
-It starts in mode 1, then goes to mode 2 when it gets an appropriate
-POST request.  It stays in mode 2 so long as it is working very hard
-actually doing something.  It does ask the frontend for more cells
-to evaluate, but only when it just finished all cells in the queue,
-and if there isn't more to evaluate, then no further "polling" occurs;
-nothing happens until the POST in 1 occurs. 
+The backend starts in the wait state, then switches to the compute
+when it gets a POST request.  The backend stays in the compute state
+so long as it is working on computations, reporting results, and
+getting back more input to execute.  When the backend finishes
+computing all cells in the queue, and the server reports that there is
+nothing more to execute, the backend switches back to the wait state.
 """
 
-# TODO: to avoid one user messing up all the backends, we would need
-# to make it so the backend ignores POST requests that aren't
-# digitally signed by the frontend.
-
 import cgi, json, os, sys
-
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from session import SimpleStreamingSession
-
 from misc import get, post
     
 ##############################
@@ -39,23 +39,23 @@ from misc import get, post
 
 class ComputeSession(object):
     def __init__(self, port, finished_url, output_url):
-        
+        """
+        INPUT:
+
+        - ``port`` -- positive integer
+        - ``finished_url`` -- string; do GET request on this url when
+          backed server is done with all computations
+        - ``output_url`` -- string; do POST request here to report on
+          output and modified or created files
+        """
+
+        # Define an HTTP server to implement the WAIT STATE.  We do not
+        # use flask since (1) it is a bit heavy, and (2) we only want
+        # to handle exactly one request, and I don't know how to do that
+        # with flask.
         class Handler(BaseHTTPRequestHandler):
             session = self
-            def do_GET(self):
-                if self.path == '/execpath':
-                    self.send_response(200)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    self.wfile.write(Handler.session._session._execpath)
-                elif self.path == '/':
-                    self.send_response(200)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    self.wfile.write("Waiting to evaluate code....")
-                else:
-                    self.send_error(404,'File Not Found: %s' % self.path)
-                    
+            # The *only* thing we handle is POST to /.  Anything else is an error.
             def do_POST(self):
                 try:
                     ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
@@ -91,41 +91,39 @@ class ComputeSession(object):
         """
         Start the main loop of the backend.  The backend waits for an
         HTTP POST request with a 'cells' variable, that contains a
-        JSON message that describes a collection of cells to evaluate.
-        It then evaluates all of them, sending the results to the
+        JSON message that describes a collection of cells to execute.
+        It then executes all of them, sending the results to the
         frontend.  When it has finished evaluating all cells, it tells
         the frontend it is done, and gets back possibly more cells to
-        evaluate; if no new cells are returned it switches back to
+        execute; if no new cells are returned it switches back to
         server mode and waits for another HTTP POST request with a
-        list of cells to evaluate.
+        list of cells to execute.
         """
         while True:
             self._postvars = {}
-            # Stage 1
+            # Enter WAIT STATE:
             self._server.handle_request()
-            # Do we switch to sage 2?
             if self._postvars.has_key('cells'):
+                # Enter COMPUTE STATE:
                 # the request resulted in a POST request with code to execute
                 self.execute_cells(json.loads(self._postvars['cells'][0]))
-                # Next, get more cells to evaluate, if there are some:
+                # Next, get more cells to evecute, if there are some:
                 while True:
                     msg = json.loads(get(self._finished_url))
                     if msg['status'] == 'done':
                         break
                     self.execute_cells(msg['cells'])
-                # no more tasks: we go back to top of while loop and
-                # which means switching back into webserver state
-
+                # No more tasks, so we switch back to WAIT STATE
                 
     def output(self, msg):
         """
         Sends the given msg to the output_url via POST.  This is how
-        this backend sends output to the frontend.
+        the backend sends output to the frontend.
 
         INPUT:
+        
         - ``msg`` -- a dictionary 
         """
-        # TODO: msg should be JSON?  that would be more flexible and uniform.
         post(self._output_url, msg, timeout=10)
             
 

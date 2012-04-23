@@ -81,6 +81,24 @@ class OutputMsg(Base):
     modified_files = Column(String)
 
     def __init__(self, number, exec_id, session_id):
+        """
+        Create an OutputMsg object.
+
+        INPUT::
+
+        - ``number`` -- (nonnegative integer) message number
+        - ``exec_id`` -- (nonnegative integer) id of block of code
+          that is being evaluated
+        - ``session_id`` -- (nonnegative integer) id of session in
+          which code is being evaluated
+
+        EXAMPLES::
+
+            >>> drop_all(); create()
+            
+        
+        
+        """
         self.number = int(number)
         self.exec_id = int(exec_id)
         self.session_id = int(session_id)
@@ -91,14 +109,69 @@ class OutputMsg(Base):
             self.output, self.modified_files)
 
 def drop_all():
+    r"""
+    Delete everything from the database.
+
+    EXAMPLES::
+
+    We delete everything, create the DB again, enter a record, confirm
+    it is there, then delete everything, and confirm the record is
+    gone::
+
+        >>> drop_all()
+        >>> create()
+        >>> S = session()
+        >>> S.add(Session(0, 12345, '/tmp/', 'http://localhost:5000'))
+        >>> S.commit()
+        >>> S.query(Session).count()
+        1
+        >>> drop_all()
+        >>> S = session()
+
+    This query fails because we deleted all the tables::
+    
+        >>> S.query(Session).count()
+        Traceback (most recent call last):
+        ...
+        OperationalError: (OperationalError) no such table: sessions u'SELECT count(1) AS count_1 \nFROM sessions' []
+    """
     Base.metadata.drop_all(engine)
 
 def session():
+    """
+    Return a database session.
+    
+    EXAMPLES::
+
+        >>> session()
+        <sqlalchemy.orm.session.Session object at 0x...>
+    """
     from sqlalchemy.orm import sessionmaker
     Session = sessionmaker(bind=engine)
     return Session()
 
 def create():
+    r"""
+    Create the database.
+
+    EXAMPLES::
+
+    We first do a query before the database is created and get an
+    error::
+
+        >>> drop_all()
+        >>> S = session()
+        >>> S.query(Session).count()
+        Traceback (most recent call last):
+        ...
+        OperationalError: (OperationalError) no such table: sessions u'SELECT count(1) AS count_1 \nFROM sessions' []
+
+    After creating the DB, it works, and we get no records::
+
+        >>> create()
+        >>> S.query(Session).count()
+        0
+    """
     Base.metadata.create_all(engine)
 
 

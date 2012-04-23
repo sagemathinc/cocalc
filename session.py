@@ -4,7 +4,8 @@ Simple Session Server
 # Standard Python modules
 import os, posixpath, shutil, StringIO, sys, tempfile, time
 
-# A simple session server
+# A simple session server.  This is *not* used anywhere except to
+# *test* the SimpleSession class below.  
 class SimpleSessionServer(object):
     """
     EXAMPLES::
@@ -36,6 +37,13 @@ class SimpleSessionServer(object):
 
     def session(self, id):
         """
+        Return the session with given id, or raise a ValueError if
+        that session is unknown.
+        
+        INPUT:
+
+        - ``id`` -- nonnegative integer
+        
         EXAMPLES::
 
             >>> S = SimpleSessionServer()
@@ -56,8 +64,13 @@ class SimpleSessionServer(object):
     def new_session(self, output_callback=None):
         """
         INPUT:
-        - ``output_callback`` -- None (system fallback) or callable
+
+        - ``output_callback`` -- None (display to stdout) or callable
           that takes as input a single argument
+
+        OUTPUT:
+
+        - a SimpleSession object
 
         EXAMPLES::
 
@@ -80,11 +93,15 @@ class SimpleSessionServer(object):
 
     def execute(self, id, code):
         r"""
+        Execute code in the session with given id.
+        
         INPUT:
-        - ``id`` -- session id
+        
+        - ``id`` -- session id (nonnegative integer)
         - ``code`` -- string; code to execute
 
         OUTPUT:
+        
         - ``exec_id`` -- id associated to evaluation of this code
 
         EXAMPLES::
@@ -99,6 +116,12 @@ class SimpleSessionServer(object):
 
     def interrupt(self, id):
         """
+        Interrupt the session with given id.
+        
+        INPUT:
+        
+        - ``id`` -- session id (nonnegative integer)
+
         EXAMPLES::
 
             >>> S = SimpleSessionServer()
@@ -109,6 +132,16 @@ class SimpleSessionServer(object):
 
     def status(self, id):
         """
+        Return the status of the session with given id.
+
+        INPUT:
+        
+        - ``id`` -- session id (nonnegative integer)
+
+        OUTPUT:
+
+        - string
+        
         EXAMPLES::
 
             >>> S = SimpleSessionServer(); id = S.new_session('doctest')
@@ -124,6 +157,15 @@ class SimpleSessionServer(object):
 
     def put(self, id, path, content):
         """
+        Create a file with name given by path in the session with
+        given id having the given content.
+        
+        INPUT:
+        
+        - ``id`` -- session id (nonnegative integer)
+        - ``path`` -- string
+        - ``content`` -- string
+
         EXAMPLES::
 
             >>> S = SimpleSessionServer(); id = S.new_session('doctest')
@@ -137,6 +179,18 @@ class SimpleSessionServer(object):
 
     def get(self, id, path):
         """
+        Returns the file at the given path in the session with given
+        id.
+        
+        INPUT:
+        
+        - ``id`` -- session id (nonnegative integer)
+        - ``path`` -- string
+
+        OUTPUT:
+
+        - string
+
         EXAMPLES::
 
             >>> S = SimpleSessionServer(); id = S.new_session('doctest')
@@ -161,6 +215,11 @@ class SimpleSessionServer(object):
         """
         Delete a file from the session.
 
+        INPUT:
+        
+        - ``id`` -- session id (nonnegative integer)
+        - ``path`` -- string
+
         EXAMPLES::
 
             >>> S = SimpleSessionServer(); id = S.new_session('doctest')
@@ -179,6 +238,16 @@ class SimpleSessionServer(object):
 
     def files(self, id):
         """
+        Return list of full filenames of files in the session with given id.
+        
+        INPUT:
+        
+        - ``id`` -- session id (nonnegative integer)
+
+        OUTPUT:
+
+        - list of strings
+
         EXAMPLES::
 
             >>> S = SimpleSessionServer(); id = S.new_session('doctest')
@@ -197,6 +266,12 @@ class SimpleSessionServer(object):
 class SimpleSession(object):
     def __init__(self, id, output_callback, execpath=None):
         """
+        INPUT:
+
+        - ``id`` -- nonnegative integer
+        - ``output_callback`` -- callable
+        - ``execpath`` -- None (default) or string
+        
         EXAMPLES::
 
             >>> s = SimpleSession(0, 'doctest')
@@ -348,6 +423,7 @@ class SimpleSession(object):
         containing directory is automatically created.
 
         INPUT:
+        
         - path -- relative pathname of the file, including slashes
         - content -- string contents of the file
 
@@ -480,11 +556,24 @@ class SimpleSession(object):
 
 class SimpleStreamingSession(SimpleSession):
     def __init__(self, id, output_callback, flush_interval=0.05, execpath=None):
+        """
+        INPUT:
+
+        - ``id`` -- nonnegative integer
+        - ``output_callback`` -- callable
+        - ``flush_interval`` -- float (default: 0.05); how often to
+          flush output buffer
+        - ``execpath`` -- None (default) or string
+        """
         self._flush_interval = flush_interval
         SimpleSession.__init__(self, id, output_callback, execpath=execpath)
 
     def execute(self, code):
         r"""
+        INPUT:
+
+        - ``code`` -- string
+        
         EXAMPLES::
 
             >>> v = []
