@@ -15,47 +15,37 @@ import os, shutil, signal, subprocess, sys, tempfile, time
 from misc import is_temp_directory, get, ConnectionError
 
 class Process(object):
+    """
+    A subprocess of the server, which is represented by a
+    subprocess.Popen object and an execpath.
+    """
     def __init__(self, proc, execpath):
+        """
+        INPUT:
+
+        - ``proc`` -- subprocess.Popen
+        - ``execpath`` -- string
+        
+        EXAMPLES::
+
+            sage: p = Process(subprocess.Popen('pwd'), os.path.abspath(os.curdir))
+            /Users/wstein/Dropbox/sage/sagews/site
+            sage: p.proc
+            <subprocess.Popen object at 0x...>
+            sage: p.execpath == os.path.abspath(os.curdir)
+            True
+        """
         self.proc = proc
         self.execpath = execpath
 
-# This dictionary will contain all of the processes that we popen.
+# processes is a dictionary that contains all of the subprocesses that
+# we popen:
 processes = {}
 
-from flask import Flask, jsonify, request
-app = Flask(__name__)
 
-@app.route('/popen')
-def popen():
-    """
-    Open a new subprocess.  The GET parameter is:
-
-    INPUT:
-
-    - ``command`` -- command to run
-    
-    EXAMPLES::
-
-        >>> r = Daemon(5100)
-        >>> s = get('http://localhost:5100/popen', {'command':'python'}); print s
-        {
-          "status": "ok", 
-          "pid": ..., 
-          "execpath": "...tmp..."
-        }
-        >>> import json; mesg = json.loads(s); mesg
-        {u'status': u'ok', u'pid': ..., u'execpath': u'...tmp...'}
-        >>> json.loads(get('http://localhost:5100/delete/%s'%mesg['pid']))
-        {u'status': u'ok'}
-        >>> del r
-    """
-    if request.method == 'GET':
-        try:
-            return jsonify(popen_process(request.args.get('command')))
-        except Exception, msg:
-            return jsonify({'status':'error', 'mesg':str(msg)})
-            
-    return jsonify({'status':'error', 'mesg':'must use GET with "command" arg'})
+#############################################################
+# Basic functionality -- opening and deleting processes 
+#############################################################
 
 def popen_process(command):
     """
@@ -72,7 +62,7 @@ def popen_process(command):
         {'status': 'ok', 'pid': ..., 'execpath': '...tmp...'}
         >>> p1 = popen_process('python'); p1
         {'status': 'ok', 'pid': ..., 'execpath': '...tmp...'}
-        >>> delete_process(p0['pid']); delete_process(p1['pid'])
+        >>> close_process(p0['pid']); close_process(p1['pid'])
     """
     execpath = tempfile.mkdtemp()
     if sys.platform == 'win32':
@@ -96,10 +86,12 @@ def delete_execpath(pid):
         >>> delete_execpath(p['pid'])
         >>> os.path.isdir(p['execpath'])
         False
-        >>> delete_all_processes()
+        >>> close_all_processes()
     """
     if pid not in processes:
-        return
+        # nothing to do 
+        raise IndexError, "no known process with pid %s"%pid
+
     path = processes[pid].execpath
     if os.path.exists(path):
         try:
@@ -107,7 +99,7 @@ def delete_execpath(pid):
         except OSError:
             pass
 
-def delete_process(pid):
+def close_process(pid):
     """
     Send kill signal to process with given pid, and delete execpath.
 
@@ -116,7 +108,7 @@ def delete_process(pid):
         >>> p = popen_process('python')
         >>> os.path.isdir(p['execpath'])
         True
-        >>> delete_process(p['pid'])
+        >>> close_process(p['pid'])
         >>> os.path.isdir(p['execpath'])
         False
         >>> w = processes[p['pid']].proc.wait()    # output OS dependent
@@ -125,8 +117,10 @@ def delete_process(pid):
     """
     if pid not in processes:
         # nothing to do 
-        return
+        raise IndexError, "no known process with pid %s"%pid
+    
     delete_execpath(pid)
+    
     p = processes[pid].proc
     if p.returncode is None:
         try:
@@ -137,29 +131,71 @@ def delete_process(pid):
             # Maybe process already dead (sometimes happens on windows)
             print msg
     
-def delete_all_processes():
+def close_all_processes():
     """
-    Delete all subprocesses, waiting for them to exit and completely
+    Close all subprocesses, waiting for them to exit and completely
     cleanup.
 
     EXAMPLES::
 
         >>> p0 = popen_process('python')
         >>> p1 = popen_process('python')
-        >>> delete_all_processes()
+        >>> close_all_processes()
         >>> os.path.isdir(p0['execpath']), os.path.isdir(p1['execpath'])
         (False, False)
         >>> processes[p0['pid']].proc.returncode is not None, processes[p1['pid']].proc.returncode is not None
         (True, True)
     """
     for pid in processes:
-        delete_process(pid)
-    
-@app.route('/delete/<int:pid>')
-def delete(pid):
+        close_process(pid)
+        
+
+#############################################################
+# Define the HTTP routes
+#############################################################
+
+# the HTTP server is served using flask:
+from flask import Flask, jsonify, request
+app = Flask(__name__)
+
+@app.route('/popen')
+def popen():
     """
-    Delete the session with given pid. This kills the session process,
-    and deletes the files in its execpath.
+    Open a new subprocess.  The GET parameter is:
+
+    INPUT:
+
+    - ``command`` -- command to run
+    
+    EXAMPLES::
+
+        >>> r = Daemon(5100)
+        >>> s = get('http://localhost:5100/popen', {'command':'python'}); print s
+        {
+          "status": "ok", 
+          "pid": ..., 
+          "execpath": "...tmp..."
+        }
+        >>> import json; mesg = json.loads(s); mesg
+        {u'status': u'ok', u'pid': ..., u'execpath': u'...tmp...'}
+        >>> json.loads(get('http://localhost:5100/close/%s'%mesg['pid']))
+        {u'status': u'ok'}
+        >>> del r
+    """
+    if request.method == 'GET':
+        try:
+            return jsonify(popen_process(request.args.get('command')))
+        except Exception, msg:
+            return jsonify({'status':'error', 'mesg':str(msg)})
+            
+    return jsonify({'status':'error', 'mesg':'must use GET with "command" arg'})
+
+    
+@app.route('/close/<int:pid>')
+def close(pid):
+    """
+    Close the session with given pid, killing the session process and
+    deleting the files in its execpath.
 
     EXAMPLES::
 
@@ -170,7 +206,7 @@ def delete(pid):
         >>> os.path.isdir(s['execpath'])
         True
         >>> time.sleep(1)
-        >>> print get('http://localhost:5100/delete/%s'%s['pid'], timeout=10)
+        >>> print get('http://localhost:5100/close/%s'%s['pid'], timeout=10)
         {
           "status": "ok"
         }
@@ -178,7 +214,7 @@ def delete(pid):
         False
     """
     try:
-        delete_process(pid)
+        close_process(pid)
     except Exception, mesg:
         return jsonify({'status':'error', 'mesg':str(mesg)})
     return jsonify({'status':'ok'})
@@ -207,9 +243,11 @@ def send_signal(pid, sig):
     """
     if pid not in processes:
         return jsonify({'status':'error', 'mesg':'no such process'})
+    
+    if sys.platform == 'win32' and sig == signal.SIGINT:
+        sig = signal.CTRL_C_EVENT
+        
     try:
-        if sys.platform=='win32' and sig == signal.SIGINT:
-            sig = signal.CTRL_C_EVENT
         processes[pid].proc.send_signal(sig)
         return jsonify({'status':'ok'})
     except Exception, err:
@@ -226,7 +264,7 @@ def exitcode(pid):
         >>> pid = s['pid']
         >>> json.loads(get('http://localhost:5100/exitcode/%s'%pid))
         {u'status': u'ok', u'exitcode': None}
-        >>> json.loads(get('http://localhost:5100/delete/%s'%pid))
+        >>> json.loads(get('http://localhost:5100/close/%s'%pid))
         {u'status': u'ok'}
         >>> a = json.loads(get('http://localhost:5100/exitcode/%s'%pid)); a   # exitcode is OS dependent
         {u'status': u'ok', u'exitcode': ...}
@@ -236,6 +274,8 @@ def exitcode(pid):
         return jsonify({'status':'error', 'mesg':'no session with given pid'})
     else:
         return jsonify({'status':'ok', 'exitcode':processes[pid].proc.returncode})
+
+
 
 # Todo -- factor out; use same code for frontend.py, and maybe for
 # backends too.
@@ -307,4 +347,4 @@ if __name__ == '__main__':
     try:
         app.run(port=port, debug=debug)
     finally:
-        delete_all_processes()
+        close_all_processes()

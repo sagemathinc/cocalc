@@ -22,26 +22,30 @@ def launch_backend_session(port, id=id, output_url='output'):
     its UNIX process id and absolute path.
     """
     if output_url == 'output':
+        assert app_port is not None, "you must initialize app_port"        
         output_url = "http://localhost:%s/submit_output/%s"%(app_port, id)
     command = ' '.join(['python',
                         os.path.abspath('backend.py'),
                         str(port), 
                         'http://localhost:%s/ready/%s'%(app_port, id),
                         output_url])
+
+    assert subprocess_port is not None, "you must initialize subprocess_port"
     mesg = json.loads(get('http://localhost:%s/popen'%subprocess_port,
                    {'command':command}))
     pid = mesg['pid']
     execpath = mesg['execpath']
     return pid, execpath
 
-def delete_subprocess(pid):
+def close_subprocess(pid):
     """
     Send kill signal to the process with given pid.
 
     EXAMPLES::
 
     """
-    url = 'http://localhost:%s/delete/%s'%(subprocess_port, pid)
+    assert subprocess_port is not None, "you must initialize subprocess_port"
+    url = 'http://localhost:%s/close/%s'%(subprocess_port, pid)
     return json.loads(get(url))
 
 @app.route('/killall')
@@ -52,15 +56,20 @@ def killall():
     except orm_exc.NoResultFound:
         # easy case -- no sessions to cleanup; maybe database schema not even made
         return jsonify({'status':'ok', 'killed':[]})
+    except Exception, mesg:
+        return jsonify({'status':'error', 'mesg':'db-error: %s'%mesg})
 
     killed = []
-    for z in sessions:
+    for session in sessions:
         try:
-            delete_subprocess(z.pid)
+            close_subprocess(session.pid)
+        except Exception, mesg:
+            return jsonify({'status':'error', 'mesg':'subprocess-error: %s'%mesg})
         finally:
-            S.delete(z)
+            S.delete(session)
             S.commit()
-            killed.append(z.id)
+            killed.append(session.id)
+
     return jsonify({'status':'ok', 'killed':killed})
 
     
@@ -78,6 +87,7 @@ def new_session():
     S = db.session()
     if S.query(db.Session).count() == 0:
         id = 0
+        assert app_port is not None, "you must initialize app_port"
         port = app_port + 1
     else:
         last_session = S.query(db.Session).order_by(db.Session.id.desc())[0]
@@ -179,7 +189,7 @@ def execute(session_id):
                 msg['data'] = 'session is dead'
                 msg['status'] = 'error'
                 try:
-                    delete_subprocess(session.pid)
+                    close_subprocess(session.pid)
                 except OSError:
                     pass
             finally:
@@ -278,9 +288,39 @@ def cells(session_id):
     
 @app.route('/output_messages/<int:session_id>/<int:exec_id>/<int:number>')
 def output_messages(session_id, exec_id, number):
-    """
+    r"""
     Return all output messages for the cell with given session_id and
-    exec_id, starting with the message labled with the given number.
+    exec_id, starting with the message labeled with the given number.
+
+    EXAMPLES::
+
+        >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        >>> misc.get('http://localhost:5000/output_messages/0/0/0')
+        u'{\n  "status": "ok", \n  "data": []\n}'
+        >>> time.sleep(.4)  # should be more than enough time 
+        >>> print misc.get('http://localhost:5000/output_messages/0/0/0')
+        {
+          "status": "ok", 
+          "data": [
+            {
+              "output": "5\n", 
+              "modified_files": null, 
+              "done": false, 
+              "number": 0
+            }, 
+            {
+              "output": null, 
+              "modified_files": null, 
+              "done": true, 
+              "number": 1
+            }
+          ]
+        }
     """
     S = db.session()
     output_msgs = S.query(db.OutputMsg).filter_by(session_id=session_id, exec_id=exec_id).\
@@ -291,8 +331,28 @@ def output_messages(session_id, exec_id, number):
     return jsonify({'status':'ok', 'data':data})
 
 def send_signal(id, sig):
-    """
-    Send signal sig to session with given id. 
+    r"""
+    Send signal sig to session with given id.
+
+    EXAMPLES::
+    
+        >>> import frontend, misc, signal, time
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "running"\n}'
+        >>> misc.get('http://localhost:5000/sigint/0')  # indirect doctest
+        u'{\n  "status": "ok"\n}'
+
+    Wait a moment for the sigint to actually impact that process, then
+    check new status::
+    
+        >>> time.sleep(.2)
+        >>> misc.get('http://localhost:5000/status/0')        
+        u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
     """
     S = db.session()
     try:
@@ -304,6 +364,7 @@ def send_signal(id, sig):
             if sig == signal.SIGKILL:
                 session.status = 'dead'
                 S.commit()
+            assert subprocess_port is not None, "you must initialize subprocess_port"
             url = 'http://localhost:%s/send_signal/%s/%s'%(
                 subprocess_port, session.pid, sig)
             msg = json.loads(get(url))
@@ -312,24 +373,92 @@ def send_signal(id, sig):
     return jsonify(msg)
 
 @app.route('/sigint/<int:id>')
-def signal_interrupt(id):
-    """
+def sigint(id):
+    r"""
     Send an interrupt signal to the given session.
+
+    INPUT:
+
+    - ``id`` -- integer
+
+    EXAMPLES::
+
+    We open two sessions, infinite loop both, interrupt session 1,
+    confirm it is interrupted but that session 0 isn't, then interrupt
+    session 0::
+
+        >>> import frontend, misc, signal
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> a = misc.get('http://localhost:5000/new_session')
+        >>> a = misc.get('http://localhost:5000/new_session')
+        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
+        >>> a = misc.post('http://localhost:5000/execute/1', {'code':'while 1: True'})
+        >>> misc.get('http://localhost:5000/sigint/1')
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/status/0')        
+        u'{\n  "status": "ok", \n  "session_status": "running"\n}'
+
+    Wait a moment for the sigint to actually impact that process, then
+    check new status::
+    
+        >>> time.sleep(.2)
+        >>> misc.get('http://localhost:5000/status/1')
+        u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
+        >>> misc.get('http://localhost:5000/sigint/0')
+        u'{\n  "status": "ok"\n}'
+        >>> time.sleep(.2)
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
+
+    Test interrupting a non-existent session gives an error::
+
+        >>> misc.get('http://localhost:5000/sigint/2')
+        u'{\n  "status": "error", \n  "data": "unknown session 2"\n}'
+
+    Test that returned JSON is valid::
+
+        >>> print json.loads(misc.get('http://localhost:5000/status/0'))
+        {u'status': u'ok', u'session_status': u'ready'}
     """
     return send_signal(id, signal.SIGINT)
 
 @app.route('/sigkill/<int:id>')
-def signal_kill(id):
-    """
+def sigkill(id):
+    r"""
     Send a kill signal to the given session.
+
+    INPUT:
+
+    - ``id`` -- integer
+
+    EXAMPLES::
+    
+        >>> import frontend, misc, signal
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> a = misc.get('http://localhost:5000/new_session')
+        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
+        >>> misc.get('http://localhost:5000/sigkill/0')
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "dead"\n}'
+
+    Test that killing a non-existent session gives an error::
+    
+        >>> misc.get('http://localhost:5000/sigkill/1')
+        u'{\n  "status": "error", \n  "data": "unknown session 1"\n}'
     """
     return send_signal(id, signal.SIGKILL)
 
-@app.route('/delete_session/<int:id>')
-def delete_session(id):
+@app.route('/close_session/<int:id>')
+def close_session(id):
     """
     Kill and delete from the database the session with the given id.
     Also, clear up its allocated directory.
+
+    INPUT:
+
+    - ``id`` -- integer
+    
     """
     # get the session object
     S = db.session()
@@ -340,7 +469,7 @@ def delete_session(id):
         msg = {'status':'error', 'data':'unknown session %s'%id}
         return jsonify(msg)
     try:
-        delete_subprocess(session.pid)
+        close_subprocess(session.pid)
     finally:
         # All cells and output messages linked to this session should
         # automatically be deleted by a cascade:
@@ -355,6 +484,11 @@ def status(id):
     Return the status of the given session as a JSON message:
 
        {'status':'ok', 'session_status':'ready'}
+
+    INPUT:
+
+    - ``id`` -- integer
+       
     """
     S = db.session()
     try:
@@ -565,7 +699,7 @@ class Daemon(object):
         >>> Daemon(5000)
         Workspace Frontend Daemon on port 5000
     """
-    def __init__(self, port, debug=False, pidfile=None):
+    def __init__(self, port, debug=False, pidfile=None, log=False):
         """
         EXAMPLES::
 
@@ -593,9 +727,7 @@ class Daemon(object):
                     # error means process is gone
                     break
         self._port = port
-        cmd = "python %s.py %s"%(__name__, port)
-        if debug:
-            cmd += ' True'
+        cmd = "python %s.py %s %s %s"%(__name__, port, debug, log)
         import subprocess # import here to ensure only used here
         self._server = subprocess.Popen(cmd, shell=True)
         open(self._pidfile, 'w').write(str(self._server.pid))
@@ -655,11 +787,16 @@ class Daemon(object):
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print "Usage: %s port [debug]"%sys.argv[0]
+        print "Usage: %s port [debug] [log]"%sys.argv[0]
         sys.exit(1)
+    # TODO: redo to use proper py2.7 option parsing (everywhere)!
     if len(sys.argv) >= 3:
         debug = eval(sys.argv[2])
     else:
         debug = False
-    run(sys.argv[1], debug=debug, log=True)
+    if len(sys.argv) >= 4:
+        log = eval(sys.argv[3])
+    else:
+        log = True
+    run(sys.argv[1], debug=debug, log=log)
 

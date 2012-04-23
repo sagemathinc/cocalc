@@ -48,6 +48,11 @@ class ComputeSession(object):
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
                     self.wfile.write(Handler.session._session._execpath)
+                elif self.path == '/':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write("Waiting to evaluate code....")
                 else:
                     self.send_error(404,'File Not Found: %s' % self.path)
                     
