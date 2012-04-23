@@ -38,6 +38,14 @@ from misc import get, post
 ##############################
 
 class ComputeSession(object):
+    """
+    EXAMPLES::
+    
+        >>> import backend
+        >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
+        >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
+        >>> del CS._server
+    """
     def __init__(self, port, finished_url, output_url):
         """
         INPUT:
@@ -48,7 +56,6 @@ class ComputeSession(object):
         - ``output_url`` -- string; do POST request here to report on
           output and modified or created files
         """
-
         # Define an HTTP server to implement the WAIT STATE.  We do not
         # use flask since (1) it is a bit heavy, and (2) we only want
         # to handle exactly one request, and I don't know how to do that
@@ -81,13 +88,12 @@ class ComputeSession(object):
         assert 'tmp' in execpath  # this is little consolation, but is a good idea
         assert len(os.listdir(execpath)) == 0 # this is very good.
 
-        assert False
         self._session      = SimpleStreamingSession(
                              0, lambda msg: self.output(msg),
                              execpath=execpath)
 
     def execute_cells(self, cells):
-        """
+        r"""
         Execute each cell in the list of cells.
 
         INPUT:
@@ -96,7 +102,15 @@ class ComputeSession(object):
 
         EXAMPLES::
 
-        
+            >>> import misc, backend; backend.post = misc.fake_post
+            >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
+            >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
+            >>> CS.execute_cells([{'code':'print(2+3)'}, {'code':'print(5*3)'}])
+            POST: ('output_url', {'output': '5\n', 'exec_id': 0, 'modified_files': [], 'done': False}) [('timeout', 10)]
+            POST: ('output_url', {'exec_id': 0, 'done': True}) [('timeout', 10)]
+            POST: ('output_url', {'output': '15\n', 'exec_id': 1, 'modified_files': [], 'done': False}) [('timeout', 10)]
+            POST: ('output_url', {'exec_id': 1, 'done': True}) [('timeout', 10)]
+            >>> del CS._server  # shutdown HTTP server            
         """
         # TODO: we are ignoring the double check of cell['exec_id']. Find a way to use it. 
         for cell in cells:
@@ -141,13 +155,12 @@ class ComputeSession(object):
 
         EXAMPLES::
 
-            >>> def f(*args, **kwds): print 'POST', args, kwds
-            ...
-            >>> import misc, backend; backend.post = f
+            >>> import misc, backend; backend.post = misc.fake_post
             >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
             >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
             >>> CS.output({'test':'message'})
-            POST ('output_url', {'test': 'message'}) {'timeout': 10}
+            POST: ('output_url', {'test': 'message'}) [('timeout', 10)]
+            >>> del CS._server  # shutdown HTTP server            
         """
         post(self._output_url, msg, timeout=10)
             

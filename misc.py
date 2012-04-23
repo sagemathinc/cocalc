@@ -146,3 +146,27 @@ def is_temp_directory(path):
     if _temp_prefix is None:
         _temp_prefix = os.path.split(tempfile.mktemp())[0]
     return os.path.split(os.path.abspath(path))[0] == _temp_prefix
+
+
+def fake_get(*args, **kwds):
+    """
+    This is used internally only for testing.
+    
+    EXAMPLES::
+
+        >>> fake_get('http://localhost:8000', data={'foo':5}, timeout=2)
+        GET: ('http://localhost:8000',) [('data', {'foo': 5}), ('timeout', 2)]    
+    """
+    print 'GET: %s %s'%(args, list(sorted(kwds.iteritems())))
+    
+def fake_post(*args, **kwds):
+    """
+    This is used internally only for testing.
+    
+    EXAMPLES::
+
+        >>> fake_post('http://localhost:8000', data={'foo':5}, timeout=2)
+        POST: ('http://localhost:8000',) [('data', {'foo': 5}), ('timeout', 2)]
+    """
+    print 'POST: %s %s'%(args, list(sorted(kwds.iteritems())))
+
