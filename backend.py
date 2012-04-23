@@ -75,13 +75,28 @@ class ComputeSession(object):
         self._output_url   = output_url
         self._port         = port
         self._server       = HTTPServer(('', self._port), Handler)
+
+        execpath = os.path.abspath(os.curdir)
+        # some protection against doing something stupid.
+        assert 'tmp' in execpath  # this is little consolation, but is a good idea
+        assert len(os.listdir(execpath)) == 0 # this is very good.
+
+        assert False
         self._session      = SimpleStreamingSession(
                              0, lambda msg: self.output(msg),
-                             execpath=os.path.abspath(os.curdir))
+                             execpath=execpath)
 
     def execute_cells(self, cells):
         """
         Execute each cell in the list of cells.
+
+        INPUT:
+
+        - ``cells`` -- list of cells, where a "cell" is a dictionary that has a 'code' key.q
+
+        EXAMPLES::
+
+        
         """
         # TODO: we are ignoring the double check of cell['exec_id']. Find a way to use it. 
         for cell in cells:
@@ -122,7 +137,17 @@ class ComputeSession(object):
 
         INPUT:
         
-        - ``msg`` -- a dictionary 
+        - ``msg`` -- a dictionary
+
+        EXAMPLES::
+
+            >>> def f(*args, **kwds): print 'POST', args, kwds
+            ...
+            >>> import misc, backend; backend.post = f
+            >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
+            >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
+            >>> CS.output({'test':'message'})
+            POST ('output_url', {'test': 'message'}) {'timeout': 10}
         """
         post(self._output_url, msg, timeout=10)
             
