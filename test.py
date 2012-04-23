@@ -21,7 +21,7 @@ def doctest_modules(modules, verbose=False):
         >>> doctest_modules([])
     """
     for module in modules:
-        print "testing: ", module.__name__
+        print "doctest.testmod(%s)"%module.__name__
         testmod(module, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
 
 if __name__ == '__main__':
