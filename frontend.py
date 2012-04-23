@@ -731,7 +731,22 @@ def put_file(id):
 @app.route('/get_file/<int:id>/<path:path>')
 def get_file(id, path):
     """
-    Return the file in the given path in the session with given id. 
+    Return contents of the file in the given path in the session with
+    given id.
+
+    INPUT:
+
+    - ``id`` -- nonnegative integer
+    - ``path`` -- string
+
+    OUTPUT:
+
+    - file
+
+    EXAMPLES::
+
+    
+    
     """
     try:
         path = file_path(id, path)
