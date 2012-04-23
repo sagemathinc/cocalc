@@ -12,7 +12,7 @@ ConnectionError = requests.ConnectionError
 
 def get(url, data=None, timeout=1):
     """
-    Get the url with optional parameters as specified by the data
+    GET the url with optional parameters as specified by the data
     variable.
 
     INPUT:
@@ -25,6 +25,27 @@ def get(url, data=None, timeout=1):
     OUTPUT:
 
     - string
+
+    EXAMPLES::
+
+    We test the timeout option::
+    
+        >>> get('http://cnn.com',timeout=1e-3)
+        Traceback (most recent call last):
+        ...
+        Timeout: Request timed out.
+
+    We pass data to a server, which happens to respond with some text
+    in JSON format::
+    
+        >>> import subprocess_server; r = subprocess_server.Daemon(5000)
+        >>> s = get('http://localhost:5000/popen', data={'command':'python'})
+        >>> print s
+        {
+          "status": "ok", 
+          "pid": ..., 
+          "execpath": "...tmp..."
+        }
     """
     if data is None: data = {}
     return requests.get(url, params=data, timeout=timeout).text
@@ -46,6 +67,20 @@ def post(url, data=None, files=None, timeout=10):
     OUTPUT:
 
     - string
+
+    EXAMPLES::
+
+        >>> import frontend; R = frontend.Daemon(5000)
+        >>> from misc import post, get
+        >>> a = get('http://localhost:5000/killall')  # for doctesting
+        >>> a = get('http://localhost:5000/new_session')
+        >>> print post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
+        {
+          "status": "ok", 
+          "exec_id": 0, 
+          "cell_status": "running"
+        }
+        >>> z = get('http://localhost:5000/killall')  # for doctesting
     """
     if files is None:
         files = {}

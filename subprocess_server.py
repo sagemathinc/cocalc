@@ -28,11 +28,10 @@ class Process(object):
         
         EXAMPLES::
 
-            sage: p = Process(subprocess.Popen('pwd'), os.path.abspath(os.curdir))
-            /Users/wstein/Dropbox/sage/sagews/site
-            sage: p.proc
+            >>> p = Process(subprocess.Popen('pwd'), os.path.abspath(os.curdir))
+            >>> p.proc
             <subprocess.Popen object at 0x...>
-            sage: p.execpath == os.path.abspath(os.curdir)
+            >>> p.execpath == os.path.abspath(os.curdir)
             True
         """
         self.proc = proc
@@ -281,7 +280,7 @@ def exitcode(pid):
 # backends too.
 
 class Daemon(object):
-    def __init__(self, port, debug=False, pidfile=None):
+    def __init__(self, port, debug=False, pidfile=None, log=True):
         """
         Run as a subprocess, wait for http server to start.
 
@@ -297,7 +296,6 @@ class Daemon(object):
             >>> r = Daemon(5100)
             >>> open(r._pidfile).read()
             '...'
-            >>> del r
         """
         if pidfile is None:
             self._pidfile = '%s-%s.pid'%(__name__, port)
@@ -328,6 +326,17 @@ class Daemon(object):
                 time.sleep(0.05)
 
     def __del__(self):
+        """
+        EXAMPLES::
+        
+            >>> r = Daemon(5100)
+            >>> open(r._pidfile).read()
+            '...'
+            >>> pidfile = r._pidfile
+            >>> del r
+            >>> os.path.exists(pidfile)
+            False
+        """
         if hasattr(self, 'p') and not self.p.returncode:
             try:
                 os.kill(self.p.pid, signal.SIGINT)
@@ -344,6 +353,12 @@ if __name__ == '__main__':
         sys.exit(1)
     port = int(sys.argv[1])
     debug = len(sys.argv) >= 3 and eval(sys.argv[2])
+    
+    if not debug:
+        import logging
+        logger = logging.getLogger('werkzeug')
+        logger.setLevel(logging.ERROR)
+        
     try:
         app.run(port=port, debug=debug)
     finally:

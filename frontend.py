@@ -795,7 +795,7 @@ def submit_output(id):
         return 'ok'
     return 'error'
 
-def run(port=5000, debug=False, log=False, sub_port=4999):
+def run(port=5000, debug=False, log=False, sub_port=None):
     """
     Run a blocking instance of the frontend server serving on the
     given port.  If debug=True (not the default), then Flask is started
@@ -805,6 +805,10 @@ def run(port=5000, debug=False, log=False, sub_port=4999):
     - ``port`` -- integer (default: 5000)
     - ``debug`` -- bool (default: False)
     """
+    if sub_port is None:
+        import test
+        sub_port = test.SUBPROCESS_PORT
+    
     port = int(port)
 
     global app_port, subprocess_port
