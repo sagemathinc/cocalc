@@ -7,7 +7,9 @@ https://github.com/williamstein/sagews
 AUTHORS: 
    - William Stein
 
-COPYRIGHT: Modified BSD
+COPYRIGHT: 
+  NOT released under *any* license yet.  (In the longterm I intend to 
+  release this under BSD, but this is not the case for this version on.)
 
 DEPENDENCIES:
 
