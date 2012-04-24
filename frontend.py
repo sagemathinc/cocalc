@@ -2,7 +2,7 @@
 Workspace Server Frontend
 """
 
-import json, os, posixpath, signal, shutil, sys, tempfile, time
+import json, os, posixpath, signal, shutil, subprocess, sys, tempfile, time
 
 from flask import Flask, request, safe_join, send_from_directory, jsonify
 app = Flask(__name__)
@@ -862,10 +862,17 @@ class Daemon(object):
                     break
         self._port = port
         cmd = "python %s.py %s %s %s"%(__name__, port, debug, log)
-        import subprocess # import here to ensure only used here
+
         self._server = subprocess.Popen(cmd, shell=True)
         open(self._pidfile, 'w').write(str(self._server.pid))
+        
+        max_tries = 20
         while True:
+            max_tries -= 1
+            if max_tries == 0:
+                raise RuntimeError("unable to start frontend")
+            
+            # TODO: here we should just check that it is a zombie
             # Next wait to see if it is listening.
             try:
                 get('http://localhost:%s/'%port)
@@ -877,7 +884,7 @@ class Daemon(object):
                 try:
                     os.kill(self._server.pid, 0)
                 except OSError:
-                    raise RuntimeError, "unable to start frontend"
+                    raise RuntimeError("unable to start frontend")
             else:
                 # It is listening - done!
                 break
