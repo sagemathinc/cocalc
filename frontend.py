@@ -39,9 +39,10 @@ def launch_backend_session(port, id=id, output_url='output'):
 
 def close_subprocess(pid):
     """
-    Send kill signal to the process with given pid.
+    Close and clean up the process with given pid.
 
     EXAMPLES::
+
 
     """
     assert subprocess_port is not None, "you must initialize subprocess_port"

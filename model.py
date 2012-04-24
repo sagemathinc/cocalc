@@ -240,7 +240,7 @@ def drop_all():
         >>> S.query(Session).count()
         Traceback (most recent call last):
         ...
-        OperationalError: (OperationalError) no such table: sessions u'SELECT count(1) AS count_1 \nFROM sessions' []
+        OperationalError: (OperationalError) no such table...
     """
     Base.metadata.drop_all(engine)
 
@@ -251,7 +251,7 @@ def session():
     EXAMPLES::
 
         >>> session()
-        <sqlalchemy.orm.session.Session object at 0x...>
+        <sqlalchemy.orm.session.Session...>
     """
     from sqlalchemy.orm import sessionmaker
     Session = sessionmaker(bind=engine)
@@ -271,7 +271,7 @@ def create():
         >>> S.query(Session).count()
         Traceback (most recent call last):
         ...
-        OperationalError: (OperationalError) no such table: sessions u'SELECT count(1) AS count_1 \nFROM sessions' []
+        OperationalError: (OperationalError) no such table...
 
     After creating the DB, it works, and we get no records::
 

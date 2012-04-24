@@ -20,8 +20,10 @@ def doctest_modules(modules, verbose=False):
     
         >>> doctest_modules([])
     """
+    cwd = os.path.abspath(os.curdir)
     for module in modules:
         print "doctest.testmod(%s)"%module.__name__
+        os.chdir(cwd)
         testmod(module, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
 
 if __name__ == '__main__':
