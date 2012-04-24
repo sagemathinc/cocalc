@@ -206,7 +206,7 @@ Ideas to solve this:
 
     [x] fix that fake wait() function in client.py
     [x] exec_id --> cell_id
-    [ ] in frontend: db --> model
+    [x] in frontend: db --> model
     [ ] move app_port and subprocess_port to database
     [ ] doctest client.py
     [ ] doctest frontend.py

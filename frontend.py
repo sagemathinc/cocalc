@@ -67,7 +67,7 @@ subprocess_port = None
 
 from misc import get, post, ConnectionError, Timeout, all_files, is_temp_directory
 
-import model as db
+import model
 
 from sqlalchemy.orm import exc as orm_exc
 
@@ -91,7 +91,7 @@ def launch_backend_session(port, id=id):
     EXAMPLES::
 
         >>> import frontend
-        >>> frontend.db.drop_all()
+        >>> frontend.model.drop_all()
         >>> pid, execpath = frontend.launch_backend_session(5001, 0)
         Traceback (most recent call last):
         ...
@@ -101,7 +101,7 @@ def launch_backend_session(port, id=id):
     launch_backend_session command works::
 
         >>> frontend.app_port = 5000; frontend.subprocess_port = 4999 # TODO 
-        >>> #frontend.db.set_ports(frontend=5000, subprocess_server=4999)
+        >>> #frontend.model.set_ports(frontend=5000, subprocess_server=4999)
 
     Now it works::
 
@@ -175,9 +175,9 @@ def killall():
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "error", \n  "data": "unknown session 0"\n}'
     """
-    S = db.session()
+    S = model.session()
     try:
-        sessions = S.query(db.Session)
+        sessions = S.query(model.Session)
     except orm_exc.NoResultFound:
         # easy case -- no sessions to cleanup; maybe database schema not even made
         return jsonify({'status':'ok', 'killed':[]})
@@ -226,13 +226,13 @@ def new_session():
         >>> json.loads(misc.get('http://localhost:5000/new_session'))
         {u'status': u'ok', u'id': 0}
     """
-    S = db.session()
-    if S.query(db.Session).count() == 0:
+    S = model.session()
+    if S.query(model.Session).count() == 0:
         id = 0
         assert app_port is not None, "you must initialize app_port"
         port = app_port + 1
     else:
-        last_session = S.query(db.Session).order_by(db.Session.id.desc())[0]
+        last_session = S.query(model.Session).order_by(model.Session.id.desc())[0]
         id = last_session.id + 1
         port = int(last_session.url.split(':')[-1]) + 1
     try:
@@ -240,7 +240,7 @@ def new_session():
     except RuntimeError:
         msg = {'status':'error', 'data':'failed to create new session (port=%s, id=%s)'%(port,id)}
     else:
-        session = db.Session(id, pid, path, 'http://localhost:%s'%port, status='running')
+        session = model.Session(id, pid, path, 'http://localhost:%s'%port, status='running')
         S.add(session)
         S.commit()
         msg = {'status':'ok', 'id':id}
@@ -281,11 +281,11 @@ def execute(session_id):
     if request.method == 'POST' and request.form.has_key('code'):
         code = request.form['code']
 
-        S = db.session()
+        S = model.session()
         
         try:
             # get the session in which to execute this code
-            session = S.query(db.Session).filter_by(id=session_id).one()
+            session = S.query(model.Session).filter_by(id=session_id).one()
         except orm_exc.NoResultFound:
             # handle invalid session_id
             return jsonify({'status':'error', 'data':'unknown session %s'%session_id})
@@ -296,7 +296,7 @@ def execute(session_id):
             return jsonify({'status':'error', 'data':'session is dead'})
         
         # store the code to evaluate in database.
-        cell = db.Cell(session.next_cell_id, session.id, code)
+        cell = model.Cell(session.next_cell_id, session.id, code)
         session.cells.append(cell)
         # increment id for next code execution
         session.next_cell_id += 1
@@ -400,8 +400,8 @@ def ready(id):
     # nearly ready for more.  If there is anything left to do, tell it
     # to do all that; otherwise, tell it to wait for a new request
     # when it comes later.
-    S = db.session()
-    session = S.query(db.Session).filter_by(id=id).one()
+    S = model.session()
+    session = S.query(model.Session).filter_by(id=id).one()
 
     # if there is anything to compute for this session, start it going.
     if session.last_active_cell_id+1 < session.next_cell_id:
@@ -409,9 +409,9 @@ def ready(id):
         # yet been sent off to be computed, and make a list of their
         # code and cell_id's.
         cells = []
-        for cell in S.query(db.Cell).filter(
-                        db.Cell.cell_id >= session.last_active_cell_id + 1).filter(
-                        db.Cell.session_id == session.id).order_by(db.Cell.cell_id):
+        for cell in S.query(model.Cell).filter(
+                        model.Cell.cell_id >= session.last_active_cell_id + 1).filter(
+                        model.Cell.session_id == session.id).order_by(model.Cell.cell_id):
 
             cells.append({'code':cell.code, 'cell_id':cell.cell_id})
             
@@ -474,8 +474,8 @@ def sessions():
         >>> json.loads(misc.get('http://localhost:5000/sessions'))
         {u'status': u'ok', u'sessions': [{u'status': u'dead', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'path': u'...', u'next_cell_id': 0, u'id': 0, u'last_active_cell_id': -1}, {u'status': u'running', u'url': u'http://localhost:5002', u'start_time': u'...', u'pid': ..., u'path': u'...', u'next_cell_id': 0, u'id': 1, u'last_active_cell_id': -1}]}
     """
-    S = db.session()
-    v = [s.to_json() for s in S.query(db.Session).order_by(db.Session.id).all()]
+    S = model.session()
+    v = [s.to_json() for s in S.query(model.Session).order_by(model.Session.id).all()]
     return jsonify({'status':'ok', 'sessions':v})
 
 
@@ -511,9 +511,9 @@ def session(session_id):
           "data": "unknown session 1"
         }
     """
-    S = db.session()
+    S = model.session()
     try:
-        v = S.query(db.Session).filter_by(id=session_id).one().to_json()
+        v = S.query(model.Session).filter_by(id=session_id).one().to_json()
         msg = {'status':'ok', 'data':v}
     except orm_exc.NoResultFound:
         msg = {'status':'error', 'data':'unknown session %s'%session_id}
@@ -573,9 +573,9 @@ def cells(session_id):
         >>> print json.loads(misc.get('http://localhost:5000/cells/0'))
         {u'status': u'ok', u'data': [{u'code': u'print(2+3)', u'cell_id': 0}, {u'code': u'print(8+8)', u'cell_id': 1}, {u'code': u'print(7*13)', u'cell_id': 2}]}
     """
-    S = db.session()
+    S = model.session()
     try:
-        session = S.query(db.Session).filter_by(id=session_id).one()
+        session = S.query(model.Session).filter_by(id=session_id).one()
         msg = {'status':'ok', 'data':[cell.to_json() for cell in session.cells]}
     except orm_exc.NoResultFound:
         msg = {'status':'error', 'data':'unknown session %s'%session_id}
@@ -616,10 +616,10 @@ def output_messages(session_id, cell_id, number):
           ]
         }
     """
-    S = db.session()
-    output_msgs = S.query(db.OutputMsg).filter_by(session_id=session_id, cell_id=cell_id).\
+    S = model.session()
+    output_msgs = S.query(model.OutputMsg).filter_by(session_id=session_id, cell_id=cell_id).\
                   filter('number>=:number').params(number=number).\
-                  order_by(db.OutputMsg.number)
+                  order_by(model.OutputMsg.number)
     data = [{'number':m.number, 'done':m.done, 'output':m.output, 'modified_files':m.modified_files}
               for m in output_msgs]
     return jsonify({'status':'ok', 'data':data})
@@ -651,9 +651,9 @@ def send_signal(id, sig):
         >>> misc.get('http://localhost:5000/status/0')        
         u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
     """
-    S = db.session()
+    S = model.session()
     try:
-        session = S.query(db.Session).filter_by(id=id).one()
+        session = S.query(model.Session).filter_by(id=id).one()
     except orm_exc.NoResultFound:
         msg = {'status':'error', 'data':'unknown session %s'%id}
     else:
@@ -803,9 +803,9 @@ def close_session(id):
         u'{\n  "status": "error", \n  "data": "unknown session 1"\n}'
     """
     # get the session object
-    S = db.session()
+    S = model.session()
     try:
-        session = S.query(db.Session).filter_by(id=id).one()
+        session = S.query(model.Session).filter_by(id=id).one()
     except orm_exc.NoResultFound:
         # error message if try to delete session that doesn't exist
         msg = {'status':'error', 'data':'unknown session %s'%id}
@@ -865,9 +865,9 @@ def status(id):
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "dead"\n}'
     """
-    S = db.session()
+    S = model.session()
     try:
-        session = S.query(db.Session).filter_by(id=id).one()
+        session = S.query(model.Session).filter_by(id=id).one()
         msg = {'status':'ok', 'session_status':session.status}
     except orm_exc.NoResultFound:
         msg = {'status':'error', 'data':'unknown session %s'%id}
@@ -901,9 +901,9 @@ def file_path(id, path):
         ValueError: insecure path '../a/b/xyz.txt'
     """
     id = int(id)
-    S = db.session()
+    S = model.session()
     try:
-        session = S.query(db.Session).filter_by(id=id).one()
+        session = S.query(model.Session).filter_by(id=id).one()
         path = posixpath.normpath(path)
         if '..' in path or os.path.isabs(path):
             raise ValueError("insecure path '%s'"%path)
@@ -986,9 +986,9 @@ def files(id):
 
         >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
     """
-    S = db.session()
+    S = model.session()
     try:
-        session = S.query(db.Session).filter_by(id=id).one()
+        session = S.query(model.Session).filter_by(id=id).one()
         msg = {'status':'ok', 'data':all_files(session.path)}
     except orm_exc.NoResultFound:
         msg = {'status':'error', 'data':'unknown session %s'%id}
@@ -1235,18 +1235,18 @@ def submit_output(id):
     """
     if request.method == 'POST':
         try:
-            S = db.session()
+            S = model.session()
             m = request.form
             if 'cell_id' not in m:
                 return jsonify({'status':'error', 'data':'must include cell_id as a POST variable'})
             cell_id = m['cell_id']
 
             try:
-                cell = S.query(db.Cell).filter_by(cell_id=cell_id, session_id=id).one()
+                cell = S.query(model.Cell).filter_by(cell_id=cell_id, session_id=id).one()
             except orm_exc.NoResultFound:
                 return jsonify({'status':'error', 'data':'no cell with cell_id=%s and session_id=%s'%(cell_id, id)})
 
-            msg = db.OutputMsg(number=len(cell.output), cell_id=cell_id, session_id=id)
+            msg = model.OutputMsg(number=len(cell.output), cell_id=cell_id, session_id=id)
             if 'done' in m:
                 msg.done = False if m['done'] == u'False' else True
             if 'output' in m:
@@ -1293,7 +1293,7 @@ def run(port=5000, debug=False, log=False, sub_port=None):
         logger = logging.getLogger('werkzeug')
         logger.setLevel(logging.ERROR)    
     
-    db.create()
+    model.create()
     app.run(port=port, debug=debug)
 
 class Daemon(object):
