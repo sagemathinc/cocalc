@@ -204,17 +204,19 @@ Ideas to solve this:
 
  [ ] complete 100% doctest coverage:
 
+    [ ] fix that fake wait() function in client.py
     [ ] move app_port and subprocess_port to database
     [ ] doctest client.py
     [ ] doctest frontend.py
+    [ ] weirdness with doctesting subprocess_server due to pipes.
+
+ [ ] get tests working on Ubuntu 12.04 Linux
+ [ ] get tests working on Windows 7
 
  [ ] pylint 
 
  [ ] deal with every todo in code
 
- [ ] get working on Ubuntu 12.04 Linux
-
- [ ] get working on Windows 7
 
  [ ] rethink what everything is named; possibly refactor/rename, running test suite
 
