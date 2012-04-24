@@ -10,7 +10,7 @@ parent of several children processes.  There is nothing special about
 the subprocesses that are popen'd having anything to do with Python.
 """
 
-import os, shutil, signal, subprocess, sys, tempfile, time
+import os, shlex, shutil, signal, subprocess, sys, tempfile, time
 
 from misc import is_temp_directory, get, ConnectionError
 
@@ -55,6 +55,10 @@ def popen_process(command):
 
     - ``command`` -- integer; port that session will listen on
 
+    OUTPUT:
+
+    - dictionary -- {'status':'ok', 'pid':pid, 'execpath':execpath}
+
     EXAMPLES::
 
         >>> p0 = popen_process('python'); p0
@@ -68,8 +72,15 @@ def popen_process(command):
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         creationflags = 0
-    proc = subprocess.Popen(command.split(), cwd=execpath, 
-                creationflags=creationflags)
+
+    # Launch the requested subprocess:
+    proc = subprocess.Popen(
+        shlex.split(str(command)),     # the actual command, as an sys.argv style list.
+        cwd = execpath,                # change to this directory before running command.
+        creationflags = creationflags, # used for windows so we can later kill/interrupt.
+        bufsize = 4096)#,
+    #stderr = subprocess.PIPE, stdout = subprocess.PIPE, stdin =  subprocess.PIPE) 
+    
     processes[proc.pid] = Process(proc, execpath)
     return {'status':'ok', 'pid':proc.pid, 'execpath':execpath}
 
@@ -125,7 +136,7 @@ def close_process(pid):
         try:
             p.terminate()
             # TODO: is this going to hang the web server? do we need a timeout.
-            p.wait() 
+            p.wait()
         except Exception, msg:
             # Maybe process already dead (sometimes happens on windows)
             print msg
@@ -157,10 +168,25 @@ def close_all_processes():
 from flask import Flask, jsonify, request
 app = Flask(__name__)
 
+@app.route('/')
+def root():
+    """
+    Root URL, which returns JSON status of the server.
+
+    EXAMPLES::
+
+        >>> r = Daemon(5100)
+        >>> print get('http://localhost:5100/')
+        {
+          "status": "ok"
+        }
+    """
+    return jsonify({'status':'ok'})
+
 @app.route('/popen')
 def popen():
     """
-    Open a new subprocess.  The GET parameter is:
+    Open a new subprocess where the command is defined by a GET parameter.
 
     INPUT:
 
@@ -255,6 +281,10 @@ def send_signal(pid, sig):
 @app.route('/exitcode/<int:pid>')
 def exitcode(pid):
     """
+    INPUT:
+
+    - ``pid`` -- positive integer; pid of a process
+    
     EXAMPLES::
 
         >>> r = Daemon(5100)
