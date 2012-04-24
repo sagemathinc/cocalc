@@ -82,6 +82,10 @@ def close_subprocess(pid):
     """
     Close and clean up the process with given pid.
 
+    INPUT::
+
+    - ``pid`` -- positive integer
+
     EXAMPLES::
 
 
@@ -143,7 +147,7 @@ def new_session():
         session = db.Session(id, pid, path, 'http://localhost:%s'%port, status='running')
         S.add(session)
         S.commit()
-        msg = {'status':'ok', 'id':int(id)}
+        msg = {'status':'ok', 'id':id}
     return jsonify(msg)
 
 @app.route('/execute/<int:session_id>', methods=['POST'])
@@ -210,24 +214,14 @@ def execute(session_id):
                 session.last_active_exec_id = cell.exec_id
                 session.status = 'running'
                 cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
-                
-                # TODO: this timeout maybe scares me, since it will
-                # lock the server when running in single threaded mode
-                # (which we should never do in production).
-                # This post needs to happen in a forked off "fire and forget" thread...
-                tm = time.time()
-                while time.time() - tm <= 5:  # try for up to 5 seconds before declaring it dead.
-                    try:
-                        post(session.url, {'cells':json.dumps(cells)}, timeout=0.1)
-                        break
-                    except ConnectionError:
-                        time.sleep(0.05)
+                post(session.url, {'cells':json.dumps(cells)}, timeout=0.1)
                 msg['cell_status'] = 'running'
                 msg['status'] = 'ok'
             except ConnectionError:
-                # The session not alive and responding as we thought
-                # it would be doing, so we mark it is as such in the
-                # database, and send it a kill -9 just for good measure.
+                # The session is not alive and responding as we
+                # thought it would be doing, so we mark it is as such
+                # in the database, and send tell the subprocess server
+                # to clean it up (via close_subprocess).
                 session.status = 'dead'
                 msg['data'] = 'session is dead'
                 msg['status'] = 'error'
@@ -405,15 +399,32 @@ def send_signal(id, sig):
         msg = {'status':'error', 'data':'unknown session %s'%id}
     else:
         try:
-            if sig == signal.SIGKILL:
+            assert subprocess_port is not None, "you must initialize subprocess_port"
+            
+            if sig == signal.SIGINT:
+                if session.status != 'running':
+                    # do nothing
+                    return jsonify({'status':'ok'})
+
+            elif sig == signal.SIGKILL or sig == signal.SIGTERM:
+                if session.status == 'dead':
+                    # do nothing
+                    return jsonify({'status':'ok'})
+                # record that we now consider this session dead
                 session.status = 'dead'
                 S.commit()
-            assert subprocess_port is not None, "you must initialize subprocess_port"
-            url = 'http://localhost:%s/send_signal/%s/%s'%(
-                subprocess_port, session.pid, sig)
+
+            else:
+                # only above signals supported
+                return jsonify({'status':'error', 'data':'unknown signal %s'%sig})
+            
+            # send the signal
+            url = 'http://localhost:%s/send_signal/%s/%s'%(subprocess_port, session.pid, sig)
             msg = json.loads(get(url))
+
         except OSError, err:
             msg = {'status':'error', 'data':str(err)}
+            
     return jsonify(msg)
 
 @app.route('/sigint/<int:id>')

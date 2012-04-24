@@ -7,7 +7,7 @@ Python client for the workspace compute server.
 
 import json, time
 
-from misc import get, post
+from misc import get, post, ConnectionError
 
 
 class Client(object):
@@ -99,10 +99,10 @@ class Client(object):
             >>> from client import TestClient; c = TestClient()
             >>> c.new_session()
             0
-            >>> c.wait()
+            >>> c.wait(0)
             >>> c.new_session()
             1
-            >>> c.wait()
+            >>> c.wait(1)
             >>> c.execute(0, 'print(2+3)')
             (0, 'running')
             >>> c.execute(1, 'print(5*8)')
@@ -133,11 +133,13 @@ class Client(object):
             >>> from client import TestClient; c = TestClient()
             >>> c.new_session()
             0
+            >>> c.wait(0)
             >>> c.execute(0, 'import time; time.sleep(10)')
             (0, 'running')
+            >>> c.wait(0, status='running')
             >>> c.sigint(0)
             {u'status': u'ok'}
-            >>> c.wait(0)  
+            >>> c.wait(0)
             >>> c.cells(0)
             [{u'exec_id': 0, u'code': u'import time; time.sleep(10)'}]
             >>> c.output(0,0)
@@ -157,15 +159,14 @@ class Client(object):
         EXAMPLES::
 
             >>> from client import TestClient; c = TestClient()
-            >>> c.new_session()
-            0
-            >>> c.execute(0, 'import time; time.sleep(60)')
+            >>> id = c.new_session(); c.wait(id)
+            >>> c.execute(id, 'import time; time.sleep(60)')
             (0, 'running')
-            >>> c.sigkill(0)
+            >>> c.sigkill(id)
             {u'status': u'ok'}
-            >>> c.session_status(0)
+            >>> c.session_status(id)
             'dead'
-            >>> c.execute(0, 'print(2+3)')
+            >>> c.execute(id, 'print(2+3)')
             Traceback (most recent call last):
             ...
             RuntimeError: session is dead
@@ -223,26 +224,25 @@ class Client(object):
         EXAMPLES::
 
             >>> from client import TestClient; c = TestClient()
-            >>> c.new_session(); c.wait(0)
-            0
-            >>> c.execute(0, 'import time\nfor n in range(3):\n print(n); time.sleep(0.5)')
+            >>> id = c.new_session(); c.wait(id)
+            >>> c.execute(id, 'import time\nfor n in range(3):\n print(n); time.sleep(0.5)')
             (0, 'running')
-            >>> c.wait(0)
-            >>> c.output(0,0,0)
+            >>> c.wait(id)
+            >>> c.output(id,0,0)
             [{u'output': u'0\n1', u'modified_files': None, u'done': False, u'number': 0}, {u'output': u'\n2', u'modified_files': None, u'done': False, u'number': 1}, {u'output': u'\n', u'modified_files': None, u'done': False, u'number': 2}, {u'output': None, u'modified_files': None, u'done': True, u'number': 3}]
-            >>> c.output(0,0,2)
+            >>> c.output(id,0,2)
             [{u'output': u'\n', u'modified_files': None, u'done': False, u'number': 2}, {u'output': None, u'modified_files': None, u'done': True, u'number': 3}]
-            >>> c.output(0,0,4)
+            >>> c.output(id,0,4)
             []
 
         Evaluate some more code and look at the corresponding messages::
         
-            >>> c.execute(0, 'print(3**100)')
+            >>> c.execute(id, 'print(3**100)')
             (1, 'running')
-            >>> c.wait(0)
-            >>> c.output(0,1)
+            >>> c.wait(id)
+            >>> c.output(id,1)
             [{u'output': u'515377520732011331036461129765621272702107522001\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
-            >>> c.output(0,1,1)
+            >>> c.output(id,1,1)
             [{u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
         """
         url = '%s/output_messages/%s/%s/%s'%(self._url, int(session_id), int(exec_id), int(number))
@@ -258,13 +258,20 @@ class Client(object):
     def session(self, session_id):
         return json.loads(get('%s/session/%s'%(self._url, session_id)))
 
-    def session_status(self, session_id):
+    def session_status(self, session_id=None):
         """
         Return the status of the session with given id.
 
         INPUT:
-        - ``session_id`` -- nonnegative integer
+        - ``session_id`` -- nonnegative integer or None
         """
+        if session_id is None:
+            try:
+                get(self._url)
+            except ConnectionError:
+                return 'running'
+            else:
+                return 'ready'
         url = '%s/status/%s'%(self._url, int(session_id))
         msg = json.loads(get(url))
         if msg['status'] == u'error':
@@ -282,11 +289,10 @@ class Client(object):
         EXAMPLES::
 
             >>> from client import TestClient; c = TestClient()
-            >>> c.new_session()
-            0
-            >>> c.execute(0, 'import time; time.sleep(3)'); c.wait(0)
+            >>> id = c.new_session(); c.wait(id)
+            >>> c.execute(id, 'import time; time.sleep(3)'); c.wait(0)
             (0, 'running')
-            >>> c.output(0,0)
+            >>> c.output(id, 0)
             [{u'output': None, u'modified_files': None, u'done': True, u'number': 0}]
 
         We can only wait for known sessions::
@@ -296,19 +302,14 @@ class Client(object):
             ...
             ValueError: unknown session 1
         """
-
-        if session_id is None:
-            # todo -- fully implement this! -- what should it even mean?
-            time.sleep(1)
-        else:
-            t = time.time()
-            while time.time() <= t + timeout:
-                if self.session_status(session_id) == status:
-                    return
-                time.sleep(delta)
-                if delta < 5:
-                    delta *= 2  # exponential backoff
-            raise RuntimeError('timeout')
+        t = time.time()
+        while time.time() <= t + timeout:
+            if self.session_status(session_id) == status:
+                return
+            time.sleep(delta)
+            if delta < 4:
+                delta *= 1.3  # exponential backoff
+        raise RuntimeError('timeout')
 
     def put_file(self, id, files):
         """
@@ -357,8 +358,8 @@ def test1(n=10):
         >>> test1(2)
         ['print(0)', 'print(1)']
     """
-    c = TestClient()
-    c.wait(); id = c.new_session(); c.wait()
+    c = TestClient(); c.wait()
+    id = c.new_session(); c.wait(id)
     requests = ['print(%s)'%j for j in range(n)]
     print requests
     for x in requests:
