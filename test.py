@@ -28,9 +28,17 @@ def doctest_modules(modules, verbose=False):
 
 if __name__ == '__main__':
     #TODO proper option parsing
-    
-    import subprocess_server
-    r = subprocess_server.Daemon(SUBPROCESS_PORT)
+
+    import misc
+    try:
+        misc.get("http://localhost:%s"%SUBPROCESS_PORT)
+    except misc.ConnectionError:
+        print "subprocess server: starting a new one"
+        import subprocess_server
+        r = subprocess_server.Daemon(SUBPROCESS_PORT)
+    else:
+        print "subprocess server: using existing one"
+        
 
     # TODO: more powerful control, e.g., verbosity, etc. ; only certain modules
     if len(sys.argv) > 1 and sys.argv[1] == '-d':
