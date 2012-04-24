@@ -89,10 +89,12 @@ class Client(object):
     def execute(self, session_id, code):
         r"""
         INPUT:
+        
         - ``session_id`` -- id of a session
         - ``code`` -- string
 
         OUTPUT:
+        
         - cell_id -- execution id number
         - status message
         
@@ -131,6 +133,10 @@ class Client(object):
         r"""
         Send interrupt signal to a running process.
 
+        INPUT:
+        
+        - ``session_id`` -- id of a session
+
         EXAMPLES::
 
             >>> from client import TestClient; c = TestClient()
@@ -160,6 +166,10 @@ class Client(object):
 
     def sigkill(self, session_id):
         """
+        INPUT:
+        
+        - ``session_id`` -- id of a session
+
         EXAMPLES::
 
             >>> from client import TestClient; c = TestClient()
@@ -230,13 +240,45 @@ class Client(object):
 
         This removes everything related to the session from the
         database and removes the working temp directory.
+
+        INPUT::
+
+        - ``session_id`` -- nonnegative integer
         
         EXAMPLES::
+
+            >>> from client import TestClient; c = TestClient()
+
+        Try to close a nonexistent session::
+        
+            >>> c.close_session(0)
+            {u'status': u'error', u'data': u'unknown session 0'}
+
+        Create a session, start a loop going, then close it::
+
+            >>> id = c.new_session(); c.execute(id, 'while 1: pass')
+            (0, 'enqueued')
+            >>> c.close_session(0)
+            {u'status': u'ok'}
+            >>> c.sessions()
+            []
+
+        Clean up::
+        
+            >>> c.quit()
         """
         return json.loads(get('%s/close_session/%s'%(self._url, session_id)))
 
     def cells(self, session_id):
         r"""
+        Return a list of data about the input cells in the given
+        session.
+        
+        INPUT:
+
+        - ``session_id`` -- nonnegative integer
+
+        
         EXAMPLES::
 
             >>> from client import TestClient; c = TestClient()
@@ -318,6 +360,10 @@ class Client(object):
         Return list of dictionaries with data about all current
         sessions.
 
+        OUTPUT:
+
+        - list of dictionaries
+
         EXAMPLES::
 
             >>> from client import TestClient; c = TestClient()
@@ -352,6 +398,10 @@ class Client(object):
         """
         Return data about session with given id.
 
+        INPUT:
+        
+        - ``session_id`` -- id of a session
+
         EXAMPLES::
 
             >>> from client import TestClient; c = TestClient()
@@ -383,6 +433,7 @@ class Client(object):
         Return the status of the session with given id.
 
         INPUT:
+
         - ``session_id`` -- nonnegative integer or None
 
         EXAMPLES::
@@ -425,7 +476,6 @@ class Client(object):
         Clean up::
         
             >>> c.quit()
-        
         """
         if session_id is None:
             try:
@@ -442,11 +492,18 @@ class Client(object):
 
     def wait(self, session_id=None, delta=0.05, timeout=5, status='ready'):
         """
-        Wait until the session with given id has the given status.
+        Wait up to timeout seconds until the session with given id has
+        the given status.
 
-        This should be used only for testing purposes.  Any good
-        client should implement a push mechanishm (something like
-        websockets).
+        NOTE: This should be used mainly for testing purposes.  Good
+        clients should implement a push mechanism (e.g., websockets).
+
+        INPUT:
+
+        - ``session_id`` -- nonnegative integer; id of a session
+        - ``delta`` -- positive float
+        - ``timeout`` -- positive real number
+        - ``status`` -- string; the status to wait for
         
         EXAMPLES::
 
@@ -479,9 +536,30 @@ class Client(object):
         Create files in the session with given id, where files is a
         dictionary of filename:content pairs, and content is a string
         or file-like object.
+
+        INPUT::
+
+        - ``id`` -- nonnegative integer
+        - ``files`` -- dictionary
         
         EXAMPLES::
 
+            >>> from client import TestClient; c = TestClient()
+
+        First try to put a file into a session that doesn't exist::
+
+            >>> c.put_file(0, {'foo.txt':'stuff'})
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 0
+
+            >>> c.new_session()
+            0
+            >>> c.put_file(0, {'a/b/c.txt':'more stuff'})
+            >>> c.get_file(0, 'a/b/c.txt')
+            u'more stuff'
+            
+            >>> c.quit()
         """
         msg = post('%s/put_file/%s'%(self._url, id), files=files)
         m = json.loads(msg)
@@ -489,9 +567,82 @@ class Client(object):
             raise ValueError(str(m['data']))
 
     def get_file(self, id, path):
+        """
+        Get file as a string with given path from session with given id.
+        
+        INPUT:
+
+        - ``id`` -- nonnegative integer
+        - ``path`` -- string
+        
+        EXAMPLES::
+
+            >>> from client import TestClient; c = TestClient()
+            >>> c.new_session()
+            0
+            >>> c.execute(0, "open('a.txt','w').write('stuff')")
+            (0, 'enqueued')
+            >>> c.wait(0)
+            >>> c.get_file(0, 'a.txt')
+            u'stuff'
+            >>> c.put_file(0, {'a/b/c.txt':'more stuff'})
+            >>> c.get_file(0, 'a/b/c.txt')
+            u'more stuff'
+
+        Try to get a file that doesn't exist::
+
+            >>> c.get_file(0, 'a/b/z.txt')
+            u'...<title>404 Not Found</title>...'
+
+        Try to get a file in a session that doesn't exist::
+
+            >>> c.get_file(1, 'file.txt')
+            u'...<title>404 Not Found</title>...'
+
+        Clean up::
+        
+            >>> c.quit()
+        """
         return get('%s/get_file/%s/%s'%(self._url, id, path))
 
     def delete_file(self, id, path):
+        """
+        Delete file in the session with given id.
+
+        INPUT:
+
+        - ``id`` -- nonnegative integer
+        - ``path`` -- string
+        
+        EXAMPLES::
+
+            >>> from client import TestClient; c = TestClient()
+
+        First try to delete a file in a session that doesn't exist::
+
+            >>> c.delete_file(0, 'foo.txt')
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 0
+
+        Try to delete a file that doesn't exists::
+        
+            >>> c.new_session()
+            0
+            >>> c.delete_file(0, 'foo.txt')
+            Traceback (most recent call last):
+            ...
+            ValueError: no file "foo.txt"
+
+        Delete a file that exists::
+
+            >>> c.put_file(0, {'a/b/c.txt':'more stuff'})
+            >>> c.delete_file(0, 'a/b/c.txt')
+
+        Clean up::
+
+            >>> c.quit()
+        """
         m = json.loads(get('%s/delete_file/%s/%s'%(self._url, id, path)))
         if m['status'] == u'error':
             raise ValueError(str(m['data']))
