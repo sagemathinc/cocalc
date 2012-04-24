@@ -198,23 +198,28 @@ Ideas to solve this:
      Finally, a crontab could restart the backend-spawner if it is 
      killed, e.g., by a user doing "killall -u".
  
-
-------------
-
  [x] make frontend completely persistent between restarts and have a
      function to have it kill all processes it had the subprocess
      server spawn.
 
- [ ] polish:
-      - deal with every todo in code that matters
-      - rethink what everything is named
-      - better logs
-      - refactor/shrink code
-      - documentation
-      - pylint 
+ [ ] complete 100% doctest coverage:
 
- [ ] write some unit tests
- [ ] write some doctests, when it makes sense
+    [ ] move app_port and subprocess_port to database
+    [ ] doctest client.py
+    [ ] doctest frontend.py
+
+ [ ] pylint 
+
+ [ ] deal with every todo in code
+
+ [ ] get working on Ubuntu 12.04 Linux
+
+ [ ] get working on Windows 7
+
+ [ ] rethink what everything is named; possibly refactor/rename, running test suite
+
+ [ ] better logs
+
 
 
  
