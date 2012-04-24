@@ -187,7 +187,7 @@ class Client(object):
 
             >>> from client import TestClient; c = TestClient()
             >>> c.sessions()
-            {u'status': u'ok', u'sessions': []}
+            []
 
 
         Close no sessions::
@@ -314,10 +314,69 @@ class Client(object):
             raise RuntimeError(msg['data'])
 
     def sessions(self):
-        return json.loads(get('%s/sessions'%self._url))
+        """
+        Return list of dictionaries with data about all current
+        sessions.
+
+        EXAMPLES::
+
+            >>> from client import TestClient; c = TestClient()
+
+        No sessions yet::
+        
+            >>> c.sessions()
+            []
+        
+        Make a session and get info::
+
+            >>> c.new_session(); c.sessions()
+            0
+            [{u'status': u'running', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'path': u'...', u'next_cell_id': 0, u'id': 0, u'last_active_cell_id': -1}]
+
+        Make another session and get info::
+        
+            >>> c.new_session(); c.sessions()
+            1
+            [{u'status': u'running', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'path': u'...', u'next_cell_id': 0, u'id': 0, u'last_active_cell_id': -1}, {u'status': u'running', u'url': u'http://localhost:5002', u'start_time': u'...', u'pid': ..., u'path': u'...', u'next_cell_id': 0, u'id': 1, u'last_active_cell_id': -1}]
+
+        Clean up::
+        
+            >>> c.quit()
+        """
+        msg = json.loads(get('%s/sessions'%self._url))
+        if msg['status'] == u'error':
+            raise ValueError(msg['data'])
+        return msg['sessions']
 
     def session(self, session_id):
-        return json.loads(get('%s/session/%s'%(self._url, session_id)))
+        """
+        Return data about session with given id.
+
+        EXAMPLES::
+
+            >>> from client import TestClient; c = TestClient()
+
+        An invalid session::
+        
+            >>> c.session(0)
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 0
+        
+        Make a session and get info::
+
+            >>> c.new_session(); c.session(0)
+            0
+            {u'status': u'running', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'path': u'...', u'next_cell_id': 0, u'id': 0, u'last_active_cell_id': -1}
+
+        Clean up::
+        
+            >>> c.quit()
+        """
+        msg = json.loads(get('%s/session/%s'%(self._url, session_id)))
+        if msg['status'] == u'error':
+            raise ValueError(msg['data'])
+        return msg['data']
 
     def session_status(self, session_id=None):
         """
@@ -325,6 +384,48 @@ class Client(object):
 
         INPUT:
         - ``session_id`` -- nonnegative integer or None
+
+        EXAMPLES::
+
+            >>> from client import TestClient; c = TestClient()
+
+        An invalid session::
+        
+            >>> c.session_status(0)
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 0
+
+        Make a session and get its status::
+
+            >>> c.new_session(); c.session_status(0)
+            0
+            'running'
+
+        After it starts up the status changes to 'ready'::
+
+            >>> c.wait(0); c.session_status(0)
+            'ready'
+
+        If we sigkill it, then the status changes to 'dead', but the
+        session still exists::
+
+            >>> c.sigkill(0); c.session_status(0)
+            {u'status': u'ok'}
+            'dead'
+
+        If we delete the session, then we get an error as above; there
+        is no status::
+
+            >>> c.close_session(0); c.session_status(0)
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 0
+
+        Clean up::
+        
+            >>> c.quit()
+        
         """
         if session_id is None:
             try:

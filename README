@@ -209,12 +209,12 @@ Ideas to solve this:
     [x] in frontend: db --> model
     [x] rename: killall --> delete_all (in frontend and client); be sure to change docstring explanations too
     [x] backend: finished_url --> "ready_url"
-    [ ] move app_port and subprocess_port to database
-    [ ] doctest client.py
     [x] doctest frontend.py
-    [ ] weirdness with doctesting subprocess_server due to pipes.
-    [ ] MAYBE: make it so backend reports the port it succeeds in
-        starting on (give a range of choices)
+    [ ] doctest client.py
+
+ [ ] cleanup top-level README -- there is a lot from early design ideas that is no longer valid
+
+ [ ] move app_port and subprocess_port to database
 
  [ ] get tests working on Ubuntu 12.04 Linux
  [ ] get tests working on Windows 7
