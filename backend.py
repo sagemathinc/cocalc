@@ -89,10 +89,11 @@ class ComputeSession(object):
         max_tries = 20 # TODO: ugly
         for i in range(max_tries):
             try:
-                self._server       = HTTPServer(('', self._port), Handler)
+                self._server = HTTPServer(('', self._port), Handler)
                 break
             except Exception, msg:
-                print "trying again to start on port %s (%s)..."%(self._port, msg)
+                #TODO: for testing only
+                open('/tmp/port_issue','a').write("trying again to start on port %s (%s)..."%(self._port, msg))
                 time.sleep(0.1)
             
         self._session      = SimpleStreamingSession(

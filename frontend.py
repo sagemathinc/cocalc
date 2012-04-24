@@ -438,8 +438,13 @@ def sigint(id):
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 1\n}'
-        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
-        >>> a = misc.post('http://localhost:5000/execute/1', {'code':'while 1: True'})
+        >>> import client; client.Client(5000).wait(0, timeout=1)
+        >>> import client; client.Client(5000).wait(1, timeout=1)
+        >>> misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        >>> misc.post('http://localhost:5000/execute/1', {'code':'while 1: True'})
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        
         >>> misc.get('http://localhost:5000/sigint/1')
         u'{\n  "status": "ok"\n}'
         >>> misc.get('http://localhost:5000/status/0')        
@@ -565,25 +570,29 @@ def status(id):
 
     We illustrate each status value::
     
-        >>> import frontend, misc, signal
+        >>> import frontend, misc, signal, client
+        >>> c = client.Client(5000)
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> a = misc.get('http://localhost:5000/new_session')
 
     First, the 'ready' status::
 
+        >>> c.wait(0)
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
 
     Next the 'running' status::
     
         >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
-        >>> time.sleep(0.1); misc.get('http://localhost:5000/status/0')
+        >>> c.wait(0, status='running')
+        >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "running"\n}'
 
     Next the 'dead' status::
 
         >>> a = misc.get('http://localhost:5000/sigkill/0')  # indirect doctest
-        >>> time.sleep(0.1); misc.get('http://localhost:5000/status/0')
+        >>> c.wait(0, status='dead')        
+        >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "dead"\n}'
     """
     S = db.session()
@@ -644,6 +653,7 @@ def files(id):
 
         >>> import frontend, misc; R = frontend.Daemon(5000)
         >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> import client; c = client.Client(5000)
 
     First we get back an error, since session 0 doesn't exist yet::
     
@@ -662,7 +672,7 @@ def files(id):
 
         >>> misc.post('http://localhost:5000/execute/0', {'code':'open("a_file.txt","w").write("hello")'})
         u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
-        >>> time.sleep(1)
+        >>> c.wait(0)
         >>> misc.get('http://localhost:5000/files/0')
         u'{\n  "status": "ok", \n  "data": [\n    "a_file.txt"\n  ]\n}'
 
@@ -919,7 +929,7 @@ class Daemon(object):
             # TODO: here we should just check that it is a zombie
             # Next wait to see if it is listening.
             try:
-                get('http://localhost:%s/'%port)
+                get('http://localhost:%s/'%port, timeout=10)
             except ConnectionError:
                 time.sleep(0.1)
                 # Ensure that the process is actually running, to
@@ -947,8 +957,6 @@ class Daemon(object):
             self.kill()
         except:
             pass
-        #if os.path.exists(self._pidfile):
-        #    os.unlink(self._pidfile)
 
     def kill(self):
         """
@@ -960,14 +968,14 @@ class Daemon(object):
             >>> r.kill()
         """
         if hasattr(self, '_server'):
-            # TODO: instead use self._server.kill(); self._server.wait()
-            for i in range(5):
-                try:
-                    os.kill(self._server.pid, signal.SIGKILL)
-                except:
-                    pass
-            # TODO -- do better====
-            time.sleep(1)
+            self._server.kill()
+            self._server.wait()
+            try:
+                os.kill(self._server.pid, 0)
+            except OSError:
+                # no such process -- safe to remove pidfile:
+                if os.path.exists(self._pidfile):
+                    os.unlink(self._pidfile)
 
 
 if __name__ == '__main__':

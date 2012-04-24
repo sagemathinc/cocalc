@@ -271,9 +271,9 @@ class Client(object):
             raise ValueError(msg['data'])
         return str(msg['session_status'])
 
-    def wait(self, session_id=None, delta=0.05, timeout=5):
+    def wait(self, session_id=None, delta=0.05, timeout=5, status='ready'):
         """
-        Wait until the session with given id is in the 'ready' state.
+        Wait until the session with given id has the given status.
 
         This should be used only for testing purposes.  Any good
         client should implement a push mechanishm (something like
@@ -303,7 +303,7 @@ class Client(object):
         else:
             t = time.time()
             while time.time() <= t + timeout:
-                if self.session_status(session_id) == 'ready':
+                if self.session_status(session_id) == status:
                     return
                 time.sleep(delta)
                 if delta < 5:

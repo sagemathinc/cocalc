@@ -209,6 +209,8 @@ Ideas to solve this:
     [ ] doctest client.py
     [ ] doctest frontend.py
     [ ] weirdness with doctesting subprocess_server due to pipes.
+    [ ] MAYBE: make it so backend reports the port it succeeds in
+        starting on (give a range of choices)
 
  [ ] get tests working on Ubuntu 12.04 Linux
  [ ] get tests working on Windows 7
