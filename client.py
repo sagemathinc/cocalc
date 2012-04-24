@@ -287,7 +287,7 @@ class Client(object):
             >>> c.execute(0, 'import time; time.sleep(3)'); c.wait(0)
             (0, 'running')
             >>> c.output(0,0)
-            [{u'output': u'', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            [{u'output': None, u'modified_files': None, u'done': True, u'number': 0}]
 
         We can only wait for known sessions::
         

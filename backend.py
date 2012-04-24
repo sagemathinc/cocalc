@@ -31,7 +31,7 @@ import cgi, json, os, sys
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from session import SimpleStreamingSession
-from misc import get, post
+from misc import get, post, is_temp_directory
     
 ##############################
 # compute session object
@@ -56,6 +56,10 @@ class ComputeSession(object):
         - ``output_url`` -- string; do POST request here to report on
           output and modified or created files
         """
+        execpath = os.path.abspath(os.curdir)
+        # protection against doing something stupid and hosing files
+        assert is_temp_directory(execpath), '"%s" must be a temporary directory'%execpath   
+
         # Define an HTTP server to implement the WAIT STATE.  We do not
         # use flask since (1) it is a bit heavy, and (2) we only want
         # to handle exactly one request, and I don't know how to do that
@@ -82,12 +86,6 @@ class ComputeSession(object):
         self._output_url   = output_url
         self._port         = port
         self._server       = HTTPServer(('', self._port), Handler)
-
-        execpath = os.path.abspath(os.curdir)
-        # some protection against doing something stupid.
-        assert 'tmp' in execpath  # this is little consolation, but is a good idea
-        assert len(os.listdir(execpath)) == 0 # this is very good.
-
         self._session      = SimpleStreamingSession(
                              0, lambda msg: self.output(msg),
                              execpath=execpath)

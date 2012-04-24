@@ -554,6 +554,95 @@ class SimpleSession(object):
         """
         return self._pathtree.files()
 
+class OutStream(object):
+    """
+    Object with write and flush methods.  This outputs to
+    self._session._output_callback whenever flush is called.
+    Moreover, flush is also called automatically after
+    flush_interval.
+
+    EXAMPLES::
+
+        >>> session = SimpleStreamingSession(0, lambda x:x)
+        >>> os = OutStream(session, 0.1, 0)
+        >>> os
+        <session.OutStream object at 0x...>
+    """
+    def __init__(self, session, flush_interval, exec_id):
+        """
+        INPUT:
+
+        - ``session`` -- a Session object, which has an _output_callback method
+        - ``flush_interval`` -- nonnegative real number
+        - ``exec_id`` -- nonnegative integer; included in output messages
+        """
+        self._buf = ''
+        self._session = session
+        self._last_flush = time.time()
+        self._flush_interval = flush_interval
+        self._exec_id = exec_id
+
+    def write(self, output):
+        """
+        EXAMPLES::
+
+            >>> def callback(x): print x
+            ...
+            >>> session = SimpleStreamingSession(0, callback)
+            >>> os = OutStream(session, 0.1, 0)
+            >>> os.write('some output')
+            >>> os.flush()
+            {'output': 'some output', 'exec_id': 0, 'modified_files': [], 'done': False}
+            >>> os.write('XXX'); time.sleep(.05); os.write('YYY')
+            >>> time.sleep(.06); os.write('ZZZ')
+            {'output': 'XXXYYYZZZ', 'exec_id': 0, 'modified_files': [], 'done': False}
+        """
+        self._buf += output
+        w = time.time()
+        if w - self._last_flush >= self._flush_interval:
+            self._last_flush = w
+            self.flush()
+
+    def flush(self):
+        """
+        EXAMPLES::
+
+            >>> def callback(x): print x
+            ...
+            >>> session = SimpleStreamingSession(0, callback)
+            >>> os = OutStream(session, 0.1, 0)
+            >>> os.write('some output')
+            >>> os.flush()
+            {'output': 'some output', 'exec_id': 0, 'modified_files': [], 'done': False}
+            >>> os.flush()
+            >>> os.flush()
+        """
+        modified_files = self._session._pathtree.modified_files()
+        if self._buf == '' and len(modified_files) == 0:
+            # nothing to output
+            return
+        msg = {'exec_id':self._exec_id, 'done':False,
+               'output':self._buf, 'modified_files':modified_files}
+        self._buf = ''
+        self._session._output_callback(msg)
+
+    def __del__(self):
+        """
+        Outputs a message indicating that the session is done (so
+        corresponding process is terminating).
+
+        EXAMPLES::
+
+            >>> def callback(x): print x
+            ...
+            >>> session = SimpleStreamingSession(0, callback)
+            >>> os = OutStream(session, 0.1, 0)
+            >>> del os
+            {'exec_id': 0, 'done': True}
+        """
+        self._session._output_callback({'exec_id':self._exec_id, 'done':True})
+
+
 class SimpleStreamingSession(SimpleSession):
     def __init__(self, id, output_callback, flush_interval=0.05, execpath=None):
         """
@@ -590,32 +679,8 @@ class SimpleStreamingSession(SimpleSession):
         exec_id = self._exec_id
         self._exec_id += 1
 
-        class OutStream(object):
-            def __init__(self, session, flush_interval):
-                self._buf = ''
-                self._session = session
-                self._last_flush = time.time()
-                self._flush_interval = flush_interval
-
-            def write(self, output):
-                self._buf += output
-                w = time.time()
-                if w - self._last_flush >= self._flush_interval:
-                    self._last_flush = w
-                    self.flush()
-
-            def flush(self):
-                modified_files = self._session._pathtree.modified_files()                
-                msg = {'exec_id':exec_id, 'done':False,
-                       'output':self._buf, 'modified_files':modified_files}
-                self._buf = ''
-                self._session._output_callback(msg)
-                
-            def __del__(self):
-                self._session._output_callback({'exec_id':exec_id, 'done':True})
-
         self._curpath = streaming_execute(self._curpath, code, self._namespace,
-                                          OutStream(self, self._flush_interval))
+                                          OutStream(self, self._flush_interval, exec_id))
         return exec_id
     
         
