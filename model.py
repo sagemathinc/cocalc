@@ -15,6 +15,29 @@ Base = declarative_base()
 from sqlalchemy import (Boolean, Column, DateTime, Integer, String, ForeignKey)
 from sqlalchemy.orm import relation, backref
 
+class Port(Base):
+    """
+    EXAMPLES::
+
+        >>> drop_all(); create()
+        >>> S = session()
+        >>> p = Port('frontend', 5000)    
+        >>> p
+        <model.Port object at...>
+        >>> S.add(p)
+        >>> S.add(Port('subprocess_server', 4999))
+        >>> S.commit()
+        >>> [(x.server, x.port) for x in S.query(Port).all()]
+        [(u'frontend', 5000), (u'subprocess_server', 4999)]        
+    """
+    __tablename__ = "ports"
+    server = Column(String, primary_key=True)
+    port = Column(Integer)
+
+    def __init__(self, server, port):
+        self.server = str(server)
+        self.port = int(port)
+
 class Session(Base):
     """
     EXAMPLES::
