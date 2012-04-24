@@ -179,6 +179,48 @@ class Client(object):
         return json.loads(get('%s/sigkill/%s'%(self._url, session_id)))
 
     def killall(self):
+        """
+        Kill all sessions.
+        
+        EXAMPLES::
+
+            >>> from client import TestClient; c = TestClient()
+            >>> c.sessions()
+            {u'status': u'ok', u'sessions': []}
+
+
+        Killing nothing::
+        
+            >>> c.killall()
+            {u'status': u'ok', u'killed': []}
+
+        We start a session, then killall, and confirm it is completely gone::
+
+            >>> id = c.new_session(); c.wait(id)
+            >>> c.killall()
+            {u'status': u'ok', u'killed': [0]}
+            >>> c.session_status(id)
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 0
+
+        We start two sessions, start work going in both, then do killall::
+
+            >>> id1 = c.new_session(); id2 = c.new_session()
+            >>> c.execute(id1, 'while 1: pass'), c.execute(id2, 'while 1: pass')
+            ((0, 'enqueued'), (0, 'enqueued'))
+            >>> c.killall()
+            {u'status': u'ok', u'killed': [0, 1]}
+            >>> c.session_status(id1)
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 0
+            >>> c.session_status(id2)
+            Traceback (most recent call last):
+            ...
+            ValueError: unknown session 1
+            >>> c.quit()
+        """
         return json.loads(get('%s/killall'%self._url))
 
     def cells(self, session_id):
@@ -342,7 +384,24 @@ class Client(object):
             raise ValueError(str(m['data']))
         
 class TestClient(Client):
+    """
+    A testing client, which on startup also starts a frontend daemon,
+    and deletes all sessions.  Take care to explicitly call .quit()
+    when done with this.
+    
+    EXAMPLES::
+
+        >>> from client import TestClient; c = TestClient()
+        >>> c
+        Client('http://localhost:5000')
+        >>> c.quit()
+    """
     def __init__(self, port=5000):
+        """
+        INPUT:
+
+        - ``port`` -- nonnegative integer
+        """
         Client.__init__(self, port)
         import frontend
         self.r = frontend.Daemon(port)
@@ -350,15 +409,23 @@ class TestClient(Client):
         self.killall()
 
     def quit(self):
+        """
+        You must explicitly call quit() to clean up any sessions
+        started when testing.  Cleanup is *not* done automatically via
+        garbage collection, since that happens at weird times, and
+        leads to disaster.
+
+        EXAMPLES::
+
+            >>> from client import TestClient; c = TestClient(5002)
+            >>> c.quit()
+        """
         try:
             self.killall()
         except:
             pass
         if hasattr(self, 'r'):
             del self.r
-
-    def __del__(self):
-        self.quit()
 
 def test1(n=10):
     """
