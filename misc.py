@@ -71,18 +71,15 @@ def post(url, data=None, files=None, timeout=10):
 
     EXAMPLES::
 
-        >>> import frontend; R = frontend.Daemon(5000)
-        >>> from misc import post, get
-        >>> a = get('http://localhost:5000/killall')  # for doctesting
-        >>> a = get('http://localhost:5000/new_session')
-        >>> import client; client.Client(5000).wait(0)
+        >>> from client import TestClient; c = TestClient(5000)
+        >>> a = get('http://localhost:5000/new_session'); c.wait(0)
         >>> print post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
         {
           "status": "ok", 
           "cell_status": "running", 
           "cell_id": 0
         }
-        >>> z = get('http://localhost:5000/killall')  # for doctesting
+        >>> c.quit()
     """
     if files is None:
         files = {}

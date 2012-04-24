@@ -27,14 +27,14 @@ Identification:
     / -- nothing useful yet
 
 All Sessions:
-    /killall -- kill every session
+    /close_all_sessions -- kill processes and delete everything about all sessions
     /sessions -- much information about all sessions
 
 Session Management: creating, interrupting, killing and deleting:
     /new_session -- create a new session (returns id)
     /sigint/id -- send interrupt signal to session with given id
     /sigkill/id -- kill session with given id
-    /close_session/id -- kill and remove all files for session with given id
+    /close_session/id -- kill process and remove all files for session with given id
 
 Session Information:
     /session/id -- extensive information about a given session
@@ -144,7 +144,7 @@ def close_subprocess(pid):
     EXAMPLES::
 
         >>> import frontend, misc
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> id = json.loads(misc.get('http://localhost:5000/new_session'))['id']
         >>> misc.get('http://localhost:5000/close_session/%s'%id)   # indirect doctest
         u'{\n  "status": "ok"\n}'
@@ -153,25 +153,25 @@ def close_subprocess(pid):
     url = 'http://localhost:%s/close/%s'%(subprocess_port, pid)
     return json.loads(get(url))
 
-@app.route('/killall')
-def killall():
+@app.route('/close_all_sessions')
+def close_all_sessions():
     r"""
     Kill and clean up all sessions associated to this frontend server.
     
     EXAMPLES::
 
         >>> import frontend, misc
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 1\n}'
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 2\n}'
-        >>> misc.get('http://localhost:5000/killall')
-        u'{\n  "status": "ok", \n  "killed": [\n    0, \n    1, \n    2\n  ]\n}'
-        >>> misc.get('http://localhost:5000/killall')
-        u'{\n  "status": "ok", \n  "killed": []\n}'
+        >>> misc.get('http://localhost:5000/close_all_sessions')
+        u'{\n  "status": "ok", \n  "closed": [\n    0, \n    1, \n    2\n  ]\n}'
+        >>> misc.get('http://localhost:5000/close_all_sessions')
+        u'{\n  "status": "ok", \n  "closed": []\n}'
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "error", \n  "data": "unknown session 0"\n}'
     """
@@ -180,11 +180,11 @@ def killall():
         sessions = S.query(model.Session)
     except orm_exc.NoResultFound:
         # easy case -- no sessions to cleanup; maybe database schema not even made
-        return jsonify({'status':'ok', 'killed':[]})
+        return jsonify({'status':'ok', 'closed':[]})
     except Exception, mesg:
         return jsonify({'status':'error', 'mesg':'db-error: %s'%mesg})
 
-    killed = []
+    closed = []
     for session in sessions:
         try:
             close_subprocess(session.pid)
@@ -193,9 +193,9 @@ def killall():
         finally:
             S.delete(session)
             S.commit()
-            killed.append(session.id)
+            closed.append(session.id)
 
-    return jsonify({'status':'ok', 'killed':killed})
+    return jsonify({'status':'ok', 'closed':closed})
 
     
 @app.route('/')
@@ -207,7 +207,7 @@ def root():
     EXAMPLES::
 
         >>> import frontend, misc
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> misc.get('http://localhost:5000')   # indirect test
         u'Frontend Server'
     """
@@ -222,7 +222,7 @@ def new_session():
     EXAMPLES::
 
         >>> import frontend, json, misc
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> json.loads(misc.get('http://localhost:5000/new_session'))
         {u'status': u'ok', u'id': 0}
     """
@@ -255,7 +255,7 @@ def execute(session_id):
     EXAMPLES::
     
         >>> import frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
 
     We start a session and ask for execution of one cell::
 
@@ -276,7 +276,7 @@ def execute(session_id):
         >>> misc.post('http://localhost:5000/execute/0', {'foo':'bar'})
         u'{\n  "status": "error", \n  "data": "must POST \'code\' variable"\n}'
 
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
     """
     if request.method == 'POST' and request.form.has_key('code'):
         code = request.form['code']
@@ -357,7 +357,7 @@ def ready(id):
     EXAMPLES::
     
         >>> import client, frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> c = client.Client(5000); c.wait(0)
 
@@ -440,7 +440,7 @@ def sessions():
     EXAMPLES::
 
         >>> import frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> print misc.get('http://localhost:5000/sessions')
@@ -491,7 +491,7 @@ def session(session_id):
     EXAMPLES::
 
         >>> import frontend, json, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> misc.get('http://localhost:5000/session/0')
@@ -529,7 +529,7 @@ def cells(session_id):
     EXAMPLES::
 
         >>> import frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
 
     Asking for cells in a session that does not exist gives a reasonable error message::
     
@@ -590,7 +590,7 @@ def output_messages(session_id, cell_id, number):
     EXAMPLES::
 
         >>> import frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> import client; client.Client(5000).wait(0)
@@ -631,7 +631,7 @@ def send_signal(id, sig):
     EXAMPLES::
     
         >>> import frontend, misc, time
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> import client; client.Client(5000).wait(0)
@@ -703,7 +703,7 @@ def sigint(id):
 
         >>> import frontend, misc
         >>> R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> misc.get('http://localhost:5000/new_session')
@@ -756,7 +756,7 @@ def sigkill(id):
     EXAMPLES::
     
         >>> import frontend, misc
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
         >>> misc.get('http://localhost:5000/sigkill/0')
@@ -776,8 +776,8 @@ def close_session(id):
     r"""
     Close the session with given id.
 
-    This removes everything related to the session from the temporary
-    database and removes its working directory.
+    This removes everything related to the session from the
+    database and removes the working temp directory.
 
     INPUT:
 
@@ -786,7 +786,7 @@ def close_session(id):
     EXAMPLES::
 
         >>> import frontend, misc
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> misc.get('http://localhost:5000/close_session/0')
         u'{\n  "status": "ok"\n}'
@@ -842,7 +842,7 @@ def status(id):
     
         >>> import frontend, misc, client
         >>> c = client.Client(5000)
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> a = misc.get('http://localhost:5000/new_session')
 
     First, the 'ready' status::
@@ -891,7 +891,7 @@ def file_path(id, path):
     EXAMPLES::
 
         >>> import frontend, misc
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> frontend.file_path(0, 'a/b/xyz.txt')
         u'/.../a/b/xyz.txt'
@@ -922,7 +922,7 @@ def files(id):
     EXAMPLES::
 
         >>> import frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
         >>> import client; c = client.Client(5000)
 
     First we get back an error, since session 0 doesn't exist yet::
@@ -984,7 +984,7 @@ def files(id):
         >>> misc.get('http://localhost:5000/files/0')
         u'{\n  "status": "ok", \n  "data": [\n    "a/b/c/file2.txt"\n  ]\n}'
 
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
     """
     S = model.session()
     try:
@@ -1005,7 +1005,7 @@ def put_file(id):
     EXAMPLES::
 
         >>> import frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')   # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')   # for doctesting
         >>> a=misc.get('http://localhost:5000/new_session') # session 0
         >>> a=misc.get('http://localhost:5000/new_session') # session 1
 
@@ -1073,7 +1073,7 @@ def get_file(id, path):
     EXAMPLES::
 
         >>> import frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
 
     Try to get a file in a nonexistent session::
 
@@ -1118,7 +1118,7 @@ def delete_file(id, path):
     EXAMPLES::
 
         >>> import frontend, misc; R = frontend.Daemon(5000)
-        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> z = misc.get('http://localhost:5000/close_all_sessions')  # for doctesting
 
     Try to delete a file in a nonexistent session::
 
@@ -1186,7 +1186,7 @@ def submit_output(id):
 
         >>> import frontend, misc, client, json
         >>> c = client.Client(5000)
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/close_all_sessions')
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> c.wait(0)  
         >>> json.loads(misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'}))

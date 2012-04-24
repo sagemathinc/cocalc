@@ -178,9 +178,10 @@ class Client(object):
         """
         return json.loads(get('%s/sigkill/%s'%(self._url, session_id)))
 
-    def killall(self):
+    def close_all_sessions(self):
         """
-        Kill all sessions.
+        Close all sessions, deleting everything about them; it is as
+        if they never existed.  
         
         EXAMPLES::
 
@@ -189,28 +190,28 @@ class Client(object):
             {u'status': u'ok', u'sessions': []}
 
 
-        Killing nothing::
+        Close no sessions::
         
-            >>> c.killall()
-            {u'status': u'ok', u'killed': []}
+            >>> c.close_all_sessions()
+            {u'status': u'ok', u'closed': []}
 
-        We start a session, then killall, and confirm it is completely gone::
+        We start a session, then close_all_sessions, and confirm it is completely gone::
 
             >>> id = c.new_session(); c.wait(id)
-            >>> c.killall()
-            {u'status': u'ok', u'killed': [0]}
+            >>> c.close_all_sessions()
+            {u'status': u'ok', u'closed': [0]}
             >>> c.session_status(id)
             Traceback (most recent call last):
             ...
             ValueError: unknown session 0
 
-        We start two sessions, start work going in both, then do killall::
+        We start two sessions, start work going in both, then do close_all_sessions::
 
             >>> id1 = c.new_session(); id2 = c.new_session()
             >>> c.execute(id1, 'while 1: pass'), c.execute(id2, 'while 1: pass')
             ((0, 'enqueued'), (0, 'enqueued'))
-            >>> c.killall()
-            {u'status': u'ok', u'killed': [0, 1]}
+            >>> c.close_all_sessions()
+            {u'status': u'ok', u'closed': [0, 1]}
             >>> c.session_status(id1)
             Traceback (most recent call last):
             ...
@@ -221,7 +222,18 @@ class Client(object):
             ValueError: unknown session 1
             >>> c.quit()
         """
-        return json.loads(get('%s/killall'%self._url))
+        return json.loads(get('%s/close_all_sessions'%self._url))
+
+    def close_session(self, session_id):
+        """
+        Close the session with given id.
+
+        This removes everything related to the session from the
+        database and removes the working temp directory.
+        
+        EXAMPLES::
+        """
+        return json.loads(get('%s/close_session/%s'%(self._url, session_id)))
 
     def cells(self, session_id):
         r"""
@@ -406,7 +418,7 @@ class TestClient(Client):
         import frontend
         self.r = frontend.Daemon(port)
         self.wait()
-        self.killall()
+        self.close_all_sessions()
 
     def quit(self):
         """
@@ -421,7 +433,7 @@ class TestClient(Client):
             >>> c.quit()
         """
         try:
-            self.killall()
+            self.close_all_sessions()
         except:
             pass
         if hasattr(self, 'r'):

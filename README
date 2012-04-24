@@ -207,7 +207,7 @@ Ideas to solve this:
     [x] fix that fake wait() function in client.py
     [x] exec_id --> cell_id
     [x] in frontend: db --> model
-    [ ] rename: killall --> delete_all (in frontend and client); be sure to change docstring explanations too
+    [x] rename: killall --> delete_all (in frontend and client); be sure to change docstring explanations too
     [ ] backend: finished_url --> "ready_url"
     [ ] move app_port and subprocess_port to database
     [ ] doctest client.py
