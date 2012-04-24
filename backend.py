@@ -1,10 +1,10 @@
 """
 Backend Compute Process
 
-The backend has wait and compute states that it switches back and
-forth between as explained below.
+The backend has two states that it switches back and forth between as
+explained below. 
 
-   1. WAIT STATE: HTTP server that handles one kind of request:
+   *  WAIT STATE: HTTP server that handles one kind of request:
       - / (POST) with variable 'cells' -- JSON that describes the
         cells to execute.
             |                  /|\
@@ -12,22 +12,22 @@ forth between as explained below.
       start computing           |
             |              done computing
            \|/                  |
-   2. COMPUTE STATE: 
+   * COMPUTE STATE: 
       - http server disabled
       - reports output to sys.std* via POST to output_url, as they appear
       - reports on files that are created or modified
       - reports done with all cells so far and gets more cells to
         execute via a GET request to finished_url.
 
-The backend starts in the wait state, then switches to the compute
-when it gets a POST request.  The backend stays in the compute state
-so long as it is working on computations, reporting results, and
-getting back more input to execute.  When the backend finishes
-computing all cells in the queue, and the server reports that there is
-nothing more to execute, the backend switches back to the wait state.
+The backend starts in the compute state.  The backend stays in the
+compute state so long as it is working on computations, reporting
+results, and getting back more input to execute.  When the backend
+finishes computing all cells in the queue, and the server reports that
+there is nothing more to execute, the backend switches to the wait
+state.
 """
 
-import cgi, json, os, sys
+import cgi, json, os, sys, time
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from session import SimpleStreamingSession
@@ -85,7 +85,16 @@ class ComputeSession(object):
         self._finished_url = finished_url
         self._output_url   = output_url
         self._port         = port
-        self._server       = HTTPServer(('', self._port), Handler)
+
+        max_tries = 20 # TODO: ugly
+        for i in range(max_tries):
+            try:
+                self._server       = HTTPServer(('', self._port), Handler)
+                break
+            except Exception, msg:
+                print "trying again to start on port %s (%s)..."%(self._port, msg)
+                time.sleep(0.1)
+            
         self._session      = SimpleStreamingSession(
                              0, lambda msg: self.output(msg),
                              execpath=execpath)
@@ -96,7 +105,8 @@ class ComputeSession(object):
 
         INPUT:
 
-        - ``cells`` -- list of cells, where a "cell" is a dictionary that has a 'code' key.q
+        - ``cells`` -- list of cells, where a "cell" is a dictionary that
+          has a 'code' key.q
 
         EXAMPLES::
 
@@ -126,21 +136,43 @@ class ComputeSession(object):
         server mode and waits for another HTTP POST request with a
         list of cells to execute.
         """
+##         while True:
+##             self._postvars = {}
+##             # Enter WAIT STATE:
+##             self._server.handle_request()
+##             if self._postvars.has_key('cells'):
+##                 # Enter COMPUTE STATE:
+##                 # the request resulted in a POST request with code to execute
+##                 self.execute_cells(json.loads(self._postvars['cells'][0]))
+##                 # Next, get more cells to evaluate, if there are some:
+##                 while True:
+##                     msg = json.loads(get(self._finished_url))
+##                     if msg['status'] == 'done':
+##                         break
+##                     self.execute_cells(msg['cells'])
+##                 # No more tasks, so we switch back to WAIT STATE
+
         while True:
+            # COMPUTE STATE:
+            while True:
+                msg = json.loads(get(self._finished_url))
+                if msg['status'] != 'done':
+                    self.execute_cells(msg['cells'])
+                else:
+                    break
+
+            # WAIT STATE:
             self._postvars = {}
-            # Enter WAIT STATE:
             self._server.handle_request()
+
             if self._postvars.has_key('cells'):
-                # Enter COMPUTE STATE:
+                # COMPUTE STATE:
                 # the request resulted in a POST request with code to execute
                 self.execute_cells(json.loads(self._postvars['cells'][0]))
-                # Next, get more cells to evecute, if there are some:
-                while True:
-                    msg = json.loads(get(self._finished_url))
-                    if msg['status'] == 'done':
-                        break
-                    self.execute_cells(msg['cells'])
-                # No more tasks, so we switch back to WAIT STATE
+
+            # and now back up to the top to compute some more....
+            
+                
                 
     def output(self, msg):
         """

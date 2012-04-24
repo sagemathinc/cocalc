@@ -16,26 +16,67 @@ import model as db
 
 from sqlalchemy.orm import exc as orm_exc
 
-def launch_backend_session(port, id=id, output_url='output'):
+def launch_backend_session(port, id=id):
     """
     Launch a backend session listening on the given port, and return
     its UNIX process id and absolute path.
-    """
-    if output_url == 'output':
-        assert app_port is not None, "you must initialize app_port"        
-        output_url = "http://localhost:%s/submit_output/%s"%(app_port, id)
-    command = ' '.join(['python',
-                        os.path.abspath('backend.py'),
-                        str(port), 
-                        'http://localhost:%s/ready/%s'%(app_port, id),
-                        output_url])
 
+    If something goes wrong, then a RuntimeError exception is raised.
+
+    INPUT:
+
+    - ``port`` -- positive integer
+    - ``id`` -- nonnegative integer
+    - ``output_url`` -- string (default: None); the url
+
+    OUTPUT:
+
+    - pid, execpath
+    
+    EXAMPLES::
+
+        >>> import frontend
+        >>> frontend.db.drop_all()
+        >>> pid, execpath = frontend.launch_backend_session(5001, 0)
+        Traceback (most recent call last):
+        ...
+        AssertionError: you must initialize app_port
+
+    We set the app and subprocess ports in the database, so that the
+    launch_backend_session command works::
+
+        >>> frontend.app_port = 5000; frontend.subprocess_port = 4999 # TODO 
+        >>> #frontend.db.set_ports(frontend=5000, subprocess_server=4999)
+
+    Now it works::
+
+        >>> pid, execpath = frontend.launch_backend_session(5001, 0)
+        >>> isinstance(pid, int), isinstance(execpath, basestring)
+        (True, True)
+    """
+    assert app_port is not None, "you must initialize app_port"        
     assert subprocess_port is not None, "you must initialize subprocess_port"
+
+    # construct the command line
+    command = ' '.join(['python', os.path.abspath('backend.py'), # backend script
+       str(port),                                                # port that backend will listen on
+       'http://localhost:%s/ready/%s'%(app_port, id),            # backend reports it is done
+       "http://localhost:%s/submit_output/%s"%(app_port, id)     # backend submits results here
+       ])
+
+    # We launch the subprocess using a GET request to the subprocesses server.
     mesg = json.loads(get('http://localhost:%s/popen'%subprocess_port,
-                   {'command':command}))
-    pid = mesg['pid']
-    execpath = mesg['execpath']
-    return pid, execpath
+                          {'command':command}))
+
+    # Did anything go wrong requesting to starting the subprocess?
+    if mesg['status'] != 'ok':
+        raise RuntimeError(mesg['mesg'])
+
+    # NOTE: At this point the subprocess could still have failed.  All
+    # we know is that a process with the given pid was started, but it
+    # might have immediately died.
+    
+    return mesg['pid'], mesg['execpath']
 
 def close_subprocess(pid):
     """
@@ -94,11 +135,12 @@ def new_session():
         last_session = S.query(db.Session).order_by(db.Session.id.desc())[0]
         id = last_session.id + 1
         port = int(last_session.url.split(':')[-1]) + 1
-    pid, path = launch_backend_session(port=port, id=id)
-    if pid == -1:
-        msg = {'status':'error', 'data':'failed to create new session'}
+    try:
+        pid, path = launch_backend_session(port=port, id=id)
+    except RuntimeError:
+        msg = {'status':'error', 'data':'failed to create new session (port=%s, id=%s)'%(port,id)}
     else:
-        session = db.Session(id, pid, path, 'http://localhost:%s'%port)
+        session = db.Session(id, pid, path, 'http://localhost:%s'%port, status='running')
         S.add(session)
         S.commit()
         msg = {'status':'ok', 'id':int(id)}
@@ -121,7 +163,7 @@ def execute(session_id):
         u'{\n  "status": "ok", \n  "id": 0\n}'
 
         >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
 
     We request execution of code in a session that does not exist::
 
@@ -300,10 +342,8 @@ def output_messages(session_id, exec_id, number):
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
-        >>> misc.get('http://localhost:5000/output_messages/0/0/0')
-        u'{\n  "status": "ok", \n  "data": []\n}'
-        >>> time.sleep(.4)  # should be more than enough time 
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
+        >>> import client; client.Client(5000).wait(0)
         >>> print misc.get('http://localhost:5000/output_messages/0/0/0')
         {
           "status": "ok", 
@@ -341,17 +381,20 @@ def send_signal(id, sig):
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> import client; client.Client(5000).wait(0)
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
         >>> misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "running"\n}'
         >>> misc.get('http://localhost:5000/sigint/0')  # indirect doctest
         u'{\n  "status": "ok"\n}'
 
-    Wait a moment for the sigint to actually impact that process, then
-    check new status::
+    Wait for the SIGINT signal to stop that process, then check the
+    new status::
     
-        >>> time.sleep(.2)
+        >>> import client; client.Client(5000).wait(0, timeout=5)
         >>> misc.get('http://localhost:5000/status/0')        
         u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
     """
@@ -389,9 +432,12 @@ def sigint(id):
     session 0::
 
         >>> import frontend, misc, signal
-        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
-        >>> a = misc.get('http://localhost:5000/new_session')
-        >>> a = misc.get('http://localhost:5000/new_session')
+        >>> R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 1\n}'
         >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
         >>> a = misc.post('http://localhost:5000/execute/1', {'code':'while 1: True'})
         >>> misc.get('http://localhost:5000/sigint/1')
@@ -399,15 +445,15 @@ def sigint(id):
         >>> misc.get('http://localhost:5000/status/0')        
         u'{\n  "status": "ok", \n  "session_status": "running"\n}'
 
-    Wait a moment for the sigint to actually impact that process, then
-    check new status::
-    
-        >>> time.sleep(.2)
+    Wait for the SIGINT signal to stop that process, then check the
+    new status::
+
+        >>> import client; client.Client(5000).wait(1, timeout=1)
         >>> misc.get('http://localhost:5000/status/1')
         u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
         >>> misc.get('http://localhost:5000/sigint/0')
         u'{\n  "status": "ok"\n}'
-        >>> time.sleep(.2)
+        >>> import client; client.Client(5000).wait(0, timeout=1)        
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
 
@@ -467,8 +513,6 @@ def close_session(id):
         >>> import frontend, misc, signal
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> a = misc.get('http://localhost:5000/new_session')
-        >>> misc.get('http://localhost:5000/status/0')
-        u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
         >>> misc.get('http://localhost:5000/close_session/0')
         u'{\n  "status": "ok"\n}'
 
@@ -617,7 +661,7 @@ def files(id):
     Create a file (via a computation) and check the list::
 
         >>> misc.post('http://localhost:5000/execute/0', {'code':'open("a_file.txt","w").write("hello")'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
         >>> time.sleep(1)
         >>> misc.get('http://localhost:5000/files/0')
         u'{\n  "status": "ok", \n  "data": [\n    "a_file.txt"\n  ]\n}'
