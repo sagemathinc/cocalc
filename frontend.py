@@ -64,7 +64,7 @@ app = Flask(__name__)
 app_port = None # must be set before running
 subprocess_port = None
 
-from misc import get, post, ConnectionError, all_files, is_temp_directory
+from misc import get, post, ConnectionError, Timeout, all_files, is_temp_directory
 
 import model as db
 
@@ -162,7 +162,7 @@ def killall():
         >>> import frontend, misc
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> misc.get('http://localhost:5000/new_session')
-        u'{\n  "status": "ok", \n  "id": 0\n}'        
+        u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 1\n}'
         >>> misc.get('http://localhost:5000/new_session')
@@ -312,7 +312,7 @@ def execute(session_id):
                 post(session.url, {'cells':json.dumps(cells)}, timeout=0.1)
                 msg['cell_status'] = 'running'
                 msg['status'] = 'ok'
-            except ConnectionError:
+            except (ConnectionError, Timeout):
                 # The session is not alive and responding as we
                 # thought it would be doing, so we mark it is as such
                 # in the database, and send tell the subprocess server
@@ -344,10 +344,58 @@ def execute(session_id):
 
 @app.route('/ready/<int:id>')
 def ready(id):
-    """
+    r"""
     This URL called when the backend with given id has finished all
     computations.  If there is anything new to compute, it is
     returned.
+
+    INPUT:
+
+    - ``id`` -- nonnegative integer
+
+    EXAMPLES::
+    
+        >>> import client, frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> a = misc.get('http://localhost:5000/new_session')
+        >>> c = client.Client(5000); c.wait(0)
+
+    First we manually call ready when there is nothing to compute::
+    
+        >>> misc.get('http://localhost:5000/ready/0')
+        u'{\n  "status": "done"\n}'
+
+    Next we start something that will take foreover::
+    
+        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
+
+    We also enqueue two more computations, so when we "fake" the backend being ready,
+    we'll get those computations as our new work.::
+    
+        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
+        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'print(8+8)'})
+        >>> misc.get('http://localhost:5000/ready/0')
+        u'{\n  "status": "ok", \n  "cells": [\n    {\n      "exec_id": 1, \n      "code": "print(2+3)"\n    }, \n    {\n      "exec_id": 2, \n      "code": "print(8+8)"\n    }\n  ]\n}'
+
+    Having just called /ready, we get no new work::
+    
+        >>> misc.get('http://localhost:5000/ready/0')
+        u'{\n  "status": "done"\n}'
+
+    Trying to do a further calculation with session 0 will "anger" the frontend,
+    since the backend is still actually stuck in that infinite loop, hence will
+    ignore all attempts to send it a cell over HTTP.  The frontend in fact kills
+    the backend in this case::
+    
+        >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
+        u'{\n  "status": "error", \n  "exec_id": 3, \n  "data": "session is dead"\n}'
+
+    Note that the status of this session is now 'dead'::
+
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "ok", \n  "session_status": "dead"\n}'
+    
+        
     """
     # The backend has finished whatever it was doing and is
     # nearly ready for more.  If there is anything left to do, tell it
@@ -519,12 +567,57 @@ def session(session_id):
 
 @app.route('/cells/<int:session_id>')
 def cells(session_id):
-    """
-    Return JSON representation of all cells in the session with given id.
+    r"""
+    Return JSON representation of all cells in the session with given
+    id.  This contains only the input and execution id's of each cell
+    in this session.  To get the output, use /output_messages.
 
     EXAMPLES::
 
+        >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+
+    Asking for cells in a session that does not exist gives a reasonable error message::
     
+        >>> misc.get('http://localhost:5000/cells/0')
+        u'{\n  "status": "error", \n  "data": "unknown session 0"\n}'
+
+    Create a session and get cells; there are none here, but note that
+    we do not get an error as above::
+
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> misc.get('http://localhost:5000/cells/0')
+        u'{\n  "status": "ok", \n  "data": []\n}'
+
+    Next we execute a cell, so it is listed::
+
+        >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
+        >>> print misc.get('http://localhost:5000/cells/0')
+        {
+          "status": "ok", 
+          "data": [
+            {
+              "exec_id": 0, 
+              "code": "print(2+3)"
+            }
+          ]
+        }
+
+    Note that output is not included::
+    
+        >>> import client; client.Client(5000).wait(0)
+        >>> misc.get('http://localhost:5000/cells/0')
+        u'{\n  "status": "ok", \n  "data": [\n    {\n      "exec_id": 0, \n      "code": "print(2+3)"\n    }\n  ]\n}'
+
+    We evaluate 2 more cells so /cells/0 returns three cells::
+
+        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'print(8+8)'})
+        >>> a = misc.post('http://localhost:5000/execute/0', {'code':'print(7*13)'})
+        >>> import json
+        >>> print json.loads(misc.get('http://localhost:5000/cells/0'))
+        {u'status': u'ok', u'data': [{u'exec_id': 0, u'code': u'print(2+3)'}, {u'exec_id': 1, u'code': u'print(8+8)'}, {u'exec_id': 2, u'code': u'print(7*13)'}]}
     """
     S = db.session()
     try:

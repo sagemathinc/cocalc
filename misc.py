@@ -9,6 +9,7 @@ import requests
 
 # this exception is used by client code
 ConnectionError = requests.ConnectionError
+Timeout = requests.Timeout
 
 def get(url, data=None, timeout=1):
     """
