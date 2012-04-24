@@ -145,7 +145,7 @@ def close_subprocess(pid):
         >>> import frontend, misc
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> id = json.loads(misc.get('http://localhost:5000/new_session'))['id']
-        >>> misc.get('http://localhost:5000/close_session/%s'%id)   # indirect test
+        >>> misc.get('http://localhost:5000/close_session/%s'%id)   # indirect doctest
         u'{\n  "status": "ok"\n}'
     """
     assert subprocess_port is not None, "you must initialize subprocess_port"
@@ -394,8 +394,6 @@ def ready(id):
 
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "dead"\n}'
-    
-        
     """
     # The backend has finished whatever it was doing and is
     # nearly ready for more.  If there is anything left to do, tell it
@@ -467,40 +465,13 @@ def sessions():
         ...}
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 1\n}'
-        >>> print misc.get('http://localhost:5000/sessions')
-        {
-          "status": "ok", 
-          "sessions": [
-            {
-              "status": "ready",
-              ...
-              "id": 0, 
-              ...
-            }, 
-            {
-              "status": "running", 
-              "url": "http://localhost:5002",
-              ...
-              "id": 1,
-              ...
-            }
-          ]
-        }        
+        >>> import json; json.loads(misc.get('http://localhost:5000/sessions'))
+        {u'status': u'ok', u'sessions': [{u'status': u'ready', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 0}, {u'status': u'running', u'url': u'http://localhost:5002', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 1}]}
         >>> misc.get('http://localhost:5000/sigkill/0')
         u'{\n  "status": "ok"\n}'
         >>> client.Client(5000).wait(0, status='dead')
-        >>> print misc.get('http://localhost:5000/sessions')
-        {...
-            {
-              "status": "dead",
-              ...
-            }, 
-            {
-              "status": "running",
-              ...
-            }
-          ]
-        }
+        >>> json.loads(misc.get('http://localhost:5000/sessions'))
+        {u'status': u'ok', u'sessions': [{u'status': u'dead', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 0}, {u'status': u'running', u'url': u'http://localhost:5002', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 1}]}
     """
     S = db.session()
     v = [s.to_json() for s in S.query(db.Session).order_by(db.Session.id).all()]
@@ -518,36 +489,18 @@ def session(session_id):
 
     EXAMPLES::
 
-        >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> import frontend, json, misc; R = frontend.Daemon(5000)
         >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
-        >>> print misc.get('http://localhost:5000/session/0')
-        {
-          "status": "ok", 
-          "data": {
-            "status": "running", 
-            "url": "http://localhost:5001", 
-            "path": "...tmp...", 
-            "start_time": "...", 
-            "next_exec_id": 0, 
-            "pid": ..., 
-            "id": 0, 
-            "last_active_exec_id": -1
-          }
-        }        
+        >>> json.loads(misc.get('http://localhost:5000/session/0'))
+        {u'status': u'ok', u'data': {u'status': u'running', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 0}}
 
     Wait until the session starts::
     
         >>> import client; client.Client(5000).wait(0)
-        >>> print misc.get('http://localhost:5000/session/0')
-        {
-          "status": "ok", 
-          "data": {
-            "status": "ready",
-            ...
-          }
-        }
+        >>> json.loads(misc.get('http://localhost:5000/session/0'))
+        {u'status': u'ok', u'data': {u'status': u'ready', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 0}}
 
     We query for a nonexistent session::
 
@@ -639,9 +592,10 @@ def output_messages(session_id, exec_id, number):
         >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
-        >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
         >>> import client; client.Client(5000).wait(0)
+        >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
+        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        >>> client.Client(5000).wait(0)        
         >>> print misc.get('http://localhost:5000/output_messages/0/0/0')
         {
           "status": "ok", 
@@ -1061,14 +1015,14 @@ def put_file(id):
 
     Confirm that they are there::
 
-        sage: print misc.get('http://localhost:5000/files/0')
+        >>> print misc.get('http://localhost:5000/files/0')
         {
           "status": "ok", 
           "data": [
             "a/b/c/d/e/box.txt", 
             "foo/bar/sphere.txt"
           ]
-        }    
+        }
         >>> misc.get('http://localhost:5000/files/0')
         u'{\n  "status": "ok", \n  "data": [\n    "a/b/c/d/e/box.txt", \n    "foo/bar/sphere.txt"\n  ]\n}'
 
@@ -1100,9 +1054,11 @@ def put_file(id):
 
 @app.route('/get_file/<int:id>/<path:path>')
 def get_file(id, path):
-    """
+    r"""
     Return contents of the file in the given path in the session with
-    given id.
+    given id.  The output is *not* a JSON message, but the actual
+    contents of the file, or -- in case of an error -- a 404 Not Found
+    message.
 
     INPUT:
 
@@ -1115,8 +1071,27 @@ def get_file(id, path):
 
     EXAMPLES::
 
+        >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+
+    Try to get a file in a nonexistent session::
+
+        >>> misc.get('http://localhost:5000/get_file/0/file.txt')
+        u'...404 Not Found...'
+
+    Try to get a file that does not exist (but the session does exist)::
     
-    
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> misc.get('http://localhost:5000/get_file/0/file.txt')
+        u'...404 Not Found...'
+
+    Upload a file, then get it, which works::
+        
+        >>> misc.post('http://localhost:5000/put_file/0', files={'a/b/cfile.txt':'contents of file'})
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/get_file/0/a/b/cfile.txt')
+        u'contents of file'
     """
     try:
         path = file_path(id, path)
@@ -1127,30 +1102,149 @@ def get_file(id, path):
 
 @app.route('/delete_file/<int:id>/<path:path>')
 def delete_file(id, path):
-    """
+    r"""
     Delete the file with given path in the session with given id.
+
+    INPUT:
+
+    - ``id`` -- nonnegative integer
+    - ``path`` -- string
+
+    OUTPUT:
+
+    - file
+    
+    EXAMPLES::
+
+        >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+
+    Try to delete a file in a nonexistent session::
+
+        >>> misc.get('http://localhost:5000/delete_file/0/file.txt')
+        u'{\n  "status": "error", \n  "data": "unknown session 0"\n}'
+
+    Try to delete a file that does not exist (but the session does exist)::
+    
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> misc.get('http://localhost:5000/delete_file/0/file.txt')
+        u'{\n  "status": "error", \n  "data": "no file \\"file.txt\\""\n}'
+
+    Upload a file, then get it, which works, then delete it and see that it is gone::
+        
+        >>> misc.post('http://localhost:5000/put_file/0', files={'a/b/cfile.txt':'contents of file'})
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/get_file/0/a/b/cfile.txt')
+        u'contents of file'
+        >>> misc.get('http://localhost:5000/delete_file/0/a/b/cfile.txt')
+        u'{\n  "status": "ok"\n}'
+        >>> misc.get('http://localhost:5000/files/0')
+        u'{\n  "status": "ok", \n  "data": []\n}'
+        >>> misc.get('http://localhost:5000/get_file/0/a/b/cfile.txt')
+        u'...404 Not Found...'
+
+    Try to delete an unsafe path::
+
+        >>> misc.get('http://localhost:5000/delete_file/0/../../passwd')
+        u'{\n  "status": "error", \n  "data": "insecure path \'../../passwd\'"\n}'
     """
     try:
-        path = file_path(id, path)
+        fullpath = file_path(id, path)
     except ValueError, msg:
         return jsonify({'status':'error', 'data':str(msg)})
-    os.unlink(path)
+    if not os.path.exists(fullpath):
+        return jsonify({'status':'error', 'data':'no file "%s"'%path})
+    os.unlink(fullpath)
     return jsonify({'status':'ok'})
 
 @app.route('/submit_output/<int:id>', methods=['POST'])
 def submit_output(id):
-    """
+    r"""
     The compute sessions call this function via a POST request to
-    report the output that they produce.  The POST request contains a
-    subset of the following fields: 'done', 'output',
-    'modified_files'.
+    report the output that they produce.  The POST request looks like
+    this
+
+       {'exec_id':0, 'done':False, 'modified_files':'paths separated by spaces', 'output':'123'}
+
+    The output and modified_files fields may be omitted. 
+
+    INPUT:
+
+    - ``id`` -- nonnegative integer
+    - POST variables: exec_id, done, modified_files (optional), output (optional)
+
+    OUTPUT:
+
+    - JSON message with a 'status' field with value 'ok' or 'error',
+      and an optional 'data' field in case of an error.
+
+    EXAMPLES::
+
+    We start a computation that will take forever running::
+
+        >>> import frontend, misc, client, json
+        >>> c = client.Client(5000)
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> a = misc.get('http://localhost:5000/new_session')
+        >>> c.wait(0)  
+        >>> json.loads(misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'}))
+        {u'status': u'ok', u'exec_id': 0, u'cell_status': u'running'}
+        >>> c.wait(0, status='running')
+
+    Now we "spoof" submitting some output::
+
+        >>> json.loads(misc.post('http://localhost:5000/submit_output/0', {'exec_id':0, 'done':False, 'modified_files':'', 'output':'123'}))
+        {u'status': u'ok'}
+
+    Check that we got the output::
+    
+        >>> json.loads(misc.get('http://localhost:5000/output_messages/0/0/0'))
+        {u'status': u'ok', u'data': [{u'output': u'123', u'modified_files': u'', u'done': False, u'number': 0}]}
+
+    Force a correct submission by interrupting::
+
+        >>> misc.get('http://localhost:5000/sigint/0')
+        u'{\n  "status": "ok"\n}'
+        >>> c.wait(0)  # wait for interrupt to happen and subprocess to finish submitting everything
+        >>> json.loads(misc.get('http://localhost:5000/output_messages/0/0/1'))
+        {u'status': u'ok', u'data': [{u'output': u'KeyboardInterrupt()', u'modified_files': None, u'done': False, u'number': 1}, {u'output': None, u'modified_files': None, u'done': True, u'number': 2}]}
+
+    Next we test error conditions.
+
+    We submit output missing the exec_id (which is the only required field)::
+
+        >>> json.loads(misc.post('http://localhost:5000/submit_output/0', {'done':False, 'modified_files':'', 'output':'123'}))
+        {u'status': u'error', u'data': u'must include exec_id as a POST variable'}
+
+    We submit output for a cell that does not exist (the exec_id specifies the cell)::
+
+        >>> json.loads(misc.post('http://localhost:5000/submit_output/0', {'exec_id':1, 'done':False, 'modified_files':'', 'output':'123'}))
+        {u'status': u'error', u'data': u'no cell with exec_id=1 and session_id=0'}
+
+    We submit output for a nonexistent session::
+
+        >>> json.loads(misc.post('http://localhost:5000/submit_output/1', {'exec_id':0, 'done':False, 'modified_files':'', 'output':'123'}))
+        {u'status': u'error', u'data': u'no cell with exec_id=0 and session_id=1'}
+
+    We try to use GET instead of POST::
+
+        >>> misc.get('http://localhost:5000/submit_output/0', {'exec_id':0, 'done':False, 'modified_files':'', 'output':'123'})
+        u'...The method GET is not allowed for the requested URL...'
     """
     if request.method == 'POST':
         try:
             S = db.session()
             m = request.form
+            if 'exec_id' not in m:
+                return jsonify({'status':'error', 'data':'must include exec_id as a POST variable'})
             exec_id = m['exec_id']
-            cell = S.query(db.Cell).filter_by(exec_id=exec_id, session_id=id).one()
+
+            try:
+                cell = S.query(db.Cell).filter_by(exec_id=exec_id, session_id=id).one()
+            except orm_exc.NoResultFound:
+                return jsonify({'status':'error', 'data':'no cell with exec_id=%s and session_id=%s'%(exec_id, id)})
+
             msg = db.OutputMsg(number=len(cell.output), exec_id=exec_id, session_id=id)
             if 'done' in m:
                 msg.done = False if m['done'] == u'False' else True
@@ -1161,9 +1255,9 @@ def submit_output(id):
             cell.output.append(msg)
             S.commit()
         except Exception, msg:
-            return str(msg)
-        return 'ok'
-    return 'error'
+            return jsonify({'status':'error', 'data':'SERVER BUG: %s'%msg})  # should never happen!
+        return jsonify({'status':'ok'})
+    return jsonify({'status':'error', 'data':'must use POST request to submit output'})
 
 def run(port=5000, debug=False, log=False, sub_port=None):
     """
@@ -1174,6 +1268,14 @@ def run(port=5000, debug=False, log=False, sub_port=None):
     INPUT:
     - ``port`` -- integer (default: 5000)
     - ``debug`` -- bool (default: False)
+    - ``log`` -- bool (default: False)
+    - ``sub_port`` -- None or number
+
+    EXAMPLES::
+
+        >>> import frontend
+        >>> R = frontend.Daemon(5000)  # indirect doctest
+    
     """
     if sub_port is None:
         import test
@@ -1265,6 +1367,13 @@ class Daemon(object):
         return "Workspace Frontend Daemon on port %s"%self._port
         
     def __del__(self):
+        """
+        EXAMPLES::
+
+            >>> import frontend, misc
+            >>> R = frontend.Daemon(5002)
+            >>> del R
+        """
         try:
             self.kill()
         except:
