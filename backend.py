@@ -17,7 +17,7 @@ explained below.
       - reports output to sys.std* via POST to output_url, as they appear
       - reports on files that are created or modified
       - reports done with all cells so far and gets more cells to
-        execute via a GET request to finished_url.
+        execute via a GET request to ready_url.
 
 The backend starts in the compute state.  The backend stays in the
 compute state so long as it is working on computations, reporting
@@ -43,15 +43,15 @@ class ComputeSession(object):
     
         >>> import backend
         >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
-        >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
+        >>> CS = backend.ComputeSession(5000, 'ready_url', 'output_url')
         >>> del CS._server
     """
-    def __init__(self, port, finished_url, output_url):
+    def __init__(self, port, ready_url, output_url):
         """
         INPUT:
 
         - ``port`` -- positive integer
-        - ``finished_url`` -- string; do GET request on this url when
+        - ``ready_url`` -- string; do GET request on this url when
           backed server is done with all computations
         - ``output_url`` -- string; do POST request here to report on
           output and modified or created files
@@ -82,9 +82,9 @@ class ComputeSession(object):
                 except IOError, msg:
                     self.send_error(404,'File Not Found: %s' % self.path)
                     
-        self._finished_url = finished_url
-        self._output_url   = output_url
-        self._port         = port
+        self._ready_url  = ready_url
+        self._output_url = output_url
+        self._port       = port
 
         max_tries = 20 # TODO: ugly
         for i in range(max_tries):
@@ -114,7 +114,7 @@ class ComputeSession(object):
             >>> import misc, backend; backend.post = misc.fake_post
             >>> here = os.path.abspath('.')
             >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
-            >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
+            >>> CS = backend.ComputeSession(5000, 'ready_url', 'output_url')
             >>> CS.execute_cells([{'code':'print(2+3)'}, {'code':'print(5*3)'}])
             POST: ('output_url', {'output': '5\n', 'cell_id': 0, 'done': False, 'modified_files': []}) [('timeout', 10)]
             POST: ('output_url', {'cell_id': 0, 'done': True}) [('timeout', 10)]
@@ -139,26 +139,10 @@ class ComputeSession(object):
         server mode and waits for another HTTP POST request with a
         list of cells to execute.
         """
-##         while True:
-##             self._postvars = {}
-##             # Enter WAIT STATE:
-##             self._server.handle_request()
-##             if self._postvars.has_key('cells'):
-##                 # Enter COMPUTE STATE:
-##                 # the request resulted in a POST request with code to execute
-##                 self.execute_cells(json.loads(self._postvars['cells'][0]))
-##                 # Next, get more cells to evaluate, if there are some:
-##                 while True:
-##                     msg = json.loads(get(self._finished_url))
-##                     if msg['status'] == 'done':
-##                         break
-##                     self.execute_cells(msg['cells'])
-##                 # No more tasks, so we switch back to WAIT STATE
-
         while True:
             # COMPUTE STATE:
             while True:
-                msg = json.loads(get(self._finished_url))
+                msg = json.loads(get(self._ready_url))
                 if msg['status'] != 'done':
                     self.execute_cells(msg['cells'])
                 else:
@@ -191,7 +175,7 @@ class ComputeSession(object):
             >>> import misc, backend; backend.post = misc.fake_post
             >>> here = os.path.abspath('.')
             >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
-            >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
+            >>> CS = backend.ComputeSession(5000, 'ready_url', 'output_url')
             >>> CS.output({'test':'message'})
             POST: ('output_url', {'test': 'message'}) [('timeout', 10)]
             >>> del CS._server  # shutdown HTTP server
@@ -202,12 +186,12 @@ class ComputeSession(object):
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print "Usage: %s PORT FINISHED_URL OUTPUT_URL"%sys.argv[0]
+        print "Usage: %s PORT READY_URL OUTPUT_URL"%sys.argv[0]
         sys.exit(1)
-    port         = int(sys.argv[1])
-    finished_url = sys.argv[2]
-    output_url   = sys.argv[3]
+    port       = int(sys.argv[1])
+    ready_url  = sys.argv[2]
+    output_url = sys.argv[3]
     
-    S = ComputeSession(port, finished_url, output_url)
+    S = ComputeSession(port, ready_url, output_url)
     S.run()
     

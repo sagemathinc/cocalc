@@ -208,7 +208,7 @@ Ideas to solve this:
     [x] exec_id --> cell_id
     [x] in frontend: db --> model
     [x] rename: killall --> delete_all (in frontend and client); be sure to change docstring explanations too
-    [ ] backend: finished_url --> "ready_url"
+    [x] backend: finished_url --> "ready_url"
     [ ] move app_port and subprocess_port to database
     [ ] doctest client.py
     [x] doctest frontend.py
