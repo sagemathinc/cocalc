@@ -1,5 +1,59 @@
 """
-Workspace Server Frontend
+Frontend server
+
+The frontend server tracks several transient compute sessions.  The
+frontend has no global in-process state, but instead uses a SQLalchemy
+database.  It can scale up and be run as a multiprocess, multithreaded
+WSGI application.  This scalability is important, since there could be
+hundreds of simultaneous connections.  This diagram illustrates how
+the frontend server object is central to everything.
+
+[ Many ] <---------> [Frontend Server]  -----> [Subprocess servers]  
+[ Many ] ...............................
+[ Many ]   http
+[Users ] <---------> [Frontend Server]  -----> [Subprocess servers] --> [backend]
+  /|\     websockets         /|\                 (many accounts)    -->   ...
+   |                          |---------------------------------------> [backend]
+  \|/
+[Workspace]
+[Server   ]
+(highly scalable, longterm, static)
+
+
+The API for the frontend is as follows:
+
+Identification:
+    / -- nothing useful yet
+
+All Sessions:
+    /killall -- kill every session
+    /sessions -- much information about all sessions
+
+Session Management: creating, interrupting, killing and deleting:
+    /new_session -- create a new session (returns id)
+    /sigint/id -- send interrupt signal to session with given id
+    /sigkill/id -- kill session with given id
+    /close_session/id -- kill and remove all files for session with given id
+
+Session Information:
+    /session/id -- extensive information about a given session
+    /status/id -- get status of session with given id: 'ready', 'running', 'dead'
+    /cells/id -- list of cells in a given session
+
+Code Execution:
+    /execute/id -- execute block of code
+    /output_messages/id/exec_id/number -- incremental output produced when executing code
+
+Files: uploading, downloading, deleting and listing:
+    /files/id -- return list of all files in the given session
+    /put_file/id, POST -- put a file in the given session
+    /get_file/id/path -- get a file from the session
+    /delete_file/id/path -- delete a file from the session
+
+Backend Communication:
+    /ready/id -- used by backend to report that it is done with assigned work
+    /submit_output/id -- used by backend to submit the results of code execution
+
 """
 
 import json, os, posixpath, signal, shutil, subprocess, sys, tempfile, time
@@ -79,7 +133,7 @@ def launch_backend_session(port, id=id):
     return mesg['pid'], mesg['execpath']
 
 def close_subprocess(pid):
-    """
+    r"""
     Close and clean up the process with given pid.
 
     INPUT::
@@ -88,7 +142,11 @@ def close_subprocess(pid):
 
     EXAMPLES::
 
-
+        >>> import frontend, misc
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> id = json.loads(misc.get('http://localhost:5000/new_session'))['id']
+        >>> misc.get('http://localhost:5000/close_session/%s'%id)   # indirect test
+        u'{\n  "status": "ok"\n}'
     """
     assert subprocess_port is not None, "you must initialize subprocess_port"
     url = 'http://localhost:%s/close/%s'%(subprocess_port, pid)
@@ -96,6 +154,26 @@ def close_subprocess(pid):
 
 @app.route('/killall')
 def killall():
+    r"""
+    Kill and clean up all sessions associated to this frontend server.
+    
+    EXAMPLES::
+
+        >>> import frontend, misc
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'        
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 1\n}'
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 2\n}'
+        >>> misc.get('http://localhost:5000/killall')
+        u'{\n  "status": "ok", \n  "killed": [\n    0, \n    1, \n    2\n  ]\n}'
+        >>> misc.get('http://localhost:5000/killall')
+        u'{\n  "status": "ok", \n  "killed": []\n}'
+        >>> misc.get('http://localhost:5000/status/0')
+        u'{\n  "status": "error", \n  "data": "unknown session 0"\n}'
+    """
     S = db.session()
     try:
         sessions = S.query(db.Session)
@@ -121,14 +199,31 @@ def killall():
     
 @app.route('/')
 def root():
-    # TODO: template that explains the API goes here
-    return "Sage Workspaces Server"
+    """
+    The root URL provides no useful information.  It's here mainly so
+    we can tell that the server is running.
+
+    EXAMPLES::
+
+        >>> import frontend, misc
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> misc.get('http://localhost:5000')   # indirect test
+        u'Frontend Server'
+    """
+    return "Frontend Server"
 
 @app.route('/new_session')
 def new_session():
-    """
+    r"""
     Create a new session, and return its id number as the 'id' key of
     the JSON message.
+
+    EXAMPLES::
+
+        >>> import frontend, json, misc
+        >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
+        >>> json.loads(misc.get('http://localhost:5000/new_session'))
+        {u'status': u'ok', u'id': 0}
     """
     S = db.session()
     if S.query(db.Session).count() == 0:
@@ -249,8 +344,12 @@ def execute(session_id):
 
 @app.route('/ready/<int:id>')
 def ready(id):
-
-    # The compute session has finished whatever it was doing and is
+    """
+    This URL called when the backend with given id has finished all
+    computations.  If there is anything new to compute, it is
+    returned.
+    """
+    # The backend has finished whatever it was doing and is
     # nearly ready for more.  If there is anything left to do, tell it
     # to do all that; otherwise, tell it to wait for a new request
     # when it comes later.
@@ -288,11 +387,72 @@ def ready(id):
 
 @app.route('/sessions/')
 def sessions():
-    """
+    r"""
     Return JSON representation of all the sessions.
 
     EXAMPLES::
-    
+
+        >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> print misc.get('http://localhost:5000/sessions')
+        {
+          "status": "ok", 
+          "sessions": [
+            {
+              "status": "running", 
+              "url": "http://localhost:5001", 
+              "path": "...tmp...", 
+              "start_time": "...", 
+              "next_exec_id": 0, 
+              "pid": ..., 
+              "id": 0, 
+              "last_active_exec_id": -1
+            }
+          ]
+        }
+        >>> import client; client.Client(5000).wait(0)
+        >>> print misc.get('http://localhost:5000/sessions')
+        {...
+              "status": "ready", 
+        ...}
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 1\n}'
+        >>> print misc.get('http://localhost:5000/sessions')
+        {
+          "status": "ok", 
+          "sessions": [
+            {
+              "status": "ready",
+              ...
+              "id": 0, 
+              ...
+            }, 
+            {
+              "status": "running", 
+              "url": "http://localhost:5002",
+              ...
+              "id": 1,
+              ...
+            }
+          ]
+        }        
+        >>> misc.get('http://localhost:5000/sigkill/0')
+        u'{\n  "status": "ok"\n}'
+        >>> client.Client(5000).wait(0, status='dead')
+        >>> print misc.get('http://localhost:5000/sessions')
+        {...
+            {
+              "status": "dead",
+              ...
+            }, 
+            {
+              "status": "running",
+              ...
+            }
+          ]
+        }
     """
     S = db.session()
     v = [s.to_json() for s in S.query(db.Session).order_by(db.Session.id).all()]
@@ -301,19 +461,70 @@ def sessions():
 
 @app.route('/session/<int:session_id>')
 def session(session_id):
-    """
-    Return data about session with given id.
+    r"""
+    Return JSON representation of data about the session with given id.
+
+    INPUT:
+
+    - ``session_id`` -- nonnegative integer
 
     EXAMPLES::
+
+        >>> import frontend, misc; R = frontend.Daemon(5000)
+        >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
+        >>> misc.get('http://localhost:5000/new_session')
+        u'{\n  "status": "ok", \n  "id": 0\n}'
+        >>> print misc.get('http://localhost:5000/session/0')
+        {
+          "status": "ok", 
+          "data": {
+            "status": "running", 
+            "url": "http://localhost:5001", 
+            "path": "...tmp...", 
+            "start_time": "...", 
+            "next_exec_id": 0, 
+            "pid": ..., 
+            "id": 0, 
+            "last_active_exec_id": -1
+          }
+        }        
+
+    Wait until the session starts::
+    
+        >>> import client; client.Client(5000).wait(0)
+        >>> print misc.get('http://localhost:5000/session/0')
+        {
+          "status": "ok", 
+          "data": {
+            "status": "ready",
+            ...
+          }
+        }
+
+    We query for a nonexistent session::
+
+        >>> print misc.get('http://localhost:5000/session/1')
+        {
+          "status": "error", 
+          "data": "unknown session 1"
+        }
     """
     S = db.session()
-    v = S.query(db.Session).filter_by(id=session_id).one().to_json()
-    return jsonify({'status':'ok', 'data':v})
+    try:
+        v = S.query(db.Session).filter_by(id=session_id).one().to_json()
+        msg = {'status':'ok', 'data':v}
+    except orm_exc.NoResultFound:
+        msg = {'status':'error', 'data':'unknown session %s'%session_id}
+    return jsonify(msg)
 
 @app.route('/cells/<int:session_id>')
 def cells(session_id):
     """
     Return JSON representation of all cells in the session with given id.
+
+    EXAMPLES::
+
+    
     """
     S = db.session()
     try:
@@ -371,7 +582,7 @@ def send_signal(id, sig):
 
     EXAMPLES::
     
-        >>> import frontend, misc, signal, time
+        >>> import frontend, misc, time
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
@@ -416,7 +627,7 @@ def send_signal(id, sig):
 
             else:
                 # only above signals supported
-                return jsonify({'status':'error', 'data':'unknown signal %s'%sig})
+                return jsonify({'status':'error', 'data':'unsupported signal %s'%sig})
             
             # send the signal
             url = 'http://localhost:%s/send_signal/%s/%s'%(subprocess_port, session.pid, sig)
@@ -442,7 +653,7 @@ def sigint(id):
     confirm it is interrupted but that session 0 isn't, then interrupt
     session 0::
 
-        >>> import frontend, misc, signal
+        >>> import frontend, misc
         >>> R = frontend.Daemon(5000)
         >>> z = misc.get('http://localhost:5000/killall')
         >>> misc.get('http://localhost:5000/new_session')
@@ -496,7 +707,7 @@ def sigkill(id):
 
     EXAMPLES::
     
-        >>> import frontend, misc, signal
+        >>> import frontend, misc
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> a = misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
@@ -526,7 +737,7 @@ def close_session(id):
 
     EXAMPLES::
 
-        >>> import frontend, misc, signal
+        >>> import frontend, misc
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> misc.get('http://localhost:5000/close_session/0')
@@ -581,7 +792,7 @@ def status(id):
 
     We illustrate each status value::
     
-        >>> import frontend, misc, signal, client
+        >>> import frontend, misc, client
         >>> c = client.Client(5000)
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> a = misc.get('http://localhost:5000/new_session')
@@ -631,7 +842,7 @@ def file_path(id, path):
 
     EXAMPLES::
 
-        >>> import frontend, misc, signal
+        >>> import frontend, misc
         >>> R = frontend.Daemon(5000); z = misc.get('http://localhost:5000/killall')
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> frontend.file_path(0, 'a/b/xyz.txt')

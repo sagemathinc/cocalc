@@ -219,6 +219,8 @@ Ideas to solve this:
 
  [ ] deal with every todo in code
 
+ [ ] extend so that we have *multiple* subprocess servers on the same
+     machine, for security reasons
 
  [ ] rethink what everything is named; possibly refactor/rename, running test suite
 
