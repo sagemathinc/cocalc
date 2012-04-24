@@ -44,7 +44,7 @@ class Session(Base):
     
         >>> drop_all(); create()
         >>> s = Session(0, 12345, '/tmp/', 'http://localhost:5000'); s
-        Session(0, pid=12345, path='/tmp/', url='http://localhost:5000', status='ready', next_exec_id=0, last_active_exec_id=-1, start_time=...)
+        Session(0, pid=12345, path='/tmp/', url='http://localhost:5000', status='ready', next_cell_id=0, last_active_cell_id=-1, start_time=...)
     """
     __tablename__ = 'sessions'
     id = Column(Integer, primary_key=True)
@@ -52,13 +52,13 @@ class Session(Base):
     path = Column(String)
     url = Column(String)
     status = Column(String)
-    next_exec_id = Column(Integer)
-    last_active_exec_id = Column(Integer)
+    next_cell_id = Column(Integer)
+    last_active_cell_id = Column(Integer)
     start_time = Column(DateTime)
-    cells = relation("Cell", order_by="Cell.exec_id",
+    cells = relation("Cell", order_by="Cell.cell_id",
                      backref='session', cascade='all, delete, delete-orphan')
     
-    def __init__(self, id, pid, path, url, status='ready', next_exec_id=0, last_active_exec_id=-1):
+    def __init__(self, id, pid, path, url, status='ready', next_cell_id=0, last_active_cell_id=-1):
         """
         INPUT:
 
@@ -67,16 +67,16 @@ class Session(Base):
         - ``path`` -- string; where the session starts running
         - ``url`` -- string; the URL where the backend listens when in its WAIT state
         - ``status`` -- string; 'ready', 'running', 'dead'  TODO: enforce this here and in setter!
-        - ``next_exec_id`` -- the id that will be assigned to the next cell that is evaluated
-        - ``last_active_exec_id`` -- id of last cell that was submitted for evaluation
+        - ``next_cell_id`` -- the id that will be assigned to the next cell that is evaluated
+        - ``last_active_cell_id`` -- id of last cell that was submitted for evaluation
         """
         self.id = int(id)
         self.pid = int(pid)
         self.path = str(path)
         self.url = str(url)
         self.status = str(status)
-        self.next_exec_id = int(next_exec_id)  # 
-        self.last_active_exec_id = int(last_active_exec_id)  #
+        self.next_cell_id = int(next_cell_id)  # 
+        self.last_active_cell_id = int(last_active_cell_id)  #
         self.start_time = datetime.datetime.now()
 
     def to_json(self):
@@ -94,7 +94,7 @@ class Session(Base):
             >>> s.to_json()
             {...}
             >>> list(sorted(list(s.to_json().iteritems())))
-            [('id', 0), ('last_active_exec_id', -1), ('next_exec_id', 0), ('path', '/tmp/'), ('pid', 12345), ('start_time', '...'), ('status', 'ready'), ('url', 'http://localhost:5000')]
+            [('id', 0), ('last_active_cell_id', -1), ('next_cell_id', 0), ('path', '/tmp/'), ('pid', 12345), ('start_time', '...'), ('status', 'ready'), ('url', 'http://localhost:5000')]
 
         Confirm jsonifiability::
         
@@ -103,8 +103,8 @@ class Session(Base):
         """
         return {'id':self.id, 'pid':self.pid, 'path':self.path,
                 'url':self.url, 'status':self.status,
-                'next_exec_id':self.next_exec_id,
-                'last_active_exec_id':self.last_active_exec_id,
+                'next_cell_id':self.next_cell_id,
+                'last_active_cell_id':self.last_active_cell_id,
                 'start_time':str(self.start_time)}
 
     def __repr__(self):
@@ -114,11 +114,11 @@ class Session(Base):
             >>> drop_all(); create()
             >>> s = Session(0, 12345, '/tmp/', 'http://localhost:5000')
             >>> s.__repr__()
-            "Session(0, pid=12345, path='/tmp/', url='http://localhost:5000', status='ready', next_exec_id=0, last_active_exec_id=-1, start_time=...)"
+            "Session(0, pid=12345, path='/tmp/', url='http://localhost:5000', status='ready', next_cell_id=0, last_active_cell_id=-1, start_time=...)"
         """
-        return "Session(%s, pid=%s, path='%s', url='%s', status='%s', next_exec_id=%s, last_active_exec_id=%s, start_time=%s)"%(
+        return "Session(%s, pid=%s, path='%s', url='%s', status='%s', next_cell_id=%s, last_active_cell_id=%s, start_time=%s)"%(
             self.id, self.pid, self.path, self.url, self.status,
-            self.next_exec_id, self.last_active_exec_id, self.start_time)
+            self.next_cell_id, self.last_active_cell_id, self.start_time)
 
 class Cell(Base):
     """
@@ -130,23 +130,23 @@ class Cell(Base):
         Cell(0, session_id=0, code='print(2+3)', output=[])
     """
     __tablename__ = 'cells'
-    exec_id = Column(Integer, primary_key=True)
+    cell_id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey('sessions.id'), primary_key=True)
     code = Column(String)
     output = relation("OutputMsg", order_by="OutputMsg.number",
                       backref='cell', cascade='all, delete, delete-orphan',
-                      primaryjoin='and_(Cell.session_id==OutputMsg.session_id, Cell.exec_id==OutputMsg.exec_id)')
+                      primaryjoin='and_(Cell.session_id==OutputMsg.session_id, Cell.cell_id==OutputMsg.cell_id)')
 
-    def __init__(self, exec_id, session_id, code):
+    def __init__(self, cell_id, session_id, code):
         """
         INPUT:
 
-        - ``exec_id`` -- nonnegative integer
+        - ``cell_id`` -- nonnegative integer
         - ``session_id`` -- nonnegative integer
         - ``code`` -- string
         """
         # TODO: enforce constraints
-        self.exec_id = int(exec_id)
+        self.cell_id = int(cell_id)
         self.session_id = int(session_id)
         self.code = str(code)
 
@@ -163,7 +163,7 @@ class Cell(Base):
             >>> c.to_json()
             {...}
             >>> list(sorted(list(c.to_json().iteritems())))
-            [('code', 'print(2+3)'), ('exec_id', 0)]
+            [('cell_id', 0), ('code', 'print(2+3)')]
 
         Confirm jsonifiability::
         
@@ -172,7 +172,7 @@ class Cell(Base):
         
 
         """
-        return {'exec_id':self.exec_id, 'code':self.code}
+        return {'cell_id':self.cell_id, 'code':self.code}
 
     def __repr__(self):
         """
@@ -185,7 +185,7 @@ class Cell(Base):
             "Cell(0, session_id=0, code='print(2+3)', output=[])"
         """
         return "Cell(%s, session_id=%s, code='%s', output=%s)"%(
-            self.exec_id, self.session_id, self.code, self.output)
+            self.cell_id, self.session_id, self.code, self.output)
 
 class OutputMsg(Base):
     """
@@ -195,30 +195,30 @@ class OutputMsg(Base):
         >>> s = Session(0, 12345, '/tmp/', 'http://localhost:5000')
         >>> c = Cell(0, 0, 'print(2+3)')
         >>> o = OutputMsg(0, 0, 0); o
-        OutputMsg(0, exec_id=0, session_id=0, done=None, output='None', modified_files='None')
+        OutputMsg(0, cell_id=0, session_id=0, done=None, output='None', modified_files='None')
     """
     __tablename__ = 'output_msg'
     number = Column(Integer, primary_key=True)
-    exec_id = Column(Integer, ForeignKey('cells.exec_id'), primary_key=True)
+    cell_id = Column(Integer, ForeignKey('cells.cell_id'), primary_key=True)
     session_id = Column(Integer, ForeignKey('cells.session_id'), primary_key=True)
     done = Column(Boolean)
     output = Column(String)
     modified_files = Column(String)
 
-    def __init__(self, number, exec_id, session_id):
+    def __init__(self, number, cell_id, session_id):
         """
         Create an OutputMsg object.
 
         INPUT:
 
         - ``number`` -- (nonnegative integer) message number
-        - ``exec_id`` -- (nonnegative integer) id of block of code
+        - ``cell_id`` -- (nonnegative integer) id of block of code
           that is being evaluated
         - ``session_id`` -- (nonnegative integer) id of session in
           which code is being evaluated
         """
         self.number = int(number)
-        self.exec_id = int(exec_id)
+        self.cell_id = int(cell_id)
         self.session_id = int(session_id)
 
     def __repr__(self):
@@ -229,13 +229,13 @@ class OutputMsg(Base):
             >>> s = Session(0, 389, '/tmp/', 'http://localhost:54321')
             >>> c = Cell(0, 0, 'print(3+8+9)')
             >>> o = OutputMsg(0, 0, 0); o.__repr__()
-            "OutputMsg(0, exec_id=0, session_id=0, done=None, output='None', modified_files='None')"
+            "OutputMsg(0, cell_id=0, session_id=0, done=None, output='None', modified_files='None')"
             >>> o.done = True; o.output = '20'; o.modified_files = ''
             >>> o.__repr__()
-            "OutputMsg(0, exec_id=0, session_id=0, done=True, output='20', modified_files='')"
+            "OutputMsg(0, cell_id=0, session_id=0, done=True, output='20', modified_files='')"
         """
-        return "OutputMsg(%s, exec_id=%s, session_id=%s, done=%s, output='%s', modified_files='%s')"%(
-            self.number, self.exec_id, self.session_id, self.done,
+        return "OutputMsg(%s, cell_id=%s, session_id=%s, done=%s, output='%s', modified_files='%s')"%(
+            self.number, self.cell_id, self.session_id, self.done,
             self.output, self.modified_files)
 
 def drop_all():

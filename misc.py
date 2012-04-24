@@ -79,8 +79,8 @@ def post(url, data=None, files=None, timeout=10):
         >>> print post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
         {
           "status": "ok", 
-          "exec_id": 0, 
-          "cell_status": "running"
+          "cell_status": "running", 
+          "cell_id": 0
         }
         >>> z = get('http://localhost:5000/killall')  # for doctesting
     """

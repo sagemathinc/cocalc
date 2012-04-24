@@ -102,14 +102,14 @@ class SimpleSessionServer(object):
 
         OUTPUT:
         
-        - ``exec_id`` -- id associated to evaluation of this code
+        - ``cell_id`` -- id associated to evaluation of this code
 
         EXAMPLES::
 
             >>> S = SimpleSessionServer()
             >>> id = S.new_session('doctest')
             >>> S.execute(id, "print(2+3)")
-            [('done', True), ('exec_id', 0), ('modified_files', []), ('output', '5\n')]
+            [('cell_id', 0), ('done', True), ('modified_files', []), ('output', '5\n')]
             0
         """
         return self.session(id).execute(code)
@@ -282,7 +282,7 @@ class SimpleSession(object):
             def output_callback(msg):
                 print sorted(list(msg.iteritems()))
         self._id = id
-        self._exec_id = 0
+        self._cell_id = 0
         self._namespace = {}
         self._output_callback = output_callback
         self._execpath = tempfile.mkdtemp() if execpath is None else execpath
@@ -358,13 +358,13 @@ class SimpleSession(object):
         EXAMPLES::
 
             >>> s = SimpleSession(1, 'doctest'); s.execute('print(2+3)'); s.wait()
-            [('done', True), ('exec_id', 0), ('modified_files', []), ('output', '5\n')]
+            [('cell_id', 0), ('done', True), ('modified_files', []), ('output', '5\n')]
             0
             >>> s.execute('a=5\nb=7\nprint(a+b)\nprint(a*b)'); s.wait()
-            [('done', True), ('exec_id', 1), ('modified_files', []), ('output', '12\n35\n')]
+            [('cell_id', 1), ('done', True), ('modified_files', []), ('output', '12\n35\n')]
             1
             >>> s.execute('import os; os.chdir("/")')
-            [('done', True), ('exec_id', 2), ('modified_files', []), ('output', '')]
+            [('cell_id', 2), ('done', True), ('modified_files', []), ('output', '')]
             2
             >>> s._curpath
             '/'
@@ -372,21 +372,21 @@ class SimpleSession(object):
         Make sure the changed directory persists in the next call, but doesn't mess us up::
 
             >>> s.execute('print(os.path.abspath("/"))')
-            [('done', True), ('exec_id', 3), ('modified_files', []), ('output', '/\n')]
+            [('cell_id', 3), ('done', True), ('modified_files', []), ('output', '/\n')]
             3
             >>> os.path.abspath('.') != '/'
             True
         """
-        exec_id = self._exec_id
-        self._exec_id += 1
+        cell_id = self._cell_id
+        self._cell_id += 1
 
         # evaluate the input code in the current path
         output, self._curpath = blocking_execute(self._curpath, code, self._namespace)
         modified_files = self._pathtree.modified_files()
 
-        self._output_callback({'exec_id':exec_id, 'done':True,
+        self._output_callback({'cell_id':cell_id, 'done':True,
                                'output':output, 'modified_files':modified_files})
-        return exec_id
+        return cell_id
 
     def _full_path(self, path):
         """
@@ -521,7 +521,7 @@ class SimpleSession(object):
         We use some Python code to create a file, and it is detected and listed::
 
             >>> s.execute('open("foo","w")')
-            [('done', True), ('exec_id', 0), ('modified_files', ['foo']), ('output', '')]
+            [('cell_id', 0), ('done', True), ('modified_files', ['foo']), ('output', '')]
             0
             >>> s.files()
             ['foo']
@@ -529,7 +529,7 @@ class SimpleSession(object):
         We remove the file via Python, and its abscence is properly detected::
 
             >>> s.execute('import os; os.unlink("foo")')
-            [('done', True), ('exec_id', 1), ('modified_files', []), ('output', '')]
+            [('cell_id', 1), ('done', True), ('modified_files', []), ('output', '')]
             1
             >>> s.files()
             []
@@ -538,7 +538,7 @@ class SimpleSession(object):
         files list is unchanged::
 
             >>> s.execute("os.makedirs('foo/bar')")
-            [('done', True), ('exec_id', 2), ('modified_files', []), ('output', '')]
+            [('cell_id', 2), ('done', True), ('modified_files', []), ('output', '')]
             2
             >>> s.files()
             []
@@ -547,7 +547,7 @@ class SimpleSession(object):
         detected::
 
             >>> s.execute('open("foo/bar/filename.txt","w")')
-            [('done', True), ('exec_id', 3), ('modified_files', ['foo/bar/filename.txt']), ('output', '')]
+            [('cell_id', 3), ('done', True), ('modified_files', ['foo/bar/filename.txt']), ('output', '')]
             3
             >>> s.files()
             ['foo/bar/filename.txt']
@@ -568,19 +568,19 @@ class OutStream(object):
         >>> os
         <session.OutStream object at 0x...>
     """
-    def __init__(self, session, flush_interval, exec_id):
+    def __init__(self, session, flush_interval, cell_id):
         """
         INPUT:
 
         - ``session`` -- a Session object, which has an _output_callback method
         - ``flush_interval`` -- nonnegative real number
-        - ``exec_id`` -- nonnegative integer; included in output messages
+        - ``cell_id`` -- nonnegative integer; included in output messages
         """
         self._buf = ''
         self._session = session
         self._last_flush = time.time()
         self._flush_interval = flush_interval
-        self._exec_id = exec_id
+        self._cell_id = cell_id
 
     def write(self, output):
         """
@@ -592,10 +592,10 @@ class OutStream(object):
             >>> os = OutStream(session, 0.1, 0)
             >>> os.write('some output')
             >>> os.flush()
-            {'output': 'some output', 'exec_id': 0, 'modified_files': [], 'done': False}
+            {'output': 'some output', 'cell_id': 0, 'done': False, 'modified_files': []}
             >>> os.write('XXX'); time.sleep(.05); os.write('YYY')
             >>> time.sleep(.06); os.write('ZZZ')
-            {'output': 'XXXYYYZZZ', 'exec_id': 0, 'modified_files': [], 'done': False}
+            {'output': 'XXXYYYZZZ', 'cell_id': 0, 'done': False, 'modified_files': []}
         """
         self._buf += output
         w = time.time()
@@ -613,7 +613,7 @@ class OutStream(object):
             >>> os = OutStream(session, 0.1, 0)
             >>> os.write('some output')
             >>> os.flush()
-            {'output': 'some output', 'exec_id': 0, 'modified_files': [], 'done': False}
+            {'output': 'some output', 'cell_id': 0, 'done': False, 'modified_files': []}
             >>> os.flush()
             >>> os.flush()
         """
@@ -621,7 +621,7 @@ class OutStream(object):
         if self._buf == '' and len(modified_files) == 0:
             # nothing to output
             return
-        msg = {'exec_id':self._exec_id, 'done':False,
+        msg = {'cell_id':self._cell_id, 'done':False,
                'output':self._buf, 'modified_files':modified_files}
         self._buf = ''
         self._session._output_callback(msg)
@@ -638,9 +638,9 @@ class OutStream(object):
             >>> session = SimpleStreamingSession(0, callback)
             >>> os = OutStream(session, 0.1, 0)
             >>> del os
-            {'exec_id': 0, 'done': True}
+            {'cell_id': 0, 'done': True}
         """
-        self._session._output_callback({'exec_id':self._exec_id, 'done':True})
+        self._session._output_callback({'cell_id':self._cell_id, 'done':True})
 
 
 class SimpleStreamingSession(SimpleSession):
@@ -676,12 +676,12 @@ class SimpleStreamingSession(SimpleSession):
             >>> ''.join([x['output'] for x in v if 'output' in x])
             '0000000000\n1111111111\n2222222222\n'
         """
-        exec_id = self._exec_id
-        self._exec_id += 1
+        cell_id = self._cell_id
+        self._cell_id += 1
 
         self._curpath = streaming_execute(self._curpath, code, self._namespace,
-                                          OutStream(self, self._flush_interval, exec_id))
-        return exec_id
+                                          OutStream(self, self._flush_interval, cell_id))
+        return cell_id
     
         
 
@@ -872,7 +872,7 @@ def session_server_tester(ServerClass):
         output['msg']['output'] += msg['output']
         output['msg']['modified_files'].extend(msg['modified_files'])
         output['msg']['done'] = msg['done']
-        output['msg']['exec_id'] = msg['exec_id']
+        output['msg']['cell_id'] = msg['cell_id']
     def wait():
         import time
         while not output['msg']['done']:
@@ -883,25 +883,25 @@ def session_server_tester(ServerClass):
     assert id == 0
 
     # a simple line of code that prints something
-    exec_id = S.execute(id, 'print(2+3)')
-    assert exec_id == 0
+    cell_id = S.execute(id, 'print(2+3)')
+    assert cell_id == 0
     wait()
-    assert output['msg'] == {'output': '5\n', 'exec_id': exec_id, 'modified_files': [], 'done': True}
+    assert output['msg'] == {'output': '5\n', 'cell_id': cell_id, 'modified_files': [], 'done': True}
     assert S.status(id) == 'ok'
     reset()
 
     # multiline code which also sets some variables and uses them
-    exec_id = S.execute(id, 'a=5\nb=7\nprint(a+b)')
-    assert exec_id == 1
+    cell_id = S.execute(id, 'a=5\nb=7\nprint(a+b)')
+    assert cell_id == 1
     wait()
-    assert output['msg'] == {'output': '12\n', 'exec_id': exec_id, 'modified_files': [], 'done': True}
+    assert output['msg'] == {'output': '12\n', 'cell_id': cell_id, 'modified_files': [], 'done': True}
     assert S.status(id) == 'ok'
     reset()
 
     # use variable set in previous call
-    exec_id = S.execute(id, 'print(a+b)')
+    cell_id = S.execute(id, 'print(a+b)')
     wait()
-    assert output['msg'] == {'output': '12\n', 'exec_id': exec_id, 'modified_files': [], 'done': True}
+    assert output['msg'] == {'output': '12\n', 'cell_id': cell_id, 'modified_files': [], 'done': True}
     assert S.status(id) == 'ok'
     reset()
 
@@ -909,15 +909,15 @@ def session_server_tester(ServerClass):
     id1 = S.new_session()
     assert id1 == 1
     S.execute(id1, 'a=0; b=2')
-    exec_id = S.execute(id, 'print(a+b)')
+    cell_id = S.execute(id, 'print(a+b)')
     wait()
-    assert output['msg'] == {'output': '12\n', 'exec_id': exec_id, 'modified_files': [], 'done': True}
+    assert output['msg'] == {'output': '12\n', 'cell_id': cell_id, 'modified_files': [], 'done': True}
     reset()
 
     # create a file via code
-    exec_id = S.execute(id, 'open("foo.txt","w").write("contents")')
+    cell_id = S.execute(id, 'open("foo.txt","w").write("contents")')
     wait()
-    assert output['msg'] == {'output': '', 'exec_id': exec_id, 'modified_files': ['foo.txt'], 'done': True}
+    assert output['msg'] == {'output': '', 'cell_id': cell_id, 'modified_files': ['foo.txt'], 'done': True}
     assert S.status(id) == 'ok'
     reset()
 
@@ -926,9 +926,9 @@ def session_server_tester(ServerClass):
 
     # use put to overwrite file created above, then read it via executing code
     S.put(id, 'foo.txt', 'xyz')
-    exec_id = S.execute(id, 'print(open("foo.txt").read())')
+    cell_id = S.execute(id, 'print(open("foo.txt").read())')
     wait()
-    assert output['msg'] == {'output': 'xyz\n', 'exec_id': exec_id, 'modified_files': [], 'done': True}
+    assert output['msg'] == {'output': 'xyz\n', 'cell_id': cell_id, 'modified_files': [], 'done': True}
     assert S.status(id) == 'ok'
     reset()
 
@@ -937,9 +937,9 @@ def session_server_tester(ServerClass):
     assert 'a/b/c/foo.txt' in S.files(id)
 
     # input that raises an exception
-    exec_id = S.execute(id, '1/0')
+    cell_id = S.execute(id, '1/0')
     wait()
-    assert output['msg'] == {'output': "ZeroDivisionError('integer division or modulo by zero',)", 'exec_id': exec_id, 'modified_files': [], 'done': True}
+    assert output['msg'] == {'output': "ZeroDivisionError('integer division or modulo by zero',)", 'cell_id': cell_id, 'modified_files': [], 'done': True}
     assert S.status(id) == 'ok'
     reset()
 

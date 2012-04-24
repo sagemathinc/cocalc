@@ -20,7 +20,8 @@ the frontend server object is central to everything.
 (highly scalable, longterm, static)
 
 
-The API for the frontend is as follows:
+THE API:
+--------
 
 Identification:
     / -- nothing useful yet
@@ -42,7 +43,7 @@ Session Information:
 
 Code Execution:
     /execute/id -- execute block of code
-    /output_messages/id/exec_id/number -- incremental output produced when executing code
+    /output_messages/id/cell_id/number -- incremental output produced when executing code
 
 Files: uploading, downloading, deleting and listing:
     /files/id -- return list of all files in the given session
@@ -262,7 +263,7 @@ def execute(session_id):
         u'{\n  "status": "ok", \n  "id": 0\n}'
 
         >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
+        u'{\n  "status": "ok", \n  "cell_status": "enqueued", \n  "cell_id": 0\n}'
 
     We request execution of code in a session that does not exist::
 
@@ -295,20 +296,20 @@ def execute(session_id):
             return jsonify({'status':'error', 'data':'session is dead'})
         
         # store the code to evaluate in database.
-        cell = db.Cell(session.next_exec_id, session.id, code)
+        cell = db.Cell(session.next_cell_id, session.id, code)
         session.cells.append(cell)
         # increment id for next code execution
-        session.next_exec_id += 1
+        session.next_cell_id += 1
         S.commit()
-        msg = {'exec_id':cell.exec_id}
+        msg = {'cell_id':cell.cell_id}
 
         # if the session is in ready state, that means it has a web server
         # listening and waiting for us to send it something to evaluate.
         if session.status == 'ready':
             try:
-                session.last_active_exec_id = cell.exec_id
+                session.last_active_cell_id = cell.cell_id
                 session.status = 'running'
-                cells = [{'code':cell.code, 'exec_id':cell.exec_id}]
+                cells = [{'code':cell.code, 'cell_id':cell.cell_id}]
                 post(session.url, {'cells':json.dumps(cells)}, timeout=0.1)
                 msg['cell_status'] = 'running'
                 msg['status'] = 'ok'
@@ -375,7 +376,7 @@ def ready(id):
         >>> a = misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
         >>> a = misc.post('http://localhost:5000/execute/0', {'code':'print(8+8)'})
         >>> misc.get('http://localhost:5000/ready/0')
-        u'{\n  "status": "ok", \n  "cells": [\n    {\n      "exec_id": 1, \n      "code": "print(2+3)"\n    }, \n    {\n      "exec_id": 2, \n      "code": "print(8+8)"\n    }\n  ]\n}'
+        u'{\n  "status": "ok", \n  "cells": [\n    {\n      "code": "print(2+3)", \n      "cell_id": 1\n    }, \n    {\n      "code": "print(8+8)", \n      "cell_id": 2\n    }\n  ]\n}'
 
     Having just called /ready, we get no new work::
     
@@ -388,7 +389,7 @@ def ready(id):
     the backend in this case::
     
         >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
-        u'{\n  "status": "error", \n  "exec_id": 3, \n  "data": "session is dead"\n}'
+        u'{\n  "status": "error", \n  "cell_id": 3, \n  "data": "session is dead"\n}'
 
     Note that the status of this session is now 'dead'::
 
@@ -403,19 +404,19 @@ def ready(id):
     session = S.query(db.Session).filter_by(id=id).one()
 
     # if there is anything to compute for this session, start it going.
-    if session.last_active_exec_id+1 < session.next_exec_id:
+    if session.last_active_cell_id+1 < session.next_cell_id:
         # Iterate over every cell in this session that has not
         # yet been sent off to be computed, and make a list of their
-        # code and exec_id's.
+        # code and cell_id's.
         cells = []
         for cell in S.query(db.Cell).filter(
-                        db.Cell.exec_id >= session.last_active_exec_id + 1).filter(
-                        db.Cell.session_id == session.id).order_by(db.Cell.exec_id):
+                        db.Cell.cell_id >= session.last_active_cell_id + 1).filter(
+                        db.Cell.session_id == session.id).order_by(db.Cell.cell_id):
 
-            cells.append({'code':cell.code, 'exec_id':cell.exec_id})
+            cells.append({'code':cell.code, 'cell_id':cell.cell_id})
             
-        # Record what will be the last exec_id sent off to be computed.
-        session.last_active_exec_id = cells[-1]['exec_id']
+        # Record what will be the last cell_id sent off to be computed.
+        session.last_active_cell_id = cells[-1]['cell_id']
         # This session is now supposed to be running, so when new cells
         # come in to be computed, we do not send them off immediately.
         session.status = 'running'
@@ -448,13 +449,13 @@ def sessions():
           "sessions": [
             {
               "status": "running", 
+              "start_time": "...", 
               "url": "http://localhost:5001", 
               "path": "...tmp...", 
-              "start_time": "...", 
-              "next_exec_id": 0, 
+              "next_cell_id": 0, 
               "pid": ..., 
               "id": 0, 
-              "last_active_exec_id": -1
+              "last_active_cell_id": -1
             }
           ]
         }
@@ -465,13 +466,13 @@ def sessions():
         ...}
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 1\n}'
-        >>> import json; json.loads(misc.get('http://localhost:5000/sessions'))
-        {u'status': u'ok', u'sessions': [{u'status': u'ready', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 0}, {u'status': u'running', u'url': u'http://localhost:5002', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 1}]}
+        >>> misc.get('http://localhost:5000/sessions')
+        u'{\n  "status": "ok", \n  "sessions": [\n    {\n      "status": "ready", \n      "start_time": "...", \n      "url": "http://localhost:5001", \n      "path": "...", \n      "next_cell_id": 0, \n      "pid": ..., \n      "id": 0, \n      "last_active_cell_id": -1\n    }, \n    {\n      "status": "running", \n      "start_time": "...", \n      "url": "http://localhost:5002", \n      "path": "...", \n      "next_cell_id": 0, \n      "pid": ..., \n      "id": 1, \n      "last_active_cell_id": -1\n    }\n  ]\n}'
         >>> misc.get('http://localhost:5000/sigkill/0')
         u'{\n  "status": "ok"\n}'
         >>> client.Client(5000).wait(0, status='dead')
         >>> json.loads(misc.get('http://localhost:5000/sessions'))
-        {u'status': u'ok', u'sessions': [{u'status': u'dead', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 0}, {u'status': u'running', u'url': u'http://localhost:5002', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 1}]}
+        {u'status': u'ok', u'sessions': [{u'status': u'dead', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'path': u'...', u'next_cell_id': 0, u'id': 0, u'last_active_cell_id': -1}, {u'status': u'running', u'url': u'http://localhost:5002', u'start_time': u'...', u'pid': ..., u'path': u'...', u'next_cell_id': 0, u'id': 1, u'last_active_cell_id': -1}]}
     """
     S = db.session()
     v = [s.to_json() for s in S.query(db.Session).order_by(db.Session.id).all()]
@@ -493,14 +494,14 @@ def session(session_id):
         >>> z = misc.get('http://localhost:5000/killall')  # for doctesting
         >>> misc.get('http://localhost:5000/new_session')
         u'{\n  "status": "ok", \n  "id": 0\n}'
-        >>> json.loads(misc.get('http://localhost:5000/session/0'))
-        {u'status': u'ok', u'data': {u'status': u'running', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 0}}
+        >>> misc.get('http://localhost:5000/session/0')
+        u'{\n  "status": "ok", \n  "data": {\n    "status": "running", \n    "start_time": "...", \n    "url": "http://localhost:5001", \n    "path": "...", \n    "next_cell_id": 0, \n    "pid": ..., \n    "id": 0, \n    "last_active_cell_id": -1\n  }\n}'
 
     Wait until the session starts::
     
         >>> import client; client.Client(5000).wait(0)
-        >>> json.loads(misc.get('http://localhost:5000/session/0'))
-        {u'status': u'ok', u'data': {u'status': u'ready', u'url': u'http://localhost:5001', u'start_time': u'...', u'pid': ..., u'last_active_exec_id': -1, u'path': u'...tmp...', u'next_exec_id': 0, u'id': 0}}
+        >>> misc.get('http://localhost:5000/session/0')
+        u'{\n  "status": "ok", \n  "data": {\n    "status": "ready", \n    "start_time": "...", \n    "url": "http://localhost:5001", \n    "path": "...", \n    "next_cell_id": 0, \n    "pid": ..., \n    "id": 0, \n    "last_active_cell_id": -1\n  }\n}'
 
     We query for a nonexistent session::
 
@@ -546,14 +547,14 @@ def cells(session_id):
     Next we execute a cell, so it is listed::
 
         >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
+        u'{\n  "status": "ok", \n  "cell_status": "enqueued", \n  "cell_id": 0\n}'
         >>> print misc.get('http://localhost:5000/cells/0')
         {
           "status": "ok", 
           "data": [
             {
-              "exec_id": 0, 
-              "code": "print(2+3)"
+              "code": "print(2+3)", 
+              "cell_id": 0
             }
           ]
         }
@@ -562,7 +563,7 @@ def cells(session_id):
     
         >>> import client; client.Client(5000).wait(0)
         >>> misc.get('http://localhost:5000/cells/0')
-        u'{\n  "status": "ok", \n  "data": [\n    {\n      "exec_id": 0, \n      "code": "print(2+3)"\n    }\n  ]\n}'
+        u'{\n  "status": "ok", \n  "data": [\n    {\n      "code": "print(2+3)", \n      "cell_id": 0\n    }\n  ]\n}'
 
     We evaluate 2 more cells so /cells/0 returns three cells::
 
@@ -570,7 +571,7 @@ def cells(session_id):
         >>> a = misc.post('http://localhost:5000/execute/0', {'code':'print(7*13)'})
         >>> import json
         >>> print json.loads(misc.get('http://localhost:5000/cells/0'))
-        {u'status': u'ok', u'data': [{u'exec_id': 0, u'code': u'print(2+3)'}, {u'exec_id': 1, u'code': u'print(8+8)'}, {u'exec_id': 2, u'code': u'print(7*13)'}]}
+        {u'status': u'ok', u'data': [{u'code': u'print(2+3)', u'cell_id': 0}, {u'code': u'print(8+8)', u'cell_id': 1}, {u'code': u'print(7*13)', u'cell_id': 2}]}
     """
     S = db.session()
     try:
@@ -580,11 +581,11 @@ def cells(session_id):
         msg = {'status':'error', 'data':'unknown session %s'%session_id}
     return jsonify(msg)
     
-@app.route('/output_messages/<int:session_id>/<int:exec_id>/<int:number>')
-def output_messages(session_id, exec_id, number):
+@app.route('/output_messages/<int:session_id>/<int:cell_id>/<int:number>')
+def output_messages(session_id, cell_id, number):
     r"""
     Return all output messages for the cell with given session_id and
-    exec_id, starting with the message labeled with the given number.
+    cell_id, starting with the message labeled with the given number.
 
     EXAMPLES::
 
@@ -594,7 +595,7 @@ def output_messages(session_id, exec_id, number):
         u'{\n  "status": "ok", \n  "id": 0\n}'
         >>> import client; client.Client(5000).wait(0)
         >>> misc.post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        u'{\n  "status": "ok", \n  "cell_status": "running", \n  "cell_id": 0\n}'
         >>> client.Client(5000).wait(0)        
         >>> print misc.get('http://localhost:5000/output_messages/0/0/0')
         {
@@ -616,7 +617,7 @@ def output_messages(session_id, exec_id, number):
         }
     """
     S = db.session()
-    output_msgs = S.query(db.OutputMsg).filter_by(session_id=session_id, exec_id=exec_id).\
+    output_msgs = S.query(db.OutputMsg).filter_by(session_id=session_id, cell_id=cell_id).\
                   filter('number>=:number').params(number=number).\
                   order_by(db.OutputMsg.number)
     data = [{'number':m.number, 'done':m.done, 'output':m.output, 'modified_files':m.modified_files}
@@ -637,7 +638,7 @@ def send_signal(id, sig):
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "ready"\n}'
         >>> misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
+        u'{\n  "status": "ok", \n  "cell_status": "running", \n  "cell_id": 0\n}'
         >>> misc.get('http://localhost:5000/status/0')
         u'{\n  "status": "ok", \n  "session_status": "running"\n}'
         >>> misc.get('http://localhost:5000/sigint/0')  # indirect doctest
@@ -710,9 +711,9 @@ def sigint(id):
         >>> import client; client.Client(5000).wait(0, timeout=1)
         >>> import client; client.Client(5000).wait(1, timeout=1)
         >>> misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        u'{\n  "status": "ok", \n  "cell_status": "running", \n  "cell_id": 0\n}'
         >>> misc.post('http://localhost:5000/execute/1', {'code':'while 1: True'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "running"\n}'
+        u'{\n  "status": "ok", \n  "cell_status": "running", \n  "cell_id": 0\n}'
         
         >>> misc.get('http://localhost:5000/sigint/1')
         u'{\n  "status": "ok"\n}'
@@ -940,7 +941,7 @@ def files(id):
     Create a file (via a computation) and check the list::
 
         >>> misc.post('http://localhost:5000/execute/0', {'code':'open("a_file.txt","w").write("hello")'})
-        u'{\n  "status": "ok", \n  "exec_id": 0, \n  "cell_status": "..."\n}'
+        u'{\n  "status": "ok", \n  "cell_status": "enqueued", \n  "cell_id": 0\n}'
         >>> c.wait(0)
         >>> misc.get('http://localhost:5000/files/0')
         u'{\n  "status": "ok", \n  "data": [\n    "a_file.txt"\n  ]\n}'
@@ -1165,14 +1166,14 @@ def submit_output(id):
     report the output that they produce.  The POST request looks like
     this
 
-       {'exec_id':0, 'done':False, 'modified_files':'paths separated by spaces', 'output':'123'}
+       {'cell_id':0, 'done':False, 'modified_files':'paths separated by spaces', 'output':'123'}
 
     The output and modified_files fields may be omitted. 
 
     INPUT:
 
     - ``id`` -- nonnegative integer
-    - POST variables: exec_id, done, modified_files (optional), output (optional)
+    - POST variables: cell_id, done, modified_files (optional), output (optional)
 
     OUTPUT:
 
@@ -1189,12 +1190,12 @@ def submit_output(id):
         >>> a = misc.get('http://localhost:5000/new_session')
         >>> c.wait(0)  
         >>> json.loads(misc.post('http://localhost:5000/execute/0', {'code':'while 1: True'}))
-        {u'status': u'ok', u'exec_id': 0, u'cell_status': u'running'}
+        {u'status': u'ok', u'cell_status': u'running', u'cell_id': 0}
         >>> c.wait(0, status='running')
 
     Now we "spoof" submitting some output::
 
-        >>> json.loads(misc.post('http://localhost:5000/submit_output/0', {'exec_id':0, 'done':False, 'modified_files':'', 'output':'123'}))
+        >>> json.loads(misc.post('http://localhost:5000/submit_output/0', {'cell_id':0, 'done':False, 'modified_files':'', 'output':'123'}))
         {u'status': u'ok'}
 
     Check that we got the output::
@@ -1212,40 +1213,40 @@ def submit_output(id):
 
     Next we test error conditions.
 
-    We submit output missing the exec_id (which is the only required field)::
+    We submit output missing the cell_id (which is the only required field)::
 
         >>> json.loads(misc.post('http://localhost:5000/submit_output/0', {'done':False, 'modified_files':'', 'output':'123'}))
-        {u'status': u'error', u'data': u'must include exec_id as a POST variable'}
+        {u'status': u'error', u'data': u'must include cell_id as a POST variable'}
 
-    We submit output for a cell that does not exist (the exec_id specifies the cell)::
+    We submit output for a cell that does not exist (the cell_id specifies the cell)::
 
-        >>> json.loads(misc.post('http://localhost:5000/submit_output/0', {'exec_id':1, 'done':False, 'modified_files':'', 'output':'123'}))
-        {u'status': u'error', u'data': u'no cell with exec_id=1 and session_id=0'}
+        >>> json.loads(misc.post('http://localhost:5000/submit_output/0', {'cell_id':1, 'done':False, 'modified_files':'', 'output':'123'}))
+        {u'status': u'error', u'data': u'no cell with cell_id=1 and session_id=0'}
 
     We submit output for a nonexistent session::
 
-        >>> json.loads(misc.post('http://localhost:5000/submit_output/1', {'exec_id':0, 'done':False, 'modified_files':'', 'output':'123'}))
-        {u'status': u'error', u'data': u'no cell with exec_id=0 and session_id=1'}
+        >>> json.loads(misc.post('http://localhost:5000/submit_output/1', {'cell_id':0, 'done':False, 'modified_files':'', 'output':'123'}))
+        {u'status': u'error', u'data': u'no cell with cell_id=0 and session_id=1'}
 
     We try to use GET instead of POST::
 
-        >>> misc.get('http://localhost:5000/submit_output/0', {'exec_id':0, 'done':False, 'modified_files':'', 'output':'123'})
+        >>> misc.get('http://localhost:5000/submit_output/0', {'cell_id':0, 'done':False, 'modified_files':'', 'output':'123'})
         u'...The method GET is not allowed for the requested URL...'
     """
     if request.method == 'POST':
         try:
             S = db.session()
             m = request.form
-            if 'exec_id' not in m:
-                return jsonify({'status':'error', 'data':'must include exec_id as a POST variable'})
-            exec_id = m['exec_id']
+            if 'cell_id' not in m:
+                return jsonify({'status':'error', 'data':'must include cell_id as a POST variable'})
+            cell_id = m['cell_id']
 
             try:
-                cell = S.query(db.Cell).filter_by(exec_id=exec_id, session_id=id).one()
+                cell = S.query(db.Cell).filter_by(cell_id=cell_id, session_id=id).one()
             except orm_exc.NoResultFound:
-                return jsonify({'status':'error', 'data':'no cell with exec_id=%s and session_id=%s'%(exec_id, id)})
+                return jsonify({'status':'error', 'data':'no cell with cell_id=%s and session_id=%s'%(cell_id, id)})
 
-            msg = db.OutputMsg(number=len(cell.output), exec_id=exec_id, session_id=id)
+            msg = db.OutputMsg(number=len(cell.output), cell_id=cell_id, session_id=id)
             if 'done' in m:
                 msg.done = False if m['done'] == u'False' else True
             if 'output' in m:

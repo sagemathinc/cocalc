@@ -24,7 +24,7 @@ class Client(object):
         (0, 'running')
         >>> c.wait(0)
         >>> c.cells(0)
-        [{u'exec_id': 0, u'code': u'print(2+3)'}]
+        [{u'code': u'print(2+3)', u'cell_id': 0}]
         >>> c.output(0,0)
         [{u'output': u'5\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
         >>> c.quit()
@@ -93,7 +93,7 @@ class Client(object):
         - ``code`` -- string
 
         OUTPUT:
-        - exec_id -- execution id number
+        - cell_id -- execution id number
         - status message
         
         EXAMPLES::
@@ -111,12 +111,12 @@ class Client(object):
             (0, 'running')
             >>> c.wait(0)
             >>> c.cells(0)
-            [{u'exec_id': 0, u'code': u'print(2+3)'}]
+            [{u'code': u'print(2+3)', u'cell_id': 0}]
             >>> c.output(0,0)
             [{u'output': u'5\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.wait(1)
             >>> c.cells(1)
-            [{u'exec_id': 0, u'code': u'print(5*8)'}]
+            [{u'code': u'print(5*8)', u'cell_id': 0}]
             >>> c.output(1,0)
             [{u'output': u'40\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.quit()            
@@ -125,7 +125,7 @@ class Client(object):
         m = json.loads(msg)
         if m['status'] == u'error':
             raise RuntimeError(m['data'])
-        return int(m['exec_id']), str(m['cell_status'])
+        return int(m['cell_id']), str(m['cell_status'])
     
     def sigint(self, session_id):
         r"""
@@ -144,14 +144,14 @@ class Client(object):
             {u'status': u'ok'}
             >>> c.wait(0)
             >>> c.cells(0)
-            [{u'exec_id': 0, u'code': u'import time; time.sleep(10)'}]
+            [{u'code': u'import time; time.sleep(10)', u'cell_id': 0}]
             >>> c.output(0,0)
             [{u'output': u'KeyboardInterrupt()', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.execute(0, 'print(2+3)')
             (1, 'running')
             >>> c.wait(0)
             >>> c.cells(0)[1]
-            {u'exec_id': 1, u'code': u'print(2+3)'}
+            {u'code': u'print(2+3)', u'cell_id': 1}
             >>> c.output(0,1,0)
             [{u'output': u'5\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.quit()            
@@ -193,7 +193,7 @@ class Client(object):
             (0, 'running')
             >>> c.wait(id)
             >>> c.cells(id)
-            [{u'exec_id': 0, u'code': u'print(2+2)'}]
+            [{u'code': u'print(2+2)', u'cell_id': 0}]
             >>> c.output(id, 0)
             [{u'output': u'4\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             
@@ -211,16 +211,16 @@ class Client(object):
         else:
             raise ValueError(msg['data'])
     
-    def output(self, session_id, exec_id, number=0):
+    def output(self, session_id, cell_id, number=0):
         r"""
         Return all output messages of at least the number for the cell
-        with given session_id and exec_id.  All inputs must be
+        with given session_id and cell_id.  All inputs must be
         nonnegative integers.
 
         INPUT:
 
         - ``session_id`` -- integer; id of a session (need not be valid)
-        - ``exec_id`` -- integer; execution id of a cell
+        - ``cell_id`` -- integer; execution id of a cell
         - ``number`` -- integer; output number
 
         OUTPUT:
@@ -252,7 +252,7 @@ class Client(object):
             [{u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.quit()
         """
-        url = '%s/output_messages/%s/%s/%s'%(self._url, int(session_id), int(exec_id), int(number))
+        url = '%s/output_messages/%s/%s/%s'%(self._url, int(session_id), int(cell_id), int(number))
         msg = json.loads(get(url))
         if msg['status'] == u'ok':
             return msg['data']
