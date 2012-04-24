@@ -28,7 +28,7 @@ class Port(Base):
         >>> S.add(Port('subprocess_server', 4999))
         >>> S.commit()
         >>> [(x.server, x.port) for x in S.query(Port).all()]
-        [(u'frontend', 5000), (u'subprocess_server', 4999)]        
+        [(u'frontend', 5000), (u'subprocess_server', 4999)]
     """
     __tablename__ = "ports"
     server = Column(String, primary_key=True)

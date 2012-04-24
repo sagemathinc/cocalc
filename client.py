@@ -27,6 +27,7 @@ class Client(object):
         [{u'exec_id': 0, u'code': u'print(2+3)'}]
         >>> c.output(0,0)
         [{u'output': u'5\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+        >>> c.quit()
     """
     def __init__(self, url):
         """
@@ -77,6 +78,7 @@ class Client(object):
             1
             >>> c.new_session()
             2
+            >>> c.quit()
         """
         msg = json.loads(get('%s/new_session'%self._url))
         if msg['status'] == 'ok':
@@ -117,6 +119,7 @@ class Client(object):
             [{u'exec_id': 0, u'code': u'print(5*8)'}]
             >>> c.output(1,0)
             [{u'output': u'40\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            >>> c.quit()            
         """
         msg = post('%s/execute/%s'%(self._url, session_id), {'code':code})
         m = json.loads(msg)
@@ -151,6 +154,7 @@ class Client(object):
             {u'exec_id': 1, u'code': u'print(2+3)'}
             >>> c.output(0,1,0)
             [{u'output': u'5\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            >>> c.quit()            
         """
         return json.loads(get('%s/sigint/%s'%(self._url, session_id)))
 
@@ -170,6 +174,7 @@ class Client(object):
             Traceback (most recent call last):
             ...
             RuntimeError: session is dead
+            >>> c.quit()            
         """
         return json.loads(get('%s/sigkill/%s'%(self._url, session_id)))
 
@@ -198,6 +203,7 @@ class Client(object):
             Traceback (most recent call last):
             ...
             ValueError: unknown session 1
+            >>> c.quit()            
         """
         msg = json.loads(get('%s/cells/%s'%(self._url, int(session_id))))
         if msg['status'] == u'ok':
@@ -244,6 +250,7 @@ class Client(object):
             [{u'output': u'515377520732011331036461129765621272702107522001\n', u'modified_files': None, u'done': False, u'number': 0}, {u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
             >>> c.output(id,1,1)
             [{u'output': None, u'modified_files': None, u'done': True, u'number': 1}]
+            >>> c.quit()
         """
         url = '%s/output_messages/%s/%s/%s'%(self._url, int(session_id), int(exec_id), int(number))
         msg = json.loads(get(url))
@@ -301,6 +308,7 @@ class Client(object):
             Traceback (most recent call last):
             ...
             ValueError: unknown session 1
+            >>> c.quit()            
         """
         t = time.time()
         while time.time() <= t + timeout:
@@ -341,11 +349,16 @@ class TestClient(Client):
         self.wait()
         self.killall()
 
-    def __del__(self):
+    def quit(self):
         try:
             self.killall()
         except:
             pass
+        if hasattr(self, 'r'):
+            del self.r
+
+    def __del__(self):
+        self.quit()
 
 def test1(n=10):
     """
@@ -368,4 +381,5 @@ def test1(n=10):
     cells = c.cells(id)
     for i, x in enumerate(requests):
         assert x == cells[i]['code']
+    c.quit()
 

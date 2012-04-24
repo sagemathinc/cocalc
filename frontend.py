@@ -912,19 +912,16 @@ class Daemon(object):
             self._pidfile = '%s-%s.pid'%(__name__, port)
         else:
             self._pidfile = pidfile
+            
         if os.path.exists(self._pidfile):
             pid = int(open(self._pidfile).read())
-            max_tries = 10
-            while True:
-                max_tries -= 1
-                if max_tries == 0:
-                    break # TODO: here we should just check that it is a zombie
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                    time.sleep(0.05)
-                except OSError:
-                    # error means process is gone
-                    break
+            try:
+                os.kill(pid, 0)
+                raise RuntimeError("there is already a frontend daemon running on port %s (pid=%s)"%(port, pid))
+            except OSError:
+                # no actual process
+                pass
+
         self._port = port
         cmd = "python %s.py %s %s %s"%(__name__, port, debug, log)
 

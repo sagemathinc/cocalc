@@ -112,6 +112,7 @@ class ComputeSession(object):
         EXAMPLES::
 
             >>> import misc, backend; backend.post = misc.fake_post
+            >>> here = os.path.abspath('.')
             >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
             >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
             >>> CS.execute_cells([{'code':'print(2+3)'}, {'code':'print(5*3)'}])
@@ -119,7 +120,8 @@ class ComputeSession(object):
             POST: ('output_url', {'exec_id': 0, 'done': True}) [('timeout', 10)]
             POST: ('output_url', {'output': '15\n', 'exec_id': 1, 'modified_files': [], 'done': False}) [('timeout', 10)]
             POST: ('output_url', {'exec_id': 1, 'done': True}) [('timeout', 10)]
-            >>> del CS._server  # shutdown HTTP server            
+            >>> del CS._server  # shutdown HTTP server
+            >>> os.chdir(here)
         """
         # TODO: we are ignoring the double check of cell['exec_id']. Find a way to use it. 
         for cell in cells:
@@ -187,11 +189,13 @@ class ComputeSession(object):
         EXAMPLES::
 
             >>> import misc, backend; backend.post = misc.fake_post
+            >>> here = os.path.abspath('.')
             >>> import tempfile; os.chdir(tempfile.mkdtemp())  # IMPORTANT
             >>> CS = backend.ComputeSession(5000, 'finished_url', 'output_url')
             >>> CS.output({'test':'message'})
             POST: ('output_url', {'test': 'message'}) [('timeout', 10)]
-            >>> del CS._server  # shutdown HTTP server            
+            >>> del CS._server  # shutdown HTTP server
+            >>> os.chdir(here)
         """
         post(self._output_url, msg, timeout=10)
             

@@ -74,6 +74,7 @@ def post(url, data=None, files=None, timeout=10):
         >>> from misc import post, get
         >>> a = get('http://localhost:5000/killall')  # for doctesting
         >>> a = get('http://localhost:5000/new_session')
+        >>> import client; client.Client(5000).wait(0)
         >>> print post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
         {
           "status": "ok", 
@@ -155,7 +156,7 @@ def fake_get(*args, **kwds):
     EXAMPLES::
 
         >>> fake_get('http://localhost:8000', data={'foo':5}, timeout=2)
-        GET: ('http://localhost:8000',) [('data', {'foo': 5}), ('timeout', 2)]    
+        GET: ('http://localhost:8000',) [('data', {'foo': 5}), ('timeout', 2)]
     """
     print 'GET: %s %s'%(args, list(sorted(kwds.iteritems())))
     
