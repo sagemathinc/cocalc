@@ -1401,6 +1401,25 @@ class Daemon(object):
                     os.unlink(self._pidfile)
 
 
+
+
+##########################################
+# Code for working with end user clients
+##########################################
+
+from flask import render_template
+
+@app.route('/demo1.html')
+def demo1():
+    return render_template('demo1.html')
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print "Usage: %s port [debug] [log]"%sys.argv[0]
@@ -1416,3 +1435,9 @@ if __name__ == '__main__':
         log = True
     run(sys.argv[1], debug=debug, log=log)
 
+
+
+
+
+    
+    
