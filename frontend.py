@@ -607,6 +607,7 @@ def cells(session_id):
     return jsonify(msg)
     
 @app.route('/output_messages/<int:session_id>/<int:cell_id>/<int:number>')
+@crossdomain('*')
 def output_messages(session_id, cell_id, number):
     r"""
     Return all output messages for the cell with given session_id and

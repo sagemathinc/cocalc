@@ -6,15 +6,72 @@
 <script type="text/javascript">
 $(function() {
   /* Style */
-  $('#output').css({'borderWidth':'1px', 'borderStyle':'solid', 'padding':'10px'})
+  $('div').css({'borderWidth':'2px', 'borderStyle':'solid', 
+                'padding':'10px', 'height':'150px'})
   $('#input').css({'fontSize':'medium', 'fontFamily':'Courier New'})
  
   /* Dynamic behavior */
+
+  function insert_output_in_cell(session_id, cell_id, number) {
+
+      $("#runframe").css({'borderColor':'green'});
+      
+      $.getJSON("http://localhost:5000/output_messages/" + session_id + "/" + cell_id + "/" + number, '',
+            function (response, status) {
+                 var i, n=response.data.length;
+                 number = -1;
+                 for (var i=0; i<n; i++) {
+                     var o = response.data[i].output;
+                     if (o != null) {
+                         $("#output")[0].innerHTML += o;
+                     }
+                     number = response.data[i].number;
+                 }
+                 if (n === 0 || !response.data[n-1].done) {
+                      setTimeout(function() { insert_output_in_cell(session_id, cell_id, number+1); }, 500);
+                 } else {
+                      $("#runframe").css({'borderColor':'black'})
+                 }
+            }
+       )
+  }
+
+
   $('#execute').click( function() { 
-       $('#output').load('http://localhost:5000/execute/0', {'code':$('#input').val()})
+
+       $.post('http://localhost:5000/execute/0',
+              {'code':$('#input').val()}, 
+              function (response, status) {
+                 if (response['status'] === 'error') {
+                      $('#output')[0].innerHTML = response['data'];
+                 } else {
+                      var cell_id = response['cell_id'];
+                      $('#output')[0].innerHTML = '';
+                      /* insert output in the cell, as it appears */
+                      insert_output_in_cell(0, cell_id, 0);
+                 }
+              },
+       'json')
 
   });
+
+  setInterval(update_session_status, 1000);   update_session_status();
 })
+
+function update_session_status() {
+   var sessions = $.getJSON('http://localhost:5000/sessions', '', 
+         function(response, status) { 
+              var i, s = '', session;
+              for (i=0; i<response['sessions'].length; i++) {
+                  session = response['sessions'][i];
+                   s += '<br>' + i + ': ' + session.status + ', pid=' + session.pid + ', cells=' + session.next_cell_id;
+              }
+             $('#sessions')[0].innerHTML = s
+         }
+   );
+
+   /* $('#sessions').load('http://localhost:5000/sessions') */
+}
 </script>
 
 </head>
@@ -22,11 +79,15 @@ $(function() {
 <body>
 <title>Demo 1</title>
 
-
-
-<textarea id="input" name="code" rows=6 cols=60>
-print(2+3)
+<div id="runframe">
+<textarea id="input" name="code" rows=6 cols=80>
+import random, time
+for i in range(200):
+    print random.randint(0,9),
+    if i%50==49: 
+        time.sleep(.5); print
 </textarea>
+</div>
 
 <br>
 
@@ -34,8 +95,16 @@ print(2+3)
 
 <br><br>
 
-<div id="output">
-output will go here
+<div>
+Output:
+<pre id="output">
+</pre>
+</div>
+
+<br>
+Sessions:
+<div id="sessions">
+loading status...
 </div>
 
 </body>
