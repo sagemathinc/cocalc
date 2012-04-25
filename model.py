@@ -56,7 +56,11 @@ class Session(Base):
     last_active_cell_id = Column(Integer)
     start_time = Column(DateTime)
     cells = relation("Cell", order_by="Cell.cell_id",
-                     backref='session', cascade='all, delete, delete-orphan')
+                     backref='session',
+                     cascade='all, delete, delete-orphan',
+                     lazy='dynamic')
+    # NOTE: the lazy=dynamic above makes a *huge* difference in the
+    # performance of the execute command in frontend.py!
     
     def __init__(self, id, pid, path, url, status='ready', next_cell_id=0, last_active_cell_id=-1):
         """
@@ -134,7 +138,8 @@ class Cell(Base):
     session_id = Column(Integer, ForeignKey('sessions.id'), primary_key=True)
     code = Column(String)
     output = relation("OutputMsg", order_by="OutputMsg.number",
-                      backref='cell', cascade='all, delete, delete-orphan',
+                      backref='cell',
+                      cascade='all, delete, delete-orphan',
                       primaryjoin='and_(Cell.session_id==OutputMsg.session_id, Cell.cell_id==OutputMsg.cell_id)')
 
     def __init__(self, cell_id, session_id, code):

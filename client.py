@@ -490,7 +490,7 @@ class Client(object):
             raise ValueError(msg['data'])
         return str(msg['session_status'])
 
-    def wait(self, session_id=None, delta=0.05, timeout=5, status='ready'):
+    def wait(self, session_id=None, delta=0.01, timeout=5, status='ready'):
         """
         Wait up to timeout seconds until the session with given id has
         the given status.
@@ -527,8 +527,8 @@ class Client(object):
             if self.session_status(session_id) == status:
                 return
             time.sleep(delta)
-            if delta < 4:
-                delta *= 1.3  # exponential backoff
+            if delta < 5:
+                delta *= 1.25  # exponential backoff
         raise RuntimeError('timeout')
 
     def put_file(self, id, files):

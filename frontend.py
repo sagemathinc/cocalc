@@ -298,6 +298,7 @@ def execute(session_id):
         # store the code to evaluate in database.
         cell = model.Cell(session.next_cell_id, session.id, code)
         session.cells.append(cell)
+        
         # increment id for next code execution
         session.next_cell_id += 1
         S.commit()
