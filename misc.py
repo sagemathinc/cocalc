@@ -11,7 +11,7 @@ import requests
 ConnectionError = requests.ConnectionError
 Timeout = requests.Timeout
 
-def get(url, data=None, timeout=1):
+def get(url, data=None, timeout=10):
     """
     GET the url with optional parameters as specified by the data
     variable.

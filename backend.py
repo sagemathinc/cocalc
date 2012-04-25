@@ -92,10 +92,14 @@ class ComputeSession(object):
                 self._server = HTTPServer(('', self._port), Handler)
                 break
             except Exception, msg:
-                #TODO: for testing only
-                open('/tmp/port_issue','a').write("trying again to start on port %s (%s)..."%(self._port, msg))
                 time.sleep(0.1)
-            
+
+        # TODO: add way to inform frontend that we failed
+        # to startup!  the below will make it so that
+        # this process appears to take forever to start
+        if not hasattr(self, '_server'):
+            sys.exit(1)
+
         self._session      = SimpleStreamingSession(
                              0, lambda msg: self.output(msg),
                              execpath=execpath)

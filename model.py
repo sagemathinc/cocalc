@@ -15,6 +15,8 @@ Base = declarative_base()
 from sqlalchemy import (Boolean, Column, DateTime, Integer, String, ForeignKey)
 from sqlalchemy.orm import relation, backref
 
+from sqlite3 import IntegrityError
+
 class Port(Base):
     """
     EXAMPLES::

@@ -57,10 +57,12 @@ Backend Communication:
 
 """
 
-import json, os, posixpath, signal, shutil, subprocess, sys, tempfile, time
+import json, os, posixpath, random, signal, shutil, subprocess, sys, tempfile, time
 
 from flask import Flask, request, safe_join, send_from_directory, jsonify
 app = Flask(__name__)
+
+from misc_flask import crossdomain
 
 app_port = None # must be set before running
 subprocess_port = None
@@ -227,21 +229,33 @@ def new_session():
         {u'status': u'ok', u'id': 0}
     """
     S = model.session()
-    if S.query(model.Session).count() == 0:
-        id = 0
-        assert app_port is not None, "you must initialize app_port"
-        port = app_port + 1
-    else:
-        last_session = S.query(model.Session).order_by(model.Session.id.desc())[0]
-        id = last_session.id + 1
-        port = int(last_session.url.split(':')[-1]) + 1
+    MAX_TRIES=300
+    for i in range(MAX_TRIES):
+        try:
+            if S.query(model.Session).count() == 0:
+                id = 0
+                assert app_port is not None, "you must initialize app_port"
+                port = app_port + 1
+            else:
+                last_session = S.query(model.Session).order_by(model.Session.id.desc())[0]
+                id = last_session.id + 1
+                port = int(last_session.url.split(':')[-1]) + 1
+            session = model.Session(id, 0, '', 'http://localhost:%s'%port, status='running')
+            S.add(session)
+            S.commit()
+            break
+        except:
+            # race condition -- multiple threads chose the same session id
+            S.rollback()
+            time.sleep(random.random()/20.)
+        
     try:
         pid, path = launch_backend_session(port=port, id=id)
     except RuntimeError:
         msg = {'status':'error', 'data':'failed to create new session (port=%s, id=%s)'%(port,id)}
     else:
-        session = model.Session(id, pid, path, 'http://localhost:%s'%port, status='running')
-        S.add(session)
+        session.pid = pid
+        session.path = path
         S.commit()
         msg = {'status':'ok', 'id':id}
     return jsonify(msg)
@@ -433,7 +447,7 @@ def ready(id):
         S.commit()
         return jsonify(status='done')
 
-@app.route('/sessions/')
+@app.route('/sessions')
 def sessions():
     r"""
     Return JSON representation of all the sessions.
@@ -1295,7 +1309,7 @@ def run(port=5000, debug=False, log=False, sub_port=None):
         logger.setLevel(logging.ERROR)    
     
     model.create()
-    app.run(port=port, debug=debug)
+    app.run(port=port, debug=debug, threaded=True)
 
 class Daemon(object):
     """
@@ -1407,26 +1421,16 @@ class Daemon(object):
 # Code for working with end user clients
 ##########################################
 
-from flask import render_template
-from crossdomain import crossdomain
-
-@app.route('/demo1.html')
-def demo1():
-    return render_template('demo1.html')
-
-@app.route('/foo')
-def foo():
-    return 'bar'
-
-
-@app.route('/bar')
+@app.route('/cross_site_test')
 @crossdomain(origin='*')
-def bar():
-    return 'cross-site'
+def cross_site_test():
+    return '<!doctype html><html><body>foo</body></html>'
+#return 'cross-site'
 
 
-
-
+##########################################
+# Starting the server
+##########################################
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
