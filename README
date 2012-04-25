@@ -220,11 +220,14 @@ Ideas to solve this:
     [x] doctest frontend.py
     [x] doctest client.py
 
+ [x] deal with threading of frontend.py and the various database
+     conflict issues that arise.
+
  [ ] get tests working on Ubuntu 12.04 Linux
 
  [ ] TODOs in code:
 
-     [ ] move app_port and subprocess_port to database
+     [ ] move app_port and subprocess_port to database?
 
 
  [ ] get tests working on Windows 7

@@ -390,6 +390,6 @@ if __name__ == '__main__':
         logger.setLevel(logging.ERROR)
         
     try:
-        app.run(port=port, debug=debug)
+        app.run(port=port, debug=debug, threaded=True)
     finally:
         close_all_processes()

@@ -244,6 +244,7 @@ def new_session():
             S.add(session)
             S.commit()
             break
+        # TODO: this appears to not be sqlite3.IntegrityError ??  figure out what the right exception is?
         except:
             # race condition -- multiple threads chose the same session id
             S.rollback()
@@ -296,26 +297,33 @@ def execute(session_id):
         code = request.form['code']
 
         S = model.session()
-        
-        try:
-            # get the session in which to execute this code
-            session = S.query(model.Session).filter_by(id=session_id).one()
-        except orm_exc.NoResultFound:
-            # handle invalid session_id
-            return jsonify({'status':'error', 'data':'unknown session %s'%session_id})
-        
-        if session.status == 'dead':
-            # according to the database, we've had trouble with this session,
-            # so just raise an error.  
-            return jsonify({'status':'error', 'data':'session is dead'})
-        
-        # store the code to evaluate in database.
-        cell = model.Cell(session.next_cell_id, session.id, code)
-        session.cells.append(cell)
-        
-        # increment id for next code execution
-        session.next_cell_id += 1
-        S.commit()
+        MAX_TRIES=300
+        for i in range(MAX_TRIES):
+            try:
+                # get the session in which to execute this code
+                session = S.query(model.Session).filter_by(id=session_id).one()
+            except orm_exc.NoResultFound:
+                # handle invalid session_id
+                return jsonify({'status':'error', 'data':'unknown session %s'%session_id})
+
+            if session.status == 'dead':
+                # according to the database, we've had trouble with this session,
+                # so just raise an error.  
+                return jsonify({'status':'error', 'data':'session is dead'})
+
+            # store the code to evaluate in database.
+            cell = model.Cell(session.next_cell_id, session.id, code)
+            session.cells.append(cell)
+            # increment id for next code execution
+            session.next_cell_id += 1
+            try:
+                S.commit()
+                break   
+            except:   # TODO: what is the right exception?
+                # race condition -- multiple threads chose the same cell_id
+                S.rollback()
+                time.sleep(random.random()/20.)
+                
         msg = {'cell_id':cell.cell_id}
 
         # if the session is in ready state, that means it has a web server
