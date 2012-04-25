@@ -11,15 +11,23 @@ COPYRIGHT:
   NOT released under *any* license yet.  (In the longterm I intend to 
   release this under BSD, but this is not the case for this version on.)
 
-DEPENDENCIES:
+PYTHON DEPENDENCIES:
 
 easy_install flask sqlalchemy requests pytest
 
   * flask (includes: jinja2, werkzeug); BSD licensed
   * sqlalchemy; MIT license
-  * jsquery (included); MIT license
   * pytest (for testing only); MIT license
   * requests (http://docs.python-requests.org/); ISC license (basically BSD)
+
+JAVASCRIPT:
+
+  * jsquery: MIT license
+
+BROWSER PUSH:
+
+  * gevent-socket.ioSocket.IO: http://pypi.python.org/pypi/gevent-socketio/:   (looks like MIT License)
+
 
   
 Testing
