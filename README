@@ -22,7 +22,7 @@ easy_install flask sqlalchemy requests pytest
 
 JAVASCRIPT:
 
-  * jsquery: MIT license
+  * jQuery: MIT license
 
 BROWSER PUSH:
 
