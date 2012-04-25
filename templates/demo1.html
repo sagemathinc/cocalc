@@ -4,13 +4,21 @@
 <script type="text/javascript" src="static/jquery-1.7.1.min.js"></script>
 
 <script type="text/javascript">
-alert('hi');
+$(function() {
+
+ $('#output').load('foo');
+
+ $('#output').load('http://localhost:5003/bar');
+
+})
 </script>
 
 </head>
 
 <body>
 <title>Demo 1</title>
+
+<div id="output"></div>
 
 </body>
 

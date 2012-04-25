@@ -1408,13 +1408,21 @@ class Daemon(object):
 ##########################################
 
 from flask import render_template
+from crossdomain import crossdomain
 
 @app.route('/demo1.html')
 def demo1():
     return render_template('demo1.html')
 
+@app.route('/foo')
+def foo():
+    return 'bar'
 
 
+@app.route('/bar')
+@crossdomain(origin='*')
+def bar():
+    return 'cross-site'
 
 
 
