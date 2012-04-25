@@ -247,7 +247,9 @@ Ideas to solve this:
 
  [ ] better logs
 
+ [ ] For IE8, crossdomain it will be necessary to use XDomainRequest directly instead of jquery...
 
+      See http://stackoverflow.com/questions/3362474/jquery-ajax-fails-in-ie-on-cross-domain-calls
 
  
 

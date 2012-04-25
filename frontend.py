@@ -262,6 +262,7 @@ def new_session():
     return jsonify(msg)
 
 @app.route('/execute/<int:session_id>', methods=['POST'])
+@crossdomain('*')
 def execute(session_id):
     r"""
     Create a new cell with given input code, and start it executing in
@@ -456,6 +457,7 @@ def ready(id):
         return jsonify(status='done')
 
 @app.route('/sessions')
+@crossdomain(origin='*')
 def sessions():
     r"""
     Return JSON representation of all the sessions.
@@ -1432,8 +1434,7 @@ class Daemon(object):
 @app.route('/cross_site_test')
 @crossdomain(origin='*')
 def cross_site_test():
-    return '<!doctype html><html><body>foo</body></html>'
-#return 'cross-site'
+    return 'cross-site'
 
 
 ##########################################

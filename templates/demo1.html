@@ -5,9 +5,15 @@
 
 <script type="text/javascript">
 $(function() {
+  /* Style */
+  $('#output').css({'borderWidth':'1px', 'borderStyle':'solid', 'padding':'10px'})
+  $('#input').css({'fontSize':'medium', 'fontFamily':'Courier New'})
+ 
+  /* Dynamic behavior */
+  $('#execute').click( function() { 
+       $('#output').load('http://localhost:5000/execute/0', {'code':$('#input').val()})
 
- $('#output').load('http://localhost:5000/cross_site_test');
-
+  });
 })
 </script>
 
@@ -16,7 +22,21 @@ $(function() {
 <body>
 <title>Demo 1</title>
 
-<div id="output"></div>
+
+
+<textarea id="input" name="code" rows=6 cols=60>
+print(2+3)
+</textarea>
+
+<br>
+
+<button id="execute">Execute</button>
+
+<br><br>
+
+<div id="output">
+output will go here
+</div>
 
 </body>
 
