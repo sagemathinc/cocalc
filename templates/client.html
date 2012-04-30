@@ -6,7 +6,14 @@
 
 <script type="text/javascript">
 $(function() {
-    test("hello");
+
+    var client = sagews.Client("http://localhost:5000");
+    
+    client.new_session(function(mesg) {
+        client.execute(mesg['id'], 'print(2+3)', 
+              function(m) { alert(mesg['id'] + ' ' + m.status + ' ' + m.cell_id); });
+    });
+
 })
 </script>
 

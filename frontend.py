@@ -47,7 +47,7 @@ Code Execution:
 
 Files: uploading, downloading, deleting and listing:
     /files/id -- return list of all files in the given session
-    /put_file/id, POST -- put a file in the given session
+    /put_file/id, POST -- put a file or files into the given session
     /get_file/id/path -- get a file from the session
     /delete_file/id/path -- delete a file from the session
 
@@ -156,6 +156,7 @@ def close_subprocess(pid):
     return json.loads(get(url))
 
 @app.route('/close_all_sessions')
+@crossdomain('*')
 def close_all_sessions():
     r"""
     Kill and clean up all sessions associated to this frontend server.
@@ -216,6 +217,7 @@ def root():
     return "Frontend Server"
 
 @app.route('/new_session')
+@crossdomain('*')
 def new_session():
     r"""
     Create a new session, and return its id number as the 'id' key of
@@ -505,6 +507,7 @@ def sessions():
 
 
 @app.route('/session/<int:session_id>')
+@crossdomain('*')
 def session(session_id):
     r"""
     Return JSON representation of data about the session with given id.
@@ -545,6 +548,7 @@ def session(session_id):
     return jsonify(msg)
 
 @app.route('/cells/<int:session_id>')
+@crossdomain('*')
 def cells(session_id):
     r"""
     Return JSON representation of all cells in the session with given
@@ -713,6 +717,7 @@ def send_signal(id, sig):
     return jsonify(msg)
 
 @app.route('/sigint/<int:id>')
+@crossdomain('*')
 def sigint(id):
     r"""
     Send an interrupt signal to the given session.
@@ -771,6 +776,7 @@ def sigint(id):
     return send_signal(id, signal.SIGINT)
 
 @app.route('/sigkill/<int:id>')
+@crossdomain('*')
 def sigkill(id):
     r"""
     Send a kill signal to the given session.
@@ -798,6 +804,7 @@ def sigkill(id):
     return send_signal(id, signal.SIGKILL)
 
 @app.route('/close_session/<int:id>')
+@crossdomain('*')
 def close_session(id):
     r"""
     Close the session with given id.
@@ -847,6 +854,7 @@ def close_session(id):
 
 
 @app.route('/status/<int:id>')
+@crossdomain('*')
 def status(id):
     r"""
     Return the status of the given session as a JSON message:
@@ -938,6 +946,7 @@ def file_path(id, path):
         raise ValueError('unknown session %s'%id)
 
 @app.route('/files/<int:id>')
+@crossdomain('*')
 def files(id):
     r"""
     Return list of all files in the session with given id.
@@ -1023,6 +1032,7 @@ def files(id):
     
 
 @app.route('/put_file/<int:id>', methods=['POST'])
+@crossdomain('*')
 def put_file(id):
     r"""
     Place the file with given 'content' (POST variable) in the given
@@ -1080,6 +1090,7 @@ def put_file(id):
         return jsonify({'status':'error', 'data':"must POST file"})
 
 @app.route('/get_file/<int:id>/<path:path>')
+@crossdomain('*')
 def get_file(id, path):
     r"""
     Return contents of the file in the given path in the session with
@@ -1128,6 +1139,7 @@ def get_file(id, path):
     return send_from_directory(base, fname, as_attachment=True)
 
 @app.route('/delete_file/<int:id>/<path:path>')
+@crossdomain('*')
 def delete_file(id, path):
     r"""
     Delete the file with given path in the session with given id.
@@ -1186,6 +1198,7 @@ def delete_file(id, path):
     return jsonify({'status':'ok'})
 
 @app.route('/submit_output/<int:id>', methods=['POST'])
+@crossdomain('*')
 def submit_output(id):
     r"""
     The compute sessions call this function via a POST request to
@@ -1426,16 +1439,6 @@ class Daemon(object):
                     os.unlink(self._pidfile)
 
 
-
-
-##########################################
-# Code for working with end user clients
-##########################################
-
-@app.route('/cross_site_test')
-@crossdomain(origin='*')
-def cross_site_test():
-    return 'cross-site'
 
 
 ##########################################
