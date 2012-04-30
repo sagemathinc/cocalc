@@ -64,7 +64,9 @@ sagews.Client = function(server) {
     /* execute block of code */    
     execute: function(session_id, code, callback) { post('execute/' + session_id, {'code':code}, callback); },
 
-    /* incremental output produced when executing code */
+    /* incremental output produced when executing code -- clients
+       *should* receipt socket.io messages instead of using this.
+       This is used mainly for testing and development purposes.  */
     output_messages: function(session_id, cell_id, number, callback) { 
         get('output_messages/' + session_id + '/' + cell_id + '/' + number, callback);
     }, 
@@ -81,9 +83,54 @@ sagews.Client = function(server) {
     get_file: function(session_id, path, callback) { get('get_file/' + session_id + '/' + path, callback); },
 
     /* delete a file from the session */
-    delete_file: function(session_id, path, callback) { get('delete_file/' + session_id + '/' + path, callback); }
+    delete_file: function(session_id, path, callback) { get('delete_file/' + session_id + '/' + path, callback); },
+
+  /* wait -- use this only for testing purposes. */
+    wait: function(session_id, callback) { 
+        /* TODO: do a proper implementation!!!! */
+        setTimeout(2000, callback); 
+    },
 
   };
+}
+
+/* Run tests on the Client object pointed at the given server. 
+   Return results of test via callback. */
+sagews.TestClient = function(server, callback) {
+    var client;
+    var results = {};
+
+    function setup(callback) {
+      client = sagews.Client(server);
+      client.close_all_sessions(function(m) { callback(); } );
+    }
+
+    function cleanup() {
+      client.close_all_sessions( function(m) {} );
+    }
+
+    /* test 1 -- create new session and verify result */
+    function test1() {
+      setup( function(m) {
+      client.new_session(function(m) {
+      results.test1 = (m.status === "ok" && m.id === 0);
+      cleanup();
+      })})
+    }
+    test1();
+
+    /* test 2 -- create new session, and evaluate 2+3, then verify that we get 5 */
+    function test2() {
+       setup( function(m) {
+       client.new_session(function(m) { alert(m.status);
+       client.execute(0, 'print(2+3)', function(m) { alert(m.status);
+       client.wait(0, function() { alert('hi');
+       results.test2 = true;
+       })})})})
+    }
+    test2();
+
+    return results;
 }
 
 
