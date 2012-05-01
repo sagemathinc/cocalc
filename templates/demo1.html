@@ -3,59 +3,81 @@
 <head>
 <script type="text/javascript" src="static/jquery-1.7.1.min.js"></script>
 
+<script type="text/javascript" src="static/sagews.js"></script>
+
 <script type="text/javascript">
 $(function() {
-  /* Style */
+  /*******************************************************
+   *     Style 
+   ********************************************************/
   $('div').css({'borderWidth':'2px', 'borderStyle':'solid', 
                 'padding':'10px', 'height':'150px'})
   $('#input').css({'fontSize':'medium', 'fontFamily':'Courier New'})
  
-  /* Dynamic behavior */
 
+  /*******************************************************
+   * Dynamic behavior
+   ********************************************************/
+
+  /* Create an interface to a sagews frontend. */
+  var client = sagews.Client('http://localhost:5000'); 
+
+  $('#close_all').click( function() { 
+       client.close_all_sessions(function(m) { alert(m.status); })
+  })
+
+  $('#new_session').click( function() { 
+       client.new_session(function(m) { alert(m.status + '   id=' + m.id); })
+  })
+
+  /* TODO: I think this pushing output stuff should get moved to sagews.js.  Then the 
+     polling/push/websockets stuff will be automatically taken care of. */
   function insert_output_in_cell(session_id, cell_id, number) {
-
-      $("#runframe").css({'borderColor':'green'});
-      
-      $.getJSON("http://localhost:5000/output_messages/" + session_id + "/" + cell_id + "/" + number, '',
-            function (response, status) {
-                 var i, n=response.data.length;
-                 number = -1;
-                 for (var i=0; i<n; i++) {
-                     var o = response.data[i].output;
-                     if (o != null) {
-                         $("#output")[0].innerHTML += o;
-                     }
-                     number = response.data[i].number;
-                 }
-                 if (n === 0 || !response.data[n-1].done) {
-                      setTimeout(function() { insert_output_in_cell(session_id, cell_id, number+1); }, 500);
-                 } else {
-                      $("#runframe").css({'borderColor':'black'})
-                 }
-            }
-       )
-  }
+      $("div").css({'borderColor':'green'});
+      client.output_messages(session_id, cell_id, number, function(m) {
+	  var i, o, n=m.data.length, done=false;
+          if (n === 0) {
+	      number -= 1; /* received no new messages */
+	  } else {
+              for (i = 0; i < n; i++) {
+		  o = m.data[i].output;
+		  number = m.data[i].number;
+		  if (o !== null) {
+                      $("#output")[0].innerHTML += o;
+		  }
+		  if (m.data[i].done) {
+		      done = true;
+		  }
+              }
+	  }
+          if (done) {
+	      $("div").css({'borderColor':'black'})
+          } else {
+              setTimeout(function() { insert_output_in_cell(session_id, cell_id, number+1); }, 500);
+          }
+      });
+   }
 
 
   $('#execute').click( function() { 
-
-       $.post('http://localhost:5000/execute/0',
-              {'code':$('#input').val()}, 
-              function (response, status) {
-                 if (response['status'] === 'error') {
-                      $('#output')[0].innerHTML = response['data'];
-                 } else {
-                      var cell_id = response['cell_id'];
-                      $('#output')[0].innerHTML = '';
-                      /* insert output in the cell, as it appears */
-                      insert_output_in_cell(0, cell_id, 0);
-                 }
-              },
-       'json')
-
+       client.execute(0, $('#input').val(), function(m) {
+           if (m.status === 'error') {
+               $('#output')[0].innerHTML = m.data;
+           } else {
+               var cell_id = m.cell_id;
+               /* clear previous output */
+               $('#output')[0].innerHTML = '';
+               /* start inserting output in the cell, as it appears: 
+                  we do this here *only* because we are not doing polling yet. */
+               insert_output_in_cell(0, cell_id, 0);
+           }
+       });            
   });
 
-  setInterval(update_session_status, 1000);   update_session_status();
+  /* Polling: this must completely go away soon! */
+  /* Every 1 second, update status of sessions. */
+  setInterval(update_session_status, 1000);      
+  update_session_status();
 })
 
 function update_session_status() {
@@ -92,6 +114,9 @@ for i in range(200):
 <br>
 
 <button id="execute">Execute</button>
+<button id="close_all">Close all</button>
+<button id="new_session">New Session</button>
+
 
 <br><br>
 
