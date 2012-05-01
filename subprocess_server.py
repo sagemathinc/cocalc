@@ -367,6 +367,20 @@ class Daemon(object):
             >>> os.path.exists(pidfile)
             False
         """
+        self.kill()
+
+    def kill(self):
+        """
+        EXAMPLES::
+        
+            >>> r = Daemon(5100)
+            >>> open(r._pidfile).read()
+            '...'
+            >>> pidfile = r._pidfile
+            >>> r.kill()
+            >>> os.path.exists(pidfile)
+            False
+        """
         if hasattr(self, 'p') and not self.p.returncode:
             try:
                 os.kill(self.p.pid, signal.SIGINT)
