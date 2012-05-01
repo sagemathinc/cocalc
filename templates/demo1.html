@@ -23,11 +23,11 @@ $(function() {
   var client = sagews.Client('http://localhost:5000'); 
 
   $('#close_all').click( function() { 
-       client.close_all_sessions(function(m) { alert(m.status); })
+       client.close_all_sessions(function(m) { });  /* alert(m.status); }) */
   })
 
   $('#new_session').click( function() { 
-       client.new_session(function(m) { alert(m.status + '   id=' + m.id); })
+       client.new_session(function(m) { }); /* alert(m.status + '   id=' + m.id); }) */
   })
 
   /* TODO: I think this pushing output stuff should get moved to sagews.js.  Then the 
@@ -53,11 +53,16 @@ $(function() {
           if (done) {
 	      $("div").css({'borderColor':'black'})
           } else {
-              setTimeout(function() { insert_output_in_cell(session_id, cell_id, number+1); }, 500);
+              setTimeout(function() { insert_output_in_cell(session_id, cell_id, number+1); }, 50);
           }
       });
    }
 
+  $('#sigint').click( function() { client.sigint(0); } )
+
+  $('#sigkill').click( function() { client.sigkill(0); } )
+
+  $('#close_session').click( function() { client.close_session(0); } )
 
   $('#execute').click( function() { 
        client.execute(0, $('#input').val(), function(m) {
@@ -78,22 +83,21 @@ $(function() {
   /* Every 1 second, update status of sessions. */
   setInterval(update_session_status, 1000);      
   update_session_status();
+
+  function update_session_status() {
+      client.sessions(function (m) {
+          var i, s = '', session;
+          for (i = 0; i < m.sessions.length; i++) {
+              session = m.sessions[i];
+              s += '<br>' + i + ': ' + session.status + ', pid=' + session.pid + ', cells=' + session.next_cell_id;
+          }
+          $('#sessions')[0].innerHTML = s
+      })
+  }
+
 })
 
-function update_session_status() {
-   var sessions = $.getJSON('http://localhost:5000/sessions', '', 
-         function(response, status) { 
-              var i, s = '', session;
-              for (i=0; i<response['sessions'].length; i++) {
-                  session = response['sessions'][i];
-                   s += '<br>' + i + ': ' + session.status + ', pid=' + session.pid + ', cells=' + session.next_cell_id;
-              }
-             $('#sessions')[0].innerHTML = s
-         }
-   );
 
-   /* $('#sessions').load('http://localhost:5000/sessions') */
-}
 </script>
 
 </head>
@@ -114,6 +118,9 @@ for i in range(200):
 <br>
 
 <button id="execute">Execute</button>
+<button id="sigint">Interrupt</button>
+<button id="sigkill">Kill</button>
+<button id="close_session">Close</button>
 <button id="close_all">Close all</button>
 <button id="new_session">New Session</button>
 
