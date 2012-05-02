@@ -10,8 +10,9 @@ $(function() {
   /*******************************************************
    *     Style 
    ********************************************************/
-  $('div').css({'borderWidth':'2px', 'borderStyle':'solid', 
+  $('.bigboxes').css({'borderWidth':'2px', 'borderStyle':'solid', 
                 'padding':'10px', 'height':'150px'});
+  $('#message').css({'borderWidth':'2px', 'borderStyle':'solid', 'padding':'10px', 'borderColor':'red'});
   $('#input').css({'fontSize':'medium', 'fontFamily':'Courier New'});
   $('#session').css({'width':'30px'});
   $("button").css({'padding':'10px'});
@@ -20,14 +21,20 @@ $(function() {
   /*******************************************************
    * Dynamic behavior
    ********************************************************/
+
+  function say(mesg) {
+     $('#message')[0].innerHTML = mesg
+  }
+
   function waiting_style() {
-      $("div").css({'borderColor':'black'});
+      $(".bigboxes").css({'borderColor':'black'});
       $("button").css({'color':'black'});
   }
   waiting_style();
 
   function running_style() {
-      $("div").css({'borderColor':'green'});
+      say('');
+      $(".bigboxes").css({'borderColor':'green'});
       $("button").css({'color':'green'});
   }
 
@@ -55,34 +62,6 @@ $(function() {
 
   /* sets the id of the session to what is in the session input box */
   function session_id() { return($('#session').val()); }
-
-  /* TODO: I think this pushing output stuff should get moved to sagews.js.  Then the 
-     polling/push/websockets stuff will be automatically taken care of. */
-  function insert_output_in_cell(session_id, cell_id, number) {
-      running_style();
-      client.output_messages(session_id, cell_id, number, function(m) {
-	  var i, o, n=m.data.length, done=false;
-          if (n === 0) {
-	      number -= 1; /* received no new messages */
-	  } else {
-              for (i = 0; i < n; i++) {
-		  o = m.data[i].output;
-		  number = m.data[i].number;
-		  if (o !== null) {
-                      $("#output")[0].innerHTML += o;
-		  }
-		  if (m.data[i].done) {
-		      done = true;
-		  }
-              }
-	  }
-          if (done) {
-	      waiting_style();
-          } else {
-              setTimeout(function() { insert_output_in_cell(session_id, cell_id, number+1); }, 50);
-          }
-      });
-   }
     
   function sigint() { client.sigint(session_id()); } 
 
@@ -94,18 +73,19 @@ $(function() {
 
   function execute_code() { 
       var id = session_id();
+      $('#output')[0].innerHTML = '';
+      running_style();
       client.execute(id, $('#input').val(), function(m) {
-           if (m.status === 'error') {
-               $('#output')[0].innerHTML = m.data;
-           } else {
-               var cell_id = m.cell_id;
-               /* clear previous output */
-               $('#output')[0].innerHTML = '';
-               /* start inserting output in the cell, as it appears: 
-                  we do this here *only* because we are not doing polling yet. */
-               insert_output_in_cell(id, cell_id, 0);
-           }
-      });            
+	  if(m.status === "error") {
+	      say(m.data);
+	  }
+	  if (m.output) {
+              $('#output')[0].innerHTML += m.output;
+	  }
+	  if (m.done) {
+	      waiting_style();
+	  }
+      });
   }
 
   $('#execute').click(execute_code);
@@ -137,7 +117,9 @@ $(function() {
 <body>
 <h1>Sage Workspaces: Demo 1</h1>
 
-<div id="runframe">
+<div id="message"></div>
+
+<div class="bigboxes" id="runframe">
 <textarea id="input" name="code" rows=6 cols=80>
 import random, time
 for i in range(200):
@@ -160,7 +142,7 @@ for i in range(200):
 
 <br><br>
 
-<div>
+<div class="bigboxes">
 Output:
 <pre id="output">
 </pre>
@@ -168,7 +150,7 @@ Output:
 
 <br>
 Sessions:
-<div id="sessions">
+<div class="bigboxes" id="sessions">
 loading status...
 </div>
 
