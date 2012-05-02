@@ -12,25 +12,46 @@ $(function() {
    ********************************************************/
   $('div').css({'borderWidth':'2px', 'borderStyle':'solid', 
                 'padding':'10px', 'height':'150px'});
-
   $('#input').css({'fontSize':'medium', 'fontFamily':'Courier New'});
-
   $('#session').css({'width':'30px'});
+  $("button").css({'padding':'10px'});
+  $("h1").css({'color':'darkblue', 'textAlign':'center'});
 
   /*******************************************************
    * Dynamic behavior
    ********************************************************/
+  function waiting_style() {
+      $("div").css({'borderColor':'black'});
+      $("button").css({'color':'black'});
+  }
+  waiting_style();
+
+  function running_style() {
+      $("div").css({'borderColor':'green'});
+      $("button").css({'color':'green'});
+  }
+
 
   /* Create an interface to a sagews frontend. */
   var client = sagews.Client('http://localhost:5000'); 
 
+  $('body').keydown(function(event) { 
+      if (event.which == 13 && event.shiftKey) {
+	  execute_code();
+	  return false;
+      } else if (event.which == 67 && event.ctrlKey) {
+	  sigint();
+	  return false;
+      }
+  });
+
   $('#close_all').click( function() { 
        client.close_all_sessions(function(m) { });  /* alert(m.status); }) */
-  })
+  });
 
   $('#new_session').click( function() { 
-       client.new_session(function(m) { }); /* alert(m.status + '   id=' + m.id); }) */
-  })
+       client.new_session(function(m) { $('#session').val(m.id); }); /* alert(m.status + '   id=' + m.id); }) */
+  });
 
   /* sets the id of the session to what is in the session input box */
   function session_id() { return($('#session').val()); }
@@ -38,7 +59,7 @@ $(function() {
   /* TODO: I think this pushing output stuff should get moved to sagews.js.  Then the 
      polling/push/websockets stuff will be automatically taken care of. */
   function insert_output_in_cell(session_id, cell_id, number) {
-      $("div").css({'borderColor':'green'});
+      running_style();
       client.output_messages(session_id, cell_id, number, function(m) {
 	  var i, o, n=m.data.length, done=false;
           if (n === 0) {
@@ -56,20 +77,22 @@ $(function() {
               }
 	  }
           if (done) {
-	      $("div").css({'borderColor':'black'})
+	      waiting_style();
           } else {
               setTimeout(function() { insert_output_in_cell(session_id, cell_id, number+1); }, 50);
           }
       });
    }
+    
+  function sigint() { client.sigint(session_id()); } 
 
-  $('#sigint').click( function() { client.sigint(session_id()); } )
+  $('#sigint').click(sigint)
 
   $('#sigkill').click( function() { client.sigkill(session_id()); } )
 
   $('#close_session').click( function() { client.close_session(session_id()); } )
 
-  $('#execute').click( function() { 
+  function execute_code() { 
       var id = session_id();
       client.execute(id, $('#input').val(), function(m) {
            if (m.status === 'error') {
@@ -82,8 +105,10 @@ $(function() {
                   we do this here *only* because we are not doing polling yet. */
                insert_output_in_cell(id, cell_id, 0);
            }
-       });            
-  });
+      });            
+  }
+
+  $('#execute').click(execute_code);
 
   /* Polling: this must completely go away soon! */
   /* Every 1 second, update status of sessions. */
@@ -105,12 +130,12 @@ $(function() {
 
 
 </script>
+<title>Demo 1</title>
 
 </head>
 
 <body>
-<title>Demo 1</title>
-
+<h1>Sage Workspaces: Demo 1</h1>
 
 <div id="runframe">
 <textarea id="input" name="code" rows=6 cols=80>
@@ -124,11 +149,11 @@ for i in range(200):
 
 <br>
 
-<button id="execute">Execute (shift-enter)</button>
-<button id="sigint">Interrupt (cntrl-c)</button>
+<button id="execute">Execute (shift+enter)</button>
+<button id="sigint">Interrupt (ctrl+c)</button>
 <button id="sigkill">Kill</button>
 <button id="close_session">Close</button>
-<button id="close_all">Close all</button>
+<button id="close_all">Close all sessions</button>
 <button id="new_session">New Session</button>
 <span>Session <input type="text" id="session" value="0"/></span>
 

@@ -336,7 +336,7 @@ def execute(session_id):
                 session.last_active_cell_id = cell.cell_id
                 session.status = 'running'
                 cells = [{'code':cell.code, 'cell_id':cell.cell_id}]
-                post(session.url, {'cells':json.dumps(cells)}, timeout=0.1)
+                post(session.url, {'cells':json.dumps(cells)}, timeout=1)
                 msg['cell_status'] = 'running'
                 msg['status'] = 'ok'
             except (ConnectionError, Timeout):
