@@ -11,9 +11,11 @@ $(function() {
    *     Style 
    ********************************************************/
   $('div').css({'borderWidth':'2px', 'borderStyle':'solid', 
-                'padding':'10px', 'height':'150px'})
-  $('#input').css({'fontSize':'medium', 'fontFamily':'Courier New'})
- 
+                'padding':'10px', 'height':'150px'});
+
+  $('#input').css({'fontSize':'medium', 'fontFamily':'Courier New'});
+
+  $('#session').css({'width':'30px'});
 
   /*******************************************************
    * Dynamic behavior
@@ -29,6 +31,9 @@ $(function() {
   $('#new_session').click( function() { 
        client.new_session(function(m) { }); /* alert(m.status + '   id=' + m.id); }) */
   })
+
+  /* sets the id of the session to what is in the session input box */
+  function session_id() { return($('#session').val()); }
 
   /* TODO: I think this pushing output stuff should get moved to sagews.js.  Then the 
      polling/push/websockets stuff will be automatically taken care of. */
@@ -58,14 +63,15 @@ $(function() {
       });
    }
 
-  $('#sigint').click( function() { client.sigint(0); } )
+  $('#sigint').click( function() { client.sigint(session_id()); } )
 
-  $('#sigkill').click( function() { client.sigkill(0); } )
+  $('#sigkill').click( function() { client.sigkill(session_id()); } )
 
-  $('#close_session').click( function() { client.close_session(0); } )
+  $('#close_session').click( function() { client.close_session(session_id()); } )
 
   $('#execute').click( function() { 
-       client.execute(0, $('#input').val(), function(m) {
+      var id = session_id();
+      client.execute(id, $('#input').val(), function(m) {
            if (m.status === 'error') {
                $('#output')[0].innerHTML = m.data;
            } else {
@@ -74,14 +80,14 @@ $(function() {
                $('#output')[0].innerHTML = '';
                /* start inserting output in the cell, as it appears: 
                   we do this here *only* because we are not doing polling yet. */
-               insert_output_in_cell(0, cell_id, 0);
+               insert_output_in_cell(id, cell_id, 0);
            }
        });            
   });
 
   /* Polling: this must completely go away soon! */
   /* Every 1 second, update status of sessions. */
-  setInterval(update_session_status, 1000);      
+  setInterval(update_session_status, 200);      
   update_session_status();
 
   function update_session_status() {
@@ -105,6 +111,7 @@ $(function() {
 <body>
 <title>Demo 1</title>
 
+
 <div id="runframe">
 <textarea id="input" name="code" rows=6 cols=80>
 import random, time
@@ -117,12 +124,13 @@ for i in range(200):
 
 <br>
 
-<button id="execute">Execute</button>
-<button id="sigint">Interrupt</button>
+<button id="execute">Execute (shift-enter)</button>
+<button id="sigint">Interrupt (cntrl-c)</button>
 <button id="sigkill">Kill</button>
 <button id="close_session">Close</button>
 <button id="close_all">Close all</button>
 <button id="new_session">New Session</button>
+<span>Session <input type="text" id="session" value="0"/></span>
 
 
 <br><br>
