@@ -1299,7 +1299,7 @@ def submit_output(id):
         return jsonify({'status':'ok'})
     return jsonify({'status':'error', 'data':'must use POST request to submit output'})
 
-def run(port=5000, debug=False, log=False, sub_port=None):
+def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None):
     """
     Run a blocking instance of the frontend server serving on the
     given port.  If debug=True (not the default), then Flask is started
@@ -1333,7 +1333,7 @@ def run(port=5000, debug=False, log=False, sub_port=None):
         logger.setLevel(logging.ERROR)    
     
     model.create()
-    app.run(port=port, debug=debug, threaded=True)
+    app.run(host=host, port=port, debug=debug, threaded=True)
 
 class Daemon(object):
     """
@@ -1344,7 +1344,7 @@ class Daemon(object):
         >>> Daemon(5000)
         Workspace Frontend Daemon on port 5000
     """
-    def __init__(self, port, debug=False, pidfile=None, log=False):
+    def __init__(self, port, debug=False, pidfile=None, log=False, host="127.0.0.1"):
         """
         EXAMPLES::
 
@@ -1369,7 +1369,7 @@ class Daemon(object):
                 pass
 
         self._port = port
-        cmd = "python %s.py %s %s %s"%(__name__, port, debug, log)
+        cmd = "python %s.py %s %s %s %s"%(__name__, port, debug, log, host)
 
         self._server = subprocess.Popen(cmd, shell=True)
         open(self._pidfile, 'w').write(str(self._server.pid))
@@ -1458,7 +1458,11 @@ if __name__ == '__main__':
         log = eval(sys.argv[3])
     else:
         log = True
-    run(sys.argv[1], debug=debug, log=log)
+    if len(sys.argv) >= 5:
+        host = sys.argv[4]
+    else:
+        host = "127.0.0.1"
+    run(port=sys.argv[1], debug=debug, log=log, host=host)
 
 
 

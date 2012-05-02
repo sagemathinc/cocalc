@@ -1,16 +1,16 @@
 import sys, time
 
-def startall(start_port):
-    import frontend
-    f = frontend.Daemon(start_port+2, debug=True, log=True)
-
-    import workspace_server
-    w = workspace_server.Daemon(start_port, debug=True, log=True)
-
-    import subprocess_server
-    s = subprocess_server.Daemon(start_port+1, debug=True, log=True)
+def startall(start_port, host="127.0.0.1"):
 
     try:
+        import frontend
+        f = frontend.Daemon(start_port+2, debug=True, log=True, host=host)
+
+        import workspace_server
+        w = workspace_server.Daemon(start_port, debug=True, log=True, host=host)
+
+        import subprocess_server
+        s = subprocess_server.Daemon(start_port+1, debug=True, log=True)
         time.sleep(3600*24*365)
     except KeyboardInterrupt:
         pass
@@ -20,10 +20,13 @@ def startall(start_port):
         s.kill()
 
 if __name__ == '__main__':
+    host = "127.0.0.1"
     if len(sys.argv) >= 2:
         start_port = int(sys.argv[1])
+        if len(sys.argv) >= 3:
+            host = sys.argv[2]
     else:
         start_port = 4998
-    startall(start_port)
+    startall(start_port, host=host)
     
         

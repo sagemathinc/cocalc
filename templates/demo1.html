@@ -40,7 +40,8 @@ $(function() {
 
 
   /* Create an interface to a sagews frontend. */
-  var client = sagews.Client('http://localhost:5000'); 
+/*  var client = sagews.Client('http://localhost:5000');  */
+  var client = sagews.Client('http://10.0.1.60:5000');  
 
   $('body').keydown(function(event) { 
       if (event.which == 13 && event.shiftKey) {
@@ -92,7 +93,7 @@ $(function() {
 
   /* Polling: this must completely go away soon! */
   /* Every 1 second, update status of sessions. */
-  setInterval(update_session_status, 200);      
+  setInterval(update_session_status, 1000);       
   update_session_status();
 
   function update_session_status() {

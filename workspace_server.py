@@ -25,7 +25,7 @@ class Daemon(object):
         >>> Daemon(5000)
         Workspace Frontend Daemon on port 5000
     """
-    def __init__(self, port, debug=False, pidfile=None, log=False):
+    def __init__(self, port, debug=False, pidfile=None, log=False, host="127.0.0.1"):
         """
         EXAMPLES::
 
@@ -50,7 +50,7 @@ class Daemon(object):
                 pass
 
         self._port = port
-        cmd = "python %s.py %s %s %s"%(__name__, port, debug, log)
+        cmd = "python %s.py %s %s %s %s"%(__name__, port, debug, log, host)
 
         self._server = subprocess.Popen(cmd, shell=True)
         open(self._pidfile, 'w').write(str(self._server.pid))
@@ -123,4 +123,20 @@ class Daemon(object):
 
 
 if __name__ == '__main__':
-    app.run(port=int(sys.argv[1]), debug=True)
+    if len(sys.argv) == 1:
+        print "Usage: %s port [debug] [log]"%sys.argv[0]
+        sys.exit(1)
+    # TODO: redo to use proper py2.7 option parsing (everywhere)!
+    if len(sys.argv) >= 3:
+        debug = eval(sys.argv[2])
+    else:
+        debug = False
+    if len(sys.argv) >= 4:
+        log = eval(sys.argv[3])
+    else:
+        log = True
+    if len(sys.argv) >= 5:
+        host = sys.argv[4]
+    else:
+        host = "127.0.0.1"
+    app.run(port=int(sys.argv[1]), debug=debug, host=host)
