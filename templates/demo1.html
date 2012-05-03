@@ -40,8 +40,8 @@ $(function() {
 
 
   /* Create an interface to a sagews frontend. */
-/*  var client = sagews.Client('http://localhost:5000');  */
-  var client = sagews.Client('http://10.0.1.60:5000');  
+  var client = sagews.Client('http://localhost:5000');  
+/*  var client = sagews.Client('http://10.0.1.60:5000');  */
 
   $('body').keydown(function(event) { 
       if (event.which == 13 && event.shiftKey) {
@@ -73,19 +73,14 @@ $(function() {
   $('#close_session').click( function() { client.close_session(session_id()); } )
 
   function execute_code() { 
-      var id = session_id();
       $('#output')[0].innerHTML = '';
       running_style();
-      client.execute(id, $('#input').val(), function(m) {
-	  if(m.status === "error") {
-	      say(m.data);
-	  }
-	  if (m.output) {
-              $('#output')[0].innerHTML += m.output;
-	  }
-	  if (m.done) {
-	      waiting_style();
-	  }
+      client.execute({
+          session_id:session_id(),
+	  code      :$('#input').val(), 
+	  output    :function(s) { $('#output')[0].innerHTML += s; },
+	  stop      :function (status) { waiting_style(); },
+	  modified_files: function(v) { $('#output')[0].innerHTML += '[files]'; }
       });
   }
 
@@ -93,7 +88,7 @@ $(function() {
 
   /* Polling: this must completely go away soon! */
   /* Every 1 second, update status of sessions. */
-  setInterval(update_session_status, 1000);       
+  setInterval(update_session_status, 1000);    
   update_session_status();
 
   function update_session_status() {

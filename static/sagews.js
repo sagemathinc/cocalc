@@ -26,9 +26,9 @@ sagews.Client = function(server) {
 
     /* Using exponentially backed off polling to obtain and report output. */
     /* We support *both* polling and socket.io push, with strong preference for the latter. */
-    report_output_using_polling = function(client, session_id, cell_id, number, interval, callback) {
-	client.output_messages(session_id, cell_id, number, function(m) {
-	    var i, o, n=m.data.length, done=false;
+    report_output_using_polling = function(client, cell_id, number, interval, options) {
+	client.output_messages(options.session_id, cell_id, number, function(m) {
+	    var n=m.data.length, done=false;
 	    if (n === 0) { 		/* received no new messages */
 		/* exponentially reduce polling frequency */
 		interval *= client.polling.backoff;  
@@ -37,22 +37,29 @@ sagews.Client = function(server) {
 		}
 	    } else { /* received new messages */
 		interval = client.min_polling_interval;
+		var i;
 		for (i = 0; i < n; i++) {
-		    o = m.data[i].output;
 		    number = m.data[i].number;
-		    callback(m.data[i]);
-		    if (m.data[i].done) { done = true; }
+		    if (m.data[i].output) { /* output message */
+			options.output(m.data[i].output);
+		    }
+		    if (m.data[i].modified_files) { /* files message */
+			options.modified_files(m.data[i].modified_files);
+		    }
+		    if (m.data[i].done) { 
+			done = true; 
+			options.stop(m.data[i].status);
+		    }
 		}
 		/* increment message number so next time we ask for next message */
 		number += 1;
 	    }
 	    if (!done) {
 		setTimeout(function() { report_output_using_polling(
-                      client, session_id, cell_id, number, interval, callback); }, interval);
+                    client, cell_id, number, interval, options); }, interval);
 	    }
 	});
     }
-
 
     
     return {
@@ -110,19 +117,36 @@ sagews.Client = function(server) {
 	   
 	   The callback function gets called with a message object m
            as input with a message for each generated output message,
-           until a final message m with m.done=true. */    
-	execute: function(session_id, code, callback) { 
+           until a final message m with m.done=true. 
+	   options = {
+               session_id:nonnegative integer,
+	       code:'string of code to eval',
+               output:callback function that handles output -- output(string)
+               stop:callback function that is called when done -- stop(status), where
+                       status is either 'ok' or 'error'. 
+	       modified_files:callback function called when files are modified -- modified_files(['a/b','c.txt'])
+	   }
+        */    
+	execute: function(options) { 
+	    var opts = $.extend({
+		session_id:0,
+		code:'',
+		output: function(m) { },
+		stop: function(status) {},
+		modified_files: function(v) {}
+		}, options||{});
+
 	    var client = this;  /* since this changes inside post callback below */
-	    post('execute/' + session_id, {'code':code}, function (m) {
+	    post('execute/' + options.session_id, {'code':options.code}, function (m) {
 		if (m.status == 'error') {
-		    callback({'status':'error', 'data':m.data, 'done':true});
+		    options['stop']('error');
 		} else if (client.use_sockets) { 
 		    /* best option -- register callback, etc. */
 		    alert('sockets not implemented!');
 		} else {
 		    /* fallback to horrible polling option */
-		    report_output_using_polling(client, session_id,
-                              m.cell_id, 0, client.polling.min_interval, callback);
+		    report_output_using_polling(client, m.cell_id, 0, 
+						client.polling.min_interval, options);
 		}
 	    }); 
 	},
