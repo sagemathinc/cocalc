@@ -347,6 +347,8 @@ class Daemon(object):
         # open a subprocess
         self.p = subprocess.Popen(('python %s.py %s %s'%(__name__, port, debug)).split())
         open(self._pidfile, 'w').write(str(self.p.pid))
+
+        self.port = port
         # wait for http server to start
         while True:
             try:
@@ -354,6 +356,9 @@ class Daemon(object):
                 break
             except ConnectionError:
                 time.sleep(0.05)
+
+    def __repr__(self):
+        return "Subprocess server on port %s"%self.port
 
     def __del__(self):
         """
@@ -385,8 +390,9 @@ class Daemon(object):
             try:
                 os.kill(self.p.pid, signal.SIGINT)
                 self.p.wait()
-            except OSError:
-                pass # already dead?
+            except OSError, msg:
+                # process has been killed already
+                pass
         if os.path.exists(self._pidfile):
             os.unlink(self._pidfile)
         
