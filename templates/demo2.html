@@ -50,8 +50,8 @@ $(function() {
 
 
   /* Create an interface to a sagews frontend. */
-  var client = sagews.Client('http://localhost:5000');  
-/*  var client = sagews.Client('http://10.0.1.60:5000');  */
+/*  var client = sagews.Client('http://localhost:5000');   */
+  var client = sagews.Client('http://10.0.1.60:5000');  
 
   $('body').keydown(function(event) { 
       if (event.which == 13 && event.shiftKey) {
@@ -96,11 +96,6 @@ $(function() {
 
   $('#execute').click(execute_code);
 
-  /* Polling: this must completely go away soon! */
-  /* Every 1 second, update status of sessions. */
-  setInterval(update_session_status, 1000);    
-  update_session_status();
-
   function update_session_status() {
       client.sessions(function (m) {
           var i, s = '', session;
@@ -112,16 +107,23 @@ $(function() {
       })
   }
 
+  /* Polling: this must completely go away soon! */
+  /* Every 10 second, update status of sessions. */
+  setInterval(update_session_status, 10000);    
+  update_session_status();
+
+
 })
 
 
 </script>
-<title>Demo 1</title>
+<title>Demo 2</title>
 
 </head>
 
 <body>
-<h1>Sage Workspaces: Demo 1</h1>
+<h1>Sage Workspaces: Demo 2 -- websockets</h1>
+
 
 <div id="message"></div>
 
@@ -164,3 +166,12 @@ loading status...
 
 
 </html>
+
+
+<!-- 
+#a=0; import time; t=time.time()
+if a==1: 
+   t=time.time()
+a+=1
+print a, time.time()-t
+-->

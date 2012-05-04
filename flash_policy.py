@@ -12,7 +12,7 @@ import datetime
 import socket
 
 # Should we log something? Where to?
-LOG = 0
+LOG = 1
 LOGFILE = "flash_access_policy_server.log"
 
 # The policy that is sent to the clients.

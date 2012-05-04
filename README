@@ -20,7 +20,7 @@ DEPENDENCIES:
   * flask (includes: jinja2, werkzeug); BSD licensed
   * sqlalchemy; MIT license
   * pytest (for testing only); MIT license
-  * (will remove -- performance sucks) requests (http://docs.python-requests.org/); ISC license (basically BSD)
+  * requests (http://docs.python-requests.org/); ISC license (basically BSD) -- TODO: remove this since performance *SUCKS*, leaks, etc. 
   * gevent-websocket (http://www.gelens.org/code/gevent-websocket/); BSD license
   * gevent (http://www.gevent.org/): MIT license
 
@@ -265,3 +265,7 @@ Ideas to solve this:
 
  
 
+ [ ] Tornado or gevent?  Performance is similar, but I can't get
+     websockets + flash to work with tornado, though it does work with
+     gevent.  I consider this important, not only for IE, but for
+     Android chrome. 

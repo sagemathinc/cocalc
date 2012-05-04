@@ -41,6 +41,7 @@ $(function() {
 
   /* Create an interface to a sagews frontend. */
   var client = sagews.Client('http://localhost:5000');  
+  client.use_sockets = false;
 /*  var client = sagews.Client('http://10.0.1.60:5000');  */
 
   $('body').keydown(function(event) { 

@@ -1295,6 +1295,7 @@ def submit_output(id):
                 msg.done = False if m['done'] == u'False' else True
             if 'output' in m:
                 msg.output = m['output']
+                websocket_send(m['output'])
             if 'modified_files' in m:
                 msg.modified_files = m['modified_files']
             cell.output.append(msg)
@@ -1307,14 +1308,28 @@ def submit_output(id):
 ##########################################
 # WebSocket support
 ##########################################
+
+ws_messages = []
+def websocket_send(m):
+    ws_messages.append(m)
+
 @app.route('/ws')
-def api():
+def ws():
     if request.environ.get('wsgi.websocket'):
-        ws = request.environ['wsgi.websocket']
+        w = request.environ['wsgi.websocket']
+        n = 0
         while True:
-            message = ws.receive()
-            ws.send(message)
-    return
+            print w
+            w.send('%s '%n);
+            n += 1
+            time.sleep(5)
+        
+        while True:
+            n = len(ws_messages)
+            for m in ws_messages[:n]:
+                w.send(m)
+            del ws_messages[:n]
+            time.sleep(0.001)
 
 
 ##########################################
@@ -1361,21 +1376,38 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
     if server == 'flask':
         print "Using multithreaded flask server"
         app.run(host=host, port=port, debug=debug, threaded=True)
+
     elif server == 'gevent':
+
         print "Using websocket-enabled gevent server"
         from gevent import monkey; monkey.patch_all()
         from geventwebsocket.handler import WebSocketHandler
         from gevent.pywsgi import WSGIServer
         http_server = WSGIServer((host, port), app, handler_class=WebSocketHandler)
         http_server.serve_forever()
+
     elif server == 'tornado':
-        print "Using tornado server"
+        print "Using websocket-enabled tornado server"
         from tornado.wsgi import WSGIContainer
+        from tornado.web import Application, FallbackHandler
         from tornado.httpserver import HTTPServer
         from tornado.ioloop import IOLoop
-        http_server = HTTPServer(WSGIContainer(app))
-        http_server.listen(5000)
-        IOLoop.instance().start()        
+        from tornado.websocket import WebSocketHandler
+
+        class WSHandler(WebSocketHandler):
+            def open(self):
+                print 'Connected'
+            def on_message(self, message):
+                self.write_message(message)
+            def on_close(self):
+                print 'Connection closed'
+                
+        t_app = Application([ (r"/ws", WSHandler),
+                              ("/(.*)", FallbackHandler, dict(fallback=WSGIContainer(app))) ])
+        http_server = HTTPServer(t_app)
+        http_server.listen(port)
+        IOLoop.instance().start()
+        
     else:
         raise ValueError, "no known server '%s'"%server
 

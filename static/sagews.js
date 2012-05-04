@@ -10,7 +10,7 @@ AUTHOR:
  *     Start websocket
  ********************************************************/
 
-/* ws = new WebSocket("ws://" + document.domain + ":5000/ws"); */
+ws = new WebSocket("ws://" + document.domain + ":5000/ws"); 
 
 /* Namespace for the application */
 var sagews = {};
@@ -29,6 +29,12 @@ sagews.Client = function(server) {
 	$.post(server + '/' + url, vars, function(response, status) { callback(response); }, 'json');
     }
 
+    report_output_using_sockets = function(client, cell_id, number, options) {
+	ws.onmessage = function (msg) {
+	    options.output(msg.data);
+	}
+    }
+	
     /* Using exponentially backed off polling to obtain and report output. */
     /* We support *both* polling and socket.io push, with strong preference for the latter. */
     report_output_using_polling = function(client, cell_id, number, interval, options) {
@@ -74,7 +80,7 @@ sagews.Client = function(server) {
 		 'max_interval':1000 /* until we get to this many milliseconds */
 		},
 
-	use_sockets:false,   /* not implemented yet */
+	use_sockets:true, 
 
 	/****************/
 	/* All Sessions */
@@ -147,7 +153,7 @@ sagews.Client = function(server) {
 		    options['stop']('error');
 		} else if (client.use_sockets) { 
 		    /* best option -- register callback, etc. */
-		    alert('sockets not implemented!');
+		    report_output_using_sockets(client, m.cell_id, 0, options);
 		} else {
 		    /* fallback to horrible polling option */
 		    report_output_using_polling(client, m.cell_id, 0, 
