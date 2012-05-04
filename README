@@ -226,6 +226,15 @@ Ideas to solve this:
  [x] deal with threading of frontend.py and the various database
      conflict issues that arise.
 
+ [ ] implement use of websockets in sagews.js
+
+ [ ] I really need to change all the GET's that change server state to
+     POST's, since the official definition is: "a GET method can be
+     executed at any time without side effects, a GET method will be
+     re-executed by browsers and modern HttpClients automatically, if
+     a network error occurs. A GET method must not change the
+     server-side resource state by definition and is therefore safe."
+
  [ ] get tests working on Ubuntu 12.04 Linux
 
  [ ] TODOs in code:
