@@ -8,26 +8,29 @@ AUTHORS:
    - William Stein
 
 COPYRIGHT: 
-  NOT released under *any* license yet.  (In the longterm I intend to 
-  release this under BSD, but this is not the case for this version on.)
 
-PYTHON DEPENDENCIES:
+  NOT released under *any* license yet.  This code is (c) Copyright William Stein, 2012.
 
-easy_install flask sqlalchemy requests pytest
+DEPENDENCIES:
+
+ PYTHON: 
+ 
+   easy_install flask sqlalchemy requests pytest gevent gevent-websocket
 
   * flask (includes: jinja2, werkzeug); BSD licensed
   * sqlalchemy; MIT license
   * pytest (for testing only); MIT license
   * requests (http://docs.python-requests.org/); ISC license (basically BSD)
+  * gevent-websocket (http://www.gelens.org/code/gevent-websocket/); BSD license
+  * gevent (http://www.gevent.org/): MIT license
 
-JAVASCRIPT:
+ JAVASCRIPT:
 
-  * jQuery: MIT license
+  * jQuery (included): MIT license
+  * web-socket-js (included): https://github.com/gimite/web-socket-js; BSD license
 
-BROWSER PUSH:
-
-  * gevent-socket.ioSocket.IO: http://pypi.python.org/pypi/gevent-socketio/:   (looks like MIT License)
-
+ C:
+  * libevent (http://libevent.org/); BSD license
 
   
 Testing
