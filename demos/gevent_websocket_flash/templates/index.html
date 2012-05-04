@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Flask/Gevent WebSocket Test</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+
+     <script type="text/javascript" src="static/swfobject.js"></script>
+     <script type="text/javascript" src="static/FABridge.js"></script>
+     <script type="text/javascript" src="static/web_socket.js"></script>
+     <script type="text/javascript">
+        WEB_SOCKET_SWF_LOCATION = "static/WebSocketMain.swf";
+     </script>
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function(){
+            $('form').submit(function(event){
+                ws.send($('#data').val());   /* ws.send(eval($('#data').val())); */
+                return false;
+            });
+            ws = new WebSocket("ws://" + document.domain + ":5000/api");
+            ws.onmessage = function (msg) {
+                $("#log").append("<p>"+msg.data+"</p>")
+            };
+        });
+    </script>
+</head>
+<body>
+    <h1>Send:</h1>
+    <form method='POST' action='#'>
+        <textarea name='data' id="data"></textarea>
+        <div><input type='submit'></div>
+    </form>
+    <h1>Receive:</h1>
+    <div id="log"></div>
+</body>
+</html>
