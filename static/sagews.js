@@ -6,12 +6,6 @@ AUTHOR:
    - William Stein
 */
 
-/*******************************************************
- *     Start websocket
- ********************************************************/
-
-ws = new WebSocket("ws://" + document.domain + ":5000/ws"); 
-
 /* Namespace for the application */
 var sagews = {};
 
@@ -30,9 +24,7 @@ sagews.Client = function(server) {
     }
 
     report_output_using_sockets = function(client, cell_id, number, options) {
-	ws.onmessage = function (msg) {
-	    options.output(msg.data);
-	}
+	client.handle_message = options.output
     }
 	
     /* Using exponentially backed off polling to obtain and report output. */
@@ -72,15 +64,36 @@ sagews.Client = function(server) {
 	});
     }
 
-    
-    return {
+    var socket;
+    if (typeof io === 'undefined') {    
+	socket = null;
+	use_sockets = false;
+    } else {
+
+	socket = new io.Socket(document.domain, {
+	port:5000,  /* TODO do not hard code 5000! */
+	rememberTransport:false,
+        transports: [
+                'websocket',
+                'xhr-multipart',
+                'xhr-polling',
+                'flashsocket'  /* TODO: flash should be second */
+            ]
+	});
+	use_sockets = true;
+	socket.connect();    
+    }
+
+    var C = {
+	
+	socket:socket,
+
+	use_sockets:use_sockets, 
 
 	polling:{'min_interval':50,  /* when using polling to report output, this is the minimal interval */
 		 'backoff':1.1, /* factor to backoff when polling and get no results */
 		 'max_interval':1000 /* until we get to this many milliseconds */
 		},
-
-	use_sockets:true, 
 
 	/****************/
 	/* All Sessions */
@@ -197,6 +210,14 @@ sagews.Client = function(server) {
 
     /* end object creation */
     };
+
+    if (use_sockets) {
+	C.socket.addEvent("message", function (msg) {
+	    C.handle_message(msg);
+	});
+    }
+    
+    return C;
 }
 
 /* Run tests on the Client object pointed at the given server. 

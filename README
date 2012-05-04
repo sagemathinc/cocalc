@@ -269,3 +269,5 @@ Ideas to solve this:
      websockets + flash to work with tornado, though it does work with
      gevent.  I consider this important, not only for IE, but for
      Android chrome. 
+
+     tornadio -- https://github.com/MrJoes/tornadio

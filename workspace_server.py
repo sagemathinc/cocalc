@@ -12,6 +12,10 @@ def demo1():
 def demo2():
     return render_template('demo2.html')
 
+@app.route('/demo3')
+def demo2():
+    return render_template('demo3.html')
+
 @app.route('/client')
 def client():
     return render_template('client.html')

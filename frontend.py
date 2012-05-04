@@ -1295,7 +1295,7 @@ def submit_output(id):
                 msg.done = False if m['done'] == u'False' else True
             if 'output' in m:
                 msg.output = m['output']
-                websocket_send(m['output'])
+                socketio_send(m['output'])
             if 'modified_files' in m:
                 msg.modified_files = m['modified_files']
             cell.output.append(msg)
@@ -1331,6 +1331,43 @@ def ws():
             del ws_messages[:n]
             time.sleep(0.001)
 
+
+import tornadio.router
+import tornadio.server        
+
+class TornadioConnection(tornadio.SocketConnection):
+    # Class level variable
+    clients = set()
+
+    def on_open(self, *args, **kwargs):
+        self.clients.add(self)
+        self.send("Welcome!")
+
+    def on_message(self, message):
+        for p in self.clients:
+            p.send(message)
+
+    def on_close(self):
+        self.clients.remove(self)
+        for p in self.clients:
+            p.send("A user has left.")
+
+
+#use the routes classmethod to build the correct resource
+TornadioRouter = tornadio.get_router(TornadioConnection, {
+    'enabled_protocols': [
+        'websocket',
+        'xhr-multipart',
+        'xhr-polling',
+        'flashsocket',
+    ]
+})
+
+def socketio_send(m):
+    s = list(TornadioConnection.clients)
+    print '%s connections'%len(s)
+    for c in s:
+        c.send(m)
 
 ##########################################
 # Starting the webserver itself.
@@ -1393,20 +1430,17 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
         from tornado.httpserver import HTTPServer
         from tornado.ioloop import IOLoop
         from tornado.websocket import WebSocketHandler
+        application = Application(
+            [TornadioRouter.route(),
+             ("/(.*)", FallbackHandler, dict(fallback=WSGIContainer(app)))
+             ],
+            flash_policy_port = 843,
+            flash_policy_file = '/static/socketio/flashpolicy.xml',
+            socket_io_port = port)
 
-        class WSHandler(WebSocketHandler):
-            def open(self):
-                print 'Connected'
-            def on_message(self, message):
-                self.write_message(message)
-            def on_close(self):
-                print 'Connection closed'
-                
-        t_app = Application([ (r"/ws", WSHandler),
-                              ("/(.*)", FallbackHandler, dict(fallback=WSGIContainer(app))) ])
-        http_server = HTTPServer(t_app)
-        http_server.listen(port)
-        IOLoop.instance().start()
+        import logging
+        logging.getLogger().setLevel(logging.DEBUG)
+        tornadio.server.SocketServer(application)
         
     else:
         raise ValueError, "no known server '%s'"%server
@@ -1541,5 +1575,5 @@ if __name__ == '__main__':
     else:
         host = "127.0.0.1"
 
-    run(port=port, debug=debug, log=log, host=host, server='gevent')
+    run(port=port, debug=debug, log=log, host=host, server='tornado')
         
