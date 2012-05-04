@@ -24,7 +24,7 @@ sagews.Client = function(server) {
     }
 
     report_output_using_sockets = function(client, cell_id, number, options) {
-	client.handle_message = options.output
+	client.handle_message = function (m) { options.output(m); }
     }
 	
     /* Using exponentially backed off polling to obtain and report output. */
@@ -75,9 +75,9 @@ sagews.Client = function(server) {
 	rememberTransport:false,
         transports: [
                 'websocket',
-                'xhr-multipart',
+	        'xhr-multipart',
                 'xhr-polling',
-                'flashsocket'  /* TODO: flash should be second */
+                'flashsocket', 
             ]
 	});
 	use_sockets = true;

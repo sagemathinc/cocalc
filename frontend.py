@@ -1359,7 +1359,7 @@ TornadioRouter = tornadio.get_router(TornadioConnection, {
         'websocket',
         'xhr-multipart',
         'xhr-polling',
-        'flashsocket',
+        'flashsocket' 
     ]
 })
 
@@ -1367,6 +1367,7 @@ def socketio_send(m):
     s = list(TornadioConnection.clients)
     print '%s connections'%len(s)
     for c in s:
+        print "sending %s to %s"%(m, c)
         c.send(m)
 
 ##########################################
@@ -1435,7 +1436,7 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
              ("/(.*)", FallbackHandler, dict(fallback=WSGIContainer(app)))
              ],
             flash_policy_port = 843,
-            flash_policy_file = '/static/socketio/flashpolicy.xml',
+            flash_policy_file = 'static/socketio/flashpolicy.xml',
             socket_io_port = port)
 
         import logging
