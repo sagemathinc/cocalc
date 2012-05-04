@@ -20,7 +20,7 @@ DEPENDENCIES:
   * flask (includes: jinja2, werkzeug); BSD licensed
   * sqlalchemy; MIT license
   * pytest (for testing only); MIT license
-  * requests (http://docs.python-requests.org/); ISC license (basically BSD)
+  * (will remove -- performance sucks) requests (http://docs.python-requests.org/); ISC license (basically BSD)
   * gevent-websocket (http://www.gelens.org/code/gevent-websocket/); BSD license
   * gevent (http://www.gevent.org/): MIT license
 

@@ -2,16 +2,17 @@
 Miscellaneous functions.
 """
 
-import os, tempfile
+import os, tempfile, socket
 from StringIO import StringIO
+import urllib, urllib2
 
-import requests
+import gc, requests
 
 # this exception is used by client code
 ConnectionError = requests.ConnectionError
 Timeout = requests.Timeout
 
-def get(url, data=None, timeout=10):
+def get_using_requests(url, data=None, timeout=10):
     """
     GET the url with optional parameters as specified by the data
     variable.
@@ -49,9 +50,24 @@ def get(url, data=None, timeout=10):
         }
     """
     if data is None: data = {}
-    return requests.get(url, params=data, timeout=timeout).text
+    t = requests.get(url, params=data, timeout=timeout).text
+    # This "gc.collect()" is absolutely required, or requests
+    # leaves open connection. See https://github.com/kennethreitz/requests/issues/239
+    gc.collect()
+    return t
 
-def post(url, data=None, files=None, timeout=10):
+def get(url, data=None, timeout=10):
+    # todo: rewrite using with
+    old_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(timeout)
+    try:
+        if data is not None:
+            url = url + '?' + urllib.urlencode(data)
+        return urllib2.urlopen(url).read()
+    finally:
+        socket.setdefaulttimeout(old_timeout)
+
+def post_using_requests(url, data=None, files=None, timeout=10):
     """
     POST the dictionary of data to the url, and return the response
     from the server.
@@ -88,7 +104,25 @@ def post(url, data=None, files=None, timeout=10):
                       for k,v in files.iteritems()])
     if data is None: data = {}
     # This function with files!={} is easy because of "requests".
-    return requests.post(url, data=data, timeout=timeout, files=files).text
+    t = requests.post(url, data=data, timeout=timeout, files=files).text
+    gc.collect()
+    return t
+
+def post(url, data=None, files=None, timeout=10):
+    if files is not None:
+        return post_using_requests(url, data, files, timeout)
+    # todo: rewrite using with
+    old_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(timeout)
+    try:
+        if data is None: data = {}
+        data = urllib.urlencode(data)
+        req = urllib2.Request(url, data)
+        response = urllib2.urlopen(req)        
+        return response.read()
+    finally:
+        socket.setdefaulttimeout(old_timeout)
+    
 
 def all_files(path):
     """

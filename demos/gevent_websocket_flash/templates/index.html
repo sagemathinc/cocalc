@@ -13,7 +13,7 @@
     <script type="text/javascript" charset="utf-8">
         $(document).ready(function(){
             $('form').submit(function(event){
-                ws.send($('#data').val());   /* ws.send(eval($('#data').val())); */
+                ws.send($('#data').val()); 
                 return false;
             });
             ws = new WebSocket("ws://" + document.domain + ":5000/api");

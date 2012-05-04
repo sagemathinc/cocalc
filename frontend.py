@@ -236,7 +236,9 @@ def new_session():
         try:
             if S.query(model.Session).count() == 0:
                 id = 0
-                assert app_port is not None, "you must initialize app_port"
+                if app_port is None:
+                    print "you must initialize app_port!"
+                    sys.exit(1)
                 port = app_port + 1
             else:
                 last_session = S.query(model.Session).order_by(model.Session.id.desc())[0]
@@ -246,8 +248,11 @@ def new_session():
             S.add(session)
             S.commit()
             break
+
+        # TODO: naked excepts are unacceptable!!!!
         # TODO: this appears to not be sqlite3.IntegrityError ??  figure out what the right exception is?
-        except:
+        except Exception, msg:
+            print msg
             # race condition -- multiple threads chose the same session id
             S.rollback()
             time.sleep(random.random()/20.)
@@ -1299,7 +1304,25 @@ def submit_output(id):
         return jsonify({'status':'ok'})
     return jsonify({'status':'error', 'data':'must use POST request to submit output'})
 
-def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None):
+##########################################
+# WebSocket support
+##########################################
+@app.route('/ws')
+def api():
+    if request.environ.get('wsgi.websocket'):
+        ws = request.environ['wsgi.websocket']
+        while True:
+            message = ws.receive()
+            ws.send(message)
+    return
+
+
+##########################################
+# Starting the webserver itself.
+##########################################
+
+def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
+        server='gevent'):
     """
     Run a blocking instance of the frontend server serving on the
     given port.  If debug=True (not the default), then Flask is started
@@ -1310,6 +1333,8 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None):
     - ``debug`` -- bool (default: False)
     - ``log`` -- bool (default: False)
     - ``sub_port`` -- None or number
+    - ``gevent`` -- if true, use the gevent server instead of the
+      builtin flask debug server
 
     EXAMPLES::
 
@@ -1333,7 +1358,26 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None):
         logger.setLevel(logging.ERROR)    
     
     model.create()
-    app.run(host=host, port=port, debug=debug, threaded=True)
+    if server == 'flask':
+        print "Using multithreaded flask server"
+        app.run(host=host, port=port, debug=debug, threaded=True)
+    elif server == 'gevent':
+        print "Using websocket-enabled gevent server"
+        from gevent import monkey; monkey.patch_all()
+        from geventwebsocket.handler import WebSocketHandler
+        from gevent.pywsgi import WSGIServer
+        http_server = WSGIServer((host, port), app, handler_class=WebSocketHandler)
+        http_server.serve_forever()
+    elif server == 'tornado':
+        print "Using tornado server"
+        from tornado.wsgi import WSGIContainer
+        from tornado.httpserver import HTTPServer
+        from tornado.ioloop import IOLoop
+        http_server = HTTPServer(WSGIContainer(app))
+        http_server.listen(5000)
+        IOLoop.instance().start()        
+    else:
+        raise ValueError, "no known server '%s'"%server
 
 class Daemon(object):
     """
@@ -1441,6 +1485,7 @@ class Daemon(object):
 
 
 
+
 ##########################################
 # Starting the server
 ##########################################
@@ -1450,6 +1495,7 @@ if __name__ == '__main__':
         print "Usage: %s port [debug] [log]"%sys.argv[0]
         sys.exit(1)
     # TODO: redo to use proper py2.7 option parsing (everywhere)!
+    port = int(sys.argv[1])
     if len(sys.argv) >= 3:
         debug = eval(sys.argv[2])
     else:
@@ -1462,11 +1508,6 @@ if __name__ == '__main__':
         host = sys.argv[4]
     else:
         host = "127.0.0.1"
-    run(port=sys.argv[1], debug=debug, log=log, host=host)
 
-
-
-
-
-    
-    
+    run(port=port, debug=debug, log=log, host=host, server='gevent')
+        

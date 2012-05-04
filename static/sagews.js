@@ -6,6 +6,11 @@ AUTHOR:
    - William Stein
 */
 
+/*******************************************************
+ *     Start websocket
+ ********************************************************/
+
+/* ws = new WebSocket("ws://" + document.domain + ":5000/ws"); */
 
 /* Namespace for the application */
 var sagews = {};

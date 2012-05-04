@@ -3,7 +3,7 @@ import sys, time
 def startall(start_port, host="127.0.0.1"):
     try:
         import frontend
-        f = frontend.Daemon(start_port+2, debug=True, log=True, host=host)
+        f = frontend.Daemon(start_port+2, debug=False, log=True, host=host)
         import workspace_server
         w = workspace_server.Daemon(start_port, debug=True, log=True, host=host)
         import subprocess_server
