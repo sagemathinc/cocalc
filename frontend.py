@@ -1286,6 +1286,7 @@ def submit_output(id):
             if 'cell_id' not in m:
                 return jsonify({'status':'error', 'data':'must include cell_id as a POST variable'})
             cell_id = m['cell_id']
+            marker = '-%s-%s'%(id, cell_id)
 
             try:
                 cell = S.query(model.Cell).filter_by(cell_id=cell_id, session_id=id).one()
@@ -1294,15 +1295,23 @@ def submit_output(id):
 
             msg = model.OutputMsg(number=len(cell.output), cell_id=cell_id, session_id=id)
             if 'done' in m:
+                socketio_broadcast_event('done'+marker, 'ok') # always ok?
                 msg.done = False if m['done'] == u'False' else True
+                
             if 'output' in m:
+                socketio_broadcast_event('output'+marker, m['output'])
                 msg.output = m['output']
-                socketio_send(m['output'])
+                
             if 'modified_files' in m:
-                msg.modified_files = m['modified_files']
+                v = m['modified_files']
+                if v != '[]':
+                    socketio_broadcast_event('files'+marker, v)
+                msg.modified_files = v
+                                         
             cell.output.append(msg)
             S.commit()
         except Exception, msg:
+            socketio_broadcast_event('done'+marker, 'error')
             return jsonify({'status':'error', 'data':'SERVER BUG: %s'%msg})  # should never happen!
         return jsonify({'status':'ok'})
     return jsonify({'status':'error', 'data':'must use POST request to submit output'})
@@ -1339,12 +1348,13 @@ class TornadioConnection(tornadio2.SocketConnection):
 
 TornadioRouter = tornadio2.TornadioRouter(TornadioConnection)
 
-def socketio_send(m):
-    s = list(TornadioConnection.clients)
-    print '%s connections'%len(s)
-    for c in s:
-        print "sending %s to %s"%(m, c)
-        c.send(m)
+def socketio_broadcast_event(event, msg):
+    clients = list(TornadioConnection.clients)
+    #print '%s connections'%len(clients)
+    for c in clients:
+        #print "emit(%s, %s) --> %s"%(event, msg, c)
+        c.emit(event, msg)
+        
 
 ##########################################
 # Starting the webserver itself.

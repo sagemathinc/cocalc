@@ -24,7 +24,15 @@ sagews.Client = function(server) {
     }
 
     report_output_using_sockets = function(client, cell_id, number, options) {
-	client.handle_message = function (m) { options.output(m); }
+	var marker = '-' + options.session_id + '-' + cell_id;
+	var om = 'output' + marker, dm = 'done' + marker, fm = 'files' + marker;
+	client.socket.on(om, options.output);          /* output */
+	client.socket.on(fm, options.modified_files);  /* modified files */
+	client.socket.once(dm, function (status) {           /* done */
+	    options.stop(status);	    
+	    client.socket.removeListener(om);
+	    client.socket.removeListener(fm);
+	});
     }
 	
     /* Using exponentially backed off polling to obtain and report output. */
@@ -72,7 +80,7 @@ sagews.Client = function(server) {
 
 	/* TODO -- do not hardcode 5000! */
 	socket = new io.connect('http://' + window.location.hostname + ':5000', {
-	    rememberTransport:false,
+	    rememberTransport:false
 	});
 	use_sockets = true;
 	socket.on('connect', function() { });

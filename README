@@ -29,7 +29,6 @@ DEPENDENCIES:
 
   * jQuery (included): MIT license
   * socket.io-client (included, https://github.com/LearnBoost/socket.io-client)
-
   
 Testing
 -------
@@ -278,6 +277,13 @@ If I can do the above, then restructure code to commit to tornadio.
 
  [x] GOAL: get tornadia2 to work in frontend.py with chrome
 
- [ ] GOAL: checkin then make demo4, which will involve rewriting sagews to 
-     use socketio2 for absolutely *all* communication with frontend.py. 
-      
+ [x] GOAL: checkin then make demo4
+      -- this works -- with execute handling fully using sockets instead of pollling!
+      -- it does not work on IE for some reason; the socket.io part seems to, but
+         not the cross-domain ajax.  I don't know why.
+         It *does* work on iphone with or without flash server.
+         For *android* it also works without flash, using xhr-polling, but 
+         that seems very slow.  With flash, it works great on android!
+
+ [ ] Next target: demo of the worspace_server, where there is some
+     persisted worksheet.
