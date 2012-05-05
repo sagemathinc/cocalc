@@ -28,7 +28,7 @@ DEPENDENCIES:
  JAVASCRIPT:
 
   * jQuery (included): MIT license
-  * web-socket-js (included): https://github.com/gimite/web-socket-js; BSD license
+  * socket.io-client (included, https://github.com/LearnBoost/socket.io-client)
 
   
 Testing
