@@ -70,18 +70,12 @@ sagews.Client = function(server) {
 	use_sockets = false;
     } else {
 
-	socket = new io.Socket(document.domain, {
-	port:5000,  /* TODO do not hard code 5000! */
-	rememberTransport:false,
-        transports: [
-                'websocket',
-	        'xhr-multipart',
-                'xhr-polling',
-                'flashsocket', 
-            ]
+	/* TODO -- do not hardcode 5000! */
+	socket = new io.connect('http://' + window.location.hostname + ':5000', {
+	    rememberTransport:false,
 	});
 	use_sockets = true;
-	socket.connect();    
+	socket.on('connect', function() { });
     }
 
     var C = {
@@ -208,11 +202,15 @@ sagews.Client = function(server) {
 	/* More complicated functionality specific to Javascript */
 	/*********************************************************/
 
+
+	handle_message: function (m) { console.log("unhandled: " + m); } /* ignore */
+
     /* end object creation */
     };
 
+
     if (use_sockets) {
-	C.socket.addEvent("message", function (msg) {
+	C.socket.on("message", function (msg) {
 	    C.handle_message(msg);
 	});
     }

@@ -1306,41 +1306,17 @@ def submit_output(id):
     return jsonify({'status':'error', 'data':'must use POST request to submit output'})
 
 ##########################################
-# WebSocket support
+# Tornadio Server
 ##########################################
 
-ws_messages = []
-def websocket_send(m):
-    ws_messages.append(m)
+import tornadio2
 
-@app.route('/ws')
-def ws():
-    if request.environ.get('wsgi.websocket'):
-        w = request.environ['wsgi.websocket']
-        n = 0
-        while True:
-            print w
-            w.send('%s '%n);
-            n += 1
-            time.sleep(5)
-        
-        while True:
-            n = len(ws_messages)
-            for m in ws_messages[:n]:
-                w.send(m)
-            del ws_messages[:n]
-            time.sleep(0.001)
-
-
-import tornadio.router
-import tornadio.server        
-
-class TornadioConnection(tornadio.SocketConnection):
-    # Class level variable
+class TornadioConnection(tornadio2.SocketConnection):
     clients = set()
 
     def on_open(self, *args, **kwargs):
         self.clients.add(self)
+        print "made connection!"
         self.send("Welcome!")
 
     def on_message(self, message):
@@ -1354,14 +1330,16 @@ class TornadioConnection(tornadio.SocketConnection):
 
 
 #use the routes classmethod to build the correct resource
-TornadioRouter = tornadio.get_router(TornadioConnection, {
-    'enabled_protocols': [
-        'websocket',
-        'xhr-multipart',
-        'xhr-polling',
-        'flashsocket' 
-    ]
-})
+#TornadioRouter = tornadio2.TornadioRouter(TornadioConnection, {
+#    'enabled_protocols': [
+#        'websocket',
+#        'xhr-multipart',
+#        'xhr-polling',
+#        'flashsocket' 
+#    ]
+#})
+
+TornadioRouter = tornadio2.TornadioRouter(TornadioConnection)
 
 def socketio_send(m):
     s = list(TornadioConnection.clients)
@@ -1431,17 +1409,17 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
         from tornado.httpserver import HTTPServer
         from tornado.ioloop import IOLoop
         from tornado.websocket import WebSocketHandler
+        
         application = Application(
-            [TornadioRouter.route(),
-             ("/(.*)", FallbackHandler, dict(fallback=WSGIContainer(app)))
-             ],
+            TornadioRouter.urls + 
+             [("/(.*)", FallbackHandler, dict(fallback=WSGIContainer(app)))],
             flash_policy_port = 843,
             flash_policy_file = 'static/socketio/flashpolicy.xml',
             socket_io_port = port)
 
         import logging
         logging.getLogger().setLevel(logging.DEBUG)
-        tornadio.server.SocketServer(application)
+        tornadio2.server.SocketServer(application)
         
     else:
         raise ValueError, "no known server '%s'"%server

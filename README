@@ -271,3 +271,15 @@ Ideas to solve this:
      Android chrome. 
 
      tornadio -- https://github.com/MrJoes/tornadio
+
+ [x] GOAL NOW:  cross-domain tornadio on android
+ [x] GOAL NOW:  cross-domain tornadio on IE9
+ [x] GOAL NOW:  cross-domain tornadio on opera - it just can't, and that's that.
+
+If I can do the above, then restructure code to commit to tornadio.
+
+ [x] GOAL: get tornadia2 to work in frontend.py with chrome
+
+ [ ] GOAL: checkin then make demo4, which will involve rewriting sagews to 
+     use socketio2 for absolutely *all* communication with frontend.py. 
+      
