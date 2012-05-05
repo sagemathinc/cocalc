@@ -67,7 +67,7 @@ from misc_flask import crossdomain
 app_port = None # must be set before running
 subprocess_port = None
 
-from misc import get, post, ConnectionError, Timeout, all_files, is_temp_directory
+from misc import get, post, ConnectionError, URLError, Timeout, all_files, is_temp_directory
 
 import model
 
@@ -1302,10 +1302,9 @@ def submit_output(id):
                 socketio_broadcast_event('output'+marker, m['output'])
                 msg.output = m['output']
                 
-            if 'modified_files' in m:
+            if 'modified_files' in m and m['modified_files'] != '[]':
                 v = m['modified_files']
-                if v != '[]':
-                    socketio_broadcast_event('files'+marker, v)
+                socketio_broadcast_event('files'+marker, v)
                 msg.modified_files = v
                                          
             cell.output.append(msg)
@@ -1361,7 +1360,7 @@ def socketio_broadcast_event(event, msg):
 ##########################################
 
 def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
-        server='gevent'):
+        server='tornado'):
     """
     Run a blocking instance of the frontend server serving on the
     given port.  If debug=True (not the default), then Flask is started
@@ -1372,8 +1371,8 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
     - ``debug`` -- bool (default: False)
     - ``log`` -- bool (default: False)
     - ``sub_port`` -- None or number
-    - ``gevent`` -- if true, use the gevent server instead of the
-      builtin flask debug server
+    - ``server`` -- 'flask': multithreaded, has debugger, no socket.io
+                 -- 'tornado': supports socket.io
 
     EXAMPLES::
 
@@ -1401,14 +1400,18 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
         print "Using multithreaded flask server"
         app.run(host=host, port=port, debug=debug, threaded=True)
 
-    elif server == 'tornadio2':
-        print "Using tornadio2 server"
+    elif server == 'tornado':
+        print "Using tornado + tornadio2 server"
         from tornado.wsgi import WSGIContainer
         from tornado.web import Application, FallbackHandler
         from tornado.httpserver import HTTPServer
         from tornado.ioloop import IOLoop
         from tornado.websocket import WebSocketHandler
-        
+
+        # The following uses that the flask application is a WSGI
+        # application to combine the Tornadio2 socket.io server with
+        # the WSGI flask app.  They will be served together by
+        # tornadio.
         application = Application(
             TornadioRouter.urls + 
              [("/(.*)", FallbackHandler, dict(fallback=WSGIContainer(app)))],
@@ -1416,8 +1419,10 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
             flash_policy_file = 'static/socketio/flashpolicy.xml',
             socket_io_port = port)
 
-        import logging
-        logging.getLogger().setLevel(logging.DEBUG)
+        if debug:
+            import logging
+            logging.getLogger().setLevel(logging.DEBUG)
+            
         tornadio2.server.SocketServer(application)
         
     else:
@@ -1472,7 +1477,7 @@ class Daemon(object):
             # Next wait to see if it is listening.
             try:
                 get('http://localhost:%s/'%port, timeout=10)
-            except ConnectionError:
+            except (ConnectionError, URLError):
                 time.sleep(0.1)
                 # Ensure that the process is actually running, to
                 # avoid an infinite loop trying to get from a URL
@@ -1536,7 +1541,7 @@ class Daemon(object):
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print "Usage: %s port [debug] [log] [hostname]"%sys.argv[0]
+        print "Usage: %s port [debug] [log] [hostname] [server]"%sys.argv[0]
         sys.exit(1)
     # TODO: redo to use proper py2.7 option parsing (everywhere)!
     port = int(sys.argv[1])
@@ -1552,6 +1557,10 @@ if __name__ == '__main__':
         host = sys.argv[4]
     else:
         host = "127.0.0.1"
+    if len(sys.argv) >= 6:
+        server = sys.argv[5]
+    else:
+        server = 'tornado'
 
-    run(port=port, debug=debug, log=log, host=host, server='tornadio2')
+    run(port=port, debug=debug, log=log, host=host, server=server)
         

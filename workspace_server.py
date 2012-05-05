@@ -27,7 +27,7 @@ def client():
 
 #TODO: refactor -- this is exactly copied from frontend.py!!!!
 import os, subprocess, time
-from misc import get, ConnectionError
+from misc import get, ConnectionError, URLError
 class Daemon(object):
     """
     Run workspace deamon.
@@ -77,7 +77,7 @@ class Daemon(object):
             # Next wait to see if it is listening.
             try:
                 get('http://localhost:%s/'%port, timeout=10)
-            except ConnectionError:
+            except (ConnectionError, URLError):
                 time.sleep(0.1)
                 # Ensure that the process is actually running, to
                 # avoid an infinite loop trying to get from a URL

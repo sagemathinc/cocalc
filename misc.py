@@ -8,6 +8,8 @@ import urllib, urllib2
 
 import gc, requests
 
+from urllib2 import URLError
+
 # this exception is used by client code
 ConnectionError = requests.ConnectionError
 Timeout = requests.Timeout
