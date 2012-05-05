@@ -203,16 +203,16 @@ sagews.Client = function(server) {
 	/*********************************************************/
 
 
-	handle_message: function (m) { console.log("unhandled: " + m); } /* ignore */
+	msg_message: function (m) { console.log("unhandled socket message: " + m); },
+	msg_execute_callback: function (msg) { console.log(msg); }
 
     /* end object creation */
     };
 
 
     if (use_sockets) {
-	C.socket.on("message", function (msg) {
-	    C.handle_message(msg);
-	});
+	C.socket.on('message', C.msg_message);
+	C.socket.on('execute', C.msg_execute_callback);
     }
     
     return C;

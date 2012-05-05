@@ -16,6 +16,10 @@ def demo2():
 def demo3():
     return render_template('demo3.html')
 
+@app.route('/demo4')
+def demo4():
+    return render_template('demo4.html')
+
 @app.route('/client')
 def client():
     return render_template('client.html')

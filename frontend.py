@@ -268,6 +268,73 @@ def new_session():
         msg = {'status':'ok', 'id':id}
     return jsonify(msg)
 
+def execute_code(session_id, code):
+    S = model.session()
+    MAX_TRIES=300
+    for i in range(MAX_TRIES):
+        try:
+            # get the session in which to execute this code
+            session = S.query(model.Session).filter_by(id=session_id).one()
+        except orm_exc.NoResultFound:
+            # handle invalid session_id
+            return {'status':'error', 'data':'unknown session %s'%session_id}
+
+        if session.status == 'dead':
+            # according to the database, we've had trouble with this session,
+            # so just raise an error.  
+            return {'status':'error', 'data':'session is dead'}
+
+        # store the code to evaluate in database.
+        cell = model.Cell(session.next_cell_id, session.id, code)
+        session.cells.append(cell)
+        # increment id for next code execution
+        session.next_cell_id += 1
+        try:
+            S.commit()
+            break   
+        except:   # TODO: what is the right exception?
+            # race condition -- multiple threads chose the same cell_id
+            S.rollback()
+            time.sleep(random.random()/20.)
+
+    msg = {'cell_id':cell.cell_id}
+
+    # if the session is in ready state, that means it has a web server
+    # listening and waiting for us to send it something to evaluate.
+    if session.status == 'ready':
+        try:
+            session.last_active_cell_id = cell.cell_id
+            session.status = 'running'
+            cells = [{'code':cell.code, 'cell_id':cell.cell_id}]
+            post(session.url, {'cells':json.dumps(cells)}, timeout=1)
+            msg['cell_status'] = 'running'
+            msg['status'] = 'ok'
+        except (ConnectionError, Timeout):
+            # The session is not alive and responding as we
+            # thought it would be doing, so we mark it is as such
+            # in the database, and send tell the subprocess server
+            # to clean it up (via close_subprocess).
+            session.status = 'dead'
+            msg['data'] = 'session is dead'
+            msg['status'] = 'error'
+            try:
+                close_subprocess(session.pid)
+            except OSError:
+                pass
+        finally:
+            S.commit()
+    elif session.status == 'running':
+        # The calculation is enqueued in the database and will get
+        # run (along with everything else that is waiting to run)
+        # when the session tells us it is no longer running.
+        msg['status'] = 'ok'
+        msg['cell_status'] = 'enqueued'
+    else:
+        # This should never ever happen -- it would only
+        # result from database corruption or a bug.
+        raise RuntimeError, "invalid session status (='%s')"%session.status
+    return msg
+
 @app.route('/execute/<int:session_id>', methods=['POST'])
 @crossdomain('*')
 def execute(session_id):
@@ -303,74 +370,9 @@ def execute(session_id):
     """
     if request.method == 'POST' and request.form.has_key('code'):
         code = request.form['code']
-
-        S = model.session()
-        MAX_TRIES=300
-        for i in range(MAX_TRIES):
-            try:
-                # get the session in which to execute this code
-                session = S.query(model.Session).filter_by(id=session_id).one()
-            except orm_exc.NoResultFound:
-                # handle invalid session_id
-                return jsonify({'status':'error', 'data':'unknown session %s'%session_id})
-
-            if session.status == 'dead':
-                # according to the database, we've had trouble with this session,
-                # so just raise an error.  
-                return jsonify({'status':'error', 'data':'session is dead'})
-
-            # store the code to evaluate in database.
-            cell = model.Cell(session.next_cell_id, session.id, code)
-            session.cells.append(cell)
-            # increment id for next code execution
-            session.next_cell_id += 1
-            try:
-                S.commit()
-                break   
-            except:   # TODO: what is the right exception?
-                # race condition -- multiple threads chose the same cell_id
-                S.rollback()
-                time.sleep(random.random()/20.)
-                
-        msg = {'cell_id':cell.cell_id}
-
-        # if the session is in ready state, that means it has a web server
-        # listening and waiting for us to send it something to evaluate.
-        if session.status == 'ready':
-            try:
-                session.last_active_cell_id = cell.cell_id
-                session.status = 'running'
-                cells = [{'code':cell.code, 'cell_id':cell.cell_id}]
-                post(session.url, {'cells':json.dumps(cells)}, timeout=1)
-                msg['cell_status'] = 'running'
-                msg['status'] = 'ok'
-            except (ConnectionError, Timeout):
-                # The session is not alive and responding as we
-                # thought it would be doing, so we mark it is as such
-                # in the database, and send tell the subprocess server
-                # to clean it up (via close_subprocess).
-                session.status = 'dead'
-                msg['data'] = 'session is dead'
-                msg['status'] = 'error'
-                try:
-                    close_subprocess(session.pid)
-                except OSError:
-                    pass
-            finally:
-                S.commit()
-        elif session.status == 'running':
-            # The calculation is enqueued in the database and will get
-            # run (along with everything else that is waiting to run)
-            # when the session tells us it is no longer running.
-            msg['status'] = 'ok'
-            msg['cell_status'] = 'enqueued'
-        else:
-            # This should never ever happen -- it would only
-            # result from database corruption or a bug.
-            raise RuntimeError, "invalid session status (='%s')"%session.status
+        msg = execute_code(session_id, code)
     else:
         msg = {'status':'error', 'data':"must POST 'code' variable"}
-        
     return jsonify(msg)
 
 
@@ -1310,9 +1312,15 @@ def submit_output(id):
 ##########################################
 
 import tornadio2
+from tornadio2 import event
 
 class TornadioConnection(tornadio2.SocketConnection):
     clients = set()
+
+    @event
+    def execute(self, session_id, code):
+        msg = execute_code(session_id, code)
+        self.emit('execute', msg)
 
     def on_open(self, *args, **kwargs):
         self.clients.add(self)
@@ -1328,16 +1336,6 @@ class TornadioConnection(tornadio2.SocketConnection):
         for p in self.clients:
             p.send("A user has left.")
 
-
-#use the routes classmethod to build the correct resource
-#TornadioRouter = tornadio2.TornadioRouter(TornadioConnection, {
-#    'enabled_protocols': [
-#        'websocket',
-#        'xhr-multipart',
-#        'xhr-polling',
-#        'flashsocket' 
-#    ]
-#})
 
 TornadioRouter = tornadio2.TornadioRouter(TornadioConnection)
 
@@ -1393,17 +1391,8 @@ def run(host="127.0.0.1", port=5000, debug=False, log=False, sub_port=None,
         print "Using multithreaded flask server"
         app.run(host=host, port=port, debug=debug, threaded=True)
 
-    elif server == 'gevent':
-
-        print "Using websocket-enabled gevent server"
-        from gevent import monkey; monkey.patch_all()
-        from geventwebsocket.handler import WebSocketHandler
-        from gevent.pywsgi import WSGIServer
-        http_server = WSGIServer((host, port), app, handler_class=WebSocketHandler)
-        http_server.serve_forever()
-
-    elif server == 'tornado':
-        print "Using websocket-enabled tornado server"
+    elif server == 'tornadio2':
+        print "Using tornadio2 server"
         from tornado.wsgi import WSGIContainer
         from tornado.web import Application, FallbackHandler
         from tornado.httpserver import HTTPServer
@@ -1537,7 +1526,7 @@ class Daemon(object):
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print "Usage: %s port [debug] [log]"%sys.argv[0]
+        print "Usage: %s port [debug] [log] [hostname]"%sys.argv[0]
         sys.exit(1)
     # TODO: redo to use proper py2.7 option parsing (everywhere)!
     port = int(sys.argv[1])
@@ -1554,5 +1543,5 @@ if __name__ == '__main__':
     else:
         host = "127.0.0.1"
 
-    run(port=port, debug=debug, log=log, host=host, server='tornado')
+    run(port=port, debug=debug, log=log, host=host, server='tornadio2')
         

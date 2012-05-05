@@ -15,22 +15,20 @@ DEPENDENCIES:
 
  PYTHON: 
  
-   easy_install flask sqlalchemy requests pytest gevent gevent-websocket
+   easy_install flask sqlalchemy pytest tornado tornadio2 requests 
 
   * flask (includes: jinja2, werkzeug); BSD licensed
   * sqlalchemy; MIT license
   * pytest (for testing only); MIT license
-  * requests (http://docs.python-requests.org/); ISC license (basically BSD) -- TODO: remove this since performance *SUCKS*, leaks, etc. 
-  * gevent-websocket (http://www.gelens.org/code/gevent-websocket/); BSD license
-  * gevent (http://www.gevent.org/): MIT license
+  * tornado
+  * tornadio2 (https://github.com/mrjoes/tornadio2); Apache license
+
+  * requests (http://docs.python-requests.org/); ISC license (basically BSD) -- TODO: remove this since performance *SUCKS*, leaks, etc.  -- maybe "poster" is a good alternative -- http://atlee.ca/software/poster/#download   [[TODO]]
 
  JAVASCRIPT:
 
   * jQuery (included): MIT license
   * web-socket-js (included): https://github.com/gimite/web-socket-js; BSD license
-
- C:
-  * libevent (http://libevent.org/); BSD license
 
   
 Testing

@@ -1,11 +1,14 @@
 <!doctype html>
 <html>
 <head>
-<script type="text/javascript" src="static/jquery/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="/static/jquery/jquery-1.7.1.min.js"></script>
 
-<script type="text/javascript" src="static/socketio/socket.io.js"></script>
+<script type="text/javascript" src="/static/socketio/socket.io.js"></script>
+<script>
+    WEB_SOCKET_SWF_LOCATION = "/static/socketio/WebSocketMain.swf";
+</script>
 
-<script type="text/javascript" src="static/sagews.js"></script>
+<script type="text/javascript" src="/static/sagews.js"></script>
 
 <script type="text/javascript">
 $(function() {
@@ -64,7 +67,9 @@ $(function() {
   });
 
   $('#new_session').click( function() { 
-       client.new_session(function(m) { $('#session').val(m.id); }); 
+       client.new_session(function(m) { 
+	   $('#session').val(m.id); 
+	   update_session_status() }); 
   });
 
   /* sets the id of the session to what is in the session input box */
@@ -109,12 +114,12 @@ $(function() {
 
 
 </script>
-<title>Demo 3</title>
+<title>Demo 4</title>
 
 </head>
 
 <body>
-<h1>Sage Workspaces: Demo 3b -- websockets</h1>
+<h1>Sage Workspaces: Demo 4 -- websockets</h1>
 
 
 <div id="message"></div>
