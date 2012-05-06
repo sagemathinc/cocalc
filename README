@@ -15,12 +15,12 @@ DEPENDENCIES:
 
  PYTHON: 
  
-   easy_install flask sqlalchemy pytest tornado tornadio2 requests 
+   easy_install flask sqlalchemy pytest tornado tornadio2 requests pycurl
 
   * flask (includes: jinja2, werkzeug); BSD licensed
   * sqlalchemy; MIT license
   * pytest (for testing only); MIT license
-  * tornado
+  * tornado (suggests pycurl)
   * tornadio2 (https://github.com/mrjoes/tornadio2); Apache license
 
   * requests (http://docs.python-requests.org/); ISC license (basically BSD) -- TODO: remove this since performance *SUCKS*, leaks, etc.  -- maybe "poster" is a good alternative -- http://atlee.ca/software/poster/#download   [[TODO]]
