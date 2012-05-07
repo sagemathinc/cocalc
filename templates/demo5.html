@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<script type="text/javascript" src="jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="socket.io.js"></script>
+
+<script type="text/javascript">
+
+$(function() {
+
+socket = new io.connect('http://' + window.location.host);
+
+socket.test = function(expr) {
+   socket.once('output', function(id, msg) { console.log(msg); });
+   socket.emit('execute', '0', expr);
+}
+
+
+/* 
+socket.on('output', function(id, msg) { console.log(id + ': ' + msg); }); 
+socket.bench = function(n) {
+   if (n >= 1)  {
+       socket.once('output', function(id, msg) { socket.bench(n-1); console.log(msg) });
+       socket.emit('execute', n, '2*'+n);
+   }
+}
+*/
+
+
+})
+</script>
+<body>
+Hi you
+</body>
+</html>
