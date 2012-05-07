@@ -49,8 +49,8 @@ $(function() {
 
 
   /* Create an interface to a sagews frontend. */
-/*  var client = sagews.Client('http://localhost:5000');   */
-  var client = sagews.Client('http://10.0.1.60:5000');  
+  var client = sagews.Client('http://localhost:5000');   
+/*  var client = sagews.Client('http://10.0.1.60:5000');   */
 
   $('body').keydown(function(event) { 
       if (event.which == 13 && event.shiftKey) {
