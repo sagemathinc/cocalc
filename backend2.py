@@ -25,10 +25,65 @@ class jQueryIOHandler(web.RequestHandler):
     def get(self):
         self.render('static/jquery/jquery-1.7.1.min.js')
 
+
+import time
+class OutStreamFlushInterval(object):
+    def __init__(self, f, flush_interval):
+        self._f = f
+        self._buf = ''
+        self._last_flush = time.time()
+        self._flush_interval = flush_interval
+
+    def write(self, output):
+        self._buf += output
+        w = time.time()
+        if w - self._last_flush >= self._flush_interval:
+            self._last_flush = w
+            self.flush()
+
+    def flush(self):
+        self._f(self._buf)
+        self._buf = ''
+
+
+class OutStream(object):
+    def __init__(self, f):
+        self._f = f
+        self._buf = ''
+
+    def write(self, output):
+        self._buf += output
+
+    def flush(self):
+        self._f(self._buf)
+        self._buf = ''
+
+
+namespace = {}
+
 class ExecuteConnection(SocketConnection):
     @event
     def execute(self, id, code):
-        self.emit('output', id, eval(code))
+        so = OutStreamFlushInterval(lambda msg: self.emit('stdout-%s'%id, msg),.01)
+        se = OutStreamFlushInterval(lambda msg: self.emit('stderr-%s'%id, msg),.01)
+        stdout = sys.stdout
+        stderr = sys.stderr
+        sys.stdout = so
+        sys.stderr = se
+        try:
+            exec code in namespace
+        except:
+            se.write(repr(sys.exc_info()[1]))
+        finally:
+            sys.stdout = stdout
+            sys.stderr = stderr
+            so.flush()
+            se.flush()
+            self.emit('done-%s'%id)
+            
+        
+        
+        
 
 def run(port, debug):
     if debug:

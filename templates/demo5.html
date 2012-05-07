@@ -8,28 +8,65 @@
 
 $(function() {
 
-socket = new io.connect('http://' + window.location.host);
-
-socket.test = function(expr) {
-   socket.once('output', function(id, msg) { console.log(msg); });
-   socket.emit('execute', '0', expr);
-}
-
-
-/* 
-socket.on('output', function(id, msg) { console.log(id + ': ' + msg); }); 
-socket.bench = function(n) {
-   if (n >= 1)  {
-       socket.once('output', function(id, msg) { socket.bench(n-1); console.log(msg) });
-       socket.emit('execute', n, '2*'+n);
-   }
-}
-*/
+    $('#execute').click(execute_code);
+    $('#input, div').css({'fontSize':'small', 'fontFamily':'Courier New'});
+    $('body').keydown(function(event) { 
+	if (event.which == 13 && event.shiftKey) {
+	    execute_code();
+	    return false;
+	} else if (event.which == 67 && event.ctrlKey) {
+	    sigint();
+	    return false;
+	}
+    });
 
 
+    socket = new io.connect('http://' + window.location.host);
+
+    socket.execute = function(id, code, stdout, stderr, done) {
+	socket.on('stdout-'+id, stdout);
+	socket.on('stderr-'+id, stderr);
+	socket.once('done-'+id, function () { 
+	    done(); 
+	    socket.removeListener('stdout-'+id, stdout);
+	    socket.removeListener('stderr-'+id, stderr);
+	});
+	socket.emit('execute', id, code);   
+    }
+
+
+
+    function execute_code() { 
+	$('#output')[0].innerHTML = '';
+	socket.execute('0', $('#input').val(), 
+		       function(s) { $('#output')[0].innerHTML += s; },
+		       function(s) { if (s) { $('#output')[0].innerHTML += '[[' + s + ']]';}  },
+		       function () { $('#output')[0].innerHTML += '(done)'; }
+		      );
+    }
+    
 })
 </script>
+
+
 <body>
-Hi you
+
+<div id="runframe">
+<textarea id="input" name="code" rows=6 cols=80>
+import random, time
+for i in range(200):
+    print random.randint(0,9),
+    if i%50==49: 
+        time.sleep(.1); print
+</textarea>
+</div>
+
+<br>
+<button id="execute">Execute (shift+enter)</button>
+
+<pre id="output">
+output here
+</pre>
+
 </body>
 </html>
