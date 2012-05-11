@@ -1,8 +1,9 @@
 <!doctype html>
 <html>
 <head>
-<script type="text/javascript" src="jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="jquery.min.js"></script>
 <script type="text/javascript" src="socket.io.js"></script>
+<script type="text/javascript" src="backend.js"></script>
 <script type="text/javascript">
 
 $(function() {
@@ -19,21 +20,7 @@ $(function() {
 	}
     });
 
-
-    socket = new io.connect('http://' + window.location.host);
-
-    socket.execute = function(id, code, stdout, stderr, done) {
-	socket.on('stdout-'+id, stdout);
-	socket.on('stderr-'+id, stderr);
-	socket.once('done-'+id, function () { 
-	    done(); 
-	    socket.removeListener('stdout-'+id, stdout);
-	    socket.removeListener('stderr-'+id, stderr);
-	});
-	socket.emit('execute', id, code);   
-    }
-
-
+    var socket = sagews_backend.socket('http://' + window.location.host);
 
     function execute_code() { 
 	$('#output')[0].innerHTML = '';
@@ -55,7 +42,7 @@ $(function() {
 <textarea id="input" name="code" rows=6 cols=80>
 import random, sys, time
 t = time.time()
-for i in range(1000): 
+for i in range(10): 
     print i
     sys.stdout.flush()
 print time.time()-t

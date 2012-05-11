@@ -15,7 +15,7 @@ print ROOT
 
 class IndexHandler(web.RequestHandler):
     def get(self):
-        self.render(os.path.join(ROOT, 'templates/backend/index.html'))
+        self.render(os.path.join(ROOT, 'templates/backend_index.html'))
 
 class SocketIOHandler(web.RequestHandler):
     def get(self):
@@ -24,6 +24,10 @@ class SocketIOHandler(web.RequestHandler):
 class jQueryIOHandler(web.RequestHandler):
     def get(self):
         self.render(os.path.join(ROOT, 'static/jquery/jquery.min.js'))
+
+class BackendJSHandler(web.RequestHandler):
+    def get(self):
+        self.render(os.path.join(ROOT, 'static/backend.js'))
 
 import time
 class OutputStream(object):
@@ -69,7 +73,8 @@ def run(port, debug):
     SocketServer(web.Application(
         router.apply_routes([(r"/", IndexHandler),
                              (r"/socket.io.js", SocketIOHandler),
-                             (r"/jquery.min.js", jQueryIOHandler)]),
+                             (r"/jquery.min.js", jQueryIOHandler),
+                             (r"/backend.js", BackendJSHandler)]),
         flash_policy_port = 843,
         flash_policy_file = os.path.join(ROOT, 'flashpolicy.xml'),
         socket_io_port = port,
