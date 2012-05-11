@@ -51,6 +51,21 @@ class OutputStream(object):
 namespace = {}
 
 class ExecuteConnection(SocketConnection):
+    clients = set()
+    
+    def on_open(self, *args, **kwargs):
+        self.clients.add(self)
+        print "made connection!"
+
+    def broadcast(self, *args, **kwds):
+        for c in self.clients:
+            c.emit(*args, **kwds)
+
+    def broadcast_other(self, *args, **kwds):
+        for c in self.clients:
+            if c != self:
+                c.emit(*args, **kwds)
+
     @event
     def execute(self, id, code):
         so = OutputStream(lambda msg: self.emit('stdout-%s'%id, msg), FLUSH_INTERVAL)
@@ -65,6 +80,30 @@ class ExecuteConnection(SocketConnection):
             sys.stdout = stdout; sys.stderr = stderr
             so.flush(); se.flush()
             self.emit('done-%s'%id)
+
+    @event
+    def set(self, selector, value):
+        self.broadcast('set', selector, value)
+
+    @event
+    def set_other(self, selector, value):
+        self.broadcast_other('set', selector, value)
+        
+    @event
+    def execute2(self, selector, code):
+        self.set(selector, '')  # clear output
+        so = OutputStream(lambda s: self.broadcast('stdout', selector, s), FLUSH_INTERVAL)
+        se = OutputStream(lambda s: self.broadcast('stderr', selector, s), FLUSH_INTERVAL)
+        stdout = sys.stdout; stderr = sys.stderr
+        sys.stdout = so; sys.stderr = se
+        try:
+            exec code in namespace
+        except:
+            se.write(repr(sys.exc_info()[1]))
+        finally:
+            sys.stdout = stdout; sys.stderr = stderr
+            so.flush(); se.flush()
+            self.emit('done', selector)
 
 def run(port, debug):
     if debug:

@@ -20,7 +20,7 @@ $(function() {
 	}
     });
 
-    var socket = sagews_backend.socket('http://' + window.location.host);
+/*    var socket = sagews_backend.socket('http://' + window.location.host);
 
     function execute_code() { 
 	$('#output')[0].innerHTML = '';
@@ -30,7 +30,34 @@ $(function() {
 		       function () { $('#output')[0].innerHTML += '(done)'; }
 		      );
     }
-    
+  */  
+
+    var options = {
+	set:function(selector, value) {
+	    $(selector)[0].innerHTML = value;
+	},
+	stdout:function(selector, output) {
+	    $(selector)[0].innerHTML += output;
+        },
+	stderr:function(selector, output) {
+	    $(selector)[0].innerHTML += output;
+        },
+	done:function(selector) {
+	    $(selector)[0].innerHTML += '(done)';
+        }
+    }
+
+    var socket = sagews_backend.socket('http://' + window.location.host, options);
+
+    function execute_code() { 
+	$('#output')[0].innerHTML = '';
+	var input=$('#input').val();
+	socket.set_other('#input', input);  /* set input if there are other clients */
+	socket.execute2('#output', input);
+    }
+
+    $('#input').blur( function () { socket.set_other('#input', $('#input').val());}  )
+
 })
 </script>
 

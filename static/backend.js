@@ -10,9 +10,31 @@ AUTHOR:
 /* Namespace for the application */
 var sagews_backend = {};
 
-sagews_backend.socket = function(url) {
+sagews_backend.socket = function(url, options) {
 
     var socket = new io.connect(url);  /* todo: handle error */
+
+    var opts = $.extend({
+	set:function(selector, s) {},
+        stdout:function(selector, s) {},
+	stderr:function(selector, s) {},
+	done: function(selector) {}}, options||{}
+    );
+
+    socket.on('set', opts.set);
+    socket.on('stdout', opts.stdout);
+    socket.on('stderr', opts.stderr);
+    socket.on('done', opts.done);
+
+    socket.execute2 = function(selector, code) {
+	socket.emit('execute2', selector, code);
+    }
+    socket.set = function(selector, value) {
+	socket.emit('set', selector, value);
+    }
+    socket.set_other = function(selector, value) {
+	socket.emit('set_other', selector, value);
+    }
 
     socket.execute = function(options) {
 	var opts = $.extend({
@@ -32,6 +54,8 @@ sagews_backend.socket = function(url) {
 	socket.emit('execute', id, code);   
     }
 
+    
+    
     return socket;
 }
 
