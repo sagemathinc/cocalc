@@ -5,29 +5,28 @@ Tornado + TorandIO2 application.
 """
 
 import logging, os, sys
-
 from tornado import web
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
+FLUSH_INTERVAL = 0.01
 
-ROOT = os.path.normpath(os.path.dirname(__file__))
-
+ROOT = os.path.abspath(os.path.normpath(os.path.dirname(__file__)))
+print ROOT
 
 class IndexHandler(web.RequestHandler):
     def get(self):
-        self.render('templates/demo5.html')
+        self.render(os.path.join(ROOT, 'templates/backend/index.html'))
 
 class SocketIOHandler(web.RequestHandler):
     def get(self):
-        self.render('static/socketio/socket.io.js')
+        self.render(os.path.join(ROOT, 'static/socketio/socket.io.js'))
 
 class jQueryIOHandler(web.RequestHandler):
     def get(self):
-        self.render('static/jquery/jquery-1.7.1.min.js')
-
+        self.render(os.path.join(ROOT, 'static/jquery/jquery.min.js'))
 
 import time
-class OutStreamFlushInterval(object):
+class OutputStream(object):
     def __init__(self, f, flush_interval):
         self._f = f
         self._buf = ''
@@ -45,61 +44,37 @@ class OutStreamFlushInterval(object):
         self._f(self._buf)
         self._buf = ''
 
-
-class OutStream(object):
-    def __init__(self, f):
-        self._f = f
-        self._buf = ''
-
-    def write(self, output):
-        self._buf += output
-
-    def flush(self):
-        self._f(self._buf)
-        self._buf = ''
-
-
 namespace = {}
 
 class ExecuteConnection(SocketConnection):
     @event
     def execute(self, id, code):
-        so = OutStreamFlushInterval(lambda msg: self.emit('stdout-%s'%id, msg),.01)
-        se = OutStreamFlushInterval(lambda msg: self.emit('stderr-%s'%id, msg),.01)
-        stdout = sys.stdout
-        stderr = sys.stderr
-        sys.stdout = so
-        sys.stderr = se
+        so = OutputStream(lambda msg: self.emit('stdout-%s'%id, msg), FLUSH_INTERVAL)
+        se = OutputStream(lambda msg: self.emit('stderr-%s'%id, msg), FLUSH_INTERVAL)
+        stdout = sys.stdout; stderr = sys.stderr
+        sys.stdout = so; sys.stderr = se
         try:
             exec code in namespace
         except:
             se.write(repr(sys.exc_info()[1]))
         finally:
-            sys.stdout = stdout
-            sys.stderr = stderr
-            so.flush()
-            se.flush()
+            sys.stdout = stdout; sys.stderr = stderr
+            so.flush(); se.flush()
             self.emit('done-%s'%id)
-            
-        
-        
-        
 
 def run(port, debug):
     if debug:
-        import logging
         logging.getLogger().setLevel(logging.DEBUG)
-    ExecuteRouter = TornadioRouter(ExecuteConnection)
-    application = web.Application(
-        ExecuteRouter.apply_routes([(r"/", IndexHandler),
-                                 (r"/socket.io.js", SocketIOHandler),
-                                 (r"/jquery-1.7.1.min.js", jQueryIOHandler)]),
+    router = TornadioRouter(ExecuteConnection)
+    SocketServer(web.Application(
+        router.apply_routes([(r"/", IndexHandler),
+                             (r"/socket.io.js", SocketIOHandler),
+                             (r"/jquery.min.js", jQueryIOHandler)]),
         flash_policy_port = 843,
         flash_policy_file = os.path.join(ROOT, 'flashpolicy.xml'),
         socket_io_port = port,
         debug=debug
-    )
-    SocketServer(application)
+    ))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
