@@ -17,18 +17,6 @@ class IndexHandler(web.RequestHandler):
     def get(self):
         self.render(os.path.join(ROOT, 'templates/backend_index.html'))
 
-class SocketIOHandler(web.RequestHandler):
-    def get(self):
-        self.render(os.path.join(ROOT, 'static/socketio/socket.io.js'))
-
-class jQueryIOHandler(web.RequestHandler):
-    def get(self):
-        self.render(os.path.join(ROOT, 'static/jquery/jquery.min.js'))
-
-class BackendJSHandler(web.RequestHandler):
-    def get(self):
-        self.render(os.path.join(ROOT, 'static/backend.js'))
-
 import time
 class OutputStream(object):
     def __init__(self, f, flush_interval):
@@ -111,9 +99,9 @@ def run(port, debug):
     router = TornadioRouter(ExecuteConnection)
     SocketServer(web.Application(
         router.apply_routes([(r"/", IndexHandler),
-                             (r"/socket.io.js", SocketIOHandler),
-                             (r"/jquery.min.js", jQueryIOHandler),
-                             (r"/backend.js", BackendJSHandler)]),
+                             (r"/static/(.*)", web.StaticFileHandler,
+                              {'path':os.path.join(ROOT ,'static')}),
+                             ]),
         flash_policy_port = 843,
         flash_policy_file = os.path.join(ROOT, 'flashpolicy.xml'),
         socket_io_port = port,

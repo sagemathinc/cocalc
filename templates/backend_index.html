@@ -1,15 +1,37 @@
 <!doctype html>
 <html>
 <head>
-<script type="text/javascript" src="jquery.min.js"></script>
-<script type="text/javascript" src="socket.io.js"></script>
-<script type="text/javascript" src="backend.js"></script>
+<script type="text/javascript" src="static/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="static/socketio/socket.io.js"></script>
+
+<link rel="stylesheet" href="static/codemirror/codemirror.css">
+<script type="text/javascript" src="static/codemirror/codemirror.js"></script>
+<script type="text/javascript" src="static/codemirror/mode/python.js"></script>
+<style type="text/css">
+      .CodeMirror {
+        border: 2px solid #99f;
+        font-size: large;
+        background-color: #ffffe8;
+      }
+      .CodeMirror-scroll {
+        height: auto;
+        overflow-y: hidden;
+        overflow-x: auto;
+        width: 100%;
+      }
+</style>
+
+<script type="text/javascript" src="static/backend.js"></script>
 <script type="text/javascript">
 
 $(function() {
+    var cm_input = CodeMirror.fromTextArea($("#input")[0], { 
+        lineNumbers: true,
+        indentUnit: 4
+    });
 
     $('#execute').click(execute_code);
-    $('#input, div').css({'fontSize':'small', 'fontFamily':'Courier New'});
+    $('#output').css({'fontSize':'smaller', 'fontFamily':'Courier New'}); 
     $('body').keydown(function(event) { 
 	if (event.which == 13 && event.shiftKey) {
 	    execute_code();
@@ -20,25 +42,17 @@ $(function() {
 	}
     });
 
-/*    var socket = sagews_backend.socket('http://' + window.location.host);
-
-    function execute_code() { 
-	$('#output')[0].innerHTML = '';
-	socket.execute('0', $('#input').val(), 
-		       function(s) { $('#output')[0].innerHTML += s; },
-		       function(s) { if (s) { $('#output')[0].innerHTML += '[[' + s + ']]';}  },
-		       function () { $('#output')[0].innerHTML += '(done)'; }
-		      );
-    }
-  */  
-
     function walltime() { return (new Date()).getTime(); }
 
     var start_time;
 
     var options = {
 	set:function(selector, value) {
-	    $(selector)[0].innerHTML = value;
+            if (selector === '#input') {
+                cm_input.setValue(value);
+            } else {
+       	        $(selector)[0].innerHTML = value;
+            }
 	},
 	stdout:function(selector, output) {
 	    $(selector)[0].innerHTML += output;
@@ -56,38 +70,31 @@ $(function() {
     function execute_code() { 
         start_time = walltime();
 	$('#output')[0].innerHTML = '';
-	var input=$('#input').val();
+	var input = cm_input.getValue();
         /* set input if there are other clients (otherwise does nothing) */
 	socket.set_other('#input', input);  
 	socket.execute2('#output', input);
     }
+});
 
-})
 </script>
 
 
 <body>
 
-<div id="runframe">
-<pre>
-<textarea id="input" name="code" rows=6 cols=80>
+<button id="execute">Execute (shift+enter)</button>
+(<span id="time">0 ms</span>)
+<pre><textarea id="input" name="code" rows=6 cols=80>
 import random, sys, time
 t = time.time()
 for i in range(10): 
     print i
     sys.stdout.flush()
-print time.time()-t
-</textarea>
-</pre>
-</div>
-
-<br>
-<button id="execute">Execute (shift+enter)</button>
-(<span id="time">0 ms</span>)
-
+print time.time()-t</textarea></pre>
 <pre id="output">
-output here
 </pre>
+
+
 
 </body>
 </html>
