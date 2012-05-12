@@ -19,6 +19,12 @@
         overflow-x: auto;
         width: 100%;
       }
+
+      .stderr {
+        color:#880000;
+        background-color:orange;
+        font-weight:bold;
+      }
 </style>
 
 <script type="text/javascript" src="static/backend.js"></script>
@@ -58,7 +64,7 @@ $(function() {
 	    $(selector)[0].innerHTML += output;
         },
 	stderr:function(selector, output) {
-	    $(selector)[0].innerHTML += output;
+	    $(selector)[0].innerHTML += '<span class="stderr">' + output + '</span>';
         },
 	done:function(selector) {
 	    $('#time')[0].innerHTML = (walltime() - start_time) + ' ms';
