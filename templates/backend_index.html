@@ -71,15 +71,19 @@ $(function() {
         }
     }
 
-    var socket = sagews_backend.socket('http://' + window.location.host, options);
+    var socket = sagews_backend.socket(
+                    'http://' + window.location.host, options);
 
     function execute_code() { 
+        $('#time')[0].innerHTML = '...';
         start_time = walltime();
 	$('#output')[0].innerHTML = '';
 	var input = cm_input.getValue();
+
         /* set input if there are other clients (otherwise does nothing) */
 	socket.set_other('#input', input);  
-	socket.execute2('#output', input);
+
+	socket.execute('#output', input);
     }
 });
 
@@ -93,9 +97,8 @@ $(function() {
 <pre><textarea id="input" name="code" rows=6 cols=80>
 import random, sys, time
 t = time.time()
-for i in range(10): 
-    print i
-    sys.stdout.flush()
+for i in range(1000): 
+    print i, '*'*80
 print time.time()-t</textarea></pre>
 <pre id="output">
 </pre>
