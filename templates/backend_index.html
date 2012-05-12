@@ -32,6 +32,10 @@ $(function() {
     }
   */  
 
+    function walltime() { return (new Date()).getTime(); }
+
+    var start_time;
+
     var options = {
 	set:function(selector, value) {
 	    $(selector)[0].innerHTML = value;
@@ -43,20 +47,20 @@ $(function() {
 	    $(selector)[0].innerHTML += output;
         },
 	done:function(selector) {
-	    $(selector)[0].innerHTML += '(done)';
+	    $('#time')[0].innerHTML = (walltime() - start_time) + ' ms';
         }
     }
 
     var socket = sagews_backend.socket('http://' + window.location.host, options);
 
     function execute_code() { 
+        start_time = walltime();
 	$('#output')[0].innerHTML = '';
 	var input=$('#input').val();
-	socket.set_other('#input', input);  /* set input if there are other clients */
+        /* set input if there are other clients (otherwise does nothing) */
+	socket.set_other('#input', input);  
 	socket.execute2('#output', input);
     }
-
-    $('#input').blur( function () { socket.set_other('#input', $('#input').val());}  )
 
 })
 </script>
@@ -79,6 +83,7 @@ print time.time()-t
 
 <br>
 <button id="execute">Execute (shift+enter)</button>
+(<span id="time">0 ms</span>)
 
 <pre id="output">
 output here
