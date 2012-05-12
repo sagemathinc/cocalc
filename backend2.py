@@ -46,6 +46,7 @@ class OutputStream(object):
         self._buf = ''
 
 namespace = {}
+exec "from sage.all_cmdline import *" in namespace
 
 class ExecuteConnection(SocketConnection):
     clients = set()

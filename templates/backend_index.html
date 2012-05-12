@@ -11,7 +11,7 @@
       .CodeMirror {
         border: 2px solid #99f;
         font-size: large;
-        background-color: #ffffe8;
+        background-color: #fffff0;
       }
       .CodeMirror-scroll {
         height: auto;
@@ -25,22 +25,31 @@
         background-color:orange;
         font-weight:bold;
       }
+
+      .output {
+        font-size:smaller;
+        font-family:"Courier New";
+        border:2px solid #9f9; padding:1px;
+      }
+
+      .wrap {  /* see http://www.longren.org/wrapping-text-inside-pre-tags/ */
+        white-space: pre-wrap; /* css-3 */
+        white-space: -moz-pre-wrap !important; /* Mozilla, since 1999 */
+        white-space: -pre-wrap; /* Opera 4-6 */
+        white-space: -o-pre-wrap; /* Opera 7 */
+        word-wrap: break-word; /* Internet Explorer 5.5+ */
+       }
 </style>
 
 <script type="text/javascript" src="static/backend.js"></script>
 <script type="text/javascript">
 
 $(function() {
-    var cm_input = CodeMirror.fromTextArea($("#input")[0], { 
-        lineNumbers: true,
-        indentUnit: 4
-    });
 
-    $('#execute').click(execute_code);
-    $('#output').css({'fontSize':'smaller', 'fontFamily':'Courier New'}); 
+
     $('body').keydown(function(event) { 
 	if (event.which == 13 && event.shiftKey) {
-	    execute_code();
+	    execute_code_cell(0);
 	    return false;
 	} else if (event.which == 67 && event.ctrlKey) {
 	    sigint();
@@ -48,43 +57,69 @@ $(function() {
 	}
     });
 
-    function walltime() { return (new Date()).getTime(); }
+    $('#status').css({'borderWidth':'2px', 'borderStyle':'solid', 'borderColor':'grey',
+                      'padding':'5px', height:'1em'});
 
-    var start_time;
+    function walltime() { return (new Date()).getTime(); }
 
     var options = {
 	set:function(selector, value) {
-            if (selector === '#input') {
+            if (selector === '#status') { return; }
+            else if (selector === '#input-0') {
                 cm_input.setValue(value);
             } else {
        	        $(selector)[0].innerHTML = value;
             }
 	},
+
 	stdout:function(selector, output) {
-	    $(selector)[0].innerHTML += output;
+            if (selector === '#status') {
+                $(selector)[0].innerHTML = output;
+            } else {
+    	        $(selector)[0].innerHTML += output;
+            }
         },
+
 	stderr:function(selector, output) {
 	    $(selector)[0].innerHTML += '<span class="stderr">' + output + '</span>';
         },
+
 	done:function(selector) {
-	    $('#time')[0].innerHTML = (walltime() - start_time) + ' ms';
+	    $('#time')[0].innerHTML = 'last time: ' + (walltime() - start_time) + ' ms';
         }
     }
 
     var socket = sagews_backend.socket(
                     'http://' + window.location.host, options);
 
-    function execute_code() { 
-        $('#time')[0].innerHTML = '...';
-        start_time = walltime();
-	$('#output')[0].innerHTML = '';
-	var input = cm_input.getValue();
-
-        /* set input if there are other clients (otherwise does nothing) */
-	socket.set_other('#input', input);  
-
-	socket.execute('#output', input);
+    function preparse(input) {
+        return "from sage.misc.preparser import preparse\nexec preparse('''"+input+"''') in globals()";
     }
+
+    function execute_code_cell(id) { 
+        start_time = walltime();
+	$('#output-'+id)[0].innerHTML = '';
+	var input = cm_input.getValue();
+        /* set input if there are other clients (otherwise does nothing) */
+	socket.set_other('#input-'+id, input);  
+	socket.execute('#output-'+id, $('#preparse').is(':checked') ? preparse(input) : input);
+        update_status();
+    }
+
+    function update_status() {
+        socket.execute('#status', 
+        'print("Memory: %sMB    Variables: %s"%(int(sage.all.get_memory_usage()), ", ".join(sage.all.show_identifiers())))');
+    }
+
+    var start_time = walltime();
+    update_status();
+
+    var cm_input = CodeMirror.fromTextArea($("#input-0")[0], { 
+        lineNumbers: true, indentUnit: 4 
+    });
+    $('#execute-0').click(function() { execute_code_cell(0) });
+
+
 });
 
 </script>
@@ -92,17 +127,21 @@ $(function() {
 
 <body>
 
-<button id="execute">Execute (shift+enter)</button>
-(<span id="time">0 ms</span>)
-<pre><textarea id="input" name="code" rows=6 cols=80>
+<pre><div id="status">status line</div></pre>
+<span id="time">last time:</span>
+<br>
+<input id="preparse" type="checkbox" checked="true" /> preparse
+<hr>
+
+
+<button id="execute-0">Execute (shift+enter)</button>
+<textarea id="input-0">
 import random, sys, time
 t = time.time()
-for i in range(1000): 
+for i in range(10): 
     print i, '*'*80
-print time.time()-t</textarea></pre>
-<pre id="output">
-</pre>
-
+print time.time()-t</textarea>
+<pre id="output-0" class="output wrap"></pre>
 
 
 </body>
