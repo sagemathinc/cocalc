@@ -28,7 +28,6 @@ class BroadcastStream(object):
         self._connection.broadcast(self._stream, self._selector, s, self._first)
         if self._first:
             self._first = False
-            self._other_stream._first = False
 
 class OutputStream(object):
     def __init__(self, f, flush_size=FLUSH_SIZE, flush_interval=FLUSH_INTERVAL):
@@ -60,10 +59,7 @@ class OutputStream(object):
         self._buf = ''
 
 def output_streams(connection, selector):
-    streams = [OutputStream(BroadcastStream(connection, s, selector)) for s in ['stdout', 'stderr']]
-    streams[0]._f._other_stream = streams[1]._f
-    streams[1]._f._other_stream = streams[0]._f
-    return tuple(streams)
+    return tuple([OutputStream(BroadcastStream(connection, s, selector)) for s in ['stdout', 'stderr']])
     
 
 namespace = {}
@@ -74,6 +70,15 @@ except Exception, msg:
     print "Sage not available."
     pass
 
+class SageWS(object):
+    def __init__(self, selector, code, connection):
+        self._selector = selector
+        self._code = code
+        self._connection = connection
+        
+    def mesg(self, value):
+        self._connection.broadcast('mesg', self._selector, value)
+    
 class ExecuteConnection(SocketConnection):
     clients = set()
     
@@ -99,6 +104,10 @@ class ExecuteConnection(SocketConnection):
         self.broadcast_other('stdout', selector, value, replace)
         
     @event
+    def mesg_other(self, selector, value):
+        self.broadcast_other('mesg', selector, value)
+
+    @event
     def stderr_other(self, selector, value, replace):
         self.broadcast_other('stderr', selector, value, replace)
 
@@ -115,7 +124,8 @@ class ExecuteConnection(SocketConnection):
         streams = (sys.stdout, sys.stderr)
         bstreams = output_streams(self, selector)
         (sys.stdout, sys.stderr) = bstreams
-        self.start_other(selector) # TODO: what if client is slow?  would that make this slow? 
+        namespace['sagews'] = SageWS(selector, code, self)
+        self.start_other(selector) # TODO: what if client is slow?  would that make this slow?
         try:
             exec code in namespace
         except:

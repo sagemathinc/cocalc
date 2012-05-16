@@ -15,6 +15,7 @@ sagews_backend.socket = function(url, options) {
 
     var opts = $.extend({
         set:function(selector, value) {},
+        mesg:function(selector, value) {},
 	start: function(selector) {}, 
         stdout:function(selector, value, replace) {},
 	stderr:function(selector, value, replace) {},
@@ -23,6 +24,7 @@ sagews_backend.socket = function(url, options) {
     );
 
     socket.on('set', opts.set);
+    socket.on('mesg', opts.mesg);
     socket.on('start', opts.start);
     socket.on('stdout', opts.stdout);
     socket.on('stderr', opts.stderr);
@@ -34,6 +36,9 @@ sagews_backend.socket = function(url, options) {
     }
     socket.set = function(selector, value) {
 	socket.emit('set_other', selector, value);
+    }
+    socket.mesg = function(selector, value) {
+	socket.emit('mesg_other', selector, value);
     }
     socket.stdout = function(selector, value, replace) {
 	socket.emit('stdout_other', selector, value, replace);

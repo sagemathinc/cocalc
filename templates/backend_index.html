@@ -8,15 +8,16 @@
 <script type="text/javascript" src="static/codemirror/codemirror.js"></script>
 <script type="text/javascript" src="static/codemirror/mode/python.js"></script>
 <style type="text/css">
+
       .CodeMirror {
-/*        border: 2px solid #99f; */
-/*        background-color: #fffffa; */
+        border: 1px solid #99f; 
+/*        background-color: #fffff0;  */
       }
       .CodeMirror-scroll {
-        height: auto;
+        height: auto; 
         overflow-y: hidden;
         overflow-x: auto;
-        width: 100%;
+      width: 100%;
       }
 
       .stderr {
@@ -25,9 +26,6 @@
         font-weight:bold;
       }
 
-      .cell {
-          border:2px solid #aaa; padding:5px; 
-      }
 
       .output {
 /*          font-family:"Courier New"; 
@@ -49,7 +47,6 @@
 
 $(function() {
 
-
     $('body').keydown(function(event) { 
 	if (event.which == 13 && event.shiftKey) {
 	    execute_code_cell('#cell-0');
@@ -63,48 +60,29 @@ $(function() {
 
     function walltime() { return (new Date()).getTime(); }
 
+    // TODO: vargs
+    function call_ifdef(selector, name, a1, a2) {
+        var obj = $(selector);
+        var f = obj.data(name);
+        if (typeof f === 'undefined') return;
+        if (typeof a2 === 'undefined') { f(a1); return; }
+        if (typeof a1 === 'undefined') { f(); return; }
+        f(a1,a2);
+    }
+
     var options = {
-	set:function(selector, value) {
-	    var obj = $(selector);
-            var f = obj.data('set')
-	    if (f === 'undefined') { 
-		obj[0].innerHTML = value; 
-	    } else { 
-try {
-		f(value); 
-} catch(e) { }
-	    }
-	},
-
- 	stdout:function(selector, value, clear) {
-try {
-	    $(selector).data('stdout')(value, clear);
-} catch(e) {}
-        },
-
-	stderr:function(selector, value, clear) {
-try {
-	    $(selector).data('stderr')(value, clear);
-} catch(e) {}
-        },
-
-        start:function(selector) {
-try {
-	    $(selector).data('start')();
-} catch(e) {}
-        },
-
-	done:function(selector) {
-try {
-	    $(selector).data('done')();
-} catch(e) {}
-        }
+	set:function(selector, value) { call_ifdef(selector, 'set', value); },
+        mesg:function(selector, value) { call_ifdef(selector, 'mesg', value); },
+ 	stdout:function(selector, value, clear) { call_ifdef(selector, 'stdout', value, clear); },
+	stderr:function(selector, value, clear) { call_ifdef(selector, 'stderr', value, clear); },
+        start:function(selector) { call_ifdef(selector, 'start'); },
+	done:function(selector) { call_ifdef(selector, 'done'); }
     }
 
     var socket = sagews_backend.socket('http://' + window.location.host, options);
 
     function preparse(input) {
-        return "from sage.misc.preparser import preparse\nexec preparse('''"+input+"''') in globals()";
+        return "exec preparse(r'''"+input+"''') in globals()";
     }
 
     function execute_code_cell(selector) { 
@@ -126,6 +104,12 @@ try {
     var cm_input = CodeMirror.fromTextArea($("#input-0")[0], 
                       {lineNumbers: true, indentUnit: 4, matchBrackets:true});
 
+    var cm_stdout = CodeMirror.fromTextArea($("#stdout-0")[0], 
+         {lineNumbers: false, lineWrapping:true});
+    var cm_stderr = CodeMirror.fromTextArea($("#stderr-0")[0], 
+         {lineNumbers: false, lineWrapping:true});
+
+
     $('#execute-0').click(function() { execute_code_cell('#cell-0') });
 
     $('#cell-0').data('set', 
@@ -134,23 +118,26 @@ try {
         function () {
             $('#cell-0').data('start_time', walltime());
         }
+    ).data('mesg',
+        function (value) {
+            if (value.type === 'alert') {
+                alert(value.value);
+            } 
+        }
     ).data('stdout', 
 	function(value, clear) {
-            var obj = $('#output-0')[0];
             if (clear) {
-                obj.innerHTML = value;
+                cm_stdout.setValue(value);
             } else {
-    	        obj.innerHTML += value;
+                cm_stdout.setValue(cm_stdout.getValue() + value);  // TODO
             }
 	}
     ).data('stderr', 
 	function(value, clear) {
-            value = '<span class="stderr">' + value + '</span>';
-            var obj = $('#output-0')[0];
             if (clear) {
-                obj.innerHTML = value;
+                cm_stderr.setValue(value);
             } else {
-    	        obj.innerHTML += value;
+                cm_stderr.setValue(cm_stderr.getValue() + value);  // TODO
             }
 	}
     ).data('done',
@@ -181,11 +168,13 @@ try {
 <button id="execute-0">Execute (shift+enter)</button>
 <hr>
 <br><br>
-<div id="cell-0" class="cell">
+
+<div id="cell-0">
 <textarea id="input-0">
 for i in [1..10]: 
     print chr(randint(40,100))*(8*i)</textarea>
-<pre id="output-0" class="output wrap"></pre>
+<textarea id="stdout-0" class="stdout"></textarea>
+<textarea id="stderr-0"></textarea>
 </div>
 
 
