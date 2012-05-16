@@ -78,6 +78,9 @@ class SageWS(object):
         
     def mesg(self, value):
         self._connection.broadcast('mesg', self._selector, value)
+
+    def javascript(self, code):
+        self.mesg({'type':'javascript', 'value':code})
     
 class ExecuteConnection(SocketConnection):
     clients = set()
