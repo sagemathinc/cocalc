@@ -46,7 +46,12 @@ class OutputStream(object):
         self._buf = ''
 
 namespace = {}
-exec "from sage.all_cmdline import *" in namespace
+try:
+    exec "from sage.all_cmdline import *" in namespace
+except Exception, msg:
+    print msg
+    print "Sage not available."
+    pass
 
 class ExecuteConnection(SocketConnection):
     clients = set()

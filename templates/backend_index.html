@@ -64,12 +64,15 @@ $(function() {
 
     var options = {
 	set:function(selector, value) {
-            if (selector === '#status') { return; }
+       	        $(selector)[0].innerHTML = value;
+            $(selector).data('set')(value);
+/*            if (selector === '#status') { return; }
             else if (selector === '#input-0') {
                 cm_input.setValue(value);
             } else {
        	        $(selector)[0].innerHTML = value;
             }
+*/
 	},
 
 	stdout:function(selector, output) {
@@ -115,10 +118,13 @@ $(function() {
     update_status();
 
     var cm_input = CodeMirror.fromTextArea($("#input-0")[0], { 
-        lineNumbers: true, indentUnit: 4 
+        lineNumbers: true, indentUnit: 4, matchBrackets:true
     });
     $('#execute-0').click(function() { execute_code_cell(0) });
 
+
+    $('input-0').data('set', function(s) { cm_input.setValue(s); });
+    $('status').data('set', function(s) {});
 
 });
 

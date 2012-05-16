@@ -1,10 +1,9 @@
 /* 
-
 backend -- low level javascript client for communication with the
 backend Python process
 
 AUTHOR: 
-   - William Stein
+   - Copyright William Stein, May 2012
 */
 
 /* Namespace for the application */

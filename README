@@ -287,3 +287,86 @@ If I can do the above, then restructure code to commit to tornadio.
 
  [ ] Next target: demo of the worspace_server, where there is some
      persisted worksheet.
+
+
+----------------------------
+
+2012-05-12:
+
+I had a few days off and some technology surprises, so now i need to
+'regroup'.
+
+Plan.
+
+1. Design/implement demo versions of the following that display/sync
+   to multiple clients at once, in order to see what the backend.js
+   api must provide:
+
+  [ ] a div of draggable standard input/output cells (like in sagenb
+      and ipython) as a class that converts a textarea, uses
+      codemirror, etc.
+
+- cell = input/output/name
+   - div in the DOM
+   - recipient of messages about changing: 
+        input, output, position in DOM
+        (codemirror allows for diffs for input)
+  
+
+  [ ] a command line
+
+  [ ] simple spreadsheet; an nxm array of input's that when clicked on
+      allow you to enter sage expressions, and when clicked out of
+      evaluate and show result.  result of cell i,j is sorted in a
+      variable c[i,j] that any cell can access.
+
+  Have tab completion.
+
+2. Based on the above, *re-define* and implement backend.js
+
+3. Redesign and redo frontend.py -- it will be much simpler, with no
+   database, etc.a
+
+4. Design and implement workspace_server.py
+
+
+-----
+
+Standalone APPS:
+
+  * PhoneGAP
+  * Fluid: http://fluidapp.com/ (desktop)
+  * Prism: https://mozillalabs.com/en-US/projects/prism/
+
+[ ] I need to look carefully at RStudio, since that is another model
+    for what to support as a web-based UI.
+
+[ ] AppSoma: http://happysciencecoding.com/ -- this is similar to what I am
+    planning to do, but more limited... and more flexible.  
+    This exactly competes with what I want to do.  Ut oh!  But exciting as 
+    a proof of concept.
+
+    "run on your own recourses" -- like crashplan!
+        http://appsoma.com/wiki/index.php?title=Apps
+
+  - what's the big deal with Hadoop?
+
+
+PEOPLE:
+
+  - Josh Breeds <josh@servedby.net>
+
+
+
+
+-------------------
+
+What I plan to do today on sagews:
+  
+[ ] clarify and document the backend.js library; in particular,
+    make sure attaching function via the data attribute works
+
+[ ] implement a very robust snappy codemirror2 based command line: 
+      - minimal possible code
+      - persistent sqlite database
+      - multiple simultaneous clients
