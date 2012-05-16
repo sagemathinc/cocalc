@@ -17,6 +17,19 @@ class IndexHandler(web.RequestHandler):
     def get(self):
         self.render(os.path.join(ROOT, 'templates/backend_index.html'))
 
+class BroadcastStream(object):
+    def __init__(self, connection, stream, selector):
+        self._connection = connection
+        self._stream = stream
+        self._selector = selector
+        self._first = True
+        
+    def __call__(self, s):
+        self._connection.broadcast(self._stream, self._selector, s, self._first)
+        if self._first:
+            self._first = False
+            self._other_stream._first = False
+
 class OutputStream(object):
     def __init__(self, f, flush_size=FLUSH_SIZE, flush_interval=FLUSH_INTERVAL):
         self._f = f
@@ -29,7 +42,8 @@ class OutputStream(object):
     def write(self, output):
         self._buf += output
         t = time.time()
-        if (len(self._buf) - self._last_flush >= self._flush_size) or (t - self._last_flush_time >= self._flush_interval):
+        if ((len(self._buf) - self._last_flush >= self._flush_size) or
+                            (t - self._last_flush_time >= self._flush_interval)):
             self.flush()
             self._last_flush = len(self._buf)
             self._last_flush_time = t
@@ -45,6 +59,13 @@ class OutputStream(object):
         self._f(self._buf)
         self._buf = ''
 
+def output_streams(connection, selector):
+    streams = [OutputStream(BroadcastStream(connection, s, selector)) for s in ['stdout', 'stderr']]
+    streams[0]._f._other_stream = streams[1]._f
+    streams[1]._f._other_stream = streams[0]._f
+    return tuple(streams)
+    
+
 namespace = {}
 try:
     exec "from sage.all_cmdline import *" in namespace
@@ -58,7 +79,7 @@ class ExecuteConnection(SocketConnection):
     
     def on_open(self, *args, **kwargs):
         self.clients.add(self)
-        print "made connection!"
+        print "new connection: %s"%self
 
     def broadcast(self, *args, **kwds):
         for c in self.clients:
@@ -70,28 +91,34 @@ class ExecuteConnection(SocketConnection):
                 c.emit(*args, **kwds)
 
     @event
-    def set(self, selector, value):
-        self.broadcast('set', selector, value)
-
-    @event
     def set_other(self, selector, value):
         self.broadcast_other('set', selector, value)
+
+    @event
+    def stdout_other(self, selector, value, replace):
+        self.broadcast_other('stdout', selector, value, replace)
         
     @event
+    def stderr_other(self, selector, value, replace):
+        self.broadcast_other('stderr', selector, value, replace)
+
+    @event
+    def done_other(self, selector):
+        self.broadcast_other('done', selector)
+
+    @event
     def execute(self, selector, code):
-        self.set(selector, '')  # clear output
-        so = OutputStream(lambda s: self.broadcast('stdout', selector, s))
-        se = OutputStream(lambda s: self.broadcast('stderr', selector, s))
-        stdout = sys.stdout; stderr = sys.stderr
-        sys.stdout = so; sys.stderr = se
+        streams = (sys.stdout, sys.stderr)
+        bstreams = output_streams(self, selector)
+        (sys.stdout, sys.stderr) = bstreams
         try:
             exec code in namespace
         except:
-            se.write(repr(sys.exc_info()[1]))
+            bstreams[1].write(repr(sys.exc_info()[1]))
         finally:
-            sys.stdout = stdout; sys.stderr = stderr
-            so.flush(); se.flush()
-            self.emit('done', selector)
+            bstreams[0].flush(); bstreams[1].flush()
+            (sys.stdout, sys.stderr) = streams
+            self.broadcast('done', selector)
 
 def run(port, debug):
     if debug:

@@ -10,7 +10,6 @@
 <style type="text/css">
       .CodeMirror {
         border: 2px solid #99f;
-        font-size: large;
         background-color: #fffff0;
       }
       .CodeMirror-scroll {
@@ -27,8 +26,7 @@
       }
 
       .output {
-        font-size:smaller;
-        font-family:"Courier New";
+/*        font-family:"Courier New"; */
         border:2px solid #9f9; padding:1px;
       }
 
@@ -64,27 +62,26 @@ $(function() {
 
     var options = {
 	set:function(selector, value) {
-       	        $(selector)[0].innerHTML = value;
             $(selector).data('set')(value);
-/*            if (selector === '#status') { return; }
-            else if (selector === '#input-0') {
-                cm_input.setValue(value);
-            } else {
-       	        $(selector)[0].innerHTML = value;
-            }
-*/
 	},
 
-	stdout:function(selector, output) {
-            if (selector === '#status') {
-                $(selector)[0].innerHTML = output;
+ 	stdout:function(selector, value, clear) {
+            var obj = $(selector)[0];
+            if (clear) {
+                obj.innerHTML = value;
             } else {
-    	        $(selector)[0].innerHTML += output;
+    	        obj.innerHTML += value;
             }
         },
 
-	stderr:function(selector, output) {
-	    $(selector)[0].innerHTML += '<span class="stderr">' + output + '</span>';
+	stderr:function(selector, value, clear) {
+            value = '<span class="stderr">' + value + '</span>';
+            var obj = $(selector)[0];
+            if (clear) {
+                obj.innerHTML = value;
+            } else {
+    	        obj.innerHTML += value;
+            }
         },
 
 	done:function(selector) {
@@ -92,8 +89,7 @@ $(function() {
         }
     }
 
-    var socket = sagews_backend.socket(
-                    'http://' + window.location.host, options);
+    var socket = sagews_backend.socket('http://' + window.location.host, options);
 
     function preparse(input) {
         return "from sage.misc.preparser import preparse\nexec preparse('''"+input+"''') in globals()";
@@ -101,11 +97,11 @@ $(function() {
 
     function execute_code_cell(id) { 
         start_time = walltime();
-	$('#output-'+id)[0].innerHTML = '';
 	var input = cm_input.getValue();
-        /* set input if there are other clients (otherwise does nothing) */
-	socket.set_other('#input-'+id, input);  
 	socket.execute('#output-'+id, $('#preparse').is(':checked') ? preparse(input) : input);
+        /* start code executing */ 
+        /* set input if there are other clients (otherwise does nothing) */
+	socket.set('#input-'+id, input); 
         update_status();
     }
 
@@ -122,9 +118,8 @@ $(function() {
     });
     $('#execute-0').click(function() { execute_code_cell(0) });
 
-
-    $('input-0').data('set', function(s) { cm_input.setValue(s); });
-    $('status').data('set', function(s) {});
+    $('#input-0').data('set', function(s) { cm_input.setValue(s); });
+    $('#status').data('set', function(s) {});
 
 });
 
@@ -142,11 +137,8 @@ $(function() {
 
 <button id="execute-0">Execute (shift+enter)</button>
 <textarea id="input-0">
-import random, sys, time
-t = time.time()
-for i in range(10): 
-    print i, '*'*80
-print time.time()-t</textarea>
+for i in [1..10]: 
+    print i, chr(randint(65,97))*(8*i)</textarea>
 <pre id="output-0" class="output wrap"></pre>
 
 
