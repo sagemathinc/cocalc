@@ -9,8 +9,8 @@
 <script type="text/javascript" src="static/codemirror/mode/python.js"></script>
 <style type="text/css">
       .CodeMirror {
-        border: 2px solid #99f;
-        background-color: #fffff0;
+/*        border: 2px solid #99f; */
+/*        background-color: #fffffa; */
       }
       .CodeMirror-scroll {
         height: auto;
@@ -25,9 +25,14 @@
         font-weight:bold;
       }
 
+      .cell {
+          border:2px solid #aaa; padding:5px; 
+      }
+
       .output {
-/*        font-family:"Courier New"; */
-        border:2px solid #9f9; padding:1px;
+/*          font-family:"Courier New"; 
+          font-size:12pt;
+        border:2px solid #9f9; padding:1px; */
       }
 
       .wrap {  /* see http://www.longren.org/wrapping-text-inside-pre-tags/ */
@@ -47,7 +52,7 @@ $(function() {
 
     $('body').keydown(function(event) { 
 	if (event.which == 13 && event.shiftKey) {
-	    execute_code_cell(0);
+	    execute_code_cell('#cell-0');
 	    return false;
 	} else if (event.which == 67 && event.ctrlKey) {
 	    sigint();
@@ -55,37 +60,44 @@ $(function() {
 	}
     });
 
-    $('#status').css({'borderWidth':'2px', 'borderStyle':'solid', 'borderColor':'grey',
-                      'padding':'5px', height:'1em'});
 
     function walltime() { return (new Date()).getTime(); }
 
     var options = {
 	set:function(selector, value) {
-            $(selector).data('set')(value);
+	    var obj = $(selector);
+            var f = obj.data('set')
+	    if (f === 'undefined') { 
+		obj[0].innerHTML = value; 
+	    } else { 
+try {
+		f(value); 
+} catch(e) { }
+	    }
 	},
 
  	stdout:function(selector, value, clear) {
-            var obj = $(selector)[0];
-            if (clear) {
-                obj.innerHTML = value;
-            } else {
-    	        obj.innerHTML += value;
-            }
+try {
+	    $(selector).data('stdout')(value, clear);
+} catch(e) {}
         },
 
 	stderr:function(selector, value, clear) {
-            value = '<span class="stderr">' + value + '</span>';
-            var obj = $(selector)[0];
-            if (clear) {
-                obj.innerHTML = value;
-            } else {
-    	        obj.innerHTML += value;
-            }
+try {
+	    $(selector).data('stderr')(value, clear);
+} catch(e) {}
+        },
+
+        start:function(selector) {
+try {
+	    $(selector).data('start')();
+} catch(e) {}
         },
 
 	done:function(selector) {
-	    $('#time')[0].innerHTML = 'last time: ' + (walltime() - start_time) + ' ms';
+try {
+	    $(selector).data('done')();
+} catch(e) {}
         }
     }
 
@@ -95,13 +107,11 @@ $(function() {
         return "from sage.misc.preparser import preparse\nexec preparse('''"+input+"''') in globals()";
     }
 
-    function execute_code_cell(id) { 
-        start_time = walltime();
+    function execute_code_cell(selector) { 
 	var input = cm_input.getValue();
-	socket.execute('#output-'+id, $('#preparse').is(':checked') ? preparse(input) : input);
-        /* start code executing */ 
-        /* set input if there are other clients (otherwise does nothing) */
-	socket.set('#input-'+id, input); 
+	socket.set(selector, input);  // set input of other clients
+        if ($('#preparse').is(':checked')) { input = preparse(input); }
+	socket.execute(selector, input);
         update_status();
     }
 
@@ -113,15 +123,51 @@ $(function() {
     var start_time = walltime();
     update_status();
 
-    var cm_input = CodeMirror.fromTextArea($("#input-0")[0], { 
-        lineNumbers: true, indentUnit: 4, matchBrackets:true
-    });
-    $('#execute-0').click(function() { execute_code_cell(0) });
+    var cm_input = CodeMirror.fromTextArea($("#input-0")[0], 
+                      {lineNumbers: true, indentUnit: 4, matchBrackets:true});
 
-    $('#input-0').data('set', function(s) { cm_input.setValue(s); });
-    $('#status').data('set', function(s) {});
+    $('#execute-0').click(function() { execute_code_cell('#cell-0') });
 
-});
+    $('#cell-0').data('set', 
+        function(value) { cm_input.setValue(value); }
+    ).data('start',
+        function () {
+            $('#cell-0').data('start_time', walltime());
+        }
+    ).data('stdout', 
+	function(value, clear) {
+            var obj = $('#output-0')[0];
+            if (clear) {
+                obj.innerHTML = value;
+            } else {
+    	        obj.innerHTML += value;
+            }
+	}
+    ).data('stderr', 
+	function(value, clear) {
+            value = '<span class="stderr">' + value + '</span>';
+            var obj = $('#output-0')[0];
+            if (clear) {
+                obj.innerHTML = value;
+            } else {
+    	        obj.innerHTML += value;
+            }
+	}
+    ).data('done',
+        function () { 
+	    var s = 'last time: ' + (walltime() - $('#cell-0').data('start_time')) + ' ms';
+	    $('#time')[0].innerHTML = s;
+	}
+   );
+
+   $('#status').css({'borderWidth':'2px', 'borderStyle':'solid', 'borderColor':'grey',
+                     'padding':'5px', height:'1em'})
+	.data('stdout', function(value, clear) { $('#status')[0].innerHTML = value; })
+	.data('stderr', function(value, clear) {})
+	.data('done', function() {})
+	.data('set', function(value) {});
+
+})
 
 </script>
 
@@ -132,14 +178,15 @@ $(function() {
 <span id="time">last time:</span>
 <br>
 <input id="preparse" type="checkbox" checked="true" /> preparse
-<hr>
-
-
 <button id="execute-0">Execute (shift+enter)</button>
+<hr>
+<br><br>
+<div id="cell-0" class="cell">
 <textarea id="input-0">
 for i in [1..10]: 
-    print i, chr(randint(65,97))*(8*i)</textarea>
+    print chr(randint(40,100))*(8*i)</textarea>
 <pre id="output-0" class="output wrap"></pre>
+</div>
 
 
 </body>

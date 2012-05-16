@@ -8,7 +8,7 @@ import logging, os, sys, time
 from tornado import web
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
-FLUSH_SIZE = 8092; FLUSH_INTERVAL = 0.01
+FLUSH_SIZE = 8092; FLUSH_INTERVAL = 0.1
 
 ROOT = os.path.abspath(os.path.normpath(os.path.dirname(__file__)))
 print ROOT
@@ -107,10 +107,15 @@ class ExecuteConnection(SocketConnection):
         self.broadcast_other('done', selector)
 
     @event
+    def start_other(self, selector):
+        self.broadcast_other('start', selector)
+
+    @event
     def execute(self, selector, code):
         streams = (sys.stdout, sys.stderr)
         bstreams = output_streams(self, selector)
         (sys.stdout, sys.stderr) = bstreams
+        self.start_other(selector) # TODO: what if client is slow?  would that make this slow? 
         try:
             exec code in namespace
         except:
