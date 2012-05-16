@@ -10,14 +10,18 @@
 <style type="text/css">
 
       .CodeMirror {
-        border: 1px solid #99f; 
-/*        background-color: #fffff0;  */
+/*        border: 1px solid #99f; 
+        background-color: #fffff0;  */
       }
       .CodeMirror-scroll {
         height: auto; 
         overflow-y: hidden;
         overflow-x: auto;
       width: 100%;
+      }
+
+      .sagews-cell {
+        border: 1px solid #888; 
       }
 
       .stderr {
@@ -47,7 +51,7 @@
 
 $(function() {
 
-    $('body').keydown(function(event) { 
+/*    $('body').keydown(function(event) { 
 	if (event.which == 13 && event.shiftKey) {
 	    execute_code_cell('#cell-0');
 	    return false;
@@ -56,6 +60,7 @@ $(function() {
 	    return false;
 	}
     });
+*/
 
 
     function walltime() { return (new Date()).getTime(); }
@@ -85,69 +90,14 @@ $(function() {
         return "exec preparse(r'''"+input+"''') in globals()";
     }
 
-    function execute_code_cell(selector) { 
-	var input = cm_input.getValue();
-	socket.set(selector, input);  // set input of other clients
-        if ($('#preparse').is(':checked')) { input = preparse(input); }
-	socket.execute(selector, input);
-        update_status();
-    }
-
     function update_status() {
         socket.execute('#status', 
-        'print("Memory: %sMB    Variables: %s"%(int(sage.all.get_memory_usage()), ", ".join(sage.all.show_identifiers())))');
+        'print("Memory: %sMB    Variables: %s"%(int(sage.all.get_memory_usage()), ", ".join(sorted(sage.all.show_identifiers()))))');
     }
 
     var start_time = walltime();
     update_status();
 
-    var cm_input = CodeMirror.fromTextArea($("#input-0")[0], 
-                      {lineNumbers: true, indentUnit: 4, matchBrackets:true});
-
-    var cm_stdout = CodeMirror.fromTextArea($("#stdout-0")[0], 
-         {lineNumbers: false, lineWrapping:true});
-    var cm_stderr = CodeMirror.fromTextArea($("#stderr-0")[0], 
-         {lineNumbers: false, lineWrapping:true});
-
-
-    $('#execute-0').click(function() { execute_code_cell('#cell-0') });
-
-    $('#cell-0').data('set', 
-        function(value) { cm_input.setValue(value); }
-    ).data('start',
-        function () {
-            $('#cell-0').data('start_time', walltime());
-        }
-    ).data('mesg',
-        function (value) {
-            if (value.type === 'alert') {
-                alert(value.value);
-            } else if (value.type === 'javascript') {
-                eval(value.value);
-            }
-        }
-    ).data('stdout', 
-	function(value, clear) {
-            if (clear) {
-                cm_stdout.setValue(value);
-            } else {
-                cm_stdout.setValue(cm_stdout.getValue() + value);  // TODO
-            }
-	}
-    ).data('stderr', 
-	function(value, clear) {
-            if (clear) {
-                cm_stderr.setValue(value);
-            } else {
-                cm_stderr.setValue(cm_stderr.getValue() + value);  // TODO
-            }
-	}
-    ).data('done',
-        function () { 
-	    var s = 'last time: ' + (walltime() - $('#cell-0').data('start_time')) + ' ms';
-	    $('#time')[0].innerHTML = s;
-	}
-   );
 
    $('#status').css({'borderWidth':'2px', 'borderStyle':'solid', 'borderColor':'grey',
                      'padding':'5px', height:'1em'})
@@ -156,9 +106,122 @@ $(function() {
 	.data('done', function() {})
 	.data('set', function(value) {});
 
-})
+    function trim_cm(cm) {
+	var val = cm.getValue();
+	if (val[val.length-1] === '\n') {
+	    cm.setValue(val.slice(0,val.length-1));
+	}
+    }
 
-</script>
+    function SageCell(id, options) {
+	var opts = $.extend({input:'', stdout:'', stderr:'', html:''}, options||{});
+        var cell = $('<div id="' + id + '" class="sagews-cell"></div>')[0];
+        var input = CodeMirror(cell, {
+	                 value:opts.input,
+                         lineNumbers: true, indentUnit: 4, matchBrackets:true,
+                         extraKeys:{
+			     'Shift-Enter': function(cm) { execute(); },
+			     'Up':function(cm) { up(); },
+			     'Down':function(cm) { down(); }
+			 }
+                    });
+        var stdout = CodeMirror(cell, {value:opts.stdout, lineWrapping:true, readOnly:'nocursor'})
+	var stderr = CodeMirror(cell, {value:opts.stderr, lineWrapping:true, readOnly:'nocursor'});
+	var html = $('<div></div>').append(html)[0];
+	if (opts.stdout === '') { $(stdout.getWrapperElement()).hide(); }
+	if (opts.stderr === '') { $(stderr.getWrapperElement()).hide(); } 
+	var wcell = $(cell);
+        wcell.data({'focus':function(line, ch) { 
+	               if (line<0) { line += input.lineCount(); }
+	                  input.focus(); input.setCursor(line,ch); 
+	            },
+                    'refresh':function() { input.refresh(); stdout.refresh(); stderr.refresh(); },
+		    'set':    function(value) { input.setValue(value); },
+		    'start':  function() { wcell.data('start_time', walltime()); },
+		    'mesg':   function(value) { 
+			if (value.type === 'javascript') {eval(value.value);}
+		    },
+		    'stdout': function(value, clear) {
+			if (clear) {
+			    if (value) { $(stdout.getWrapperElement()).show(); }
+			    stdout.setValue(value);
+			} else {
+			    stdout.setValue(stdout.getValue() + value);  // TODO
+			}
+		    },
+		    'stderr': function(value, clear) {
+			if (clear) {
+			    if (value) { $(stderr.getWrapperElement()).show(); }
+			    stderr.setValue(value);
+			} else {
+			    stderr.setValue(stderr.getValue() + value);  // TODO
+			}
+		    },
+		    'done':   function () { 
+			var s = 'last time: ' + (walltime() - wcell.data('start_time')) + ' ms';
+			$('#time')[0].innerHTML = s;
+			trim_cm(stdout); trim_cm(stderr);
+			update_status();
+		    }
+		   });
+
+	function execute() { 
+	    var val = input.getValue();
+	    socket.set('#'+id, val);
+	    socket.execute('#'+id, val, true); 
+	    var next = wcell.next();
+	    if (next.length === 0) { next = $(appendSageCell('#cells')); }
+	    next.data('focus')(0,0);
+	}
+	
+	function up() {
+	    var coords = input.getCursor();
+	    if (coords.line >= 1) {
+		input.setCursor(coords.line - 1, coords.ch);
+	    } else {
+		var f = wcell.prev().data('focus'); 
+		if (f) { f(-1, coords.ch); } 
+	    }
+	}
+
+        function down() {
+	    var coords = input.getCursor();
+	    if (coords.line < input.lineCount() - 1) {
+		input.setCursor(coords.line + 1, coords.ch);
+	    } else {
+		var f = wcell.next().data('focus')
+		if (f) { f(0, coords.ch);  } 
+	    }
+
+        }
+	return cell;
+    }
+
+    var cell_number = -1;
+    function next_cell_number() {
+	cell_number += 1;
+	return cell_number;
+    }
+    function appendSageCell(selector, options) {
+	var id = 'cell-' + next_cell_number();
+	if ($('#'+id).length != 0) {
+	    alert("trying to create a cell with the id " + id + " that already exists will cause horrible confusion!");
+	}
+	var cell = SageCell(id, options);	
+	$(selector).append(cell);
+	$(cell).data('refresh')();
+	return cell;
+    }
+
+    appendSageCell('#cells');
+/*    appendSageCell('#cells', {input:"for i in [1..5]:\n    print chr(randint(40,100))*(8*i)"});
+    appendSageCell('#cells', {input:"print 'a' + '\\n'*3 + 'b' + \"\\n\"*3 + \"\"\"foo\"\"\" + '''bar'''"});
+    appendSageCell('#cells', {input:"sagews.javascript('alert(\"hi\")')"});
+    for(var i=3;i<6;i++) {
+	appendSageCell('#cells');
+    }*/
+
+})</script>
 
 
 <body>
@@ -166,18 +229,15 @@ $(function() {
 <pre><div id="status">status line</div></pre>
 <span id="time">last time:</span>
 <br>
-<input id="preparse" type="checkbox" checked="true" /> preparse
+<!--<input id="preparse" type="checkbox" checked="true" /> preparse
 <button id="execute-0">Execute (shift+enter)</button>
+-->
 <hr>
 <br><br>
 
-<div id="cell-0">
-<textarea id="input-0">
-for i in [1..10]: 
-    print chr(randint(40,100))*(8*i)</textarea>
-<textarea id="stdout-0" class="stdout"></textarea>
-<textarea id="stderr-0"></textarea>
+<div id="cells">
 </div>
+
 
 
 </body>

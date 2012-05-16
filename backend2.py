@@ -64,6 +64,7 @@ def output_streams(connection, selector):
 
 namespace = {}
 try:
+    import sage.all_cmdline
     exec "from sage.all_cmdline import *" in namespace
 except Exception, msg:
     print msg
@@ -123,10 +124,12 @@ class ExecuteConnection(SocketConnection):
         self.broadcast_other('start', selector)
 
     @event
-    def execute(self, selector, code):
+    def execute(self, selector, code, preparse):
         streams = (sys.stdout, sys.stderr)
         bstreams = output_streams(self, selector)
         (sys.stdout, sys.stderr) = bstreams
+        if preparse:
+            code = sage.all_cmdline.preparse(code)
         namespace['sagews'] = SageWS(selector, code, self)
         self.start_other(selector) # TODO: what if client is slow?  would that make this slow?
         try:

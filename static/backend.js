@@ -30,9 +30,10 @@ sagews_backend.socket = function(url, options) {
     socket.on('stderr', opts.stderr);
     socket.on('done', opts.done);
 
-    socket.execute = function(selector, code) {
+    socket.execute = function(selector, code, preparse) {
+	if (typeof preparse === 'undefined') { preparse = false; }
 	opts.start(selector);
-	socket.emit('execute', selector, code);
+	socket.emit('execute', selector, code, preparse);
     }
     socket.set = function(selector, value) {
 	socket.emit('set_other', selector, value);
