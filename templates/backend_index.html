@@ -162,6 +162,8 @@ $(function() {
 			var s = 'last time: ' + (walltime() - wcell.data('start_time')) + ' ms';
 			$('#time')[0].innerHTML = s;
 			trim_cm(stdout); trim_cm(stderr);
+			if (stdout.getValue() === '') { $(stdout.getWrapperElement()).hide(); }
+			if (stderr.getValue() === '') { $(stderr.getWrapperElement()).hide(); } 
 			update_status();
 		    }
 		   });

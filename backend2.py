@@ -4,7 +4,7 @@ Backend Compute Process
 Tornado + TorandIO2 application.
 """
 
-import logging, os, string, sys, time
+import logging, os, string, sys, time, traceback
 
 from tornado import web
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -205,11 +205,13 @@ def divide_into_blocks(code):
     i = len(code)-1
     blocks = []
     while i >= 0:
+        stop = i
         while i>=0 and len(code[i]) > 0 and code[i][0] in string.whitespace:
             i -= 1
         block = ('\n'.join(code[i:]))%literals
-        if block.strip(): # has to not be only whitespace
-            blocks.insert(0, block)
+        bs = block.strip()
+        if bs and not bs.startswith('#'): # has to not be only whitespace
+            blocks.insert(0, (i, stop, block))
         code = code[:i]
         i = len(code)-1
     return blocks
@@ -276,10 +278,11 @@ class ExecuteConnection(SocketConnection):
         namespace['sagews'] = SageWS(selector, code, self)
         self.start_other(selector) # TODO: what if client is slow?  would that make this slow?
         try:
-            for block in divide_into_blocks(code):
+            for start, stop, block in divide_into_blocks(code):
                 exec compile(block, '', 'single') in namespace
         except:
-            bstreams[1].write(repr(sys.exc_info()[1]))
+            sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
+            traceback.print_exc()
         finally:
             bstreams[0].flush(); bstreams[1].flush()
             (sys.stdout, sys.stderr) = streams
