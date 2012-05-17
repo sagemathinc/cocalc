@@ -55,6 +55,14 @@
       .sagews-cells {
          padding:1em;
       }
+
+      .wrap {  /* see http://www.longren.org/wrapping-text-inside-pre-tags/ */
+        white-space: pre-wrap; /* css-3 */
+        white-space: -moz-pre-wrap !important; /* Mozilla, since 1999 */
+        white-space: -pre-wrap; /* Opera 4-6 */
+        white-space: -o-pre-wrap; /* Opera 7 */
+        word-wrap: break-word; /* Internet Explorer 5.5+ */
+       }
 </style>
 
 <script type="text/javascript" src="static/backend.js"></script>
@@ -107,7 +115,7 @@ $(function() {
 
 
    $('#status').css({'borderWidth':'2px', 'borderStyle':'solid', 'borderColor':'grey',
-                     'padding':'5px', height:'1em'})
+                     'padding':'5px'})
 	.data('stdout', function(value, clear) { $('#status')[0].innerHTML = value; })
 	.data('stderr', function(value, clear) {})
 	.data('done', function() {})
@@ -188,7 +196,7 @@ $(function() {
 			}
 		    },
 		    'done':   function () { 
-			var s = 'last time: ' + (walltime() - wcell.data('start_time')) + ' ms';
+			var s = (walltime() - wcell.data('start_time')) + ' ms';
 			$('#time')[0].innerHTML = s;
 			trim_cm(stdout); trim_cm(stderr);
 			if (stdout.getValue() === '') { stdout_elt.hide(); }
@@ -254,13 +262,34 @@ $(function() {
     }
 
     $(appendSageCell('#cells')).data('focus')();
+
+    function session_name() {
+	return $('#session-name').val();
+    }
+    $('#save-session').click(
+	function() { 
+	    socket.execute('#save-session','save_session("' + session_name() + '")'); 
+	}).data('done', function () { /* TODO: visual feedback */ })
+
+    $('#load-session').click(
+	function() { 
+	    socket.execute('#load-session','reset(); load_session("' + session_name() + '")'); 
+	}).data('done', function () { /* TODO: visual feedback */  update_status(); })
+
+    $('#reset-session').click(
+	function() { 
+	    socket.execute('#reset-session','reset()'); 
+	}).data('done', function () { /* TODO: visual feedback */ update_status(); })
+
 })</script>
 
 
 <body>
 
-<pre><div id="status">status line</div></pre>
-<span id="time">last time:</span>
+<pre><div id="status" class="wrap">status line</div></pre>
+Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
+&nbsp;&nbsp;&nbsp;&nbsp;
+Time: <span id="time">0 ms</span>
 <br>
 <!--<input id="preparse" type="checkbox" checked="true" /> preparse
 <button id="execute-0">Execute (shift+enter)</button>
