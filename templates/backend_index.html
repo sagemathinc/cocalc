@@ -119,6 +119,7 @@ $(function() {
         var input = CodeMirror(cell, {
 	                 value:opts.input,
                          lineNumbers: true, indentUnit: 4, matchBrackets:true,
+	                 autoClearEmptyLines: true,
                          extraKeys:{
 			     'Shift-Enter': function(cm) { execute(); },
 			     'Up':function(cm) { up(); },
