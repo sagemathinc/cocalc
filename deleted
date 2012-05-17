@@ -1,0 +1,6 @@
+/*			var scroller = $(stdout.getScrollerElement());
+			var height = parseInt(scroller.css('height').slice(0,-2));
+			if (height > 200) {
+			    stdout_elt.css({'height':'200px', 'overflow-y':'auto'});
+			    stdout.refresh();
+			}*/

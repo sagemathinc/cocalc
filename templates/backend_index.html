@@ -9,41 +9,52 @@
 <script type="text/javascript" src="static/codemirror/mode/python.js"></script>
 <style type="text/css">
 
-      .CodeMirror {
-/*        border: 1px solid #99f; 
-        background-color: #fffff0;  */
-      }
       .CodeMirror-scroll {
         height: auto; 
-        overflow-y: hidden;
+        width: 100%;
+      }
+
+      .CodeMirror {
+        border: 1px solid #eee;
         overflow-x: auto;
-      width: 100%;
+        overflow-y: auto; 
+      }
+
+      .CodeMirror-focused {
+	  border: 1px solid #99f; 
+          background-color: #fffff0;    
+          max-height:100em;
       }
 
       .sagews-cell {
-        border: 1px solid #888; 
       }
 
-      .stderr {
-        color:#880000;
-        background-color:orange;
+      .sagews-input {
+
+      }
+
+      .sagews-input-scroll {
+	max-height:20em;
+      }
+
+      .sagews-stderr {
+        background-color:#faa;
         font-weight:bold;
+        max-height:20em;
       }
 
-
-      .output {
-/*          font-family:"Courier New"; 
-          font-size:12pt;
-        border:2px solid #9f9; padding:1px; */
+      .sagews-stdout {
+        background-color:#fafafa;
+	max-height:20em; 
       }
 
-      .wrap {  /* see http://www.longren.org/wrapping-text-inside-pre-tags/ */
-        white-space: pre-wrap; /* css-3 */
-        white-space: -moz-pre-wrap !important; /* Mozilla, since 1999 */
-        white-space: -pre-wrap; /* Opera 4-6 */
-        white-space: -o-pre-wrap; /* Opera 7 */
-        word-wrap: break-word; /* Internet Explorer 5.5+ */
-       }
+      .sagews-footer {
+        height:20em;
+      }
+
+      .sagews-cells {
+         padding:1em;
+      }
 </style>
 
 <script type="text/javascript" src="static/backend.js"></script>
@@ -86,10 +97,6 @@ $(function() {
 
     var socket = sagews_backend.socket('http://' + window.location.host, options);
 
-    function preparse(input) {
-        return "exec preparse(r'''"+input+"''') in globals()";
-    }
-
     function update_status() {
         socket.execute('#status', 
         'print("Memory: %sMB    Variables: %s"%(int(sage.all.get_memory_usage()), ", ".join(sorted(sage.all.show_identifiers()))))');
@@ -114,11 +121,18 @@ $(function() {
     }
 
     function SageCell(id, options) {
-	var opts = $.extend({input:'', stdout:'', stderr:'', html:''}, options||{});
+	var opts = $.extend({
+	    input:'', 
+	    stdout:'', 
+	    stderr:'', 
+	    html:'',
+	    max_output:100000,
+	}, options||{});
         var cell = $('<div id="' + id + '" class="sagews-cell"></div>')[0];
         var input = CodeMirror(cell, {
 	                 value:opts.input,
                          lineNumbers: true, indentUnit: 4, matchBrackets:true,
+                         lineWrapping:true, 
 	                 autoClearEmptyLines: true,
                          extraKeys:{
 			     'Shift-Enter': function(cm) { execute(); },
@@ -126,15 +140,30 @@ $(function() {
 			     'Down':function(cm) { down(); }
 			 }
                     });
-        var stdout = CodeMirror(cell, {value:opts.stdout, lineWrapping:true, readOnly:'nocursor'})
-	var stderr = CodeMirror(cell, {value:opts.stderr, lineWrapping:true, readOnly:'nocursor'});
+
+	$(input.getWrapperElement()).addClass('sagews-input'); 
+        $(input.getScrollerElement()).addClass('sagews-input-scroll');
+
+        var stdout = CodeMirror(cell, {
+	    value:opts.stdout, lineWrapping:true, readOnly:true})
+	var stderr = CodeMirror(cell, {
+	    value:opts.stderr, lineWrapping:true, readOnly:true});
 	var html = $('<div></div>').append(html)[0];
-	if (opts.stdout === '') { $(stdout.getWrapperElement()).hide(); }
-	if (opts.stderr === '') { $(stderr.getWrapperElement()).hide(); } 
+
+	// Stylize stdout and stderr
+	var stdout_elt = $(stdout.getWrapperElement());
+	var stderr_elt = $(stderr.getWrapperElement());
+	if (opts.stdout === '') { stdout_elt.hide(); }
+	if (opts.stderr === '') { stderr_elt.hide(); } 
+	stdout_elt.addClass('sagews-stdout');
+	stderr_elt.addClass('sagews-stderr');
+
 	var wcell = $(cell);
         wcell.data({'focus':function(line, ch) { 
+	               input.focus(); 
+                       if (typeof line === "undefined") { return; }
 	               if (line<0) { line += input.lineCount(); }
-	                  input.focus(); input.setCursor(line,ch); 
+	               input.setCursor(line, ch); 
 	            },
                     'refresh':function() { input.refresh(); stdout.refresh(); stderr.refresh(); },
 		    'set':    function(value) { input.setValue(value); },
@@ -144,29 +173,37 @@ $(function() {
 		    },
 		    'stdout': function(value, clear) {
 			if (clear) {
-			    if (value) { $(stdout.getWrapperElement()).show(); }
-			    stdout.setValue(value);
+			    if (value) { stdout_elt.show(); }
+			    stdout.setValue(truncate(value));
 			} else {
-			    stdout.setValue(stdout.getValue() + value);  // TODO
+			    stdout.setValue(truncate(stdout.getValue() + value));  // TODO
 			}
 		    },
 		    'stderr': function(value, clear) {
 			if (clear) {
-			    if (value) { $(stderr.getWrapperElement()).show(); }
-			    stderr.setValue(value);
+			    if (value) { stderr_elt.show(); }
+			    stderr.setValue(truncate(value));
 			} else {
-			    stderr.setValue(stderr.getValue() + value);  // TODO
+			    stderr.setValue(truncate(stderr.getValue() + value));  // TODO
 			}
 		    },
 		    'done':   function () { 
 			var s = 'last time: ' + (walltime() - wcell.data('start_time')) + ' ms';
 			$('#time')[0].innerHTML = s;
 			trim_cm(stdout); trim_cm(stderr);
-			if (stdout.getValue() === '') { $(stdout.getWrapperElement()).hide(); }
-			if (stderr.getValue() === '') { $(stderr.getWrapperElement()).hide(); } 
+			if (stdout.getValue() === '') { stdout_elt.hide(); }
+			if (stderr.getValue() === '') { stderr_elt.hide(); } 
 			update_status();
 		    }
 		   });
+
+	function truncate(s) {
+	    if (s.length < opts.max_output) {
+		return s;
+	    } else {
+		return s.slice(0, opts.max_output) + ' (output truncated) ';
+	    }
+	}
 
 	function execute() { 
 	    var val = input.getValue();
@@ -216,14 +253,7 @@ $(function() {
 	return cell;
     }
 
-    appendSageCell('#cells');
-/*    appendSageCell('#cells', {input:"for i in [1..5]:\n    print chr(randint(40,100))*(8*i)"});
-    appendSageCell('#cells', {input:"print 'a' + '\\n'*3 + 'b' + \"\\n\"*3 + \"\"\"foo\"\"\" + '''bar'''"});
-    appendSageCell('#cells', {input:"sagews.javascript('alert(\"hi\")')"});
-    for(var i=3;i<6;i++) {
-	appendSageCell('#cells');
-    }*/
-
+    $(appendSageCell('#cells')).data('focus')();
 })</script>
 
 
@@ -238,9 +268,10 @@ $(function() {
 <hr>
 <br><br>
 
-<div id="cells">
+<div id="cells" class="sagews-cells">
 </div>
 
+<div id="footer" class="sagews-footer"></div>
 
 
 </body>

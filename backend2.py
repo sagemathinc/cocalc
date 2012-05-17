@@ -72,70 +72,10 @@ except Exception, msg:
     print "Sage not available."
     pass
 
-# this is copied from sage/misc/preparser.py -- I and/or Robert Bradshaw probably wrote it.
+# this is copied then modified (to include #) from
+# sage/misc/preparser.py -- I and/or Robert Bradshaw probably wrote
+# it.  See big tests/docstring there.
 def strip_string_literals(code, state=None):
-    r"""
-    Returns a string with all literal quotes replaced with labels and
-    a dictionary of labels for re-substitution.  This makes parsing
-    easier.
-    
-    INPUT:
-
-    - ``code`` - a string; the input
-
-    - ``state`` - a 2-tuple (default: None); state with which to
-      continue processing, e.g., across multiple calls to this
-      function
-
-    OUTPUT:
-
-    - a 3-tuple of the processed code, the dictionary of labels, and
-      any accumulated state
-
-    EXAMPLES::
-    
-        sage: from sage.misc.preparser import strip_string_literals
-        sage: s, literals, state = strip_string_literals(r'''['a', "b", 'c', "d\""]''')
-        sage: s
-        '[%(L1)s, %(L2)s, %(L3)s, %(L4)s]'
-        sage: literals
-        {'L4': '"d\\""', 'L2': '"b"', 'L3': "'c'", 'L1': "'a'"}
-        sage: print s % literals
-        ['a', "b", 'c', "d\""]
-        sage: print strip_string_literals(r'-"\\\""-"\\"-')[0]
-        -%(L1)s-%(L2)s-
-        
-    Triple-quotes are handled as well::
-    
-        sage: s, literals, state = strip_string_literals("[a, '''b''', c, '']")
-        sage: s
-        '[a, %(L1)s, c, %(L2)s]'
-        sage: print s % literals
-        [a, '''b''', c, '']
-
-    Comments are substitute too::
-    
-        sage: s, literals, state = strip_string_literals("code '#' # ccc 't'"); s
-        'code %(L1)s #%(L2)s'
-        sage: s % literals
-        "code '#' # ccc 't'"
-        
-    A state is returned so one can break strings across multiple calls to 
-    this function::
-    
-        sage: s, literals, state = strip_string_literals('s = "some'); s
-        's = %(L1)s'
-        sage: s, literals, state = strip_string_literals('thing" * 5', state); s
-        '%(L1)s * 5'
-    
-    TESTS:
-    
-    Even for raw strings, a backslash can escape a following quote::
-    
-        sage: s, literals, state = strip_string_literals(r"r'somethin\' funny'"); s
-        'r%(L1)s'
-        sage: dep_regex = r'^ *(?:(?:cimport +([\w\. ,]+))|(?:from +(\w+) +cimport)|(?:include *[\'"]([^\'"]+)[\'"])|(?:cdef *extern *from *[\'"]([^\'"]+)[\'"]))' # Ticket 5821
-    """
     new_code = []
     literals = {}
     counter = 0
@@ -157,9 +97,9 @@ def strip_string_literals(code, state=None):
             if newline == -1: newline = len(code)
             counter += 1
             label = "L%s" % counter
-            literals[label] = code[hash_q+1:newline]
+            literals[label] = code[hash_q:newline]   # changed from sage
             new_code.append(code[start:hash_q].replace('%','%%'))
-            new_code.append("#%%(%s)s" % label)
+            new_code.append("%%(%s)s" % label)
             start = q = newline
         elif q == -1:
             if in_quote:
@@ -208,12 +148,17 @@ def divide_into_blocks(code):
         stop = i
         while i>=0 and len(code[i]) > 0 and code[i][0] in string.whitespace:
             i -= 1
+        # remove comments 
+        for k, v in literals.iteritems():
+            if v.startswith('#'):
+                literals[k] = ''
         block = ('\n'.join(code[i:]))%literals
         bs = block.strip()
-        if bs and not bs.startswith('#'): # has to not be only whitespace
-            blocks.insert(0, (i, stop, block))
+        if bs: # has to not be only whitespace
+            blocks.insert(0, (i, stop, bs))
         code = code[:i]
         i = len(code)-1
+    #print blocks
     return blocks
 
 class SageWS(object):
