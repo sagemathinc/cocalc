@@ -179,7 +179,8 @@ $(function() {
 	stderr_elt.addClass('sagews-stderr');
 
 	var wcell = $(cell);
-        wcell.data({'focus':function(line, ch) { 
+        wcell.data({'streams':{'stdin':stdin},
+                    'focus':function(line, ch) { 
 	               stdin.focus(); 
                        if (typeof line === "undefined") { return; }
 	               if (line<0) { line += stdin.lineCount(); }
@@ -296,7 +297,7 @@ $(function() {
 
 
 
-    $('#cells').sortable({ opacity: 0.8, delay:300});
+    $('#cells').sortable({ opacity: 0.6, delay:1000});
 
 
 })</script>

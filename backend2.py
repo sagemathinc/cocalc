@@ -163,12 +163,12 @@ def divide_into_blocks(code):
 
 class SageWS(object):
     def __init__(self, selector, code, connection):
-        self._selector = selector
-        self._code = code
-        self._connection = connection
+        self.selector = selector
+        self.code = code
+        self.connection = connection
         
     def mesg(self, value):
-        self._connection.broadcast('mesg', self._selector, value)
+        self.connection.broadcast('mesg', self.selector, value)
 
     def javascript(self, code):
         self.mesg({'type':'javascript', 'value':code})
