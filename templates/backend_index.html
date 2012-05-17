@@ -41,11 +41,11 @@
       .sagews-cell {
       }
 
-      .sagews-input {
+      .sagews-stdin {
 
       }
 
-      .sagews-input-scroll {
+      .sagews-stdin-scroll {
 	max-height:10em;
       }
 
@@ -142,15 +142,15 @@ $(function() {
 
     function SageCell(id, options) {
 	var opts = $.extend({
-	    input:'', 
+	    stdin:'', 
 	    stdout:'', 
 	    stderr:'', 
 	    html:'',
 	    max_output:100000,
 	}, options||{});
         var cell = $('<div id="' + id + '" class="sagews-cell"></div>')[0];
-        var input = CodeMirror(cell, {
-	                 value:opts.input,
+        var stdin = CodeMirror(cell, {
+	                 value:opts.stdin,
                          lineNumbers: true, indentUnit: 4, matchBrackets:true,
                          lineWrapping:true, 
 	                 autoClearEmptyLines: true,
@@ -161,8 +161,8 @@ $(function() {
 			 }
                     });
 
-	$(input.getWrapperElement()).addClass('sagews-input'); 
-        $(input.getScrollerElement()).addClass('sagews-input-scroll');
+	$(stdin.getWrapperElement()).addClass('sagews-stdin'); 
+        $(stdin.getScrollerElement()).addClass('sagews-stdin-scroll');
 
         var stdout = CodeMirror(cell, {
 	    value:opts.stdout, lineWrapping:true, readOnly:true})
@@ -180,13 +180,13 @@ $(function() {
 
 	var wcell = $(cell);
         wcell.data({'focus':function(line, ch) { 
-	               input.focus(); 
+	               stdin.focus(); 
                        if (typeof line === "undefined") { return; }
-	               if (line<0) { line += input.lineCount(); }
-	               input.setCursor(line, ch); 
+	               if (line<0) { line += stdin.lineCount(); }
+	               stdin.setCursor(line, ch); 
 	            },
-                    'refresh':function() { input.refresh(); stdout.refresh(); stderr.refresh(); },
-		    'set':    function(value) { input.setValue(value); },
+                    'refresh':function() { stdin.refresh(); stdout.refresh(); stderr.refresh(); },
+		    'set':    function(value) { stdin.setValue(value); },
 		    'start':  function() { wcell.data('start_time', walltime()); },
 		    'mesg':   function(value) { 
 			if (value.type === 'javascript') {eval(value.value);}
@@ -227,7 +227,7 @@ $(function() {
 	}
 
 	function execute() { 
-	    var val = input.getValue();
+	    var val = stdin.getValue();
 	    socket.set('#'+id, val);
 	    socket.execute('#'+id, val, true); 
 	    var next = wcell.next();
@@ -236,9 +236,9 @@ $(function() {
 	}
 	
 	function up() {
-	    var coords = input.getCursor();
+	    var coords = stdin.getCursor();
 	    if (coords.line >= 1) {
-		input.setCursor(coords.line - 1, coords.ch);
+		stdin.setCursor(coords.line - 1, coords.ch);
 	    } else {
 		var f = wcell.prev().data('focus'); 
 		if (f) { f(-1, coords.ch); } 
@@ -246,9 +246,9 @@ $(function() {
 	}
 
         function down() {
-	    var coords = input.getCursor();
-	    if (coords.line < input.lineCount() - 1) {
-		input.setCursor(coords.line + 1, coords.ch);
+	    var coords = stdin.getCursor();
+	    if (coords.line < stdin.lineCount() - 1) {
+		stdin.setCursor(coords.line + 1, coords.ch);
 	    } else {
 		var f = wcell.next().data('focus')
 		if (f) { f(0, coords.ch);  } 
@@ -303,9 +303,6 @@ $(function() {
 
 
 <body>
-		<h2 class="demoHeaders">Datepicker</h2>
-		<div id="datepicker"></div>
-
 <pre><div id="status" class="wrap">status line</div></pre>
 Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
 &nbsp;&nbsp;&nbsp;&nbsp;
@@ -315,7 +312,6 @@ Time: <span id="time">0 ms</span>
 <button id="execute-0">Execute (shift+enter)</button>
 -->
 <hr>
-<br><br>
 
 <div id="cells" class="sagews-cells">
 </div>
