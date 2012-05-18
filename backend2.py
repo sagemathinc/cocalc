@@ -162,16 +162,19 @@ def divide_into_blocks(code):
     return blocks
 
 class SageWS(object):
-    def __init__(self, selector, code, connection):
+    def __init__(self, selector, code, connection, state):
         self.selector = selector
         self.code = code
         self.connection = connection
+        self.state = state
         
     def mesg(self, value):
         self.connection.broadcast('mesg', self.selector, value)
 
     def javascript(self, code):
         self.mesg({'type':'javascript', 'value':code})
+
+state = {'cells':{}}
     
 class ExecuteConnection(SocketConnection):
     clients = set()
@@ -181,13 +184,21 @@ class ExecuteConnection(SocketConnection):
         print "new connection: %s"%self
 
     def broadcast(self, *args, **kwds):
+        self.emit_to_backend(*args, **kwds)        
         for c in self.clients:
             c.emit(*args, **kwds)
 
     def broadcast_other(self, *args, **kwds):
+        self.emit_to_backend(*args, **kwds)
         for c in self.clients:
             if c != self:
                 c.emit(*args, **kwds)
+
+    def emit_to_backend(self, tag, *args, **kwds):
+        if tag == 'stdout':
+            # TODO: ugly
+            X = state['cells'][args[0]]
+            X['stdout'] += args[1]
 
     @event
     def set_other(self, selector, value):
@@ -214,13 +225,15 @@ class ExecuteConnection(SocketConnection):
         self.broadcast_other('start', selector)
 
     @event
+
     def execute(self, selector, code, preparse):
+        state['cells'][selector] = {'stdin':code, 'stdout':'', 'stderr':''}
         streams = (sys.stdout, sys.stderr)
         bstreams = output_streams(self, selector)
         (sys.stdout, sys.stderr) = bstreams
         if preparse:
             code = sage.all_cmdline.preparse(code)
-        namespace['sagews'] = SageWS(selector, code, self)
+        namespace['sagews'] = SageWS(selector, code, self, state)
         self.start_other(selector) # TODO: what if client is slow?  would that make this slow?
         try:
             for start, stop, block in divide_into_blocks(code):
