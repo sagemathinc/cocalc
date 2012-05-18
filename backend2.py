@@ -233,7 +233,7 @@ class ExecuteConnection(SocketConnection):
             (sys.stdout, sys.stderr) = streams
             self.broadcast('done', selector)
 
-def run(port, debug):
+def run(port, address, debug):
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
     router = TornadioRouter(ExecuteConnection)
@@ -245,16 +245,25 @@ def run(port, debug):
         flash_policy_port = 843,
         flash_policy_file = os.path.join(ROOT, 'flashpolicy.xml'),
         socket_io_port = port,
+        socket_io_address = address, 
         debug=debug
     ))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print "Usage: %s PORT [DEBUG]"%sys.argv[0]
+        print "Usage: %s PORT [ADDRESS] [DEBUG]"%sys.argv[0]
         sys.exit(1)
     port = int(sys.argv[1])
+
     if len(sys.argv) >= 3:
-        debug = eval(sys.argv[2])
+        print sys.argv[2]
+        address = sys.argv[2]
     else:
-        debug = False
-    run(port, debug)
+        address = '127.0.0.1'
+        
+    if len(sys.argv) >= 4:
+        debug = eval(sys.argv[3])
+    else:
+        debug = True
+        
+    run(port, address, debug)
