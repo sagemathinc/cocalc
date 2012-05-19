@@ -80,6 +80,8 @@
 <script type="text/javascript" src="static/backend.js"></script>
 <script type="text/javascript">
 
+function walltime() { return (new Date()).getTime(); }
+
 $(function() {
 
 /*    $('body').keydown(function(event) { 
@@ -93,8 +95,6 @@ $(function() {
     });
 */
 
-
-    function walltime() { return (new Date()).getTime(); }
 
     // TODO: vargs
     function call_ifdef(selector, name, a1, a2) {
@@ -159,7 +159,7 @@ $(function() {
                          gutter: true,
                          extraKeys:{
 			     'Enter': function(cm) { execute(); },
-			     'Shift-Enter': function(cm) { cm.setValue(cm.getValue() + '\n'); /*TODO!*/ },
+			     'Shift-Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); },
 			     'Up':function(cm) { up(); },
 			     'Down':function(cm) { down(); }
 			 }
@@ -320,7 +320,10 @@ Time: <span id="time">0 ms</span>
 -->
 <hr>
 
+<div>
+<h1>Sage Command Line</h1>
 <div id="cells" class="sagews-cells">
+</div>
 </div>
 
 <div id="footer" class="sagews-footer"></div>

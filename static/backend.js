@@ -30,11 +30,35 @@ sagews_backend.socket = function(url, options) {
     socket.on('stderr', opts.stderr);
     socket.on('done', opts.done);
 
+    socket._execute_callbacks = {};
+    socket.on('execute', function(mesg) { 
+	var f = socket._execute_callbacks[mesg.selector];
+	if (typeof f !== 'undefined') {
+	    delete socket._execute_callbacks[mesg.selector];
+	    f(mesg);
+	}
+    });
+
     socket.execute = function(selector, code, preparse) {
 	if (typeof preparse === 'undefined') { preparse = false; }
 	opts.start(selector);
-	socket.emit('execute', selector, code, preparse);
+	socket.emit('execute', selector, code, preparse, true, true, true);
     }
+
+    socket.exec_block = function(code, callback, preparse) {
+	if (typeof preparse === 'undefined') { preparse = false; }
+	var do_callback = true;
+	if (typeof callback === 'undefined') { 
+	    do_callback = false; 
+	    selector = '';
+	} else {
+	    /* save the callback function */
+	    selector = Math.random();
+	    socket._execute_callback[selector] = callback;
+	}
+	socket.emit('execute', selector, code, preparse, false, false, do_callback);
+    }
+
     socket.set = function(selector, value) {
 	socket.emit('set_other', selector, value);
     }

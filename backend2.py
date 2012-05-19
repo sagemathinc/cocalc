@@ -4,7 +4,7 @@ Backend Compute Process
 Tornado + TorandIO2 application.
 """
 
-import logging, os, string, sys, time, traceback
+import logging, os, string, StringIO, sys, time, traceback
 
 from tornado import web
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -18,15 +18,19 @@ class IndexHandler(web.RequestHandler):
     def get(self):
         self.render(os.path.join(ROOT, 'templates/backend_index.html'))
 
-class BroadcastStream(object):
-    def __init__(self, connection, stream, selector):
+class SocketStream(object):
+    def __init__(self, connection, stream, selector, broadcast):
         self._connection = connection
         self._stream = stream
         self._selector = selector
         self._first = True
+        self._broadcast = broadcast
         
-    def __call__(self, s):
-        self._connection.broadcast(self._stream, self._selector, s, self._first)
+    def write(self, s):
+        if self._broadcast:
+            self._connection.broadcast(self._stream, self._selector, s, self._first)
+        else:
+            self._connection.emit(self._stream, self._selector, s, self._first)
         if self._first:
             self._first = False
 
@@ -38,6 +42,9 @@ class OutputStream(object):
         self._flush_size = flush_size
         self._last_flush_time = time.time()
         self._flush_interval = flush_interval
+
+    def getvalue(self):
+        return self._f.getvalue()
 
     def write(self, output):
         self._buf += output
@@ -56,11 +63,15 @@ class OutputStream(object):
             self._last_flush = len(self._buf)
 
     def flush(self):
-        self._f(self._buf)
+        self._f.write(self._buf)
         self._buf = ''
 
-def output_streams(connection, selector):
-    return tuple([OutputStream(BroadcastStream(connection, s, selector)) for s in ['stdout', 'stderr']])
+def output_streams(connection, selector, broadcast, stream):
+    if stream:
+        v = [SocketStream(connection, s, selector, broadcast) for s in ['stdout', 'stderr']]
+    else:
+        v = [StringIO.StringIO() for s in ['stdout', 'stderr']]
+    return tuple([OutputStream(s) for s in v])
     
 
 namespace = {}
@@ -72,9 +83,6 @@ except Exception, msg:
     print "Sage not available."
     pass
 
-# this is copied then modified (to include #) from
-# sage/misc/preparser.py -- I and/or Robert Bradshaw probably wrote
-# it.  See big tests/docstring there.
 def strip_string_literals(code, state=None):
     new_code = []
     literals = {}
@@ -225,11 +233,10 @@ class ExecuteConnection(SocketConnection):
         self.broadcast_other('start', selector)
 
     @event
-
-    def execute(self, selector, code, preparse):
-        state['cells'][selector] = {'stdin':code, 'stdout':'', 'stderr':''}
+    def XXX_execute(self, selector, code, preparse):
+        state['cells'][selector] = {'stdin':code, 'stdout':'', 'stderr':''}  # TODO: hack -- shouldn't be here
         streams = (sys.stdout, sys.stderr)
-        bstreams = output_streams(self, selector)
+        bstreams = output_streams(self, selector, True, True)
         (sys.stdout, sys.stderr) = bstreams
         if preparse:
             code = sage.all_cmdline.preparse(code)
@@ -246,6 +253,68 @@ class ExecuteConnection(SocketConnection):
             (sys.stdout, sys.stderr) = streams
             self.broadcast('done', selector)
 
+    @event
+    def execute(self, selector, code, preparse, broadcast=True, stream=True, do_callback=True):
+        """
+        INPUT:
+        
+        - selector -- string that output messages are tagged with
+        - code -- string of python code to evaluate
+        - preparse -- whether or not to preparse the code using the sage preparser
+        - broadcast -- whether messages should be broadcast to all connected clients
+        - stream -- whether output is streamed or sent as one big message at the end
+        - do_callback -- if false (and stream=False), do not bother to emit/broadcast result
+
+        If stream is false no start messages are sent -- the only
+        message that is sent is at the very end with all output.
+        """
+
+        state['cells'][selector] = {'stdin':code, 'stdout':'', 'stderr':''}  # TODO: hack -- shouldn't be here
+        
+        streams = (sys.stdout, sys.stderr)
+        bstreams = output_streams(self, selector, broadcast, stream)
+        (sys.stdout, sys.stderr) = bstreams
+        if preparse:
+            code = sage.all_cmdline.preparse(code)
+        namespace['sagews'] = SageWS(selector, code, self, state)
+        
+        if stream and broadcast:
+            self.start_other(selector) # TODO: what if client is slow?  would that make this slow?
+        try:
+            for start, stop, block in divide_into_blocks(code):
+                exec compile(block, '', 'single') in namespace
+        except:
+            #TODO: what if there are no blocks? 
+            sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
+            traceback.print_exc()
+        finally:
+            bstreams[0].flush(); bstreams[1].flush()
+            (sys.stdout, sys.stderr) = streams
+            if stream:
+                if broadcast:
+                    self.broadcast('done', selector)
+                else:
+                    self.emit('done', selector)
+            else:
+                if do_callback:
+                    mesg = {'selector':selector, 'stdout':bstreams[0].getvalue(), 'stderr':bstreams[1].getvalue()}
+                    if broadcast:
+                        self.broadcast('execute', mesg)
+                    else:
+                        self.emit('execute', mesg)
+
+    @event
+    def blocking_eval(self, code, preparse):
+        if preparse:
+            code = sage.all_cmdline.preparse(code)
+        try:
+            output = eval(code, namespace)
+            success = True
+        except Exception, msg:
+            output = msg
+            success = False
+        self.broadcast('blocking_eval', str(output), success)
+        
 def run(port, address, debug):
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
