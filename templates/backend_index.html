@@ -151,9 +151,12 @@ $(function() {
         var cell = $('<div id="' + id + '" class="sagews-cell"></div>')[0];
         var stdin = CodeMirror(cell, {
 	                 value:opts.stdin,
-                         lineNumbers: false, indentUnit: 4, matchBrackets:true,
+                         lineNumbers: false, 
+                         indentUnit: 4, 
+                         matchBrackets:true,
                          lineWrapping:true, 
 	                 autoClearEmptyLines: true,
+                         gutter: true,
                          extraKeys:{
 			     'Enter': function(cm) { execute(); },
 			     'Shift-Enter': function(cm) { cm.setValue(cm.getValue() + '\n'); /*TODO!*/ },
@@ -164,6 +167,8 @@ $(function() {
 
 	$(stdin.getWrapperElement()).addClass('sagews-stdin'); 
         $(stdin.getScrollerElement()).addClass('sagews-stdin-scroll');
+
+        stdin.setMarker(0, 'sage: ');
 
         var stdout = CodeMirror(cell, {
 	    value:opts.stdout, lineWrapping:true, readOnly:true})

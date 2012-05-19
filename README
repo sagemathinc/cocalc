@@ -351,6 +351,8 @@ Standalone APPS:
 
   - what's the big deal with Hadoop?
 
+  - rado: look into http://d3js.org/
+
 
 PEOPLE:
 
@@ -370,3 +372,4 @@ What I plan to do today on sagews:
       - minimal possible code
       - persistent sqlite database
       - multiple simultaneous clients
+
