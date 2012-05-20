@@ -163,10 +163,22 @@ def divide_into_blocks(code):
         block = ('\n'.join(code[i:]))%literals
         bs = block.strip()
         if bs: # has to not be only whitespace
-            blocks.insert(0, (i, stop, bs))
+            blocks.insert(0, [i, stop, bs])
         code = code[:i]
         i = len(code)-1
-    #print blocks
+
+    # merge try/except/finally blocks
+    i = 1
+    while i < len(blocks):
+        s = blocks[i][-1].lstrip()
+        if s.startswith('finally:') or s.startswith('except'):
+            if blocks[i-1][-1].lstrip().startswith('try:'):
+                blocks[i-1][-1] += '\n' + blocks[i][-1]
+                blocks[i-1][1] = blocks[i][1]
+            del blocks[i]
+        else:
+            i += 1
+            
     return blocks
 
 class SageWS(object):
@@ -284,8 +296,8 @@ class ExecuteConnection(SocketConnection):
             for start, stop, block in divide_into_blocks(code):
                 exec compile(block, '', 'single') in namespace
         except:
-            #TODO: what if there are no blocks? 
-            sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
+            #TODO: what if there are no blocks?
+            #sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
             traceback.print_exc()
         finally:
             bstreams[0].flush(); bstreams[1].flush()
@@ -316,12 +328,15 @@ class ExecuteConnection(SocketConnection):
         self.broadcast('blocking_eval', str(output), success)
 
 
-def completions(s, preparse=True):
+# Keywords from http://docs.python.org/release/2.7.2/reference/lexical_analysis.html
+_builtin_completions = __builtins__.__dict__.keys() + ['and', 'del', 'from', 'not', 'while', 'as', 'elif', 'global', 'or', 'with', 'assert', 'else', 'if', 'pass', 'yield', 'break', 'except', 'import', 'print', 'class', 'exec', 'in', 'raise', 'continue', 'finally', 'is', 'return', 'def', 'for', 'lambda', 'try']
+
+def _completions(s, preparse=True):
     n = len(s)
     if n == 0:
         return []
-    if not '.' in s and not '(' in s:
-        v = [x for x in (namespace.keys() + __builtins__.__dict__.keys()) if x.startswith(s)]
+    if '.' not in s and '(' not in s:
+        v = [x for x in (namespace.keys() + _builtin_completions) if x.startswith(s)]
     else:
         i = s.rfind('.')
         attr = s[i+1:]
@@ -336,7 +351,7 @@ def completions(s, preparse=True):
             v = [obj + '.' + x for x in D if x.startswith(attr)]
     return list(sorted(set(v)))   # make unique
 
-namespace['completions'] = completions
+namespace['_completions'] = _completions
         
         
 def run(port, address, debug):

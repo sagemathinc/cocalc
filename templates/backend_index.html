@@ -38,6 +38,10 @@
           max-height:100em;
       }
 
+      .CodeMirror-gutter  {
+          z-index:0;
+      }
+
       .sagews-cell {
       }
 
@@ -75,6 +79,7 @@
         white-space: -o-pre-wrap; /* Opera 7 */
         word-wrap: break-word; /* Internet Explorer 5.5+ */
        }
+
 </style>
 
 <script type="text/javascript" src="static/backend.js"></script>
@@ -94,7 +99,26 @@ $(function() {
 	}
     });
 */
-
+    
+    var completions = $('#completions');
+    completions.hide(
+    ).keyup(function(e) {
+	if (e.keyCode === 27) { console.log('esc'); completions.data('finish')(''); }  /* esc */
+	if (e.keyCode == 8 && !completions[0].value) { completions.data('finish')(); } /* backspace */
+    }).keydown(function(e) {
+	if (e.keyCode === 13) {
+	    completions.data('finish')(completions[0].value);  
+	    return false;
+	}
+	if (e.keyCode == 9) { /* tab */
+	    return false;
+	}
+    }).autocomplete({
+	close:function (event, ui) { 
+	    completions.data('finish')();
+	}
+});
+/*.blur( function() { $('#completions').data('finish')(''); } ); */
 
     // TODO: vargs
     function call_ifdef(selector, name, a1, a2) {
@@ -137,6 +161,7 @@ $(function() {
     }
 
     function SageCell(id, options) {
+
 	var opts = $.extend({
 	    stdin:'', 
 	    stdout:'', 
@@ -144,6 +169,87 @@ $(function() {
 	    html:'',
 	    max_output:100000,
 	}, options||{});
+
+	function get_completions(value, callback) {
+	    value = value.replace(/\s/g,"");
+	    if (value.length == 0) {
+		callback([],'error');
+	    } else {/* .replace("'","\\'") */
+		var cmd = '_completions("' + value + '")';
+		socket.execute_blocking(cmd, function (mesg) {
+		    if (mesg.stderr.length != 0) {
+			callback([], 'error');
+		    } 
+		    callback(eval(mesg.stdout), 'ok');
+		})
+	    }
+	}
+
+	var command_pat = new RegExp("([\\[\\]\\(\\)a-zA-Z._0-9,\\s]*)$"); /* TODO: move */
+	var function_pat = new RegExp("([\\[\\]a-zA-Z._0-9]*)\\([^()]*$"); /* TOOD: move*/
+	
+	function completion(cm) {     
+	    var cursor = stdin.getCursor();
+	    var target = stdin.getLine(cursor.line);
+
+	    var m = command_pat.exec(target);
+console.log('m = ' + m);
+	    if (!m) {
+		/* todo */
+		console.log("nothing to complete");
+		return;
+	    }
+	    target = m[1];
+	    var n = target.length;
+	    target = target.replace(/\s/g,"");
+	    if (target.length === 0) {
+		stdin.replaceRange('    ', cursor);		
+		return;
+	    }
+
+	    var pos = stdin.cursorCoords();
+	    var c = $('#completions');
+
+	    function finish(val) {
+		if (typeof val === "undefined") { val = "";}
+		if (!c.is(':visible')) { stdin.focus(); return; }
+		c.hide();
+		stdin.focus();
+		if (val.length > 0) {
+		    stdin.replaceRange(val.slice(target.length), cursor);
+		}
+	    }
+	    c.data('finish', finish);
+
+	    get_completions(target, function (source, status) {
+		if (status != 'ok') {
+		    console.log('error getting completions');/*TODO*/
+		    return;
+		}
+		if (source.length === 0) {
+		    stdin.replaceRange('    ', cursor);
+		    return;
+		}
+		if (source.length === 1) {
+		    stdin.replaceRange(source[0].slice(target.length), cursor);
+		    return;
+		}
+		/* TODO: chain */
+		c.show();
+		c.focus();
+		c.css({position:'absolute', 'z-index':2, top:pos.y, left:pos.x});
+		c.autocomplete("enable");
+		c.val(source[0]);
+		c.autocomplete({
+		    autoFocus:true,
+		    source:source,
+		    select:function(event, ui) { 
+			finish(ui.item.value);
+		    }
+		}).autocomplete("search", target); 
+	    })
+	}
+
         var cell = $('<div id="' + id + '" class="sagews-cell"></div>')[0];
         var stdin = CodeMirror(cell, {
 	                 value:opts.stdin,
@@ -157,7 +263,8 @@ $(function() {
 			     'Enter': function(cm) { execute(); },
 			     'Shift-Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); },
 			     'Up':function(cm) { up(); },
-			     'Down':function(cm) { down(); }
+			     'Down':function(cm) { down(); },
+			     'Tab':completion,
 			 }
                     });
 
@@ -304,7 +411,6 @@ $(function() {
 
     $('#cells').sortable({ opacity: 0.6, delay:1000});
 
-
 })</script>
 
 
@@ -321,13 +427,15 @@ Time: <span id="time">0 ms</span>
 
 <div>
 <h1>Sage Command Line</h1>
+
+
+<input id="completions" size=80>
+
 <div id="cells" class="sagews-cells">
 </div>
 </div>
 
 <div id="footer" class="sagews-footer"></div>
-
-
 
 </body>
 </html>
