@@ -117,21 +117,17 @@ $(function() {
 
     var socket = sagews_backend.socket('http://' + window.location.host, options);
 
-    function update_status() {
-        socket.execute('#status', 
-        'print("Memory: %sMB    Variables: %s"%(int(sage.all.get_memory_usage()), ", ".join(sorted(sage.all.show_identifiers()))))');
+    function update_status() {	
+	var cmd = 'print("Memory: %sMB    Variables: %s"%(int(sage.all.get_memory_usage()), ", ".join(sorted(sage.all.show_identifiers()))))';
+	socket.execute_blocking(cmd,
+		function (mesg) { $('#status')[0].innerHTML = mesg.stdout; });
     }
 
     var start_time = walltime();
     update_status();
 
-
    $('#status').css({'borderWidth':'2px', 'borderStyle':'solid', 'borderColor':'grey',
                      'padding':'5px'})
-	.data('stdout', function(value, clear) { $('#status')[0].innerHTML = value; })
-	.data('stderr', function(value, clear) {})
-	.data('done', function() {})
-	.data('set', function(value) {});
 
     function trim_cm(cm) {
 	var val = cm.getValue();

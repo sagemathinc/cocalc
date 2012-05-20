@@ -45,7 +45,7 @@ sagews_backend.socket = function(url, options) {
 	socket.emit('execute', selector, code, preparse, true, true, true);
     }
 
-    socket.exec_block = function(code, callback, preparse) {
+    socket.execute_blocking = function(code, callback, preparse) {
 	if (typeof preparse === 'undefined') { preparse = false; }
 	var do_callback = true;
 	if (typeof callback === 'undefined') { 
@@ -53,8 +53,10 @@ sagews_backend.socket = function(url, options) {
 	    selector = '';
 	} else {
 	    /* save the callback function */
-	    selector = Math.random();
-	    socket._execute_callback[selector] = callback;
+	    selector = 0;
+	    while (typeof socket._execute_callbacks[selector] !== 'undefined')
+		selector += 1;
+	    socket._execute_callbacks[selector] = callback;
 	}
 	socket.emit('execute', selector, code, preparse, false, false, do_callback);
     }
