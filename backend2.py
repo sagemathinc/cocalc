@@ -328,6 +328,8 @@ _builtin_completions = __builtins__.__dict__.keys() + ['and', 'del', 'from', 'no
 
 def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded=True):
     code = namespace['sagews'].extra_data
+    z = code.splitlines()
+    code = '\n'.join(z[:lineno-1]) + '\n' + z[lineno-1][:col_offset]
     # we could use the entire buffer, but for now restrict to the line
     result = []
     target = ''
@@ -335,6 +337,7 @@ def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded
     if not code.splitlines()[lineno][:col_offset].isspace():
         try:
             code0, literals, state = strip_string_literals(code)
+            # TODO: this has to be replaced by using ast on preparsed version.  Not easy.
             i = max([code0.rfind(t) for t in '\n;='])+1
             while i<len(code0) and code0[i] in string.whitespace:
                 i += 1
@@ -342,13 +345,23 @@ def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded
             before_expr = code0[:i]%literals
             #sys.stderr.write('expr='+expr)
             #sys.stderr.write('before_expr='+before_expr)            
-            if '.' not in expr and '(' not in expr:
+            if '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
+                get_help = False
                 target = expr
                 v = [x for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
             else:
-                i = expr.rfind('.')
-                target = expr[i+1:]
-                obj = expr[:i]
+                
+                i = max([expr.rfind(s) for s in '?('])
+                if i == len(expr)-1:
+                    get_help = True
+                    target = expr[i+1:]
+                    obj = expr[:i]
+                else:
+                    get_help = False
+                    i = expr.rfind('.')
+                    target = expr[i+1:]
+                    obj = expr[:i]
+                    
                 if obj in namespace:
                     O = namespace[obj]
                 else:
@@ -357,24 +370,35 @@ def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded
                         def mysig(*args): raise KeyboardInterrupt
                         signal.signal(signal.SIGALRM, mysig)
                         signal.alarm(1)
-                        exec (before_expr if not preparse else sage.all_cmdline.preparse(before_expr)) in namespace
+                        if before_expr.strip():
+                            try:
+                                exec (before_expr if not preparse else sage.all_cmdline.preparse(before_expr)) in namespace
+                            except:
+                                pass
                         O = eval(obj if not preparse else sage.all_cmdline.preparse(obj), namespace)
                     finally:
                         signal.signal(signal.SIGALRM, signal.SIG_IGN)
-                v = dir(O)
-                if hasattr(O, 'trait_names'):
-                    v += O.trait_names()
-                if not target.startswith('_'):
-                    v = [x for x in v if x and not x.startswith('_')]
-            result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
+                if get_help:
+                    import sage.misc.sageinspect
+                    result = eval('f(obj)', {'obj':O, 'f':sage.misc.sageinspect.sage_getdoc})
+                    
+                else:
+                    v = dir(O)
+                    if hasattr(O, 'trait_names'):
+                        v += O.trait_names()
+                    if not target.startswith('_'):
+                        v = [x for x in v if x and not x.startswith('_')]
+                        
+            if not get_help:
+                result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
         except Exception, msg:
-            #sys.stderr.write(str(msg))
+            sys.stderr.write(str(msg))
             #status = 'error'
             result = []
             status = 'ok'
         else:
             status = 'ok'
-    r = {'result':result, 'target':target, 'expr':expr, 'status':status}
+    r = {'result':result, 'target':target, 'expr':expr, 'status':status, 'help':get_help}
     if jsonify:
         r = json.dumps(r)
     return r

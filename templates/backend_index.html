@@ -124,6 +124,9 @@ $(function() {
     $('#completions_error').hide().dialog({
           autoOpen:false, show:'slide', hide:'slide', minWidth:450});
 
+    $('#help_window').hide().dialog({
+          autoOpen:false, show:'slide', hide:'slide', minWidth:800});
+
     // TODO: vargs
     function call_ifdef(selector, name, a1, a2) {
         var obj = $(selector);
@@ -176,14 +179,19 @@ $(function() {
 
 	function get_completions(code, cursor, callback) {
 	    /* TODO: escape better and jsonify output maybe */
-	    var cmd = '_completions(' + cursor.ch + ',' + cursor.line + ', jsonify=True)';
+	    var cmd = 'print _completions(' + cursor.ch + ',' + cursor.line + ', jsonify=True)';
 	    socket.execute_blocking(cmd, function (mesg) {
 		if (mesg.stderr !== '') {
 		    console.log(mesg.stderr); /* TODO: for debugging only */
 		    callback([], '', 'error');
 		    return;
 		} 
-		eval('var r = ' + eval(mesg.stdout));  /* TODO: is VERY evil/hackish! */
+		var r = $.parseJSON(mesg.stdout);
+		if (r.help) {
+		    /* TODO: implement real help viewer with html, etc. */
+		    $('#help_window').dialog({'title':'Help on '+r.expr.slice(0,r.expr.length-1)}).html('<font size=-3><textarea readonly="readonly" cols=90 rows=16>'+r.result+'</textarea></font>').dialog( {close : function() { stdin.focus(); }}).dialog('open');
+		    return;
+		}
 		callback(r.result, r.target, 'ok');
 		update_status();  /* since completion can cause side effects */
 	    },  true, code)
@@ -430,6 +438,10 @@ Time: <span id="time">0 ms</span>
 
 <div id="completions_error" title="Completions">
   Error getting completions.
+</div>
+
+<div id="help_window" title="Help">
+  Help on some command  
 </div>
 
 </body>

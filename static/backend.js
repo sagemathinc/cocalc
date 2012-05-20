@@ -29,6 +29,7 @@ sagews_backend.socket = function(url, options) {
     socket.on('stdout', opts.stdout);
     socket.on('stderr', opts.stderr);
     socket.on('done', opts.done);
+    socket.on('help', opts.help);
 
     socket._execute_callbacks = {};
     socket.on('execute', function(mesg) { 
