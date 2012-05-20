@@ -45,8 +45,9 @@ sagews_backend.socket = function(url, options) {
 	socket.emit('execute', selector, code, preparse, true, true, true);
     }
 
-    socket.execute_blocking = function(code, callback, preparse) {
+    socket.execute_blocking = function(code, callback, preparse, extra_data) {
 	if (typeof preparse === 'undefined') { preparse = false; }
+	if (typeof extra_data === 'undefined') { extra_data = {}; }
 	var do_callback = true;
 	if (typeof callback === 'undefined') { 
 	    do_callback = false; 
@@ -58,7 +59,7 @@ sagews_backend.socket = function(url, options) {
 		selector += 1;
 	    socket._execute_callbacks[selector] = callback;
 	}
-	socket.emit('execute', selector, code, preparse, false, false, do_callback);
+	socket.emit('execute', selector, code, preparse, false, false, do_callback, extra_data);
     }
 
     socket.set = function(selector, value) {

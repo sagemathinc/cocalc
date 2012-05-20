@@ -176,16 +176,17 @@ $(function() {
 
 	function get_completions(code, cursor, callback) {
 	    /* TODO: escape better and jsonify output maybe */
-	    var cmd = '_completions("' + code + '",' + cursor.ch + ',' + cursor.line + ', jsonify=True)';
+	    var cmd = '_completions(' + cursor.ch + ',' + cursor.line + ', jsonify=True)';
 	    socket.execute_blocking(cmd, function (mesg) {
-		if (mesg.stderr.length != 0) {
-console.log(mesg.stderr); /* TODO */
+		if (mesg.stderr !== '') {
+		    console.log(mesg.stderr); /* TODO: for debugging only */
 		    callback([], '', 'error');
 		    return;
 		} 
-		eval('var r = ' + eval(mesg.stdout));  /* TODO: seems VERY evil! */
-		callback(r.completions, r.target, 'ok');
-	    })
+		eval('var r = ' + eval(mesg.stdout));  /* TODO: is VERY evil/hackish! */
+		callback(r.result, r.target, 'ok');
+		update_status();  /* since completion can cause side effects */
+	    },  true, code)
 	}
 
 	function completion(cm) {     
@@ -208,7 +209,6 @@ console.log(mesg.stderr); /* TODO */
 		c.hide();
 		stdin.focus();
 		if (val.length > 0) {
-/*		    stdin.replaceRange(val.slice(target.length), cursor); */
 		    stdin.replaceRange(val, {line:cursor.line, ch:cursor.ch-target.length}, cursor);
 		}
 	    }

@@ -177,11 +177,12 @@ def divide_into_blocks(code):
     return blocks
 
 class SageWS(object):
-    def __init__(self, selector, code, connection, state):
+    def __init__(self, selector, code, connection, state, extra_data):
         self.selector = selector
         self.code = code
         self.connection = connection
         self.state = state
+        self.extra_data = extra_data
         
     def mesg(self, value):
         self.connection.broadcast('mesg', self.selector, value)
@@ -261,7 +262,7 @@ class ExecuteConnection(SocketConnection):
             self.broadcast('done', selector)
 
     @event
-    def execute(self, selector, code, preparse, broadcast=True, stream=True, do_callback=True):
+    def execute(self, selector, code, preparse, broadcast=True, stream=True, do_callback=True, extra_data=None):
         """
         INPUT:
         
@@ -275,7 +276,6 @@ class ExecuteConnection(SocketConnection):
         If stream is false no start messages are sent -- the only
         message that is sent is at the very end with all output.
         """
-
         state['cells'][selector] = {'stdin':code, 'stdout':'', 'stderr':''}  # TODO: hack -- shouldn't be here
         
         streams = (sys.stdout, sys.stderr)
@@ -283,7 +283,7 @@ class ExecuteConnection(SocketConnection):
         (sys.stdout, sys.stderr) = bstreams
         if preparse:
             code = sage.all_cmdline.preparse(code)
-        namespace['sagews'] = SageWS(selector, code, self, state)
+        namespace['sagews'] = SageWS(selector, code, self, state, extra_data)
         
         if stream and broadcast:
             self.start_other(selector) # TODO: what if client is slow?  would that make this slow?
@@ -326,40 +326,55 @@ class ExecuteConnection(SocketConnection):
 # Keywords from http://docs.python.org/release/2.7.2/reference/lexical_analysis.html
 _builtin_completions = __builtins__.__dict__.keys() + ['and', 'del', 'from', 'not', 'while', 'as', 'elif', 'global', 'or', 'with', 'assert', 'else', 'if', 'pass', 'yield', 'break', 'except', 'import', 'print', 'class', 'exec', 'in', 'raise', 'continue', 'finally', 'is', 'return', 'def', 'for', 'lambda', 'try']
 
-def _completions(code, col_offset, lineno, preparse=True, jsonify=False):
+def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded=True):
+    code = namespace['sagews'].extra_data
     # we could use the entire buffer, but for now restrict to the line
-    code = code.splitlines()[lineno][:col_offset]
-    if code.isspace():
-        result = []
-        target = ''
-    else:
-        i = max(max([code.rfind(w) for w in string.whitespace]), code.rfind('='))
-        expr = code[i+1:]
-        if '.' not in expr and '(' not in expr:
-            target = expr
-            v = [x for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
-        else:
-            i = expr.rfind('.')
-            target = code[i+1:]
-            obj = code[:i]
-            if obj in namespace:
-                O = namespace[obj]
+    result = []
+    target = ''
+    expr = ''
+    if not code.splitlines()[lineno][:col_offset].isspace():
+        try:
+            code0, literals, state = strip_string_literals(code)
+            i = max([code0.rfind(t) for t in '\n;='])+1
+            while i<len(code0) and code0[i] in string.whitespace:
+                i += 1
+            expr = code0[i:]%literals
+            before_expr = code0[:i]%literals
+            #sys.stderr.write('expr='+expr)
+            #sys.stderr.write('before_expr='+before_expr)            
+            if '.' not in expr and '(' not in expr:
+                target = expr
+                v = [x for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
             else:
-                # the dangerous eval.
-                try:
-                    def mysig(*args): raise KeyboardInterrupt
-                    signal.signal(signal.SIGALRM, mysig)
-                    signal.alarm(1)
-                    O = eval(obj if not preparse else sage.all_cmdline.preparse(obj), namespace)
-                finally:
-                    signal.signal(signal.SIGALRM, signal.SIG_IGN)
-            v = dir(O)
-            if hasattr(O, 'trait_names'):
-                v += O.trait_names()
-            if not target.startswith('_'):
-                v = [x for x in v if x and not x.startswith('_')]
-        result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
-    r = {'completions':result, 'target':target}
+                i = expr.rfind('.')
+                target = expr[i+1:]
+                obj = expr[:i]
+                if obj in namespace:
+                    O = namespace[obj]
+                else:
+                    # the more dangerous eval.
+                    try:
+                        def mysig(*args): raise KeyboardInterrupt
+                        signal.signal(signal.SIGALRM, mysig)
+                        signal.alarm(1)
+                        exec (before_expr if not preparse else sage.all_cmdline.preparse(before_expr)) in namespace
+                        O = eval(obj if not preparse else sage.all_cmdline.preparse(obj), namespace)
+                    finally:
+                        signal.signal(signal.SIGALRM, signal.SIG_IGN)
+                v = dir(O)
+                if hasattr(O, 'trait_names'):
+                    v += O.trait_names()
+                if not target.startswith('_'):
+                    v = [x for x in v if x and not x.startswith('_')]
+            result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
+        except Exception, msg:
+            #sys.stderr.write(str(msg))
+            #status = 'error'
+            result = []
+            status = 'ok'
+        else:
+            status = 'ok'
+    r = {'result':result, 'target':target, 'expr':expr, 'status':status}
     if jsonify:
         r = json.dumps(r)
     return r
