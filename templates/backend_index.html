@@ -190,7 +190,10 @@ $(function() {
 	            },
                     'refresh':function() { stdin.refresh(); stdout.refresh(); stderr.refresh(); },
 		    'set':    function(value) { stdin.setValue(value); },
-		    'start':  function() { wcell.data('start_time', walltime()); },
+		    'start':  function() { 
+			stderr_elt.hide();
+			wcell.data('start_time', walltime()); 
+		    },
 		    'mesg':   function(value) { 
 			if (value.type === 'javascript') {eval(value.value);}
 		    },
