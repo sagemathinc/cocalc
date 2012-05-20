@@ -314,6 +314,30 @@ class ExecuteConnection(SocketConnection):
             output = msg
             success = False
         self.broadcast('blocking_eval', str(output), success)
+
+
+def completions(s, preparse=True):
+    n = len(s)
+    if n == 0:
+        return []
+    if not '.' in s and not '(' in s:
+        v = [x for x in (namespace.keys() + __builtins__.__dict__.keys()) if x.startswith(s)]
+    else:
+        i = s.rfind('.')
+        attr = s[i+1:]
+        obj = s[:i]
+        O = eval(obj if not preparse else sage.all_cmdline.preparse(obj), namespace)
+        D = dir(O)
+        if hasattr(O, 'trait_names'):
+            D += O.trait_names()
+        if attr == '':
+            v = [obj + '.' + x for x in D if x and not x.startswith('_')]
+        else:
+            v = [obj + '.' + x for x in D if x.startswith(attr)]
+    return list(sorted(set(v)))   # make unique
+
+namespace['completions'] = completions
+        
         
 def run(port, address, debug):
     if debug:
