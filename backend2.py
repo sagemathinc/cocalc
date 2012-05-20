@@ -4,7 +4,7 @@ Backend Compute Process
 Tornado + TorandIO2 application.
 """
 
-import logging, os, string, StringIO, sys, time, traceback
+import json, logging, os, signal, string, StringIO, sys, time, traceback
 
 from tornado import web
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -75,13 +75,8 @@ def output_streams(connection, selector, broadcast, stream):
     
 
 namespace = {}
-try:
-    import sage.all_cmdline
-    exec "from sage.all_cmdline import *" in namespace
-except Exception, msg:
-    print msg
-    print "Sage not available."
-    pass
+import sage.all_cmdline
+exec "from sage.all_cmdline import *" in namespace
 
 def strip_string_literals(code, state=None):
     new_code = []
@@ -331,25 +326,43 @@ class ExecuteConnection(SocketConnection):
 # Keywords from http://docs.python.org/release/2.7.2/reference/lexical_analysis.html
 _builtin_completions = __builtins__.__dict__.keys() + ['and', 'del', 'from', 'not', 'while', 'as', 'elif', 'global', 'or', 'with', 'assert', 'else', 'if', 'pass', 'yield', 'break', 'except', 'import', 'print', 'class', 'exec', 'in', 'raise', 'continue', 'finally', 'is', 'return', 'def', 'for', 'lambda', 'try']
 
-def _completions(s, preparse=True):
-    n = len(s)
-    if n == 0:
-        return []
-    if '.' not in s and '(' not in s:
-        v = [x for x in (namespace.keys() + _builtin_completions) if x.startswith(s)]
+def _completions(code, col_offset, lineno, preparse=True, jsonify=False):
+    # we could use the entire buffer, but for now restrict to the line
+    code = code.splitlines()[lineno][:col_offset]
+    if code.isspace():
+        result = []
+        target = ''
     else:
-        i = s.rfind('.')
-        attr = s[i+1:]
-        obj = s[:i]
-        O = eval(obj if not preparse else sage.all_cmdline.preparse(obj), namespace)
-        D = dir(O)
-        if hasattr(O, 'trait_names'):
-            D += O.trait_names()
-        if attr == '':
-            v = [obj + '.' + x for x in D if x and not x.startswith('_')]
+        i = max(max([code.rfind(w) for w in string.whitespace]), code.rfind('='))
+        expr = code[i+1:]
+        if '.' not in expr and '(' not in expr:
+            target = expr
+            v = [x for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
         else:
-            v = [obj + '.' + x for x in D if x.startswith(attr)]
-    return list(sorted(set(v)))   # make unique
+            i = expr.rfind('.')
+            target = code[i+1:]
+            obj = code[:i]
+            if obj in namespace:
+                O = namespace[obj]
+            else:
+                # the dangerous eval.
+                try:
+                    def mysig(*args): raise KeyboardInterrupt
+                    signal.signal(signal.SIGALRM, mysig)
+                    signal.alarm(1)
+                    O = eval(obj if not preparse else sage.all_cmdline.preparse(obj), namespace)
+                finally:
+                    signal.signal(signal.SIGALRM, signal.SIG_IGN)
+            v = dir(O)
+            if hasattr(O, 'trait_names'):
+                v += O.trait_names()
+            if not target.startswith('_'):
+                v = [x for x in v if x and not x.startswith('_')]
+        result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
+    r = {'completions':result, 'target':target}
+    if jsonify:
+        r = json.dumps(r)
+    return r
 
 namespace['_completions'] = _completions
         

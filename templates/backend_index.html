@@ -101,10 +101,12 @@ $(function() {
 */
     
     var completions = $('#completions');
-    completions.hide(
+    completions.css({position:'absolute', 'z-index':2}
+    ).hide(
     ).keyup(function(e) {
 	if (e.keyCode === 27) { console.log('esc'); completions.data('finish')(''); }  /* esc */
-	if (e.keyCode == 8 && !completions[0].value) { completions.data('finish')(); } /* backspace */
+	if (e.keyCode == 8) { return false;}
+	/*if (e.keyCode == 8 && !completions[0].value) { completions.data('finish')(); } *//* backspace */
     }).keydown(function(e) {
 	if (e.keyCode === 13) {
 	    completions.data('finish')(completions[0].value);  
@@ -117,8 +119,10 @@ $(function() {
 	close:function (event, ui) { 
 	    completions.data('finish')();
 	}
-});
-/*.blur( function() { $('#completions').data('finish')(''); } ); */
+    });
+
+    $('#completions_error').hide().dialog({
+          autoOpen:false, show:'slide', hide:'slide', minWidth:450});
 
     // TODO: vargs
     function call_ifdef(selector, name, a1, a2) {
@@ -170,39 +174,27 @@ $(function() {
 	    max_output:100000,
 	}, options||{});
 
-	function get_completions(value, callback) {
-	    value = value.replace(/\s/g,"");
-	    if (value.length == 0) {
-		callback([],'error');
-	    } else {/* .replace("'","\\'") */
-		var cmd = '_completions("' + value + '")';
-		socket.execute_blocking(cmd, function (mesg) {
-		    if (mesg.stderr.length != 0) {
-			callback([], 'error');
-		    } 
-		    callback(eval(mesg.stdout), 'ok');
-		})
-	    }
+	function get_completions(code, cursor, callback) {
+	    /* TODO: escape better and jsonify output maybe */
+	    var cmd = '_completions("' + code + '",' + cursor.ch + ',' + cursor.line + ', jsonify=True)';
+	    socket.execute_blocking(cmd, function (mesg) {
+		if (mesg.stderr.length != 0) {
+console.log(mesg.stderr); /* TODO */
+		    callback([], '', 'error');
+		    return;
+		} 
+		eval('var r = ' + eval(mesg.stdout));  /* TODO: seems VERY evil! */
+		callback(r.completions, r.target, 'ok');
+	    })
 	}
 
-	var command_pat = new RegExp("([\\[\\]\\(\\)a-zA-Z._0-9,\\s]*)$"); /* TODO: move */
-	var function_pat = new RegExp("([\\[\\]a-zA-Z._0-9]*)\\([^()]*$"); /* TOOD: move*/
-	
 	function completion(cm) {     
 	    var cursor = stdin.getCursor();
-	    var target = stdin.getLine(cursor.line);
+	    var code = stdin.getValue();
+	    var target = code;  /* callback if it happens changes this later */
+	    var this_line = stdin.getLine(cursor.line).slice(0,cursor.ch)
 
-	    var m = command_pat.exec(target);
-console.log('m = ' + m);
-	    if (!m) {
-		/* todo */
-		console.log("nothing to complete");
-		return;
-	    }
-	    target = m[1];
-	    var n = target.length;
-	    target = target.replace(/\s/g,"");
-	    if (target.length === 0) {
+	    if (this_line.length == 0 || this_line[this_line.length-1].replace(/\s/g,"") === "") {
 		stdin.replaceRange('    ', cursor);		
 		return;
 	    }
@@ -216,14 +208,17 @@ console.log('m = ' + m);
 		c.hide();
 		stdin.focus();
 		if (val.length > 0) {
-		    stdin.replaceRange(val.slice(target.length), cursor);
+/*		    stdin.replaceRange(val.slice(target.length), cursor); */
+		    stdin.replaceRange(val, {line:cursor.line, ch:cursor.ch-target.length}, cursor);
 		}
 	    }
 	    c.data('finish', finish);
 
-	    get_completions(target, function (source, status) {
+	    get_completions(code, cursor, function (source, target0, status) {
+		target = target0;
 		if (status != 'ok') {
-		    console.log('error getting completions');/*TODO*/
+		    $('#completions_error').dialog( {close : function() { stdin.focus(); }}
+                    ).dialog('open');
 		    return;
 		}
 		if (source.length === 0) {
@@ -234,19 +229,14 @@ console.log('m = ' + m);
 		    stdin.replaceRange(source[0].slice(target.length), cursor);
 		    return;
 		}
-		/* TODO: chain */
-		c.show();
-		c.focus();
-		c.css({position:'absolute', 'z-index':2, top:pos.y, left:pos.x});
-		c.autocomplete("enable");
-		c.val(source[0]);
-		c.autocomplete({
-		    autoFocus:true,
+		c.show().focus().css({top:pos.y, left:pos.x}).val(target).autocomplete({
+		    autoFocus:false,
+		    minLength:0,
 		    source:source,
 		    select:function(event, ui) { 
 			finish(ui.item.value);
 		    }
-		}).autocomplete("search", target); 
+		}).autocomplete("search");
 	    })
 	}
 
@@ -429,13 +419,18 @@ Time: <span id="time">0 ms</span>
 <h1>Sage Command Line</h1>
 
 
-<input id="completions" size=80>
-
 <div id="cells" class="sagews-cells">
 </div>
 </div>
 
 <div id="footer" class="sagews-footer"></div>
+
+
+<input id="completions" size=60>
+
+<div id="completions_error" title="Completions">
+  Error getting completions.
+</div>
 
 </body>
 </html>
