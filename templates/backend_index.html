@@ -93,9 +93,9 @@
         word-wrap: break-word; /* Internet Explorer 5.5+ */
        }
 
-
       .sagews-status {
-        background-color:#000;
+        background-color:#faa;
+	height:15em;
 	font-size:small;
       } 
 
@@ -466,13 +466,12 @@ $(function() {
 	}
      }).tabs('select', 0); /* .resizable(); */
 
-    $('#tabs').find( ".ui-tabs-nav" ).sortable({'axis':'x'}).css({'fontSize':'small'});
+/* The following works, but confuses other code for renaming etc that uses index. */
+/*    $('#tabs').find( ".ui-tabs-nav" ).sortable({'axis':'x'}).css({'fontSize':'small'});
 
-    /* TODO: I noticed that there is a length method for tabs, so numtabs can probably be removed:
-       http://jqueryui.com/demos/tabs/
-    */
+*/
+
     $('#tabs').data({
-	'numtabs':0,
 	'set-tab-label':function(index, label) {
 	    $($('#tabs ul li a')[index]).html(label);  
 	}
@@ -484,10 +483,10 @@ $(function() {
 
     $('#add-cmdline-button').button().click(
 	function (event,ui) { 
-	    var n = $('#tabs').data('numtabs');
+	    var n = $('#tabs').tabs('length');
 	    $('#tabs').append(newCommandLine('cells-'+n, n));
 	    appendSageCell('#cells-'+n);
-	    $('#tabs').tabs("add", '#cells-'+n, n).tabs('select', n).data('numtabs', n+1);
+	    $('#tabs').tabs("add", '#cells-'+n, n).tabs('select', n)
 	}
     ).click();
 
@@ -495,7 +494,7 @@ $(function() {
 	var t = $('#tabs');
 	var index = t.data('tabs-current-index') - 1;
 	if (index < 0) {
-	    index = t.data('numtabs')-1;
+	    index = t.tabs('length')-1;
 	}
 	console.log(index);
 	t.tabs('select', index);
@@ -503,7 +502,7 @@ $(function() {
     $('#next-button').button().click( function(event,ui) {
 	var t = $('#tabs');
 	var index = t.data('tabs-current-index') + 1;
-	if (index >= t.data('numtabs')) {
+	if (index >= t.tabs('length')) {
 	    index = 0;
 	}
 	console.log(index);
@@ -518,13 +517,13 @@ $(function() {
 
     $('#rename-dialog').dialog({
 	autoOpen:false,
-	height:200,
-	width:300,
 	modal:true,
+	show: { effect: 'drop', direction: "up", duration:100},
+	hide: { effect: 'drop', direction: "down", duration:100},
 	buttons:{
-	    Ok: function() { $( this ).dialog( "close" ) }
+	    Ok: function() { $(this).dialog("close").data('sagews-rename')() }
 	}
-    });
+    }).keypress(function(e) { if (e.which===13) { $(this).dialog('close').data('sagews-rename')() }});
 
     $('#rename-button').button().click(function(event,ui) {
 	var t = $('#tabs');
@@ -532,17 +531,19 @@ $(function() {
 	var d = $('#rename-dialog');
 	var title = t.find('ul li a')[index].text;
 	d.children('input').val(title);
-	d.dialog("option", "close", function (event, ui) { 
+	d.data('sagews-rename', function () {
 	    t.data('set-tab-label')(index, d.children('input').val());
 	    /* ensure that it gets selected so gets focus back.*/
+	});
+
+	d.dialog("open").dialog({'close':function(event,ui){
 	    if(index>0) {
 		t.tabs('select', index-1);
 	    } else {
 		t.tabs('select', index+1);
 	    }
 	    t.tabs('select', index);
-	});
-	d.dialog("open");
+	}});
     });
 				      
 
@@ -559,10 +560,10 @@ $(function() {
 
 
 <body>
-<pre><div id="status" class="wrap sagews-status">status</div></pre>
+<div id="status" class="wrap sagews-status">status</div>
 Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
 &nbsp;&nbsp;&nbsp;&nbsp;
-Time: <span id="time">0 ms</span>
+Last Time: <span id="time">0 ms</span>
 <br>
 <!--<input id="preparse" type="checkbox" checked="true" /> preparse
 <button id="execute-0">Execute (shift+enter)</button>
