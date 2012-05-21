@@ -69,23 +69,21 @@
 	max-height:10em; 
       }
 
-      .sagews-footer {
-        height:20em;
-      }
-
       .sagews-cells {
-	  height:10em;
+	  height:15em;
 	  overflow:auto;
 	  padding:1;
 	  border: 3px solid #000;
       }
 
       .sagews-cmdline {
-/*	  border: 2px solid #550; */
-          height:10em;
+          height:15em;
 	  overflow:auto;
 	  width:100%;
       }
+
+      /* make buttons smaller*/
+      .ui-button.ui-widget .ui-button-text{ line-height:1em; font-size:small }
 
       .wrap {  /* see http://www.longren.org/wrapping-text-inside-pre-tags/ */
         white-space: pre-wrap; /* css-3 */
@@ -94,6 +92,12 @@
         white-space: -o-pre-wrap; /* Opera 7 */
         word-wrap: break-word; /* Internet Explorer 5.5+ */
        }
+
+
+      .sagews-status {
+        background-color:#000;
+	font-size:small;
+      } 
 
 </style>
 
@@ -164,9 +168,9 @@ $(function() {
     var socket = sagews_backend.socket('http://' + window.location.host, options);
 
     function update_status() {	
-	var cmd = 'print("Memory: %sMB    Variables: %s"%(int(sage.all.get_memory_usage()), ", ".join(sorted(sage.all.show_identifiers()))))';
+	var cmd = 'print("Memory: %sMB\\n\\nVariables: %s\\n\\n\\n\\n"%(int(sage.all.get_memory_usage()), ", ".join(sorted(sage.all.show_identifiers()))))';
 	socket.execute_blocking(cmd,
-		function (mesg) { $('#status')[0].innerHTML = mesg.stdout; });
+		function (mesg) { $('#status').html(mesg.stdout); });
     }
 
     var start_time = walltime();
@@ -454,19 +458,31 @@ $(function() {
 
     $("#tabs").tabs({ 
 	show : function(event, ui) {
-	    $(ui.panel).children(':last-child').data('focus')(); 
+	    $(this).data('tabs-current-index',ui.index);
+	    var f = $(ui.panel).children(':last-child').data('focus')
+	    if (typeof f === 'undefined') return;
+	    f(); 
 	    $(ui.panel).scrollTop(10000);
 	}
-     }).tabs('select', 0).resizable();
+     }).tabs('select', 0); /* .resizable(); */
 
+    $('#tabs').find( ".ui-tabs-nav" ).sortable({'axis':'x'}).css({'fontSize':'small'});
+
+    /* TODO: I noticed that there is a length method for tabs, so numtabs can probably be removed:
+       http://jqueryui.com/demos/tabs/
+    */
     $('#tabs').data({
 	'numtabs':0,
-	'set_tab_label':function(index, label) {
+	'set-tab-label':function(index, label) {
 	    $($('#tabs ul li a')[index]).html(label);  
 	}
     });
 
-    $('#add-cmdline').button().click(
+    $('#tabs').append($('#status')).tabs('add','#status', 'status');
+
+    $('#button-bar').sortable({axis:'x'});
+
+    $('#add-cmdline-button').button().click(
 	function (event,ui) { 
 	    var n = $('#tabs').data('numtabs');
 	    $('#tabs').append(newCommandLine('cells-'+n, n));
@@ -475,11 +491,60 @@ $(function() {
 	}
     ).click();
 
+    $('#prev-button').button().click( function(event,ui) {
+	var t = $('#tabs');
+	var index = t.data('tabs-current-index') - 1;
+	if (index < 0) {
+	    index = t.data('numtabs')-1;
+	}
+	console.log(index);
+	t.tabs('select', index);
+    })
+    $('#next-button').button().click( function(event,ui) {
+	var t = $('#tabs');
+	var index = t.data('tabs-current-index') + 1;
+	if (index >= t.data('numtabs')) {
+	    index = 0;
+	}
+	console.log(index);
+	t.tabs('select', index);
+    })
 
-    $('#cmdline-button-bar').children('button').button().click(
-	function (event, ui) { alert("NotImplementedError");}
-    );
+    $('#add-editor-button').button();
 
+    $('#newline-button').button();
+    $('#submit-button').button();
+    $('#complete-button').button();
+
+    $('#rename-dialog').dialog({
+	autoOpen:false,
+	height:200,
+	width:300,
+	modal:true,
+	buttons:{
+	    Ok: function() { $( this ).dialog( "close" ) }
+	}
+    });
+
+    $('#rename-button').button().click(function(event,ui) {
+	var t = $('#tabs');
+	var index = t.data('tabs-current-index');
+	var d = $('#rename-dialog');
+	var title = t.find('ul li a')[index].text;
+	d.children('input').val(title);
+	d.dialog("option", "close", function (event, ui) { 
+	    t.data('set-tab-label')(index, d.children('input').val());
+	    /* ensure that it gets selected so gets focus back.*/
+	    if(index>0) {
+		t.tabs('select', index-1);
+	    } else {
+		t.tabs('select', index+1);
+	    }
+	    t.tabs('select', index);
+	});
+	d.dialog("open");
+    });
+				      
 
     function newCommandLine(id, label) {
 	var c = $('#sagews-cell-template').clone().show().attr('id', id);
@@ -494,7 +559,7 @@ $(function() {
 
 
 <body>
-<pre><div id="status" class="wrap">status line</div></pre>
+<pre><div id="status" class="wrap sagews-status">status</div></pre>
 Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
 &nbsp;&nbsp;&nbsp;&nbsp;
 Time: <span id="time">0 ms</span>
@@ -510,15 +575,24 @@ Time: <span id="time">0 ms</span>
 
 
 
-<button id="add-cmdline">+</button>
-<div id="cmdline-button-bar">
-<button>Newline</button> <button>Submit</button> <button>Complete</button> <button>Name Tab</button>
+<div id="button-bar">
+<span><button id="prev-button"><</button> </span>
+<span><button id="next-button">></button> </span>
+<span><button id="add-cmdline-button">+ Commands</button> </span>
+<span><button id="add-editor-button">+ Editor</button> </span>
+<span><button id="newline-button">Newline</button> </span>
+<span><button id="submit-button">Execute</button> </span>
+<span><button id="complete-button">Complete</button> </span>
+<span><button id="rename-button">Rename</button> </span>
 </div>
+
 <div id="tabs"><ul></ul></div>
 
-<div id="footer" class="sagews-footer"></div>
-
 <div id="sagews-cell-template" class="sagews-cells"></div>
+
+<div id="rename-dialog" title="Rename">
+<input type="text" value="new name">
+</div>
 
 
 </body>
