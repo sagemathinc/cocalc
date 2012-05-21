@@ -7,7 +7,9 @@
 
 <!-- jquery-ui -->
 <script type="text/javascript" src="static/jquery-ui/js/jquery-ui.min.js"></script>
-<link rel="stylesheet" href="static/jquery-ui/css/pepper-grinder/jquery-ui.css">
+<!-- <link rel="stylesheet" href="static/jquery-ui/css/pepper-grinder/jquery-ui.css"> -->
+    
+<link rel="stylesheet" href="static/jquery-ui/css/smoothness/jquery-ui.css"> 
 
 <!-- socket.io -->
 <script type="text/javascript" src="static/socketio/socket.io.js"></script>
@@ -46,9 +48,6 @@
 
       .CodeMirror-gutter  {
           z-index:0;
-      }
-
-      .sagews-cell {
       }
 
       .sagews-stdin {
@@ -285,7 +284,7 @@ $(function() {
 	$(stdin.getWrapperElement()).addClass('sagews-stdin'); 
         $(stdin.getScrollerElement()).addClass('sagews-stdin-scroll');
 
-        stdin.setMarker(0, 'sage: ');
+/*        stdin.setMarker(0, 'sage: '); */
 
         var stdout = CodeMirror(cell, {
 	    value:opts.stdout, lineWrapping:true, readOnly:true})
@@ -470,16 +469,24 @@ $(function() {
     $('#add-cmdline').button().click(
 	function (event,ui) { 
 	    var n = $('#tabs').data('numtabs');
-	    $('#tabs').append(newCommandLine('cells-'+n));
+	    $('#tabs').append(newCommandLine('cells-'+n, n));
 	    appendSageCell('#cells-'+n);
 	    $('#tabs').tabs("add", '#cells-'+n, n).tabs('select', n).data('numtabs', n+1);
 	}
     ).click();
 
 
-    function newCommandLine(id) {
-	return $('<div id="' + id + '" class="sagews-cells"></div>');
+    $('#cmdline-button-bar').children('button').button().click(
+	function (event, ui) { alert("NotImplementedError");}
+    );
+
+
+    function newCommandLine(id, label) {
+	var c = $('#sagews-cell-template').clone().show().attr('id', id);
+	return c;
     }
+
+    $('#sagews-cell-template').hide(); 
 
     $('body').scrollTop(0);
 
@@ -503,11 +510,15 @@ Time: <span id="time">0 ms</span>
 
 
 
-<button id="add-cmdline">+</button> <span class="sagews-cmdline-header">Sage Command Lines</span>
-
+<button id="add-cmdline">+</button>
+<div id="cmdline-button-bar">
+<button>Newline</button> <button>Submit</button> <button>Complete</button> <button>Name Tab</button>
+</div>
 <div id="tabs"><ul></ul></div>
 
 <div id="footer" class="sagews-footer"></div>
+
+<div id="sagews-cell-template" class="sagews-cells"></div>
 
 
 </body>
