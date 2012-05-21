@@ -125,7 +125,7 @@ $(function() {
           autoOpen:false, show:'slide', hide:'slide', minWidth:450});
 
     $('#help_window').hide().dialog({
-          autoOpen:false, show:'slide', hide:'slide', minWidth:800});
+          autoOpen:false, show:'slide', hide:'slide', minWidth:600});
 
     // TODO: vargs
     function call_ifdef(selector, name, a1, a2) {
@@ -188,8 +188,8 @@ $(function() {
 		} 
 		var r = $.parseJSON(mesg.stdout);
 		if (r.help) {
-		    /* TODO: implement real help viewer with html, etc. */
-		    $('#help_window').dialog({'title':'Help on '+r.expr.slice(0,r.expr.length-1)}).html('<font size=-3><textarea readonly="readonly" cols=90 rows=16>'+r.result+'</textarea></font>').dialog( {close : function() { stdin.focus(); }}).dialog('open');
+		    /* TODO: implement real help viewer with html, etc. -- this is a silly quick hack*/
+		    $('#help_window').dialog({'title':'Help on '+r.expr.slice(0,r.expr.length-1)}).html('<font size=-3><textarea readonly="readonly" cols=80 rows=16>'+r.result+'</textarea></font>').dialog( {close : function() { stdin.focus(); }}).dialog('open');
 		    return;
 		}
 		callback(r.result, r.target, 'ok');

@@ -370,11 +370,12 @@ def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded
                         def mysig(*args): raise KeyboardInterrupt
                         signal.signal(signal.SIGALRM, mysig)
                         signal.alarm(1)
+                        import sage.all_cmdline
                         if before_expr.strip():
                             try:
                                 exec (before_expr if not preparse else sage.all_cmdline.preparse(before_expr)) in namespace
-                            except:
-                                pass
+                            except Exception, msg:
+                                traceback.print_exc()
                         O = eval(obj if not preparse else sage.all_cmdline.preparse(obj), namespace)
                     finally:
                         signal.signal(signal.SIGALRM, signal.SIG_IGN)
@@ -392,8 +393,7 @@ def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded
             if not get_help:
                 result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
         except Exception, msg:
-            sys.stderr.write(str(msg))
-            #status = 'error'
+            traceback.print_exc()
             result = []
             status = 'ok'
         else:
