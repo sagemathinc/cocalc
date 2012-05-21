@@ -20,16 +20,22 @@
 
 
 <style type="text/css">
+      body {
+        margin:0;
+        padding:0;
+        height:200;
+      }
 
       .CodeMirror-scroll {
         height: auto; 
-        width: 100%;
+/*        width: 100%; */
       }
 
       .CodeMirror {
         border: 1px solid #eee;
         overflow-x: auto;
         overflow-y: auto; 
+        background-color: #ffffff;    
       }
 
       .CodeMirror-focused {
@@ -69,7 +75,17 @@
       }
 
       .sagews-cells {
-         padding:1em;
+	  height:10em;
+	  overflow:auto;
+	  padding:1;
+	  border: 3px solid #000;
+      }
+
+      .sagews-cmdline {
+/*	  border: 2px solid #550; */
+          height:10em;
+	  overflow:auto;
+	  width:100%;
       }
 
       .wrap {  /* see http://www.longren.org/wrapping-text-inside-pre-tags/ */
@@ -360,7 +376,11 @@ $(function() {
 	    socket.set('#'+id, val);
 	    socket.execute('#'+id, val, true); 
 	    var next = wcell.next();
-	    if (next.length === 0) { next = $(appendSageCell('#cells')); }
+	     if (next.length === 0) { 
+		 /* TODO: this feals hacked, maybe.  It's so we can have many command lines at once */
+		 var cells_id = wcell.parent().attr('id');
+		 next = $(appendSageCell('#'+cells_id));
+	     }
 	    next.data('focus')(0,0);
 	}
 	
@@ -409,8 +429,11 @@ $(function() {
     }
 
     /* Create the first Sage cell */
+    
+    $(appendSageCell('#cells-0')).data('focus')();
 
-    $(appendSageCell('#cells')).data('focus')();
+/*    $('#cells-1').sortable({ opacity:0.8, delay:1000});  
+*/
 
     function session_name() {
 	return $('#session-name').val();
@@ -430,9 +453,35 @@ $(function() {
 	    socket.execute('#reset-session','reset()'); 
 	}).data('done', function () { /* TODO: visual feedback */ update_status(); })
 
+    $("#tabs").tabs({ 
+	show : function(event, ui) {
+	    $(ui.panel).children(':last-child').data('focus')(); 
+	    $(ui.panel).scrollTop(10000);
+	}
+     }).tabs('select', 0).resizable();
+
+    $('#tabs').data({
+	'numtabs':0,
+	'set_tab_label':function(index, label) {
+	    $($('#tabs ul li a')[index]).html(label);  
+	}
+    });
+
+    $('#add-cmdline').button().click(
+	function (event,ui) { 
+	    var n = $('#tabs').data('numtabs');
+	    $('#tabs').append(newCommandLine('cells-'+n));
+	    appendSageCell('#cells-'+n);
+	    $('#tabs').tabs("add", '#cells-'+n, n).tabs('select', n).data('numtabs', n+1);
+	}
+    ).click();
 
 
-    $('#cells').sortable({ opacity: 0.6, delay:1000});
+    function newCommandLine(id) {
+	return $('<div id="' + id + '" class="sagews-cells"></div>');
+    }
+
+    $('body').scrollTop(0);
 
 })</script>
 
@@ -448,26 +497,18 @@ Time: <span id="time">0 ms</span>
 -->
 <hr>
 
-<div>
-<h1>Sage Command Line</h1>
+<input id="completions" size=60>
+<div id="completions_error" title="Completions"></div>
+<div id="help_window" title="Help"></div>
 
 
-<div id="cells" class="sagews-cells">
-</div>
-</div>
+
+<button id="add-cmdline">+</button> <span class="sagews-cmdline-header">Sage Command Lines</span>
+
+<div id="tabs"><ul></ul></div>
 
 <div id="footer" class="sagews-footer"></div>
 
-
-<input id="completions" size=60>
-
-<div id="completions_error" title="Completions">
-  Error getting completions.
-</div>
-
-<div id="help_window" title="Help">
-  Help on some command  
-</div>
 
 </body>
 </html>
