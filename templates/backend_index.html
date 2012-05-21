@@ -512,8 +512,19 @@ $(function() {
 
     $('#newline-button').button();
     $('#submit-button').button();
-    $('#complete-button').button();
+    $('#complete-button').button().click( function(event, ui) { 
+return false;
+       /* Idea: 
+1. figure out which tab is opened.
+2. figure out which cell last had focus and focus it.
+3. actually send they key: 
+     http://forum.jquery.com/topic/simulating-keypress-events
+   (or alternatively refactor code)
+       */
 
+
+    });
+    
     $('#rename-dialog').dialog({
 	autoOpen:false,
 	modal:true,
@@ -579,7 +590,7 @@ Last Time: <span id="time">0 ms</span>
 <span><button id="prev-button"><</button> </span>
 <span><button id="next-button">></button> </span>
 <span><button id="add-cmdline-button">+ Commands</button> </span>
-<span><button id="add-editor-button">+ Editor</button> </span>
+<span><button id="add-editor-button">+ File</button> </span>
 <span><button id="newline-button">Newline</button> </span>
 <span><button id="submit-button">Execute</button> </span>
 <span><button id="complete-button">Complete</button> </span>

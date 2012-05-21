@@ -7,11 +7,12 @@ immediate todo list:
     [x]completions of a dotted name. 
     [x] help
     [ ] a button so it doesn't depend on having a tab key
-
+ [ ] add icons to buttons: http://jqueryui.com/demos/button/
  [x] make sage command line div of fixed height and scrollable, so 
      it makes sense to have a control bar for it. 
  [ ] scroll output into view as it is generated
  [ ] client that can send interrupt signals, etc.
+ [ ] make switching themes dynamically possible (?)
  [ ] toggle word wrap in codemirror stdout
  [ ] execute -- newline button so doesn't depend on having shift-enter
 
