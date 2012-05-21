@@ -1,0 +1,24 @@
+immediate todo list:
+
+ [x] shift-enter makes new line
+ [x] javascript eval function that is blocking and doesn't use pipe capture
+ [x] delete stderr when exec starts
+ [x] tab completion:
+    [x]completions of a dotted name. 
+    [x] help
+    [ ] a button so it doesn't depend on having a tab key
+
+ [x] make sage command line div of fixed height and scrollable, so 
+     it makes sense to have a control bar for it. 
+ [ ] scroll output into view as it is generated
+ [ ] client that can send interrupt signals, etc.
+ [ ] toggle word wrap in codemirror stdout
+ [ ] execute -- newline button so doesn't depend on having shift-enter
+
+ [ ] indicator that running -- but only appears after .3 seconds (say)
+
+ [ ] drag of cells should happen using only the gutter
+ [ ] pushing creation of new cells out to clients
+ [ ] tell whether socket.io connection has died
+ [ ] new client gets up2date view of all data
+ [ ] basic mobile client
