@@ -286,12 +286,13 @@ $(function() {
 	stderr_elt.addClass('sagews-stderr');
 
 	var wcell = $(cell);
-        wcell.data({'streams':{'stdin':stdin},
+        wcell.data({'streams':{'stdin':stdin, 'stdout':stdout, 'stderr':stderr},
                     'focus':function(line, ch) { 
 	               stdin.focus(); 
                        if (typeof line === "undefined") { return; }
 	               if (line<0) { line += stdin.lineCount(); }
 	               stdin.setCursor(line, ch); 
+		       opera_focus_hack();
 	            },
                     'refresh':function() { stdin.refresh(); stdout.refresh(); stderr.refresh(); },
 		    'set':    function(value) { stdin.setValue(value); },
@@ -337,7 +338,24 @@ $(function() {
 	    }
 	}
 
+	function opera_blur_hack() {
+	    /* This is a hack needed for Opera -- at least v 11.64 on OS X. 
+	       It's copied from codemirror.js's onBlur() function. */
+	    var wrapper = $(stdin.getWrapperElement())[0];
+	    wrapper.className = wrapper.className.replace(" CodeMirror-focused", ""); 
+	}
+
+	function opera_focus_hack() {
+	    /* This is a hack needed for Opera -- at least v 11.64 on OS X. 
+	       It's copied from codemirror.js's onBlur() function. */
+	    var wrapper = $(stdin.getWrapperElement())[0];
+            if (wrapper.className.search(/\bCodeMirror-focused\b/) == -1) {
+		wrapper.className += " CodeMirror-focused";
+	    }
+	}
+
 	function execute() { 
+	    opera_blur_hack();
 	    var val = stdin.getValue();
 	    socket.set('#'+id, val);
 	    socket.execute('#'+id, val, true); 
@@ -352,7 +370,10 @@ $(function() {
 		stdin.setCursor(coords.line - 1, coords.ch);
 	    } else {
 		var f = wcell.prev().data('focus'); 
-		if (f) { f(-1, coords.ch); } 
+		if (typeof f !== 'undefined') { 
+		    opera_blur_hack();
+		    f(-1, coords.ch); 
+		} 
 	    }
 	}
 
@@ -362,9 +383,11 @@ $(function() {
 		stdin.setCursor(coords.line + 1, coords.ch);
 	    } else {
 		var f = wcell.next().data('focus')
-		if (f) { f(0, coords.ch);  } 
+		if (typeof f !== 'undefined') { 
+		    opera_blur_hack();
+		    f(0, coords.ch);  
+		} 
 	    }
-
         }
 	return cell;
     }
@@ -381,9 +404,11 @@ $(function() {
 	}
 	var cell = SageCell(id, options);	
 	$(selector).append(cell);
-	$(cell).data('refresh')();
+	$(cell).data('refresh')(); 
 	return cell;
     }
+
+    /* Create the first Sage cell */
 
     $(appendSageCell('#cells')).data('focus')();
 
