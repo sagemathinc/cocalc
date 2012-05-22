@@ -5,16 +5,19 @@
 <!-- jquery -->
 <script type="text/javascript" src="static/jquery/jquery.min.js"></script>
 
+    
 <!-- jquery-ui -->
 <script type="text/javascript" src="static/jquery-ui/js/jquery-ui.min.js"></script>
+<script type="text/javascript" src="static/jquery-ui/js/themeswitchertool.js"></script>
+
 <!-- 
-
 <link rel="stylesheet" href="static/jquery-ui/css/pepper-grinder/jquery-ui.css"> 
- <link rel="stylesheet" href="static/jquery-ui/css/smoothness/jquery-ui.css">  
+<link rel="stylesheet" href="static/jquery-ui/css/smoothness/jquery-ui.css">  
 <link rel="stylesheet" href="static/jquery-ui/css/black-tie/jquery-ui.css"> 
-
--->
 <link rel="stylesheet" href="static/jquery-ui/css/cupertino/jquery-ui.css"> 
+-->
+
+<link rel="stylesheet" href="static/jquery-ui/css/sunny/jquery-ui.css"> 
 
 
 <!-- socket.io -->
@@ -747,6 +750,8 @@ console.log(source.length);
     $('#invalid-filename-dialog').hide();
     $('#cell-trash').hide();
 
+    $('#switcher').themeswitcher();
+
     $('body').scrollTop(0);
 
 })</script>
@@ -766,13 +771,14 @@ console.log(source.length);
 <div id="help_window" title="Help"></div>
 
 
+<div id="switcher"></div>
+
 <div id="button-bar">
-SageMath Workspace <span><button id="prev-button">Prev</button></span>
+<span><button id="prev-button">Prev</button></span>
 <span><button id="next-button">Next</button></span>
 <span><button id="rename-button">Rename</button></span>
 <span><button id="new-cmdline-button">Command Line</button></span>
 <span><button id="new-document-button">Document</button></span>
-<font size=-3>Last Time: <span id="time">0 ms</span></font>
 </div>
 
 <div id="tabs" class="sagews-tabs"><ul></ul></div>
@@ -788,6 +794,8 @@ SageMath Workspace <span><button id="prev-button">Prev</button></span>
 <div id="invalid-filename-dialog" title="Invalid Filename"></div>
 
 <div id="cell-trash"><h3>Cell Trash</h3></div>
+
+<font size=-3>Last Time: <span id="time">0 ms</span></font>
 
 </body>
 </html>
