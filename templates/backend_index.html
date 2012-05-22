@@ -8,7 +8,8 @@
     
 <!-- jquery-ui -->
 <script type="text/javascript" src="static/jquery-ui/js/jquery-ui.min.js"></script>
-<script type="text/javascript" src="static/jquery-ui/js/themeswitchertool.js"></script>
+<script type="text/javascript" src="static/jquery-plugins/themeswitchertool.js"></script>
+<script type="text/javascript" src="static/jquery-plugins/activity-indicator/activity-indicator.js"></script>
 
 <!-- 
 <link rel="stylesheet" href="static/jquery-ui/css/pepper-grinder/jquery-ui.css"> 
@@ -50,13 +51,14 @@
       }
 
       .CodeMirror-focused {
-	  border: 2px solid #00f; 
+	  border: 1px solid #00f; 
           background-color: #fffff0;    
           max-height:100em;
       }
 
       .CodeMirror-gutter  {
           z-index:0;
+	  background-color: #ddd;
       }
 
       .center {
@@ -73,6 +75,14 @@
           height:20em;
       }
 
+
+      .sagews-cell {
+
+      }
+
+      .sagews-cell-running {
+
+      }
 
       .sagews-stdin {
 
@@ -386,6 +396,7 @@ console.log(cell);
 	    
 	}
 
+	var running_timer;
         wcell.data({'streams':{'stdin':stdin, 'stdout':stdout, 'stderr':stderr},
                     'focus':function(line, ch) { 
 			stdin.focus();
@@ -399,6 +410,11 @@ console.log(cell);
 		    'start':  function() { 
 			stderr_elt.hide();
 			wcell.data('start_time', walltime()); 
+
+			running_timer = setTimeout(function() { 
+			    $(stdin.getGutterElement()).activity({width:2, length:2});
+			    wcell.addClass('sagews-cell-running');
+			}, 500);
 		    },
 		    'mesg':   function(value) { 
 			if (value.type === 'javascript') {eval(value.value);}
@@ -421,6 +437,11 @@ console.log(cell);
 			}
 		    },
 		    'done':   function () { 
+
+			clearTimeout(running_timer);
+			$(stdin.getGutterElement()).activity(false);
+			wcell.removeClass('sagews-cell-running');
+
 			var s = (walltime() - wcell.data('start_time')) + ' ms';
 			$('#time')[0].innerHTML = s;
 			cm_trim_last_newline(stdout); cm_trim_last_newline(stderr);
@@ -766,10 +787,13 @@ console.log(cell);
 
     $('body').scrollTop(0);
 
+
 })</script>
 
 
 <body>
+
+<div id="busy1"></div>
 
 <div id="status" class="wrap sagews-status">status</div>
 <!--Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
@@ -806,7 +830,7 @@ console.log(cell);
 <div id="cell-trash"><h3>Cell Trash</h3></div>
 
 <!-- an individual compute cell -->
-    <div id="sagews-cell-template" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button><button>Wrap</button></div>
+<div id="sagews-cell-template" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button><button>Wrap</button></div>
 
 <font size=-3>Last Time: <span id="time">0 ms</span></font> <div id="switcher"></div>
 </body>
