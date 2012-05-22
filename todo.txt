@@ -6,10 +6,12 @@ immediate todo list:
  [x] tab completion:
     [x]completions of a dotted name. 
     [x] help
-    [ ] a button so it doesn't depend on having a tab key
- [ ] add icons to buttons: http://jqueryui.com/demos/button/
+    [ ] a button so doesn't depend on having a tab key
+ [x] add icons to buttons: http://jqueryui.com/demos/button/
  [x] make sage command line div of fixed height and scrollable, so 
      it makes sense to have a control bar for it. 
+ [ ] create Document type.
+     [x] get it to focus when created or tabbed to
  [ ] scroll output into view as it is generated
  [ ] client that can send interrupt signals, etc.
  [ ] make switching themes dynamically possible (?)

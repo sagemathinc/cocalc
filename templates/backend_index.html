@@ -465,9 +465,9 @@ $(function() {
 	}).data('done', function () { /* TODO: visual feedback */ update_status(); })
 
     $("#tabs").tabs({ 
-	show : function(event, ui) {
+	show : function(event, ui) { 
 	    $(this).data('tabs-current-index',ui.index);
-	    var f = $(ui.panel).children(':last-child').data('focus')
+	    var f = $(ui.panel).data('focus');
 	    if (typeof f === 'undefined') return;
 	    f(); 
 	    $(ui.panel).scrollTop(10000);
@@ -503,7 +503,8 @@ $(function() {
 
     function append_new_document_tab(filename) {
 	var n = $('#tabs').tabs('length');
-	$('#tabs').append(newDocument('doc-'+n, filename));  
+	var doc = newDocument('doc-'+n, filename);
+	$('#tabs').append(doc);  
 	$('#tabs').tabs("add", '#doc-'+n, n).tabs('select', n).
 	    data('set-tab-label')(n, filename);
     }
@@ -595,7 +596,9 @@ return false;
 				      
 
     function newCommandLine(id, label) {
-	return $('#sagews-cell-template').clone().show().attr('id', id);
+	var c = $('#sagews-cell-template').clone().show().attr('id', id);
+	c.data('focus', function() { c.children(':last-child').data('focus')(); });
+	return c;
     }
 
     function newDocument(id, filename) {
@@ -612,7 +615,8 @@ return false;
 	$(cm.getWrapperElement()).addClass('sagews-document'); 
         $(cm.getScrollerElement()).addClass('sagews-document-scroll');
 	cm.refresh();
-	cm.focus();
+	d.data('sagews-editor', cm);
+	d.data('focus', function() { cm.focus(); });
 	return d;
     }
 
