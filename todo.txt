@@ -10,10 +10,14 @@ immediate todo list:
  [x] add icons to buttons: http://jqueryui.com/demos/button/
  [x] make sage command line div of fixed height and scrollable, so 
      it makes sense to have a control bar for it. 
+ [x] scroll output into view as it is generated
+ [x] send button for cmdline
+       - big "send" button appears to the right of focused cell
+       - click to evaluate
+       - disappears
+
  [ ] create Document type.
      [x] get it to focus when created or tabbed to
-     [ ] 
- [x] scroll output into view as it is generated
  [ ] client that can send interrupt signals, etc.
  [ ] make switching themes dynamically possible (?)
  [ ] toggle word wrap in codemirror stdout

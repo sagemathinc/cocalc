@@ -194,7 +194,7 @@ $(function() {
 
     function cm_trim_last_newline(cm) {
        var line = cm.lineCount()-1;
-       if(line>=0) {
+       if(line>=1) {
 	   if (cm.getLine(line).length === 0) {
 	       cm.replaceRange('', {line:line-1,ch:cm.getLine(line-1).length}, {line:line,ch:0});
 	   }
@@ -282,8 +282,23 @@ $(function() {
 	    })
 	}
 
-        var cell = $('<div id="' + id + '" class="sagews-cell"></div>')[0];
-        var stdin = CodeMirror(cell, {
+        var wcell = $('<div id="' + id + '" class="sagews-cell"><span></span><button>Send</button><button>Tab</button></div>');
+	var cell = wcell[0];
+
+	var buttons = wcell.children('button');
+
+	var hide_buttons = true;
+
+	var send_button = $(buttons[0]).button({icons:{primary:'ui-icon-circle-check'}}).click( 
+	    function(event,ui) { execute(); }
+	).hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
+
+	var tab_button = $(buttons[1]).button({icons:{primary:'ui-icon-arrowthickstop-1-e'}}).click( 
+	    function(event,ui) { execute(); }
+	).hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
+
+
+        var stdin = CodeMirror(wcell.find('span')[0], {
 	                 value:opts.stdin,
                          lineNumbers: false, 
                          indentUnit: 4, 
@@ -291,6 +306,8 @@ $(function() {
                          lineWrapping:true, 
 	                 autoClearEmptyLines:true,
                          gutter: true, 
+	                 onFocus:function (cm) { buttons.show(); },
+	                 onBlur:function (cm) { if(hide_buttons) { buttons.hide(); } },
                          extraKeys:{
 			     'Shift-Enter': function(cm) { execute(); },
 			     /*'Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); }, */
@@ -302,8 +319,6 @@ $(function() {
 
 	$(stdin.getWrapperElement()).addClass('sagews-stdin'); 
         $(stdin.getScrollerElement()).addClass('sagews-stdin-scroll');
-
-/*        stdin.setMarker(0, 'sage: '); */
 
         var stdout = CodeMirror(cell, {
 	    value:opts.stdout, lineWrapping:true, readOnly:true})
@@ -319,14 +334,13 @@ $(function() {
 	stdout_elt.addClass('sagews-stdout');
 	stderr_elt.addClass('sagews-stderr');
 
-	var wcell = $(cell);
         wcell.data({'streams':{'stdin':stdin, 'stdout':stdout, 'stderr':stderr},
                     'focus':function(line, ch) { 
-	               stdin.focus(); 
-                       if (typeof line === "undefined") { return; }
-	               if (line<0) { line += stdin.lineCount(); }
-	               stdin.setCursor(line, ch); 
-		       opera_focus_hack();
+			stdin.focus();
+			if (typeof line === "undefined") { return; }
+			if (line<0) { line += stdin.lineCount(); }
+			stdin.setCursor(line, ch); 
+			opera_focus_hack();
 	            },
                     'refresh':function() { stdin.refresh(); stdout.refresh(); stderr.refresh(); },
 		    'set':    function(value) { stdin.setValue(value); },
@@ -391,6 +405,7 @@ $(function() {
 	}
 
 	function execute() { 
+	    buttons.hide();
 	    opera_blur_hack();
 	    var val = stdin.getValue();
 	    socket.set('#'+id, val);
@@ -569,20 +584,6 @@ $(function() {
 	t.tabs('select', index);
     })
 
-/*    $('#newline-button').button({icons: {primary:'ui-icon-circle-arrow-s'}});
-    $('#execute-button').button({icons: {primary:'ui-icon-check'}});*/
-
-    $('#complete-button').button({icons: {primary:'ui-icon-arrowthickstop-1-e'}}).click( function(event, ui) { 
-return false;
-       /* Idea: 
-1. figure out which tab is opened.
-2. figure out which cell last had focus and focus it.
-3. actually send they key: 
-     http://forum.jquery.com/topic/simulating-keypress-events
-   (or alternatively refactor code)
-       */
-    });
-    
     $('#name-dialog').dialog({
 	autoOpen:false,
 	modal:true,
@@ -592,6 +593,8 @@ return false;
 	    Ok: function() { $(this).dialog("close").data('sagews-name')() }
 	}
     }).keypress(function(e) { if (e.which===13) { $(this).dialog('close').data('sagews-name')() }});
+
+/*    $('#send-button').button({icons:{primary:'ui-icon-circle-check'}}); */
 
     $('#rename-button').button({icons: {primary:'ui-icon-shuffle'}}).click(function(event,ui) {
 	var t = $('#tabs');
@@ -677,6 +680,7 @@ Last Time: <span id="time">0 ms</span>
 <span><button id="rename-button">Rename</button></span>
 <span><button id="new-cmdline-button">Command Line</button></span>
 <span><button id="new-document-button">Document</button></span>
+
 
 <!--<span><button id="complete-button">Tab</button> </span>
 <span><button id="newline-button">Down</button></span>
