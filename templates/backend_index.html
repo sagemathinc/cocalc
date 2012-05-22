@@ -49,6 +49,15 @@
           z-index:0;
       }
 
+
+      .sagews-document {
+      }
+
+      .sagews-document-scroll {
+          height:20em;
+      }
+
+
       .sagews-stdin {
 
       }
@@ -480,16 +489,45 @@ $(function() {
 
     $('#button-bar').sortable({axis:'x'});
 
-    $('#add-cmdline-button').button().click(
-	function (event,ui) { 
-	    var n = $('#tabs').tabs('length');
-	    $('#tabs').append(newCommandLine('cells-'+n, n));
-	    appendSageCell('#cells-'+n);
-	    $('#tabs').tabs("add", '#cells-'+n, n).tabs('select', n)
-	}
-    ).click();
+    function append_new_cmdline_tab() {
+	var n = $('#tabs').tabs('length');
+	$('#tabs').append(newCommandLine('cells-'+n, n));
+	appendSageCell('#cells-'+n);
+	$('#tabs').tabs("add", '#cells-'+n, n).tabs('select', n);
+    }
+    append_new_cmdline_tab(); 
 
-    $('#prev-button').button().click( function(event,ui) {
+    $('#new-cmdline-button').button({icons: {primary:'ui-icon-circle-plus'}}).click(
+	function (event,ui) { append_new_cmdline_tab(); }
+    );
+
+    function append_new_document_tab(filename) {
+	var n = $('#tabs').tabs('length');
+	$('#tabs').append(newDocument('doc-'+n, filename));  
+	$('#tabs').tabs("add", '#doc-'+n, n).tabs('select', n).
+	    data('set-tab-label')(n, filename);
+    }
+
+    $('#new-document-button').button({icons: {primary:'ui-icon-circle-plus'}}).click(function (event,ui) { 
+	var t = $('#tabs');
+	var index = t.tabs('length');
+	var d = $('#name-dialog');
+	d.children('input').val('');
+	d.data('sagews-name', function () {
+	    append_new_document_tab(d.children('input').val());
+	});
+	d.dialog("open").dialog({'close':function(event,ui){
+	    if(index>0) {
+		t.tabs('select', index-1);
+	    } else {
+		t.tabs('select', index+1);
+	    }
+	    t.tabs('select', index);
+	}});
+    });
+
+
+    $('#prev-button').button({icons: {primary:'ui-icon-circle-arrow-w'}}).click( function(event,ui) {
 	var t = $('#tabs');
 	var index = t.data('tabs-current-index') - 1;
 	if (index < 0) {
@@ -498,7 +536,7 @@ $(function() {
 	console.log(index);
 	t.tabs('select', index);
     })
-    $('#next-button').button().click( function(event,ui) {
+    $('#next-button').button({icons: {primary:'ui-icon-circle-arrow-e'}}).click( function(event,ui) {
 	var t = $('#tabs');
 	var index = t.data('tabs-current-index') + 1;
 	if (index >= t.tabs('length')) {
@@ -508,11 +546,10 @@ $(function() {
 	t.tabs('select', index);
     })
 
-    $('#add-editor-button').button();
+/*    $('#newline-button').button({icons: {primary:'ui-icon-circle-arrow-s'}});
+    $('#execute-button').button({icons: {primary:'ui-icon-check'}});*/
 
-    $('#newline-button').button();
-    $('#submit-button').button();
-    $('#complete-button').button().click( function(event, ui) { 
+    $('#complete-button').button({icons: {primary:'ui-icon-arrowthickstop-1-e'}}).click( function(event, ui) { 
 return false;
        /* Idea: 
 1. figure out which tab is opened.
@@ -525,23 +562,23 @@ return false;
 
     });
     
-    $('#rename-dialog').dialog({
+    $('#name-dialog').dialog({
 	autoOpen:false,
 	modal:true,
 	show: { effect: 'drop', direction: "up", duration:100},
 	hide: { effect: 'drop', direction: "down", duration:100},
 	buttons:{
-	    Ok: function() { $(this).dialog("close").data('sagews-rename')() }
+	    Ok: function() { $(this).dialog("close").data('sagews-name')() }
 	}
-    }).keypress(function(e) { if (e.which===13) { $(this).dialog('close').data('sagews-rename')() }});
+    }).keypress(function(e) { if (e.which===13) { $(this).dialog('close').data('sagews-name')() }});
 
-    $('#rename-button').button().click(function(event,ui) {
+    $('#rename-button').button({icons: {primary:'ui-icon-shuffle'}}).click(function(event,ui) {
 	var t = $('#tabs');
 	var index = t.data('tabs-current-index');
-	var d = $('#rename-dialog');
+	var d = $('#name-dialog');
 	var title = t.find('ul li a')[index].text;
 	d.children('input').val(title);
-	d.data('sagews-rename', function () {
+	d.data('sagews-name', function () {
 	    t.data('set-tab-label')(index, d.children('input').val());
 	    /* ensure that it gets selected so gets focus back.*/
 	});
@@ -558,11 +595,29 @@ return false;
 				      
 
     function newCommandLine(id, label) {
-	var c = $('#sagews-cell-template').clone().show().attr('id', id);
-	return c;
+	return $('#sagews-cell-template').clone().show().attr('id', id);
+    }
+
+    function newDocument(id, filename) {
+	var d = $('#document-template').clone().show().attr('id', id);
+	d.data('sagews-filename',filename);
+
+	/* append a CodeMirror to d. */
+	var cm = CodeMirror(d[0], {
+	    lineNumbers: true, 
+	    indentUnit: 4, 
+	    matchBrackets:true,
+	    lineWrapping:true, 
+	    autoClearEmptyLines: true});
+	$(cm.getWrapperElement()).addClass('sagews-document'); 
+        $(cm.getScrollerElement()).addClass('sagews-document-scroll');
+	cm.refresh();
+	cm.focus();
+	return d;
     }
 
     $('#sagews-cell-template').hide(); 
+    $('#document-template').hide(); 
 
     $('body').scrollTop(0);
 
@@ -587,21 +642,24 @@ Last Time: <span id="time">0 ms</span>
 
 
 <div id="button-bar">
-<span><button id="prev-button"><</button> </span>
-<span><button id="next-button">></button> </span>
-<span><button id="add-cmdline-button">+ Commands</button> </span>
-<span><button id="add-editor-button">+ File</button> </span>
-<span><button id="newline-button">Newline</button> </span>
-<span><button id="submit-button">Execute</button> </span>
-<span><button id="complete-button">Complete</button> </span>
+<span><button id="prev-button">Prev</button></span>
+<span><button id="next-button">Next</button></span>
 <span><button id="rename-button">Rename</button> </span>
+<span><button id="new-cmdline-button">Command Line</button></span>
+<span><button id="new-document-button">Document</button></span>
+
+<!--<span><button id="complete-button">Tab</button> </span>
+<span><button id="newline-button">Down</button></span>
+<span><button id="execute-button">Evaluate</button> </span> -->
 </div>
 
 <div id="tabs"><ul></ul></div>
 
 <div id="sagews-cell-template" class="sagews-cells"></div>
 
-<div id="rename-dialog" title="Rename">
+<div id="document-template" class="sagews-document"></div>
+
+<div id="name-dialog" title="Name">
 <input type="text" value="new name">
 </div>
 
