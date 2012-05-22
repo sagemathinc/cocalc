@@ -129,6 +129,9 @@ $(function() {
     });
 */
     
+    /* I do not understand why the following is not same as "    ", but it isn't! */
+    var TAB = ' ' + ' ' + ' ' + ' ';
+
     var completions = $('#completions');
     completions.css({position:'absolute', 'z-index':2}
     ).hide(
@@ -230,15 +233,15 @@ $(function() {
 
 	function completion(cm) {     
 	    var cursor = stdin.getCursor();
-	    var code = stdin.getValue();
-	    var target = code;  /* callback if it happens changes this later */
 	    var this_line = stdin.getLine(cursor.line).slice(0,cursor.ch)
 
 	    if (this_line.length == 0 || is_whitespace(this_line[this_line.length-1])) {
-		stdin.replaceRange('    ', cursor);		
-		return;
+		stdin.replaceRange(TAB, cursor);		
+		return false;
 	    }
 
+	    var code = stdin.getValue();
+	    var target = code;  /* callback if it happens changes this later */
 	    var pos = stdin.cursorCoords();
 	    var c = $('#completions');
 
@@ -261,7 +264,7 @@ $(function() {
 		    return;
 		}
 		if (source.length === 0) {
-		    stdin.replaceRange('    ', cursor);
+		    stdin.replaceRange(TAB, cursor);
 		    return;
 		}
 		if (source.length === 1) {
@@ -286,11 +289,11 @@ $(function() {
                          indentUnit: 4, 
                          matchBrackets:true,
                          lineWrapping:true, 
-	                 autoClearEmptyLines: true,
-                         gutter: true,
+	                 autoClearEmptyLines:true,
+                         gutter: true, 
                          extraKeys:{
-			     'Enter': function(cm) { execute(); },
-			     'Shift-Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); },
+			     'Shift-Enter': function(cm) { execute(); },
+			     /*'Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); }, */
 			     'Up':function(cm) { up(); },
 			     'Down':function(cm) { down(); },
 			     'Tab':completion,
@@ -512,9 +515,13 @@ $(function() {
 	buttons:{Ok: function() { $(this).dialog("close");}}
     });
 
+    function invalid_filename_dialog(filename) {
+	$("#invalid-filename-dialog").html("The filename '" + filename + "' is not valid.").dialog('open');    
+    }
+
     function append_new_document_tab(filename) {
 	if (is_whitespace(filename)) {
-	    $("#invalid-filename-dialog").html("The filename '" + filename + "' is not valid.").dialog('open');
+	    invalid_filename_dialog(filename);
 	    return;
 	}
 	var n = $('#tabs').tabs('length');
@@ -593,7 +600,12 @@ return false;
 	var title = t.find('ul li a')[index].text;
 	d.children('input').val(title);
 	d.data('sagews-name', function () {
-	    t.data('set-tab-label')(index, d.children('input').val());
+	    var new_name = d.children('input').val();
+	    if (is_whitespace(new_name)) {
+		invalid_filename_dialog(new_name);
+		return;
+            }
+	    t.data('set-tab-label')(index, new_name);
 	    /* ensure that it gets selected so gets focus back.*/
 	});
 
