@@ -1,4 +1,14 @@
-immediate todo list:
+today:
+ [ ] indicator that cell is running:
+       - only appears after a while
+       - css style
+ [ ] second flask server on different URL that can send interrupt signal
+ [ ] socket.io client status
+ [ ] pushing creation of new cells out to clients
+ [ ] basic mobile client using jquery-mobile
+ [ ] new client gets up2date view of all data
+
+DONE:
 
  [x] shift-enter makes new line
  [x] javascript eval function that is blocking and doesn't use pipe capture
@@ -17,18 +27,9 @@ immediate todo list:
        - disappears
  [x] execute -- newline button so doesn't depend on having shift-enter
  [x] drag of cells should happen using only the gutter
-
  [x] when only one completion, should be automatic (made it only return relevant completions...)
-
- [ ] create Document type.
-     [x] get it to focus when created or tabbed to
- [ ] client that can send interrupt signals, etc.
+ [x] toggle word wrap in codemirror stdout
  [x] make switching themes dynamically possible (?)
- [ ] toggle word wrap in codemirror stdout
+ [x] create Document type.
+     [x] get it to focus when created or tabbed to
 
- [ ] indicator that running -- but only appears after .3 seconds (say)
-
- [ ] pushing creation of new cells out to clients
- [ ] tell whether socket.io connection has died
- [ ] new client gets up2date view of all data
- [ ] basic mobile client
