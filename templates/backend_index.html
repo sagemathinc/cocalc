@@ -49,6 +49,9 @@
           z-index:0;
       }
 
+      .center {
+	  text-align:center
+      }
 
       .sagews-document {
       }
@@ -265,6 +268,7 @@ $(function() {
                     ).dialog('open');
 		    return;
 		}
+console.log(source.length);
 		if (source.length === 0) {
 		    stdin.replaceRange(TAB, cursor);
 		    return;
@@ -738,15 +742,15 @@ $(function() {
 
 
 <body>
+
+<h1 class="center">Sage Workspace</h1>
+
 <div id="status" class="wrap sagews-status">status</div>
-Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
-&nbsp;&nbsp;&nbsp;&nbsp;
-Last Time: <span id="time">0 ms</span>
-<br>
+<!--Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
+&nbsp;&nbsp;&nbsp;&nbsp;-->
 <!--<input id="preparse" type="checkbox" checked="true" /> preparse
 <button id="execute-0">Execute (shift+enter)</button>
 -->
-<hr>
 
 <input id="completions" size=60>
 <div id="completions_error" title="Completions"></div>
@@ -781,6 +785,9 @@ Last Time: <span id="time">0 ms</span>
 
 <div id="cell-trash"><h3>Cell Trash</h3></div>
 
+<hr>
+<font size=-3>Last Time: <span id="time">0 ms</span></font>
+<hr>
 </body>
 </html>
 

@@ -393,7 +393,7 @@ def _completions(col_offset, lineno, docstring=False, preparse=True, jsonify=Fal
                         v += O.trait_names()
                     if not target.startswith('_'):
                         v = [x for x in v if x and not x.startswith('_')]
-                        
+                    v = [x for x in v if x.startswith(target)]
             if not get_help:
                 result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
         except Exception, msg:
