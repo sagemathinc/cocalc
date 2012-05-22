@@ -12,6 +12,7 @@ immediate todo list:
      it makes sense to have a control bar for it. 
  [ ] create Document type.
      [x] get it to focus when created or tabbed to
+     [ ] 
  [x] scroll output into view as it is generated
  [ ] client that can send interrupt signals, etc.
  [ ] make switching themes dynamically possible (?)

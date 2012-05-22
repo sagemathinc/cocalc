@@ -7,8 +7,8 @@
 
 <!-- jquery-ui -->
 <script type="text/javascript" src="static/jquery-ui/js/jquery-ui.min.js"></script>
-<link rel="stylesheet" href="static/jquery-ui/css/pepper-grinder/jquery-ui.css">
-<!--<link rel="stylesheet" href="static/jquery-ui/css/smoothness/jquery-ui.css"> -->
+<!-- <link rel="stylesheet" href="static/jquery-ui/css/pepper-grinder/jquery-ui.css"> -->
+<link rel="stylesheet" href="static/jquery-ui/css/smoothness/jquery-ui.css"> 
 
 <!-- socket.io -->
 <script type="text/javascript" src="static/socketio/socket.io.js"></script>
@@ -113,6 +113,8 @@
 <script type="text/javascript">
 
 function walltime() { return (new Date()).getTime(); }
+
+function is_whitespace(s) { return s.replace(/\s/g,"") === ""; }
 
 $(function() {
 
@@ -232,7 +234,7 @@ $(function() {
 	    var target = code;  /* callback if it happens changes this later */
 	    var this_line = stdin.getLine(cursor.line).slice(0,cursor.ch)
 
-	    if (this_line.length == 0 || this_line[this_line.length-1].replace(/\s/g,"") === "") {
+	    if (this_line.length == 0 || is_whitespace(this_line[this_line.length-1])) {
 		stdin.replaceRange('    ', cursor);		
 		return;
 	    }
@@ -505,7 +507,16 @@ $(function() {
 	function (event,ui) { append_new_cmdline_tab(); }
     );
 
+    $("#invalid-filename-dialog").dialog({
+        autoOpen:false,	modal:true,
+	buttons:{Ok: function() { $(this).dialog("close");}}
+    });
+
     function append_new_document_tab(filename) {
+	if (is_whitespace(filename)) {
+	    $("#invalid-filename-dialog").html("The filename '" + filename + "' is not valid.").dialog('open');
+	    return;
+	}
 	var n = $('#tabs').tabs('length');
 	var doc = newDocument('doc-'+n, filename);
 	$('#tabs').append(doc);  
@@ -563,8 +574,6 @@ return false;
      http://forum.jquery.com/topic/simulating-keypress-events
    (or alternatively refactor code)
        */
-
-
     });
     
     $('#name-dialog').dialog({
@@ -626,6 +635,7 @@ return false;
 
     $('#sagews-cell-template').hide(); 
     $('#document-template').hide(); 
+    $('#invalid-filename-dialog').hide();
 
     $('body').scrollTop(0);
 
@@ -652,7 +662,7 @@ Last Time: <span id="time">0 ms</span>
 <div id="button-bar">
 <span><button id="prev-button">Prev</button></span>
 <span><button id="next-button">Next</button></span>
-<span><button id="rename-button">Rename</button> </span>
+<span><button id="rename-button">Rename</button></span>
 <span><button id="new-cmdline-button">Command Line</button></span>
 <span><button id="new-document-button">Document</button></span>
 
@@ -670,6 +680,8 @@ Last Time: <span id="time">0 ms</span>
 <div id="name-dialog" title="Name">
 <input type="text" value="new name">
 </div>
+
+<div id="invalid-filename-dialog" title="Invalid Filename"></div>
 
 
 </body>
