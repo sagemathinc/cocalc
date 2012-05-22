@@ -284,10 +284,11 @@ $(function() {
 	    })
 	}
 
-        var wcell = $('<div id="' + id + '" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>Delete</button></div>');
+        var wcell = $('<div id="' + id + '" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button></div>');
 	var cell = wcell[0];
 
 	var buttons = wcell.children('button').hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
+	buttons.hide();
 
 	var hide_buttons = true;
 
@@ -311,7 +312,15 @@ $(function() {
 	    function(event,ui) { split_cell(); }
 	);
 
-	var delete_button = $(buttons[5]).button({icons:{primary:'ui-icon-circle-close'}}).click( 
+	var new_above_button = $(buttons[5]).button({icons:{primary:'ui-icon-plus', secondary:'ui-icon-arrow-1-n'}}).click( 
+	    function(event,ui) { new_cell(true); wcell.data('focus')(); }
+	);
+
+	var new_below_button = $(buttons[6]).button({icons:{primary:'ui-icon-plus', secondary:'ui-icon-arrow-1-s'}}).click( 
+	    function(event,ui) { new_cell(false); wcell.data('focus')(); }
+	);
+
+	var delete_button = $(buttons[7]).button({icons:{primary:'ui-icon-circle-close'}}).click( 
 	    function(event,ui) { delete_cell(); }
 	);
 
@@ -454,19 +463,29 @@ $(function() {
 	    wcell.data('focus')();
 	}
 
+	function new_cell(above) { 
+	    var cells_id = wcell.parent().attr('id');
+	    var new_cell = $(appendSageCell('#'+cells_id));
+	    if (above) {
+		$(new_cell).insertBefore(wcell);
+	    } else {
+		$(new_cell).insertAfter(wcell);
+	    }
+	    return new_cell;
+	}
+
 	function split_cell() { 
 	    buttons.hide();
 	    stdin.setSelection({line:0,ch:0}, stdin.getCursor());
 	    var top = stdin.getSelection();
-	    stdin.replaceSelection('');
-	    /* now make a new cell, put selection in there, and move it above . */
-	    var cells_id = wcell.parent().attr('id');
-	    var new_cell = $(appendSageCell('#'+cells_id));
 	    if(top.length>0 && top[top.length-1] === '\n') {
 		top = top.slice(0,top.length-1);
 	    }
-	    new_cell.data('streams').stdin.setValue(top);
-	    $(new_cell).insertBefore(wcell).data('focus')();
+	    stdin.replaceSelection('');
+	    /* now make a new cell, put selection in there, and move it above . */
+	    var cell2 = new_cell(true);
+	    $(cell2).data('streams').stdin.setValue(top);
+	    $(cell2).data('focus')(-1,0);
 	}
 
 	function execute() { 
