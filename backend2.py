@@ -326,7 +326,7 @@ class ExecuteConnection(SocketConnection):
 # Keywords from http://docs.python.org/release/2.7.2/reference/lexical_analysis.html
 _builtin_completions = __builtins__.__dict__.keys() + ['and', 'del', 'from', 'not', 'while', 'as', 'elif', 'global', 'or', 'with', 'assert', 'else', 'if', 'pass', 'yield', 'break', 'except', 'import', 'print', 'class', 'exec', 'in', 'raise', 'continue', 'finally', 'is', 'return', 'def', 'for', 'lambda', 'try']
 
-def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded=True):
+def _completions(col_offset, lineno, docstring=False, preparse=True, jsonify=False, base64encoded=True):
     code = namespace['sagews'].extra_data
     z = code.splitlines()
     code = '\n'.join(z[:lineno-1]) + '\n' + z[lineno-1][:col_offset]
@@ -345,22 +345,26 @@ def _completions(col_offset, lineno, preparse=True, jsonify=False, base64encoded
             before_expr = code0[:i]%literals
             #sys.stderr.write('expr='+expr)
             #sys.stderr.write('before_expr='+before_expr)            
-            if '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
+            if not docstring and '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
                 get_help = False
                 target = expr
                 v = [x for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
             else:
-                
                 i = max([expr.rfind(s) for s in '?('])
-                if i == len(expr)-1:
+                if docstring and i == -1:
                     get_help = True
-                    target = expr[i+1:]
-                    obj = expr[:i]
+                    target = ''
+                    obj = expr
                 else:
-                    get_help = False
-                    i = expr.rfind('.')
-                    target = expr[i+1:]
-                    obj = expr[:i]
+                    if i == len(expr)-1:
+                        get_help = True
+                        target = expr[i+1:]
+                        obj = expr[:i]
+                    else:
+                        get_help = False
+                        i = expr.rfind('.')
+                        target = expr[i+1:]
+                        obj = expr[:i]
                     
                 if obj in namespace:
                     O = namespace[obj]

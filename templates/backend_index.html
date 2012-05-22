@@ -211,9 +211,11 @@ $(function() {
 	    max_output:100000,
 	}, options||{});
 
-	function get_completions(code, cursor, callback) {
-	    /* TODO: escape better and jsonify output maybe */
-	    var cmd = 'print _completions(' + cursor.ch + ',' + cursor.line + ', jsonify=True)';
+	/* TODO: untagle completions from docstring */
+
+	function get_completions(code, cursor, docstring, callback) {
+	    var cmd = 'print _completions(' + cursor.ch + ',' + cursor.line +
+		', docstring=' + (docstring?'True':'False') + ', jsonify=True)';
 	    socket.execute_blocking(cmd, function (mesg) {
 		if (mesg.stderr !== '') {
 		    console.log(mesg.stderr); /* TODO: for debugging only */
@@ -223,7 +225,7 @@ $(function() {
 		var r = $.parseJSON(mesg.stdout);
 		if (r.help) {
 		    /* TODO: implement real help viewer with html, etc. -- this is a silly quick hack*/
-		    $('#help_window').dialog({'title':'Help on '+r.expr.slice(0,r.expr.length-1)}).html('<font size=-3><textarea readonly="readonly" cols=80 rows=16>'+r.result+'</textarea></font>').dialog( {close : function() { stdin.focus(); }}).dialog('open');
+		    $('#help_window').dialog({'title':'Help on '+r.expr.slice(0,r.expr.length).replace('/','').replace('(','')}).html('<font size=-3><textarea readonly="readonly" cols=80 rows=16>'+r.result+'</textarea></font>').dialog( {close : function() { stdin.focus(); }}).dialog('open');
 		    return;
 		}
 		callback(r.result, r.target, 'ok');
@@ -231,7 +233,7 @@ $(function() {
 	    },  true, code)
 	}
 
-	function completion(cm) {     
+	function completion(docstring) {     
 	    var cursor = stdin.getCursor();
 	    var this_line = stdin.getLine(cursor.line).slice(0,cursor.ch)
 
@@ -256,7 +258,7 @@ $(function() {
 	    }
 	    c.data('finish', finish);
 
-	    get_completions(code, cursor, function (source, target0, status) {
+	    get_completions(code, cursor, docstring, function (source, target0, status) {
 		target = target0;
 		if (status != 'ok') {
 		    $('#completions_error').dialog( {close : function() { stdin.focus(); }}
@@ -282,21 +284,36 @@ $(function() {
 	    })
 	}
 
-        var wcell = $('<div id="' + id + '" class="sagews-cell"><span></span><button>Send</button><button>Tab</button></div>');
+        var wcell = $('<div id="' + id + '" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>Delete</button></div>');
 	var cell = wcell[0];
 
-	var buttons = wcell.children('button');
+	var buttons = wcell.children('button').hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
 
 	var hide_buttons = true;
 
 	var send_button = $(buttons[0]).button({icons:{primary:'ui-icon-circle-check'}}).click( 
 	    function(event,ui) { execute(); }
-	).hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
+	)
 
-	var tab_button = $(buttons[1]).button({icons:{primary:'ui-icon-arrowthickstop-1-e'}}).click( 
-	    function(event,ui) { execute(); }
-	).hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
+	var complete_button = $(buttons[1]).button({icons:{primary:'ui-icon-arrowthickstop-1-e'}}).click( 
+	    function(event,ui) { completion(false); }
+	);
 
+	var doc_button = $(buttons[2]).button({icons:{primary:'ui-icon-search'}}).click( 
+	    function(event,ui) { completion(true); }
+	);
+
+	var merge_button = $(buttons[3]).button({icons:{primary:'ui-icon-arrowthickstop-1-s'}}).click( 
+	    function(event,ui) { merge_with_next_cell(); }
+	);
+
+	var split_button = $(buttons[4]).button({icons:{primary:'ui-icon-scissors'}}).click( 
+	    function(event,ui) { split_cell(); }
+	);
+
+	var delete_button = $(buttons[5]).button({icons:{primary:'ui-icon-circle-close'}}).click( 
+	    function(event,ui) { delete_cell(); }
+	);
 
         var stdin = CodeMirror(wcell.find('span')[0], {
 	                 value:opts.stdin,
@@ -313,7 +330,7 @@ $(function() {
 			     /*'Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); }, */
 			     'Up':function(cm) { up(); },
 			     'Down':function(cm) { down(); },
-			     'Tab':completion,
+			     'Tab': function(cm) { completion(false); },
 			 }
                     });
 
@@ -333,6 +350,12 @@ $(function() {
 	if (opts.stderr === '') { stderr_elt.hide(); } 
 	stdout_elt.addClass('sagews-stdout');
 	stderr_elt.addClass('sagews-stderr');
+
+	function append_to_stream(s, value) {
+	    var n =  s.lineCount();
+	    s.replaceRange(value, {line:n-1, ch:s.getLine(n-1).length});
+	    
+	}
 
         wcell.data({'streams':{'stdin':stdin, 'stdout':stdout, 'stderr':stderr},
                     'focus':function(line, ch) { 
@@ -356,8 +379,7 @@ $(function() {
 			    if (value) { stdout_elt.show(); }
 			    stdout.setValue(truncate(value));
 			} else {
-			    var n =  stdout.lineCount();
-			    stdout.replaceRange(value, {line:n-1, ch:stdout.getLine(n-1).length});
+			    append_to_stream(stdout, value);
 			}
 			stdout.setCursor(stdout.lineCount(),0);
 		    },
@@ -366,7 +388,7 @@ $(function() {
 			    if (value) { stderr_elt.show(); }
 			    stderr.setValue(truncate(value));
 			} else {
-			    stderr.setValue(truncate(stderr.getValue() + value));  // TODO
+			    append_to_stream(stderr, value);
 			}
 		    },
 		    'done':   function () { 
@@ -403,6 +425,49 @@ $(function() {
 		wrapper.className += " CodeMirror-focused";
 	    }
 	}
+	
+	function focus_on_next_cell() {
+	    var next = wcell.next();
+	    if (next.length === 0) { 
+		 /* TODO: this feals hacked, maybe.  It's so we can have many command lines at once */
+		 var cells_id = wcell.parent().attr('id');
+		 next = $(appendSageCell('#'+cells_id));
+	     }
+	    next.data('focus')(0,0);
+	    return next;
+	}
+
+	function delete_cell() { 
+	    buttons.hide();
+	    var next = focus_on_next_cell();
+	    $('#cell-trash').append(wcell);
+	    return next;
+	}
+
+	function merge_with_next_cell() {
+	    var s = stdin.getValue();
+	    var next = wcell.next();
+	    if (next.length === 0) { return; }
+	    var streams = next.data('streams');
+	    append_to_stream(stdin, '\n' + streams.stdin.getValue());
+	    $('#cell-trash').append(next);
+	    wcell.data('focus')();
+	}
+
+	function split_cell() { 
+	    buttons.hide();
+	    stdin.setSelection({line:0,ch:0}, stdin.getCursor());
+	    var top = stdin.getSelection();
+	    stdin.replaceSelection('');
+	    /* now make a new cell, put selection in there, and move it above . */
+	    var cells_id = wcell.parent().attr('id');
+	    var new_cell = $(appendSageCell('#'+cells_id));
+	    if(top.length>0 && top[top.length-1] === '\n') {
+		top = top.slice(0,top.length-1);
+	    }
+	    new_cell.data('streams').stdin.setValue(top);
+	    $(new_cell).insertBefore(wcell).data('focus')();
+	}
 
 	function execute() { 
 	    buttons.hide();
@@ -410,13 +475,7 @@ $(function() {
 	    var val = stdin.getValue();
 	    socket.set('#'+id, val);
 	    socket.execute('#'+id, val, true); 
-	    var next = wcell.next();
-	     if (next.length === 0) { 
-		 /* TODO: this feals hacked, maybe.  It's so we can have many command lines at once */
-		 var cells_id = wcell.parent().attr('id');
-		 next = $(appendSageCell('#'+cells_id));
-	     }
-	    next.data('focus')(0,0);
+	    focus_on_next_cell();
 	}
 	
 	function up() {
@@ -651,6 +710,7 @@ $(function() {
     $('#sagews-cell-template').hide(); 
     $('#document-template').hide(); 
     $('#invalid-filename-dialog').hide();
+    $('#cell-trash').hide();
 
     $('body').scrollTop(0);
 
@@ -699,6 +759,7 @@ Last Time: <span id="time">0 ms</span>
 
 <div id="invalid-filename-dialog" title="Invalid Filename"></div>
 
+<div id="cell-trash"><h3>Cell Trash</h3></div>
 
 </body>
 </html>
