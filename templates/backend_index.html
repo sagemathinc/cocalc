@@ -43,14 +43,14 @@
       }
 
       .CodeMirror {
-        border: 1px solid #eee;
+        border: 1px solid #aaa;
         overflow-x: auto;
         overflow-y: auto; 
         background-color: #ffffff;    
       }
 
       .CodeMirror-focused {
-	  border: 1px solid #99f; 
+	  border: 2px solid #00f; 
           background-color: #fffff0;    
           max-height:100em;
       }
@@ -93,21 +93,15 @@
 	max-height:10em; 
       }
 
-      .sagews-cells {
+      .sagews-cmdline {
 	  height:15em;
 	  overflow:auto;
 	  padding:1;
 	  border: 3px solid #000;
       }
 
-      .sagews-cmdline {
-          height:15em;
-	  overflow:auto;
-	  width:100%;
-      }
-
       /* make buttons smaller*/
-      .ui-button.ui-widget .ui-button-text{ line-height:1em; font-size:small }
+      .ui-button.ui-widget .ui-button-text{ line-height:1em; font-size:x-small; padding:1 }
 
       .wrap {  /* see http://www.longren.org/wrapping-text-inside-pre-tags/ */
         white-space: pre-wrap; /* css-3 */
@@ -301,8 +295,10 @@ console.log(source.length);
 	    })
 	}
 
-        var wcell = $('<div id="' + id + '" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button><button>Wrap</button></div>');
+        var wcell = $('#sagews-cell-template').clone().show().attr('id', id);
+
 	var cell = wcell[0];
+console.log(cell);
 
 	var buttons = wcell.children('button').hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
 	buttons.hide();
@@ -735,7 +731,7 @@ console.log(source.length);
 				      
 
     function newCommandLine(id, label) {
-	var c = $('#sagews-cell-template').clone().show().attr('id', id);
+	var c = $('#sagews-cmdline-template').clone().show().attr('id', id);
 	c.data('focus', function() { c.children(':last-child').data('focus')(); });
 	c.sortable({axis:'y', opacity:.6});
 	return c;
@@ -761,6 +757,7 @@ console.log(source.length);
     }
 
     $('#sagews-cell-template').hide(); 
+    $('#sagews-cmdline-template').hide(); 
     $('#document-template').hide(); 
     $('#invalid-filename-dialog').hide();
     $('#cell-trash').hide();
@@ -796,7 +793,7 @@ console.log(source.length);
 
 <div id="tabs" class="sagews-tabs"><ul></ul></div>
 
-<div id="sagews-cell-template" class="sagews-cells"></div>
+<div id="sagews-cmdline-template" class="sagews-cmdline"></div>
 
 <div id="document-template" class="sagews-document"></div>
 
@@ -807,6 +804,9 @@ console.log(source.length);
 <div id="invalid-filename-dialog" title="Invalid Filename"></div>
 
 <div id="cell-trash"><h3>Cell Trash</h3></div>
+
+<!-- an individual compute cell -->
+    <div id="sagews-cell-template" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button><button>Wrap</button></div>
 
 <font size=-3>Last Time: <span id="time">0 ms</span></font> <div id="switcher"></div>
 </body>
