@@ -73,7 +73,7 @@
       }
 
       .sagews-stdout {
-        background-color:#fafafa;
+        background-color:#ffffe0;
 	max-height:10em; 
       }
 
@@ -332,8 +332,9 @@ $(function() {
                          lineWrapping:true, 
 	                 autoClearEmptyLines:true,
                          gutter: true, 
-	                 onFocus:function (cm) { buttons.show(); },
+	                 onFocus:function (cm) { buttons.show(); wcell.parent().sortable({disabled:true}); },
 	                 onBlur:function (cm) { if(hide_buttons) { buttons.hide(); } },
+	                 onGutterClick: function (cm) { wcell.parent().sortable({disabled:false}); },
                          extraKeys:{
 			     'Shift-Enter': function(cm) { execute(); },
 			     /*'Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); }, */
@@ -347,9 +348,11 @@ $(function() {
         $(stdin.getScrollerElement()).addClass('sagews-stdin-scroll');
 
         var stdout = CodeMirror(cell, {
-	    value:opts.stdout, lineWrapping:true, readOnly:true})
+	    value:opts.stdout, lineWrapping:true, readOnly:true,
+	    onFocus:function (cm) { wcell.parent().sortable({disabled:true}); },})
 	var stderr = CodeMirror(cell, {
-	    value:opts.stderr, lineWrapping:true, readOnly:true});
+	    value:opts.stderr, lineWrapping:true, readOnly:true,
+	    onFocus:function (cm) { wcell.parent().sortable({disabled:true}); },});
 	var html = $('<div></div>').append(html)[0];
 
 	// Stylize stdout and stderr
@@ -586,7 +589,7 @@ $(function() {
 
     $('#tabs').append($('#status')).tabs('add','#status', 'status');
 
-    $('#button-bar').sortable({axis:'x'});
+/*    $('#button-bar').sortable({axis:'x'}); */
 
     function append_new_cmdline_tab() {
 	var n = $('#tabs').tabs('length');
@@ -701,7 +704,7 @@ $(function() {
     function newCommandLine(id, label) {
 	var c = $('#sagews-cell-template').clone().show().attr('id', id);
 	c.data('focus', function() { c.children(':last-child').data('focus')(); });
-	c.sortable({axis:'y', containment: 'parent' });
+	c.sortable({axis:'y', opacity:.6});
 	return c;
     }
 
