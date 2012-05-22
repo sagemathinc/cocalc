@@ -187,11 +187,13 @@ $(function() {
    $('#status').css({'borderWidth':'2px', 'borderStyle':'solid', 'borderColor':'grey',
                      'padding':'5px'})
 
-    function trim_cm(cm) {
-	var val = cm.getValue();
-	if (val[val.length-1] === '\n') {
-	    cm.setValue(val.slice(0,val.length-1));
-	}
+    function cm_trim_last_newline(cm) {
+       var line = cm.lineCount()-1;
+       if(line>=0) {
+	   if (cm.getLine(line).length === 0) {
+	       cm.replaceRange('', {line:line-1,ch:cm.getLine(line-1).length}, {line:line,ch:0});
+	   }
+       }
     }
 
     function SageCell(id, options) {
@@ -335,8 +337,10 @@ $(function() {
 			    if (value) { stdout_elt.show(); }
 			    stdout.setValue(truncate(value));
 			} else {
-			    stdout.setValue(truncate(stdout.getValue() + value));  // TODO
+			    var n =  stdout.lineCount();
+			    stdout.replaceRange(value, {line:n-1, ch:stdout.getLine(n-1).length});
 			}
+			stdout.setCursor(stdout.lineCount(),0);
 		    },
 		    'stderr': function(value, clear) {
 			if (clear) {
@@ -349,7 +353,7 @@ $(function() {
 		    'done':   function () { 
 			var s = (walltime() - wcell.data('start_time')) + ' ms';
 			$('#time')[0].innerHTML = s;
-			trim_cm(stdout); trim_cm(stderr);
+			cm_trim_last_newline(stdout); cm_trim_last_newline(stderr);
 			if (stdout.getValue() === '') { stdout_elt.hide(); }
 			if (stderr.getValue() === '') { stderr_elt.hide(); } 
 			update_status();
