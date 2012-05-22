@@ -313,11 +313,11 @@ $(function() {
 	);
 
 	var new_above_button = $(buttons[5]).button({icons:{primary:'ui-icon-plus', secondary:'ui-icon-arrow-1-n'}}).click( 
-	    function(event,ui) { new_cell(true); wcell.data('focus')(); }
+	    function(event,ui) { buttons.hide(); new_cell(true).data('focus')(); }
 	);
 
 	var new_below_button = $(buttons[6]).button({icons:{primary:'ui-icon-plus', secondary:'ui-icon-arrow-1-s'}}).click( 
-	    function(event,ui) { new_cell(false); wcell.data('focus')(); }
+	    function(event,ui) { buttons.hide(); new_cell(false).data('focus')(); }
 	);
 
 	var delete_button = $(buttons[7]).button({icons:{primary:'ui-icon-circle-close'}}).click( 

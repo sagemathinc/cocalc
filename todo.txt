@@ -16,8 +16,9 @@ immediate todo list:
        - click to evaluate
        - disappears
  [x] execute -- newline button so doesn't depend on having shift-enter
+ [x] drag of cells should happen using only the gutter
 
- [ ] drag of cells should happen using only the gutter
+ [ ] when only one completion, should be automatic
 
  [ ] create Document type.
      [x] get it to focus when created or tabbed to
