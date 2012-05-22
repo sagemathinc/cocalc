@@ -7,8 +7,15 @@
 
 <!-- jquery-ui -->
 <script type="text/javascript" src="static/jquery-ui/js/jquery-ui.min.js"></script>
-<!-- <link rel="stylesheet" href="static/jquery-ui/css/pepper-grinder/jquery-ui.css"> -->
-<link rel="stylesheet" href="static/jquery-ui/css/smoothness/jquery-ui.css"> 
+<!-- 
+
+<link rel="stylesheet" href="static/jquery-ui/css/pepper-grinder/jquery-ui.css"> 
+ <link rel="stylesheet" href="static/jquery-ui/css/smoothness/jquery-ui.css">  
+<link rel="stylesheet" href="static/jquery-ui/css/black-tie/jquery-ui.css"> 
+
+-->
+<link rel="stylesheet" href="static/jquery-ui/css/cupertino/jquery-ui.css"> 
+
 
 <!-- socket.io -->
 <script type="text/javascript" src="static/socketio/socket.io.js"></script>
@@ -22,8 +29,8 @@
 
 <style type="text/css">
       body {
-        margin:0;
-        padding:0;
+        margin:5;
+        padding:5;
         height:200;
       }
 
@@ -49,6 +56,13 @@
           z-index:0;
       }
 
+      .center {
+	  text-align:center
+      }
+
+      .sagews-tabs {
+	  
+      }
 
       .sagews-document {
       }
@@ -265,6 +279,7 @@ $(function() {
                     ).dialog('open');
 		    return;
 		}
+console.log(source.length);
 		if (source.length === 0) {
 		    stdin.replaceRange(TAB, cursor);
 		    return;
@@ -738,36 +753,29 @@ $(function() {
 
 
 <body>
+
 <div id="status" class="wrap sagews-status">status</div>
-Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
-&nbsp;&nbsp;&nbsp;&nbsp;
-Last Time: <span id="time">0 ms</span>
-<br>
+<!--Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
+&nbsp;&nbsp;&nbsp;&nbsp;-->
 <!--<input id="preparse" type="checkbox" checked="true" /> preparse
 <button id="execute-0">Execute (shift+enter)</button>
 -->
-<hr>
 
 <input id="completions" size=60>
 <div id="completions_error" title="Completions"></div>
 <div id="help_window" title="Help"></div>
 
 
-
 <div id="button-bar">
-<span><button id="prev-button">Prev</button></span>
+SageMath Workspace <span><button id="prev-button">Prev</button></span>
 <span><button id="next-button">Next</button></span>
 <span><button id="rename-button">Rename</button></span>
 <span><button id="new-cmdline-button">Command Line</button></span>
 <span><button id="new-document-button">Document</button></span>
-
-
-<!--<span><button id="complete-button">Tab</button> </span>
-<span><button id="newline-button">Down</button></span>
-<span><button id="execute-button">Evaluate</button> </span> -->
+<font size=-3>Last Time: <span id="time">0 ms</span></font>
 </div>
 
-<div id="tabs"><ul></ul></div>
+<div id="tabs" class="sagews-tabs"><ul></ul></div>
 
 <div id="sagews-cell-template" class="sagews-cells"></div>
 
