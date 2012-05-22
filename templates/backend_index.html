@@ -302,7 +302,7 @@ console.log(source.length);
 	    })
 	}
 
-        var wcell = $('<div id="' + id + '" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button></div>');
+        var wcell = $('<div id="' + id + '" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button><button>Wrap</button></div>');
 	var cell = wcell[0];
 
 	var buttons = wcell.children('button').hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
@@ -330,16 +330,20 @@ console.log(source.length);
 	    function(event,ui) { split_cell(); }
 	);
 
-	var new_above_button = $(buttons[5]).button({icons:{primary:'ui-icon-plus', secondary:'ui-icon-arrow-1-n'}}).click( 
+	var new_above_button = $(buttons[5]).button({icons:{primary:'ui-icon-plus', secondary:'ui-icon-arrowthick-1-n'}}).click( 
 	    function(event,ui) { buttons.hide(); new_cell(true).data('focus')(); }
 	);
 
-	var new_below_button = $(buttons[6]).button({icons:{primary:'ui-icon-plus', secondary:'ui-icon-arrow-1-s'}}).click( 
+	var new_below_button = $(buttons[6]).button({icons:{primary:'ui-icon-plus', secondary:'ui-icon-arrowthick-1-s'}}).click( 
 	    function(event,ui) { buttons.hide(); new_cell(false).data('focus')(); }
 	);
 
 	var delete_button = $(buttons[7]).button({icons:{primary:'ui-icon-circle-close'}}).click( 
 	    function(event,ui) { delete_cell(); }
+	);
+
+	var wrap_button = $(buttons[8]).button({icons:{primary:'ui-icon-transferthick-e-w'}}).click( 
+	    function(event,ui) { buttons.hide(); wrap_toggle(); wcell.data('focus')();}
 	);
 
         var stdin = CodeMirror(wcell.find('span')[0], {
@@ -472,6 +476,18 @@ console.log(source.length);
 	    var next = focus_on_next_cell();
 	    $('#cell-trash').append(wcell);
 	    return next;
+	}
+
+	function wrap_toggle() { 
+	    var wrapped = stdout.getOption('lineWrapping');
+	    if(wrapped) {
+		stdout.setOption('lineWrapping', false);
+		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w', secondary:'ui-icon-transfer-e-w'}});
+	    } else {
+		stdout.setOption('lineWrapping', true);
+		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w'}});
+	    }
+	    stderr.setOption('lineWrapping', !wrapped);
 	}
 
 	function merge_with_next_cell() {
@@ -771,8 +787,6 @@ console.log(source.length);
 <div id="help_window" title="Help"></div>
 
 
-<div id="switcher"></div>
-
 <div id="button-bar">
 <span><button id="prev-button">Prev</button></span>
 <span><button id="next-button">Next</button></span>
@@ -795,7 +809,8 @@ console.log(source.length);
 
 <div id="cell-trash"><h3>Cell Trash</h3></div>
 
-<font size=-3>Last Time: <span id="time">0 ms</span></font>
+<font size=-3>Last Time: <span id="time">0 ms</span></font> <div id="switcher"></div>
+
 
 </body>
 </html>
