@@ -23,7 +23,7 @@ immediate todo list:
  [ ] create Document type.
      [x] get it to focus when created or tabbed to
  [ ] client that can send interrupt signals, etc.
- [ ] make switching themes dynamically possible (?)
+ [x] make switching themes dynamically possible (?)
  [ ] toggle word wrap in codemirror stdout
 
  [ ] indicator that running -- but only appears after .3 seconds (say)
