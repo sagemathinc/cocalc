@@ -1,7 +1,4 @@
 today:
- [ ] indicator that cell is running:
-       - only appears after a while
-       - css style
  [ ] second flask server on different URL that can send interrupt signal
  [ ] socket.io client status
  [ ] pushing creation of new cells out to clients
@@ -10,6 +7,9 @@ today:
 
 DONE:
 
+ [x] indicator that cell is running:
+       - only appears after a while
+       - css style
  [x] shift-enter makes new line
  [x] javascript eval function that is blocking and doesn't use pipe capture
  [x] delete stderr when exec starts
