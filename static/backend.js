@@ -11,11 +11,7 @@ var sagews_backend = {};
 
 sagews_backend.socket = function(url, options) {
 
-    var socket = new io.connect(url, {
-	'reconnect':true,
-	'reconnection delay': 500,
-	'max reconnection attempts': 10
-    });
+    var socket = new io.connect(url);
 
     var opts = $.extend({
         set:function(selector, value) {},
