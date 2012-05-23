@@ -916,6 +916,14 @@ $(function() {
 
     $(window).resize( update_content_size );
 
+    $(window).bind('beforeunload',  function () { 
+	/* Here we test for unsaved data or send any off. 
+	   Note that this is unsupported in Opera. Perhaps there we should do something different (aggressive autosave?) with a timer. */
+	return "You have unsaved data.";
+    } );
+
+/* TESTING STUFF */
+
 append_new_cmdline_tab();    
 
 })</script>
