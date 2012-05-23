@@ -10,4 +10,15 @@ COMPETITORS / RELATED:
     "run on your own recourses" -- like crashplan!
         http://appsoma.com/wiki/index.php?title=Apps
 
-[ ] 
+[ ] Many listed here:  
+      http://en.wikipedia.org/wiki/Comparison_of_JavaScript-based_source_code_editors#CodePress_powered
+
+[ ] http://pythonfiddle.com/ -- basically like math-less single cell server
+
+[ ] http://c9.io/ -- cloud 9 -- looks very serious: "free for open source projects".
+    * "Cloud9 IDE is primarily intended as an environment for HTML5, Javascript, and Node.js applications,"
+    * autologin to github
+    * filesystem, etc., on a virtual machine.
+    * key bindings: http://support.cloud9ide.com/entries/20645216-keybindings-for-cloud9-ide
+
+
