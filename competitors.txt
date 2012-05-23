@@ -1,0 +1,13 @@
+COMPETITORS / RELATED:
+
+[ ] http://www.coderun.com/ -- aimed at running web apps; not math.
+
+[ ] AppSoma: http://happysciencecoding.com/ -- this is similar to what I am
+    planning to do, but more limited... and more flexible.  
+    This exactly competes with what I want to do.  Ut oh!  But exciting as 
+    a proof of concept.
+
+    "run on your own recourses" -- like crashplan!
+        http://appsoma.com/wiki/index.php?title=Apps
+
+[ ] 
