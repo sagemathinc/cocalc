@@ -52,7 +52,7 @@
 
       .CodeMirror-focused {
 	  border: 1px solid #00f; 
-          background-color: #fffff0;    
+          background-color: #ffffff;    
           max-height:100em;
       }
 
@@ -83,10 +83,10 @@
 	  
       }
 
-      .sagews-file {
+      .sagews-codeeditor {
       }
 
-      .sagews-file-scroll {
+      .sagews-codeeditor-scroll {
           height:20em;
       }
 
@@ -717,34 +717,38 @@ $(function() {
 	$("#invalid-filename-dialog").html("The filename '" + filename + "' is not valid.").dialog('open');    
     }
 
-    function append_new_file_tab(filename) {
+    function append_new_codeeditor_tab(filename) {
 	if (is_whitespace(filename)) {
 	    invalid_filename_dialog(filename);
 	    return;
 	}
 	var n = $('#tabs').tabs('length');
-	var doc = FileEditor('doc-'+n, filename);
+	var doc = CodeEditor('doc-'+n, filename);
 	$('#tabs').append(doc);  
 	$('#tabs').tabs("add", '#doc-'+n, n).tabs('select', n).
 	    data('set-tab-label')(n, filename);
     }
 
+    function newtab_file_focus_hack() {
+	/* TODO: needed for codemirror...?  I think this is because a non-visible tab is not visible,
+           which confuses codemirror.  This is discussed on the jquery tab site.*/
+	var t = $('#tabs');
+	var index = t.tabs('length');
+	if (index>1) {
+	    t.tabs('select', index-2);
+	    t.tabs('select', index-1);
+	}
+    }
+
     $('#new-file-button').button({icons: {primary:'ui-icon-circle-plus'}}).click(function (event,ui) { 
 	var t = $('#tabs');
 	var index = t.tabs('length');
-	var d = $('#name-dialog');
+	var d = $('#newfile-dialog');
 	d.children('input').val('');
 	d.data('sagews-name', function () {
-	    append_new_file_tab(d.children('input').val());
+	    append_new_codeeditor_tab(d.children('input').val());
 	});
-	d.dialog("open").dialog({'close':function(event,ui){
-	    if(index>0) {
-		t.tabs('select', index-1);
-	    } else {
-		t.tabs('select', index+1);
-	    }
-	    t.tabs('select', index);
-	}});
+	d.dialog("open").dialog({'close':function(event,ui){ newtab_file_focus_hack(); }});
     });
 
 
@@ -765,7 +769,7 @@ $(function() {
 	t.tabs('select', index);
     })
 */
-    $('#name-dialog').dialog({
+    $('#rename-dialog').dialog({
 	autoOpen:false,
 	modal:true,
 	show: { effect: 'drop', direction: "up", duration:100},
@@ -775,12 +779,24 @@ $(function() {
 	}
     }).keypress(function(e) { if (e.which===13) { $(this).dialog('close').data('sagews-name')() }});
 
+    $('#newfile-dialog').dialog({
+	autoOpen:false,
+	modal:true,
+	minWidth: 400,
+	show: { effect: 'drop', direction: "up", duration:100},
+	hide: { effect: 'drop', direction: "down", duration:100},
+	buttons:{
+	    Ok: function() { $(this).dialog("close").data('sagews-name')() }
+	}
+    }).keypress(function(e) { if (e.which===13) { $(this).dialog('close').data('sagews-name')() }});
+
+
 /*    $('#send-button').button({icons:{primary:'ui-icon-circle-check'}}); */
 
     $('#rename-button').button({icons: {primary:'ui-icon-shuffle'}}).click(function(event,ui) {
 	var t = $('#tabs');
 	var index = t.data('tabs-current-index');
-	var d = $('#name-dialog');
+	var d = $('#rename-dialog');
 	var title = t.find('ul li a')[index].text;
 	d.children('input').val(title);
 	d.data('sagews-name', function () {
@@ -875,9 +891,12 @@ $(function() {
 	return c;
     }
 
-    function FileEditor(id, filename) {
-	var d = $('#file-template').clone().show().attr('id', id);
+    function CodeEditor(id, filename) {
+	var d = $('#codeeditor-template').clone().show().attr('id', id);
 	d.data('sagews-filename',filename);
+
+	var buttons = d.children('button');
+	$(buttons[0]).button({icons:{primary:'ui-icon-disk'}}).click(function(event, ui) { save_file();});
 
 	/* append a CodeMirror to d. */
 	var cm = CodeMirror(d[0], {
@@ -886,9 +905,41 @@ $(function() {
 	    matchBrackets:true,
 	    lineWrapping:true, 
 	    autoClearEmptyLines: true});
-	$(cm.getWrapperElement()).addClass('sagews-file'); 
-        $(cm.getScrollerElement()).addClass('sagews-file-scroll');
+	$(cm.getWrapperElement()).addClass('sagews-codeeditor'); 
+        $(cm.getScrollerElement()).addClass('sagews-codeeditor-scroll');
 	cm.refresh();
+
+	/* functionality */
+
+	function load_file() {
+	    /* Use socket.io to get/create a file, displaying a spinning wheel dialog while we wait. */
+//	    d.children('').activity();
+	    socket.execute_blocking("print _load_file()", function(mesg) {
+		if (mesg.stderr != "") {
+		    // TODO error
+		}
+		console.log(mesg);
+		mesg = $.parseJSON(mesg.stdout);
+//		$(cm.getWrapperElement()).activity(false);
+		console.log(mesg);
+		if (mesg.status === 'ok') {
+		    console.log(mesg.content);
+		    cm.setValue(mesg.content);
+		    cm.refresh();
+		}
+   	    }, false, filename);
+	}
+
+	function save_file() {
+	    socket.execute_blocking("_save_file()", function(mesg) {
+		// TODO: check for errors, give feedback that done, etc. 
+		},
+		false, [filename, cm.getValue()]);
+	}
+
+	/* initialize */
+	load_file();
+
 	d.data('sagews-editor', cm);
 	d.data('focus', function() { cm.focus(); });
 	return d;
@@ -896,7 +947,7 @@ $(function() {
 
     $('#sagews-worksheet-cell-template').hide(); 
     $('#sagews-worksheet-template').hide(); 
-    $('#file-template').hide(); 
+    $('#codeeditor-template').hide(); 
     $('#invalid-filename-dialog').hide();
     $('#cell-trash').hide();
 
@@ -916,15 +967,19 @@ $(function() {
 
     $(window).resize( update_content_size );
 
+/* TODO: -- works fine, but is annoying during development.
     $(window).bind('beforeunload',  function () { 
-	/* Here we test for unsaved data or send any off. 
-	   Note that this is unsupported in Opera. Perhaps there we should do something different (aggressive autosave?) with a timer. */
+	// Here we test for unsaved data or send any off. 
+	 //  Note that this is unsupported in Opera. Perhaps there we should do something different (aggressive autosave?) with a timer. 
 	return "You have unsaved data.";
     } );
+*/
 
 /* TESTING STUFF */
 
-append_new_file_tab('a.sage');    
+append_new_worksheet_tab();
+append_new_codeeditor_tab('c.pyx');    
+newtab_focus_hack();
 
 })</script>
 
@@ -953,7 +1008,7 @@ append_new_file_tab('a.sage');
 
 <span><button id="new-cmdline-button">Command Line</button></span>
 <span><button id="new-worksheet-button">Worksheet</button></span>
-<span><button id="new-file-button">File</button></span>
+<span><button id="new-file-button">Open...</button></span>
 <span><button id="rename-button">Rename</button></span>
 <span id="socket-status" class="sagews-socket sagews-socket-disconnected"><div id="socket-status-text"></div><div id="socket-status-spinner"></div></span>
 </div>
@@ -962,12 +1017,28 @@ append_new_file_tab('a.sage');
 
 <div id="sagews-worksheet-template" class="sagews-worksheet"></div>
 
-<div id="file-template" class="sagews-file"></div>
+<div id="codeeditor-template" class="sagews-codeeditor">
+<button>Save</button>
+</div>
 
 <div id="cmdline-template" class="sagews-cmdline"></div>
 
-<div id="name-dialog" title="Name">
+<div id="rename-dialog" title="Rename">
 <input type="text" value="new name">
+</div>
+
+<div id="newfile-dialog" title="Open or create file...">
+<input type="text" value="new name">
+<div>
+<br>
+File Types:
+<ul>
+  <li> .sage -- preparsed Sage code</li>
+  <li> .spyx -- preparsed Cython code </li>
+  <li> .py   -- pure Python code </li>
+  <li> .pyx  -- pure Cython code </li>
+</ul>
+</div>
 </div>
 
 <div id="invalid-filename-dialog" title="Invalid Filename"></div>

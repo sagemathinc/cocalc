@@ -1,15 +1,18 @@
 today:
 
+ [ ] redo execute_blocking to support sending json message back (so not using stdio at all)
+
  [ ] Implement documents + file browser, mapped to a directory
-     [ ] save button
-     [ ] when opening should load from disk if file there
+     [x] save button
+     [x] when opening should load from disk if file there
+     [x] better load that supports all of '.sage', '.py', '.pyx' files, etc., etc. -- value added
      [ ] correct resizing
      [ ] settings:
         [ ] toggle line numbers
         [ ] autoreload checkbox
         -- etc., all in a "gear" popup like in c9.io: http://c9.io/williamstein/bin-scripts
 
-
+ [ ] in worksheet -- no visual indicator that stuff has scrolled
  [ ] switch to custom scrollbar?: e.g., http://jscrollpane.kelvinluck.com/
  [ ] second flask server on different URL that can send interrupt signal
  [ ] pushing creation of new cells out to clients
