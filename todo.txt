@@ -1,10 +1,9 @@
 today:
 
- [ ] Change from "command line" to "worksheet"
- [ ] Implement a genuine command line
+ [x] Change from "command line" to "worksheet"
+ [x] Implement a genuine command line
  [ ] Implement documents + file browser, mapped to a directory
  [ ] confirm on page close
-
  [ ] switch to custom scrollbar?: e.g., http://jscrollpane.kelvinluck.com/
  [ ] second flask server on different URL that can send interrupt signal
  [ ] pushing creation of new cells out to clients
