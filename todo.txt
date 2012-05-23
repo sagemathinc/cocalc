@@ -1,9 +1,15 @@
 today:
 
- [x] Change from "command line" to "worksheet"
- [x] Implement a genuine command line
  [ ] Implement documents + file browser, mapped to a directory
- [ ] confirm on page close
+     [ ] save button
+     [ ] when opening should load from disk if file there
+     [ ] correct resizing
+     [ ] settings:
+        [ ] toggle line numbers
+        [ ] autoreload checkbox
+        -- etc., all in a "gear" popup like in c9.io: http://c9.io/williamstein/bin-scripts
+
+
  [ ] switch to custom scrollbar?: e.g., http://jscrollpane.kelvinluck.com/
  [ ] second flask server on different URL that can send interrupt signal
  [ ] pushing creation of new cells out to clients
@@ -12,6 +18,9 @@ today:
 
 DONE:
 
+ [x] confirm on page close
+ [x] Change from "command line" to "worksheet"
+ [x] Implement a genuine command line
  [x] socket.io client status
  [x] optimization -- don't submit empty input for evaluation!
  [x] the tab bar / command lines must somehow resize
