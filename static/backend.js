@@ -11,7 +11,11 @@ var sagews_backend = {};
 
 sagews_backend.socket = function(url, options) {
 
-    var socket = new io.connect(url);  /* todo: handle error */
+    var socket = new io.connect(url, {
+	'reconnect':true,
+	'reconnection delay': 500,
+	'max reconnection attempts': 10
+    });
 
     var opts = $.extend({
         set:function(selector, value) {},
@@ -19,8 +23,12 @@ sagews_backend.socket = function(url, options) {
 	start: function(selector) {}, 
         stdout:function(selector, value, replace) {},
 	stderr:function(selector, value, replace) {},
-	done: function(selector) {}}, 
-        options||{}
+	done: function(selector) {}, 
+
+
+	connect: function() {},
+        disconnect: function() {}, 
+        }, options||{}
     );
 
     socket.on('set', opts.set);
@@ -30,6 +38,9 @@ sagews_backend.socket = function(url, options) {
     socket.on('stderr', opts.stderr);
     socket.on('done', opts.done);
     socket.on('help', opts.help);
+
+    socket.on('disconnect', opts.disconnect);
+    socket.on('connect', opts.connect);
 
     socket._execute_callbacks = {};
     socket.on('execute', function(mesg) { 

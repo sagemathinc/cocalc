@@ -64,6 +64,22 @@
       .center {
 	  text-align:center
       }
+
+      .sagews-socket {
+          font-size:x-small;
+	  position:absolute;
+	  right:0px;
+      }
+
+      .sagews-socket-connected {
+          background-color: #0f0;
+      }
+
+      .sagews-socket-disconnected {
+          background-color: #f00;
+          font-size:large;
+      }
+
       .sagews-tabs {
 	  
       }
@@ -195,7 +211,14 @@ $(function() {
  	stdout:function(selector, value, clear) { call_ifdef(selector, 'stdout', value, clear); },
 	stderr:function(selector, value, clear) { call_ifdef(selector, 'stderr', value, clear); },
         start:function(selector) { call_ifdef(selector, 'start'); },
-	done:function(selector) { call_ifdef(selector, 'done'); }
+	done:function(selector) { call_ifdef(selector, 'done'); },
+
+	connect:function() {  
+	    $('#socket-status').addClass('sagews-socket-connected').removeClass('sagews-socket-disconnected'); 
+	},
+	disconnect:function() { 
+	    $('#socket-status').addClass('sagews-socket-disconnected').removeClass('sagews-socket-connected'); 
+	}
     }
 
     var socket = sagews_backend.socket('http://' + window.location.host, options);
@@ -645,7 +668,7 @@ $(function() {
     });
 
 
-    $('#tabs').append($('#status')).tabs('add','#status', 'status');
+    $('#tabs').append($('#status')).tabs('add','#status', 'Session');
 
     function append_new_cmdline_tab() {
 	var n = $('#tabs').tabs('length');
@@ -794,7 +817,6 @@ $(function() {
     function update_content_size() { 
 	var h = $(window).height();
 	var t = $('#tabs');
-	console.log(t);
 	t.height(h - 1.5*($('#button-bar').height() + $('#footer-bar').height()));
 	var content_height = t.height() - 2*t.children('ul').height();
 	t.children('div').height(content_height);
@@ -803,7 +825,6 @@ $(function() {
     update_content_size();
 
     $(window).resize( update_content_size );
-
 
 })</script>
 
@@ -830,6 +851,7 @@ $(function() {
 <span><button id="rename-button">Rename</button></span>
 <span><button id="new-cmdline-button">Command Line</button></span>
 <span><button id="new-document-button">Document</button></span>
+<span id="socket-status" class="sagews-socket sagews-socket-disconnected"> &nbsp;socket.io&nbsp; </span>
 </div>
 
 <div id="tabs" class="sagews-tabs"><ul></ul></div>
