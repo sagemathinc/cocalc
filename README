@@ -341,14 +341,6 @@ Standalone APPS:
 [ ] I need to look carefully at RStudio, since that is another model
     for what to support as a web-based UI.
 
-[ ] AppSoma: http://happysciencecoding.com/ -- this is similar to what I am
-    planning to do, but more limited... and more flexible.  
-    This exactly competes with what I want to do.  Ut oh!  But exciting as 
-    a proof of concept.
-
-    "run on your own recourses" -- like crashplan!
-        http://appsoma.com/wiki/index.php?title=Apps
-
   - what's the big deal with Hadoop?
 
   - rado: look into http://d3js.org/
