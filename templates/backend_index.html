@@ -71,9 +71,11 @@
       }
 
       .sagews-socket {
-          font-size:x-small;
+/*          font-size:small; */
 	  position:absolute;
-	  right:0px;
+	  right:5px;
+	  padding:5px;
+	  border:1px solid black;
       }
 
       .sagews-socket-connected {
@@ -500,6 +502,7 @@ $(function() {
 
 			var s = (walltime() - wcell.data('start_time')) + ' ms';
 			$('#time')[0].innerHTML = s;
+
 			cm_trim_last_newline(stdout); cm_trim_last_newline(stderr);
 			if (stdout.getValue() === '') { stdout_elt.hide(); }
 			if (stderr.getValue() === '') { stderr_elt.hide(); } 
@@ -1030,10 +1033,44 @@ $(function() {
 	    input.setValue('');
 	    cm_append_to(output, 'sage: '+code.split('\n').join('\n... ' + ' ' + ' ' )+'\n');
 	    if (is_whitespace(code)) { return ; }
-	    socket.execute_blocking(code, function(mesg) {cm_append_to(output, mesg.stdout+mesg.stderr+'sage: ');});
-	    scroll_output_to_bottom();
-	    update_state();
+	    /* socket.execute_blocking(code, function(mesg) {cm_append_to(output, mesg.stdout+mesg.stderr+'sage: ');}); */
+	    socket.execute('#' + id, code, true);
+	    /* scroll_output_to_bottom();
+	       update_state(); */
 	}
+
+	var running_timer;
+
+	d.data({
+	    'start': function() {
+		d.data('start_time', walltime()); 
+		running_timer = setTimeout(function() { 
+		    $(input.getGutterElement()).activity({width:2, length:2}); }, 500);
+	    },
+	    'mesg': function(value) {},
+	    'stdout': function(value, clear) {
+		cm_append_to(output, value);
+		scroll_output_to_bottom();
+	    },
+	    'stderr': function(value, clear) {
+		cm_append_to(output, value);
+		scroll_output_to_bottom();
+	    },
+	    'done': function() { 
+		$(input.getGutterElement()).activity(false);
+
+		cm_append_to(output, 'sage: ')
+
+		var s = (walltime() - d.data('start_time')) + ' ms';  /* Refactor this -- it is also done for worksheet. */
+		$('#time')[0].innerHTML = s;
+
+		scroll_output_to_bottom();
+		update_state();
+		
+		clearTimeout(running_timer);
+	    }
+	});
+
 
 	/***********************************************************************************/
 	d.data('sagews-output', output);
