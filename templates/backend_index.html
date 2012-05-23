@@ -543,8 +543,17 @@ $(function() {
 	    buttons.hide();
 	    opera_blur_hack();
 	    var val = stdin.getValue();
-	    socket.set('#'+id, val);
-	    socket.execute('#'+id, val, true); 
+	    if (is_whitespace(val)) {
+		/* very -- easy special case -- could also extend to all comments, etc. */
+		wcell.data('stdout')('',true);
+		stdout_elt.hide();
+		wcell.data('stderr')('',true);
+		stderr_elt.hide();
+	    } else {
+		/* real work */
+		socket.set('#'+id, val);
+		socket.execute('#'+id, val, true); 
+	    }
 	    focus_on_next_cell();
 	}
 	
