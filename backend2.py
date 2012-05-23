@@ -80,6 +80,14 @@ namespace = {}
 import sage.all_cmdline
 exec "from sage.all_cmdline import *" in namespace
 
+def preparse_code(code):
+    if code.lstrip().startswith('!'):
+        # shell escape
+        code = 'print os.popen(eval("%r")).read()'%code[1:]
+    else:
+        code = sage.all_cmdline.preparse(code)
+    return code
+
 def strip_string_literals(code, state=None):
     new_code = []
     literals = {}
@@ -243,27 +251,6 @@ class ExecuteConnection(SocketConnection):
         self.broadcast_other('start', selector)
 
     @event
-    def XXX_execute(self, selector, code, preparse):
-        state['cells'][selector] = {'stdin':code, 'stdout':'', 'stderr':''}  # TODO: hack -- shouldn't be here
-        streams = (sys.stdout, sys.stderr)
-        bstreams = output_streams(self, selector, True, True)
-        (sys.stdout, sys.stderr) = bstreams
-        if preparse:
-            code = sage.all_cmdline.preparse(code)
-        namespace['sagews'] = SageWS(selector, code, self, state)
-        self.start_other(selector) # TODO: what if client is slow?  would that make this slow?
-        try:
-            for start, stop, block in divide_into_blocks(code):
-                exec compile(block, '', 'single') in namespace
-        except:
-            sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
-            traceback.print_exc()
-        finally:
-            bstreams[0].flush(); bstreams[1].flush()
-            (sys.stdout, sys.stderr) = streams
-            self.broadcast('done', selector)
-
-    @event
     def execute(self, selector, code, preparse, broadcast=True, stream=True, do_callback=True, extra_data=None):
         """
         INPUT:
@@ -284,7 +271,7 @@ class ExecuteConnection(SocketConnection):
         bstreams = output_streams(self, selector, broadcast, stream)
         (sys.stdout, sys.stderr) = bstreams
         if preparse:
-            code = sage.all_cmdline.preparse(code)
+            code = preparse_code(code)
         namespace['sagews'] = SageWS(selector, code, self, state, extra_data)
         
         if stream and broadcast:
@@ -315,7 +302,7 @@ class ExecuteConnection(SocketConnection):
     @event
     def blocking_eval(self, code, preparse):
         if preparse:
-            code = sage.all_cmdline.preparse(code)
+            code = preparse_code(code)
         try:
             output = eval(code, namespace)
             success = True
@@ -379,10 +366,10 @@ def _completions(col_offset, lineno, docstring=False, preparse=True, jsonify=Fal
                         import sage.all_cmdline
                         if before_expr.strip():
                             try:
-                                exec (before_expr if not preparse else sage.all_cmdline.preparse(before_expr)) in namespace
+                                exec (before_expr if not preparse else preparse_code(before_expr)) in namespace
                             except Exception, msg:
                                 traceback.print_exc()
-                        O = eval(obj if not preparse else sage.all_cmdline.preparse(obj), namespace)
+                        O = eval(obj if not preparse else preparse_code(obj), namespace)
                     finally:
                         signal.signal(signal.SIGALRM, signal.SIG_IGN)
                 if get_help:

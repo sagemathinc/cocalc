@@ -62,6 +62,10 @@
 	  background-color: #ddd;
       }
 
+      .CodeMirror-gutter-text  {
+	  color:#00f;
+      }
+
       .center {
 	  text-align:center
       }
@@ -88,7 +92,7 @@
       }
 
       .sagews-codeeditor-wrapper {
-	  border: 1px solid #f00;
+	  border: 1px solid #000;
       } 
 
       .sagews-codeeditor-scroller {
@@ -131,7 +135,21 @@
       }
 
 
+      .sagews-cmdline-input {
+	  border: 1px solid #00f;
+      }
+
+      .sagews-cmdline-input-scroll {
+	  
+      }
+
+      .sagews-cmdline-input-gutter {
+	  background-color: #fff;
+	  color: #00f;
+      }
+
       .sagews-cmdline-output {
+	  border: 1px solid #000;
       }
 
       .sagews-cmdline-output-scroll {
@@ -139,7 +157,7 @@
       }
 
       /* make buttons smaller*/
-      .ui-button.ui-widget .ui-button-text{ line-height:1em; font-size:x-small; padding:1 }
+      .ui-button.ui-widget .ui-button-text{ line-height:1em; font-size:small; padding:1 }
 
       .wrap {  /* see http://www.longren.org/wrapping-text-inside-pre-tags/ */
         white-space: pre-wrap; /* css-3 */
@@ -686,14 +704,12 @@ $(function() {
 
     $('#tabs').append($('#state')).tabs('add','#state', 'state');
 
-
-
-
     function append_new_cmdline_tab() {
 	var n = $('#tabs').tabs('length');
 	var label = "command";
 	$('#tabs').append(CommandLine('cmdline-'+n, label));
 	$('#tabs').tabs("add", '#cmdline-'+n, label).tabs('select', n);
+	$(window).resize();
     }
 
 
@@ -824,68 +840,210 @@ $(function() {
 	}});
     });
 				      
-    function CommandLine(id, label) {
+    function CommandLine(id, filename) {
 	var d = $('#cmdline-template').clone().show().attr('id', id);
-	var output = CodeMirror(d[0], {
-	    readOnly:true,
-	    lineWrapping:true
-	});
 
+	var buttons = d.children('button');
+	$(buttons[0]).button({icons:{primary:'ui-icon-disk'}}).click(function(event, ui) { save_file();});
+
+	var wrap_button = $(buttons[1])
+	wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w'}}).click(
+	    function(event, ui) { wrap_toggle(); }
+	);
+
+	var last_height = 0;
 	var input = CodeMirror(d[0], {
 	    indentUnit: 4, matchBrackets:true, lineWrapping:true,
 	    gutter:true,
 	    onFocus: function(cm) { scroll_output_to_bottom(); },
+	    onUpdate:  function(cm) { 
+		var h = input_scroller.height();
+		if (h != last_height) { last_height = h; fix_size();} 
+	    },
 	    extraKeys: {
-		'Enter': function(cm) { execute(); }
-/* TOOD next
-		'Up':function(cm) { history_up(); },
-		'Down':function(cm) { history_down(); }, */
+		'Enter': function(cm) { execute(); },
+		'Up':function(cm) {
+		    var cursor = cm.getCursor();
+		    if (cursor.line === 0) {
+			history_up(); 
+		    } else {
+			cm.setCursor(cursor.line-1, cursor.ch);
+		    }
+		},
+		'Down':function(cm) { 
+		    var cursor = cm.getCursor();
+		    if (cursor.line === cm.lineCount()-1) {
+			history_down(); 
+		    } else {
+			cm.setCursor(cursor.line+1, cursor.ch);
+		    }
+		}, 
 	    }
 	});
+	var output = CodeMirror(d[0], {
+	    readOnly:false,
+	    lineWrapping:true,
+	    extraKeys: {
+		'Enter': function(cm) {
+		    var cursor = cm.getCursor();
+		    var i = cursor.line;
+		    while (i >= 0 && cm.getLine(i).slice(0,5) != 'sage:') {
+			i -= 1;
+		    }
+		    if (i==-1) { return; }
+		    var code = cm.getLine(i);
+		    cm.removeLine(i);
+		    code = code.slice(6, code.length);
+		    while (i+1 < cm.lineCount() && cm.getLine(i).slice(0,3) === '...') {
+			code += '\n' + cm.getLine(i).slice(6, cm.getLine(i).length);
+			cm.removeLine(i);
+		    }
+		    while (i+1 < cm.lineCount() && cm.getLine(i).slice(0,5) != 'sage:') {
+			cm.removeLine(i);
+		    }
+		    push_input_to_history();
+		    input.setValue(code);
+		    execute();
+		}
+	    }
+	});
+	output.setValue('sage: ');
 
-	input.setMarker(0, 'sage: ');
+	var input_scroller = $(input.getScrollerElement());
+	var output_scroller = $(output.getScrollerElement());
+
+	$(output.getWrapperElement()).addClass('sagews-cmdline-output'); 
+	$(input.getWrapperElement()).addClass('sagews-cmdline-input'); 
+	$(input.getGutterElement()).addClass('sagews-cmdline-input-gutter');
+	
+        output_scroller.addClass('sagews-cmdline-output-scroll');
+        input_scroller.addClass('sagews-cmdline-input-scroll');
+
 	
 	/* Utility functions */
 	function scroll_output_to_bottom() {
 	    output.setCursor(output.lineCount(), 0);
-	    output.scrollTo(0, 1000);
+	    output.scrollTo(0, 100000000); /* TODO*/
 	}
+
+	function fix_size() {
+	    var n = input_scroller.height();
+	    output_scroller.height(d.height()-n-buttons.height());
+	    output.refresh();
+	    scroll_output_to_bottom();
+	    input.setMarker(0, 'sage:');
+	    for(var i=1; i<input.lineCount(); i++) {
+		input.setMarker(i, '...');
+	    }
+	}
+	$(window).resize(fix_size);
+
+
+	function wrap_toggle() { 
+	    var wrapped = output.getOption('lineWrapping');
+	    if(wrapped) {
+		output.setOption('lineWrapping', false);
+		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w', secondary:'ui-icon-transfer-e-w'}});
+	    } else {
+		output.setOption('lineWrapping', true);
+		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w'}});
+	    }
+	    fix_size();
+	}
+
 
 	/* History of inputs */
 	var history = [];
+	var history_cursor = -1, last_history_cursor = -1;
+
+/*	function clear_output() {
+	    output.setValue('');
+//	    output.setValue('sage: ' + history.join('\nsage: '));
+	    focus();
+	}
+*/
+
+	function history_up_search() {
+	    
+	}
+
+	function push_input_to_history() {
+	    if (!is_whitespace(input.getValue())) {
+		history.push(input.getValue());
+	    }
+	}
+
+	function history_up() {
+	    if (history_cursor === -1) {
+		push_input_to_history();
+		history_cursor = history.length - 1;
+	    } else {
+		history_cursor -= 1;
+	    }
+	    if (history_cursor < 0) {
+		history_cursor = 0;
+	    }
+	    input.setValue(history[history_cursor]);
+	}
+
+	function history_down() {
+	    if (history_cursor === -1) {
+		push_input_to_history();
+		if (last_history_cursor === -1) {
+		    return;
+		} else {
+		    /* do what ipython/readline refuse to do, but magma does and users love! */
+		    history_cursor = last_history_cursor + 1;
+		}
+	    } else {
+		history_cursor += 1;
+	    }
+	    if (history_cursor >= history.length) {
+		input.setValue('');
+		history_cursor = -1;
+	    } else {
+		input.setValue(history[history_cursor]);
+		input.setCursor(input.lineCount()-1);
+	    }
+	}
+
+	function save_file() { 
+	    // TODO: store history to disk in a much more structured way.
+	    socket.execute_blocking("_save_file()", function(mesg) {
+		// TODO: check for errors, give feedback that done, etc. 
+		},
+		false, [filename, $.trim(output.getValue())]);
+	}
 
 	/* Working functions */
 	function execute() {
-	    /* socket.execute('#'+id, input.getValue(), true); */
+	    /* socket.execute('#'+id, input.getValue(), true); */  /* TODO: real version streaming output */
+	    last_history_cursor = history_cursor;
+	    history_cursor = -1;
+	    if (output.lineCount()>0) {
+		if (output.getLine(output.lineCount()-1) === 'sage: ') {
+		    output.removeLine(output.lineCount()-1);
+		}
+	    }
 	    var code = input.getValue();
 	    history.push(code);
 	    input.setValue('');
-	    cm_append_to(output, 'sage: '+code+'\n');
+	    cm_append_to(output, 'sage: '+code.split('\n').join('\n... ' + ' ' + ' ' )+'\n');
 	    if (is_whitespace(code)) { return ; }
-	    socket.execute_blocking(code, function(mesg) {cm_append_to(output, mesg.stdout+mesg.stderr);});
+	    socket.execute_blocking(code, function(mesg) {cm_append_to(output, mesg.stdout+mesg.stderr+'sage: ');});
 	    scroll_output_to_bottom();
 	    update_state();
 	}
 
 	/***********************************************************************************/
-	$(output.getWrapperElement()).addClass('sagews-cmdline-output'); 
-        $(output.getScrollerElement()).addClass('sagews-cmdline-output-scroll');
-	$(input.getWrapperElement()).addClass('sagews-cmdline-input'); 
-        $(input.getScrollerElement()).addClass('sagews-cmdline-input-scroll');
-
-        $(output.getScrollerElement()).height(300);  /* TODO!*/
-        $(input.getScrollerElement()).height(50);  /* TODO!*/
-
-	output.setValue('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n');
-	output.refresh();
-
 	d.data('sagews-output', output);
 	d.data('sagews-input', input);
-	d.data('focus', function() { 
+	function focus() {
 	    input.refresh();
 	    input.focus(); 
 	    scroll_output_to_bottom();
-	});
+	}
+	d.data('focus', focus);
 	return d;
     }
 
@@ -915,6 +1073,11 @@ $(function() {
 	cm.refresh();
 
 	/* functionality */
+	function fix_size() {
+	    $(cm.getScrollerElement()).css('height', d.height()-20);   /* TODO: 20? magic? */
+	}
+
+	$(window).resize( fix_size);
 
 	function load_file() {
 	    /* Use socket.io to get/create a file, displaying a spinning wheel dialog while we wait. */
@@ -951,9 +1114,9 @@ $(function() {
     $('#sagews-worksheet-cell-template').hide(); 
     $('#sagews-worksheet-template').hide(); 
     $('#codeeditor-template').hide();
+    $('#cmdline-template').hide();
     $('#invalid-filename-dialog').hide();
     $('#cell-trash').hide();
-
     $('#theme-switcher').themeswitcher();
 
     $('body').scrollTop(0);
@@ -982,6 +1145,7 @@ $(function() {
 append_new_worksheet_tab();
 append_new_codeeditor_tab('c.pyx');    
 newtab_file_focus_hack();
+append_new_cmdline_tab();
 
 })</script>
 
@@ -1002,10 +1166,7 @@ newtab_file_focus_hack();
 
 
 <div id="button-bar">
-
-<!--<span><button id="prev-button">Prev</button></span>
-<span><button id="next-button">Next</button></span>-->
-
+<span id="theme-switcher"></span>
 <span><button id="new-cmdline-button">Command Line</button></span>
 <span><button id="new-worksheet-button">Worksheet</button></span>
 <span><button id="new-file-button">Open...</button></span>
@@ -1021,7 +1182,9 @@ newtab_file_focus_hack();
 <button>Save</button>
 </div>
 
-<div id="cmdline-template" class="sagews-cmdline"></div>
+<div id="cmdline-template" class="sagews-cmdline">
+<button>Save</button><button>Wrap</button>
+</div>
 
 <div id="rename-dialog" title="Rename">
 <input type="text" value="new name">
@@ -1049,7 +1212,7 @@ File Types:
 <div id="sagews-worksheet-cell-template" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Help</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button><button>Wrap</button></div>
 
 <div id="footer-bar">
-<font size=-3>Last Time: <span id="time">0 ms</span></font> <div id="theme-switcher"></div>
+<font size=-3>Last Time: <span id="time">0 ms</span></font>
 </div>
 </body>
 </html>
