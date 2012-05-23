@@ -1,13 +1,18 @@
 today:
+
+ [ ] Change from "command line" to "worksheet"
+ [ ] Implement a genuine command line
+ [ ] Implement documents + file browser, mapped to a directory
+
  [ ] switch to custom scrollbar?: e.g., http://jscrollpane.kelvinluck.com/
  [ ] second flask server on different URL that can send interrupt signal
- [ ] socket.io client status
  [ ] pushing creation of new cells out to clients
  [ ] basic mobile client using jquery-mobile
  [ ] new client gets up2date view of all data
 
 DONE:
 
+ [x] socket.io client status
  [x] optimization -- don't submit empty input for evaluation!
  [x] the tab bar / command lines must somehow resize
  [x] indicator that cell is running:
