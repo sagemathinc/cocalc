@@ -32,6 +32,7 @@
 
 
 <style type="text/css">
+
       body {
         margin:5;
         padding:5;
@@ -86,7 +87,11 @@
       .sagews-codeeditor {
       }
 
-      .sagews-codeeditor-scroll {
+      .sagews-codeeditor-wrapper {
+	  border: 1px solid #f00;
+      } 
+
+      .sagews-codeeditor-scroller {
           height:20em;
       }
 
@@ -905,25 +910,23 @@ $(function() {
 	    matchBrackets:true,
 	    lineWrapping:true, 
 	    autoClearEmptyLines: true});
-	$(cm.getWrapperElement()).addClass('sagews-codeeditor'); 
-        $(cm.getScrollerElement()).addClass('sagews-codeeditor-scroll');
+	$(cm.getWrapperElement()).addClass('sagews-codeeditor-wrapper'); 
+        $(cm.getScrollerElement()).addClass('sagews-codeeditor-scroller');
 	cm.refresh();
 
 	/* functionality */
 
 	function load_file() {
 	    /* Use socket.io to get/create a file, displaying a spinning wheel dialog while we wait. */
+	    /* TODO: need an activity display in case takes a long time */
 //	    d.children('').activity();
 	    socket.execute_blocking("print _load_file()", function(mesg) {
 		if (mesg.stderr != "") {
 		    // TODO error
 		}
-		console.log(mesg);
 		mesg = $.parseJSON(mesg.stdout);
 //		$(cm.getWrapperElement()).activity(false);
-		console.log(mesg);
 		if (mesg.status === 'ok') {
-		    console.log(mesg.content);
 		    cm.setValue(mesg.content);
 		    cm.refresh();
 		}
@@ -947,7 +950,7 @@ $(function() {
 
     $('#sagews-worksheet-cell-template').hide(); 
     $('#sagews-worksheet-template').hide(); 
-    $('#codeeditor-template').hide(); 
+    $('#codeeditor-template').hide();
     $('#invalid-filename-dialog').hide();
     $('#cell-trash').hide();
 
@@ -976,18 +979,15 @@ $(function() {
 */
 
 /* TESTING STUFF */
-
 append_new_worksheet_tab();
 append_new_codeeditor_tab('c.pyx');    
-newtab_focus_hack();
+newtab_file_focus_hack();
 
 })</script>
 
 
 <body>
-
 <div id="busy1"></div>
-
 <div id="state" class="wrap sagews-state"><textarea style="width:95%; height:95%;"></textarea></div>
 
 <!--Session: <input id="session-name" value="sagews"> <button id="save-session">save</button><button id="load-session">load</button><button id="reset-session">reset</button>
