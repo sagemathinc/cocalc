@@ -1,4 +1,6 @@
 today:
+ [ ] switch to custom scrollbar?: e.g., http://jscrollpane.kelvinluck.com/
+ [ ] optimization -- don't submit empty input for evaluation!
  [ ] second flask server on different URL that can send interrupt signal
  [ ] socket.io client status
  [ ] pushing creation of new cells out to clients
@@ -7,6 +9,7 @@ today:
 
 DONE:
 
+ [x] the tab bar / command lines must somehow resize
  [x] indicator that cell is running:
        - only appears after a while
        - css style

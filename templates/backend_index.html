@@ -44,7 +44,7 @@
       }
 
       .CodeMirror {
-        border: 1px solid #aaa;
+        border: 1px solid #fff;
         overflow-x: auto;
         overflow-y: auto; 
         background-color: #ffffff;    
@@ -93,13 +93,13 @@
       }
 
       .sagews-stderr {
-        background-color:#faa;
+        background-color:#ffa500;
         font-weight:bold;
         max-height:10em;
       }
 
       .sagews-stdout {
-        background-color:#ffffe0;
+        background-color:#ffffff;
 	max-height:10em; 
       }
 
@@ -122,7 +122,7 @@
        }
 
       .sagews-status {
-        background-color:#faa;
+        background-color:#000;
 	height:15em;
 	font-size:small;
       } 
@@ -156,7 +156,7 @@ $(function() {
     completions.css({position:'absolute', 'z-index':2}
     ).hide(
     ).keyup(function(e) {
-	if (e.keyCode === 27) { console.log('esc'); completions.data('finish')(''); }  /* esc */
+	if (e.keyCode === 27) { completions.data('finish')(''); }  /* esc */
 	if (e.keyCode == 8) { return false;}
 	/*if (e.keyCode == 8 && !completions[0].value) { completions.data('finish')(); } *//* backspace */
     }).keydown(function(e) {
@@ -285,7 +285,6 @@ $(function() {
                     ).dialog('open');
 		    return;
 		}
-console.log(source.length);
 		if (source.length === 0) {
 		    stdin.replaceRange(TAB, cursor);
 		    return;
@@ -308,7 +307,6 @@ console.log(source.length);
         var wcell = $('#sagews-cell-template').clone().show().attr('id', id);
 
 	var cell = wcell[0];
-console.log(cell);
 
 	var buttons = wcell.children('button').hover(function(){ hide_buttons=false; }, function() {hide_buttons=true;} );
 	buttons.hide();
@@ -637,9 +635,8 @@ console.log(cell);
 	}
     });
 
-    $('#tabs').append($('#status')).tabs('add','#status', 'status');
 
-/*    $('#button-bar').sortable({axis:'x'}); */
+    $('#tabs').append($('#status')).tabs('add','#status', 'status');
 
     function append_new_cmdline_tab() {
 	var n = $('#tabs').tabs('length');
@@ -699,7 +696,6 @@ console.log(cell);
 	if (index < 0) {
 	    index = t.tabs('length')-1;
 	}
-	console.log(index);
 	t.tabs('select', index);
     })
     $('#next-button').button({icons: {primary:'ui-icon-circle-arrow-e'}}).click( function(event,ui) {
@@ -708,7 +704,6 @@ console.log(cell);
 	if (index >= t.tabs('length')) {
 	    index = 0;
 	}
-	console.log(index);
 	t.tabs('select', index);
     })
 
@@ -783,9 +778,22 @@ console.log(cell);
     $('#invalid-filename-dialog').hide();
     $('#cell-trash').hide();
 
-    $('#switcher').themeswitcher();
+    $('#theme-switcher').themeswitcher();
 
     $('body').scrollTop(0);
+
+    function update_content_size() { 
+	var h = $(window).height();
+	var t = $('#tabs');
+	console.log(t);
+	t.height(h - 1.5*($('#button-bar').height() + $('#footer-bar').height()));
+	var content_height = t.height() - 2*t.children('ul').height();
+	t.children('div').height(content_height);
+    }
+
+    update_content_size();
+
+    $(window).resize( update_content_size );
 
 
 })</script>
@@ -832,7 +840,9 @@ console.log(cell);
 <!-- an individual compute cell -->
 <div id="sagews-cell-template" class="sagews-cell"><span></span><button>Send</button><button>Complete</button><button>Docstring</button><button>Merge</button><button>Split</button><button>New</button><button>New</button><button>Delete</button><button>Wrap</button></div>
 
-<font size=-3>Last Time: <span id="time">0 ms</span></font> <div id="switcher"></div>
+<div id="footer-bar">
+<font size=-3>Last Time: <span id="time">0 ms</span></font> <div id="theme-switcher"></div>
+</div>
 </body>
 </html>
 
