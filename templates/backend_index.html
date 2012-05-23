@@ -83,10 +83,10 @@
 	  
       }
 
-      .sagews-document {
+      .sagews-file {
       }
 
-      .sagews-document-scroll {
+      .sagews-file-scroll {
           height:20em;
       }
 
@@ -123,6 +123,14 @@
 	  overflow:auto;
 	  padding:1;
 	  border: 3px solid #000;
+      }
+
+
+      .sagews-cmdline-output {
+      }
+
+      .sagews-cmdline-output-scroll {
+        max-height:100%;
       }
 
       /* make buttons smaller*/
@@ -246,6 +254,11 @@ $(function() {
 	       cm.replaceRange('', {line:line-1,ch:cm.getLine(line-1).length}, {line:line,ch:0});
 	   }
        }
+    }
+
+    function cm_append_to(s, value) {
+	var n =  s.lineCount();
+	s.replaceRange(value, {line:n-1, ch:s.getLine(n-1).length});
     }
 
     function SageCell(id, options) {
@@ -388,8 +401,8 @@ $(function() {
 	                 onBlur:function (cm) { if(hide_buttons) { buttons.hide(); } },
 	                 onGutterClick: function (cm) { wcell.parent().sortable({disabled:false}); },
                          extraKeys:{
-			     'Shift-Enter': function(cm) { execute(); },
-			     /*'Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); }, */
+			     'Shift-Enter': function(cm) { cm.replaceRange('\n',stdin.getCursor()); }, 
+			     'Enter': function(cm)  { execute(); },
 			     'Up':function(cm) { up(); },
 			     'Down':function(cm) { down(); },
 			     'Tab': function(cm) { completion(false); },
@@ -414,11 +427,6 @@ $(function() {
 	if (opts.stderr === '') { stderr_elt.hide(); } 
 	stdout_elt.addClass('sagews-worksheet-stdout');
 	stderr_elt.addClass('sagews-worksheet-stderr');
-
-	function append_to_stream(s, value) {
-	    var n =  s.lineCount();
-	    s.replaceRange(value, {line:n-1, ch:s.getLine(n-1).length});
-	}
 
 	var running_timer;
         wcell.data({'streams':{'stdin':stdin, 'stdout':stdout, 'stderr':stderr},
@@ -448,7 +456,7 @@ $(function() {
 			    if (value) { stdout_elt.show(); }
 			    stdout.setValue(truncate(value));
 			} else {
-			    append_to_stream(stdout, value);
+			    cm_append_to(stdout, value);
 			}
 			stdout.setCursor(stdout.lineCount(),0);
 		    },
@@ -457,7 +465,7 @@ $(function() {
 			    if (value) { stderr_elt.show(); }
 			    stderr.setValue(truncate(value));
 			} else {
-			    append_to_stream(stderr, value);
+			    cm_append_to(stderr, value);
 			}
 			stderr.setCursor(stderr.lineCount(),0);
 		    },
@@ -537,7 +545,7 @@ $(function() {
 	    var next = wcell.next();
 	    if (next.length === 0) { return; }
 	    var streams = next.data('streams');
-	    append_to_stream(stdin, '\n' + streams.stdin.getValue());
+	    cm_append_to(stdin, '\n' + streams.stdin.getValue());
 	    $('#cell-trash').append(next);
 	    wcell.data('focus')();
 	}
@@ -671,8 +679,18 @@ $(function() {
 	}
     });
 
-
     $('#tabs').append($('#state')).tabs('add','#state', 'state');
+
+
+
+
+    function append_new_cmdline_tab() {
+	var n = $('#tabs').tabs('length');
+	var label = "command";
+	$('#tabs').append(CommandLine('cmdline-'+n, label));
+	$('#tabs').tabs("add", '#cmdline-'+n, label).tabs('select', n);
+    }
+
 
     function append_new_worksheet_tab() {
 	var n = $('#tabs').tabs('length');
@@ -681,7 +699,10 @@ $(function() {
 	appendSageCell('#worksheet-'+n);
 	$('#tabs').tabs("add", '#worksheet-'+n, label).tabs('select', n);
     }
-    append_new_worksheet_tab(); 
+
+    $('#new-cmdline-button').button({icons: {primary:'ui-icon-circle-plus'}}).click(
+	function (event,ui) { append_new_cmdline_tab(); }
+    );
 
     $('#new-worksheet-button').button({icons: {primary:'ui-icon-circle-plus'}}).click(
 	function (event,ui) { append_new_worksheet_tab(); }
@@ -696,25 +717,25 @@ $(function() {
 	$("#invalid-filename-dialog").html("The filename '" + filename + "' is not valid.").dialog('open');    
     }
 
-    function append_new_document_tab(filename) {
+    function append_new_file_tab(filename) {
 	if (is_whitespace(filename)) {
 	    invalid_filename_dialog(filename);
 	    return;
 	}
 	var n = $('#tabs').tabs('length');
-	var doc = Document('doc-'+n, filename);
+	var doc = FileEditor('doc-'+n, filename);
 	$('#tabs').append(doc);  
 	$('#tabs').tabs("add", '#doc-'+n, n).tabs('select', n).
 	    data('set-tab-label')(n, filename);
     }
 
-    $('#new-document-button').button({icons: {primary:'ui-icon-circle-plus'}}).click(function (event,ui) { 
+    $('#new-file-button').button({icons: {primary:'ui-icon-circle-plus'}}).click(function (event,ui) { 
 	var t = $('#tabs');
 	var index = t.tabs('length');
 	var d = $('#name-dialog');
 	d.children('input').val('');
 	d.data('sagews-name', function () {
-	    append_new_document_tab(d.children('input').val());
+	    append_new_file_tab(d.children('input').val());
 	});
 	d.dialog("open").dialog({'close':function(event,ui){
 	    if(index>0) {
@@ -782,6 +803,70 @@ $(function() {
 	}});
     });
 				      
+    function CommandLine(id, label) {
+	var d = $('#cmdline-template').clone().show().attr('id', id);
+	var output = CodeMirror(d[0], {
+	    readOnly:true,
+	    lineWrapping:true
+	});
+
+	var input = CodeMirror(d[0], {
+	    indentUnit: 4, matchBrackets:true, lineWrapping:true,
+	    gutter:true,
+	    onFocus: function(cm) { scroll_output_to_bottom(); },
+	    extraKeys: {
+		'Enter': function(cm) { execute(); }
+/* TOOD next
+		'Up':function(cm) { history_up(); },
+		'Down':function(cm) { history_down(); }, */
+	    }
+	});
+
+	input.setMarker(0, 'sage: ');
+	
+	/* Utility functions */
+	function scroll_output_to_bottom() {
+	    output.setCursor(output.lineCount(), 0);
+	    output.scrollTo(0, 1000);
+	}
+
+	/* History of inputs */
+	var history = [];
+
+	/* Working functions */
+	function execute() {
+	    /* socket.execute('#'+id, input.getValue(), true); */
+	    var code = input.getValue();
+	    history.push(code);
+	    input.setValue('');
+	    cm_append_to(output, 'sage: '+code+'\n');
+	    if (is_whitespace(code)) { return ; }
+	    socket.execute_blocking(code, function(mesg) {cm_append_to(output, mesg.stdout+mesg.stderr);});
+	    scroll_output_to_bottom();
+	    update_state();
+	}
+
+	/***********************************************************************************/
+	$(output.getWrapperElement()).addClass('sagews-cmdline-output'); 
+        $(output.getScrollerElement()).addClass('sagews-cmdline-output-scroll');
+	$(input.getWrapperElement()).addClass('sagews-cmdline-input'); 
+        $(input.getScrollerElement()).addClass('sagews-cmdline-input-scroll');
+
+        $(output.getScrollerElement()).height(300);  /* TODO!*/
+        $(input.getScrollerElement()).height(50);  /* TODO!*/
+
+	output.setValue('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n');
+	output.refresh();
+
+	d.data('sagews-output', output);
+	d.data('sagews-input', input);
+	d.data('focus', function() { 
+	    input.refresh();
+	    input.focus(); 
+	    scroll_output_to_bottom();
+	});
+	return d;
+    }
 
     function Worksheet(id, label) {
 	var c = $('#sagews-worksheet-template').clone().show().attr('id', id);
@@ -790,8 +875,8 @@ $(function() {
 	return c;
     }
 
-    function Document(id, filename) {
-	var d = $('#document-template').clone().show().attr('id', id);
+    function FileEditor(id, filename) {
+	var d = $('#file-template').clone().show().attr('id', id);
 	d.data('sagews-filename',filename);
 
 	/* append a CodeMirror to d. */
@@ -801,8 +886,8 @@ $(function() {
 	    matchBrackets:true,
 	    lineWrapping:true, 
 	    autoClearEmptyLines: true});
-	$(cm.getWrapperElement()).addClass('sagews-document'); 
-        $(cm.getScrollerElement()).addClass('sagews-document-scroll');
+	$(cm.getWrapperElement()).addClass('sagews-file'); 
+        $(cm.getScrollerElement()).addClass('sagews-file-scroll');
 	cm.refresh();
 	d.data('sagews-editor', cm);
 	d.data('focus', function() { cm.focus(); });
@@ -811,7 +896,7 @@ $(function() {
 
     $('#sagews-worksheet-cell-template').hide(); 
     $('#sagews-worksheet-template').hide(); 
-    $('#document-template').hide(); 
+    $('#file-template').hide(); 
     $('#invalid-filename-dialog').hide();
     $('#cell-trash').hide();
 
@@ -830,6 +915,8 @@ $(function() {
     update_content_size();
 
     $(window).resize( update_content_size );
+
+append_new_cmdline_tab();    
 
 })</script>
 
@@ -856,8 +943,9 @@ $(function() {
 <!--<span><button id="prev-button">Prev</button></span>
 <span><button id="next-button">Next</button></span>-->
 
+<span><button id="new-cmdline-button">Command Line</button></span>
 <span><button id="new-worksheet-button">Worksheet</button></span>
-<span><button id="new-document-button">Document</button></span>
+<span><button id="new-file-button">File</button></span>
 <span><button id="rename-button">Rename</button></span>
 <span id="socket-status" class="sagews-socket sagews-socket-disconnected"><div id="socket-status-text"></div><div id="socket-status-spinner"></div></span>
 </div>
@@ -866,7 +954,9 @@ $(function() {
 
 <div id="sagews-worksheet-template" class="sagews-worksheet"></div>
 
-<div id="document-template" class="sagews-document"></div>
+<div id="file-template" class="sagews-file"></div>
+
+<div id="cmdline-template" class="sagews-cmdline"></div>
 
 <div id="name-dialog" title="Name">
 <input type="text" value="new name">

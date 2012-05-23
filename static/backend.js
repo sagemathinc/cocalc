@@ -48,13 +48,13 @@ sagews_backend.socket = function(url, options) {
     });
 
     socket.execute = function(selector, code, preparse) {
-	if (typeof preparse === 'undefined') { preparse = false; }
+	if (typeof preparse === 'undefined') { preparse = true; }
 	opts.start(selector);
 	socket.emit('execute', selector, code, preparse, true, true, true);
     }
 
     socket.execute_blocking = function(code, callback, preparse, extra_data) {
-	if (typeof preparse === 'undefined') { preparse = false; }
+	if (typeof preparse === 'undefined') { preparse = true; }
 	if (typeof extra_data === 'undefined') { extra_data = {}; }
 	var do_callback = true;
 	if (typeof callback === 'undefined') { 
