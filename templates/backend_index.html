@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="static/codemirror/codemirror.css">
 <script type="text/javascript" src="static/codemirror/codemirror.js"></script>
 <script type="text/javascript" src="static/codemirror/mode/python.js"></script>
+<script type="text/javascript" src="static/codemirror/mode/stex.js"></script>
 
 
 
@@ -422,6 +423,7 @@ $(function() {
                          lineWrapping:true, 
 	                 autoClearEmptyLines:true,
                          gutter: true, 
+	                 mode:"python",
 	                 onFocus:function (cm) { buttons.show(); wcell.parent().sortable({disabled:true}); },
 	                 onBlur:function (cm) { if(hide_buttons) { buttons.hide(); } },
 	                 onGutterClick: function (cm) { wcell.parent().sortable({disabled:false}); },
@@ -438,10 +440,10 @@ $(function() {
         $(stdin.getScrollerElement()).addClass('sagews-worksheet-stdin-scroll');
 
         var stdout = CodeMirror(cell, {
-	    value:opts.stdout, lineWrapping:true, readOnly:true,
+	    value:opts.stdout, lineWrapping:true, readOnly:true, mode:"python",
 	    onFocus:function (cm) { wcell.parent().sortable({disabled:true}); },})
 	var stderr = CodeMirror(cell, {
-	    value:opts.stderr, lineWrapping:true, readOnly:true,
+	    value:opts.stderr, lineWrapping:true, readOnly:true, mode:"python",
 	    onFocus:function (cm) { wcell.parent().sortable({disabled:true}); },});
 	var html = $('<div></div>').append(html)[0];
 
@@ -858,6 +860,7 @@ $(function() {
 	var input = CodeMirror(d[0], {
 	    indentUnit: 4, matchBrackets:true, lineWrapping:true,
 	    gutter:true,
+	    mode:"python",
 	    onFocus: function(cm) { scroll_output_to_bottom(); },
 	    onUpdate:  function(cm) { 
 		var h = input_scroller.height();
@@ -886,6 +889,7 @@ $(function() {
 	var output = CodeMirror(d[0], {
 	    readOnly:false,
 	    lineWrapping:true,
+	    mode:"python",
 	    extraKeys: {
 		'Enter': function(cm) {
 		    var cursor = cm.getCursor();
@@ -1097,10 +1101,16 @@ $(function() {
 
 	var buttons = d.children('button');
 	$(buttons[0]).button({icons:{primary:'ui-icon-disk'}}).click(function(event, ui) { save_file();});
+	
+	var ext = filename.split('.').pop(), mode = 'python';
+	if (ext === 'tex') {
+	    mode = 'stex';
+	}
 
 	/* append a CodeMirror to d. */
 	var cm = CodeMirror(d[0], {
 	    lineNumbers: true, 
+	    mode:mode,
 	    indentUnit: 4, 
 	    matchBrackets:true,
 	    lineWrapping:true, 
@@ -1180,7 +1190,7 @@ $(function() {
 
 /* TESTING STUFF */
 append_new_worksheet_tab();
-append_new_codeeditor_tab('c.pyx');    
+/* append_new_codeeditor_tab('c.pyx');  */
 newtab_file_focus_hack();
 append_new_cmdline_tab();
 

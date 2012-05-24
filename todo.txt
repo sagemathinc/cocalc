@@ -1,5 +1,9 @@
 today:
 
+ [ ] sortable on command line so that input box can be on top or bottom
+ [ ] size of opened file incorrect initially
+ [ ] worksheet -- the floating button bar should just be on the top
+
  [ ] redo execute_blocking to support sending json message back (so not using stdio at all)
 
  [ ] Implement documents + file browser, mapped to a directory
