@@ -334,9 +334,7 @@ Plan.
 
 Standalone APPS:
 
-  * PhoneGAP
-  * Fluid: http://fluidapp.com/ (desktop)
-  * Prism: https://mozillalabs.com/en-US/projects/prism/
+  * PhoneGAP -- https://build.phonegap.com
 
 [ ] I need to look carefully at RStudio, since that is another model
     for what to support as a web-based UI.
