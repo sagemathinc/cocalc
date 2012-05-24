@@ -857,6 +857,35 @@ $(function() {
 	);
 
 	var last_height = 0;
+	var output = CodeMirror(d[0], {
+	    readOnly:false,
+	    lineWrapping:true,
+	    mode:"python",
+	    extraKeys: {
+		'Enter': function(cm) {
+		    var cursor = cm.getCursor();
+		    var i = cursor.line;
+		    while (i >= 0 && cm.getLine(i).slice(0,5) != 'sage:') {
+			i -= 1;
+		    }
+		    if (i==-1) { return; }
+		    var code = cm.getLine(i);
+		    cm.removeLine(i);
+		    code = code.slice(6, code.length);
+		    while (i+1 < cm.lineCount() && cm.getLine(i).slice(0,3) === '...') {
+			code += '\n' + cm.getLine(i).slice(6, cm.getLine(i).length);
+			cm.removeLine(i);
+		    }
+		    while (i+1 < cm.lineCount() && cm.getLine(i).slice(0,5) != 'sage:') {
+			cm.removeLine(i);
+		    }
+		    push_input_to_history();
+		    input.setValue(code);
+		    execute();
+		}
+	    }
+	});
+
 	var input = CodeMirror(d[0], {
 	    indentUnit: 4, matchBrackets:true, lineWrapping:true,
 	    gutter:true,
@@ -886,35 +915,6 @@ $(function() {
 		}, 
 	    }
 	});
-	var output = CodeMirror(d[0], {
-	    readOnly:false,
-	    lineWrapping:true,
-	    mode:"python",
-	    extraKeys: {
-		'Enter': function(cm) {
-		    var cursor = cm.getCursor();
-		    var i = cursor.line;
-		    while (i >= 0 && cm.getLine(i).slice(0,5) != 'sage:') {
-			i -= 1;
-		    }
-		    if (i==-1) { return; }
-		    var code = cm.getLine(i);
-		    cm.removeLine(i);
-		    code = code.slice(6, code.length);
-		    while (i+1 < cm.lineCount() && cm.getLine(i).slice(0,3) === '...') {
-			code += '\n' + cm.getLine(i).slice(6, cm.getLine(i).length);
-			cm.removeLine(i);
-		    }
-		    while (i+1 < cm.lineCount() && cm.getLine(i).slice(0,5) != 'sage:') {
-			cm.removeLine(i);
-		    }
-		    push_input_to_history();
-		    input.setValue(code);
-		    execute();
-		}
-	    }
-	});
-	output.setValue('sage: ');
 
 	var input_scroller = $(input.getScrollerElement());
 	var output_scroller = $(output.getScrollerElement());
@@ -950,10 +950,13 @@ $(function() {
 	    var wrapped = output.getOption('lineWrapping');
 	    if(wrapped) {
 		output.setOption('lineWrapping', false);
-		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w', secondary:'ui-icon-transfer-e-w'}});
+		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w', secondary:'ui-icon-transfer-e-w'},
+				   label:'Wrap'});
 	    } else {
 		output.setOption('lineWrapping', true);
-		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w'}});
+		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w'},
+				   label:'Unwrap'});
+		
 	    }
 	    fix_size();
 	}
@@ -1063,7 +1066,7 @@ $(function() {
 	    'done': function() { 
 		$(input.getGutterElement()).activity(false);
 
-		cm_append_to(output, 'sage: ')
+//		cm_append_to(output, 'sage: ')
 
 		var s = (walltime() - d.data('start_time')) + ' ms';  /* Refactor this -- it is also done for worksheet. */
 		$('#time')[0].innerHTML = s;
