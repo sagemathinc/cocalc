@@ -1,6 +1,7 @@
 todo:
 
 BUGS:
+ [ ] load(file with . in path breaks)
  [ ] size of opened file incorrect initially
  [ ] worksheet -- the floating button bar should just be on the top
  [ ] autosave for opened files
@@ -14,6 +15,13 @@ BUGS:
  [ ] IE7 -- codemirror doesn't work at all, I think.
 
 FEATURES/IDEAS:
+ [ ] http://stackoverflow.com/questions/3780511/reconnection-of-client-when-server-reboots-in-websocket
+ [ ] make the "worksheet" mode I currently have also the exact awesome
+     history from the command line.    Use shift-arrows to move to
+     previous cells.
+ [ ] make background of worksheet div white and visibly so.  Otherwise
+     it looks yellow which is funny.
+ [ ] connected display should mouseover to give the protocol used. 
  [ ] escape doesn't close dialog for opening new file
  [ ] shouldn't bother submitting exec if not connected.
  [ ] status -- sort variable names should not be case sensitive
