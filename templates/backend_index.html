@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+<title>Sage Workspace</title>
 
 <!-- jquery -->
 <script type="text/javascript" src="static/jquery/jquery.min.js"></script>
@@ -133,13 +134,14 @@
       .sagews-worksheet {
 	  height:15em;
 	  overflow:auto;
-	  padding:1;
+	  padding:1px;
 	  border: 3px solid #000;
       }
 
 
       .sagews-cmdline-input {
-	  border: 1px solid #00f;
+	  border: 2px solid #00f;
+          padding: 2px;
       }
 
       .sagews-cmdline-input-scroll {
@@ -153,6 +155,7 @@
 
       .sagews-cmdline-output {
 	  border: 1px solid #000;
+          padding:5px;
       }
 
       .sagews-cmdline-output-scroll {
@@ -935,7 +938,7 @@ $(function() {
 
 	function fix_size() {
 	    var n = input_scroller.height();
-	    output_scroller.height(d.height()-n-buttons.height());
+	    output_scroller.height(d.height() - n - 1.5*buttons.height());
 	    output.refresh();
 	    scroll_output_to_bottom();
 	    input.setMarker(0, 'sage:');
@@ -955,7 +958,7 @@ $(function() {
 	    } else {
 		output.setOption('lineWrapping', true);
 		wrap_button.button({icons:{primary:'ui-icon-transferthick-e-w'},
-				   label:'Unwrap'});
+				   label:'Wrap'});
 		
 	    }
 	    fix_size();
@@ -966,12 +969,11 @@ $(function() {
 	var history = [];
 	var history_cursor = -1, last_history_cursor = -1;
 
-/*	function clear_output() {
+	function clear_output() {
 	    output.setValue('');
-//	    output.setValue('sage: ' + history.join('\nsage: '));
-	    focus();
+	    output.setValue('sage: ' + history.join('\nsage: '));
 	}
-*/
+	clear_output();
 
 	function history_up_search() {
 	    
@@ -1066,7 +1068,7 @@ $(function() {
 	    'done': function() { 
 		$(input.getGutterElement()).activity(false);
 
-//		cm_append_to(output, 'sage: ')
+		cm_append_to(output, 'sage: ')
 
 		var s = (walltime() - d.data('start_time')) + ' ms';  /* Refactor this -- it is also done for worksheet. */
 		$('#time')[0].innerHTML = s;

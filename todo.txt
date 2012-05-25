@@ -15,6 +15,8 @@ BUGS:
  [ ] IE7 -- codemirror doesn't work at all, I think.
 
 FEATURES/IDEAS:
+ [ ] the menus here look nice (new notebook idea): https://mail.google.com/mail/u/0/?shva=1#inbox/137850f7b986223e
+ [ ] change wrap/unwrap button to a checkbox
  [ ] http://stackoverflow.com/questions/3780511/reconnection-of-client-when-server-reboots-in-websocket
  [ ] make the "worksheet" mode I currently have also the exact awesome
      history from the command line.    Use shift-arrows to move to
