@@ -847,6 +847,13 @@ $(function() {
 	    t.tabs('select', index);
 	}});
     });
+
+    $('#interrupt-button').button().click(function(event, ui) {
+	var pid = $('#pid').val();
+	console.log("interrupt process " + pid);
+	var url = "http://localhost:5000/send_signal/" + pid + "/2"
+	$.get(url);
+    });
 				      
     function CommandLine(id, filename) {
 	var d = $('#cmdline-template').clone().show().attr('id', id);
@@ -1223,6 +1230,8 @@ append_new_cmdline_tab();
 <span><button id="new-worksheet-button">Worksheet</button></span>
 <span><button id="new-file-button">Open...</button></span>
 <span><button id="rename-button">Rename</button></span>
+<span><button id="interrupt-button">Interrupt</button></span>
+<input id="pid" size=60>
 <span id="socket-status" class="sagews-socket sagews-socket-disconnected"><div id="socket-status-text"></div><div id="socket-status-spinner"></div></span>
 </div>
 
@@ -1266,6 +1275,7 @@ File Types:
 <div id="footer-bar">
 <font size=-3>Last Time: <span id="time">0 ms</span></font>
 </div>
+
 </body>
 </html>
 

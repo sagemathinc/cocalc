@@ -9,6 +9,7 @@ import json, logging, os, shutil, signal, string, StringIO, sys, tempfile, time,
 sys.path.append('.')
 
 from tornado import web
+
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
 FLUSH_SIZE = 8092; FLUSH_INTERVAL = 0.1
@@ -507,22 +508,29 @@ def _load(filename):
 namespace['load'] = _load
 sage.all.load = _load
     
-
 def run(port, address, debug):
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
     router = TornadioRouter(ExecuteConnection)
-    SocketServer(web.Application(
-        router.apply_routes([(r"/", IndexHandler),
-                             (r"/static/(.*)", web.StaticFileHandler,
-                              {'path':os.path.join(ROOT ,'static')}),
-                             ]),
-        flash_policy_port = 843,
-        flash_policy_file = os.path.join(ROOT, 'flashpolicy.xml'),
-        socket_io_port = port,
-        socket_io_address = address, 
-        debug=debug
-    ))
+    ss = SocketServer(web.Application(
+                       router.apply_routes([(r"/", IndexHandler),
+                                            (r"/static/(.*)", web.StaticFileHandler,
+                                             {'path':os.path.join(ROOT ,'static')}),
+                                            ]),
+                       flash_policy_port = 843,
+                       flash_policy_file = os.path.join(ROOT, 'flashpolicy.xml'),
+                       socket_io_port = port,
+                       socket_io_address = address, 
+                       debug=debug),
+              auto_start = False)
+
+    # We do auto_start=False above and the following loop, so that SIGINT interrupts from
+    # the user doesn't kill the process.
+    while True:
+        try:
+            ss.io_loop.start()
+        except:
+            pass
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

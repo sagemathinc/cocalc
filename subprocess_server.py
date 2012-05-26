@@ -105,7 +105,8 @@ def delete_execpath(pid):
     path = processes[pid].execpath
     if os.path.exists(path):
         try:
-            shutil.rmtree(path)
+            print "TODO -- *NOT* doing shutil.rmtree"
+            #shutil.rmtree(path)
         except OSError:
             pass
 
@@ -166,9 +167,11 @@ def close_all_processes():
 
 # the HTTP server is served using flask:
 from flask import Flask, jsonify, request
+from misc_flask import crossdomain
 app = Flask(__name__)
 
 @app.route('/')
+@crossdomain('*')
 def root():
     """
     Root URL, which returns JSON status of the server.
@@ -184,6 +187,7 @@ def root():
     return jsonify({'status':'ok'})
 
 @app.route('/popen')
+@crossdomain('*')
 def popen():
     """
     Open a new subprocess where the command is defined by a GET parameter.
@@ -217,6 +221,7 @@ def popen():
 
     
 @app.route('/close/<int:pid>')
+@crossdomain('*')
 def close(pid):
     """
     Close the session with given pid, killing the session process and
@@ -245,6 +250,7 @@ def close(pid):
     return jsonify({'status':'ok'})
 
 @app.route('/send_signal/<int:pid>/<int:sig>')
+@crossdomain('*')
 def send_signal(pid, sig):
     """
     Send sig signal to the process with pid.
@@ -279,6 +285,7 @@ def send_signal(pid, sig):
         return jsonify({'status':'error', 'mesg':str(err)})
 
 @app.route('/exitcode/<int:pid>')
+@crossdomain('*')
 def exitcode(pid):
     """
     INPUT:
