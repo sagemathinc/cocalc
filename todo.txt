@@ -15,6 +15,8 @@ BUGS:
  [ ] IE7 -- codemirror doesn't work at all, I think.
 
 FEATURES/IDEAS:
+ [ ] with current model, after 10 seconds of a hard calculation, suddenly we see
+     "connecting..." and a red notification, of course.  worrisome. 
  [ ] the menus here look nice (new notebook idea): https://mail.google.com/mail/u/0/?shva=1#inbox/137850f7b986223e
  [ ] change wrap/unwrap button to a checkbox
  [ ] http://stackoverflow.com/questions/3780511/reconnection-of-client-when-server-reboots-in-websocket
