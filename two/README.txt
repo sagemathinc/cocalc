@@ -18,13 +18,13 @@ LICENSE/COPYRIGHT:
 Architecture
 ------------
 
-   * Frontend (frontend.py) -- user management, and longterm storage
-     of all data associated to workspaces.  This is implemented using
-     flask and can be run deployed on AppEngine or run as a standard
-     flask WSGI application that uses SQLalchemy for the data store.
-     This is a full AJAX application that will serve only one page and
-     use Javascript for all page changes (to be mobile friendly, etc.).
-     This will not use templating. 
+   * Frontend (frontend.py, frontend_model.py) -- user management, and
+     longterm storage of all data associated to workspaces.  This is
+     implemented using flask and can be run deployed on AppEngine or
+     run as a standard flask WSGI application that uses SQLalchemy for
+     the data store.  This is a full AJAX application that will serve
+     only one page and use Javascript for all page changes (to be
+     mobile friendly, etc.).  This will not use templating.
 
    * Backend (backend.py) -- this *is* the Python process the user is
      interacting with, and it is *also* the socket.io server.  This
@@ -87,7 +87,34 @@ Phase 2
    * Matlab-style IDE
 
 
-   
+Frontend Data Model
+-------------------
+
+Table: User
+Columns: user_id, username
+
+Table: UserSetting
+Columns: user_id, property, value
+
+Table: Password
+Columns: user_id, password_hash
+
+Table: Document
+Columns: document_id, name, type, location, users
+
+Table: DocumentUser
+Columns: document_id, user_id, user_type ('share', 'owner', 'readonly')
+
+Table: Resource
+Columns: resource_id, url, memory, speed, maxtime5
+
+Table: ResourceStatus
+Columns: resource_id, datetime, status
+
+Table: ResourceAllocation
+Columns: resource_id, datetime, user_id
+
+
      
 
 

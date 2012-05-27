@@ -4,6 +4,13 @@ TODO:
 
       [ ] write frontend.py server (flask + SQLalchemy version)
 
+          [x] design an extensible data model that is simple enough to implement but
+              powerful enough to be interesting and later extend to full
+          [ ] implement sqlalchemy database, copying from my old frontend.py code
+          [ ] design a client that works with the data model
+          [ ] implement desktop client (not polished)
+          [ ] implement mobile client (not polished)
+
       [ ] write static/sagews/desktop/frontend
 
       [ ] write static/sagews/mobile/frontend
