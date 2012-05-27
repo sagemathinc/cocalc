@@ -1,18 +1,18 @@
 """
-Subprocess server
+Process
 
-The subprocess server launches, signals, and cleans up after
-subprocesses.
+This launches, signals, and cleans up after subprocesses.
 
-This is a not-too-scalable HTTP server.  It must be served as a
-*single process*, though it could be multithreaded, since it is the
-parent of several children processes.  There is nothing special about
-the subprocesses that are popen'd having anything to do with Python.
+This is implemented as a not-too-scalable HTTP server.  It must be
+served as a *single process*, though it could be multithreaded, since
+it is the parent of several children processes.  There is nothing
+special about the subprocesses that are popen'd having anything to do
+with Python.
 """
 
 import os, shlex, shutil, signal, subprocess, sys, tempfile, time
 
-from misc import is_temp_directory, get, ConnectionError
+from misc import is_temp_directory, get, ConnectionError, URLError
 
 class Process(object):
     """
@@ -105,8 +105,7 @@ def delete_execpath(pid):
     path = processes[pid].execpath
     if os.path.exists(path):
         try:
-            print "TODO -- *NOT* doing shutil.rmtree"
-            #shutil.rmtree(path)
+            shutil.rmtree(path)
         except OSError:
             pass
 
@@ -361,7 +360,7 @@ class Daemon(object):
             try:
                 get('http://localhost:%s'%port)
                 break
-            except ConnectionError:
+            except (ConnectionError, URLError):
                 time.sleep(0.05)
 
     def __repr__(self):

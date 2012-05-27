@@ -50,17 +50,6 @@ if __name__ == '__main__':
             mods = [x.rstrip('.py') for x in sys.argv[2:]] #TODO: not how rstrip works!
             modules = [x for x in modules if x.__name__ in mods]
         doctest_modules(modules, verbose = '-v' in sys.argv)
-
-##         for modname in sys.argv[2:]:
-##             if not modname.startswith('-'):
-##                 if modname.endswith('.py'):
-##                     modname = modname[:-3]
-##                 cmd = "python -c 'import doctest, %s; doctest.testmod(%s, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS, verbose=%s)'"%(modname, modname, '-v' in sys.argv)
-##                 print cmd
-##                 import subprocess
-##                 import shlex
-##                 subprocess.Popen(shlex.split(cmd))
-##                 #os.system(cmd)
     else:
         os.system('py.test %s'%(' '.join(sys.argv[1:])))
             
