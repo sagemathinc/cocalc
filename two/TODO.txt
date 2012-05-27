@@ -1,0 +1,23 @@
+TODO for implementing everything.
+
+ [ ] Test: get process.py to doctest (possibly explicitly from command line)
+
+ [ ] Test: create file test.py that:
+      (1) when run with no args, runs all test suites
+      (2) when run with args, tests only those modules
+
+ [ ] write Frontend
+
+      [ ] write frontend.py server (flask + SQLalchemy version)
+
+      [ ] write static/sagews/desktop/frontend
+
+      [ ] write static/sagews/mobile/frontend
+
+ [ ] write Backend
+  
+      [ ] take a lot of code from ../backend2.py
+
+ [ ] write ProcessSpawner
+  
+  
