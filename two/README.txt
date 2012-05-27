@@ -27,9 +27,11 @@ Architecture
      This will not use templating. 
 
    * Backend (backend.py) -- this *is* the Python process the user is
-     interacting with, and it is also the socket.io server.  This
+     interacting with, and it is *also* the socket.io server.  This
      design enables tight fast interaction between the client and this
-     process.
+     process.  It's also amazingly flexible and powerful taking this
+     approach.  (It's conceivable we may have to change to two
+     processes and named pipes, but hopefully not.)
 
    * ProcessSpawner (process_spawner.py) -- Ensures that a Process is
      running for each contributing user on a contributing VM.  When a
@@ -67,6 +69,25 @@ Architecture
      This also uses statics/sagews/frontend.js.
      
  
+Document Types
+--------------
+
+Phase 1
+  
+   * Command line
+
+   * Worksheet -- somewhat similar to existing Sage worksheets, but with heierarchy.
+
+   * Presentation -- maybe based on deck.js (http://imakewebthings.com/deck.js/)
+
+Phase 2
+  
+   * Mathematica-style worksheet
+ 
+   * Matlab-style IDE
+
+
+   
      
 
 

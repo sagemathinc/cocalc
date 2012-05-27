@@ -234,7 +234,6 @@ def close(pid):
         {u'status': u'ok', u'pid': ..., u'execpath': u'...tmp...'}
         >>> os.path.isdir(s['execpath'])
         True
-        >>> time.sleep(1)
         >>> print get('http://localhost:5100/close/%s'%s['pid'], timeout=10)
         {
           "status": "ok"
@@ -334,7 +333,7 @@ class Daemon(object):
             '...'
         """
         if pidfile is None:
-            self._pidfile = '%s-%s.pid'%(__name__, port)
+            self._pidfile = '.%s-%s.pid'%(__name__, port)
         else:
             self._pidfile = pidfile
         if os.path.exists(self._pidfile):

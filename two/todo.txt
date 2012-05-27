@@ -1,10 +1,4 @@
-TODO for implementing everything.
-
- [ ] Test: get process.py to doctest (possibly explicitly from command line)
-
- [ ] Test: create file test.py that:
-      (1) when run with no args, runs all test suites
-      (2) when run with args, tests only those modules
+TODO:
 
  [ ] write Frontend
 
@@ -19,5 +13,14 @@ TODO for implementing everything.
       [ ] take a lot of code from ../backend2.py
 
  [ ] write ProcessSpawner
+
+DONE:  
   
-  
+ [x] Test: get process.py to doctest (possibly explicitly from command line)
+
+ [x] Test: create file test.py that:
+      (1) when run with no args, runs all test suites
+      (2) when run with args, tests only those modules
+
+ [x] store process-port.pid file somewhere else.
+
