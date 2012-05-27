@@ -427,7 +427,7 @@ $(function() {
 	                 autoClearEmptyLines:true,
                          gutter: true, 
 	                 mode:"python",
-	                 onFocus:function (cm) { buttons.show(); wcell.parent().sortable({disabled:true}); },
+	                 onFocus:function (cm) { /*buttons.show();*/ wcell.parent().sortable({disabled:true}); },
 	                 onBlur:function (cm) { if(hide_buttons) { buttons.hide(); } },
 	                 onGutterClick: function (cm) { wcell.parent().sortable({disabled:false}); },
                          extraKeys:{
