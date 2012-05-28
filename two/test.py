@@ -8,35 +8,50 @@
 #######################################################################
 
 
-import argparse, os, sys
+import argparse, os, sys, time
 from doctest import testmod, NORMALIZE_WHITESPACE, ELLIPSIS
 
-def test_process(verbose=False):
+verbose = False
+
+def test_process():
     import process
-    return testmod(process, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)[0]
+    return testmod(process, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
+
+def test_frontend_model_sql():
+    import frontend_model_sql
+    return testmod(frontend_model_sql,
+                   optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run tests.")
     parser.add_argument('--verbose', dest='verbose', default='False',
                         help="run tests verbosely (default: False)")
-    parser.add_argument('--modules', dest='modules', default='process',
+    parser.add_argument('--modules', dest='modules', default=None,
                         help="modules to test (comma separated without spaces)")
 
     args = parser.parse_args()
-
     verbose = eval(args.verbose)
-    modules = args.modules.split(',')
+
+    if args.modules is None:
+        modules = [x[5:] for x in globals().keys() if x.startswith('test_')]
+    else:
+        modules = args.modules.split(',')
 
     failed_modules = []
 
     for name in modules:
         fname = 'test_' + name
-        print "Testing module '%s'..."%name 
         if fname not in globals():
             failed_modules.append((name, "No module '%s'"%name))
         else:
             if os.fork() == 0:
-                fail_count = globals()[fname](verbose=verbose)
+                t = time.time()
+                sys.stdout.write("Testing %s... "%name)
+                sys.stdout.flush()
+                fail_count, num_tests = globals()[fname]()
+                sys.stdout.write(" (%.1f seconds to run %s tests in %s)\n"%(time.time()-t, num_tests, name))
+                sys.stdout.flush()
                 # Use the exit code to return the number of failures.
                 sys.exit(fail_count)
             else:
