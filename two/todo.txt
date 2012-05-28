@@ -6,7 +6,7 @@ TODO:
 
           [x] design an extensible data model that is simple enough to implement but
               powerful enough to be interesting and later extend to full
-          [ ] implement sqlalchemy database, copying from my old frontend.py code
+          [x] implement sqlalchemy database, copying from my old frontend.py code
           [ ] design a client that works with the data model
           [ ] implement desktop client (not polished)
           [ ] implement mobile client (not polished)
