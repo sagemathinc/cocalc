@@ -1,4 +1,9 @@
 TODO:
+  
+ [ ] properly spoof stdout/stderr.  This is done right in 
+class SageSpoofOut(SageObject): that is in 
+  http://trac.sagemath.org/sage_trac/attachment/ticket/12415/12415_inprogress.patch
+ and I've copied to spoof.txt in this directory temporarily.
 
  [ ] write Frontend
 
