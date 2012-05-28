@@ -91,28 +91,20 @@ Frontend Data Model
 -------------------
 
 Table: User
-Columns: user_id, username
+Columns: id, name, passwd_hash
 
 Table: UserSetting
-Columns: user_id, property, value
+Columns: user_id, prop, value, user
 
-Table: Password
-Columns: user_id, password_hash
+Table: Workspace
+Columns: id, name, type, location, content (temporary)
 
-Table: Document
-Columns: document_id, name, type, location, users
-
-Table: DocumentUser
-Columns: document_id, user_id, user_type ('share', 'owner', 'readonly')
+Table: WorkspaceUser
+Columns: workspace_id, user_id, type (e.g. 'share', 'owner', 'readonly')
 
 Table: Resource
-Columns: resource_id, url, memory, speed, maxtime5
+Columns: id, url, status, status_time, alloc_time, alloc_user_id, alloc_workspace_id
 
-Table: ResourceStatus
-Columns: resource_id, datetime, status
-
-Table: ResourceAllocation
-Columns: resource_id, datetime, user_id
 
 
      
