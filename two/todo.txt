@@ -7,9 +7,10 @@ TODO:
           [x] design an extensible data model that is simple enough to implement but
               powerful enough to be interesting and later extend to full
           [x] implement sqlalchemy database, copying from my old frontend.py code
-          [ ] design a client that works with the data model
-          [ ] implement desktop client (not polished)
-          [ ] implement mobile client (not polished)
+          [ ] design a client/server setup that works with the data model
+          [ ] implement fronend server part of model a bit
+          [ ] implement desktop client (not polished) a bit
+          [ ] implement mobile client (not polished) a bit
 
       [ ] write static/sagews/desktop/frontend
 
