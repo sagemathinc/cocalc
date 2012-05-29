@@ -20,11 +20,13 @@ class Python(object):
         if not p:
             # child
             self._fifo = open(self._fifo_name, 'w+')
-            self._child_runloop()
+            os.dup2(self._fifo.fileno(), sys.stdout.fileno())
+            self._child_runloop0()
         else:
             # parent
             self._child_pid = p
-            self._fifo = os.open(self._fifo_name, os.O_RDONLY|os.O_NONBLOCK)
+            #self._fifo = os.open(self._fifo_name, os.O_RDONLY|os.O_NONBLOCK)
+            self._fifo = os.open(self._fifo_name, os.O_RDONLY)
 
     def _send(self, s, mesg):
         s.send(mesg + chr(0))
@@ -39,6 +41,13 @@ class Python(object):
     def send(self, mesg):
         self._send(self._sp[0], mesg)
 
+    def recv_uds(self):
+        buf = ''
+        while 1:
+            buf = self._recv(self._sp[0])
+            if buf.endswith(chr(0)):
+                return buf[:-1]
+        
     def recv(self):
         buf = ''
         while 1:
@@ -69,15 +78,28 @@ class Python(object):
         except:
             pass
         self._send(self._sp[0], 'quit')
-        os.kill(self._child_pid, signal.SIGTERM)
-        os.wait()
+        try:
+            os.kill(self._child_pid, signal.SIGTERM)
+            os.wait()
+        except OSError:
+            pass
     
-    def _child_runloop(self):
+    def _child_runloop0(self):
         while 1:
             mesg = self._recv(self._sp[1])
             if mesg == 'quit':
                 os._exit(0)
-            buf = mesg # TODO: real message format
+            buf = mesg    # TODO: real message format
+            exec compile(buf, '', 'single') in self._namespace
+            self._fifo.write(chr(0))
+            self._fifo.flush()
+            
+    def _child_runloop1(self):
+        while 1:
+            mesg = self._recv(self._sp[1])
+            if mesg == 'quit':
+                os._exit(0)
+            buf = mesg    # TODO: real message format
             streams = sys.stdout, sys.stderr
             try:
                 sys.stdout = StringIO.StringIO()
@@ -88,8 +110,23 @@ class Python(object):
                 out = str(msg)
             finally:
                 sys.stdout, sys.stderr = streams
-                
-            self._fifo.write(out.strip() + chr(0))
+            self._fifo.write(out + chr(0))
             self._fifo.flush()
             
-        
+    def _child_runloop2(self):
+        while 1:
+            mesg = self._recv(self._sp[1])
+            if mesg == 'quit':
+                os._exit(0)
+            buf = mesg    # TODO: real message format
+            streams = sys.stdout, sys.stderr
+            try:
+                sys.stdout = StringIO.StringIO()
+                sys.stderr = StringIO.StringIO()
+                exec compile(buf, '', 'single') in self._namespace
+                out = sys.stderr.getvalue() + sys.stdout.getvalue()
+            except Exception, msg:
+                out = str(msg)
+            finally:
+                sys.stdout, sys.stderr = streams
+            self._send(self._sp[1], out+chr(0))
