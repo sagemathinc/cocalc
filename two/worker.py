@@ -30,24 +30,22 @@ class JSONsocket(object):
 
 
 class OutputStream(object):
-    def __init__(self, f, flush_size=4096, flush_interval=0.1):
+    def __init__(self, f, flush_size=4096, flush_interval=.1):
         self._f = f
         self._buf = ''
-        self._last_flush = 0
         self._flush_size = flush_size
-        self._last_flush_time = time.time()
         self._flush_interval = flush_interval
+        self.reset()
 
-    def getvalue(self):
-        return self._f.getvalue()
+    def reset(self):
+        self._last_flush_time = time.time()
 
     def write(self, output):
         self._buf += output
         t = time.time()
-        if ((len(self._buf) - self._last_flush >= self._flush_size) or
-                            (t - self._last_flush_time >= self._flush_interval)):
+        if ((len(self._buf) >= self._flush_size) or
+                  (t - self._last_flush_time >= self._flush_interval)):
             self.flush()
-            self._last_flush = len(self._buf)
             self._last_flush_time = t
 
     def flush(self):
@@ -168,9 +166,9 @@ class Worker(object):
     def __init__(self, socket_name):
         self._socket_name = socket_name
         self._s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        print "connecting to socket '%s'..."%socket_name  # todo -- use logging module
+        #print "connecting to socket '%s'..."%socket_name  # todo -- use logging module
         self._s.connect(socket_name)
-        print "connected."
+        #print "connected."
         self._b = JSONsocket(self._s)
         self._orig_streams = sys.stdout, sys.stderr
         sys.stdout = OutputStream(lambda m: self._b.send({'status':'running', 'stdout':m}) if m else None)
@@ -192,6 +190,7 @@ class Worker(object):
             for start, stop, block in divide_into_blocks(code):
                 if preparse:
                     block = preparse_code(block)
+                sys.stdout.reset(); sys.stderr.reset()                
                 exec compile(block, '', 'single') in self._namespace
         except:
             #TODO: what if there are no blocks?
@@ -216,31 +215,32 @@ def test_server():
     import tempfile
     #socket_name = tempfile.mktemp()
     socket_name = 'a'
-    print "creating new socket '%s'"%socket_name
+    print "socket_name =", socket_name
     
     try:
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        print "binding to socket"
         s.bind(socket_name)
         s.listen(1)
-        print "listening for connection..."
         conn, addr = s.accept()
         b = JSONsocket(conn)
 
         while 1:
             r = raw_input('sage: ')
-            print "sending work"
             t = time.time()
             #b.send({'cmd':'eval', 'code':r})
-            
             b.send({'cmd':'exec', 'code':r})
             while 1:
                 mesg = b.recv()
-                print mesg
+                #print mesg
+                stdout = mesg.get('stdout',None)
+                stderr = mesg.get('stderr',None)
+                if stdout:
+                    sys.stdout.write(stdout); sys.stdout.flush()
+                if stderr:
+                    sys.stderr.write(stderr); sys.stderr.flush()                    
                 if mesg['status'] != 'running':
                     break
-                
-            #print time.time() - t, len(answer)
+            print time.time() - t
 
     finally:
         try:
