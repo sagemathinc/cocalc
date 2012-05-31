@@ -38,7 +38,14 @@ class IndexHandler(web.RequestHandler):
 
 class LaunchWorkerInstanceHandler(web.RequestHandler):
     def post(self):
-        # use post since it changes state
+        pass
+        # todo -- verify that user who can launch process is logged in
+        
+        # launch process
+        
+        # return id number for process
+        
+        
 
 class SocketIO(SocketConnection):
     clients = set()
