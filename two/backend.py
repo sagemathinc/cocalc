@@ -25,6 +25,7 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 """
 
+import argparse
 
 from tornado import web
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -34,6 +35,10 @@ import logging
 class IndexHandler(web.RequestHandler):
     def get(self):
         self.write("Backend Server")
+
+class LaunchWorkerInstanceHandler(web.RequestHandler):
+    def post(self):
+        # use post since it changes state
 
 class SocketIO(SocketConnection):
     clients = set()
@@ -47,15 +52,37 @@ router = TornadioRouter(SocketIO)
 routes = [(r"/", IndexHandler),
           (r"/static/(.*)", web.StaticFileHandler)]
 
-def run(port, address, debug):
+def run(port, address, debug, secure):
+    print "Launching backend%s: http%s://%s:%s"%(
+        ' in debug mode' if debug else ' in production mode',
+        's' if secure else '',
+        address if address else '*', port)
+
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    if secure:  # todo
+        raise NotImplementedError
 
     app = web.Application(router.apply_routes(routes),
                 socket_io_port=port, socket_io_address=address, debug=debug)
 
     SocketServer(app, auto_start=True)
         
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Run backend server instance")
+
+    parser.add_argument("-p", dest='port', type=int, default=8080,
+                        help="port the server listens on (default: 8080)")
+    parser.add_argument("-a", dest="address", type=str, default="",
+                        help="address the server listens on (default: '')")
+    parser.add_argument("-d", dest="debug", action='store_const', const=True,
+                        help="debug mode (default: False)", default=False)
+    parser.add_argument("-s", dest="secure", action='store_const', const=True,
+                        help="SSL secure mode (default: False)", default=False)
+    
+    args = parser.parse_args()
+    run(args.port, args.address, args.debug, args.secure)
 
 
 
