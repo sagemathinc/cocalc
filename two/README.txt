@@ -19,35 +19,29 @@ Architecture
 ------------
 
    * Frontend (frontend.py, frontend_model.py) -- user management, and
-     longterm storage of all data associated to workspaces.  This is
-     implemented using flask and can be run deployed on AppEngine or
-     run as a standard flask WSGI application that uses SQLalchemy for
-     the data store.  This is a full AJAX application that will serve
-     only one page and use Javascript for all page changes (to be
-     mobile friendly, etc.).  This will not use templating.
+     longterm storage of data associated to workspaces.  This is
+     implemented using Tornado and can be run deployed on AppEngine or
+     run as a standard Tornado application that uses SQLalchemy (on
+     SQLite for testing and MySQL or something for deployment) for the
+     data store.  This app it serves is an AJAX application that will
+     serve only one page and use Javascript for all page changes (to
+     be mobile friendly, etc.).  
 
-   * Backend (backend.py) -- this *is* the Python process the user is
-     interacting with, and it is *also* the socket.io server.  This
-     design enables tight fast interaction between the client and this
-     process.  It's also amazingly flexible and powerful taking this
-     approach.  (It's conceivable we may have to change to two
-     processes and named pipes, but hopefully not.)
+   * Backend (backend.py; one running on each compute machine) -- this
+     is a tornado server that:
+        - serves static/templated content for ajax app
+        - uses tornadio2 to serve socket.io for the ajax app
+          (*everything* except the initial download of static content 
+           goes via socket.io for greater efficiency!)
+        - talks using torando's non-blocking socket to a local UD
+          socket running worker.
+        - can somehow spawn jailed worker processes 
+        - the other end of the UD socket is the worker describe below
+        - can report usage/load statistics to frontend
 
-   * ProcessSpawner (process_spawner.py) -- Ensures that a Process is
-     running for each contributing user on a contributing VM.  When a
-     Process stops for any reason, it starts another.  It can also
-     clean up.  This will use setuid in some clever way.
-     
-   * Process (process.py) -- Spawns, SIGINT's, and SIGKILLS backends,
-     all via a web interface (implemented using flask, and served
-     using the builtin threaded flask server, since it is doesn't need
-     to scale).  There will be exactly one running Process per UNIX
-     user on the VM.  The Process will contact the Frontend (via POST)
-     and report its existence and availability when it first starts.
-     The Frontend may contact this Process later to confirm
-     availability, check on load, etc.  (The Process does *not*
-     periodically report on its status to Frontend, since that would
-     not scale!)
+   * Worker (many running on each computer machine) -- a chroot jailed
+     (at least for deployment) Python process that talks via a UD
+     socket to the backend.
 
    * Desktop Backend Client (static/sagews/desktop/backend.[js,html,css]) --
      Backend client, which uses socket.io to talk with Backend, and
@@ -110,3 +104,6 @@ Columns: id, url, status, status_time, alloc_time, alloc_user_id, alloc_workspac
      
 
 
+Ideas:
+
+  Socket io talk with discussion of pickling sockets (at 26 min): http://www.youtube.com/watch?v=3BYN3ouwkRA
