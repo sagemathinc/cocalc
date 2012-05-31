@@ -1,19 +1,37 @@
 """
 Backend Worker
 
+Copyright: This file probably has to be GPL'd and made part of Sage,
+because it imports Sage to do preparsing.
 
+Having an official-in-Sage socket protocol actually makes a lot of
+sense anyways. 
 """
 
 import argparse, os, simplejson, socket, string, sys, traceback
 
 import time
 
+from backend_mesg import MESG
+
+######################################################################    
+    
 class JSONsocket(object):
-    def __init__(self, s, bufsize=4096, sep='\0'):
+    """
+    This classes send messages back and forth over a socket using JSON
+    encoding.
+
+    NOTES: The guide http://docs.python.org/howto/sockets.html#socket-howto
+    is against using a terminator character for messages, but we are only
+    using JSON, so it is safe to separate messages with the null character
+    '\0', since this character will not appear in any properly encoded JSON
+    message. 
+    """
+    def __init__(self, s, bufsize=8192):
         self._s = s
         self._data = ''
         self._bufsize = bufsize
-        self._sep = sep
+        self._sep = '\0'
 
     def recv(self):
         while True:
@@ -171,8 +189,10 @@ class Worker(object):
         #print "connected."
         self._b = JSONsocket(self._s)
         self._orig_streams = sys.stdout, sys.stderr
-        sys.stdout = OutputStream(lambda m: self._b.send({'status':'running', 'stdout':m}) if m else None)
-        sys.stderr = OutputStream(lambda m: self._b.send({'status':'running', 'stderr':m}) if m else None)
+        sys.stdout = OutputStream(lambda m: self._b.send(
+            {MESG.status:MESG.running, MESG.stdout:m}) if m else None)
+        sys.stderr = OutputStream(lambda m: self._b.send(
+            {MESG.status:MESG.running, MESG.stderr:m}) if m else None)
         self._namespace = {}
         exec "from sage.all_cmdline import *" in self._namespace
 
@@ -181,9 +201,9 @@ class Worker(object):
             if preparse:
                 expr = preparse_code(expr)
             r = str(eval(expr))
-            self._b.send({'status':'done', 'result':r})
+            self._b.send({MESG.status:MESG.done, MESG.result:r})
         except Exception, msg:
-            self._b.send({'status':'error', 'exception':str(msg)})
+            self._b.send({MESG.status:MESG.error, MESG.exception:str(msg)})
 
     def do_exec(self, code, preparse):
         try:
@@ -198,17 +218,17 @@ class Worker(object):
             traceback.print_exc()
         finally:
             sys.stdout.flush(); sys.stderr.flush()
-            self._b.send({'status':'done'})
+            self._b.send({MESG.status:MESG.done})
 
     def run(self):
         data = ''
         while True:
             mesg = self._b.recv()
-            cmd = mesg['cmd']
-            if cmd == 'eval':
-                self.do_eval(mesg['code'], mesg.get('preparse', True))
-            elif cmd == 'exec':
-                self.do_exec(mesg['code'], mesg.get('preparse', True))
+            cmd = mesg[MESG.cmd]
+            if cmd == MESG.evaluate:
+                self.do_eval(mesg[MESG.code], mesg.get(MESG.preparse, True))
+            elif cmd == MESG.execute:
+                self.do_exec(mesg[MESG.code], mesg.get(MESG.preparse, True))
                 
 
 def test_server():
@@ -225,20 +245,18 @@ def test_server():
         b = JSONsocket(conn)
 
         while 1:
-            r = raw_input('sage: ')
+            r = raw_input('sagews: ')
             t = time.time()
-            #b.send({'cmd':'eval', 'code':r})
-            b.send({'cmd':'exec', 'code':r})
+            b.send({MESG.cmd:MESG.execute, MESG.code:r})
             while 1:
                 mesg = b.recv()
-                #print mesg
-                stdout = mesg.get('stdout',None)
-                stderr = mesg.get('stderr',None)
+                stdout = mesg.get(MESG.stdout,None)
+                stderr = mesg.get(MESG.stderr,None)
                 if stdout:
                     sys.stdout.write(stdout); sys.stdout.flush()
                 if stderr:
                     sys.stderr.write(stderr); sys.stderr.flush()                    
-                if mesg['status'] != 'running':
+                if mesg[MESG.status] != MESG.running:
                     break
             print time.time() - t
 

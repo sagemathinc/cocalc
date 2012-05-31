@@ -25,12 +25,12 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 """
 
-import argparse
+import argparse, logging, socket, tempfile
 
-from tornado import web
+from tornado import web, iostream
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
-import logging
 
+from backend_mesg import MESG
 
 class IndexHandler(web.RequestHandler):
     def get(self):
@@ -38,13 +38,20 @@ class IndexHandler(web.RequestHandler):
 
 class LaunchWorkerInstanceHandler(web.RequestHandler):
     def post(self):
-        pass
+        # create socket
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
+        #socket_name = tempfile.mktemp()
+        socket_name = 'a'
+        s.bind(socket_name)
+        conn, addr = s.accept()
+        stream = iostream.IOStream(conn)
+        
+        
         # todo -- verify that user who can launch process is logged in
         
-        # launch process
+        # launch process pointed at new socket
         
         # return id number for process
-        
         
 
 class SocketIO(SocketConnection):
