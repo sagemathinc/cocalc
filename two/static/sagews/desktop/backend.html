@@ -29,10 +29,20 @@
 <!-- desktop client specific sagews backend javscript -->
 <script type="text/javascript" src="static/sagews/desktop/backend.js"></script>
 
+<script type="text/javascript">$(function() {
+
+$('#test').button().click(function() {
+    test(function(result) { $('#report').html(result + 'ms'); });
+});
+
+})</script>
 
 </head>
 
 <body>
+
+<button id="test">Test!</button>
+<div id="report"></div>
 
 </body>
 </html>

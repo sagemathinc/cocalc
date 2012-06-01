@@ -38,26 +38,25 @@ class IndexHandler(web.RequestHandler):
         self.render("static/sagews/desktop/backend.html")
 
 #############################################################
-# Worker sessions
+# Sage sessions
 #############################################################
-next_worker_session_id = 0
-worker_sessions = {}
+next_sage_session_id = 0
+sage_sessions = {}
 
-def new_worker_session():
-    global next_worker_session_id
-    id = next_worker_session_id
-    next_worker_session_id += 1
-    session = WorkerSession(id)
-    worker_sessions[id] = session
+def new_sage_session():
+    global next_sage_session_id
+    id = next_sage_session_id
+    next_sage_session_id += 1
+    session = SageSession(id)
+    sage_sessions[id] = session
     return session
 
-class WorkerSession(object):
+class SageSession(object):
     def __init__(self, id):
         self.id = id
         socket_name = 'a' # TODO
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
         stream = iostream.IOStream(s)
-        worker_sessions.append(stream)
         stream.connect(socket_name)
         self._stream = stream
 
@@ -85,29 +84,28 @@ class SocketIO(SocketConnection):
         """
         Returns a new session id.
         """
-        self.emit('new_worker_session', new_worker_session().id)
+        self.emit('new_session', new_sage_session().id)
 
     @event
     def session_send(self, id, mesg):
         """
-        Send a JSON mesg to the session with given id.
+        Send a JSON mesg to the Sage session with given id.
         Returns {'status':'ok'} or {'status':'error', 'mesg':'...'}.
         """
-        if id not in worker_sessions:
-            return {'status':'error', 'mesg':'invalid session id'}
+        if not isinstance(id, int):
+            return {'status':'error', 'mesg':'session id must be an integer'}
+        if id not in sage_sessions:
+            return {'status':'error', 'mesg':'unknown session id'}
 
-        session = worker_sessions[id]
+        session = sage_sessions[id]
         
         def handle_mesg(mesg):
             # todo -- broadcast semantics, storing state, etc. 
-            self.emit(mesg)  # send message to this client
+            self.emit('recv', mesg)  # send message to this client
             if mesg['status'] != 'done':
                 session.recv(handle_mesg)
         
-        def start_recv():
-            session.recv(handle_mesg)
-            
-        session.send(mesg, start_recv)
+        session.send(mesg, lambda: session.recv(handle_mesg))
 
     
         
