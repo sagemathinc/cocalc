@@ -25,7 +25,7 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 """
 
-import argparse, logging, simplejson, socket, tempfile
+import argparse, logging, Queue, simplejson, socket, tempfile
 
 from tornado import web, iostream
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -59,15 +59,43 @@ class SageSession(object):
         stream = iostream.IOStream(s)
         stream.connect(socket_name)
         self._stream = stream
+        self._mesg_queue = Queue.Queue()
+        self._receiving = False
 
-    def send(self, mesg, callback=None):
+    def _send(self, mesg, callback=None):
         self._stream.write(simplejson.dumps(mesg) + '\0', callback=callback)
 
-    def recv(self, callback=None):
+    def _recv(self, callback=None):
         self._stream.read_until('\0', lambda s: callback(simplejson.loads(s[:-1])))
 
     def __del__(self):
         self._stream.close()
+
+    def send(self, mesg, sender):
+        self._mesg_queue.put((mesg, sender))
+        self._handle_next_mesg()
+
+    def _handle_next_mesg(self):
+        if self._receiving or self._mesg_queue.empty():
+            return
+        mesg, sender = self._mesg_queue.get()
+        self._receiving = True
+        
+        def handle_message(mesg):
+            sender.emit('recv', mesg)
+            if mesg['status'] == 'done':
+                self._receiving = False
+                # handle another message, if there is one in the queue
+                self._handle_next_mesg()
+            else:
+                # receive next message about this computation
+                self._recv(handle_message)
+                
+        def when_done_sending():
+            self._recv(handle_message)
+            
+        self._send(mesg, when_done_sending)
+        
 
 #############################################################
 # Socket.io server
@@ -97,16 +125,7 @@ class SocketIO(SocketConnection):
         if id not in sage_sessions:
             return {'status':'error', 'mesg':'unknown session id'}
 
-        session = sage_sessions[id]
-        
-        def handle_mesg(mesg):
-            # todo -- broadcast semantics, storing state, etc. 
-            self.emit('recv', mesg)  # send message to this client
-            if mesg['status'] != 'done':
-                session.recv(handle_mesg)
-        
-        session.send(mesg, lambda: session.recv(handle_mesg))
-
+        sage_sessions[id].send(mesg, self)
     
         
 #############################################################

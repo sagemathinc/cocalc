@@ -32,7 +32,7 @@
 <script type="text/javascript">$(function() {
 
 $('#test').button().click(function() {
-    test(function(result) { $('#report').html(result + 'ms'); });
+    test($('#number').val(), function(s) { $('#report').html(s); });
 });
 
 })</script>
@@ -43,6 +43,7 @@ $('#test').button().click(function() {
 
 <button id="test">Test!</button>
 <div id="report"></div>
+<input id="number" value=100>
 
 </body>
 </html>

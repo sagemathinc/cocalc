@@ -215,6 +215,7 @@ class SageSocketServer(object):
         s.listen(5)
         try:
             while 1:
+                print "waiting for connection..."
                 conn, addr = s.accept()
                 print "accepted a new connection."
 
@@ -241,6 +242,7 @@ class SageSocketServer(object):
                     # parent
                     self._children.append(pid)
         finally:
+            print "Cleaning up server..."
             try:
                 try:
                     os.unlink(self._socket_name)
