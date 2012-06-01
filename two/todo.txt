@@ -1,11 +1,11 @@
 TODO:
 
- [ ] switch client server role for worker.py!
+ [x] switch client server role for worker.py!
 
- [ ] properly spoof stdout/stderr.  This is done right in 
-class SageSpoofOut(SageObject): that is in 
-  http://trac.sagemath.org/sage_trac/attachment/ticket/12415/12415_inprogress.patch
- and I've copied to spoof.txt in this directory temporarily.
+ [ ] (not sure I want to do this) properly spoof stdout/stderr.  This
+     is done right in class SageSpoofOut(SageObject): that is in
+     http://trac.sagemath.org/sage_trac/attachment/ticket/12415/12415_inprogress.patch
+     and I've copied to spoof.txt in this directory temporarily.
 
  [ ] write Frontend
 
@@ -15,7 +15,7 @@ class SageSpoofOut(SageObject): that is in
               powerful enough to be interesting and later extend to full
           [x] implement sqlalchemy database, copying from my old frontend.py code
           [ ] design a client/server setup that works with the data model
-          [ ] implement fronend server part of model a bit
+          [ ] implement frontend server part of model a bit
           [ ] implement desktop client (not polished) a bit
           [ ] implement mobile client (not polished) a bit
 
@@ -23,11 +23,23 @@ class SageSpoofOut(SageObject): that is in
 
       [ ] write static/sagews/mobile/frontend
 
- [ ] write Backend
-  
-      [ ] take a lot of code from ../backend2.py
+ [ ] write backend.py
 
- [ ] write ProcessSpawner
+      [x] unix domain sockets client/server using tornado non-blocking sockets
+      [ ] implement basic backend desktop client (not polished)
+      [ ] implement basic backend mobile client (not polished)
+
+ [ ] write worker.py 
+      [ ] register self with backend web server on startup, via a post request
+
+ [ ] implement deployment setup on Linux:
+      [ ] n identical small chroot jails with maybe 1GB image each; 
+          - the jail will "export" a unix domain socket, via a hardlink
+          - jail runs one worker.py process
+          - worker registers itself with backend  -- http://localhost:80
+          - at most one user per jail
+      [ ] process that starts/stops/resets jails, based on need.
+          - copy clean "1GB?" image file
 
 DONE:  
   
