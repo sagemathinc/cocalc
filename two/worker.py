@@ -183,18 +183,6 @@ def divide_into_blocks(code):
 class Worker(object):
     def __init__(self, socket_name):
         self._socket_name = socket_name
-        self._s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        #print "connecting to socket '%s'..."%socket_name  # todo -- use logging module
-        self._s.connect(socket_name)
-        #print "connected."
-        self._b = JSONsocket(self._s)
-        self._orig_streams = sys.stdout, sys.stderr
-        sys.stdout = OutputStream(lambda m: self._b.send(
-            {MESG.status:MESG.running, MESG.stdout:m}) if m else None)
-        sys.stderr = OutputStream(lambda m: self._b.send(
-            {MESG.status:MESG.running, MESG.stderr:m}) if m else None)
-        self._namespace = {}
-        exec "from sage.all_cmdline import *" in self._namespace
 
     def do_eval(self, expr, preparse):
         try:
@@ -221,7 +209,20 @@ class Worker(object):
             self._b.send({MESG.status:MESG.done})
 
     def run(self):
-        data = ''
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.bind(self._socket_name)
+        s.listen(1)
+        conn, addr = s.accept()
+        self._b = JSONsocket(conn)
+        
+        self._orig_streams = sys.stdout, sys.stderr
+        sys.stdout = OutputStream(lambda m: self._b.send(
+            {MESG.status:MESG.running, MESG.stdout:m}) if m else None)
+        sys.stderr = OutputStream(lambda m: self._b.send(
+            {MESG.status:MESG.running, MESG.stderr:m}) if m else None)
+        self._namespace = {}
+        exec "from sage.all_cmdline import *" in self._namespace
+        
         while True:
             mesg = self._b.recv()
             cmd = mesg[MESG.cmd]
@@ -239,13 +240,17 @@ def test_server():
     
     try:
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.bind(socket_name)
-        s.listen(1)
-        conn, addr = s.accept()
-        b = JSONsocket(conn)
-
+        s.connect(socket_name)        
+        b = JSONsocket(s)
+        
         while 1:
             r = raw_input('sagews: ')
+            while True:
+                z = raw_input('...     ')
+                if z != '':
+                    r += '\n' + z
+                else:
+                    break
             t = time.time()
             b.send({MESG.cmd:MESG.execute, MESG.code:r})
             while 1:
@@ -268,12 +273,12 @@ def test_server():
         
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Run backend worker instance")
+    parser = argparse.ArgumentParser(description="Run backend worker")
     parser.add_argument("-s", dest="socket_name", type=str, 
-                        help="name of local unix domain socket of the backend server",
+                        help="name of socket to listen on",
                         default='')
-    parser.add_argument("-t", dest="test", action="store_const",
-                        const=True, default=False, help="run a simple test server that creates a socket")
+    parser.add_argument("-c", dest="test", action="store_const",
+                        const=True, default=False, help="run a test client")
                         
     args = parser.parse_args()
     if args.test:

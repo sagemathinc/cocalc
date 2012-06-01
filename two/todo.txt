@@ -1,5 +1,7 @@
 TODO:
-  
+
+ [ ] switch client server role for worker.py!
+
  [ ] properly spoof stdout/stderr.  This is done right in 
 class SageSpoofOut(SageObject): that is in 
   http://trac.sagemath.org/sage_trac/attachment/ticket/12415/12415_inprogress.patch
