@@ -180,7 +180,7 @@ def divide_into_blocks(code):
     return blocks
         
 
-class Worker(object):
+class SageSocketServer(object):
     def __init__(self, socket_name):
         self._socket_name = socket_name
 
@@ -209,37 +209,64 @@ class Worker(object):
             self._b.send({MESG.status:MESG.done})
 
     def run(self):
+        self._children = []
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.bind(self._socket_name)
-        s.listen(1)
-        conn, addr = s.accept()
-        self._b = JSONsocket(conn)
+        s.listen(5)
+        try:
+            while 1:
+                conn, addr = s.accept()
+                print "accepted a new connection."
+
+                pid = os.fork()
+                if pid == 0:
+                    # child
+                    self._b = JSONsocket(conn)
+                    self._orig_streams = sys.stdout, sys.stderr
+                    sys.stdout = OutputStream(lambda m: self._b.send(
+                        {MESG.status:MESG.running, MESG.stdout:m}) if m else None)
+                    sys.stderr = OutputStream(lambda m: self._b.send(
+                        {MESG.status:MESG.running, MESG.stderr:m}) if m else None)
+                    self._namespace = {}
+                    exec "from sage.all_cmdline import *" in self._namespace
+
+                    while True:
+                        mesg = self._b.recv()
+                        cmd = mesg[MESG.cmd]
+                        if cmd == MESG.evaluate:
+                            self.do_eval(mesg[MESG.code], mesg.get(MESG.preparse, True))
+                        elif cmd == MESG.execute:
+                            self.do_exec(mesg[MESG.code], mesg.get(MESG.preparse, True))
+                else:
+                    # parent
+                    self._children.append(pid)
+        finally:
+            try:
+                try:
+                    os.unlink(self._socket_name)
+                except OSError:
+                    pass
+                try:
+                    s.shutdown(0)
+                    s.close()
+                except:
+                    pass
+            except OSError:
+                pass
+            print "waiting for forked subprocesses to terminate..."
+            os.wait()
+            print "done."
         
-        self._orig_streams = sys.stdout, sys.stderr
-        sys.stdout = OutputStream(lambda m: self._b.send(
-            {MESG.status:MESG.running, MESG.stdout:m}) if m else None)
-        sys.stderr = OutputStream(lambda m: self._b.send(
-            {MESG.status:MESG.running, MESG.stderr:m}) if m else None)
-        self._namespace = {}
-        exec "from sage.all_cmdline import *" in self._namespace
-        
-        while True:
-            mesg = self._b.recv()
-            cmd = mesg[MESG.cmd]
-            if cmd == MESG.evaluate:
-                self.do_eval(mesg[MESG.code], mesg.get(MESG.preparse, True))
-            elif cmd == MESG.execute:
-                self.do_exec(mesg[MESG.code], mesg.get(MESG.preparse, True))
                 
 
-def test_server():
+def testing_client():
     import tempfile
     #socket_name = tempfile.mktemp()
     socket_name = 'a'
     print "socket_name =", socket_name
     
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.connect(socket_name)        
         b = JSONsocket(s)
         
@@ -264,13 +291,14 @@ def test_server():
                 if mesg[MESG.status] != MESG.running:
                     break
             print time.time() - t
-
     finally:
+        # properly close up socket
         try:
-            os.unlink(socket_name)
-        except OSError:
-            pass
-        
+            s.shutdown(0)
+            s.close()
+        except Exception, msg:
+            print msg
+            
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run backend worker")
@@ -282,7 +310,7 @@ if __name__ == '__main__':
                         
     args = parser.parse_args()
     if args.test:
-        test_server()
+        testing_client()
     else:
-        Worker(args.socket_name).run()
+        SageSocketServer(args.socket_name).run()
     
