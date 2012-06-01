@@ -8,12 +8,27 @@ AUTHOR:
 LICENSE/COPYRIGHT: 
 
    * This code is *not* released under any license; in particular,
-   this codebase is not "open source".
+     this codebase is not "open source".
 
    * One file -- backend.py -- may have to be GPL'd because it uses
-   code from the Sage library.
+     code from the Sage library.
 
+Dependencies
+------------
 
+Python:
+
+   * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
+   * Tornadio2 -- https://github.com/mrjoes/tornadio2; Apache license 2.0
+   * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
+   * simplejson -- http://pypi.python.org/pypi/simplejson/; MIT license
+
+Javascript/CSS/HTML:
+
+   * jQuery, jQuery-ui, jQuery-mobile -- http://jquery.org/; MIT license
+   * socket.io-client -- https://github.com/LearnBoost/socket.io-client; MIT license
+   * codemirror2 -- http://codemirror.net/; basically MIT license
+   * jquery activity indicator -- MIT license
 
 Architecture
 ------------
