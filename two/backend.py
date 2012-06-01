@@ -25,42 +25,94 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 """
 
-import argparse, logging, Queue, simplejson, socket, tempfile
+import argparse, logging, os, Queue, simplejson, socket, tempfile
 
 from tornado import web, iostream
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
-from backend_mesg import MESG
+#############################################################
+# HTTP Server handlers
+#############################################################
 
 class IndexHandler(web.RequestHandler):
     def get(self):
         # TODO: need to detect mobile versus desktop here
         self.render("static/sagews/desktop/backend.html")
 
+class RegisterManagerHandler(web.RequestHandler):
+    def post(self):
+        m = Manager(self.get_argument('socket_name'))
+        if m not in managers:
+            unallocated_managers.append(m)
+
 #############################################################
-# Sage sessions
+# Sage Managers and worker sessions
 #############################################################
+unallocated_managers = []
+managers = {}
 next_sage_session_id = 0
 sage_sessions = {}
 
-def new_sage_session():
-    global next_sage_session_id
-    id = next_sage_session_id
-    next_sage_session_id += 1
-    session = SageSession(id)
-    sage_sessions[id] = session
-    return session
+def manager_for_user(username):
+    """
+    Return a valid manager for the given user, if there are any
+    registered managers available.
+    """
+    if username in managers:
+        M = managers[username]
+        if M.is_valid():
+            return M
+    while len(unallocated_managers) > 0:
+        M = unallocated_managers.pop()
+        if M.is_valid():
+            managers[username] = M
+            return M
+    raise RuntimeError, "no available valid managers"
+    
+            
+
+class Manager(object):
+    def __init__(self, socket_name):
+        self._socket_name = socket_name
+
+    def __hash__(self):
+        return hash(self._socket_name)
+
+    def __cmp__(self, other):
+        return cmp(type(self),type(other)) and cmp(self._socket_name, other._socket_name)
+
+    def is_valid(self):
+        # todo: can probably do better than this
+        return os.path.exists(self._socket_name)
+
+    def new_session(self):
+        global next_sage_session_id
+        id = next_sage_session_id
+        next_sage_session_id += 1
+        session = SageSession(id=id, socket_name=self._socket_name)
+        sage_sessions[id] = session
+        return session
 
 class SageSession(object):
-    def __init__(self, id):
+    def __init__(self, id, socket_name):
         self.id = id
-        socket_name = 'a' # TODO
+        self._socket_name = socket_name
+        self._stream = None
+        self.connect()
+
+    def connect(self):
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
         stream = iostream.IOStream(s)
-        stream.connect(socket_name)
+        stream.connect(self._socket_name)
         self._stream = stream
         self._mesg_queue = Queue.Queue()
         self._receiving = False
+
+    def is_connected(self):
+        """
+        Return True if this session is currently connected.
+        """
+        return (self._stream is not None) and not self._stream.closed()
 
     def _send(self, mesg, callback=None):
         self._stream.write(simplejson.dumps(mesg) + '\0', callback=callback)
@@ -69,9 +121,13 @@ class SageSession(object):
         self._stream.read_until('\0', lambda s: callback(simplejson.loads(s[:-1])))
 
     def __del__(self):
-        self._stream.close()
+        if self._stream is not None:
+            self._stream.close()
 
     def send(self, mesg, sender):
+        if not self.is_connected():
+            sender.emit('recv', {'status':'closed', 'error':'socket is not connected', 'done':True})
+            return
         self._mesg_queue.put((mesg, sender))
         self._handle_next_mesg()
 
@@ -80,22 +136,27 @@ class SageSession(object):
             return
         mesg, sender = self._mesg_queue.get()
         self._receiving = True
-        
-        def handle_message(mesg):
-            sender.emit('recv', mesg)
-            if mesg['status'] == 'done':
-                self._receiving = False
-                # handle another message, if there is one in the queue
-                self._handle_next_mesg()
-            else:
-                # receive next message about this computation
+
+        try:
+            def handle_message(mesg):
+                sender.emit('recv', mesg)
+                if mesg.get('done'):
+                    self._receiving = False
+                    # handle another message, if there is one in the queue
+                    self._handle_next_mesg()
+                else:
+                    # receive next message about this computation
+                    self._recv(handle_message)
+
+            def when_done_sending():
                 self._recv(handle_message)
-                
-        def when_done_sending():
-            self._recv(handle_message)
-            
-        self._send(mesg, when_done_sending)
-        
+
+            self._send(mesg, when_done_sending)
+        except IOError, err:
+            # the socket connection closed for some reason; record this fact
+            self._stream = None
+            sender.emit('recv', {'status':'closed', 'error':str(err), 'done':True})
+
 
 #############################################################
 # Socket.io server
@@ -110,9 +171,15 @@ class SocketIO(SocketConnection):
     @event
     def new_session(self):
         """
-        Returns a new session id.
+        Sends new session id via new_session message.
         """
-        self.emit('new_session', new_sage_session().id)
+        # Todo: figure out username properly
+        username = 'wstein'
+        try:
+            self.emit('new_session', manager_for_user(username).new_session().id)
+        except RuntimeError:
+            # no manager available
+            self.emit('new_session', -1)
 
     @event
     def session_send(self, id, mesg):
@@ -134,6 +201,7 @@ class SocketIO(SocketConnection):
         
 router = TornadioRouter(SocketIO)
 routes = [(r"/", IndexHandler),
+          (r"/register_manager", RegisterManagerHandler),
           (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})]
 
 def run(port, address, debug, secure):

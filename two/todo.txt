@@ -30,7 +30,7 @@ TODO:
       [ ] implement basic backend mobile client (not polished)
 
  [ ] write worker.py 
-      [ ] register self with backend web server on startup, via a post request
+      [w] register self with backend web server on startup, via a post request
 
  [ ] implement deployment setup on Linux:
       [ ] n identical small chroot jails with maybe 1GB image each; 

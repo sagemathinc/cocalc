@@ -8,11 +8,7 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways. 
 """
 
-import argparse, os, simplejson, socket, string, sys, traceback
-
-import time
-
-from backend_mesg import MESG
+import argparse, misc, os, simplejson, socket, string, sys, tempfile, time, traceback
 
 ######################################################################    
     
@@ -181,24 +177,30 @@ def divide_into_blocks(code):
         
 
 class SageSocketServer(object):
-    def __init__(self, socket_name):
+    def __init__(self, backend_port, socket_name):
+        self._backend_port = backend_port
         self._socket_name = socket_name
+        self._tag = None
 
-    def do_eval(self, expr, preparse):
+    def evaluate(self, expr, preparse, tag):
         try:
             if preparse:
                 expr = preparse_code(expr)
-            r = str(eval(expr))
-            self._b.send({MESG.status:MESG.done, MESG.result:r})
-        except Exception, msg:
-            self._b.send({MESG.status:MESG.error, MESG.exception:str(msg)})
+            r = str(eval(expr, self._namespace))
+            msg = {'done':True, 'result':r}
+        except Exception, errmsg:
+            msg = {'done':True, 'status':'error', 'exception':str(errmsg)}
+        if tag is not None:
+            msg['tag'] = tag
+        self._b.send(msg)
 
-    def do_exec(self, code, preparse):
-        try:
+    def execute(self, code, preparse, tag):
+        try:            
+            self._tag = tag
             for start, stop, block in divide_into_blocks(code):
                 if preparse:
                     block = preparse_code(block)
-                sys.stdout.reset(); sys.stderr.reset()                
+                sys.stdout.reset(); #sys.stderr.reset()                
                 exec compile(block, '', 'single') in self._namespace
         except:
             #TODO: what if there are no blocks?
@@ -206,40 +208,66 @@ class SageSocketServer(object):
             traceback.print_exc()
         finally:
             sys.stdout.flush(); sys.stderr.flush()
-            self._b.send({MESG.status:MESG.done})
+            msg = {'done':True}
+            if tag is not None:
+                msg['tag'] = tag
+            self._b.send(msg)
+
+    def _send_output(self, stream, data):
+        msg = {'status':'running', stream:data}
+        if self._tag is not None:
+            msg['tag'] = self._tag
+        self._b.send(msg)
+
+    def _recv_eval_send_loop(self, conn):
+        # Redirect stdout and stderr to objects that write directly
+        # to a JSONsocket.
+        self._b = JSONsocket(conn)
+        self._orig_streams = sys.stdout, sys.stderr
+        sys.stdout = OutputStream(lambda data: self._send_output('stdout', data))
+        #sys.stderr = OutputStream(lambda data: self._send_output('stderr', data))
+
+        # create a clean namespace with Sage imported
+        self._namespace = {}
+        exec "from sage.all_cmdline import *" in self._namespace
+
+        while True:
+            mesg = self._b.recv()
+            if 'evaluate' in mesg:
+                self.evaluate(mesg['evaluate'], mesg.get('preparse', True), mesg.get('tag'))
+                continue
+            if 'execute' in mesg:
+                self.execute(mesg['execute'], mesg.get('preparse', True), mesg.get('tag'))
+                continue
 
     def run(self):
-        self._children = []
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+        if not self._socket_name:
+            self._socket_name = tempfile.mktemp() # unsafe, so we bind immediately below
+
+        print "Binding socket to %s"%self._socket_name
         s.bind(self._socket_name)
-        s.listen(5)
+        
+        self._children = []
+        s.listen(5)  # todo -- what number should I use here?
+        
+        if self._backend_port:
+            url = 'http://localhost:%s/register_manager'%self._backend_port 
+            print "Registering with backend server at %s"%url  # todo: proper log
+            misc.post(url, data = {'socket_name':self._socket_name}, timeout=5)  # TODO: 5?
+            
         try:
             while 1:
-                print "waiting for connection..."
+                print "Waiting for connection..."
                 conn, addr = s.accept()
-                print "accepted a new connection."
-
                 pid = os.fork()
                 if pid == 0:
                     # child
-                    self._b = JSONsocket(conn)
-                    self._orig_streams = sys.stdout, sys.stderr
-                    sys.stdout = OutputStream(lambda m: self._b.send(
-                        {MESG.status:MESG.running, MESG.stdout:m}) if m else None)
-                    sys.stderr = OutputStream(lambda m: self._b.send(
-                        {MESG.status:MESG.running, MESG.stderr:m}) if m else None)
-                    self._namespace = {}
-                    exec "from sage.all_cmdline import *" in self._namespace
-
-                    while True:
-                        mesg = self._b.recv()
-                        cmd = mesg[MESG.cmd]
-                        if cmd == MESG.evaluate:
-                            self.do_eval(mesg[MESG.code], mesg.get(MESG.preparse, True))
-                        elif cmd == MESG.execute:
-                            self.do_exec(mesg[MESG.code], mesg.get(MESG.preparse, True))
+                    self._recv_eval_send_loop(conn)
                 else:
                     # parent
+                    print "Accepted a new connection, and created process %s to handle it"%pid
                     self._children.append(pid)
         finally:
             print "Cleaning up server..."
@@ -258,61 +286,62 @@ class SageSocketServer(object):
             print "waiting for forked subprocesses to terminate..."
             os.wait()
             print "done."
-        
-                
 
-def testing_client():
-    import tempfile
-    #socket_name = tempfile.mktemp()
-    socket_name = 'a'
-    print "socket_name =", socket_name
-    
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    try:
-        s.connect(socket_name)        
-        b = JSONsocket(s)
-        
-        while 1:
-            r = raw_input('sagews: ')
-            while True:
-                z = raw_input('...     ')
-                if z != '':
-                    r += '\n' + z
-                else:
-                    break
-            t = time.time()
-            b.send({MESG.cmd:MESG.execute, MESG.code:r})
-            while 1:
-                mesg = b.recv()
-                stdout = mesg.get(MESG.stdout,None)
-                stderr = mesg.get(MESG.stderr,None)
-                if stdout:
-                    sys.stdout.write(stdout); sys.stdout.flush()
-                if stderr:
-                    sys.stderr.write(stderr); sys.stderr.flush()                    
-                if mesg[MESG.status] != MESG.running:
-                    break
-            print time.time() - t
-    finally:
-        # properly close up socket
+class SageSocketTestClient(object):
+    def __init__(self, socket_name):
+        self._socket_name = socket_name
+
+    def run(self):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
-            s.shutdown(0)
-            s.close()
-        except Exception, msg:
-            print msg
+            s.connect(self._socket_name)        
+            b = JSONsocket(s)
+
+            while 1:
+                r = raw_input('sagews: ')
+                while True:
+                    z = raw_input('...     ')
+                    if z != '':
+                        r += '\n' + z
+                    else:
+                        break
+                t = time.time()
+                b.send({'execute':r})
+                while 1:
+                    mesg = b.recv()
+                    stdout = mesg.get('stdout',None)
+                    stderr = mesg.get('stderr',None)
+                    if stdout:
+                        sys.stdout.write(stdout); sys.stdout.flush()
+                    if stderr:
+                        sys.stderr.write(stderr); sys.stderr.flush()                    
+                    if mesg.get('done'):
+                        break
+                print time.time() - t
+        finally:
+            # properly close socket
+            try:
+                s.shutdown(0)
+                s.close()
+            except Exception, msg:
+                print msg
             
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Run backend worker")
-    parser.add_argument("-s", dest="socket_name", type=str, 
-                        help="name of socket to listen on",
+    parser = argparse.ArgumentParser(description="Run backend manager (which spawns/serves workers)")
+    parser.add_argument("--backend_port", dest="backend_port", type=int, 
+                        help="port of local backend web server to register with (or 0 for to not register)",
+                        default=0)
+    parser.add_argument("--socket_name", dest="socket_name", type=str, 
+                        help="name of UD socket to serve on (used for devel/testing)",
                         default='')
-    parser.add_argument("-c", dest="test", action="store_const",
-                        const=True, default=False, help="run a test client")
+    parser.add_argument("--test_client", dest="test_client", action="store_const",
+                        const=True, default=False,
+                        help="run a testing command line client instead (make sure to specifiy the socket with -s socket_name)")
                         
     args = parser.parse_args()
-    if args.test:
-        testing_client()
+    if args.test_client:
+        SageSocketTestClient(args.socket_name).run()
     else:
-        SageSocketServer(args.socket_name).run()
+        SageSocketServer(args.backend_port, args.socket_name).run()
     
