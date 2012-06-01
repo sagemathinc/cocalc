@@ -15,12 +15,14 @@ var socket = sagews.socket({
 });
 
 var n = 1000;
+var msg_count;
 function test_callback(mesg) {
+    msg_count += 1;
     if (typeof mesg.stdout == 'undefined') {
 	return;
     }
     if(mesg.stdout[0] == 'a') {
-	callback(n + ' tests; took ' + (sagews.walltime()-t)/n + ' ms each on average');
+	callback(n + ' tests; took ' + (sagews.walltime()-t)/n + ' ms each on average, with ' + msg_count + ' messages received.');
     } else {
 	callback(mesg.stdout);
     }
@@ -29,7 +31,8 @@ function test_callback(mesg) {
 socket.new_session( function(id) { last_id = id; /*console.log("new session: "+ id);*/ } );
 
 function test(num, f) {
-    n = parseInt(num);
+    n = parseInt(num); 
+    msg_count = 0;
     callback = f;
     t = sagews.walltime();
     callback('start...');
