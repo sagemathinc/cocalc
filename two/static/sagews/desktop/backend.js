@@ -2,6 +2,8 @@
 
 desktop/backend -- javascript client for desktop backend client
 
+(c) William Stein, 2012
+
 */
 
 var session_id = -1;
