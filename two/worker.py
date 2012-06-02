@@ -200,7 +200,7 @@ class SageSocketServer(object):
             for start, stop, block in divide_into_blocks(code):
                 if preparse:
                     block = preparse_code(block)
-                sys.stdout.reset(); #sys.stderr.reset()                
+                sys.stdout.reset(); sys.stderr.reset()                
                 exec compile(block, '', 'single') in self._namespace
         except:
             #TODO: what if there are no blocks?
@@ -225,7 +225,7 @@ class SageSocketServer(object):
         self._b = JSONsocket(conn)
         self._orig_streams = sys.stdout, sys.stderr
         sys.stdout = OutputStream(lambda data: self._send_output('stdout', data))
-        #sys.stderr = OutputStream(lambda data: self._send_output('stderr', data))
+        sys.stderr = OutputStream(lambda data: self._send_output('stderr', data))
 
         # create a clean namespace with Sage imported
         self._namespace = {}

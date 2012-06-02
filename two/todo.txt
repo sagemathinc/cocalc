@@ -26,11 +26,11 @@ TODO:
  [ ] write backend.py
 
       [x] unix domain sockets client/server using tornado non-blocking sockets
-      [ ] implement basic backend desktop client (not polished)
-      [ ] implement basic backend mobile client (not polished)
+      [ ] implement very basic backend desktop client (not polished)
+      [ ] implement very basic backend mobile client (not polished)
 
  [ ] write worker.py 
-      [w] register self with backend web server on startup, via a post request
+      [x] register self with backend web server on startup, via a post request
 
  [ ] implement deployment setup on Linux:
       [ ] n identical small chroot jails with maybe 1GB image each; 
