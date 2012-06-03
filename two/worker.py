@@ -5,7 +5,7 @@ Copyright: This file probably has to be GPL'd and made part of Sage,
 because it imports Sage to do preparsing.
 
 Having an official-in-Sage socket protocol actually makes a lot of
-sense anyways. 
+sense anyways.
 """
 
 import argparse, misc, os, simplejson, socket, string, sys, tempfile, time, traceback
@@ -62,10 +62,9 @@ class OutputStream(object):
             self.flush()
             self._last_flush_time = t
 
-    def flush(self):
-        self._f(self._buf)
+    def flush(self, done=False):
+        self._f(self._buf, done=done)
         self._buf = ''
-
 
 import sage.all_cmdline
 
@@ -189,7 +188,7 @@ class SageSocketServer(object):
             r = str(eval(expr, self._namespace))
             msg = {'done':True, 'result':r}
         except Exception, errmsg:
-            msg = {'done':True, 'status':'error', 'exception':str(errmsg)}
+            msg = {'done':True, 'error':str(errmsg)}
         if tag is not None:
             msg['tag'] = tag
         self._b.send(msg)
@@ -207,16 +206,15 @@ class SageSocketServer(object):
             #sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
             traceback.print_exc()
         finally:
-            sys.stdout.flush(); sys.stderr.flush()
-            msg = {'done':True}
-            if tag is not None:
-                msg['tag'] = tag
+            sys.stdout.flush(done=True); sys.stderr.flush(done=True)
             self._b.send(msg)
 
-    def _send_output(self, stream, data):
-        msg = {'status':'running', stream:data}
+    def _send_output(self, stream, data, done):
+        msg = {stream:data}
         if self._tag is not None:
             msg['tag'] = self._tag
+        if done:
+            msg['done'] = True
         self._b.send(msg)
 
     def _recv_eval_send_loop(self, conn):
@@ -224,8 +222,8 @@ class SageSocketServer(object):
         # to a JSONsocket.
         self._b = JSONsocket(conn)
         self._orig_streams = sys.stdout, sys.stderr
-        sys.stdout = OutputStream(lambda data: self._send_output('stdout', data))
-        sys.stderr = OutputStream(lambda data: self._send_output('stderr', data))
+        sys.stdout = OutputStream(lambda data,done: self._send_output('stdout', data, done))
+        sys.stderr = OutputStream(lambda data,done: self._send_output('stderr', data, done))
 
         # create a clean namespace with Sage imported
         self._namespace = {}

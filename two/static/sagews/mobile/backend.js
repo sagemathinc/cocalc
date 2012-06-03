@@ -20,6 +20,7 @@ function execute(code) {
 
 var socket = sagews.socket({
     'recv':function(mesg) {
+	console.log(mesg);
 	if (typeof mesg.stdout != 'undefined') {
 	    output(mesg.stdout);
 	}
