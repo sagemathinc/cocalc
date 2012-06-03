@@ -122,3 +122,47 @@ Columns: id, url, status, status_time, alloc_time, alloc_user_id, alloc_workspac
 Ideas:
 
   Socket io talk with discussion of pickling sockets (at 26 min): http://www.youtube.com/watch?v=3BYN3ouwkRA
+
+
+=----------------------------------
+
+I'm considering an alternative architecture:
+
+Architecture
+------------
+
+   * Router (router.py) -- frontends register with the router when
+     they are turned on. The router redirects incoming users to a
+     frontend.
+
+   * Database (database.py) -- responsible for all longterm storage of
+     data.   Users, workspaces, etc. 
+
+   * Frontend (frontend.py) -- This is a tornado server that...
+      * technically:
+        - serves static/templated content for ajax app
+        - uses tornadio2 to serve socket.io for the ajax app
+          (*everything* except the initial download of static content 
+           goes via socket.io for greater efficiency!)
+        - talks using torando's non-blocking socket to many chroot
+          jailed workers via local unix domain sockets
+      * functionally:
+        - manages user authentication
+        - giving list of worksheets
+        - ...
+
+   * Worker (many running on each computer machine) -- a chroot jailed
+     (at least for deployment) Python process that talks via a unix
+     domain socket to the frontend.
+
+   * Desktop Client (static/sagews/desktop/backend.[js,html,css]) --
+     Uses socket.io to talk with Frontend, and uses http to talk a
+     little bit with Process (for SIGINT, SIGKILL).  This also uses
+     statics/sagews/sagews.js, which provides common low level
+     communications functionality.
+
+   * Mobile Client (static/sagews/mobile/backend.[js,html,css]) --
+     Client for mobile browsers, which uses jquery-mobile, as is
+     otherwise similar to the Desktop Client.  This also uses
+     statics/sagews/sagews.js.
+   
