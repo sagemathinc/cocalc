@@ -5,8 +5,6 @@ Frontend
 
 
 ####################################################
-#
-# SQLalchemy + SQLite local file
-#
+# WEB SERVER
+# Implementation: Tornado
 ####################################################
-

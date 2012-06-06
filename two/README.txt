@@ -74,56 +74,65 @@ Component Diagram:
 
        - DATABASE: implement using SQLite+SQLalchemy; later drop-in switch to MySQL
            - USERS: 
+                - id
+                - timestamp
+
+           - ACCOUNTS:
+                - id
                 - user_id
-                - last login
-                - datetime
-           - LINKED ACCOUNTS:
-                - user_id
-                - provider: github, google code, facebook, dropbox, google drive, etc.
+                - type: github, google code, facebook, dropbox, google drive, etc.
                 - auth token, etc. 
-                - datetime
+                - timestamp
+
            - USER PREFERENCES:
                 - user_id
                 - user name
                 - email address
-                - default theme (json string?)
+                - theme (json string?)
                 - keyboard shortcuts (json string; shift-enter, enter, control-enter, space-enter, etc.)
-                - last n workspaces visited: comma separated string (conveniences for user to easily find)
-                - datetime
+                - timestamp
+
+           - USER TRACKING:
+                - user_id
+                - resource   # e.g., 'workspace' visited
+                - data1      # workspace_id      
+                - data2      # more info about visit
+                - timestamp
+
            - BACKEND WORKSPACE SERVERS: 
-	        - backend_id
+	        - id
                 - URI
                 - username@hostname
                 - is_running
                 - load_number
                 - num_users_connected (cached)
                 - num_workspaces_stored (cached)
-                - datetime
+                - timestamp
            - WORKSPACES:
-                - workspace_id   (globally unique; not tied to user_id!)
+                - id   (globally unique; not tied to user_id!)
                 - title
                 - theme
                 - last_change
                 - active -- backend_id if active on that backend; otherwise -1
-                - datetime
+                - timestamp
            - WORKSPACE LOCATIONS:
                 - workspace_id
                 - backend_id
                 - last_sync
-                - datetime
+                - timestamp
            - PERMISSIONS:
                 - workspace_id
                 - user_id
 		- type: 'owner', 'collab', 'readonly', 'quiz', etc.
-                - datetime
+                - timestamp
            - PUBLISHED:
                 - workspace_id
                 - date published
                 - commit id
-                - main file
-                - datetime
+                - main filename
+                - timestamp
            - ACCOUNT TYPES:
-                - account_type_id
+                - user_id
                 - name
                 - description
                 - how long a workspace can run before killed (in seconds)
@@ -132,15 +141,14 @@ Component Diagram:
                 - max disk space it can use
                 - whether all publication must be 100% public
                 - max number of users connected to a shared workspace at same time
-                - dynamic published workspace time (per day?)
            - SLAVES:
                 - URI
                 - authentication info of some kind? 
                 - last update
-                - datetime
+                - timestamp
  
          - Replication:
-           - each row has a timestamp 
+           - each row has a timestamp = the current time in seconds since the Epoch (Float)
            - replication is done by querying for all rows with stamp >= some time,
              then importing/updating them into another db. 
            - However, build to easily switch to say MySQL + standard replication
@@ -224,11 +232,11 @@ Component Diagram:
           - tables:
              - WORKSPACES:
                  - workspace_id
-                 - datetime of last commit
+                 - timestamp of last commit
              - LOCATIONS:
                  - workspace_id
                  - backend_id
-                 - datetime of last update
+                 - timestamp of last update
             - BACKENDS: 
 	         - backend_id
                  - URI

@@ -17,9 +17,9 @@ def test_process():
     import process
     return testmod(process, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
 
-def test_frontend_model_sql():
-    import frontend_model_sql
-    return testmod(frontend_model_sql,
+def test_frontend_database_sqlalchemy():
+    import frontend_database_sqlalchemy
+    return testmod(frontend_database_sqlalchemy,
                    optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
     
 

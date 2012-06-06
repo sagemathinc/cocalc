@@ -1,12 +1,5 @@
 TODO:
 
- [x] switch client server role for worker.py!
-
- [ ] (not sure I want to do this) properly spoof stdout/stderr.  This
-     is done right in class SageSpoofOut(SageObject): that is in
-     http://trac.sagemath.org/sage_trac/attachment/ticket/12415/12415_inprogress.patch
-     and I've copied to spoof.txt in this directory temporarily.
-
  [ ] write Frontend
 
       [ ] write frontend.py server (flask + SQLalchemy version)
@@ -22,6 +15,14 @@ TODO:
       [ ] write static/sagews/desktop/frontend
 
       [ ] write static/sagews/mobile/frontend
+
+
+ [x] switch client server role for worker.py!
+
+ [ ] (not sure I want to do this) properly spoof stdout/stderr.  This
+     is done right in class SageSpoofOut(SageObject): that is in
+     http://trac.sagemath.org/sage_trac/attachment/ticket/12415/12415_inprogress.patch
+     and I've copied to spoof.txt in this directory temporarily.
 
  [ ] write backend.py
 
