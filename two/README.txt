@@ -132,6 +132,7 @@ Component Diagram:
                 - max disk space it can use
                 - whether all publication must be 100% public
                 - max number of users connected to a shared workspace at same time
+                - dynamic published workspace time (per day?)
            - SLAVES:
                 - URI
                 - authentication info of some kind? 
