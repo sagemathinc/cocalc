@@ -33,8 +33,8 @@ Javascript/CSS/HTML:
 Other:
 
    * SQLite -- http://www.sqlite.org/; public domain
-   * Git -- ; GPL
-   * Sage -- http://sagemath.org/; GPL
+   * Git -- http://git-scm.com/; GPL v2
+   * Sage -- http://sagemath.org/; GPL v3+
 
 Architecture
 ------------
@@ -57,8 +57,6 @@ Component Diagram:
  10k simultaneous    
 
    * Frontend (frontend.py) -- 
-       - automatic take-over when a master fails, just means that this
-         frontend starts initiating replication; triggered by ?
        - responsible launching backend servers (e.g., via ssh or http daemon on backend machines)
        - HTTP SERVER: implement using tornado
            - user login
@@ -67,7 +65,7 @@ Component Diagram:
                  <iframe frameborder="0" noresize="noresize" src="http://localhost:8080?token=xxx" 
                       style="position: absolute; width: 100%; height: 100%;"></iframe></div>
                (a 1-time use authenticated token is sent)
-           - /pub: special search-engine-optimized static directory of published
+           - /pub: special search-engine-optimized static directory listing of published
              workspaces, which gets updated periodically; linked to from /. 
            - /manage -- see "Frontend Management Client" below.
 	   - POST: workspace_id got updated (when) -- message from backend workspace server 
@@ -79,7 +77,7 @@ Component Diagram:
                 - user_id
                 - last login
                 - datetime
-           - LINKED USER ACCOUNTS:
+           - LINKED ACCOUNTS:
                 - user_id
                 - provider: github, google code, facebook, dropbox, google drive, etc.
                 - auth token, etc. 
@@ -103,7 +101,6 @@ Component Diagram:
                 - datetime
            - WORKSPACES:
                 - workspace_id   (globally unique; not tied to user_id!)
-                - owner user_id
                 - title
                 - theme
                 - last_change
@@ -114,15 +111,16 @@ Component Diagram:
                 - backend_id
                 - last_sync
                 - datetime
-           - SHARED:
+           - PERMISSIONS:
                 - workspace_id
-                - guest user_id
+                - user_id
+		- type: 'owner', 'collab', 'readonly', 'quiz', etc.
                 - datetime
            - PUBLISHED:
                 - workspace_id
                 - date published
                 - commit id
-                - file
+                - main file
                 - datetime
            - ACCOUNT TYPES:
                 - account_type_id
@@ -147,6 +145,10 @@ Component Diagram:
            - However, build to easily switch to say MySQL + standard replication
            - Most of it could also run on AppEngine (start backends via a dedicated
              HTTP head control server on cluster). 
+           - automatic take-over when a master fails;
+             - triggered by DNS pointing to this?
+             - frontend starts initiating replication
+             - handling requests
 
    * Desktop Frontend Client (static/sagews/desktop/frontend.[js,html,css]) -- 
         - Initial login
@@ -154,12 +156,12 @@ Component Diagram:
              - mine + shared (sort by name, recent, last changed, etc.)
              - published
              - full text search of workspaces
-        - iFrame to embed view of backend
+        - iFrame to embed view of workspace served directly from backend (or could use cross site mashup, but less well supported)
  
    * Mobile Frontend Client (static/sagews/desktop/frontend.[js,html,css]) -- 
         - Initial login
         - Browse through list of workspaces and select one
-        - iFrame to embed view of backend 
+        - iFrame to embed view of workspace served directly from backend (or could use cross site mashup, but less well supported)
 
    * Frontend Management Client (static/sagews/desktop/manage.[js,html,css]) --  
         - Single-page AJAX application (no mobile version, initially)
@@ -259,14 +261,33 @@ Component Diagram:
                Might require this patch (?):
                   http://www.mail-archive.com/lxc-devel@lists.sourceforge.net/msg00152.html
 
-   * Document Types
+   * DOCUMENTS:
+     * Supported Types:
        - Bash/Sage/Gap/etc. command line -- name.sagews.cmdline.bash
-       - Sage Worksheet -- name.sagews.sws; somewhat similar to existing Sage worksheets, but with sections/tree heierarchy
-       - Slide Presentation -- name.sagews.pres; maybe based on deck.js (http://imakewebthings.com/deck.js/)
+       - Mathchat -- standard chat window, but with support for math
+         typesetting, graphics, and inline sage code; document is log
+         of the chat
+       - Sage Worksheet -- name.sagews.sws; somewhat similar to
+         existing Sage worksheets, but with sections/tree heierarchy
+       - Slide Presentation -- name.sagews.pres; maybe based on
+         deck.js (http://imakewebthings.com/deck.js/)
        - Mathematica-style notebook -- name.sagews.nb
        - Spreadsheet view -- name.sagews.ss; like an excel spreadsheet
        - MathCad like free-form draggable view -- name.sagews.cad
-       - LaTeX -- name.tex; a latex document, but with automated support for sagetex, pdf generation, etc. 
+       - LaTeX -- name.tex; a latex document, but with automated
+         support for sagetex, pdf generation, etc.
        - .c/.cpp,.py, etc. -- support common programming languages via editors
+
+     * Implementation: Adding a new type:
+       - write desktop and mobile html/js/css files and put in
+         static/sagews/[mobile|desktop]/doctypes
+       - API:
+          - read-only display document (in a given div)
+          - edit document (in a given div)
+          - get document state (for saving to disk)
+          - will use message protocol to synchronize members of the session
+          
+
+       
        
  
