@@ -21,7 +21,6 @@ Python:
    * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
    * Tornadio2 -- https://github.com/mrjoes/tornadio2; Apache license 2.0
    * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
-   * SQLite -- http://www.sqlite.org/; public domain
    * simplejson -- http://pypi.python.org/pypi/simplejson/; MIT license
 
 Javascript/CSS/HTML:
@@ -30,6 +29,12 @@ Javascript/CSS/HTML:
    * socket.io-client -- https://github.com/LearnBoost/socket.io-client; MIT license
    * codemirror2 -- http://codemirror.net/; basically MIT license
    * jquery activity indicator -- MIT license
+
+Other:
+
+   * SQLite -- http://www.sqlite.org/; public domain
+   * Git -- ; GPL
+   * Sage -- http://sagemath.org/; GPL
 
 Architecture
 ------------
@@ -51,58 +56,74 @@ Component Diagram:
 
  10k simultaneous    
 
-   * Frontend (frontend.py, frontend_model.py) -- 
-       - implemented using tornado
-       - database tables
+   * Frontend (frontend.py) -- 
+       - automatic take-over when a master fails, just means that this
+         frontend starts initiating replication; triggered by ?
+       - responsible launching backend servers (e.g., via ssh or http daemon on backend machines)
+       - HTTP SERVER: implement using tornado
+           - user login
+           - embeds workspace session in an *iframe* that points to backend -- 
+               <div style="position: fixed; width: 100%; height: 100%;">
+                 <iframe frameborder="0" noresize="noresize" src="http://localhost:8080?token=xxx" 
+                      style="position: absolute; width: 100%; height: 100%;"></iframe></div>
+               (a 1-time use authenticated token is sent)
+           - /pub: special search-engine-optimized static directory of published
+             workspaces, which gets updated periodically; linked to from /. 
+           - /manage -- see "Frontend Management Client" below.
+	   - POST: workspace_id got updated (when) -- message from backend workspace server 
+           - POST: workspace_id activated (where -- backend_id)
+           - POST: workspace_id de-activated 
+
+       - DATABASE: implement using SQLite+SQLalchemy; later drop-in switch to MySQL
            - USERS: 
                 - user_id
-                - user name
-                - default theme
-                - keyboard shortcuts:
-                     - shift-enter, enter, control-enter, space-enter, etc.
-                - oauth access to their github, google code,
-                  facebook, dropbox, google drive, etc. accounts
                 - last login
                 - datetime
-
-           - BACKENDS: 
+           - LINKED USER ACCOUNTS:
+                - user_id
+                - provider: github, google code, facebook, dropbox, google drive, etc.
+                - auth token, etc. 
+                - datetime
+           - USER PREFERENCES:
+                - user_id
+                - user name
+                - email address
+                - default theme (json string?)
+                - keyboard shortcuts (json string; shift-enter, enter, control-enter, space-enter, etc.)
+                - last n workspaces visited: comma separated string (conveniences for user to easily find)
+                - datetime
+           - BACKEND WORKSPACE SERVERS: 
 	        - backend_id
                 - URI
                 - username@hostname
-                - status (up/down) 
-                - load
+                - is_running
+                - load_number
                 - num_users_connected (cached)
+                - num_workspaces_stored (cached)
                 - datetime
-           
            - WORKSPACES:
                 - workspace_id   (globally unique; not tied to user_id!)
                 - owner user_id
                 - title
                 - theme
+                - last_change
+                - active -- backend_id if active on that backend; otherwise -1
                 - datetime
-
            - WORKSPACE LOCATIONS:
                 - workspace_id
                 - backend_id
                 - last_sync
                 - datetime
-
            - SHARED:
                 - workspace_id
                 - guest user_id
                 - datetime
-
            - PUBLISHED:
                 - workspace_id
                 - date published
+                - commit id
+                - file
                 - datetime
-
-           - SLAVES:
-                - URI
-                - authentication info of some kind? 
-                - last update
-                - datetime
-           
            - ACCOUNT TYPES:
                 - account_type_id
                 - name
@@ -113,33 +134,26 @@ Component Diagram:
                 - max disk space it can use
                 - whether all publication must be 100% public
                 - max number of users connected to a shared workspace at same time
-
-       - database is not huge -- should be at most 1GB even with >1 million users; 
-         can use query-based replication + SQLite:
+           - SLAVES:
+                - URI
+                - authentication info of some kind? 
+                - last update
+                - datetime
+ 
+         - Replication:
            - each row has a timestamp 
            - replication is done by querying for all rows with stamp >= some time,
              then importing/updating them into another db. 
            - However, build to easily switch to say MySQL + standard replication
            - Most of it could also run on AppEngine (start backends via a dedicated
              HTTP head control server on cluster). 
-       - frontend is responsible for user logins
-       - frontend embeds the user's session in an *iframe* that points to backend -- 
-           <div style="position: fixed; width: 100%; height: 100%;">
-              <iframe frameborder="0" noresize="noresize" src="http://localhost:8080?token=xxx" 
-                      style="position: absolute; width: 100%; height: 100%;"></iframe></div>
-         (a 1-time use authenticated token is sent)
-       - browsing directory of published workspaces
-       - automatic take-over when a master fails, just means that this
-         frontend starts initiating replication; triggered by ?
-       - /pub: special search-engine-optimized static directory of published
-         workspaces, which gets updated periodically; linked to from /. 
-       - frontend is responsible for starting backends
 
    * Desktop Frontend Client (static/sagews/desktop/frontend.[js,html,css]) -- 
         - Initial login
         - Browse through workspaces and select one: 
-             - mine + shared
+             - mine + shared (sort by name, recent, last changed, etc.)
              - published
+             - full text search of workspaces
         - iFrame to embed view of backend
  
    * Mobile Frontend Client (static/sagews/desktop/frontend.[js,html,css]) -- 
@@ -170,31 +184,45 @@ Component Diagram:
         - Configure parameters for the ACCOUNT TYPE TABLE, and add new account types
 
    * Backend Workspace Server (backend.py; one for each core running on each compute machine) --
-        - implement using the tornado web server
-        - serves static/templated content for ajax app
-        - uses tornadio2 to serve socket.io for the ajax app
-          (*everything* except the initial download of static content 
-           goes via socket.io for greater efficiency!)
-        - database -- SQLite; entire database is probably a few
-          megabytes, since workspaces are git repos on disk, and we
-          will have only about 1000-10000 users per backend.
-        - messages from frontend:
+        - HTTP SERVER: implement using tornado
+             - serves static/templated content for ajax app
              - POST: create new workspace:
                   - workspace_id
                   - initializer = (tar ball, repo, backend url+token for workspace migration, etc)
                   - title
                   - replication backend_id's 
-             - POST: delete workspace:
+             - POST: delete workspace
                   - workspace_id
-             - POST: download workspace:
+             - POST: download workspace
                   - returns one-time URI to download whole workspace to a zip file
              - POST: status 
                   - returns JSON with load, num_workspaces, num_users_connected
-        - database tables:
+             - GET: /pub/static/workspace_id/changeset/file -- shows static version
+             - GET: /pub/live/workspace_id/changeset/file -- activates a session, shows live version
+             - POST: update workspace (basically a "PULL request")
+
+        - SOCKET.IO SERVER: uses tornadio2 to serve socket.io for the ajax app
+                   (*everything* except the initial download of static content 
+                    goes via socket.io for greater efficiency!)
+             - get new python process session for a given activated workspace:
+                  using tornado's non-blocking socket to talk to 
+                  a local Unix Domain socket running a worker in a jail
+             - execute/evaluate code, streaming (or not) results using given session
+             - SIGINT, SIGKILL to session
+             - send message to all (or all other) clients connected to this workspace
+             - list of previous versions of workspace
+             - revert to previous version
+                  - saved as a new commit
+             - save workspace (commits to git)
+
+        - DATABASE: SQLite+SQLalchemy; entire database is probably a few
+             megabytes, since workspaces are git repos on disk, and we
+             will have only about 1000-10000 users per backend.
+          - tables:
              - WORKSPACES:
                  - workspace_id
                  - datetime of last commit
-             - WORKSPACE LOCATIONS:
+             - LOCATIONS:
                  - workspace_id
                  - backend_id
                  - datetime of last update
@@ -202,24 +230,12 @@ Component Diagram:
 	         - backend_id
                  - URI
                  - necessary authentication info
-        - on filesystem directory of workspaces:
+        - FILESYSTEM: on filesystem directory of workspaces --
              workspaces/
 	         workspace_id/
                      .git/
                       workspace/
                           all data for workspace is in here
-        - browse list of previous versions of workspace
-        - revert to any previous version
-             - saved as a new commit
-        - save workspace (commits to git)
-        - fast read-only browse of current state of workspace files
-        - talks using tornado's non-blocking socket to a local Unix Domain
-          socket running a worker.
-        - the other end of the UD socket is the worker describe below
-        - messages from other backend:
-             - update workspace (basically handle a "PULL request")
-        - message to other backend:
-             - PULL from me
 
    * Desktop Backend Client (static/sagews/desktop/backend.[js,html,css]) --
         - Use socket.io javascript client library
@@ -227,64 +243,30 @@ Component Diagram:
         - User configuration
         - Managing workspace
         - Interactive command line shell
-        - Directory browser
+        - Graphical file manager
 
    * Mobile Backend Client (static/sagews/mobile/backend.[js,html,css]) --
         - Uses the socket.io javascript client library
         - Use jQuery + jQuery-mobile + Codemirror2 to implement interactive document viewers
 
-   * Worker (worker.py: run jailed in some way, on each computer machine) -- 
+   * Worker (worker.py: run jailed, started when a workspace is activated) -- 
+        - Have one worker process for each activated workspace
         - Use Unix domain sockets to provide a forking server
-        - Use some form of Operating system-level virtualization, probably LXC:
-             http://en.wikipedia.org/wiki/Operating_system-level_virtualization#Implementations               
-        - Communication with backend is via unix domain sockets
-             May require this patch:
+        - Use LXC lightweight operating system-level jailed virtualization
+             - http://lxc.sourceforge.net/
+             - http://www.nsnam.org/wiki/index.php/HOWTO_Use_Linux_Containers_to_set_up_virtual_networks
+             - Communication with backend is via unix domain sockets
+               Might require this patch (?):
                   http://www.mail-archive.com/lxc-devel@lists.sourceforge.net/msg00152.html
 
-
+   * Document Types
+       - Bash/Sage/Gap/etc. command line -- name.sagews.cmdline.bash
+       - Sage Worksheet -- name.sagews.sws; somewhat similar to existing Sage worksheets, but with sections/tree heierarchy
+       - Slide Presentation -- name.sagews.pres; maybe based on deck.js (http://imakewebthings.com/deck.js/)
+       - Mathematica-style notebook -- name.sagews.nb
+       - Spreadsheet view -- name.sagews.ss; like an excel spreadsheet
+       - MathCad like free-form draggable view -- name.sagews.cad
+       - LaTeX -- name.tex; a latex document, but with automated support for sagetex, pdf generation, etc. 
+       - .c/.cpp,.py, etc. -- support common programming languages via editors
+       
  
-Document Types
---------------
-
-Phase 1
-  
-   * Command line
-
-   * Worksheet -- somewhat similar to existing Sage worksheets, but with heierarchy.
-
-   * Presentation -- maybe based on deck.js (http://imakewebthings.com/deck.js/)
- 
-   * Bash shell
-
-Phase 2
-  
-   * Mathematica-style worksheet
- 
-   * Matlab-style IDE
-
-
-Frontend Data Model
--------------------
-
-Table: User
-Columns: id, name, passwd_hash
-
-Table: UserSetting
-Columns: user_id, prop, value, user
-
-Table: Workspace
-Columns: id, name, type, location, content (temporary)
-
-Table: WorkspaceUser
-Columns: workspace_id, user_id, type (e.g. 'share', 'owner', 'readonly')
-
-Table: Resource
-Columns: id, url, status, status_time, alloc_time, alloc_user_id, alloc_workspace_id
-
-
-Ideas:
-
-  Socket io talk with discussion of pickling sockets (at 26 min): http://www.youtube.com/watch?v=3BYN3ouwkRA
-
-
-

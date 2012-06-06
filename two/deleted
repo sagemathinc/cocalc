@@ -1,0 +1,24 @@
+
+Frontend Data Model
+-------------------
+
+Table: User
+Columns: id, name, passwd_hash
+
+Table: UserSetting
+Columns: user_id, prop, value, user
+
+Table: Workspace
+Columns: id, name, type, location, content (temporary)
+
+Table: WorkspaceUser
+Columns: workspace_id, user_id, type (e.g. 'share', 'owner', 'readonly')
+
+Table: Resource
+Columns: id, url, status, status_time, alloc_time, alloc_user_id, alloc_workspace_id
+
+
+Ideas:
+
+  Socket io talk with discussion of pickling sockets (at 26 min): http://www.youtube.com/watch?v=3BYN3ouwkRA
+
