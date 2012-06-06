@@ -37,8 +37,8 @@ from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 class IndexHandler(web.RequestHandler):
     def get(self):
         # TODO: need to detect mobile versus desktop here
-        #self.render("static/sagews/desktop/backend.html")
-        self.render("static/sagews/mobile/backend.html")
+        self.render("static/sagews/desktop/backend.html")
+        #self.render("static/sagews/mobile/backend.html")
 
 class RegisterManagerHandler(web.RequestHandler):
     def post(self):
