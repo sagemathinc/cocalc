@@ -107,13 +107,14 @@ Component Diagram:
                 - load_number
                 - num_users_connected (cached)
                 - num_workspaces_stored (cached)
+                - disk_usage
+                - disk_available
                 - timestamp
            - WORKSPACES:
                 - id   (globally unique; not tied to user_id!)
                 - title
-                - theme
                 - last_change
-                - active -- backend_id if active on that backend; otherwise -1
+                - active -- backend_id if active on that backend; otherwise 0
                 - timestamp
            - WORKSPACE LOCATIONS:
                 - workspace_id
