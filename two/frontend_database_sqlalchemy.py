@@ -10,9 +10,9 @@ Frontend database implemented using SQLAlchemy
 ####################################################
 
 from sqlalchemy import create_engine
-import random
-db_file = 'data/frontend-%s.sqlite'%(random.randint(0,100000000)) # for testing
-print db_file
+#import random
+#db_file = 'data/frontend-%s.sqlite'%(random.randint(0,100000000)) # for testing
+db_file = 'data/frontend.sqlite'
 engine = create_engine('sqlite:///%s'%db_file)
 
 ####################################################
@@ -29,12 +29,14 @@ def now():
     """
     EXAMPLES::
 
-        >>> now()
-        ?
+        >>> now() > 0
+        True
+        >>> type(now())
+        <type 'float'>
         >>> time.localtime(now())
-        ?
+        time.struct_time(...)
         >>> time.asctime(time.localtime(now()))
-        ?
+        '... 201...'
     """
     return time.time()
 
@@ -50,13 +52,9 @@ class User(Base):
         <User None>
         >>> s.add(u); s.commit(); u
         <User 1>
-        >>> u.timestamp
-        ?
         >>> u = User(); s.add(u); s.commit()
         >>> v = s.query(User).all()[1]; v
         <User 2>
-        >>> v.timestamp
-        ?
     """
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
@@ -316,7 +314,7 @@ def drop_all():
         >>> drop_all()
         >>> create()
         >>> S = session()
-        >>> S.add(User('wstein'))
+        >>> S.add(User())
         >>> S.commit()
         >>> S.query(User).count()
         1
@@ -340,15 +338,38 @@ def drop_all():
 # in various ways that are useful for testing.
 ####################################################
 
-def testconf_1(num_users=1, num_backends=1, num_workspaces=1, num_locations=1, num_publications=1, num_slaves=3):
+def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
+               num_locations=1, num_publications=1, num_slaves=3,
+               verbose=True):
+    """
+    Put the database into a testing configuration by generating a
+    bunch of users, backends, workspaces, locations, publications, and
+    slaves.
+
+    EXAMPLES::
+
+        >>> import random; random.seed(0)
+        >>> s = testconf_1(num_users=10, num_backends=7, num_workspaces=50, num_locations=100, num_publications=20, num_slaves=5, verbose=False)
+        >>> s.query(User).count()
+        10
+        >>> s.query(Backend).count()
+        7
+        >>> s.query(Workspace).count()
+        50
+        >>> s.query(WorkspaceLocation).count()
+        87
+        >>> s.query(Publication).count()
+        20
+        >>> s.query(Slave).count()
+        5
+    """
     from random import randint
     
-    # execfile("frontend_database_sqlalchemy.py"); s=testconf_1()
     drop_all()
     create()
     s = session()
 
-    print "Create users"
+    if verbose: print "Create users"
     for n in range(num_users):
         user = User()
         s.add(user)
@@ -380,7 +401,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1, num_locations=1, n
         
     s.commit()
 
-    print "Create backends"
+    if verbose: print "Create backends"
     for n in range(num_backends):
         backend = Backend()
         backend.uri = 'http://backend%s.sagews.com'%(n+1)
@@ -394,14 +415,14 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1, num_locations=1, n
         s.add(backend)
     s.commit()
 
-    print "Create some workspaces"
+    if verbose: print "Create some workspaces"
     for n in range(num_workspaces):
         ws = Workspace('Test Workspace %s'%(n+1))
         ws.active_backend_id = 1
         s.add(ws)
     s.commit()
 
-    print "Locate some workspaces"
+    if verbose: print "Locate some workspaces"
     for i in range(num_locations):
         w = s.query(Workspace).filter('id=%s'%randint(1,num_workspaces)).one()
         loc = WorkspaceLocation(w, s.query(Backend).filter('id=%s'%randint(1,num_backends)).one())
@@ -411,7 +432,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1, num_locations=1, n
         except:
             s.rollback()
 
-    print "Create some permissions"
+    if verbose: print "Create some permissions"
     for w in s.query(Workspace):
         Permission(workspace=w, user=s.query(User).filter('id=%s'%randint(1,num_users)).one(), type='owner')
 
@@ -423,7 +444,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1, num_locations=1, n
             # can't be both owner and readonly at same time
             s.rollback()
 
-    print "Publish some workspaces"
+    if verbose: print "Publish some workspaces"
     for n in range(num_publications):
         ws = s.query(Workspace).filter('id=%s'%randint(1,num_workspaces)).one()
         p = Publication(commit_id = 'bef1ab73d7465b9e20df00741a3f3e7659ebba87',
@@ -433,7 +454,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1, num_locations=1, n
 
     s.commit()
 
-    print "Create three account types"
+    if verbose: print "Create three account types"
     a = AccountType()
     a.name = "Free"
     a.description = "A completely free account"
@@ -471,7 +492,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1, num_locations=1, n
     s.add(a)
     s.commit()
 
-    print "Create some slaves"
+    if verbose: print "Create some slaves"
     for n in range(num_slaves):
         sl = Slave('http://slave%s.sagews.com'%(n+1))
         sl.last_update_timestamp = now()
@@ -479,8 +500,5 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1, num_locations=1, n
         
     s.commit()
     return s
-
-def testconf_many_users(n):
-    pass
     
     
