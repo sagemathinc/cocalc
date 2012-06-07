@@ -164,9 +164,9 @@ class Workspace(Base):
     
 class WorkspaceLocation(Base):
     __tablename__ = "workspace_locations"
-    timestamp = Column(Float)
     workspace_id = Column(Integer, ForeignKey('workspaces.id'), primary_key=True)
     backend_id = Column(Integer, ForeignKey('backends.id'), primary_key=True)
+    timestamp = Column(Float)
 
     workspace = relationship("Workspace", backref=backref('locations', order_by=backend_id))
     backend = relationship("Backend", backref=backref('workspaces', order_by=workspace_id))
@@ -311,9 +311,7 @@ def drop_all():
     it is there, then delete everything, and confirm the record is
     gone::
 
-        >>> drop_all()
-        >>> create()
-        >>> S = session()
+        >>> drop_all(); create(); S = session()
         >>> S.add(User())
         >>> S.commit()
         >>> S.query(User).count()

@@ -232,7 +232,7 @@ Component Diagram:
              will have only about 1000-10000 users per backend.
           - tables:
              - WORKSPACES:
-                 - workspace_id
+                 - id
                  - timestamp of last commit
              - LOCATIONS:
                  - workspace_id
