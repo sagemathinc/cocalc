@@ -21,7 +21,7 @@ between them.  The backend server is a TornadoWeb application.  It:
 * Spawn (jailed/limited) worker processes
 
 * Communication with worker processes via a *non-blocking* Unix Domain
-  Socket
+  Socket.
 
 """
 

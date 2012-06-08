@@ -13,6 +13,9 @@ LICENSE/COPYRIGHT:
    * One file -- backend.py -- may have to be GPL'd because it uses
      code from the Sage library.
 
+   * My intention is to assign the copyright of this source code to
+     the University of Washington during Summer 2012.
+
 Dependencies
 ------------
 
@@ -41,23 +44,29 @@ Architecture
 
 Component Diagram:
 
-  ...             [Frontend (backup)]
+  ...             [Frontend (slave/backup)]
   ...   
-[Client]
+[Client]             [Frontend]
 [Client] <--HTTP---> [Frontend] <--HTTP--> [Backend]
   /|\                           <--HTTP--> [Backend]
    |                                          ...
    ------------------socket.io-----------> [Backend] <----UD socket----> [Worker]
 
-1 million           >1 frontends             1000                          100
- 
+1 million            n frontends             1000                          100
+                 many backups of frontend        
 (internet)         (>1 locations)          (~100 computers                 
                                             at >2 locations)
+
+NOTE: In first implementation, n frontend on one machine, which will
+use a SQLite file.  However, in second implementation, switch to mySQL
+database, so frontends can be distributed on multiple machines, and
+database can be more easily replicated.  (And/or it will run on appengine.)
 
  10k simultaneous    
 
    * Frontend (frontend.py) -- 
-       - responsible launching backend servers (e.g., via ssh or http daemon on backend machines)
+       - responsible for launching backend servers (e.g., via ssh or
+         http daemon on backend machines)
        - HTTP SERVER: implement using tornado
            - user login
            - embeds workspace session in an *iframe* that points to backend -- 
@@ -71,19 +80,16 @@ Component Diagram:
 	   - POST: workspace_id got updated (when) -- message from backend workspace server 
            - POST: workspace_id activated (where -- backend_id)
            - POST: workspace_id de-activated 
-
        - DATABASE: implement using SQLite+SQLalchemy; later drop-in switch to MySQL
            - USERS: 
                 - id
                 - timestamp
-
            - ACCOUNTS:
                 - id
                 - user_id
                 - type: github, google code, facebook, dropbox, google drive, etc.
                 - auth token, etc. 
                 - timestamp
-
            - USER PREFERENCES:
                 - user_id
                 - user name
@@ -91,14 +97,12 @@ Component Diagram:
                 - theme (json string?)
                 - keyboard shortcuts (json string; shift-enter, enter, control-enter, space-enter, etc.)
                 - timestamp
-
            - USER TRACKING:
                 - user_id
                 - resource   # e.g., 'workspace' visited
                 - data1      # workspace_id      
                 - data2      # more info about visit
                 - timestamp
-
            - BACKEND WORKSPACE SERVERS: 
 	        - id
                 - URI
@@ -147,7 +151,6 @@ Component Diagram:
                 - authentication info of some kind? 
                 - last update
                 - timestamp
- 
          - Replication:
            - each row has a timestamp = the current time in seconds since the Epoch (Float)
            - replication is done by querying for all rows with stamp >= some time,
@@ -197,7 +200,7 @@ Component Diagram:
 
    * Backend Workspace Server (backend.py; one for each core running on each compute machine) --
         - HTTP SERVER: implement using tornado
-             - serves static/templated content for ajax app
+             - serves static/internationalized-templated content for AJAX app
              - POST: create new workspace:
                   - workspace_id
                   - initializer = (tar ball, repo, backend url+token for workspace migration, etc)
@@ -222,7 +225,7 @@ Component Diagram:
              - execute/evaluate code, streaming (or not) results using given session
              - SIGINT, SIGKILL to session
              - send message to all (or all other) clients connected to this workspace
-             - list of previous versions of workspace
+             - get list of previous revisions of workspace
              - revert to previous version
                   - saved as a new commit
              - save workspace (commits to git)
