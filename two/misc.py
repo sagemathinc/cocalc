@@ -37,19 +37,7 @@ def get_using_requests(url, data=None, timeout=10):
         >>> get('http://cnn.com',timeout=1e-3)
         Traceback (most recent call last):
         ...
-        Timeout: Request timed out.
-
-    We pass data to a server, which happens to respond with some text
-    in JSON format::
-    
-        >>> import subprocess_server; r = subprocess_server.Daemon(5000)
-        >>> s = get('http://localhost:5000/popen', data={'command':'python'})
-        >>> print s
-        {
-          "status": "ok", 
-          "pid": ..., 
-          "execpath": "...tmp..."
-        }
+        URLError: <urlopen error timed out>
     """
     if data is None: data = {}
     t = requests.get(url, params=data, timeout=timeout).text
@@ -87,17 +75,6 @@ def post_using_requests(url, data=None, files=None, timeout=10):
 
     - string
 
-    EXAMPLES::
-
-        >>> from client import TestClient; c = TestClient(5000)
-        >>> a = get('http://localhost:5000/new_session'); c.wait(0)
-        >>> print post('http://localhost:5000/execute/0', {'code':'print(2+3)'})
-        {
-          "status": "ok", 
-          "cell_status": "running", 
-          "cell_id": 0
-        }
-        >>> c.quit()
     """
     if files is None:
         files = {}
@@ -153,6 +130,7 @@ def all_files(path):
     
         >>> all_files(d)       # ... = / on unix but \\ windows
         ['a', 'm...n...k...foo', 'xyz.abc']
+        >>> import shutil; shutil.rmtree(d)       # clean up mess
     """
     all = []
     n = len(path)
@@ -183,28 +161,6 @@ def is_temp_directory(path):
     path = os.path.split(os.path.abspath(path))[0]
     return os.path.samefile(_temp_prefix, path)
 
-def fake_get(*args, **kwds):
-    """
-    This is used internally only for testing.
-    
-    EXAMPLES::
-
-        >>> fake_get('http://localhost:8000', data={'foo':5}, timeout=2)
-        GET: ('http://localhost:8000',) [('data', {'foo': 5}), ('timeout', 2)]
-    """
-    print 'GET: %s %s'%(args, list(sorted(kwds.iteritems())))
-    
-def fake_post(*args, **kwds):
-    """
-    This is used internally only for testing.
-    
-    EXAMPLES::
-
-        >>> fake_post('http://localhost:8000', data={'foo':5}, timeout=2)
-        POST: ('http://localhost:8000',) [('data', {'foo': 5}), ('timeout', 2)]
-    """
-    print 'POST: %s %s'%(args, list(sorted(kwds.iteritems())))
-
 
 ######################################################################
 
@@ -215,12 +171,12 @@ def randint_set(i, j, n):
 
     EXAMPLES::
     
-        >>> sage: random.seed(0)
-        >>> misc.randint_set(5, 10, 3)
+        >>> import random; random.seed(0)
+        >>> randint_set(5, 10, 3)
         set([9, 10, 7])
-        >>> misc.randint_set(5, 10, 6)
-        [5, 6, 7, 8, 9, 10]
-        >>> misc.randint_set(5, 10, 7)
+        >>> randint_set(5, 10, 6)
+        set([5, 6, 7, 8, 9, 10])
+        >>> randint_set(5, 10, 7)
         Traceback (most recent call last):
         ...
         ValueError: there is no such set    

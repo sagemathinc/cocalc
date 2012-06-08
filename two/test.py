@@ -13,6 +13,10 @@ from doctest import testmod, NORMALIZE_WHITESPACE, ELLIPSIS
 
 verbose = False
 
+def test_misc():
+    import misc
+    return testmod(misc, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
+
 def test_process():
     import process
     return testmod(process, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
