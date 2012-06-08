@@ -205,3 +205,32 @@ def fake_post(*args, **kwds):
     """
     print 'POST: %s %s'%(args, list(sorted(kwds.iteritems())))
 
+
+######################################################################
+
+def randint_set(i, j, n):
+    """
+    Return a set of n distinct randomly chosen integers in the closed
+    interval [i,j].
+
+    EXAMPLES::
+    
+        >>> sage: random.seed(0)
+        >>> misc.randint_set(5, 10, 3)
+        set([9, 10, 7])
+        >>> misc.randint_set(5, 10, 6)
+        [5, 6, 7, 8, 9, 10]
+        >>> misc.randint_set(5, 10, 7)
+        Traceback (most recent call last):
+        ...
+        ValueError: there is no such set    
+    """
+    import random
+    if j-i+1 == n:
+        return set(range(i,j+1))
+    if j-i+1 < n:
+        raise ValueError, "there is no such set"
+    v = set([random.randint(i,j)])
+    while len(v) < n:
+        v.add(random.randint(i,j))
+    return v

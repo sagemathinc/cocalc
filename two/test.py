@@ -22,6 +22,11 @@ def test_frontend_database_sqlalchemy():
     return testmod(frontend_database_sqlalchemy,
                    optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
     
+def test_backend_database():
+    import backend_database
+    return testmod(backend_database,
+                   optionflags=NORMALIZE_WHITESPACE | ELLIPSIS, verbose=verbose)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run tests.")

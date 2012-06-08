@@ -230,9 +230,9 @@ database can be more easily replicated.  (And/or it will run on appengine.)
                   - saved as a new commit
              - save workspace (commits to git)
 
-        - DATABASE: SQLite+SQLalchemy; entire database is probably a few
-             megabytes, since workspaces are git repos on disk, and we
-             will have only about 1000-10000 users per backend.
+        - DATABASE: SQLite+SQLalchemy; entire database is on the order of
+             *ONE megabyte*, since workspaces are git repos on disk, and we
+             will have only about 1000-10000 workspaces per backend.  
           - tables:
              - WORKSPACES:
                  - id
@@ -241,7 +241,7 @@ database can be more easily replicated.  (And/or it will run on appengine.)
                  - workspace_id
                  - backend_id
                  - timestamp of last update
-            - BACKENDS: 
+             - BACKENDS: 
 	         - backend_id
                  - URI
                  - necessary authentication info
