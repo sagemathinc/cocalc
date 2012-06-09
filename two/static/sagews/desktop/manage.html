@@ -20,42 +20,56 @@
 <h1 class="box">Sage Workspace Frontend Management Console</h1>
 
 <div id="tabs">
-<ul>
-  <li> <a href="#tab-backend">Backends</a> </li>
-  <li> <a href="#tab-users">Users</a> </li>
-  <li> <a href="#tab-workspaces">Workspaces</a> </li>
-  <li> <a href="#tab-published">Published</a></li>
-  <li> <a href="#tab-account_types">Account Types</a> </li>
-  <li> <a href="#tab-slaves">Slaves</a> </li>
-</ul>
+  <ul>
+    <li> <a href="#tab-backend">Backends</a> </li>
+    <li> <a href="#tab-users">Users</a> </li>
+    <li> <a href="#tab-workspaces">Workspaces</a> </li>
+    <li> <a href="#tab-published">Published</a></li>
+    <li> <a href="#tab-account_types">Account Types</a> </li>
+    <li> <a href="#tab-slaves">Slaves</a> </li>
+  </ul>
 
-<div id="tab-backend">
-  <div id="tab-backend-show">Show All</div>
-  <div id="tab-backend-add">Add New</div>
-  <div id="tab-backend-start">Start All</div>
-  <div id="tab-backend-stop">Stop All</div>
-
-  <div id="tab-backend-list_of_all" class="hide"> 
+  <div id="tab-backend">
     <ul>
+      <li> <a href="#tab-backend-summary">Summary</a> </li>
+      <li> <a href="#tab-backend-show">Show</a></li>
+      <li> <a href="#tab-backend-addremove">Add/Remove</a></li>
+      <li> <a href="#tab-backend-startstop">Start/Stop</a></li>
     </ul>
+    <div id="tab-backend-summary"></div>
+    <div id="tab-backend-show"></div>
+    <div id="tab-backend-addremove">
+      <button id="tab-backend-addremove-remove">Remove</button>
+      id: <input id="tab-backend-addremove-remove-input"/>
+
+      <br><br>
+
+      <button id="tab-backend-addremove-add">Add</button>
+      Enter rows of the form: <b>id URI unix_user@hostname</b><br>
+      <textarea rows=6 cols=80>
+      </textarea>
+    </div>
+    
+    <div id="tab-backend-startstop">
+    </div>
+    
   </div>
-</div>
-
-<div id="tab-users">
-</div>
-
-<div id="tab-workspaces">
-</div>
-
-<div id="tab-published">
-</div>
-
-<div id="tab-account_types">
-</div>
-
-<div id="tab-slaves">
-</div>
-
+  
+  <div id="tab-users">
+  </div>
+  
+  <div id="tab-workspaces">
+  </div>
+  
+  <div id="tab-published">
+  </div>
+  
+  <div id="tab-account_types">
+  </div>
+  
+  <div id="tab-slaves">
+  </div>
+  
 </div>
 
 </body>

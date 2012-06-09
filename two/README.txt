@@ -24,7 +24,6 @@ Python:
    * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
    * Tornadio2 -- https://github.com/mrjoes/tornadio2; Apache license 2.0
    * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
-   * simplejson -- http://pypi.python.org/pypi/simplejson/; MIT license
 
 Javascript/CSS/HTML:
 

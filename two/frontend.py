@@ -3,15 +3,41 @@ Frontend
 
 """
 
-import logging
+import frontend_database_sqlalchemy as db
+
+import json, logging
 from tornado import web, ioloop
 
 class ManageHandler(web.RequestHandler):
     def get(self):
         self.render('static/sagews/desktop/manage.html')
 
+class ManageBackendsSummaryHandler(web.RequestHandler):
+    def get(self):
+        s = db.session()
+        count = s.query(db.Backend).count()
+        self.write(json.dumps({'count':count}))
+
+class ManageBackendsListAllHandler(web.RequestHandler):
+    def get(self):
+        s = db.session()
+        v = [{'id':b.id, 'uri':b.uri, 'unix_user':b.unix_user}
+             for b in s.query(db.Backend).all()]
+        print v
+        self.write(json.dumps(v))
+
+class ManageBackendsRemoveHandler(web.RequestHandler):
+    def post(self):
+        r = {'status':'ok'}
+        self.write(json.dumps(r))
+
 routes = [
+
     (r"/manage", ManageHandler),
+    (r"/manage/backends/summary", ManageBackendsSummaryHandler),
+    (r"/manage/backends/list_all", ManageBackendsListAllHandler),
+    (r"/manage/backends/remove", ManageBackendsRemoveHandler),
+    
     (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})
 ]
 
