@@ -1,39 +1,19 @@
 $(function() {
-    hide_all();
-    $("#backends").button().click(backends);
-    $("#users").button().click(users);
-    $("#workspaces").button().click(workspaces);
-    $("#pub").button().click(pub);
-    $("#account_types").button().click(account_types);
-    $("#slaves").button().click(slaves);
+
+    $("#tabs").tabs({
+	select: function(event, ui) { console.log(ui.tab); }
+    });
+
+    $("#tab-backend-show").button().click( function(event,ui) { 
+	var ul = $('#tab-backend-list_of_all').show().find('ul');
+    });
+
+    $("#tab-backend-add").button().click( function(event,ui) { } )
+    $("#tab-backend-start").button().click( function(event,ui) { } )
+    $("#tab-backend-stop").button().click( function(event,ui) { } )
+
+    $('.hide').hide();
 });
 
-function hide_all() {
-    $('.console').hide();
-}
 
-function backends(event, ui) {
-    hide_all();
-    var box = $('#backends_box');
-    box.show(300);
-}
 
-function users(event, ui) {
-
-}
-
-function workspaces(event, ui) {
-
-}
-
-function pub(event, ui) {
-
-}
-
-function account_types(event, ui) {
-
-}
-
-function slaves(event, ui) {
-
-}

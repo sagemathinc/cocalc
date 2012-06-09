@@ -19,23 +19,44 @@
 <body>
 <h1 class="box">Sage Workspace Frontend Management Console</h1>
 
-<ul class="box">
-<li id="backends"> Backends</li>
-<li id="users"> Users</li>
-<li id="workspaces"> Workspaces </li>
-<li id="pub"> Published </li>
-<li id="account_types"> Account Types </li>
-<li id="slaves"> Slaves </li>
+<div id="tabs">
+<ul>
+  <li> <a href="#tab-backend">Backends</a> </li>
+  <li> <a href="#tab-users">Users</a> </li>
+  <li> <a href="#tab-workspaces">Workspaces</a> </li>
+  <li> <a href="#tab-published">Published</a></li>
+  <li> <a href="#tab-account_types">Account Types</a> </li>
+  <li> <a href="#tab-slaves">Slaves</a> </li>
 </ul>
 
-<div id="main" class="box"> 
+<div id="tab-backend">
+  <div id="tab-backend-show">Show All</div>
+  <div id="tab-backend-add">Add New</div>
+  <div id="tab-backend-start">Start All</div>
+  <div id="tab-backend-stop">Stop All</div>
 
-<div id="backends_box" class="console">
-<h2>Backends</h2>
+  <div id="tab-backend-list_of_all" class="hide"> 
+    <ul>
+    </ul>
+  </div>
+</div>
+
+<div id="tab-users">
+</div>
+
+<div id="tab-workspaces">
+</div>
+
+<div id="tab-published">
+</div>
+
+<div id="tab-account_types">
+</div>
+
+<div id="tab-slaves">
 </div>
 
 </div>
-
 
 </body>
 </html>

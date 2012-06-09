@@ -3,8 +3,6 @@
    background: #ffd;
    padding:10px;
    text-align:center;
-}
-
-.hidden {
-    visibility:hidden;
+   font-family:sans-serif;
+   color: #333;
 }
