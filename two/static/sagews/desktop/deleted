@@ -1,3 +1,33 @@
+
+function objlist_to_ul(v, fields) {
+    var s = '<ul>';
+    var w;
+    var i,j;
+    for(i=0; i<v.length; i++) {
+	w = [];
+	for (j=0; j<fields.length; j++) {
+	    w.push(fields[j] + '=' + v[i][fields[j]]);
+	}
+	s += '<li> <button id="button-'+i+'">Start</button><button>Stop</button><button>Edit</button>' + w.join(', ') + '</li>';
+    }
+    s += '</ul>';
+    return s;
+}
+
+
+    $('#tab-backend-addremove-remove').button({icons:{primary:'ui-icon-info'}}).click(
+	function() {
+	    $.post('manage/backends/remove', 
+		   {'id':$('#tab-backend-addremove-remove-input').val()},
+		   function(data, status) {
+		       console.log(status);
+		       console.log(data);
+		   }, 'json');
+    });
+
+
+---
+
 var callback = 0;
 var t = 0;
 var last_id = -1;

@@ -34,15 +34,23 @@
 
   <div id="tab-backend">
     <ul>
-      <li> <a href="#tab-backend-show">List Backends</a></li>
-      <li> <a href="#tab-backend-add">Add Backends</a></li>
+      <li> <a href="#tab-backend-show">Backends</a></li>
+      <li> <a href="#tab-backend-control-all">Start or stop all backends</a></li>
+      <li> <a href="#tab-backend-add">Add backends</a></li>
     </ul>
-    <div id="tab-backend-show"></div>
+    <div id="tab-backend-show">
+      <button id="tab-backend-refresh">Refresh this list</button>
+      <div id="tab-backend-show-area" class="scrolldiv"></div>
+    </div>
+    <div id="tab-backend-control-all">
+       <button id="start-all-backends">Start all backends</button>
+       <button id="stop-all-backends">Stop all backends</button>
+    </div>
     <div id="tab-backend-add">
-      Enter rows of the form: <b>id URI unix_user@hostname</b>
-      <textarea rows=5 cols=80>
+      Enter rows of the form <b>URI unix_user@hostname</b>
+      <textarea rows=5 cols=80 id="tab-backend-add-data">
       </textarea><br>
-      <button id="tab-backend-addremove-add">Add new backends listed above</button>
+      <button id="tab-backend-add-button">Add new backends listed above</button>
     </div>
     
   </div>
@@ -67,6 +75,12 @@
   </div>
 
 </div>
+
+
+<div id="dialog-confirm" title="Are you sure?" class="template">
+	<p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span></p>
+</div>
+
 
 </body>
 </html>

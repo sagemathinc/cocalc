@@ -3,3 +3,22 @@
    font-family:sans-serif;
    color: #333;
 }
+
+.scrolldiv {
+    height:300px;  /* TODO */
+    width:100%;
+    overflow:auto;
+    border-top:2px solid #555;
+    border-left:2px solid #555;
+    padding:5px;
+    background:#eee;
+}
+
+.backend_stat {
+    font-size:x-small;
+    border-right:1px solid #555;
+    border-bottom:1px solid #555;
+    padding-left:4px;
+    padding-right:4px;
+}
+

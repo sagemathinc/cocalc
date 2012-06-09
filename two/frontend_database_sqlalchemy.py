@@ -133,7 +133,7 @@ class Backend(Base):
 
     uri = Column(String)
     unix_user = Column(String)
-    is_running = Column(Boolean)
+    status = Column(String)  # 'stopped', 'running', 'starting', 'stopping'
     load_number = Column(Float)
     number_of_connected_users = Column(Integer)
     number_of_stored_workspaces = Column(Integer)
@@ -361,7 +361,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
         >>> s.query(Slave).count()
         5
     """
-    from random import randint
+    import random
     
     drop_all()
     create()
@@ -404,11 +404,11 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
         backend = Backend()
         backend.uri = 'http://backend%s.sagews.com'%(n+1)
         backend.unix_user = 'sagews@backend%s.sagews.com'%(n+1)
-        backend.is_running = True
-        backend.load_number = 0.2
-        backend.number_of_connected_users = 1
-        backend.number_of_stored_workspaces = 1
-        backend.disk_usage = 20
+        backend.status = 'running'
+        backend.load_number = random.random()
+        backend.number_of_connected_users = random.randint(0,num_users)
+        backend.number_of_stored_workspaces = random.randint(0,num_workspaces)
+        backend.disk_usage = random.randint(0,1000)
         backend.disk_available = 1000
         s.add(backend)
     s.commit()
@@ -422,8 +422,8 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
 
     if verbose: print "Locate some workspaces"
     for i in range(num_locations):
-        w = s.query(Workspace).filter('id=%s'%randint(1,num_workspaces)).one()
-        loc = WorkspaceLocation(w, s.query(Backend).filter('id=%s'%randint(1,num_backends)).one())
+        w = s.query(Workspace).filter('id=%s'%random.randint(1,num_workspaces)).one()
+        loc = WorkspaceLocation(w, s.query(Backend).filter('id=%s'%random.randint(1,num_backends)).one())
         try:
             w.locations.append(loc)
             s.commit()
@@ -432,11 +432,11 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
 
     if verbose: print "Create some permissions"
     for w in s.query(Workspace):
-        Permission(workspace=w, user=s.query(User).filter('id=%s'%randint(1,num_users)).one(), type='owner')
+        Permission(workspace=w, user=s.query(User).filter('id=%s'%random.randint(1,num_users)).one(), type='owner')
 
     for w in s.query(Workspace):
         try:
-            Permission(workspace=w, user=s.query(User).filter('id=%s'%randint(1,num_users)).one(), type='readonly')
+            Permission(workspace=w, user=s.query(User).filter('id=%s'%random.randint(1,num_users)).one(), type='readonly')
             s.commit()
         except:
             # can't be both owner and readonly at same time
@@ -444,7 +444,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
 
     if verbose: print "Publish some workspaces"
     for n in range(num_publications):
-        ws = s.query(Workspace).filter('id=%s'%randint(1,num_workspaces)).one()
+        ws = s.query(Workspace).filter('id=%s'%random.randint(1,num_workspaces)).one()
         p = Publication(commit_id = 'bef1ab73d7465b9e20df00741a3f3e7659ebba87',
                         main_filename = "foo_bar.sagews.sws",
                         published_timestamp = now())
