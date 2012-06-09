@@ -27,7 +27,7 @@ def run(port, address, debug, secure):
     if secure:  # todo
         raise NotImplementedError
     
-    app = web.Application(routes)
+    app = web.Application(routes, debug=debug)
     app.listen(port=port, address=address)
     ioloop.IOLoop.instance().start()
 

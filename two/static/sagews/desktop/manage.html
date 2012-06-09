@@ -2,25 +2,39 @@
 <html>
 <head>
 <title>Sage Workspace Frontend Management Console</title>
+
+<link rel="stylesheet" href="static/sagews/desktop/manage.css">
+
+<!-- jquery -->
+<script type="text/javascript" src="static/jquery/jquery.min.js"></script>
+
+<!-- jquery-ui -->
+<script type="text/javascript" src="static/jquery/jquery-ui/js/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="static/jquery/jquery-ui/css/sunny/jquery-ui.css"> 
+
+<!-- desktop management specific javscript -->
+<script type="text/javascript" src="static/sagews/desktop/manage.js"></script>
+
+</head>
 <body>
-<h1>Sage Workspace Frontend Management Console</h1>
+<h1 class="box">Sage Workspace Frontend Management Console</h1>
 
-<ul>
-
+<ul class="box">
 <li id="backends"> Backends</li>
-
 <li id="users"> Users</li>
-
 <li id="workspaces"> Workspaces </li>
-
-<li id="pub"> Published Workspaces </li>
-
+<li id="pub"> Published </li>
 <li id="account_types"> Account Types </li>
-
-<li id="slaves"> Frontend Replication Slaves </li>
-
+<li id="slaves"> Slaves </li>
 </ul>
 
+<div id="main" class="box"> 
+
+<div id="backends_box" class="console">
+<h2>Backends</h2>
+</div>
+
+</div>
 
 
 </body>
