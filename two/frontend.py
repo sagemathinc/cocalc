@@ -28,7 +28,17 @@ class ManageBackendsListAllHandler(web.RequestHandler):
 
 class ManageBackendsRemoveHandler(web.RequestHandler):
     def post(self):
-        r = {'status':'ok'}
+        id = self.get_argument('id')
+        s = db.session()
+        v = []
+        for wl in s.query(db.WorkspaceLocation).filter(db.WorkspaceLocation.backend_id==id).all():
+            s.delete(wl)
+        for b in s.query(db.Backend).filter(db.Backend.id==id).all():
+            s.delete(b)
+            v.append(b.id)
+        
+        s.commit()
+        r = {'status':'ok', 'deleted':v}
         self.write(json.dumps(r))
 
 routes = [
