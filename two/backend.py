@@ -216,15 +216,20 @@ routes = [(r"/", IndexHandler),
           (r"/register_manager", RegisterManagerHandler),
           (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})]
 
+def status_update_uri(frontend_uri):
+    return frontend_uri + '/backend/send_status_update'
+
+def send_status_mesg(id, frontend_uri, status):
+    uri = status_update_uri(frontend_uri)
+    data={'id':id, 'status':status}
+    log.debug("Sending status update to %s with data=%s"%(uri, data))
+    misc.post(uri, data=data)
+
 def start_mesg(id, frontend_uri):
-    uri = frontend_uri + '/backend/send_status_update'
-    log.debug("Sending status report to %s"%uri)
-    misc.post(uri, data={'id':id, 'status':'running'})
+    send_status_mesg(id, frontend_uri, 'running')
 
 def stop_mesg(id, frontend_uri):
-    uri = frontend_uri + '/backend/send_status_update'  # TODO: refactor -- appears in run above
-    log.debug("Sending status report to %s"%uri)
-    misc.post(uri, data={'id':id, 'status':'stopped'})
+    send_status_mesg(id, frontend_uri, 'stopped')
 
 def run(id, port, address, debug, secure, frontend_uri):
     if os.path.exists(pidfile):
@@ -253,11 +258,10 @@ def run(id, port, address, debug, secure, frontend_uri):
 
     try:
         SocketServer(app, auto_start=True)
-
-    except KeyboardInterrupt:
+    except Exception, mesg:
+        log.debug(str(mesg))
         # now it has stopped, so we remove the pidfile
         os.unlink(pidfile)
-        
         # and send a stop message
         if frontend_uri:
             stop_mesg(id, frontend_uri)
