@@ -239,14 +239,16 @@ def run(id, port, address, debug, secure, frontend_uri):
                 socket_io_port=port, socket_io_address=address, debug=debug)
 
     if frontend_uri:
-        uri = frontend_uri + '/backend/send_status_update'
-        log.debug("Sending status report to %s"%uri)
-        misc.post(uri, data={'id':id, 'status':'running'})
+        start_message(id, frontend_uri)
 
     SocketServer(app, auto_start=True)
 
     # now it has stopped, so we remove the pidfile
     os.unlink(pidfile)
+
+    # and send a stop message
+    if frontend_uri:
+        stop_message(id, frontend_uri)
 
 def stop(id, frontend_uri):
     if not os.path.exists(pidfile):
@@ -274,9 +276,17 @@ def stop(id, frontend_uri):
                 break
                 
     if frontend_uri:
-        uri = frontend_uri + '/backend/send_status_update'  # TODO: refactor -- appears in run above
-        log.debug("Sending status report to %s"%uri)
-        misc.post(uri, data={'id':id, 'status':'stopped'})
+        stop_mesg(id, frontend_uri)
+
+def start_mesg(id, frontend_uri):
+    uri = frontend_uri + '/backend/send_status_update'
+    log.debug("Sending status report to %s"%uri)
+    misc.post(uri, data={'id':id, 'status':'running'})
+
+def stop_mesg(id, frontend_uri):
+    uri = frontend_uri + '/backend/send_status_update'  # TODO: refactor -- appears in run above
+    log.debug("Sending status report to %s"%uri)
+    misc.post(uri, data={'id':id, 'status':'stopped'})
 
         
 #############################################################

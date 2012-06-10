@@ -177,8 +177,8 @@ routes = []
 ##########################################################
 class BackendStatusUpdateHandler(web.RequestHandler):
     def post(self):
-        return json.dumps(backend_manager.status_update(
-            self.get_argument('id'), self.get_argument('status')))
+        self.write(json.dumps(backend_manager.status_update(
+            self.get_argument('id'), self.get_argument('status'))))
 
 routes.extend([
     (r"/backend/send_status_update", BackendStatusUpdateHandler),
