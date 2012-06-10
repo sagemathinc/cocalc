@@ -64,7 +64,8 @@ class BackendManager(object):
 
     def backend_cmd(self, backend, extra_args=''):
         URI = backend.URI.lower()
-        v = URI.lstrip('http://').lstrip('https://').split(':')
+        i = URI.find('://')
+        v = URI[i+3:].split(':')
         host = v[0]
         if len(v) == 1:
             port = 80 if URI.startswith('http://') else 443
