@@ -216,6 +216,16 @@ routes = [(r"/", IndexHandler),
           (r"/register_manager", RegisterManagerHandler),
           (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})]
 
+def start_mesg(id, frontend_uri):
+    uri = frontend_uri + '/backend/send_status_update'
+    log.debug("Sending status report to %s"%uri)
+    misc.post(uri, data={'id':id, 'status':'running'})
+
+def stop_mesg(id, frontend_uri):
+    uri = frontend_uri + '/backend/send_status_update'  # TODO: refactor -- appears in run above
+    log.debug("Sending status report to %s"%uri)
+    misc.post(uri, data={'id':id, 'status':'stopped'})
+
 def run(id, port, address, debug, secure, frontend_uri):
     if os.path.exists(pidfile):
         try:
@@ -239,7 +249,7 @@ def run(id, port, address, debug, secure, frontend_uri):
                 socket_io_port=port, socket_io_address=address, debug=debug)
 
     if frontend_uri:
-        start_message(id, frontend_uri)
+        start_mesg(id, frontend_uri)
 
     SocketServer(app, auto_start=True)
 
@@ -277,16 +287,6 @@ def stop(id, frontend_uri):
                 
     if frontend_uri:
         stop_mesg(id, frontend_uri)
-
-def start_mesg(id, frontend_uri):
-    uri = frontend_uri + '/backend/send_status_update'
-    log.debug("Sending status report to %s"%uri)
-    misc.post(uri, data={'id':id, 'status':'running'})
-
-def stop_mesg(id, frontend_uri):
-    uri = frontend_uri + '/backend/send_status_update'  # TODO: refactor -- appears in run above
-    log.debug("Sending status report to %s"%uri)
-    misc.post(uri, data={'id':id, 'status':'stopped'})
 
         
 #############################################################
