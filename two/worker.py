@@ -252,10 +252,10 @@ class SageSocketServer(object):
         # different user than backend.  By experimenting, it appears
         # that chmod'ing the socket file and -- (if possible) -- its
         # containing directory is sufficient.  
-        os.chmod(self._socket_name, 777)
+        os.chmod(self._socket_name, 0777)
         directory = os.path.split(self._socket_name)[0]
         try:
-            os.chmod(directory, 777)
+            os.chmod(directory, 0777)
         except OSError:
             # OK -- could just mean that tempfile returned a name in /tmp, which it often does.
             pass
