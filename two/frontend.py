@@ -3,6 +3,17 @@ Frontend
 
 """
 
+import os
+
+##########################################################
+# Setup logging
+##########################################################
+import logging
+log = logging.getLogger()
+
+##########################################################
+# The database
+##########################################################
 import frontend_database_sqlalchemy as db
 
 ##########################################################
@@ -10,10 +21,22 @@ import frontend_database_sqlalchemy as db
 ##########################################################
 
 class BackendManager(object):
+    def status_update(self, id, status):
+        try:
+            s = db.session()
+            b = s.query(db.Backend).filter(db.Backend.id == id).one()
+            b.status = status
+            db.stamp(b)
+            s.commit()
+            return {'status':'ok'}
+        except Exception, m:
+            return {'status':'error', 'mesg':str(m)}
+        
     def list_all(self):
         return [{'id':b.id,
-                 'uri':b.uri,
+                 'URI':b.URI,
                  'user':b.user,
+                 'debug':b.debug,
                  'path':b.path,
                  'status':b.status,
                  'load_number':b.load_number,
@@ -30,9 +53,9 @@ class BackendManager(object):
                 s = db.session()
                 for line in lines.splitlines():
                     if line.strip():
-                        uri, user, path = line.split()
+                        URI, user, path = line.split()
                         b = db.Backend()
-                        b.uri = uri; b.user = user; b.path = path
+                        b.URI = URI; b.user = user; b.path = path
                         s.add(b)
                 s.commit()
                 return {'status':'ok'}
@@ -45,16 +68,33 @@ class BackendManager(object):
             b = s.query(db.Backend).filter(db.Backend.id==id).one()
             if b.status == 'running':
                 # nothing to do
+                pass
             else:
                 b.status = 'starting'
                 s.commit()
-                cmd = '''ssh "%s" "cd '%s'&&sage backend.py &'''%(
-                    b.user, b.path)
-                print cmd # todo
+                URI = b.URI.lower()
+                v = URI.lstrip('http://').lstrip('https://').split(':')
+                host = v[0]
+                if len(v) == 1:
+                    port = 80 if URI.startswith('http://') else 443
+                else:
+                    port = v[1]
+                user = b.user
+                if user is None:
+                    import getpass
+                    user = getpass.getuser()
+                debug = b.debug
+                path = b.path
+
+                # todo -- do something with old logs before destroying them
+                cmd = '''ssh "%s@%s" "cd '%s'&&exec sage backend.py %s --id=%s --port=%s --frontend=%s>stdout.log 2>stderr.log"&'''%(
+                    user, host, path, '--debug' if debug else '',
+                    b.id, port, frontend_URI())
+                log.debug(cmd)
                 os.system(cmd)
-                
             return {'status':'ok'}
         except Exception, mesg:
+            print mesg # todo
             return {'status':'error', 'mesg':str(mesg)}
 
     def stop(self, id):
@@ -112,11 +152,34 @@ backend_manager = BackendManager()
 
 
 ##########################################################
-# Web server
+##########################################################
+##
+##   Web server
+##
+##########################################################
 ##########################################################
 
-import json, logging
+import json
 from tornado import web, ioloop
+
+routes = []
+
+
+##########################################################
+# Backend <--> Frontend registration, etc. 
+##########################################################
+class BackendStatusUpdateHandler(web.RequestHandler):
+    def post(self):
+        return json.dumps(backend_manager.status_update(
+            self.get_argument('id'), self.get_argument('status')))
+
+routes.extend([
+    (r"/backend/send_status_update", BackendStatusUpdateHandler),
+    ])
+
+##########################################################
+# Web server: Management Console Interface
+##########################################################
 
 class ManageHandler(web.RequestHandler):
     def get(self):
@@ -150,7 +213,7 @@ class ManageBackendsStopAllHandler(web.RequestHandler):
     def post(self):
         self.write(json.dumps(backend_manager.stop_all()))
 
-routes = [
+routes.extend([
     (r"/manage", ManageHandler),
     (r"/manage/backends/list_all", ManageBackendsListAllHandler),
     (r"/manage/backends/add", ManageBackendsAddHandler),    
@@ -161,16 +224,19 @@ routes = [
     (r"/manage/backends/stop_all", ManageBackendsStopAllHandler),
     
     (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})
-]
+])
+
+##########################################################
+# Web server: Launch it
+##########################################################
 
 def run(port, address, debug, secure):
-    print "Launching frontend%s: http%s://%s:%s"%(
+    print "Launching frontend%s: %s"%(
         ' in debug mode' if debug else ' in production mode',
-        's' if secure else '',
-        address if address else '*', port)
+        frontend_URI())
 
     if debug:
-        logging.getLogger().setLevel(logging.DEBUG)
+        log.setLevel(logging.DEBUG)
 
     if secure:  # todo
         raise NotImplementedError
@@ -179,17 +245,24 @@ def run(port, address, debug, secure):
     app.listen(port=port, address=address)
     ioloop.IOLoop.instance().start()
 
+def frontend_URI():
+    import socket
+    return 'http%s://%s:%s'%(
+        's' if args.secure else '',
+        socket.gethostname(),
+        args.port)
+
 if __name__ == '__main__':
     import argparse
     
     parser = argparse.ArgumentParser(description="Run a frontend instance")
-    parser.add_argument("-p", dest='port', type=int, default=8080,
+    parser.add_argument("--port", "-p", dest='port', type=int, default=8080,
                         help="port the frontend listens on (default: 8080)")
-    parser.add_argument("-a", dest="address", type=str, default="",
+    parser.add_argument("--address", "-a", dest="address", type=str, default="",
                         help="address the frontend listens on (default: '')")
-    parser.add_argument("-d", dest="debug", action='store_const', const=True,
+    parser.add_argument("--debug", "-d", dest="debug", action='store_const', const=True,
                         help="debug mode (default: False)", default=False)
-    parser.add_argument("-s", dest="secure", action='store_const', const=True,
+    parser.add_argument("--secure", "-s", dest="secure", action='store_const', const=True,
                         help="SSL secure mode (default: False)", default=False)
     
     args = parser.parse_args()

@@ -7,7 +7,7 @@ computing session.  On a multiprocessor machine, we could have several
 of these running on the same computer in order to balance the load
 between them.  The backend server is a TornadoWeb application.  It:
 
-* Registers itself with the frontend
+* Sends status updates to the frontend
 
 * HTTP server:
    - static html/css/javascript of socket.io application:
@@ -25,10 +25,20 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 """
 
-import argparse, logging, os, Queue, simplejson, socket, tempfile
+DATA = None
+
+import argparse, os, Queue, signal, simplejson, socket, tempfile
 
 from tornado import web, iostream
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
+
+import misc
+
+##########################################################
+# Setup logging
+##########################################################
+import logging
+log = logging.getLogger()
 
 #############################################################
 # HTTP Server handlers
@@ -167,7 +177,7 @@ class SocketIO(SocketConnection):
 
     def on_open(self, *args, **kwargs):
         self.clients.add(self)
-        print "new connection: %s"%self
+        log.debug("new connection: %s"%self)
 
     @event
     def new_session(self):
@@ -205,20 +215,41 @@ routes = [(r"/", IndexHandler),
           (r"/register_manager", RegisterManagerHandler),
           (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})]
 
-def run(port, address, debug, secure, frontend_uri):
-    print "Launching backend%s: http%s://%s:%s"%(
+def run(id, port, address, debug, secure, frontend_uri):
+    # data directory
+    global DATA
+    DATA = os.path.join('data', 'backend-%s'%id)
+    if not os.path.exists(DATA):
+        os.makedirs(DATA)
+
+    pidfile = os.path.join(DATA, 'pid')
+    if os.path.exists(pidfile):
+        try:
+            pid = int(open(pidfile).read())
+            os.kill(pid, 0)
+            raise RuntimeError, "server with process %s already running"%pid
+        except OSError:
+            pass
+
+    open(pidfile,'w').write(str(os.getpid()))
+        
+    log.debug("Launching backend%s: http%s://%s:%s"%(
         ' in debug mode' if debug else ' in production mode',
         's' if secure else '',
-        address if address else '*', port)
+        address if address else '*', port))
 
     if debug:
-        logging.getLogger().setLevel(logging.DEBUG)
+        log.setLevel(logging.DEBUG)
 
     if secure:  # todo
         raise NotImplementedError
 
     app = web.Application(router.apply_routes(routes),
                 socket_io_port=port, socket_io_address=address, debug=debug)
+
+    uri = frontend_uri + '/backend/send_status_update'
+    log.debug("Sending status report to %s"%uri)
+    misc.post(uri, data={'id':id, 'status':'running'})
 
     SocketServer(app, auto_start=True)
         
@@ -229,20 +260,22 @@ def run(port, address, debug, secure, frontend_uri):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run backend server instance")
 
-    parser.add_argument("-p", dest='port', type=int, default=8080,
+    parser.add_argument("--id", dest="id", type=int,
+                        help="database id number of backend server", default='1')
+    parser.add_argument("--port", dest='port', type=int, default=8080,
                         help="port the server listens on (default: 8080)")
-    parser.add_argument("-a", dest="address", type=str, default="",
+    parser.add_argument("--address", dest="address", type=str, default="",
                         help="address the server listens on (default: '')")
-    parser.add_argument("-d", dest="debug", action='store_const', const=True,
+    parser.add_argument("--debug", dest="debug", action='store_const', const=True,
                         help="debug mode (default: False)", default=False)
-    parser.add_argument("-s", dest="secure", action='store_const', const=True,
+    parser.add_argument("--secure", dest="secure", action='store_const', const=True,
                         help="SSL secure mode (default: False)", default=False)
-
-    parser.add_argument("--frontend_uri", dest="frontend_uri", type=str,
-                        help="frontend server to register with", default='')
+    parser.add_argument("--frontend", dest="frontend_uri", type=str,
+                        help="URI of frontend server to status update to", default='')
     
     args = parser.parse_args()
-    run(args.port, args.address, args.debug, args.secure, args.frontend_uri)
+    
+    run(args.id, args.port, args.address, args.debug, args.secure, args.frontend_uri)
 
 
 

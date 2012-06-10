@@ -43,6 +43,9 @@ def now():
 def timestamp_to_str(timestamp):
     return time.asctime(time.localtime(timestamp))
 
+def stamp(obj):
+    obj.timestamp = now()
+
 class User(Base):
     """
     EXAMPLES::
@@ -131,9 +134,11 @@ class Backend(Base):
     id = Column(Integer, primary_key=True)
     timestamp = Column(Float)
 
-    uri = Column(String)
-    user = Column(String)
-    path = Column(String)
+    URI = Column(String)     # URI that backend listens on
+    path = Column(String)    # 
+    user = Column(String)    # user@URI:path/ where path/ contains backend.py
+    debug = Column(Boolean)  # whether to run backend in debug mode
+    
     status = Column(String)  # 'stopped', 'running', 'starting', 'stopping'
     load_number = Column(Float)
     number_of_connected_users = Column(Integer)
@@ -145,7 +150,7 @@ class Backend(Base):
         self.timestamp = now()
 
     def __repr__(self):
-        return '<Backend %s: "%s">'%(self.id, self.uri)
+        return '<Backend %s: "%s">'%(self.id, self.URI)
 
 class Workspace(Base):
     __tablename__ = "workspaces"
@@ -403,10 +408,13 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
     if verbose: print "Create backends"
     for n in range(num_backends):
         backend = Backend()
-        backend.uri = 'http://backend%s.sagews.com'%(n+1)
-        backend.user = 'sagews@backend%s.sagews.com'%(n+1)
-        backend.path = 'sagews/backend%s/'%(n+1)
-        backend.status = 'running'
+
+        backend.URI = 'http://localhost:%s'%(9000+n+1)
+        backend.user = 'wstein'
+        backend.debug = True
+        backend.path = 'tmp/sagews/backend-%s'%(n+1)
+        
+        backend.status = 'stopped'
         backend.load_number = random.random()
         backend.number_of_connected_users = random.randint(0,num_users)
         backend.number_of_stored_workspaces = random.randint(0,num_workspaces)
