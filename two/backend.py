@@ -251,14 +251,16 @@ def run(id, port, address, debug, secure, frontend_uri):
     if frontend_uri:
         start_mesg(id, frontend_uri)
 
-    SocketServer(app, auto_start=True)
+    try:
+        SocketServer(app, auto_start=True)
 
-    # now it has stopped, so we remove the pidfile
-    os.unlink(pidfile)
-
-    # and send a stop message
-    if frontend_uri:
-        stop_message(id, frontend_uri)
+    except KeyboardInterrupt:
+        # now it has stopped, so we remove the pidfile
+        os.unlink(pidfile)
+        
+        # and send a stop message
+        if frontend_uri:
+            stop_mesg(id, frontend_uri)
 
 def stop(id, frontend_uri):
     if not os.path.exists(pidfile):
