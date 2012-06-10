@@ -61,6 +61,29 @@ class BackendManager(object):
                 return {'status':'ok'}
             except Exception, mesg:
                 return {'status':'error', 'mesg':str(mesg)}
+
+    def backend_cmd(self, backend, extra_args=''):
+        URI = backend.URI.lower()
+        v = URI.lstrip('http://').lstrip('https://').split(':')
+        host = v[0]
+        if len(v) == 1:
+            port = 80 if URI.startswith('http://') else 443
+        else:
+            port = v[1]
+        user = backend.user
+        if user is None:
+            import getpass
+            user = getpass.getuser()
+        debug = backend.debug
+        path = backend.path
+
+        cmd = '''ssh "%s@%s" "cd '%s'&&exec sage backend.py %s --id=%s --port=%s --frontend=%s %s >stdout.log 2>stderr.log"&'''%(
+            user, host, path, '--debug' if debug else '',
+            backend.id, port, frontend_URI(), extra_args)
+
+        log.debug(cmd)
+
+        return cmd
         
     def start(self, id):
         try:
@@ -72,25 +95,7 @@ class BackendManager(object):
             else:
                 b.status = 'starting'
                 s.commit()
-                URI = b.URI.lower()
-                v = URI.lstrip('http://').lstrip('https://').split(':')
-                host = v[0]
-                if len(v) == 1:
-                    port = 80 if URI.startswith('http://') else 443
-                else:
-                    port = v[1]
-                user = b.user
-                if user is None:
-                    import getpass
-                    user = getpass.getuser()
-                debug = b.debug
-                path = b.path
-
-                # todo -- do something with old logs before destroying them
-                cmd = '''ssh "%s@%s" "cd '%s'&&exec sage backend.py %s --id=%s --port=%s --frontend=%s>stdout.log 2>stderr.log"&'''%(
-                    user, host, path, '--debug' if debug else '',
-                    b.id, port, frontend_URI())
-                log.debug(cmd)
+                cmd = self.backend_cmd(b)
                 os.system(cmd)
             return {'status':'ok'}
         except Exception, mesg:
@@ -101,11 +106,13 @@ class BackendManager(object):
         try:
             s = db.session()
             b = s.query(db.Backend).filter(db.Backend.id==id).one()
-            # TODO: actually do it        
-            b.status = 'stopped'
+            b.status = 'stopping'
             s.commit()
+            cmd = self.backend_cmd(b, extra_args="--stop=True")
+            os.system(cmd)
             return {'status':'ok'}
         except Exception, mesg:
+            print mesg
             return {'status':'error', 'mesg':str(mesg)}
 
     def start_all(self):
