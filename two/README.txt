@@ -244,6 +244,7 @@ database can be more easily replicated.  (And/or it will run on appengine.)
 	         - backend_id
                  - URI
                  - necessary authentication info
+
         - FILESYSTEM: on filesystem directory of workspaces --
              workspaces/
 	         workspace_id/

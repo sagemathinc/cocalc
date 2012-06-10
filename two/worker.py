@@ -8,7 +8,7 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-import argparse, misc, os, simplejson, socket, string, sys, tempfile, time, traceback
+import argparse, misc, os, simplejson, socket, stat, string, sys, tempfile, time, traceback
 
 ######################################################################    
     
@@ -246,6 +246,20 @@ class SageSocketServer(object):
 
         print "Binding socket to %s"%self._socket_name
         s.bind(self._socket_name)
+
+        # Change permissions so everybody (in particular, the backend)
+        # can use this socket, since worker.py will be run as a
+        # different user than backend.  By experimenting, it appears
+        # that chmod'ing the socket file and -- (if possible) -- its
+        # containing directory is sufficient.  
+        os.chmod(self._socket_name, 777)
+        directory = os.path.split(self._socket_name)[0]
+        try:
+            os.chmod(directory, 777)
+        except OSError:
+            # OK -- could just mean that tempfile returned a name in /tmp, which it often does.
+            pass
+        
         
         self._children = []
         s.listen(5)  # todo -- what number should I use here?
@@ -326,18 +340,30 @@ class SageSocketTestClient(object):
             
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Run backend manager (which spawns/serves workers)")
+    parser = argparse.ArgumentParser(description="Run a worker")
+    parser.add_argument("--id", dest="id", type=int, default=0,
+                        help="id of this worker (default: 0 for testing purposes)")
     parser.add_argument("--backend_port", dest="backend_port", type=int, 
-                        help="port of local backend web server to register with (or 0 for to not register)",
+                        help="port of local backend web server to register with (or 0 to not register)",
                         default=0)
     parser.add_argument("--socket_name", dest="socket_name", type=str, 
                         help="name of UD socket to serve on (used for devel/testing)",
                         default='')
     parser.add_argument("--test_client", dest="test_client", action="store_const",
                         const=True, default=False,
-                        help="run a testing command line client instead (make sure to specifiy the socket with -s socket_name)")
-                        
+                        help="run a testing command line client instead (make sure to specify the socket with -s socket_name)")
+    parser.add_argument('--stop', dest="stop", type=bool, default=False,
+                        help="Stop the worker with given id, if it is running")
+
     args = parser.parse_args()
+
+    # setup data directory variable
+    DATA = os.path.join('data', 'worker-%s'%args.id)
+    if not os.path.exists(DATA):
+        os.makedirs(DATA)
+    pidfile = os.path.join(DATA, 'pid')
+
+    
     if args.test_client:
         SageSocketTestClient(args.socket_name).run()
     else:
