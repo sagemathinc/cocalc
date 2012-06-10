@@ -8,19 +8,20 @@
     height:300px;  /* TODO */
     width:100%;
     overflow:auto;
-    border-top:2px solid #555;
-    border-left:2px solid #555;
-    padding:5px;
-    background:#eee;
+    border:2px solid #555;
+    padding:15px;
+    background:#fff;
 }
 
 .backend_stat {
     font-size:x-small;
-    
     border:1px solid #555;
-/*    border-bottom:1px solid #555;
-    border-top:1px solid #555; */
     padding-left:4px;
     padding-right:4px;
 }
 
+.backend_stat_row {
+    border:2px solid #777;
+    padding:5px;
+}
+   

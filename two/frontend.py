@@ -77,7 +77,7 @@ class BackendManager(object):
         debug = backend.debug
         path = backend.path
 
-        cmd = '''ssh "%s@%s" "cd '%s'&&exec sage backend.py %s --id=%s --port=%s --frontend=%s %s >stdout.log 2>stderr.log"&'''%(
+        cmd = '''ssh "%s@%s" "cd '%s'&&exec sage backend.py %s --id=%s --port=%s --frontend=%s %s >stdout.log 2>stderr.log &"'''%(
             user, host, path, '--debug' if debug else '',
             backend.id, port, frontend_URI(), extra_args)
 
@@ -97,6 +97,7 @@ class BackendManager(object):
                 s.commit()
                 cmd = self.backend_cmd(b)
                 log.debug(os.popen(cmd).read())
+                log.debug("command sent")                
             return {'status':'ok'}
         except Exception, mesg:
             print mesg # todo
@@ -110,6 +111,7 @@ class BackendManager(object):
             s.commit()
             cmd = self.backend_cmd(b, extra_args="--stop=True")
             log.debug(os.popen(cmd).read())
+            log.debug("command sent")
             return {'status':'ok'}
         except Exception, mesg:
             print mesg
