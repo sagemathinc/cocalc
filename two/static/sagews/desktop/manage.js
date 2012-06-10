@@ -54,6 +54,7 @@ function update_backend_tab() {
         for(var i=0; i<data.length; i++) {
 	    row = $('<li></li>');
             var backend = data[i];
+console.log(backend.status);
             if (backend.status === 'running') {
 		row.data({url:'stop', 'id':backend.id});
 		var icon = 'circle-close', button = 'Running', color='#090';

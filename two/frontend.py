@@ -55,7 +55,7 @@ class BackendManager(object):
                     if line.strip():
                         URI, user, path = line.split()
                         b = db.Backend()
-                        b.URI = URI; b.user = user; b.path = path
+                        b.URI = URI; b.user = user; b.path = path; b.status = 'stopped'
                         s.add(b)
                 s.commit()
                 return {'status':'ok'}
@@ -96,7 +96,7 @@ class BackendManager(object):
                 b.status = 'starting'
                 s.commit()
                 cmd = self.backend_cmd(b)
-                os.system(cmd)
+                log.debug(os.popen(cmd).read())
             return {'status':'ok'}
         except Exception, mesg:
             print mesg # todo
@@ -109,7 +109,7 @@ class BackendManager(object):
             b.status = 'stopping'
             s.commit()
             cmd = self.backend_cmd(b, extra_args="--stop=True")
-            os.system(cmd)
+            log.debug(os.popen(cmd).read())
             return {'status':'ok'}
         except Exception, mesg:
             print mesg
@@ -256,8 +256,7 @@ def frontend_URI():
     import socket
     return 'http%s://%s:%s'%(
         's' if args.secure else '',
-        socket.gethostname(),
-        args.port)
+        args.external, args.port)
 
 if __name__ == '__main__':
     import argparse
@@ -266,13 +265,19 @@ if __name__ == '__main__':
     parser.add_argument("--port", "-p", dest='port', type=int, default=8080,
                         help="port the frontend listens on (default: 8080)")
     parser.add_argument("--address", "-a", dest="address", type=str, default="",
-                        help="address the frontend listens on (default: '')")
+                        help="address the frontend listens on (default: ''=everything)")
+    parser.add_argument("--external", dest="external", type=str, default="",
+                        help="address backends use to communicate with frontend (default: socket.gethostname())")
     parser.add_argument("--debug", "-d", dest="debug", action='store_const', const=True,
                         help="debug mode (default: False)", default=False)
     parser.add_argument("--secure", "-s", dest="secure", action='store_const', const=True,
                         help="SSL secure mode (default: False)", default=False)
     
     args = parser.parse_args()
+
+    if not args.external:        
+        args.external = args.address if args.address else socket.gethostname()
+        
     run(args.port, args.address, args.debug, args.secure)
 
 

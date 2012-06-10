@@ -293,7 +293,7 @@ if __name__ == '__main__':
     parser.add_argument("--address", dest="address", type=str, default="",
                         help="address the server listens on (default: '')")
     parser.add_argument("--debug", "-d", dest="debug", action='store_const', const=True,
-                        help="debug mode (default: False)", default=False)
+                        help="debug mode (default: True)", default=True)
     parser.add_argument("--secure", "-s", dest="secure", action='store_const', const=True,
                         help="SSL secure mode (default: False)", default=False)
     parser.add_argument("--frontend", dest="frontend_uri", type=str,
