@@ -205,7 +205,7 @@ routes = [(r"/", IndexHandler),
           (r"/register_manager", RegisterManagerHandler),
           (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})]
 
-def run(port, address, debug, secure):
+def run(port, address, debug, secure, frontend_uri):
     print "Launching backend%s: http%s://%s:%s"%(
         ' in debug mode' if debug else ' in production mode',
         's' if secure else '',
@@ -237,9 +237,12 @@ if __name__ == '__main__':
                         help="debug mode (default: False)", default=False)
     parser.add_argument("-s", dest="secure", action='store_const', const=True,
                         help="SSL secure mode (default: False)", default=False)
+
+    parser.add_argument("--frontend_uri", dest="frontend_uri", type=str,
+                        help="frontend server to register with", default='')
     
     args = parser.parse_args()
-    run(args.port, args.address, args.debug, args.secure)
+    run(args.port, args.address, args.debug, args.secure, args.frontend_uri)
 
 
 

@@ -132,7 +132,8 @@ class Backend(Base):
     timestamp = Column(Float)
 
     uri = Column(String)
-    unix_user = Column(String)
+    user = Column(String)
+    path = Column(String)
     status = Column(String)  # 'stopped', 'running', 'starting', 'stopping'
     load_number = Column(Float)
     number_of_connected_users = Column(Integer)
@@ -403,7 +404,8 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
     for n in range(num_backends):
         backend = Backend()
         backend.uri = 'http://backend%s.sagews.com'%(n+1)
-        backend.unix_user = 'sagews@backend%s.sagews.com'%(n+1)
+        backend.user = 'sagews@backend%s.sagews.com'%(n+1)
+        backend.path = 'sagews/backend%s/'%(n+1)
         backend.status = 'running'
         backend.load_number = random.random()
         backend.number_of_connected_users = random.randint(0,num_users)

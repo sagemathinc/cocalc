@@ -89,15 +89,17 @@ function update_backend_tab() {
 			    $.post('manage/backends/delete', {'id':id}, function(data,status) { update_backend_tab(); } ); 
 			}
 		    })
-                 }));
 
+                 }));
+	    
+	    row.append($('<br>'));
             row.append($('<span class="backend_stat">id='+backend.id + '</span>'));
-            row.append($('<span class="backend_stat">' + backend.uri + '</span>'));
             row.append($('<span class="backend_stat">load='+Math.round(backend.load_number*100) + '%</span>'));
             row.append($('<span class="backend_stat">users='+backend.number_of_connected_users + '</span>'));
             row.append($('<span class="backend_stat">workspaces='+backend.number_of_stored_workspaces + '</span>'));
             row.append($('<span class="backend_stat">disk='+backend.disk_usage + '/' + backend.disk_available + '</span>'));
-            row.append($('<span class="backend_stat">'+backend.unix_user + '</span>'));
+            row.append($('<span class="backend_stat">' + backend.uri + '</span>'));
+            row.append($('<span class="backend_stat">'+backend.user + ':' + backend.path + '</span>'));
 
 
             list.append(row);

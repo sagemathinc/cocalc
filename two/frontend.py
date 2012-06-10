@@ -11,7 +11,10 @@ import frontend_database_sqlalchemy as db
 
 class BackendManager(object):
     def list_all(self):
-        return [{'id':b.id, 'uri':b.uri, 'unix_user':b.unix_user,
+        return [{'id':b.id,
+                 'uri':b.uri,
+                 'user':b.user,
+                 'path':b.path,
                  'status':b.status,
                  'load_number':b.load_number,
                  'number_of_connected_users':b.number_of_connected_users,
@@ -23,13 +26,14 @@ class BackendManager(object):
     def add(self, lines):
         if lines:
             # there are lines to add
-            s = db.session()
-            for line in lines.splitlines():
-                uri, unix_user = line.split()
-                b = db.Backend()
-                b.uri = uri; b.unix_user = unix_user
-                s.add(b)
             try:
+                s = db.session()
+                for line in lines.splitlines():
+                    if line.strip():
+                        uri, user, path = line.split()
+                        b = db.Backend()
+                        b.uri = uri; b.user = user; b.path = path
+                        s.add(b)
                 s.commit()
                 return {'status':'ok'}
             except Exception, mesg:
@@ -39,9 +43,16 @@ class BackendManager(object):
         try:
             s = db.session()
             b = s.query(db.Backend).filter(db.Backend.id==id).one()
-            # TODO: actually do it        
-            b.status = 'running'
-            s.commit()
+            if b.status == 'running':
+                # nothing to do
+            else:
+                b.status = 'starting'
+                s.commit()
+                cmd = '''ssh "%s" "cd '%s'&&sage backend.py &'''%(
+                    b.user, b.path)
+                print cmd # todo
+                os.system(cmd)
+                
             return {'status':'ok'}
         except Exception, mesg:
             return {'status':'error', 'mesg':str(mesg)}
