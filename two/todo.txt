@@ -1,5 +1,7 @@
 TODO:
 
+ [ ] jmol in an iframe??
+
  [ ] write Frontend
 
       [ ] write frontend.py server (flask + SQLalchemy version)

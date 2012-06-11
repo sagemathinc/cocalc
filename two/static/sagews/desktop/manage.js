@@ -99,13 +99,14 @@ function update_backend_tab() {
             row.append($('<span class="backend_stat"> ' + backend.URI + ' </span>'));
             row.append($('<span class="backend_stat"> ' + backend.user + ' </span>'));
             row.append($('<span class="backend_stat"> ' + backend.path + ' </span>'));
-            row.append($('<span class="backend_stat"> load='+Math.round(backend.load_number*100) + '% </span>'));
-            row.append($('<span class="backend_stat"> users='+backend.number_of_connected_users + ' </span>'));
-            row.append($('<span class="backend_stat"> workspaces='+backend.number_of_stored_workspaces + ' </span>'));
-            row.append($('<span class="backend_stat"> disk='+backend.disk_usage + '/' + backend.disk_available + ' </span>'));
+            row.append($('<span class="backend_stat"> load=' + Math.round(backend.load_number*100) + '% </span>'));
+            row.append($('<span class="backend_stat"> users=' + backend.number_of_connected_users + ' </span>'));
+            row.append($('<span class="backend_stat"> workspaces=' + backend.number_of_stored_workspaces + ' </span>'));
+            row.append($('<span class="backend_stat"> disk=' + backend.disk_usage + '/' + backend.disk_available + ' </span>'));
 	    if (backend.debug) {
 		row.append($('<span class="backend_stat">(debug)</span>'));
 	    }
+	    row.append($('<span class="backend_stat"> workers="' + backend.workers + '" </span>'));
 
             list.append(row);
         }

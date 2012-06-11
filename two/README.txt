@@ -263,6 +263,7 @@ database can be more easily replicated.  (And/or it will run on appengine.)
         - Managing workspace
         - Interactive command line shell
         - Graphical file manager
+        - jQuery Hotkeys(?) --- https://github.com/tzuryby/jquery.hotkeys ??
 
    * Mobile Backend Client (static/sagews/mobile/backend.[js,html,css]) --
         - Uses the socket.io javascript client library
@@ -270,37 +271,25 @@ database can be more easily replicated.  (And/or it will run on appengine.)
 
    * Worker (worker.py) -- 
         - a forking local unix domain sockets server using json messages
-        - runs as a *restricted* UNIX user, one of a comma separated list 
+        - runs as a "restricted" UNIX user, one of a comma separated list 
           of local usernames passed via command line when starting backend
         - bound: #{*simultaneous* open workspaces} <= #{users}
-        - lifetime:  
-            0. ssh: clean $HOME of worker
-            1. scp: backend sends worker.py and a *git bundle* representation 
-               of workspace to $HOME/
-            2. ssh: git clone's workspace.bundle to workspace/
-            3. ssh: cd workspace && /path/to/sage ../worker.py <opts>
-            4. POST: worker.py posts to backend about successful startup
-            5. unix domain socket: backend makes socket connection(s)...
-            6. ssh: /path/to/sage ../worker.py --backend=? --stop=True --git=?
-               which will POST a git bundle to the backend server if anything
-               has been saved.  (above could be done periodically 
-               without --stop=True to safely save work)
-        - lifetime -- take 2 -- the above seems way too complicated/slow:
-            0. precondition -- make groups for all sagews-worker-n users
-               and make sagews-backend user a mamber of all those groups.
-            1. local: Set grp of 
-                    data/backend/workspaces/id/workspace/
-               and use git to do a clean local checkout of 
-                    data/backend/workspaces/id/.git
-               If necessary, make sure grp permissions of workspace/
-               are set so sage-worker-n can modify anything in that directory.
+        - lifetime 
+            0. precondition: make UNIX groups for all sagews_worker_n users
+               and make sagews_backend user a member of all those groups.
+            1. chgrp -R sagews_worker_n data/backend/workspaces/id/workspace/
             2. ssh: cd data/backend/workspaces/id/workspace/ && /path/to/sage -python /path/to/worker.py <opts>
-            3. to save session, the *backend* uses git right here.  Since owns
+               Make sure the unix domain socket is data/backend/workspaces/id/socket
+               with correct permissions setup.  This way only sagews_worker_n and backend can talk.
+               [TODO: get rid of using tempfile]
+            3. To save session, the *backend* uses git right here.  Since owns
                containing directory, can chmod and read anything. 
-            4. When workspace shutdown, just chmod/chgrp workspace/ to
-               protect again.
-          The above should be much faster and simpler than previous plan. 
-
+            4. When workspace shuts down, chmod/chgrp workspace/ to
+               protect again, and do a clean local checkout of 
+                    data/backend/workspaces/id/.git
+               in preparation for next run.  If necessary, make sure
+               grp permissions of workspace/ are set so sage-worker-n
+               can modify anything in that directory.
         - save: state of workspace -- this git adds *everything*, then commits
 
    * DOCUMENTS:
@@ -329,7 +318,9 @@ database can be more easily replicated.  (And/or it will run on appengine.)
           - edit document (in a given div)
           - get document state (for saving to disk)
           - will use message protocol to synchronize members of the session
-          
+         
+     * Publishing:
+       - QR codes ? 
 
        
        

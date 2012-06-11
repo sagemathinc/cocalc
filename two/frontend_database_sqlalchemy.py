@@ -138,6 +138,9 @@ class Backend(Base):
     path = Column(String)    # 
     user = Column(String)    # user@URI:path/ where path/ contains backend.py
     debug = Column(Boolean)  # whether to run backend in debug mode
+    workers = Column(String) # comma separated list of unix usernames, e.g.,
+                             # "sagews_worker_1,sagews_worker_2-7,userfoo_5"
+                             # dash ranges gets filled in automatically.
     
     status = Column(String)  # 'stopped', 'running', 'starting', 'stopping'
     load_number = Column(Float)
@@ -361,7 +364,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
         >>> s.query(Workspace).count()
         50
         >>> s.query(WorkspaceLocation).count()
-        87
+        90
         >>> s.query(Publication).count()
         20
         >>> s.query(Slave).count()
@@ -413,6 +416,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
         backend.user = 'wstein'
         backend.debug = True
         backend.path = 'tmp/sagews/backend-%s'%(n+1)
+        backend.workers = "sagews_worker_1,sagews_worker_2-7,userfoo_5"
         
         backend.status = 'stopped'
         backend.load_number = random.random()

@@ -3,7 +3,7 @@ Frontend
 
 """
 
-import os
+import os, socket
 
 ##########################################################
 # Setup logging
@@ -38,6 +38,7 @@ class BackendManager(object):
                  'user':b.user,
                  'debug':b.debug,
                  'path':b.path,
+                 'workers':b.workers,
                  'status':b.status,
                  'load_number':b.load_number,
                  'number_of_connected_users':b.number_of_connected_users,
@@ -53,9 +54,9 @@ class BackendManager(object):
                 s = db.session()
                 for line in lines.splitlines():
                     if line.strip():
-                        URI, user, path = line.split()
+                        URI, user, path, workers = line.split()
                         b = db.Backend()
-                        b.URI = URI; b.user = user; b.path = path; b.status = 'stopped'
+                        b.URI = URI; b.user = user; b.path = path; b.workers = workers; b.status = 'stopped'; 
                         s.add(b)
                 s.commit()
                 return {'status':'ok'}
