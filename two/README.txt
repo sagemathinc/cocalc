@@ -285,6 +285,22 @@ database can be more easily replicated.  (And/or it will run on appengine.)
                which will POST a git bundle to the backend server if anything
                has been saved.  (above could be done periodically 
                without --stop=True to safely save work)
+        - lifetime -- take 2 -- the above seems way too complicated/slow:
+            0. precondition -- make groups for all sagews-worker-n users
+               and make sagews-backend user a mamber of all those groups.
+            1. local: Set grp of 
+                    data/backend/workspaces/id/workspace/
+               and use git to do a clean local checkout of 
+                    data/backend/workspaces/id/.git
+               If necessary, make sure grp permissions of workspace/
+               are set so sage-worker-n can modify anything in that directory.
+            2. ssh: cd data/backend/workspaces/id/workspace/ && /path/to/sage -python /path/to/worker.py <opts>
+            3. to save session, the *backend* uses git right here.  Since owns
+               containing directory, can chmod and read anything. 
+            4. When workspace shutdown, just chmod/chgrp workspace/ to
+               protect again.
+          The above should be much faster and simpler than previous plan. 
+
         - save: state of workspace -- this git adds *everything*, then commits
 
    * DOCUMENTS:
