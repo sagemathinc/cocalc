@@ -8,7 +8,7 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-import argparse, misc, os, simplejson, socket, stat, string, sys, tempfile, time, traceback
+import os, json, socket, string, sys, tempfile, time, traceback
 
 ######################################################################    
     
@@ -37,10 +37,10 @@ class JSONsocket(object):
             else:
                 mesg = self._data[:i]
                 self._data = self._data[i+1:]
-                return simplejson.loads(mesg)
+                return json.loads(mesg)
 
     def send(self, m):
-        self._s.send(simplejson.dumps(m)+self._sep)
+        self._s.send(json.dumps(m)+self._sep)
 
 
 class OutputStream(object):
@@ -66,13 +66,13 @@ class OutputStream(object):
         self._f(self._buf, done=done)
         self._buf = ''
 
-import sage.all_cmdline
 
 def preparse_code(code):
     if code.lstrip().startswith('!'):
-        # shell escape
+        # shell escape (TODO: way better)
         code = 'print os.popen(eval("%r")).read()'%code[1:]
     else:
+        import sage.all_cmdline
         code = sage.all_cmdline.preparse(code)
     return code
 
@@ -267,6 +267,7 @@ class SageSocketServer(object):
         if self._backend_port:
             url = 'http://localhost:%s/register_manager'%self._backend_port 
             print "Registering with backend server at %s"%url  # todo: proper log
+            import misc
             misc.post(url, data = {'socket_name':self._socket_name}, timeout=5)  # TODO: 5?
             
         try:
@@ -337,9 +338,46 @@ class SageSocketTestClient(object):
                 s.close()
             except Exception, msg:
                 print msg
-            
+
+def launch_remote_server(args):
+    if not args.username.startswith('sagews-worker'):
+        raise RuntimeError, "worker username must start with sagews-worker"
+    user = '%s@localhost'%args.username
+
+    # 0. clean out home directory of user
+    cmd = 'ssh %s rm -rf $HOME/*'
+    log.debug(cmd)
+    if not os.system(cmd):
+        raise RuntimeError, "failed to clean out home directory of %s"%user
+    
+    # 1. send worker.py and git bundle:
+    # create git bundle
+    try:
+        bundle = tempfile.mktemp()
+        workspace_path = 'data/backend/workspaces/%s/'%args.workspace_id
+        if not os.path.exists(workspace_path):
+            raise RuntimeError, "no workspace at '%s'"%workspace_path
+        cmd = "cd %s && git bundle create %s master"%(workspace_path, bundle)
+        if not os.system(cmd):
+            raise RuntimeError, "failed to create git bundle %s"%workspace_path
+
+        cmd = 'scp worker.py %s %s:'%(bundle, user)
+        if not os.system(cmd):
+            raise RuntimeError, "failed to copy worker.py and bundle to %s"%user
+
+    finally:
+        # remove temporary bundle
+        os.unlink(bundle)
+
+    # 2. launch worker.py remotely.
+    # TODO: opts
+    cmd = 'ssh %s exec "%s"/sage -python worker.py %s'%(user, os.environ['SAGE_ROOT'], opts)
+    if not os.system(cmd):
+        raise RuntimeError, "failed to launch remote worker.py as %s"%user
+    
 
 if __name__ == '__main__':
+    import argparse
     parser = argparse.ArgumentParser(description="Run a worker")
     parser.add_argument("--backend_port", dest="backend_port", type=int, 
                         help="port of local backend web server to register with (or 0 to not register)",
@@ -353,6 +391,12 @@ if __name__ == '__main__':
     parser.add_argument('--stop', dest="stop", type=bool, default=False,
                         help="Stop the worker with given id, if it is running")
 
+    parser.add_argument('--username', dest="username", type=str, default="",
+                        help="if specified, first ssh to username@localhost")
+    
+    parser.add_argument('--workspace_id', dest="workspace_id", type=int, default=-1,
+                        help="id of workspace that will be run")
+
     args = parser.parse_args()
 
     # setup data directory variable
@@ -361,8 +405,9 @@ if __name__ == '__main__':
     #    os.makedirs(DATA)
     #pidfile = os.path.join(DATA, 'pid')
 
-    
-    if args.test_client:
+    if args.username:
+        launch_remote_server(args)
+    elif args.test_client:
         SageSocketTestClient(args.socket_name).run()
     else:
         SageSocketServer(args.backend_port, args.socket_name).run()

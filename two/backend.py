@@ -60,11 +60,14 @@ class RegisterManagerHandler(web.RequestHandler):
 #############################################################
 #  Start a worker process
 #############################################################
-
-def start_worker():
-    cmd = "exec ./sage worker.py --backend_port=%s &"%args.port
-    log.debug(os.popen(cmd).read())
-
+def start_worker(username, workspace_id):
+    # To avoid blocking, we must launch another process to start
+    # worker.py as the remote user.   Once everything is setup,
+    # the backend will get an appropriate POST request, and then
+    # we can proceed with serving requests for session id's.
+    cmd = "python worker.py --username=%s --workspace_id=%s&"%(username, workspace_id)
+    log.debug(cmd)
+    os.system(cmd)
 
 #############################################################
 # Sage Managers and worker sessions

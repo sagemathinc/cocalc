@@ -253,11 +253,8 @@ database can be more easily replicated.  (And/or it will run on appengine.)
                  - necessary authentication info
 
         - FILESYSTEM: on filesystem directory of workspaces --
-             workspaces/
-	         workspace_id/
-                     .git/
-                      workspace/
-                          all data for workspace is in here
+             data/backend/workspaces/id/.git/
+                                        files... <-- enables static browsing (?)
 
    * Desktop Backend Client (static/sagews/desktop/backend.[js,html,css]) --
         - Use socket.io javascript client library
@@ -276,7 +273,8 @@ database can be more easily replicated.  (And/or it will run on appengine.)
         - runs as a *restricted* UNIX user, one of a comma separated list 
           of local usernames passed via command line when starting backend
         - bound: #{*simultaneous* open workspaces} <= #{users}
-        - lifetime:
+        - lifetime:  
+            0. ssh: clean $HOME of worker
             1. scp: backend sends worker.py and a *git bundle* representation 
                of workspace to $HOME/
             2. ssh: git clone's workspace.bundle to workspace/

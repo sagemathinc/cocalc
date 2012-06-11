@@ -6,13 +6,9 @@ import os, tempfile, socket
 from StringIO import StringIO
 import urllib, urllib2
 
-import gc, requests
+import gc
 
 from urllib2 import URLError
-
-# this exception is used by client code
-ConnectionError = requests.ConnectionError
-Timeout = requests.Timeout
 
 def get_using_requests(url, data=None, timeout=10):
     """
@@ -40,6 +36,7 @@ def get_using_requests(url, data=None, timeout=10):
         URLError: <urlopen error timed out>
     """
     if data is None: data = {}
+    import requests
     t = requests.get(url, params=data, timeout=timeout).text
     # This "gc.collect()" is absolutely required, or requests
     # leaves open connection. See https://github.com/kennethreitz/requests/issues/239
@@ -83,6 +80,7 @@ def post_using_requests(url, data=None, files=None, timeout=10):
                       for k,v in files.iteritems()])
     if data is None: data = {}
     # This function with files!={} is easy because of "requests".
+    import requests
     t = requests.post(url, data=data, timeout=timeout, files=files).text
     gc.collect()
     return t

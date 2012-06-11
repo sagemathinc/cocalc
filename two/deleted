@@ -1,3 +1,22 @@
+    if not username.startswith('sagews-worker'):
+        raise RuntimeError, "worker username must start with sagews-worker"
+    filename = workspace_bundle(workspace_id)
+    
+    user = '%s@localhost'%username
+    cmd = "ssh %s rm -rf * && chmod og-rwx $HOME"   # terrifying!
+    os.popen(cmd).read()
+    # clean $HOME of worker
+    cmd = "ssh %s
+    
+    # scp worker.py and git bundle of the workspace to home
+    # directory of worker.
+    cmd = "exec ./sage worker.py --backend_port=%s &"%args.port
+    log.debug(os.popen(cmd).read())
+
+
+
+
+
         - Use LXC lightweight operating system-level jailed virtualization
              - http://lxc.sourceforge.net/
              - http://www.nsnam.org/wiki/index.php/HOWTO_Use_Linux_Containers_to_set_up_virtual_networks
