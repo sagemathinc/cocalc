@@ -1,5 +1,27 @@
 TODO:
 
+today:
+
+ [ ] command line option to backend.py to take workers:
+        --workers=
+ [ ] backend: placeholder decorator -- @frontend, which means whatever
+     is making the request must be an authenticated frontend server.
+        @frontend
+ [ ] backend: URL handler to create new workspace (and associated git repo)
+        use POST with --
+            * var: id -- integer
+            * files: bundle -- git bundle (if not given make empty workspace)
+ [ ] backend git functions -- (not HTTP; will get used automatically(?) and by socket.io stuff)
+         * save: make git snapshot of workspace with given id
+         * revert: git changeset that make it like an old version (but do *not* delete history!)
+ [ ] setup grp permissions of workspaces/id (and reading of the chain
+     to it, but not of it)
+ [ ] ssh/code to launch worker.py
+ [ ] clean up after shutdown
+       -- git checkout workspaces/id
+ 
+--------------------------------------------------------------------------------------
+
  [ ] jmol in an iframe??
 
  [ ] write Frontend
