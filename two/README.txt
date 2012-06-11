@@ -24,6 +24,7 @@ Python:
    * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
    * Tornadio2 -- https://github.com/mrjoes/tornadio2; Apache license 2.0
    * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
+   * requests (but I want to remove it)
 
 Javascript/CSS/HTML:
 
@@ -198,6 +199,12 @@ database can be more easily replicated.  (And/or it will run on appengine.)
         - Configure parameters for the ACCOUNT TYPE TABLE, and add new account types
 
    * Backend Workspace Server (backend.py; one for each core running on each compute machine) --
+        - lifetime:
+            1. scp: bundle of sagews source code (so always up to date)
+            2. ssh: extract code; launch backend.py
+            3. POST: backend.py registers 
+            4. ssh: backend.py --stop; backend.py cleans up workers, etc.
+            5. POST: backend sends shutdown message to frontend
         - HTTP SERVER: implement using tornado
              - serves static/internationalized-templated content for AJAX app
              - POST: create new workspace:
@@ -264,15 +271,23 @@ database can be more easily replicated.  (And/or it will run on appengine.)
         - Uses the socket.io javascript client library
         - Use jQuery + jQuery-mobile + Codemirror2 to implement interactive document viewers
 
-   * Worker (worker.py: run jailed, started when a workspace is activated) -- 
-        - Have one worker process for each activated workspace
-        - Use Unix domain sockets to provide a forking server
-        - Use LXC lightweight operating system-level jailed virtualization
-             - http://lxc.sourceforge.net/
-             - http://www.nsnam.org/wiki/index.php/HOWTO_Use_Linux_Containers_to_set_up_virtual_networks
-             - Communication with backend is via unix domain sockets
-               Might require this patch (?):
-                  http://www.mail-archive.com/lxc-devel@lists.sourceforge.net/msg00152.html
+   * Worker (worker.py) -- 
+        - a forking local unix domain sockets server using json messages
+        - runs as a *restricted* UNIX user, one of a comma separated list 
+          of local usernames passed via command line when starting backend
+        - bound: #{*simultaneous* open workspaces} <= #{users}
+        - lifetime:
+            1. scp: backend sends worker.py and a *git bundle* representation 
+               of workspace to $HOME/
+            2. ssh: git clone's workspace.bundle to workspace/
+            3. ssh: cd workspace && /path/to/sage ../worker.py <opts>
+            4. POST: worker.py posts to backend about successful startup
+            5. unix domain socket: backend makes socket connection(s)...
+            6. ssh: /path/to/sage ../worker.py --backend=? --stop=True --git=?
+               which will POST a git bundle to the backend server if anything
+               has been saved.  (above could be done periodically 
+               without --stop=True to safely save work)
+        - save: state of workspace -- this git adds *everything*, then commits
 
    * DOCUMENTS:
      * Supported Types:
@@ -282,6 +297,7 @@ database can be more easily replicated.  (And/or it will run on appengine.)
          of the chat
        - Sage Worksheet -- name.sagews.sws; somewhat similar to
          existing Sage worksheets, but with sections/tree heierarchy
+       - The "Javascript Scratchpad" in Firefox!
        - Slide Presentation -- name.sagews.pres; maybe based on
          deck.js (http://imakewebthings.com/deck.js/)
        - Mathematica-style notebook -- name.sagews.nb

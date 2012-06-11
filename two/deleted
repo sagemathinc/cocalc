@@ -1,3 +1,9 @@
+        - Use LXC lightweight operating system-level jailed virtualization
+             - http://lxc.sourceforge.net/
+             - http://www.nsnam.org/wiki/index.php/HOWTO_Use_Linux_Containers_to_set_up_virtual_networks
+             - Communication with backend is via unix domain sockets
+               Might require this patch (?):
+                  http://www.mail-archive.com/lxc-devel@lists.sourceforge.net/msg00152.html
 
 Frontend Data Model
 -------------------

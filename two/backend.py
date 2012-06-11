@@ -58,10 +58,10 @@ class RegisterManagerHandler(web.RequestHandler):
             unallocated_managers.append(m)
 
 #############################################################
-#  Spawn a worker process -- (TODO! make jailed/limited) 
+#  Start a worker process
 #############################################################
 
-def spawn_worker():
+def start_worker():
     cmd = "exec ./sage worker.py --backend_port=%s &"%args.port
     log.debug(os.popen(cmd).read())
 

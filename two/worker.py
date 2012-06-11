@@ -341,8 +341,6 @@ class SageSocketTestClient(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run a worker")
-    parser.add_argument("--id", dest="id", type=int, default=0,
-                        help="id of this worker (default: 0 for testing purposes)")
     parser.add_argument("--backend_port", dest="backend_port", type=int, 
                         help="port of local backend web server to register with (or 0 to not register)",
                         default=0)
@@ -358,10 +356,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # setup data directory variable
-    DATA = os.path.join('data', 'worker-%s'%args.id)
-    if not os.path.exists(DATA):
-        os.makedirs(DATA)
-    pidfile = os.path.join(DATA, 'pid')
+    #DATA = os.path.join('data', 'worker-%s'%args.id)
+    #if not os.path.exists(DATA):
+    #    os.makedirs(DATA)
+    #pidfile = os.path.join(DATA, 'pid')
 
     
     if args.test_client:
