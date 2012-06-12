@@ -45,6 +45,19 @@ log = logging.getLogger()
 # HTTP Server handlers
 #############################################################
 
+# authentication decorators
+def auth_frontend(f):
+    # TODO -- this is a place holder; need to implement.  This means
+    # that we require an authenticated in some way frontend server is
+    # available; maybe have to use signed cookies.
+    return f
+
+def auth_user(f):
+    # TODO -- this is a place holder; need to implement.  This decorator
+    # gives error unless an authenticated user is signed in.  If so, then
+    # some variable will be set that gives their user id, which we then trust.
+    return f
+
 class IndexHandler(web.RequestHandler):
     def get(self):
         # TODO: need to detect mobile versus desktop here
