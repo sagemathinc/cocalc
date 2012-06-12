@@ -79,10 +79,10 @@ class BackendManager(object):
         debug = backend.debug
         path = backend.path
 
-        cmd = '''ssh "%s@%s" "cd '%s'&&exec ./sage -python backend.py %s --id=%s --port=%s --frontend=%s %s >stdout.log 2>stderr.log &"'''%(
+        # TODO: this is incredibly unsafe -- see todo.txt
+        cmd = '''ssh "%s@%s" "cd '%s'&&exec ./sage -python backend.py %s --id=%s --port=%s --workers=\\"%s\\" --frontend=%s %s >stdout.log 2>stderr.log &"'''%(
             user, host, path, '--debug' if debug else '',
-            backend.id, port, frontend_URI(), extra_args)
-
+            backend.id, port, backend.workers, frontend_URI(), extra_args)
         log.debug(cmd)
 
         return cmd

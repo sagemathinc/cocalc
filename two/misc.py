@@ -188,3 +188,45 @@ def randint_set(i, j, n):
     while len(v) < n:
         v.add(random.randint(i,j))
     return v
+
+
+
+######################################################################
+
+def userstring_to_list(s):
+    """
+    Given a string s, set the global variable workers.  The string s should
+    be something of the form: 'sagewsworker,sagews_worker_1-100, userfoo_5'
+    Thus:
+         - whitespace is ignored
+         - it is separated by commas
+         - a dash between two integers represents several distinct
+           accounts, e.g., foo1-3 means foo1,foo2,foo3; this dash must
+           be at the end of the name.
+
+    This is in misc, since it's conceivable that this expansion will
+    have to be done in various places.
+    """
+    # get rid of whitespace
+    s = ''.join(s.split())
+    # split on commas
+    v = s.split(',')
+    # expand ranges
+    w = []
+    for user in v:
+        u = user
+        i = user.rfind('-')
+        if i != -1:
+            j = i-1
+            while j>=0 and user[j].isdigit():
+                j -= 1
+            if j < i-1: # at least one digit to left
+                k = i+1
+                while k<len(user) and user[k].isdigit():
+                    k += 1
+                if k > i+1: # at least one digit to right
+                    u = None
+                    for n in range(int(user[j+1:i]), int(user[i+1:k])+1):
+                        w.append(user[:j+1] + str(n))
+        if u is not None: w.append(u)        
+    return w

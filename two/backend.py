@@ -72,6 +72,17 @@ def start_worker(username, workspace_id):
 #############################################################
 # Sage Managers and worker sessions
 #############################################################
+
+# workers is a list of strings of usernames on the system that can be
+# used as workers. Each account must have a group with the same name
+# that the user running backend.py is also a member of.  Also, it must
+# be possible if logged in as backend user to type "ssh
+# worker@localhost" and be logged in as the worker without typing a
+# password.  If this list is empty, then worker.py is just run as the
+# same user as the backend, which should only be done for testing purposes.
+workers = []
+
+# TODO: document these
 unallocated_managers = []
 managers = {}
 next_sage_session_id = 0
@@ -320,6 +331,8 @@ if __name__ == '__main__':
                         help="port the server listens on (default: 8080)")
     parser.add_argument("--address", dest="address", type=str, default="",
                         help="address the server listens on (default: '')")
+    parser.add_argument("--workers", dest="workers", type=str, default="",
+                        help="comma separated list of worker user names on the local system (default: '' which means, run workers as same user, which is unsafe)")
     parser.add_argument("--debug", "-d", dest="debug", action='store_const', const=True,
                         help="debug mode (default: True)", default=True)
     parser.add_argument("--secure", "-s", dest="secure", action='store_const', const=True,
@@ -339,6 +352,10 @@ if __name__ == '__main__':
 
     if args.debug:
         log.setLevel(logging.DEBUG)
+
+    if args.workers:
+        workers = misc.userstring_to_list(args.workers)
+        log.debug('Parsed worker list "%s" as %s'%(args.workers, workers))
 
     if args.stop:
         stop(args.id, args.frontend_uri)

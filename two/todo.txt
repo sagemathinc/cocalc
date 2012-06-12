@@ -2,8 +2,18 @@ TODO:
 
 today:
 
- [ ] command line option to backend.py to take workers:
+ [x] command line option to backend.py to take workers:
         --workers=
+
+ [ ] spawning of backend is very dangerous since if the management
+     console or database are compromised at all (even by accident), then
+     arbitrary code could be run on the frontend server!  Not good.
+     So... instead of configuring the backend via options, let's pass in
+     only the id and frontend uri, which we carefully sanitize, and
+     send the other configuration?
+     Also, never use os.system/os.popen, but instead subprocess.Popen,
+     which is safer.
+
  [ ] backend: placeholder decorator -- @frontend, which means whatever
      is making the request must be an authenticated frontend server.
         @frontend
