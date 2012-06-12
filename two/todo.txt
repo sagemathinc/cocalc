@@ -7,7 +7,6 @@ today:
  [x] backend: placeholder decorator -- @frontend, which means whatever
      is making the request must be an authenticated frontend server.
         @frontend
-
  [ ] backend: URL handler to create new workspace (and associated git repo)
         use POST with --
             * var: id -- integer

@@ -46,6 +46,7 @@ log = logging.getLogger()
 #############################################################
 
 # authentication decorators
+
 def auth_frontend(f):
     # TODO -- this is a place holder; need to implement.  This means
     # that we require an authenticated in some way frontend server is
@@ -53,10 +54,49 @@ def auth_frontend(f):
     return f
 
 def auth_user(f):
-    # TODO -- this is a place holder; need to implement.  This decorator
-    # gives error unless an authenticated user is signed in.  If so, then
-    # some variable will be set that gives their user id, which we then trust.
+    # TODO -- this is a place holder; need to implement.  This
+    # decorator gives error unless an authenticated user is signed in.
+    # If so, then some variable will be set that gives their user id,
+    # which we then trust.
     return f
+
+##########################################################
+# Managing backends
+##########################################################
+
+class WorkspacesManager(object):
+    def directory(self, id):
+        return return os.path.join(DATA, 'workspaces', str(id))
+        
+    def create(self, id, bundle=None):
+        """Create new workspace with given id from the given bundle."""
+        raise NotImplementedError
+
+    def pull(self, id, bundle):
+        """Apply bundle to workspace with given id."""
+        raise NotImplementedError
+
+    def bundle(self, id, rev=None):
+        """Create bundle from workspace with given id, starting at
+        given revision.  If rev is None, bundle entire history."""
+        raise NotImplementedError
+
+    def rev(self, id):
+        """Return HEAD revision of workspace.  Used when a remote
+        backend wants to push its changes to us."""
+        raise NotImplementedError        
+
+workspaces_manager = WorkspacesManager()
+    
+
+class NewWorkspaceHandler(web.RequestHandler):
+    @auth_frontend
+    def post(self):
+        id = int(self.get_argument("id"))
+        # one file, the git bundle to clone
+        bundle = self.request.files[0]['body'] if len(self.request.files) > 0 else None
+        
+        
 
 class IndexHandler(web.RequestHandler):
     def get(self):
