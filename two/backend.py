@@ -27,9 +27,9 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 DATA = None
 
-import argparse, os, Queue, signal, simplejson, socket, tempfile, time
+import argparse, datetime, os, Queue, signal, simplejson, socket, subprocess, tempfile, time
 
-from tornado import web, iostream
+from tornado import web, iostream, ioloop
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
 import misc
@@ -44,6 +44,8 @@ log = logging.getLogger()
 #############################################################
 # HTTP Server handlers
 #############################################################
+
+routes = []
 
 # authentication decorators
 
@@ -60,16 +62,78 @@ def auth_user(f):
     # which we then trust.
     return f
 
+#############################################################
+# Tornado async support; these functions will likely have to be
+# factored out to another module, so can be used by the frontend.
+#############################################################
+import tornado.ioloop
+
+def async_subprocess(args, callback, timeout=10):
+    """
+    Execute the blocking subprocess with given args (as in
+    subprocess.Popen), then call the callback function with input a
+    dictionary
+
+       {'exitcode':integer_exit_code, 'timed_out':bool,
+        'stdout':stdout_string, 'stderr', stderr_string},
+
+    where timed_out is True only if the subprocess was killed
+    because it exceeded timeout microseconds (wall time).
+
+    INPUT:
+
+    - ``args`` -- string, or a list of program arguments
+    - ``callback`` -- function that takes 1 input
+    - ``timeout`` -- float; time in seconds (default: 10 seconds)
+    """
+    try:
+        p = subprocess.Popen(args, close_fds=True,
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        log.debug("spawned async subprocess %s: %s"%(p.pid, ' '.join(args)))
+    except Exception, msg:
+        callback('', str(msg), False)
+        
+    iol = ioloop.IOLoop.instance()
+    mesg = {'timed_out':False}
+    
+    def finished(fd, events):
+        iol.remove_timeout(handle)
+        iol.remove_handler(fd)
+        mesg.update({'stdout':p.stdout.read(), 'stderr':p.stderr.read(), 'exitcode':p.wait()})
+        callback(mesg)
+        
+    def took_too_long():
+        mesg['timed_out'] = True
+        log.debug("sending SIGKILL to async subprocess %s"%p.pid)
+        p.send_signal(signal.SIGKILL)
+        
+    iol.add_handler(p.stdout.fileno(), finished, iol.READ)
+    handle = iol.add_timeout(datetime.timedelta(seconds=float(timeout)), took_too_long)
+
+### This was used for development, and can be deleted.
+## class Async(tornado.web.RequestHandler):
+##     def get(self):
+##         def f(mesg):
+##             print mesg
+##         for i in range(int(self.get_argument('n',5))):
+##             async_subprocess(['python', "-c", "print %s;import sys;sys.stdout.flush();import time;time.sleep(1);print 10"%i], f, timeout=.5)
+    
+## routes.extend([(r"/async", Async)])
+    
+
 ##########################################################
 # Managing backends
 ##########################################################
 
 class WorkspacesManager(object):
     def directory(self, id):
-        return return os.path.join(DATA, 'workspaces', str(id))
+        return os.path.join(DATA, 'workspaces', str(id))
         
     def create(self, id, bundle=None):
-        """Create new workspace with given id from the given bundle."""
+        """Create new workspace with given id from the given bundle, or
+        initialize a blank workspace if bundle is None."""
+        if bundle is None:
+            raise NotImplementedError
         raise NotImplementedError
 
     def pull(self, id, bundle):
@@ -288,9 +352,10 @@ class SocketIO(SocketConnection):
 #############################################################
         
 router = TornadioRouter(SocketIO)
-routes = [(r"/", IndexHandler),
-          (r"/register_manager", RegisterManagerHandler),
-          (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})]
+routes.extend([(r"/", IndexHandler),
+               (r"/register_manager", RegisterManagerHandler),
+               (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})])
+
 
 def status_update_uri(frontend_uri):
     return frontend_uri + '/backend/send_status_update'
@@ -312,7 +377,8 @@ def run(id, port, address, debug, secure, frontend_uri):
         try:
             pid = int(open(pidfile).read())
             os.kill(pid, 0)
-            raise RuntimeError, "server with process %s already running"%pid
+            # TODO
+            #raise RuntimeError, "server with process %s already running"%pid
         except OSError:
             pass
 
@@ -386,8 +452,8 @@ if __name__ == '__main__':
                         help="address the server listens on (default: '')")
     parser.add_argument("--workers", dest="workers", type=str, default="",
                         help="comma separated list of worker user names on the local system (default: '' which means, run workers as same user, which is unsafe)")
-    parser.add_argument("--debug", "-d", dest="debug", action='store_const', const=True,
-                        help="debug mode (default: True)", default=True)
+    parser.add_argument("--no_debug", "-n", dest="no_debug", action='store_const', const=False,
+                        help="disable debug mode", default=False)
     parser.add_argument("--secure", "-s", dest="secure", action='store_const', const=True,
                         help="SSL secure mode (default: False)", default=False)
     parser.add_argument("--frontend", dest="frontend_uri", type=str,
@@ -403,7 +469,9 @@ if __name__ == '__main__':
         os.makedirs(DATA)
     pidfile = os.path.join(DATA, 'pid')
 
-    if args.debug:
+    debug = not args.no_debug
+    
+    if debug:
         log.setLevel(logging.DEBUG)
 
     if args.workers:
@@ -413,7 +481,7 @@ if __name__ == '__main__':
     if args.stop:
         stop(args.id, args.frontend_uri)
     else:
-        run(args.id, args.port, args.address, args.debug, args.secure, args.frontend_uri)
+        run(args.id, args.port, args.address, debug, args.secure, args.frontend_uri)
 
 
 

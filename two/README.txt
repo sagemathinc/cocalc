@@ -24,7 +24,7 @@ Python:
    * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
    * Tornadio2 -- https://github.com/mrjoes/tornadio2; Apache license 2.0
    * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
-   * requests (but I want to remove it)
+   * requests (but I want to remove it, because it kind of sucks)
 
 Javascript/CSS/HTML:
 
