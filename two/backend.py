@@ -218,6 +218,18 @@ class Workspace(object):
         async_subprocess(['git', 'rev-parse', 'HEAD'], callback=after_git, cwd=self.path())
 
     def log(self, callback):
+        """
+        On success, the callback called with a dictionary that looks like this:
+        
+            {'status':'ok', 'log':[{u'author_email': u'wstein@gmail.com', u'date': u'Thu Jun 14 10:10:17 2012 -0700', u'message': u'a log message', u'id': u'262f1fc9d85afe0db040dc5cd6e7341c3dd67877', u'author_name': u'William Stein'}, ...]}
+
+        where the commits are in order from newest to oldest. 
+
+        On fail, the callback is called with:
+            {'status':'fail', 'mesg':'why...'}
+
+        WARNING: Calling log on an empty repo will fail.
+        """
         # See http://blog.lost-theory.org/post/how-to-parse-git-log-output/
         git_commit_fields = ['id', 'author_name', 'author_email', 'date', 'message']
         git_log_format = '%x1f'.join(['%H', '%an', '%ae', '%ad', '%s']) + '%x1e'
@@ -231,7 +243,15 @@ class Workspace(object):
                 callback({'status':'ok', 'log':log})
         async_subprocess(['git', 'log', '--format="%s"'%git_log_format], callback=parse_log, cwd=self.path())
 
+    ###############################################################################
+    # It's not exactly clear to me what the semantics for the following should be.
+    # Study what github/bitbucket do, etc.
+    # For the very, very first version, we don't really need this to be implemented.
+    ###############################################################################
     def checkout(self, rev, callback):
+        raise NotImplementedError
+
+    def revert(self, rev, callback):
         raise NotImplementedError
 
 class WorkspaceCommandHandler(web.RequestHandler):
