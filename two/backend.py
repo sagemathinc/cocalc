@@ -218,12 +218,18 @@ class Workspace(object):
         async_subprocess(['git', 'rev-parse', 'HEAD'], callback=after_git, cwd=self.path())
 
     def log(self, callback):
-        def after(mesg):
+        # See http://blog.lost-theory.org/post/how-to-parse-git-log-output/
+        git_commit_fields = ['id', 'author_name', 'author_email', 'date', 'message']
+        git_log_format = '%x1f'.join(['%H', '%an', '%ae', '%ad', '%s']) + '%x1e'
+        def parse_log(mesg):
             if mesg['exitcode']:
                 callback({'status':'fail', 'mesg':mesg['stderr']})
             else:
-                callback({'status':'ok', 'log':mesg['stdout']})
-        async_subprocess(['git', 'log'], callback=after, cwd=self.path())
+                # extract the log and parse it
+                log = [dict(zip(git_commit_fields, line.strip('\n\x1e"').split("\x1f")))
+                       for line in mesg['stdout'].splitlines()]
+                callback({'status':'ok', 'log':log})
+        async_subprocess(['git', 'log', '--format="%s"'%git_log_format], callback=parse_log, cwd=self.path())
 
     def checkout(self, rev, callback):
         raise NotImplementedError
