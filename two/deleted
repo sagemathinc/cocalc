@@ -1,3 +1,10 @@
+            if mesg['exitcode'] == 0: # no problems
+                # add one innocuous file: .gitignore, since empty git repos do not work well (no HEAD, etc.)
+                open(os.path.join(path, '.gitignore'),'w').close()
+                
+            
+
+
     if not username.startswith('sagews-worker'):
         raise RuntimeError, "worker username must start with sagews-worker"
     filename = workspace_bundle(workspace_id)

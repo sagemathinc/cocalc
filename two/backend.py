@@ -140,11 +140,7 @@ class Workspace(object):
     def path(self):
         return os.path.join(DATA, 'workspaces', str(self.id))
         
-    def _do_command(self, file, command, callback):
-        path = self.path()
-        if os.path.exists(path):
-            raise RuntimeError, "workspace %s already exists"%self.id
-        
+    def _do_file_command(self, file, command, callback):        
         t = tempfile.mkstemp()
         def after_git(mesg):
             os.unlink(t[1])
@@ -154,9 +150,33 @@ class Workspace(object):
                 else:
                     callback({'status':'ok'})
                     
-        os.write(t[0], bundle)
+        os.write(t[0], file)
         os.close(t[0])
-        async_subprocess(['git', command, t[1], path], callback=after_git, cwd=path)
+        async_subprocess(['git', command, t[1], self.path()], callback=after_git, cwd=self.path())
+
+    def _do_command(self, args, callback):
+        def after(mesg):
+            if mesg['exitcode']:
+                callback({'status':'fail', 'mesg':mesg['stderr']})
+            else:
+                callback({'status':'ok'})
+        async_subprocess(args, callback=after, cwd=self.path())
+
+    def clone(self, bundle, callback):
+        """Create a workspace from the bundle."""
+        self._do_file_command(bundle, 'clone', callback)
+
+    def pull(self, bundle, callback):
+        """Apply bundle."""
+        self._do__file_command(bundle, 'pull', callback)
+
+    def add(self, callback):
+        """Add all files to the git repo."""
+        self._do_command(['git', 'add', '.'], callback)                         
+
+    def commit(self, log_message, callback):
+        """Commit changes to the repository with the given log message."""
+        self._do_command(['git', 'commit', '-a', '-m', log_message], callback)        
         
     def init(self, callback):
         """Initialize workspace on disk.  Analogue of 'git init'."""
@@ -164,34 +184,14 @@ class Workspace(object):
         if os.path.exists(path):
             callback({'status':'fail', 'mesg':"workspace %s already exists"%self.id})
             return
-
-        def after_git_init(mesg):
-            if callback:
-                if mesg['exitcode']:
-                    callback({'status':'fail', 'mesg':mesg['stderr']})
-                else:
-                    callback({'status':'ok'})
-
         # initialize new empty git repo
         os.makedirs(path)
-        async_subprocess(['git', 'init'], callback=after_git_init, cwd=path)
-        # 
-        # ** TODO ** we also have to add a file and commit, since empty repos with no commits are confusing.
-        # And having a default file is probably a good idea anyways.
-        #
-
-    def clone(self, bundle, callback):
-        """Create a workspace from the bundle."""
-        self._do_command(bundle, 'clone', callback)
-
-    def pull(self, bundle, callback):
-        """Apply bundle."""
-        self._do_command(bundle, 'pull', callback)
+        self._do_command(['git', 'init'], callback)
 
     def bundle(self, rev, callback):
         """Create bundle from workspace with given id, starting at
-        given revision.  For example, if rev=='master', bundle entire history."""
-
+        given revision.  For example, if rev=='master', bundle entire history.
+        (This only works on non-empty repositories.)"""
         t = tempfile.mkstemp()
         def after_git(mesg):
             if mesg['exitcode']:
@@ -200,7 +200,6 @@ class Workspace(object):
                 output_mesg = {'status':'ok', 'bundle':open(t[1]).read()}
                 os.unlink(t[1])
                 callback(output_mesg)
-
         async_subprocess(['git', 'bundle', 'create', t[1], rev, '--all'], callback=after_git, cwd=self.path())
 
     def rev(self, callback):
@@ -208,7 +207,8 @@ class Workspace(object):
                {'status':'ok', 'rev':'bf65195c16699550c0fc2b11fdde2e88ad48eae9'}
         or
                {'status':'fail', 'mesg':...}
-        Used when a remote backend push its changes to us.
+        Used when a remote backend wants to push its changes to us and needs to know this
+        repos current HEAD revision.  The repo must be nonempty.
         """
         def after_git(mesg):
             if mesg['exitcode']:
