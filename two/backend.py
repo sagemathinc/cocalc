@@ -218,7 +218,12 @@ class Workspace(object):
         async_subprocess(['git', 'rev-parse', 'HEAD'], callback=after_git, cwd=self.path())
 
     def log(self, callback):
-        raise NotImplementedError
+        def after(mesg):
+            if mesg['exitcode']:
+                callback({'status':'fail', 'mesg':mesg['stderr']})
+            else:
+                callback({'status':'ok', 'log':mesg['stdout']})
+        async_subprocess(['git', 'log'], callback=after, cwd=self.path())
 
     def checkout(self, rev, callback):
         raise NotImplementedError
