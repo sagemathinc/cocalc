@@ -217,6 +217,12 @@ class Workspace(object):
                 callback({'status':'ok', 'rev':mesg['stdout']})                
         async_subprocess(['git', 'rev-parse', 'HEAD'], callback=after_git, cwd=self.path())
 
+    def log(self, callback):
+        raise NotImplementedError
+
+    def checkout(self, rev, callback):
+        raise NotImplementedError
+
 class WorkspaceCommandHandler(web.RequestHandler):
     @auth_frontend
     @tornado.web.asynchronous
