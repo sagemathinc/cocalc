@@ -25,6 +25,7 @@ Python:
    * Tornadio2 -- https://github.com/mrjoes/tornadio2; Apache license 2.0
    * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
    * requests (but I want to remove it, because it kind of sucks)
+   * SQLite -- http://www.sqlite.org/; public domain (used by Python)
 
 Javascript/CSS/HTML:
 
@@ -33,9 +34,7 @@ Javascript/CSS/HTML:
    * codemirror2 -- http://codemirror.net/; basically MIT license
    * jquery activity indicator -- MIT license
 
-Other:
-
-   * SQLite -- http://www.sqlite.org/; public domain
+Used as a separate process (no library linking):
    * Git -- http://git-scm.com/; GPL v2
    * Sage -- http://sagemath.org/; GPL v3+
 

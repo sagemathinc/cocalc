@@ -113,13 +113,15 @@ def async_subprocess(args, callback=None, timeout=10, cwd=None):
     handle = iol.add_timeout(datetime.timedelta(seconds=float(timeout)), took_too_long)
 
 ### This was used for development, and can be deleted.
-## class Async(tornado.web.RequestHandler):
-##     def get(self):
-##         def f(mesg):
-##             print mesg
-##         for i in range(int(self.get_argument('n',5))):
-##             async_subprocess(['python', "-c", "print %s;import sys;sys.stdout.flush();import time;time.sleep(1);print 10"%i], f, timeout=.5)
-## routes.extend([(r"/async", Async)])
+class Async(tornado.web.RequestHandler):
+    def get(self):
+        def f(mesg):
+            print mesg
+        for i in range(int(self.get_argument('n',5))):
+            #async_subprocess(['python', "-c", "print %s;import sys;sys.stdout.flush();import time;time.sleep(1);print 10"%i], f, timeout=.5)
+            async_subprocess(['python', "-c", "print %s;import sys;sys.stdout.flush();import time;time.sleep(5);print 10"%i], f)
+            
+routes.extend([(r"/async", Async)])
     
 
 ##########################################################
@@ -254,6 +256,12 @@ class Workspace(object):
     def revert(self, rev, callback):
         raise NotImplementedError
 
+    ###############################################################################
+    # Launching the worker, which listens on a socket
+    def worker(self, username, timeout):
+        return Worker(username, self, timeout)
+
+
 class WorkspaceCommandHandler(web.RequestHandler):
     @auth_frontend
     @tornado.web.asynchronous
@@ -292,14 +300,28 @@ class RegisterManagerHandler(web.RequestHandler):
             unallocated_managers.append(m)
 
 #############################################################
-#  Start a worker process
+# A worker process
 #############################################################
-def start_worker(username, workspace_id):
+class Worker(object):
+    def __init__(self, username, workspace, timeout):
+        self.username = username
+        self.workspace = workspace
+        self.timeout = timeout
+        args = ['ssh', '%s@localhost'%username, sys.executable,
+                os.path.abspath('worker.py'), '--workspace_id=%s'%workspace.id]
+        async_subprocess(args, cwd=workspace.path(), timeout=timeout,
+                         callback=self.worker_terminated)
+
+    def worker_terminated(self, mesg):
+        # todo 
+        log.debug("worker terminated with mesg: '%s'"%mesg)
+        
+
+def start_worker(username, workspace_id, callback):
     # To avoid blocking, we must launch another process to start
     # worker.py as the remote user.   Once everything is setup,
     # the backend will get an appropriate POST request, and then
     # we can proceed with serving requests for session id's.
-    cmd = "python worker.py --username=%s --workspace_id=%s&"%(username, workspace_id)
     log.debug(cmd)
     os.system(cmd)
 
