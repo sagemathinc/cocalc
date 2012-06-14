@@ -27,7 +27,7 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 DATA = None
 
-import argparse, datetime, os, Queue, signal, simplejson, socket, subprocess, tempfile, time
+import argparse, datetime, functools, inspect, os, Queue, signal, json, socket, subprocess, tempfile, time
 
 from tornado import web, iostream, ioloop
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -68,7 +68,7 @@ def auth_user(f):
 #############################################################
 import tornado.ioloop
 
-def async_subprocess(args, callback, timeout=10):
+def async_subprocess(args, callback=None, timeout=10, cwd=None):
     """
     Execute the blocking subprocess with given args (as in
     subprocess.Popen), then call the callback function with input a
@@ -83,15 +83,16 @@ def async_subprocess(args, callback, timeout=10):
     INPUT:
 
     - ``args`` -- string, or a list of program arguments
-    - ``callback`` -- function that takes 1 input
+    - ``callback`` -- None or function that takes 1 input
     - ``timeout`` -- float; time in seconds (default: 10 seconds)
     """
     try:
-        p = subprocess.Popen(args, close_fds=True,
+        p = subprocess.Popen(args, close_fds=True, cwd=cwd,
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        log.debug("spawned async subprocess %s: %s"%(p.pid, ' '.join(args)))
+        log.debug("spawned async subprocess %s%s: %s"%(p.pid, '(cwd="%s")'%cwd if cwd else '', ' '.join(args)))
     except Exception, msg:
-        callback('', str(msg), False)
+        callback({'stdout':'', 'stderr':str(msg), 'exitcode':1, 'time_out':False})
+        return
         
     iol = ioloop.IOLoop.instance()
     mesg = {'timed_out':False}
@@ -100,7 +101,8 @@ def async_subprocess(args, callback, timeout=10):
         iol.remove_timeout(handle)
         iol.remove_handler(fd)
         mesg.update({'stdout':p.stdout.read(), 'stderr':p.stderr.read(), 'exitcode':p.wait()})
-        callback(mesg)
+        if callback is not None:
+            callback(mesg)
         
     def took_too_long():
         mesg['timed_out'] = True
@@ -117,7 +119,6 @@ def async_subprocess(args, callback, timeout=10):
 ##             print mesg
 ##         for i in range(int(self.get_argument('n',5))):
 ##             async_subprocess(['python', "-c", "print %s;import sys;sys.stdout.flush();import time;time.sleep(1);print 10"%i], f, timeout=.5)
-    
 ## routes.extend([(r"/async", Async)])
     
 
@@ -125,42 +126,121 @@ def async_subprocess(args, callback, timeout=10):
 # Managing backends
 ##########################################################
 
-class WorkspacesManager(object):
-    def directory(self, id):
-        return os.path.join(DATA, 'workspaces', str(id))
+# Functions that take a callback option are only called if it is not None.
+
+class Workspace(object):
+    #####################
+    # IMPORTANT!!
+    # Do not use default arguments in any of the functions below;
+    # also, the callback input must be the last input.
+    # This is assumed in the getargspec stuff in WorkspaceCommandHandler below.
+    def __init__(self, id):
+        self.id = int(id)
         
-    def create(self, id, bundle=None):
-        """Create new workspace with given id from the given bundle, or
-        initialize a blank workspace if bundle is None."""
-        if bundle is None:
-            raise NotImplementedError
-        raise NotImplementedError
+    def path(self):
+        return os.path.join(DATA, 'workspaces', str(self.id))
+        
+    def _do_command(self, file, command, callback):
+        path = self.path()
+        if os.path.exists(path):
+            raise RuntimeError, "workspace %s already exists"%self.id
+        
+        t = tempfile.mkstemp()
+        def after_git(mesg):
+            os.unlink(t[1])
+            if callback:
+                if mesg['exitcode']:
+                    callback({'status':'fail', 'mesg':mesg['stderr']})
+                else:
+                    callback({'status':'ok'})
+                    
+        os.write(t[0], bundle)
+        os.close(t[0])
+        async_subprocess(['git', command, t[1], path], callback=after_git, cwd=path)
+        
+    def init(self, callback):
+        """Initialize workspace on disk.  Analogue of 'git init'."""
+        path = self.path()
+        if os.path.exists(path):
+            callback({'status':'fail', 'mesg':"workspace %s already exists"%self.id})
+            return
 
-    def pull(self, id, bundle):
-        """Apply bundle to workspace with given id."""
-        raise NotImplementedError
+        def after_git_init(mesg):
+            if callback:
+                if mesg['exitcode']:
+                    callback({'status':'fail', 'mesg':mesg['stderr']})
+                else:
+                    callback({'status':'ok'})
 
-    def bundle(self, id, rev=None):
+        # initialize new empty git repo
+        os.makedirs(path)
+        async_subprocess(['git', 'init'], callback=after_git_init, cwd=path)
+        # 
+        # ** TODO ** we also have to add a file and commit, since empty repos with no commits are confusing.
+        # And having a default file is probably a good idea anyways.
+        #
+
+    def clone(self, bundle, callback):
+        """Create a workspace from the bundle."""
+        self._do_command(bundle, 'clone', callback)
+
+    def pull(self, bundle, callback):
+        """Apply bundle."""
+        self._do_command(bundle, 'pull', callback)
+
+    def bundle(self, rev, callback):
         """Create bundle from workspace with given id, starting at
-        given revision.  If rev is None, bundle entire history."""
-        raise NotImplementedError
+        given revision.  For example, if rev=='master', bundle entire history."""
 
-    def rev(self, id):
-        """Return HEAD revision of workspace.  Used when a remote
-        backend wants to push its changes to us."""
-        raise NotImplementedError        
+        t = tempfile.mkstemp()
+        def after_git(mesg):
+            if mesg['exitcode']:
+                callback({'status':'fail', 'mesg':mesg['stderr']})
+            else:
+                output_mesg = {'status':'ok', 'bundle':open(t[1]).read()}
+                os.unlink(t[1])
+                callback(output_mesg)
 
-workspaces_manager = WorkspacesManager()
-    
+        async_subprocess(['git', 'bundle', 'create', t[1], rev, '--all'], callback=after_git, cwd=self.path())
 
-class NewWorkspaceHandler(web.RequestHandler):
+    def rev(self, callback):
+        """The callback gets called with either something like
+               {'status':'ok', 'rev':'bf65195c16699550c0fc2b11fdde2e88ad48eae9'}
+        or
+               {'status':'fail', 'mesg':...}
+        Used when a remote backend push its changes to us.
+        """
+        def after_git(mesg):
+            if mesg['exitcode']:
+                callback({'status':'fail', 'mesg':mesg['stderr']})
+            else:
+                callback({'status':'ok', 'rev':mesg['stdout']})                
+        async_subprocess(['git', 'rev-parse', 'HEAD'], callback=after_git, cwd=self.path())
+
+class WorkspaceCommandHandler(web.RequestHandler):
     @auth_frontend
+    @tornado.web.asynchronous
     def post(self):
         id = int(self.get_argument("id"))
-        # one file, the git bundle to clone
-        bundle = self.request.files[0]['body'] if len(self.request.files) > 0 else None
+        command = self.get_argument("command")
+        w = Workspace(id)
+        callback = functools.partial(self.callback, command)
+        try:
+            f = getattr(w, command)
+        except AttributeError:
+            callback({'status':'error', 'mesg':'no command "%s"'%command})
+            return
+        args = inspect.getargspec(f).args[1:-1]  # remove first and last from ['self',...,'callback']
+        f(*([self.get_argument(a) for a in args] + [callback]))
+
+    def callback(self, command, mesg):
+        if 'bundle' in mesg:
+            self.write(mesg['bundle'])
+        else:
+            self.write(mesg)
+        self.finish()
         
-        
+routes.extend([(r"/workspace", WorkspaceCommandHandler)])        
 
 class IndexHandler(web.RequestHandler):
     def get(self):
@@ -267,10 +347,10 @@ class SageSession(object):
         return (self._stream is not None) and not self._stream.closed()
 
     def _send(self, mesg, callback=None):
-        self._stream.write(simplejson.dumps(mesg) + '\0', callback=callback)
+        self._stream.write(json.dumps(mesg) + '\0', callback=callback)
 
     def _recv(self, callback=None):
-        self._stream.read_until('\0', lambda s: callback(simplejson.loads(s[:-1])))
+        self._stream.read_until('\0', lambda s: callback(json.loads(s[:-1])))
 
     def __del__(self):
         if self._stream is not None:
