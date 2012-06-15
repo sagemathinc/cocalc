@@ -1,4 +1,12 @@
-TODO:
+
+  [ ] fix permissions before spawning worker
+
+
+
+
+=============================
+
+ideas
 
 today:
 
