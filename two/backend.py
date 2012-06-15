@@ -284,7 +284,7 @@ class WorkspaceCommandHandler(web.RequestHandler):
             callback({'status':'error', 'mesg':'no command "%s"'%command})
             return
         spec = inspect.getargspec(f)
-        num_positional = len(spec.args) - len(spec.defaults)
+        num_positional = len(spec.args) - (len(spec.defaults) if spec.defaults else 0)
         v = [callback if a=='callback' else self.get_argument(a) for a in spec.args[1:num_positional]]
         for i in range(num_positional, len(spec.args)):
             v.append(self.get_argument(spec.args[i], spec.defaults[i-num_positional]))
@@ -328,6 +328,9 @@ class Worker(object):
         self.max_cputime = int(max_cputime)
         self.max_processes = int(max_processes)
         self.max_memory = int(max_memory)
+
+        self._set_permissions()
+
         v = ['ssh', '%s@localhost'%username,
              'ulimit',
              '-v', str(int(self.max_memory*1024)),  # memory in megabytes
@@ -341,6 +344,11 @@ class Worker(object):
         log.debug(v)
         self.subprocess = async_subprocess(
             v, cwd=workspace.path(), timeout=self.max_walltime, callback=self.worker_terminated)
+
+    def _set_permissions(self):
+        # 1. make it so
+        pass
+        
 
     def __del__(self):
         try:

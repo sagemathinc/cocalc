@@ -16,6 +16,15 @@ LICENSE/COPYRIGHT:
    * My intention is to assign the copyright of this source code to
      the University of Washington during Summer 2012.
 
+
+** Implementation Axioms **
+--------------------------
+
+  1. Absolutely no polling: everything must be event driven.
+  2. Resources (RAM, time, etc.) should be explicitly (and arbitrarily) limited.
+  3. Independent daemons, not a controlled subprocess.
+
+
 Dependencies
 ------------
 

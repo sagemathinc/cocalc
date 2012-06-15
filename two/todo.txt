@@ -1,7 +1,27 @@
 
-  [ ] fix permissions before spawning worker
 
 
+  [ ] fix permissions before spawning worker, and redo worker more effectively today -- project for today
+   
+      1. Run worker.py with:
+
+            worker.py --backend_port=8080 --workspace_id=3
+
+      2. Worker will register backend at the given port, and the
+         backend will respond with a JSON object containing
+         substantial additional data, e.g., path, username, resource
+         limits, etc.
+
+      3. worker.py then sets permission, ssh's to other account, 
+         starts worker.py there, and exits. 
+ 
+      This avoids using up file descriptors and is cleaner. 
+
+            worker.py --stop
+
+      Worker could autostop within n seconds of backend vanishing or
+      of absolute timeout..., which would be much nicer than having to
+      ssh into many accounts and kill things. 
 
 
 =============================
@@ -23,6 +43,8 @@ today:
          * save: make git snapshot of workspace with given id
          * revert: git changeset that make it like an old version (but do *not* delete history!)
  [x] ssh/code to launch worker.py
+
+ [ ] look into Bootstrap -- http://twitter.github.com/bootstrap/javascript.html
 
  [ ] setup grp permissions of workspaces/id (and reading of the chain
      to it, but not of it)
