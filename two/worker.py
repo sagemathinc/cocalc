@@ -338,42 +338,6 @@ class SageSocketTestClient(object):
                 s.close()
             except Exception, msg:
                 print msg
-
-def launch_remote_server(args):
-    if not args.username.startswith('sagews-worker'):
-        raise RuntimeError, "worker username must start with sagews-worker"
-    user = '%s@localhost'%args.username
-
-    # 0. clean out home directory of user
-    cmd = 'ssh %s rm -rf $HOME/*'
-    log.debug(cmd)
-    if not os.system(cmd):
-        raise RuntimeError, "failed to clean out home directory of %s"%user
-    
-    # 1. send worker.py and git bundle:
-    # create git bundle
-    try:
-        bundle = tempfile.mktemp()
-        workspace_path = 'data/backend/workspaces/%s/'%args.workspace_id
-        if not os.path.exists(workspace_path):
-            raise RuntimeError, "no workspace at '%s'"%workspace_path
-        cmd = "cd %s && git bundle create %s master"%(workspace_path, bundle)
-        if not os.system(cmd):
-            raise RuntimeError, "failed to create git bundle %s"%workspace_path
-
-        cmd = 'scp worker.py %s %s:'%(bundle, user)
-        if not os.system(cmd):
-            raise RuntimeError, "failed to copy worker.py and bundle to %s"%user
-
-    finally:
-        # remove temporary bundle
-        os.unlink(bundle)
-
-    # 2. launch worker.py remotely.
-    # TODO: opts
-    cmd = 'ssh %s exec "%s"/sage -python worker.py %s'%(user, os.environ['SAGE_ROOT'], opts)
-    if not os.system(cmd):
-        raise RuntimeError, "failed to launch remote worker.py as %s"%user
     
 
 if __name__ == '__main__':
@@ -388,26 +352,16 @@ if __name__ == '__main__':
     parser.add_argument("--test_client", dest="test_client", action="store_const",
                         const=True, default=False,
                         help="run a testing command line client instead (make sure to specify the socket with -s socket_name)")
-    parser.add_argument('--stop', dest="stop", type=bool, default=False,
-                        help="Stop the worker with given id, if it is running")
-
-    parser.add_argument('--username', dest="username", type=str, default="",
-                        help="if specified, first ssh to username@localhost")
-    
     parser.add_argument('--workspace_id', dest="workspace_id", type=int, default=-1,
                         help="id of workspace that will be run")
+    parser.add_argument('--cwd', dest="cwd", type=str, default="", 
+                        help="change to this directory before doing anything else")
 
     args = parser.parse_args()
+    if args.cwd:
+        os.chdir(args.cwd)
 
-    # setup data directory variable
-    #DATA = os.path.join('data', 'worker-%s'%args.id)
-    #if not os.path.exists(DATA):
-    #    os.makedirs(DATA)
-    #pidfile = os.path.join(DATA, 'pid')
-
-    if args.username:
-        launch_remote_server(args)
-    elif args.test_client:
+    if args.test_client:
         SageSocketTestClient(args.socket_name).run()
     else:
         SageSocketServer(args.backend_port, args.socket_name).run()

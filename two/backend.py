@@ -27,7 +27,7 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 DATA = None
 
-import argparse, datetime, functools, inspect, os, Queue, signal, json, socket, subprocess, tempfile, time
+import argparse, datetime, functools, inspect, os, Queue, signal, json, socket, subprocess, sys, tempfile, time
 
 from tornado import web, iostream, ioloop
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -85,6 +85,10 @@ def async_subprocess(args, callback=None, timeout=10, cwd=None):
     - ``args`` -- string, or a list of program arguments
     - ``callback`` -- None or function that takes 1 input
     - ``timeout`` -- float; time in seconds (default: 10 seconds)
+
+    OUTPUT:
+
+    - subprocess object
     """
     try:
         p = subprocess.Popen(args, close_fds=True, cwd=cwd,
@@ -111,6 +115,7 @@ def async_subprocess(args, callback=None, timeout=10, cwd=None):
         
     iol.add_handler(p.stdout.fileno(), finished, iol.READ)
     handle = iol.add_timeout(datetime.timedelta(seconds=float(timeout)), took_too_long)
+    return p
 
 ### This was used for development, and can be deleted.
 class Async(tornado.web.RequestHandler):
@@ -257,9 +262,15 @@ class Workspace(object):
         raise NotImplementedError
 
     ###############################################################################
-    # Launching the worker, which listens on a socket
-    def worker(self, username, timeout):
-        return Worker(username, self, timeout)
+    # Launch a worker, which listens on a socket
+    def launch_worker(self, username, limits, callback):
+        print "limits='%s', type=%s"%(limits,type(limits))
+        limits = json.loads(str(limits))
+        W = Worker(username, self, limits)
+        if W.subprocess is None:
+            callback({'status':'error', 'mesg':'failed to start worker process'})
+        else:
+            callback({'status':'ok', 'pid':W.subprocess.pid})
 
 
 class WorkspaceCommandHandler(web.RequestHandler):
@@ -303,15 +314,43 @@ class RegisterManagerHandler(web.RequestHandler):
 # A worker process
 #############################################################
 class Worker(object):
-    def __init__(self, username, workspace, timeout):
+    def __init__(self, username, workspace, limits):
+        """
+        limits = {'max_walltime':3600, 'max_cputime':120, 'max_processes':20, 'max_memory':500}
+
+           - max_walltime = maximum walltime that this backend will run in seconds (default: 3600)
+           - max_cputime = maximum cputime that this backend will use in seconds (default: 1800)
+           - max_processes = maximum number of processes that the worker may spawn (default: 100)
+           - max_memory = maximum memory in megabytes
+        """           
         self.username = username
         self.workspace = workspace
-        self.timeout = timeout
-        args = ['ssh', '%s@localhost'%username, sys.executable,
-                os.path.abspath('worker.py'), '--workspace_id=%s'%workspace.id]
-        async_subprocess(args, cwd=workspace.path(), timeout=timeout,
-                         callback=self.worker_terminated)
+        self.max_walltime = int(limits.get('max_walltime', 3600))
+        self.max_cputime = int(limits.get('max_cputime', 1800))
+        self.max_processes = int(limits.get('max_processes', 100))
+        self.max_memory = int(limits.get('max_memory', 1000))
+        v = ['ssh', '%s@localhost'%username,
+             'ulimit',
+             '-v', str(int(self.max_memory*1024*1024)),  # memory in megabytes
+             '-u', str(self.max_processes+2),
+             ' && ',
+             sys.executable,
+             os.path.abspath('worker.py'),
+             '--workspace_id=%s'%workspace.id,
+             '--backend_port=%s'%args.port,  # args = global variable
+             '--cwd="%s"'%workspace.path()]
+        log.debug(v)
+        self.subprocess = async_subprocess(v, cwd=workspace.path(),
+                                           timeout=self.max_walltime,
+                                           callback=self.worker_terminated)
 
+    def __del__(self):
+        try:
+            if self.subprocess:
+                self.subprocess.kill()
+        except OSError:
+            pass # already dead
+        
     def worker_terminated(self, mesg):
         # todo 
         log.debug("worker terminated with mesg: '%s'"%mesg)
@@ -603,7 +642,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # setup data directory variable
-    DATA = os.path.join('data', 'backend-%s'%args.id)
+    DATA = os.path.abspath(os.path.join('data', 'backend-%s'%args.id))
     if not os.path.exists(DATA):
         os.makedirs(DATA)
     pidfile = os.path.join(DATA, 'pid')
