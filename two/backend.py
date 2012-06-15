@@ -136,11 +136,6 @@ routes.extend([(r"/async", Async)])
 # Functions that take a callback option are only called if it is not None.
 
 class Workspace(object):
-    #####################
-    # IMPORTANT!!
-    # Do not use default arguments in any of the functions below;
-    # also, the callback input must be the last input.
-    # This is assumed in the getargspec stuff in WorkspaceCommandHandler below.
     def __init__(self, id):
         self.id = int(id)
         
@@ -263,10 +258,9 @@ class Workspace(object):
 
     ###############################################################################
     # Launch a worker, which listens on a socket
-    def launch_worker(self, username, limits, callback):
-        print "limits='%s', type=%s"%(limits,type(limits))
-        limits = json.loads(str(limits))
-        W = Worker(username, self, limits)
+    def launch_worker(self, username, callback, max_walltime=3600, max_cputime=1800, max_processes=100, max_memory=1024):
+        W = Worker(username, self, max_walltime=max_walltime, max_cputime=max_cputime,
+                   max_processes=max_processes, max_memory=max_memory)
         if W.subprocess is None:
             callback({'status':'error', 'mesg':'failed to start worker process'})
         else:
@@ -286,8 +280,12 @@ class WorkspaceCommandHandler(web.RequestHandler):
         except AttributeError:
             callback({'status':'error', 'mesg':'no command "%s"'%command})
             return
-        args = inspect.getargspec(f).args[1:-1]  # remove first and last from ['self',...,'callback']
-        f(*([self.get_argument(a) for a in args] + [callback]))
+        spec = inspect.getargspec(f)
+        num_positional = len(spec.args) - len(spec.defaults)
+        v = [callback if a=='callback' else self.get_argument(a) for a in spec.args[1:num_positional]]
+        for i in range(num_positional, len(spec.args)):
+            v.append(self.get_argument(spec.args[i], spec.defaults[i-num_positional]))
+        f(*v)
 
     def callback(self, command, mesg):
         if 'bundle' in mesg:
@@ -314,35 +312,32 @@ class RegisterManagerHandler(web.RequestHandler):
 # A worker process
 #############################################################
 class Worker(object):
-    def __init__(self, username, workspace, limits):
+    def __init__(self, username, workspace, max_walltime, max_cputime, max_processes, max_memory):
         """
-        limits = {'max_walltime':3600, 'max_cputime':120, 'max_processes':20, 'max_memory':500}
-
-           - max_walltime = maximum walltime that this backend will run in seconds (default: 3600)
-           - max_cputime = maximum cputime that this backend will use in seconds (default: 1800)
-           - max_processes = maximum number of processes that the worker may spawn (default: 100)
+           - max_walltime = maximum walltime that this backend will run in seconds
+           - max_cputime = maximum cputime that this backend will use in seconds
+           - max_processes = maximum number of processes that the worker may spawn
            - max_memory = maximum memory in megabytes
         """           
         self.username = username
         self.workspace = workspace
-        self.max_walltime = int(limits.get('max_walltime', 3600))
-        self.max_cputime = int(limits.get('max_cputime', 1800))
-        self.max_processes = int(limits.get('max_processes', 100))
-        self.max_memory = int(limits.get('max_memory', 1000))
+        self.max_walltime = int(max_walltime)
+        self.max_cputime = int(max_cputime)
+        self.max_processes = int(max_processes)
+        self.max_memory = int(max_memory)
         v = ['ssh', '%s@localhost'%username,
              'ulimit',
-             '-v', str(int(self.max_memory*1024*1024)),  # memory in megabytes
+             '-v', str(int(self.max_memory*1024)),  # memory in megabytes
              '-u', str(self.max_processes+2),
-             ' && ',
+             '&&',
              sys.executable,
              os.path.abspath('worker.py'),
              '--workspace_id=%s'%workspace.id,
              '--backend_port=%s'%args.port,  # args = global variable
              '--cwd="%s"'%workspace.path()]
         log.debug(v)
-        self.subprocess = async_subprocess(v, cwd=workspace.path(),
-                                           timeout=self.max_walltime,
-                                           callback=self.worker_terminated)
+        self.subprocess = async_subprocess(
+            v, cwd=workspace.path(), timeout=self.max_walltime, callback=self.worker_terminated)
 
     def __del__(self):
         try:
@@ -398,8 +393,6 @@ def manager_for_user(username):
             managers[username] = M
             return M
     raise RuntimeError, "no available valid managers"
-    
-            
 
 class Manager(object):
     def __init__(self, socket_name):
