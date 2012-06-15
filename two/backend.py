@@ -1,9 +1,10 @@
 """
 Backend Server
 
-The backend server proccesses run on each compute node.  The frontend
-sends clients here to either start a new session or join an existing
-computing session.  On a multiprocessor machine, we could have several
+Backend server processes run on each compute machine, preferably in a
+virtual machine that is very regularly updated with the latest
+security patches.  The backend launches workers that serve sessions in
+a given workspace.  On a multiprocessor machine, we would have several
 of these running on the same computer in order to balance the load
 between them.  The backend server is a TornadoWeb application.  It:
 
@@ -18,10 +19,12 @@ between them.  The backend server is a TornadoWeb application.  It:
 * Socket.io server that handles connections from desktop/mobile
   application
 
-* Spawn (jailed/limited) worker processes
+* Spawn worker processes (over ssh)
 
-* Communication with worker processes via a *non-blocking* Unix Domain
-  Socket.
+* Communication with worker processes via a non-blocking Unix Domain
+  Socket with permission set so only the backend and worker can
+  see the communication.  
+    
 
 """
 
