@@ -191,6 +191,7 @@ class Workspace(object):
             return
         # initialize new empty git repo
         os.makedirs(path)
+        # TODO: change permission and group on path!!
         self._do_command(['git', 'init'], callback)
 
     def bundle(self, rev, callback):

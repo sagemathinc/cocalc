@@ -24,6 +24,10 @@
       ssh into many accounts and kill things. 
 
 
+[ ] general thing: write code that goes through and locks down
+    permissions as much as possible...  runs on backend startup, etc.
+
+
 =============================
 
 ideas
