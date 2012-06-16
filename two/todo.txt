@@ -1,4 +1,12 @@
 
+[ ] implement worker.py demo using a normal socket on a port and benchmark
+
+[ ] design workers so that they are very secure, using ephemeral
+    accounts, limited-size git bundles, etc. 
+
+[ ] implement design.
+    
+
 
 
   [ ] fix permissions before spawning worker, and redo worker more effectively today -- project for today

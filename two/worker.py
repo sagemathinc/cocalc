@@ -176,10 +176,16 @@ def divide_into_blocks(code):
         
 
 class SageSocketServer(object):
-    def __init__(self, backend_port, socket_name):
+    def __init__(self, backend_port, socket_name='', port=0, hostname=''):
         self._backend_port = backend_port
         self._socket_name = socket_name
+        self._port = port
         self._tag = None
+        self._hostname = hostname if hostname else socket.gethostname()
+
+    def use_unix_domain_socket(self):
+        """Return True if we are using a local Unix Domain socket instead of opening a network port."""
+        return self._port == 0
 
     def evaluate(self, expr, preparse, tag):
         try:
@@ -239,37 +245,32 @@ class SageSocketServer(object):
                 continue
 
     def run(self):
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            
+        if self.use_unix_domain_socket():
+            # use Unix Domain Sockets
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            if not self._socket_name:
+                self._socket_name = tempfile.mktemp() # unsafe, so we bind immediately below
+            print "Binding socket to %s"%self._socket_name
+            s.bind(self._socket_name)
+            register = {'socket_name':self._socket_name}
+            
+        else:
+            # listen on a network port
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)            
+            print "Binding socket to http://%s:%s"%(self._hostname, self._port)
+            s.bind((self._hostname, self._port))
+            register = {'port':self._port, 'hostname':self._hostname}
 
-        if not self._socket_name:
-            self._socket_name = tempfile.mktemp() # unsafe, so we bind immediately below
-
-        print "Binding socket to %s"%self._socket_name
-        s.bind(self._socket_name)
-
-        # Change permissions so everybody (in particular, the backend)
-        # can use this socket, since worker.py will be run as a
-        # different user than backend.  By experimenting, it appears
-        # that chmod'ing the socket file and -- (if possible) -- its
-        # containing directory is sufficient.  
-        os.chmod(self._socket_name, 0777)
-        directory = os.path.split(self._socket_name)[0]
-        try:
-            os.chmod(directory, 0777)
-        except OSError:
-            # OK -- could just mean that tempfile returned a name in /tmp, which it often does.
-            pass
-        
-        
-        self._children = []
-        s.listen(5)  # todo -- what number should I use here?
-        
         if self._backend_port:
             url = 'http://localhost:%s/register_manager'%self._backend_port 
             print "Registering with backend server at %s"%url  # todo: proper log
             import misc
-            misc.post(url, data = {'socket_name':self._socket_name}, timeout=5)  # TODO: 5?
-            
+            misc.post(url, data = register, timeout=5)  # TODO: 5?
+
+        self._children = []
+        s.listen(5)
+        
         try:
             while 1:
                 print "Waiting for connection..."
@@ -286,7 +287,8 @@ class SageSocketServer(object):
             print "Cleaning up server..."
             try:
                 try:
-                    os.unlink(self._socket_name)
+                    if self.use_unix_domain_socket():
+                        os.unlink(self._socket_name)
                 except OSError:
                     pass
                 try:
@@ -296,18 +298,29 @@ class SageSocketServer(object):
                     pass
             except OSError:
                 pass
-            print "waiting for forked subprocesses to terminate..."
+            print "Waiting for all forked subprocesses to terminate..."
             os.wait()
-            print "done."
+            print "All subprocesses have terminated."
 
 class SageSocketTestClient(object):
-    def __init__(self, socket_name):
+    def __init__(self, socket_name='', port=0, hostname=''):
         self._socket_name = socket_name
+        self._port = port
+        self._hostname = hostname if hostname else socket.gethostname()
+
+    def use_unix_domain_socket(self):
+        """Return True if we are using a local Unix Domain socket instead of opening a network port."""
+        return self._port == 0
 
     def run(self):
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
-            s.connect(self._socket_name)        
+            if self.use_unix_domain_socket():
+                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                s.connect(self._socket_name)
+            else:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.connect((self._hostname, self._port))
+                
             b = JSONsocket(s)
 
             while 1:
@@ -343,15 +356,19 @@ class SageSocketTestClient(object):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Run a worker")
+    parser.add_argument("--port", dest="port", type=int, default=0,
+                        help="port that worker binds to or 0 to instead use a local Unix Domain socket (default: 0)"),
+    parser.add_argument("--hostname", dest="hostname", type=str, default=0,
+                        help="hostname to listen on (default: ''=socket.gethostname())"),
     parser.add_argument("--backend_port", dest="backend_port", type=int, 
                         help="port of local backend web server to register with (or 0 to not register)",
                         default=0)
     parser.add_argument("--socket_name", dest="socket_name", type=str, 
                         help="name of UD socket to serve on (used for devel/testing)",
                         default='')
-    parser.add_argument("--test_client", dest="test_client", action="store_const",
+    parser.add_argument("--client", dest="client", action="store_const",
                         const=True, default=False,
-                        help="run a testing command line client instead (make sure to specify the socket with -s socket_name)")
+                        help="run a command line client instead (make sure to specify the socket with --socket_name or --port)")
     parser.add_argument('--workspace_id', dest="workspace_id", type=int, default=-1,
                         help="id of workspace that will be run")
     parser.add_argument('--cwd', dest="cwd", type=str, default="", 
@@ -361,8 +378,8 @@ if __name__ == '__main__':
     if args.cwd:
         os.chdir(args.cwd)
 
-    if args.test_client:
-        SageSocketTestClient(args.socket_name).run()
+    if args.client:
+        SageSocketTestClient(args.socket_name, args.port, args.hostname).run()
     else:
-        SageSocketServer(args.backend_port, args.socket_name).run()
+        SageSocketServer(args.backend_port, args.socket_name, args.port, args.hostname).run()
     
