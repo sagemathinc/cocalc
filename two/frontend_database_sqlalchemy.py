@@ -78,6 +78,7 @@ class Account(Base):
     auth = Column(String)  # authentication info (token, etc.)
     
     user = relationship("User", backref=backref('accounts', order_by=host))
+    
     def __init__(self, host, auth):
         self.timestamp = now()
         self.host = str(host)
@@ -138,10 +139,6 @@ class Backend(Base):
     path = Column(String)    # 
     user = Column(String)    # user@URI:path/ where path/ contains backend.py
     debug = Column(Boolean)  # whether to run backend in debug mode
-    workers = Column(String) # comma separated list of unix usernames, e.g.,
-                             # "sagews_worker_1,sagews_worker_2-7,userfoo_5"
-                             # dash ranges gets filled in automatically.
-    
     status = Column(String)  # 'stopped', 'running', 'starting', 'stopping'
     load_number = Column(Float)
     number_of_connected_users = Column(Integer)
@@ -155,6 +152,28 @@ class Backend(Base):
     def __repr__(self):
         return '<Backend %s: "%s">'%(self.id, self.URI)
 
+class Worker(Base):
+    __tablename__ = "workers"
+    id = Column(Integer, primary_key=True)
+    backend_id = Column(Integer, ForeignKey('backends.id'))
+    username = Column(String)
+    hostname = Column(String)
+    disk  = Column(Integer)    # megabytes
+    ram   = Column(Integer)    # megabytes
+    cores = Column(Integer)
+    timestamp = Column(Float)
+
+    backend = relationship("Backend", backref=backref('workers', order_by=id))
+
+    def __init__(self, username, hostname):
+        self.username = str(username)
+        self.hostname = str(hostname)
+        self.timestamp = now()
+
+    def __repr__(self):
+        return "<Worker %s@%s: disk_quota=%s, ram=%s, cores=%s>"%(
+            self.username, self.hostname, self.disk, self.ram, self.cores)
+    
 class Workspace(Base):
     __tablename__ = "workspaces"
     id = Column(Integer, primary_key=True)
@@ -346,7 +365,7 @@ def drop_all():
 ####################################################
 
 def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
-               num_locations=1, num_publications=1, num_slaves=3,
+               num_workers=1, num_locations=1, num_publications=1, num_slaves=3,
                verbose=True):
     """
     Put the database into a testing configuration by generating a
@@ -356,15 +375,17 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
     EXAMPLES::
 
         >>> import random; random.seed(0)
-        >>> s = testconf_1(num_users=10, num_backends=7, num_workspaces=50, num_locations=100, num_publications=20, num_slaves=5, verbose=False)
+        >>> s = testconf_1(num_users=10, num_backends=7, num_workspaces=50, num_workers=32, num_locations=100, num_publications=20, num_slaves=5, verbose=False)
         >>> s.query(User).count()
         10
         >>> s.query(Backend).count()
         7
+        >>> s.query(Worker).count()
+        224
         >>> s.query(Workspace).count()
         50
         >>> s.query(WorkspaceLocation).count()
-        90
+        86
         >>> s.query(Publication).count()
         20
         >>> s.query(Slave).count()
@@ -416,7 +437,16 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
         backend.user = 'wstein'
         backend.debug = True
         backend.path = 'tmp/sagews/backend-%s'%(n+1)
-        backend.workers = "sagews_worker_1,sagews_worker_2-7,userfoo_5"
+
+        disk = 32*(2**random.randint(1,4))
+        ram = 256*(2**random.randint(1,4))
+        cores = 2**random.randint(1,6)
+        for m in range(num_workers):
+            w = Worker('sagews_worker_%s'%(m+1), 'worker%s.sagews.com'%n)
+            w.disk = disk
+            w.ram = ram
+            w.cores = cores
+            backend.workers.append(w)
         
         backend.status = 'stopped'
         backend.load_number = random.random()

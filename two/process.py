@@ -12,7 +12,7 @@ with Python.
 
 import os, shlex, shutil, signal, subprocess, sys, tempfile, time
 
-from misc import is_temp_directory, get, ConnectionError, URLError
+from misc import is_temp_directory, get, URLError
 
 class Process(object):
     """
@@ -355,6 +355,7 @@ class Daemon(object):
 
         self.port = port
         # wait for http server to start
+        from requests import ConnectionError
         while True:
             try:
                 get('http://localhost:%s'%port)

@@ -89,16 +89,16 @@ database can be more easily replicated.  (And/or it will run on appengine.)
            - POST: workspace_id activated (where -- backend_id)
            - POST: workspace_id de-activated 
        - DATABASE: implement using SQLite+SQLalchemy; later drop-in switch to MySQL
-           - USERS: 
+           - USER: 
                 - id
                 - timestamp
-           - ACCOUNTS:
+           - ACCOUNT:
                 - id
                 - user_id
                 - type: github, google code, facebook, dropbox, google drive, etc.
                 - auth token, etc. 
                 - timestamp
-           - USER PREFERENCES:
+           - USER PREFERENCE:
                 - user_id
                 - user name
                 - email address
@@ -111,7 +111,7 @@ database can be more easily replicated.  (And/or it will run on appengine.)
                 - data1      # workspace_id      
                 - data2      # more info about visit
                 - timestamp
-           - BACKEND WORKSPACE SERVERS: 
+           - BACKEND:
 	        - id
                 - URI
                 - username@hostname
@@ -122,18 +122,27 @@ database can be more easily replicated.  (And/or it will run on appengine.)
                 - disk_usage
                 - disk_available
                 - timestamp
-           - WORKSPACES:
+                - workers -- backref = list of WORKER objects
+           - WORKSPACE:
                 - id   (globally unique; not tied to user_id!)
                 - title
                 - last_change
                 - active -- backend_id if active on that backend; otherwise 0
                 - timestamp
-           - WORKSPACE LOCATIONS:
+           - WORKSPACE LOCATION:
                 - workspace_id
                 - backend_id
                 - last_sync
                 - timestamp
-           - PERMISSIONS:
+           - WORKER:
+                - id (globally unique)
+                - username
+                - hostname
+                - disk_quota (in megabytes)
+                - ram
+                - cores
+                - timestamp
+           - PERMISSION:
                 - workspace_id
                 - user_id
 		- type: 'owner', 'collab', 'readonly', 'quiz', etc.
@@ -144,7 +153,7 @@ database can be more easily replicated.  (And/or it will run on appengine.)
                 - commit id
                 - main filename
                 - timestamp
-           - ACCOUNT TYPES:
+           - ACCOUNT TYPE:
                 - user_id
                 - name
                 - description
@@ -154,7 +163,7 @@ database can be more easily replicated.  (And/or it will run on appengine.)
                 - max disk space it can use
                 - whether all publication must be 100% public
                 - max number of users connected to a shared workspace at same time
-           - SLAVES:
+           - SLAVE:
                 - URI
                 - authentication info of some kind? 
                 - last update
@@ -276,29 +285,50 @@ database can be more easily replicated.  (And/or it will run on appengine.)
    * Mobile Backend Client (static/sagews/mobile/backend.[js,html,css]) --
         - Uses the socket.io javascript client library
         - Use jQuery + jQuery-mobile + Codemirror2 to implement interactive document viewers
+ 
+   * A Worker Machine:
+        - a Linux Virtual (or real) Machine that has (something like): 
+            - patched regularly updated Ubuntu (to avoid hackers)
+            - 8GB fixed size hard drive for / (4GB for OS + Sage; 4GB for user data)
+            - 8GB RAM (no swap space)
+            - users named sagews_worker_1, sagews_worker_2, ..., sage_worker_32
+            - disk quotas -- each user gets 125MB disk (and 250MB ram on average)
+            - permissions on directories are locked down
+            - firewalled so can only connect to some machines: http://www.cyberciti.biz/tips/block-outgoing-network-access-for-a-single-user-from-my-server-using-iptables.html
+
+        - How configured:
+            - Install ubuntu 12.04 in Ubuntu VM with a single 8GB fixed size disk with 4 cores and extra host-only network adapter
+            - Manually partition it (to avoid swap) with one / partition.
+            - Create admin user named "sagews". 
+            - apt-get remove libreoffice* thunderbird
+            - apt-get install git g++ m4 gfortran libssl-dev dpkg-dev libatlas-dev libatlas-base-dev emacs
+            - build sage from source:
+                export MAKE="make -j4"
+                export SAGE_ATLAS_LIB=/usr/lib/
+            - build sage in /usr/local/sage directory, but as user sagews
 
    * Worker (worker.py) -- 
-        - a forking local unix domain sockets server using json messages
-        - runs as a "restricted" UNIX user, one of a comma separated list 
-          of local usernames passed via command line when starting backend
-        - bound: #{*simultaneous* open workspaces} <= #{users}
-        - lifetime 
-            0. precondition: make UNIX groups for all sagews_worker_n users
-               and make sagews_backend user a member of all those groups.
-            1. chgrp -R sagews_worker_n data/backend/workspaces/id/workspace/
-            2. ssh: cd data/backend/workspaces/id/workspace/ && /path/to/sage -python /path/to/worker.py <opts>
-               Make sure the unix domain socket is data/backend/workspaces/id/socket
-               with correct permissions setup.  This way only sagews_worker_n and backend can talk.
-               [TODO: get rid of using tempfile]
-            3. To save session, the *backend* uses git right here.  Since owns
-               containing directory, can chmod and read anything. 
-            4. When workspace shuts down, chmod/chgrp workspace/ to
-               protect again, and do a clean local checkout of 
-                    data/backend/workspaces/id/.git
-               in preparation for next run.  If necessary, make sure
-               grp permissions of workspace/ are set so sage-worker-n
-               can modify anything in that directory.
-        - save: state of workspace -- this git adds *everything*, then commits
+        - a forking socket server using JSON messages
+        - workername@hostname:path/: stored on frontend and backend
+          (make sure file permissions of path/ are restrictive):
+        - bound: #{*simultaneous* open workspaces} <= #{available worker users}
+        - backend has ssh keys setup so it can ssh to worker account
+        - workspace session lifetime:
+            1. scp files to workername@hostname:path/ 
+                    - worker.py
+                    - workspace.bundle: a git bundle containing the workspace repo
+                    - conf: {'token:'a secret string', 'backend':'http://backend_address:port'}
+            2. ssh workername@hostname /path/worker.py 
+            3. Worker process does a POST to backend to tell backend
+               it is now alive and ready, and what port it managed to
+               grab.  The POST identifies the worker by the md5 hash
+               of the token.
+            4. Backend initiates SSL-socket connections with worker,
+               one for each requested session.  By using ssl, for
+               communications, everything is encrypted.
+            5. Backend can also do "scp workername@hostname:path/bundle ." to 
+               get a new bundle that gets applied to the workspace
+               repo (and should be undo-able).
 
    * DOCUMENTS:
      * Supported Types:

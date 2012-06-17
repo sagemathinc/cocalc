@@ -180,8 +180,8 @@ def divide_into_blocks(code):
 ##     log.flush()
 
 class SageSocketServer(object):
-    def __init__(self, backend_port, socket_name='', port=0, hostname=''):
-        self._backend_port = backend_port
+    def __init__(self, backend, socket_name='', port=0, hostname=''):
+        self._backend = backend
         self._socket_name = socket_name
         self._port = port
         self._tag = None
@@ -280,8 +280,8 @@ class SageSocketServer(object):
             s.bind((self._hostname, self._port))
             register = {'port':self._port, 'hostname':self._hostname}
 
-        if self._backend_port:
-            url = 'http://localhost:%s/register_manager'%self._backend_port 
+        if self._backend:
+            url = 'http://%s/register_manager'%self._backend 
             print "Registering with backend server at %s"%url  # todo: proper log
             import misc
             misc.post(url, data = register, timeout=5)  # TODO: 5?
@@ -321,7 +321,7 @@ class SageSocketServer(object):
             print "All subprocesses have terminated."
 
 class SageSocketTestClient(object):
-    def __init__(self, socket_name='', port=0, hostname='', num_trials=10):
+    def __init__(self, socket_name='', port=0, hostname='', num_trials=1):
         self._socket_name = socket_name
         self._port = port
         self._hostname = hostname if hostname else socket.gethostname()
@@ -382,32 +382,25 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Run a worker")
     parser.add_argument("--port", dest="port", type=int, default=0,
-                        help="port that worker binds to or 0 to instead use a local Unix Domain socket (default: 0)"),
+                        help="port that worker binds to or 0 to instead use a local Unix Domain socket (default: 0)")
     parser.add_argument("--hostname", dest="hostname", type=str, default=0,
-                        help="hostname to listen on (default: ''=socket.gethostname())"),
-    parser.add_argument("--backend_port", dest="backend_port", type=int, 
-                        help="port of local backend web server to register with (or 0 to not register)",
-                        default=0)
-    parser.add_argument("--socket_name", dest="socket_name", type=str, 
-                        help="name of UD socket to serve on (used for devel/testing)",
-                        default='')
-    parser.add_argument("--client", dest="client", action="store_const",
-                        const=True, default=False,
+                        help="hostname to listen on (default: ''=socket.gethostname())")
+    parser.add_argument("--backend", dest="backend", type=str, default='', 
+                        help="address:port of backend server to register with (or '' to not register)")
+    parser.add_argument("--socket_name", dest="socket_name", type=str, default='',
+                        help="name of UD socket to serve on (used for devel/testing)")
+    parser.add_argument("--client", dest="client", action="store_const", const=True, default=False,
                         help="run a command line client instead (make sure to specify the socket with --socket_name or --port)")
     parser.add_argument('--num_trials', dest="num_trials", type=int, default=1,
                         help="used by the test client -- repeat inputs this many times and average time")
     
     parser.add_argument('--workspace_id', dest="workspace_id", type=int, default=-1,
                         help="id of workspace that will be run")
-    parser.add_argument('--cwd', dest="cwd", type=str, default="", 
-                        help="change to this directory before doing anything else")
 
     args = parser.parse_args()
-    if args.cwd:
-        os.chdir(args.cwd)
 
     if args.client:
         SageSocketTestClient(args.socket_name, args.port, args.hostname, args.num_trials).run()
     else:
-        SageSocketServer(args.backend_port, args.socket_name, args.port, args.hostname).run()
+        SageSocketServer(args.backend, args.socket_name, args.port, args.hostname).run()
     
