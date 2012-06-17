@@ -174,6 +174,10 @@ def divide_into_blocks(code):
             
     return blocks
         
+## log = open('log','a')
+## def lg(m, s):
+##     log.write('%s: %s\n'%(m,s))
+##     log.flush()
 
 class SageSocketServer(object):
     def __init__(self, backend_port, socket_name='', port=0, hostname=''):
@@ -200,7 +204,7 @@ class SageSocketServer(object):
         self._b.send(msg)
 
     def execute(self, code, preparse, tag):
-        try:            
+        try:
             self._tag = tag
             for start, stop, block in divide_into_blocks(code):
                 if preparse:
@@ -212,10 +216,18 @@ class SageSocketServer(object):
             #sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
             traceback.print_exc()
         finally:
-            sys.stdout.flush(done=True); sys.stderr.flush(done=True)
-            self._b.send(msg)
+            if sys.stdout._buf:
+                if sys.stderr._buf:
+                    sys.stdout.flush(done=False)
+                    sys.stderr.flush(done=True)
+                else:
+                    sys.stdout.flush(done=True)
+            elif sys.stderr._buf:
+                sys.stderr.flush(done=True)
+            else:
+                self._send_done_msg()
 
-    def _send_output(self, stream, data, done):
+    def _send_output(self, stream, data, done=False):
         msg = {stream:data}
         if self._tag is not None:
             msg['tag'] = self._tag
@@ -223,13 +235,19 @@ class SageSocketServer(object):
             msg['done'] = True
         self._b.send(msg)
 
+    def _send_done_msg(self):
+        msg = {'done':True}
+        if self._tag is not None:
+            msg['tag'] = self._tag
+        self._b.send(msg)
+
     def _recv_eval_send_loop(self, conn):
         # Redirect stdout and stderr to objects that write directly
         # to a JSONsocket.
         self._b = JSONsocket(conn)
         self._orig_streams = sys.stdout, sys.stderr
-        sys.stdout = OutputStream(lambda data,done: self._send_output('stdout', data, done))
-        sys.stderr = OutputStream(lambda data,done: self._send_output('stderr', data, done))
+        sys.stdout = OutputStream(lambda data, done: self._send_output('stdout', data, done))
+        sys.stderr = OutputStream(lambda data, done: self._send_output('stderr', data, done))
 
         # create a clean namespace with Sage imported
         self._namespace = {}
