@@ -321,10 +321,11 @@ class SageSocketServer(object):
             print "All subprocesses have terminated."
 
 class SageSocketTestClient(object):
-    def __init__(self, socket_name='', port=0, hostname=''):
+    def __init__(self, socket_name='', port=0, hostname='', num_trials=10):
         self._socket_name = socket_name
         self._port = port
         self._hostname = hostname if hostname else socket.gethostname()
+        self._num_trials = num_trials
 
     def use_unix_domain_socket(self):
         """Return True if we are using a local Unix Domain socket instead of opening a network port."""
@@ -350,18 +351,22 @@ class SageSocketTestClient(object):
                     else:
                         break
                 t = time.time()
-                b.send({'execute':r})
-                while 1:
-                    mesg = b.recv()
-                    stdout = mesg.get('stdout',None)
-                    stderr = mesg.get('stderr',None)
-                    if stdout:
-                        sys.stdout.write(stdout); sys.stdout.flush()
-                    if stderr:
-                        sys.stderr.write(stderr); sys.stderr.flush()                    
-                    if mesg.get('done'):
-                        break
-                print time.time() - t
+                for n in range(self._num_trials):
+                    b.send({'execute':r})
+                    while 1:
+                        mesg = b.recv()
+                        stdout = mesg.get('stdout',None)
+                        stderr = mesg.get('stderr',None)
+                        if n == self._num_trials - 1:
+                            if stdout:
+                                sys.stdout.write(stdout); sys.stdout.flush()
+                            if stderr:
+                                sys.stderr.write(stderr); sys.stderr.flush()
+                        if mesg.get('done'):
+                            break
+                if self._num_trials > 1:
+                    print '%s trials -- average time in seconds:'%self._num_trials,
+                print (time.time() - t)/self._num_trials
         finally:
             # properly close socket
             try:
@@ -387,6 +392,9 @@ if __name__ == '__main__':
     parser.add_argument("--client", dest="client", action="store_const",
                         const=True, default=False,
                         help="run a command line client instead (make sure to specify the socket with --socket_name or --port)")
+    parser.add_argument('--num_trials', dest="num_trials", type=int, default=1,
+                        help="used by the test client -- repeat inputs this many times and average time")
+    
     parser.add_argument('--workspace_id', dest="workspace_id", type=int, default=-1,
                         help="id of workspace that will be run")
     parser.add_argument('--cwd', dest="cwd", type=str, default="", 
@@ -397,7 +405,7 @@ if __name__ == '__main__':
         os.chdir(args.cwd)
 
     if args.client:
-        SageSocketTestClient(args.socket_name, args.port, args.hostname).run()
+        SageSocketTestClient(args.socket_name, args.port, args.hostname, args.num_trials).run()
     else:
         SageSocketServer(args.backend_port, args.socket_name, args.port, args.hostname).run()
     
