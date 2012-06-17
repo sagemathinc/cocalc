@@ -1,6 +1,10 @@
 TODAY's minimal goals:
 
-  [...] configure sagews_worker VirtualBox Machine
+  [x] configure worker VirtualBox Machine: 
+          - put scripts into sagews repo
+  [x] configure frontend Virtualbox Machine
+  [ ] configure backend Virtualbox Machine (a copy of
+      frontend but with different ssh key setup):
   [x] add code to frontend database to store details about workers (login@hostname)
   [ ] page to edit frontend database worker info
   [ ] add code to backend database to store details about workers they will use 

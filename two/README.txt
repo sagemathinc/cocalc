@@ -70,9 +70,63 @@ use a SQLite file.  However, in second implementation, switch to mySQL
 database, so frontends can be distributed on multiple machines, and
 database can be more easily replicated.  (And/or it will run on appengine.)
 
- 10k simultaneous    
+ 10k simultaneous ?
+
+MINIMAL TEST SYSTEM requires 6 VM's:
+   * 2 frontends 
+   * 2 backends
+   * 2 workers
+
+COMPONENT DETAILS:
 
    * Frontend (frontend.py) -- 
+       - How Virtual Machine is configured (Virtual Box):
+            - Install ubuntu 12.04 in Ubuntu VM with a single 4.66B fixed size disk with 4 cores and extra host-only network adapter
+            - Manually partition it (to avoid swap) with one / partition.
+            - Create admin user named "sagews". 
+            - apt-get remove libreoffice* thunderbird
+	    - apt-get update
+            - apt-get install git emacs iotop python-mode screen ecryptfs-utils python-virtualenv python-dev sqlite3
+                 (python-dev -- so Python.h is installed)
+            - apt-get upgrade 
+            - upgrade kernel: 
+                 apt-get install linux-generic linux-headers-generic linux-image-generic
+                 apt-get remove linux-headers-3.2.0-23 linux-image-3.2.0-23
+            - apt-get clean # clean cache
+            - install guest additions  
+            - ssh-keygen -b 2048 (temporarily add this key to github -- remove in production!)
+            - lock permissions down better, just in case:
+                   chmod -R og-rwx sagews
+            - encrypt /home folder (since we will have sensitive database
+              and ssh keys, and don't want somebody who gets the vdi file
+              to be able to trivially access it all -- same goes for backend):
+                  - didn't do this when installing, since it didn't work.
+                  - here's what I did, after ensuring that ecryptfs-utils was installed (above)
+                       1. Temporarily enable root login
+                             sudo -i
+                             sudo passwd root
+                       2. Stop display manager:
+                                 /etc/init.d/lightdm stop
+                       3. Encrypt:
+                              ecryptfs-migrate-home -u sagews
+                              ecryptfs-unwrap-passphrase  
+                              # outputs this: 7701efa355f14fa001e74b90d1ed4e16
+                       4. Disable root:
+                              sudo passwd -dl root
+            - install dependencies of sagews into a virtualenv:
+                   - setup the virtual environment:
+                         virtualenv env
+                         chmod og-rwx -R env                         
+                   - put that in the front of the PATH by adding this to the end of .bashrc:
+                         export PATH=$HOME/env/bin/:$PATH
+                         source ~/.bashrc
+                   - install sagews dependencies:
+                         easy_install tornado tornadio2 sqlalchemy requests 
+                     and for ease of use: 
+                         easy_install ipython
+ 
+            - setup a firewall
+
        - responsible for launching backend servers (e.g., via ssh or
          http daemon on backend machines)
        - HTTP SERVER: implement using tornado
@@ -301,11 +355,23 @@ database can be more easily replicated.  (And/or it will run on appengine.)
             - Manually partition it (to avoid swap) with one / partition.
             - Create admin user named "sagews". 
             - apt-get remove libreoffice* thunderbird
-            - apt-get install git g++ m4 gfortran libssl-dev dpkg-dev libatlas-dev libatlas-base-dev emacs
-            - build sage from source:
+            - had to do "/etc/init.d/lightdm stop" to get quota to install:
+            - apt-get install screen git g++ m4 gfortran libssl-dev dpkg-dev libatlas-dev libatlas-base-dev emacs quota iotop python-mode
+            - apt-get update; apt-get upgrade  #, and do force install of new kernel
+            - apt-get clean # clean cache
+            - install guest additions
+            - build sage from source in /usr/local/sage directory, but as user sagews
                 export MAKE="make -j4"
                 export SAGE_ATLAS_LIB=/usr/lib/
-            - build sage in /usr/local/sage directory, but as user sagews
+            - ssh-keygen -b 2048
+            - /home/sagews/scripts/: 
+                   - sudo ./add_users.py 40
+                   - sudo ./init_sagews_worker_home.py
+            - disk quotas: 
+                 * root@sagewsworker:/etc# zile fstab
+                   UUID=38cf5ce6-a41a-423b-812d-ab953b192e00 /               ext4    usrquota,errors=remount-ro 0       1
+                 * reboot
+             
 
    * Worker (worker.py) -- 
         - a forking socket server using JSON messages
