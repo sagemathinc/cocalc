@@ -365,8 +365,10 @@ class SageSocketTestClient(object):
                         if mesg.get('done'):
                             break
                 if self._num_trials > 1:
-                    print '%s trials -- average time in seconds:'%self._num_trials,
-                print (time.time() - t)/self._num_trials
+                    print '%s trials -- time in seconds:'%self._num_trials,
+                    r = (time.time() - t)/self._num_trials
+                    print "%s,  number per second: %s"%(r, int(1/r) if r else 'infinity')
+                
         finally:
             # properly close socket
             try:
