@@ -265,16 +265,6 @@ class Workspace(object):
     def revert(self, rev, callback):
         raise NotImplementedError
 
-    ###############################################################################
-    # Launch a worker, which listens on a socket
-    def launch_worker(self, username, callback, max_walltime=3600, max_cputime=1800, max_processes=100, max_memory=1024):
-        W = Worker(username, self, max_walltime=max_walltime, max_cputime=max_cputime,
-                   max_processes=max_processes, max_memory=max_memory)
-        if W.subprocess is None:
-            callback({'status':'error', 'mesg':'failed to start worker process'})
-        else:
-            callback({'status':'ok', 'pid':W.subprocess.pid})
-
 
 class WorkspaceCommandHandler(web.RequestHandler):
     @auth_frontend
@@ -317,73 +307,11 @@ class RegisterManagerHandler(web.RequestHandler):
         if m not in managers:
             unallocated_managers.append(m)
 
-#############################################################
-# A worker process
-#############################################################
-class Worker(object):
-    def __init__(self, username, workspace, max_walltime, max_cputime, max_processes, max_memory):
-        """
-           - max_walltime = maximum walltime that this backend will run in seconds
-           - max_cputime = maximum cputime that this backend will use in seconds
-           - max_processes = maximum number of processes that the worker may spawn
-           - max_memory = maximum memory in megabytes
-        """           
-        self.username = username
-        self.workspace = workspace
-        self.max_walltime = int(max_walltime)
-        self.max_cputime = int(max_cputime)
-        self.max_processes = int(max_processes)
-        self.max_memory = int(max_memory)
 
-        self._set_permissions()
-
-        v = ['ssh', '%s@localhost'%username,
-             'ulimit',
-             '-v', str(int(self.max_memory*1024)),  # memory in megabytes
-             '-u', str(self.max_processes+2),
-             '&&',
-             sys.executable,
-             os.path.abspath('worker.py'),
-             '--workspace_id=%s'%workspace.id,
-             '--backend_port=%s'%args.port,  # args = global variable
-             '--cwd="%s"'%workspace.path()]
-        log.debug(v)
-        self.subprocess = async_subprocess(
-            v, cwd=workspace.path(), timeout=self.max_walltime, callback=self.worker_terminated)
-
-    def _set_permissions(self):
-        # 1. make it so
-        pass
-        
-
-    def __del__(self):
-        try:
-            if self.subprocess:
-                self.subprocess.kill()
-        except OSError:
-            pass # already dead
-        
-    def worker_terminated(self, mesg):
-        # todo 
-        log.debug("worker terminated with mesg: '%s'"%mesg)
-        
-
-def start_worker(username, workspace_id, callback):
-    # To avoid blocking, we must launch another process to start
-    # worker.py as the remote user.   Once everything is setup,
-    # the backend will get an appropriate POST request, and then
-    # we can proceed with serving requests for session id's.
-    log.debug(cmd)
-    os.system(cmd)
 
 #############################################################
-# Sage Managers and worker sessions
+# Session managers and workers
 #############################################################
-
-# workers is a list of strings of username@hostnames of accounts on a
-# virtual machines that can be used as workers, such that this backend
-# can ssh to the sagews account without requiring a password.
-workers = []
 
 # TODO: document these
 unallocated_managers = []

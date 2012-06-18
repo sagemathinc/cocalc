@@ -10,14 +10,15 @@ Session 2:
   [x] put conf.json file in sagews-worker
   [x] test ssh through ssh to start stuff.
   [x] database of worker accounts
+  [x] remove worker code I won't be using
+
 
 Clear Tasks
 NOW:
-
-  [ ] implementing backend getting worker config via ssh (and scp'ing files?) and storing in database
-
+  [ ] learn memcached
 
 NEXT:
+  [ ] implementing backend getting worker config via ssh (and scp'ing files?) and storing in database
   [ ] choosing which worker to assign to a workspace
   [ ] worker starting via ssh (and scp'ing files, etc.)
 
