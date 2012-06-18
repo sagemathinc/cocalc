@@ -159,25 +159,18 @@ class Worker(Base):
     """
     __tablename__ = "workers"
     id = Column(Integer, primary_key=True)
+    hostname = Column(String, unique=True)
     backend_id = Column(Integer, ForeignKey('backends.id'))
-    num_users = Column(Integer)
-    hostname = Column(String)
-    disk  = Column(Integer)    # megabytes
-    ram   = Column(Integer)    # megabytes
-    cores = Column(Integer)
-    load_number = Column(Float) 
     timestamp = Column(Float)
 
-    backend = relationship("Backend", backref=backref('workers', order_by=id))
+    backend = relationship("Backend", backref=backref('workers', order_by=hostname))
 
-    def __init__(self, hostname, num_users=32):
+    def __init__(self, hostname):
         self.hostname = str(hostname)
-        self.num_users = num_users
         self.timestamp = now()
 
     def __repr__(self):
-        return "<Worker %s: disk_quota=%s, ram=%s, cores=%s>"%(
-            self.hostname, self.disk, self.ram, self.cores)
+        return "<Worker %s>"%self.hostname
     
 class Workspace(Base):
     __tablename__ = "workspaces"
@@ -444,16 +437,9 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
         backend.debug = True
         backend.path = 'tmp/sagews/backend-%s'%(n+1)
 
-        disk = 32*(2**random.randint(1,4))
-        ram = 256*(2**random.randint(1,4))
-        cores = 2**random.randint(1,6)
         for m in range(num_workers_per_backend):
             worker_number += 1
-            w = Worker('worker%s.sagews.com'%worker_number, 32)
-            w.disk = disk
-            w.ram = ram
-            w.cores = cores
-            w.load_number = random.random()
+            w = Worker('worker%s.sagews.com'%worker_number)
             backend.workers.append(w)
         
         backend.status = 'stopped'

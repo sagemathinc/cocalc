@@ -322,6 +322,11 @@ COMPONENT DETAILS:
 	         - backend_id
                  - URI
                  - necessary authentication info
+             - WORKERS:
+                 - worker_id
+                 - hostname
+		 - num_users
+		 - disk, ram, cores, load_number 
 
         - FILESYSTEM: on filesystem directory of workspaces --
              data/backend/workspaces/id/.git/

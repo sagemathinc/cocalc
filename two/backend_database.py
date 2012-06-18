@@ -50,7 +50,29 @@ class Workspace(Base):
     def __repr__(self):
         return "<Workspace %s>"%self.id
 
+class Worker(Base):
+    """
+    A worker represents a complete virtual machine, with many user
+    accounts.
+    """
+    __tablename__ = "workers"
+    id = Column(Integer, primary_key=True)
+    hostname = Column(String)
+    num_users = Column(Integer)
+    disk  = Column(Integer)    # megabytes
+    ram   = Column(Integer)    # megabytes
+    cores = Column(Integer)
+    load_number = Column(Float) 
+    timestamp = Column(Float)
 
+    def __init__(self, hostname):
+        self.hostname = str(hostname)
+        self.timestamp = now()
+
+    def __repr__(self):
+        return "<Worker %s: num_users=%s, disk=%s, ram=%s, cores=%s, load_number=%s>"%(
+            self.hostname, self.num_users, self.disk, self.ram, self.cores, self.load_number)
+    
 class Backend(Base):
     """
     Records the uri's of any other backends to which we will be

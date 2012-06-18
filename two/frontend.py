@@ -23,12 +23,7 @@ import frontend_database_sqlalchemy as db
 class WorkerManager(object):
     def list_all(self):
         return [{'id':b.id, 'backend_id':b.backend_id,
-                 'num_users':b.num_users,
                  'hostname':b.hostname,
-                 'disk':b.disk,
-                 'ram':b.ram,
-                 'cores':b.cores,
-                 'load_number':b.load_number,
                  'timestamp':db.timestamp_to_str(b.timestamp)}
                 for b in db.session().query(db.Worker)]
 
@@ -40,7 +35,7 @@ class WorkerManager(object):
                 for w in x.split(','):
                     key, value = w.split('=')
                     z[key.strip()] = value.strip()
-                worker = db.Worker(hostname=z['hostname'], num_users=z['num_users'])
+                worker = db.Worker(hostname=z['hostname'])
                 try:
                     backend = s.query(db.Backend).filter(db.Backend.id == int(z['backend_id'])).one()
                 except:

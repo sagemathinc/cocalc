@@ -142,10 +142,10 @@ function update_workers_tab() {
 	var x = '';
 	for(var i=0; i<data.length; i++) {
 	    var d = data[i];
-	    x += 'id='+d.id + ', hostname='+d.hostname + ', num_users='+d.num_users + ', backend_id='+d.backend_id +  ', disk='+d.disk + ', ram='+d.disk + ', cores=' + d.cores + ' load_number='+d.load_number + ', timestamp='+d.timestamp+  '\n';
+	    x += 'id='+d.id + ', hostname='+d.hostname + ', backend_id='+d.backend_id + ', timestamp='+d.timestamp+  '\n';
 	}
 	$('#tab-workers-output').val(x);
-	$('#add-worker-input').val('hostname=?, num_users=?, backend_id=?');
+	$('#add-worker-input').val('hostname=?, backend_id=?');
 	$('#delete-worker-input').val('id=?');
     });
 }
