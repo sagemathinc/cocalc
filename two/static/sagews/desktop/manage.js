@@ -2,7 +2,10 @@ $(function() {
     $('#theme-switcher').themeswitcher({height:400, closeOnSelect:false}); 
 
     $("#tabs").tabs({
-	select: function(event, ui) { }
+	select: function(event, ui) { 
+	    var id = ui.panel.id;
+	    if (id == "tab-workers") { update_workers_tab(); }
+	}
     });
 
     $("#tab-backend").
@@ -41,7 +44,25 @@ $(function() {
             })
 	});
 
-/*    $('#tab-backend-refresh').button().click( update_backend_tab ); */
+    $('#add-worker').button().click(function(event) {
+	$.post('manage/workers/add', {'data':$('#add-worker-input').val()},
+	       function(data, status) { 
+		   update_workers_tab(); 
+		   if (data.status != 'ok') {
+		       alert(data.mesg);
+		   }
+	       }, 'json');
+    });
+
+    $('#delete-worker').button().click(function(event) {
+	$.post('manage/workers/delete', {'data':$('#delete-worker-input').val()},
+	       function(data, status) { 
+		   update_workers_tab(); 
+		   if (data.status != 'ok') {
+		       alert(data.mesg);
+		   }
+	       }, 'json');
+    });
 
     $(".template").hide();
 });
@@ -71,7 +92,8 @@ function update_backend_tab() {
 		var icon = 'circle-check', button = 'Stopping', color='#830';
 	    }
             row.append($('<button style="width:100px">' + button + '</button>').
-                button({icons:{primary:'ui-icon-' + icon}}).css({fontSize:'x-small', color:color}).
+                button({icons:{primary:'ui-icon-' + icon}}).
+		css('color',color).
                 click(function() {
                     var r = $(this).parent('li');
                     $.post('manage/backends/'+r.data('url'), {'id':r.data('id')},
@@ -81,7 +103,7 @@ function update_backend_tab() {
                     })
             );
 	    row.append($('<button>Delete</button>').button({icons:{primary:'ui-icon-circle-close'}})
-		.css({fontSize:'x-small', color:'#a00'})
+		.css('color','#a00')
                 .click(function(event) {
 		    var id = $(this).parent('li').data('id');
                     confirm_dialog({
@@ -113,6 +135,19 @@ function update_backend_tab() {
         $('#tab-backend-show-area').html(list);
     });
     area.scrollTop(s);
+}
+
+function update_workers_tab() {
+    $.getJSON("manage/workers/list_all", function(data) {
+	var x = '';
+	for(var i=0; i<data.length; i++) {
+	    var d = data[i];
+	    x += 'id='+d.id + ', hostname='+d.hostname + ', num_users='+d.num_users + ', backend_id='+d.backend_id +  ', disk='+d.disk + ', ram='+d.disk + ', cores=' + d.cores + ' load_number='+d.load_number + ', timestamp='+d.timestamp+  '\n';
+	}
+	$('#tab-workers-output').val(x);
+	$('#add-worker-input').val('hostname=?, num_users=?, backend_id=?');
+	$('#delete-worker-input').val('id=?');
+    });
 }
 
 /* Will get put in a util.js file */

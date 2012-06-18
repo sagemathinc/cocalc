@@ -17,6 +17,60 @@ log = logging.getLogger()
 import frontend_database_sqlalchemy as db
 
 ##########################################################
+# Managing workers
+##########################################################
+
+class WorkerManager(object):
+    def list_all(self):
+        return [{'id':b.id, 'backend_id':b.backend_id,
+                 'num_users':b.num_users,
+                 'hostname':b.hostname,
+                 'disk':b.disk,
+                 'ram':b.ram,
+                 'cores':b.cores,
+                 'load_number':b.load_number,
+                 'timestamp':db.timestamp_to_str(b.timestamp)}
+                for b in db.session().query(db.Worker)]
+
+    def add(self, data):
+        try:
+            s = db.session()
+            for x in data.splitlines():
+                z = {}
+                for w in x.split(','):
+                    key, value = w.split('=')
+                    z[key.strip()] = value.strip()
+                worker = db.Worker(hostname=z['hostname'], num_users=z['num_users'])
+                try:
+                    backend = s.query(db.Backend).filter(db.Backend.id == int(z['backend_id'])).one()
+                except:
+                    raise RuntimeError, "unknown backend id number %s"%z['backend_id']
+                backend.workers.append(worker)
+            s.commit()
+            return {'status':'ok'}
+        except Exception, msg:
+            return {'status':'error', 'mesg':str(msg)}
+
+    def delete(self, data):
+        try:
+            s = db.session()
+            for x in data.split(','):
+                key, value = x.split('=')
+                if key != 'id':
+                    raise ValueError, "format must be id="
+                value = int(value)
+                try:
+                    s.delete(s.query(db.Worker).filter(db.Worker.id == value).one())
+                except:
+                    raise RuntimeError, "unknown worker id number %s"%value
+            s.commit()
+        except Exception, msg:
+            return {'status':'error', 'mesg':str(msg)}
+
+
+worker_manager = WorkerManager()        
+
+##########################################################
 # Managing backends
 ##########################################################
 
@@ -38,14 +92,14 @@ class BackendManager(object):
                  'user':b.user,
                  'debug':b.debug,
                  'path':b.path,
-                 'workers':b.workers,
+                 'workers':len(b.workers),
                  'status':b.status,
                  'load_number':b.load_number,
                  'number_of_connected_users':b.number_of_connected_users,
                  'number_of_stored_workspaces':b.number_of_stored_workspaces,
                  'disk_usage':b.disk_usage,
                  'disk_available':b.disk_available}
-                for b in db.session().query(db.Backend).all()]
+                for b in db.session().query(db.Backend)]
 
     def add(self, lines):
         if lines:
@@ -54,9 +108,9 @@ class BackendManager(object):
                 s = db.session()
                 for line in lines.splitlines():
                     if line.strip():
-                        URI, user, path, workers = line.split()
+                        URI, user, path = line.split()
                         b = db.Backend()
-                        b.URI = URI; b.user = user; b.path = path; b.workers = workers; b.status = 'stopped'; 
+                        b.URI = URI; b.user = user; b.path = path; b.status = 'stopped'; 
                         s.add(b)
                 s.commit()
                 return {'status':'ok'}
@@ -80,9 +134,9 @@ class BackendManager(object):
         path = backend.path
 
         # TODO: this is incredibly unsafe -- see todo.txt
-        cmd = '''ssh "%s@%s" "cd '%s'&&exec ./sage -python backend.py %s --id=%s --port=%s --workers=\\"%s\\" --frontend=%s %s >stdout.log 2>stderr.log &"'''%(
+        cmd = '''ssh "%s@%s" "cd '%s'&&exec ./sage -python backend.py %s --id=%s --port=%s --frontend=%s %s >stdout.log 2>stderr.log &"'''%(
             user, host, path, '--debug' if debug else '',
-            backend.id, port, backend.workers, frontend_URI(), extra_args)
+            backend.id, port, frontend_URI(), extra_args)
         log.debug(cmd)
 
         return cmd
@@ -196,6 +250,7 @@ class ManageHandler(web.RequestHandler):
     def get(self):
         self.render('static/sagews/desktop/manage.html')
 
+# Backends
 class ManageBackendsListAllHandler(web.RequestHandler):
     def get(self):
         self.write(json.dumps(backend_manager.list_all()))
@@ -224,8 +279,23 @@ class ManageBackendsStopAllHandler(web.RequestHandler):
     def post(self):
         self.write(json.dumps(backend_manager.stop_all()))
 
+
+# Workers
+class ManageWorkersListAllHandler(web.RequestHandler):
+    def get(self):
+        self.write(json.dumps(worker_manager.list_all()))
+
+class ManageWorkersAddHandler(web.RequestHandler):
+    def post(self):
+        self.write(json.dumps(worker_manager.add(self.get_argument('data').strip())))
+
+class ManageWorkersDeleteHandler(web.RequestHandler):
+    def post(self):
+        self.write(json.dumps(worker_manager.delete(self.get_argument('data').strip())))
+
 routes.extend([
     (r"/manage", ManageHandler),
+    
     (r"/manage/backends/list_all", ManageBackendsListAllHandler),
     (r"/manage/backends/add", ManageBackendsAddHandler),    
     (r"/manage/backends/delete", ManageBackendsDeleteHandler),
@@ -233,6 +303,10 @@ routes.extend([
     (r"/manage/backends/stop", ManageBackendsStopHandler),
     (r"/manage/backends/start_all", ManageBackendsStartAllHandler),    
     (r"/manage/backends/stop_all", ManageBackendsStopAllHandler),
+
+    (r"/manage/workers/list_all", ManageWorkersListAllHandler),
+    (r"/manage/workers/add", ManageWorkersAddHandler),    
+    (r"/manage/workers/delete", ManageWorkersDeleteHandler),
     
     (r"/static/(.*)", web.StaticFileHandler, {'path':'static'})
 ])

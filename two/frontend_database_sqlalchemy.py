@@ -153,26 +153,31 @@ class Backend(Base):
         return '<Backend %s: "%s">'%(self.id, self.URI)
 
 class Worker(Base):
+    """
+    A worker represents a complete virtual machine, with many user
+    accounts.
+    """
     __tablename__ = "workers"
     id = Column(Integer, primary_key=True)
     backend_id = Column(Integer, ForeignKey('backends.id'))
-    username = Column(String)
+    num_users = Column(Integer)
     hostname = Column(String)
     disk  = Column(Integer)    # megabytes
     ram   = Column(Integer)    # megabytes
     cores = Column(Integer)
+    load_number = Column(Float) 
     timestamp = Column(Float)
 
     backend = relationship("Backend", backref=backref('workers', order_by=id))
 
-    def __init__(self, username, hostname):
-        self.username = str(username)
+    def __init__(self, hostname, num_users=32):
         self.hostname = str(hostname)
+        self.num_users = num_users
         self.timestamp = now()
 
     def __repr__(self):
-        return "<Worker %s@%s: disk_quota=%s, ram=%s, cores=%s>"%(
-            self.username, self.hostname, self.disk, self.ram, self.cores)
+        return "<Worker %s: disk_quota=%s, ram=%s, cores=%s>"%(
+            self.hostname, self.disk, self.ram, self.cores)
     
 class Workspace(Base):
     __tablename__ = "workspaces"
@@ -270,8 +275,8 @@ class AccountType(Base):
     def __repr__(self):
         return '<Account Type "%s" -- %s>'%(self.name, self.description)
 
-class Slave(Base):
-    __tablename__ = "slaves"
+class Frontend(Base):
+    __tablename__ = "frontend"
     timestamp = Column(Float)
 
     id = Column(Integer, primary_key=True)
@@ -283,7 +288,7 @@ class Slave(Base):
         self.timestamp = now()
 
     def __repr__(self):
-        return "<Slave %s, last updated %s>"%(self.URI, timestamp_to_str(self.last_update_timestamp))
+        return "<Fronted %s, last updated %s>"%(self.URI, timestamp_to_str(self.last_update_timestamp))
     
 
 
@@ -365,8 +370,8 @@ def drop_all():
 ####################################################
 
 def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
-               num_workers=1, num_locations=1, num_publications=1, num_slaves=3,
-               verbose=True):
+               num_workers_per_backend=1, num_locations=1,
+               num_publications=1, num_frontends=3, verbose=True):
     """
     Put the database into a testing configuration by generating a
     bunch of users, backends, workspaces, locations, publications, and
@@ -375,20 +380,20 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
     EXAMPLES::
 
         >>> import random; random.seed(0)
-        >>> s = testconf_1(num_users=10, num_backends=7, num_workspaces=50, num_workers=32, num_locations=100, num_publications=20, num_slaves=5, verbose=False)
+        >>> s = testconf_1(num_users=10, num_backends=7, num_workspaces=50, num_workers_per_backend=2, num_locations=100, num_publications=20, num_frontends=5, verbose=False)
         >>> s.query(User).count()
         10
         >>> s.query(Backend).count()
         7
         >>> s.query(Worker).count()
-        224
+        14
         >>> s.query(Workspace).count()
         50
         >>> s.query(WorkspaceLocation).count()
         86
         >>> s.query(Publication).count()
         20
-        >>> s.query(Slave).count()
+        >>> s.query(Frontend).count()
         5
     """
     import random
@@ -430,6 +435,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
     s.commit()
 
     if verbose: print "Create backends"
+    worker_number = 0
     for n in range(num_backends):
         backend = Backend()
 
@@ -441,11 +447,13 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
         disk = 32*(2**random.randint(1,4))
         ram = 256*(2**random.randint(1,4))
         cores = 2**random.randint(1,6)
-        for m in range(num_workers):
-            w = Worker('sagews_worker_%s'%(m+1), 'worker%s.sagews.com'%n)
+        for m in range(num_workers_per_backend):
+            worker_number += 1
+            w = Worker('worker%s.sagews.com'%worker_number, 32)
             w.disk = disk
             w.ram = ram
             w.cores = cores
+            w.load_number = random.random()
             backend.workers.append(w)
         
         backend.status = 'stopped'
@@ -534,11 +542,11 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
     s.add(a)
     s.commit()
 
-    if verbose: print "Create some slaves"
-    for n in range(num_slaves):
-        sl = Slave('http://slave%s.sagews.com'%(n+1))
-        sl.last_update_timestamp = now()
-        s.add(sl)
+    if verbose: print "Create some frontends"
+    for n in range(num_frontends):
+        f = Frontend('http://fronted%s.sagews.com'%(n+1))
+        f.last_update_timestamp = now()
+        s.add(f)
         
     s.commit()
     return s

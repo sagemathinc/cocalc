@@ -1,12 +1,17 @@
 TODAY's minimal goals:
 
+Session 1:
   [x] configure worker VirtualBox Machine: 
           - put scripts into sagews repo
   [x] configure frontend Virtualbox Machine
-  [ ] configure backend Virtualbox Machine (a copy of
-      frontend but with different ssh key setup):
   [x] add code to frontend database to store details about workers (login@hostname)
-  [ ] page to edit frontend database worker info
+
+Session 2:
+  [x] page to edit frontend database worker info
+
+TODAY's minimal goals (Monday):
+
+Session 1:
   [ ] add code to backend database to store details about workers they will use 
   [ ] way to push config info from frontend to backend about workers
   [ ] implementing backend starting worker via ssh (and scp'ing files, etc.)
@@ -14,6 +19,9 @@ TODAY's minimal goals:
   [ ] actual session from browser with computation working, using worker
   [ ] make worker.py support ssl by default when using network socket
   [ ] make backend.py support ssl by default when using network socket
+  [ ] configure backend Virtualbox Machine (a copy of
+      frontend but with different ssh key setup)
+
 
 
 TODO List:
