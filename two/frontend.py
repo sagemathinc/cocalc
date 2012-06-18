@@ -23,7 +23,7 @@ import frontend_database_sqlalchemy as db
 class WorkerManager(object):
     def list_all(self):
         return [{'id':b.id, 'backend_id':b.backend_id,
-                 'hostname':b.hostname,
+                 'account':b.account,
                  'timestamp':db.timestamp_to_str(b.timestamp)}
                 for b in db.session().query(db.Worker)]
 
@@ -35,7 +35,7 @@ class WorkerManager(object):
                 for w in x.split(','):
                     key, value = w.split('=')
                     z[key.strip()] = value.strip()
-                worker = db.Worker(hostname=z['hostname'])
+                worker = db.Worker(hostname=z['account'])
                 try:
                     backend = s.query(db.Backend).filter(db.Backend.id == int(z['backend_id'])).one()
                 except:
@@ -127,11 +127,11 @@ class BackendManager(object):
             user = getpass.getuser()
         debug = backend.debug
         path = backend.path
+        workers = ','.join([w.hostname for w in backend.workers])
 
-        # TODO: this is incredibly unsafe -- see todo.txt
-        cmd = '''ssh "%s@%s" "cd '%s'&&exec ./sage -python backend.py %s --id=%s --port=%s --frontend=%s %s >stdout.log 2>stderr.log &"'''%(
+        cmd = '''ssh "%s@%s" "cd '%s'&&exec ./sage -python backend.py %s --id=%s --workers=%s --port=%s --frontend=%s %s >stdout.log 2>stderr.log &"'''%(
             user, host, path, '--debug' if debug else '',
-            backend.id, port, frontend_URI(), extra_args)
+            backend.id, workers, port, frontend_URI(), extra_args)
         log.debug(cmd)
 
         return cmd

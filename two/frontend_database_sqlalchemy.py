@@ -159,14 +159,14 @@ class Worker(Base):
     """
     __tablename__ = "workers"
     id = Column(Integer, primary_key=True)
-    hostname = Column(String, unique=True)
+    account = Column(String, unique=True)  # user@hostname
     backend_id = Column(Integer, ForeignKey('backends.id'))
     timestamp = Column(Float)
 
-    backend = relationship("Backend", backref=backref('workers', order_by=hostname))
+    backend = relationship("Backend", backref=backref('workers', order_by=account))
 
-    def __init__(self, hostname):
-        self.hostname = str(hostname)
+    def __init__(self, account):
+        self.account = str(account)
         self.timestamp = now()
 
     def __repr__(self):

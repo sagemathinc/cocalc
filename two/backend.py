@@ -38,6 +38,11 @@ from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 import misc
 
 ##########################################################
+# The database
+##########################################################
+import backend_database as db
+
+##########################################################
 # Setup logging
 ##########################################################
 import logging
@@ -375,13 +380,9 @@ def start_worker(username, workspace_id, callback):
 # Sage Managers and worker sessions
 #############################################################
 
-# workers is a list of strings of usernames on the system that can be
-# used as workers. Each account must have a group with the same name
-# that the user running backend.py is also a member of.  Also, it must
-# be possible if logged in as backend user to type "ssh
-# worker@localhost" and be logged in as the worker without typing a
-# password.  If this list is empty, then worker.py is just run as the
-# same user as the backend, which should only be done for testing purposes.
+# workers is a list of strings of username@hostnames of accounts on a
+# virtual machines that can be used as workers, such that this backend
+# can ssh to the sagews account without requiring a password.
 workers = []
 
 # TODO: document these
@@ -555,7 +556,7 @@ def start_mesg(id, frontend_uri):
 def stop_mesg(id, frontend_uri):
     send_status_mesg(id, frontend_uri, 'stopped')
 
-def run(id, port, address, debug, secure, frontend_uri):
+def run(id, port, address, debug, secure, frontend_uri, workers):
     if os.path.exists(pidfile):
         try:
             pid = int(open(pidfile).read())
@@ -634,7 +635,7 @@ if __name__ == '__main__':
     parser.add_argument("--address", dest="address", type=str, default="",
                         help="address the server listens on (default: '')")
     parser.add_argument("--workers", dest="workers", type=str, default="",
-                        help="comma separated list of worker user names on the local system (default: '' which means, run workers as same user, which is unsafe)")
+                        help="comma separated list of worker machines to use (default: '' which means: run a worker as same user, which is unsafe except for testing purposes)")
     parser.add_argument("--no_debug", "-n", dest="no_debug", action='store_const', const=False,
                         help="disable debug mode", default=False)
     parser.add_argument("--secure", "-s", dest="secure", action='store_const', const=True,
@@ -657,14 +658,12 @@ if __name__ == '__main__':
     if debug:
         log.setLevel(logging.DEBUG)
 
-    if args.workers:
-        workers = misc.userstring_to_list(args.workers)
-        log.debug('Parsed worker list "%s" as %s'%(args.workers, workers))
 
     if args.stop:
         stop(args.id, args.frontend_uri)
     else:
-        run(args.id, args.port, args.address, debug, args.secure, args.frontend_uri)
+        run(id=args.id, port=args.port, address=args.address, debug=debug,
+            secure=args.secure, frontend_uri=args.frontend_uri, workers=args.workers)
 
 
 

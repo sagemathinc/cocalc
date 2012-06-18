@@ -93,10 +93,6 @@ COMPONENT DETAILS:
                  apt-get install linux-generic linux-headers-generic linux-image-generic
                  apt-get remove linux-headers-3.2.0-23 linux-image-3.2.0-23
             - apt-get clean # clean cache
-            - install guest additions  
-            - ssh-keygen -b 2048 (temporarily add this key to github -- remove in production!)
-            - lock permissions down better, just in case:
-                   chmod -R og-rwx sagews
             - encrypt /home folder (since we will have sensitive database
               and ssh keys, and don't want somebody who gets the vdi file
               to be able to trivially access it all -- same goes for backend):
@@ -109,10 +105,12 @@ COMPONENT DETAILS:
                                  /etc/init.d/lightdm stop
                        3. Encrypt:
                               ecryptfs-migrate-home -u sagews
+As sagews user:
                               ecryptfs-unwrap-passphrase  
-                              # outputs this: 7701efa355f14fa001e74b90d1ed4e16
+                              # outputs this: 26d39a6147546fca3af413ebd04ec786
                        4. Disable root:
                               sudo passwd -dl root
+            - ssh-keygen -b 2048 (temporarily add this key to github -- remove in production!)
             - install dependencies of sagews into a virtualenv:
                    - setup the virtual environment:
                          virtualenv env
@@ -120,12 +118,13 @@ COMPONENT DETAILS:
                    - put that in the front of the PATH by adding this to the end of .bashrc:
                          export PATH=$HOME/env/bin/:$PATH
                          source ~/.bashrc
-                   - install sagews dependencies:
-                         easy_install tornado tornadio2 sqlalchemy requests 
-                     and for ease of use: 
-                         easy_install ipython
- 
-            - setup a firewall
+                   - install sagews dependencies (and ipython for ease of use):
+                         easy_install tornado tornadio2 sqlalchemy requests ipython
+                   - install sagews:
+		         git clone git@github.com:williamstein/sagews.git   
+            - lock permissions down better, just in case:
+                   chmod -R og-rwx sagews
+            - install guest additions
 
        - responsible for launching backend servers (e.g., via ssh or
          http daemon on backend machines)
