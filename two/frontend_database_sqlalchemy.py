@@ -383,7 +383,7 @@ def testconf_1(num_users=1, num_backends=1, num_workspaces=1,
         >>> s.query(Workspace).count()
         50
         >>> s.query(WorkspaceLocation).count()
-        86
+        90
         >>> s.query(Publication).count()
         20
         >>> s.query(Frontend).count()

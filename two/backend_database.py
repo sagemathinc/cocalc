@@ -54,24 +54,86 @@ class Worker(Base):
     """
     A worker represents a complete virtual machine, with many user
     accounts.
+
+    EXAMPLES::
+
+        >>> drop_all(); create(); s = session();
+        >>> w = Worker('localhost', 'sagews-worker'); w
+        <Worker sagews-worker@localhost:None -- disk=None, ram=None, processes=None, walltime=None, cputime=None, load_number=None>
+        >>> w.path = 'worker'; w.disk=125; w.ram=1000; w.processes=50; w.walltime=3600; w.cputime=60; w.load_number=10
+        >>> w
+        <Worker sagews-worker@localhost:worker -- disk=125, ram=1000, processes=50, walltime=3600, cputime=60, load_number=10>
+        >>> s.add(w); s.commit()
+        >>> s.query(Worker).all()
+        [<Worker sagews-worker@localhost:worker -- disk=125, ram=1000, processes=50, walltime=3600, cputime=60, load_number=10.0>]
     """
     __tablename__ = "workers"
     id = Column(Integer, primary_key=True)
     hostname = Column(String)
-    num_users = Column(Integer)
+    username = Column(String)  # managing user
+    path = Column(String)     
+
     disk  = Column(Integer)    # megabytes
     ram   = Column(Integer)    # megabytes
-    cores = Column(Integer)
-    load_number = Column(Float) 
-    timestamp = Column(Float)
-
-    def __init__(self, hostname):
+    processes = Column(Integer)
+    walltime = Column(Integer)
+    cputime = Column(Integer)
+    
+    load_number = Column(Float)
+    
+    def __init__(self, hostname, username):
         self.hostname = str(hostname)
+        self.username = str(username)
         self.timestamp = now()
 
     def __repr__(self):
-        return "<Worker %s: num_users=%s, disk=%s, ram=%s, cores=%s, load_number=%s>"%(
-            self.hostname, self.num_users, self.disk, self.ram, self.cores, self.load_number)
+        return "<Worker %s@%s:%s -- disk=%s, ram=%s, processes=%s, walltime=%s, cputime=%s, load_number=%s>"%(
+            self.username, self.hostname, self.path,
+            self.disk, self.ram, self.processes, self.walltime, self.cputime, self.load_number)
+
+class WorkerAccount(Base):
+    """
+    A clean restricted account on a worker machine that will actually
+    run Sage code.
+
+    EXAMPLES::
+    
+        >>> drop_all(); create(); s = session();
+        >>> w = Worker('localhost', 'sagews-worker')
+        >>> w.path = 'worker'; w.disk=125; w.ram=1000; w.processes=50; w.walltime=3600; w.cputime=60; w.load_number=10
+        >>> s.add(w); s.commit()
+        >>> w.accounts.append(WorkerAccount('sagews_worker_2', 'scratch'))
+        >>> w.accounts
+        [<WorkerAccount sagews_worker_2@localhost:scratch -- workspace_id=None, active=None, port=None>]
+        >>> s.commit()
+        >>> w.accounts.append(WorkerAccount('sagews_worker_3',''))
+        >>> w.accounts
+        [<WorkerAccount sagews_worker_2@localhost:scratch -- workspace_id=None, active=None, port=None>,
+         <WorkerAccount sagews_worker_3@localhost: -- workspace_id=None, active=None, port=None>]
+        >>> s.commit()
+        >>> s.query(WorkerAccount).all()
+        [<WorkerAccount sagews_worker_2@localhost:scratch -- workspace_id=None, active=None, port=None>,
+         <WorkerAccount sagews_worker_3@localhost: -- workspace_id=None, active=None, port=None>]
+    """
+    __tablename__ = "worker_accounts"
+    id = Column(Integer, primary_key=True)
+    worker_id = Column(Integer, ForeignKey('workers.id'))
+    workspace_id = Column(Integer, ForeignKey('workspaces.id'))
+    active = Column(Boolean)
+    port = Column(Integer)
+    username = Column(String)
+    path = Column(String)
+
+    worker = relationship("Worker", backref=backref("accounts", order_by=id))
+
+    def __init__(self, username, path=''):
+        self.username = username
+        self.path = path
+
+    def __repr__(self):
+        return "<WorkerAccount %s@%s:%s -- workspace_id=%s, active=%s, port=%s>"%(
+            self.username, self.worker.hostname, self.path, self.workspace_id, self.active, self.port)
+    
     
 class Backend(Base):
     """

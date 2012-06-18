@@ -5,8 +5,24 @@ Session 1:
   [x] 9:41am-?: configure backend Virtualbox Machine (a clone of
         frontend but with different ssh key setup)
 
-  [ ] implementing backend getting worker config via ssh (and scp'ing files?)
-  [ ] implementing worker starting via ssh (and scp'ing files, etc.)
+Session 2:
+  [x] setup sagews_worker_2 and _3 accounts on laptop
+  [x] put conf.json file in sagews-worker
+  [x] test ssh through ssh to start stuff.
+  [x] database of worker accounts
+
+Clear Tasks
+NOW:
+
+  [ ] implementing backend getting worker config via ssh (and scp'ing files?) and storing in database
+
+
+NEXT:
+  [ ] choosing which worker to assign to a workspace
+  [ ] worker starting via ssh (and scp'ing files, etc.)
+
+Unclear tasks
+
   [ ] worker registering 
   [ ] actual session from browser with computation working, using worker
   [ ] make worker.py support ssl by default when using network socket

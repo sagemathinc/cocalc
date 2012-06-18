@@ -380,7 +380,9 @@ As sagews user:
    * Worker (worker.py) -- 
         - a forking socket server using JSON messages
         - workername@hostname:path/: stored on frontend and backend
-          (make sure file permissions of path/ are restrictive):
+        - path/config.json is a string containing a JSON object that
+          describes configuration of this worker:
+                  {'users':['sagews_worker_2:scratch/', 'sagews_worker_3'], 'limits':{'ram':500, 'disk':125, 'processes':10, 'walltime':1800, 'cputime':60}}
         - bound: #{*simultaneous* open workspaces} <= #{available worker users}
         - backend has ssh keys setup so it can ssh to worker account
         - workspace session lifetime:
