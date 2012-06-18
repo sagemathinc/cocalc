@@ -72,8 +72,9 @@ def preparse_code(code):
         # shell escape (TODO: way better)
         code = 'print os.popen(eval("%r")).read()'%code[1:]
     else:
-        import sage.all_cmdline
-        code = sage.all_cmdline.preparse(code)
+        if args.use_sage:
+            import sage.all_cmdline
+            code = sage.all_cmdline.preparse(code)
     return code
 
 def strip_string_literals(code, state=None):
@@ -251,7 +252,8 @@ class SageSocketServer(object):
 
         # create a clean namespace with Sage imported
         self._namespace = {}
-        exec "from sage.all_cmdline import *" in self._namespace
+        if args.use_sage:
+            exec "from sage.all_cmdline import *" in self._namespace
 
         while True:
             mesg = self._b.recv()
@@ -383,6 +385,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run a worker")
     parser.add_argument("--port", dest="port", type=int, default=0,
                         help="port that worker binds to or 0 to instead use a local Unix Domain socket (default: 0)")
+    parser.add_argument("--use_sage", dest="use_sage", type=str, default='True',
+                        help="If True (the default), assume that the Sage library can be imported and is available")
     parser.add_argument("--hostname", dest="hostname", type=str, default=0,
                         help="hostname to listen on (default: ''=socket.gethostname())")
     parser.add_argument("--backend", dest="backend", type=str, default='', 
@@ -393,12 +397,12 @@ if __name__ == '__main__':
                         help="run a command line client instead (make sure to specify the socket with --socket_name or --port)")
     parser.add_argument('--num_trials', dest="num_trials", type=int, default=1,
                         help="used by the test client -- repeat inputs this many times and average time")
-    
     parser.add_argument('--workspace_id', dest="workspace_id", type=int, default=-1,
                         help="id of workspace that will be run")
 
     args = parser.parse_args()
-
+    args.use_sage = bool(eval(args.use_sage))
+    
     if args.client:
         SageSocketTestClient(args.socket_name, args.port, args.hostname, args.num_trials).run()
     else:
