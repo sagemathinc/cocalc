@@ -11,18 +11,38 @@ Session 2:
   [x] test ssh through ssh to start stuff.
   [x] database of worker accounts
   [x] remove worker code I won't be using
+  [x] learn/install memcached
 
 
 Clear Tasks
 NOW:
-  [ ] learn memcached
+  [x] implementing backend getting worker config via ssh (and scp'ing files?) and storing in database
+  [x] initializing worker machine
 
 NEXT:
-  [ ] implementing backend getting worker config via ssh (and scp'ing files?) and storing in database
+ 
+  [ ] *BUG* this hangs forever:
+
+sage backend.py
+
+Then:
+
+misc.post('http://localhost:8080/worker/init', {'username':'sagews', 'hostname':'worker', 'path':'.'})
+
+and leaves behind a sleeping process:
+
+blastoff:~ wstein$ ps ax |grep 15045
+15045 s000  S+     0:00.25 python backend_blocking.py --init_worker --username=sagews --hostname=worker --path="."
+
+
+
   [ ] choosing which worker to assign to a workspace
   [ ] worker starting via ssh (and scp'ing files, etc.)
+  [ ] make ip addresses of virtualbox machines static
 
 Unclear tasks
+
+  [ ] need to start integrating centralized logging everywhere in my work ASAP; will make everything easier.
 
   [ ] worker registering 
   [ ] actual session from browser with computation working, using worker
@@ -32,7 +52,7 @@ Unclear tasks
 
   [ ] maybe change how backend gets configured by frontend (make more secure/robust)
 
-
+ 
 -------------
 
 (2012-06-17) minimal goals:

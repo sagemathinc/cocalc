@@ -378,7 +378,28 @@ class SageSocketTestClient(object):
                 s.close()
             except Exception, msg:
                 print msg
+
+def reset_all_accounts(conf_file):
+    accounts = json.load(open(conf_file))['accounts']
+
+    import subprocess
+    # first launch all kills simultaneously
+    print "Launch processes to kill all user processes..."
+    v = [subprocess.Popen(['ssh', '%s@localhost'%user, 'killall -u %s -9'%user]) for user in accounts]
+    print "Wait for them all to finish..."
+    for p in v: p.wait()
+    # Now that all processes are dead (TODO: it should be, at least --
+    # perhaps should worry about zombies?):
+    print "Deleting all files owned by each user account..."
+    v = [subprocess.Popen(['ssh', '%s@localhost'%user, 'chmod og-rwx $HOME && rm -rf /tmp "$HOME"']) for user in accounts]
+    print "Waiting for that to finish..."
+    for p in v: p.wait()
     
+def reset_account(user):
+    import subprocess
+    subprocess.Popen(['ssh', '%s@localhost'%user, 'killall -u %s -9'%user]).wait()
+    subprocess.Popen(['ssh', '%s@localhost'%user, 'chmod og-rwx $HOME && rm -rf /tmp "$HOME"']).wait()
+
 
 if __name__ == '__main__':
     import argparse
@@ -400,10 +421,21 @@ if __name__ == '__main__':
     parser.add_argument('--workspace_id', dest="workspace_id", type=int, default=-1,
                         help="id of workspace that will be run")
 
+    parser.add_argument('--reset_all_accounts', dest='reset_all_accounts', action='store_const', const=True, default=False,
+                        help="*DANGEROUS*: this kills all processes and delete all content from all accounts specified in the file given in the conf option")
+    parser.add_argument('--conf', dest="conf", type=str, default="conf.json", help="Configuration file used for certain commands")
+
+    parser.add_argument('--reset_account', dest="reset_account", type=str, default='',
+                        help="if specified reset just this account")
+
     args = parser.parse_args()
     args.use_sage = bool(eval(args.use_sage))
-    
-    if args.client:
+
+    if args.reset_account:
+        reset_account(args.reset_account)
+    elif args.reset_all_accounts:
+        reset_all_accounts(args.conf)
+    elif args.client:
         SageSocketTestClient(args.socket_name, args.port, args.hostname, args.num_trials).run()
     else:
         SageSocketServer(args.backend, args.socket_name, args.port, args.hostname).run()

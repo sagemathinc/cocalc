@@ -310,6 +310,55 @@ class RegisterManagerHandler(web.RequestHandler):
 
 
 #############################################################
+# Workers
+#############################################################
+
+def init_worker(username, hostname, path, callback):
+    """
+    Initialize all data for a given worker and the corresponding
+    accounts in the database.  This is done in a subprocess,
+    and when done callback gets called with {'status':'ok'}
+    or {'status':'error', 'mesg':'what went wrong'}.
+
+    This will timeout after 60 seconds.  It takes significant time
+    since it kills processes, deletes files, etc., for many users.
+
+    1. Get relevant worker configuration.
+    2. Store worker configuration in database.
+    3. Tell manager of worker to kill all processes owned by any
+       worker account and delete all files from their home
+       directories.
+    """
+    def after(mesg):
+        if mesg['exitcode']:
+            callback({'status':'error', 'mesg':'ssh failed', 'subprocess_mesg':mesg})
+        callback({'status':'ok'})
+        
+    async_subprocess(['python', 'backend_blocking.py',
+                      '--init_worker',
+                      '--username=%s'%username,
+                      '--hostname=%s'%hostname,
+                      '--path="%s"'%path],
+                     after, timeout=20)
+    
+
+class WorkerInitCommandHandler(web.RequestHandler):
+    @auth_frontend
+    @tornado.web.asynchronous
+    def post(self):
+        username = self.get_argument("username")
+        hostname = self.get_argument("hostname")
+        path = self.get_argument("path")
+        init_worker(username, hostname, path, self.callback)
+
+    def callback(self, mesg):
+        self.write(mesg)
+        self.finish()
+        
+routes.extend([(r"/worker/init", WorkerInitCommandHandler)])        
+
+
+#############################################################
 # Session managers and workers
 #############################################################
 

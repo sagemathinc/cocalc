@@ -58,9 +58,9 @@ class Worker(Base):
     EXAMPLES::
 
         >>> drop_all(); create(); s = session();
-        >>> w = Worker('localhost', 'sagews-worker'); w
+        >>> w = Worker(username='sagews-worker', hostname='localhost', path='worker'); w
         <Worker sagews-worker@localhost:None -- disk=None, ram=None, processes=None, walltime=None, cputime=None, load_number=None>
-        >>> w.path = 'worker'; w.disk=125; w.ram=1000; w.processes=50; w.walltime=3600; w.cputime=60; w.load_number=10
+        >>> w.disk=125; w.ram=1000; w.processes=50; w.walltime=3600; w.cputime=60; w.load_number=10
         >>> w
         <Worker sagews-worker@localhost:worker -- disk=125, ram=1000, processes=50, walltime=3600, cputime=60, load_number=10>
         >>> s.add(w); s.commit()
@@ -69,8 +69,8 @@ class Worker(Base):
     """
     __tablename__ = "workers"
     id = Column(Integer, primary_key=True)
-    hostname = Column(String)
     username = Column(String)  # managing user
+    hostname = Column(String)
     path = Column(String)     
 
     disk  = Column(Integer)    # megabytes
@@ -81,9 +81,15 @@ class Worker(Base):
     
     load_number = Column(Float)
     
-    def __init__(self, hostname, username):
+    accounts = relationship("WorkerAccount", order_by="WorkerAccount.id",
+                     backref='worker',
+                     cascade='all, delete, delete-orphan',
+                     lazy='dynamic')
+
+    def __init__(self, username, hostname, path=''):
         self.hostname = str(hostname)
         self.username = str(username)
+        self.path = str(path)
         self.timestamp = now()
 
     def __repr__(self):
@@ -99,8 +105,8 @@ class WorkerAccount(Base):
     EXAMPLES::
     
         >>> drop_all(); create(); s = session();
-        >>> w = Worker('localhost', 'sagews-worker')
-        >>> w.path = 'worker'; w.disk=125; w.ram=1000; w.processes=50; w.walltime=3600; w.cputime=60; w.load_number=10
+        >>> w = Worker(username='sagews-worker', hostname='localhost', path='worker')
+        >>> w.disk=125; w.ram=1000; w.processes=50; w.walltime=3600; w.cputime=60; w.load_number=10
         >>> s.add(w); s.commit()
         >>> w.accounts.append(WorkerAccount('sagews_worker_2', 'scratch'))
         >>> w.accounts
@@ -122,17 +128,16 @@ class WorkerAccount(Base):
     active = Column(Boolean)
     port = Column(Integer)
     username = Column(String)
-    path = Column(String)
 
-    worker = relationship("Worker", backref=backref("accounts", order_by=id))
+#    worker = relationship("Worker", backref=backref("accounts", order_by=id))
 
-    def __init__(self, username, path=''):
+    def __init__(self, username):
         self.username = username
-        self.path = path
+        self.active = False
 
     def __repr__(self):
-        return "<WorkerAccount %s@%s:%s -- workspace_id=%s, active=%s, port=%s>"%(
-            self.username, self.worker.hostname, self.path, self.workspace_id, self.active, self.port)
+        return "<WorkerAccount %s@%s -- workspace_id=%s, active=%s, port=%s>"%(
+            self.username, self.worker.hostname, self.workspace_id, self.active, self.port)
     
     
 class Backend(Base):

@@ -35,6 +35,7 @@ Python:
    * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
    * requests (but I want to remove it, because it kind of sucks)
    * SQLite -- http://www.sqlite.org/; public domain (used by Python)
+   * python-memcached -- http://pypi.python.org/pypi/python-memcached/; Python license
 
 Javascript/CSS/HTML:
 
@@ -46,6 +47,9 @@ Javascript/CSS/HTML:
 Used as a separate process (no library linking):
    * Git -- http://git-scm.com/; GPL v2
    * Sage -- http://sagemath.org/; GPL v3+
+  
+Library dependency:
+   * memcached -- http://memcached.org/; looks like 3-clause BSD
 
 Architecture
 ------------
@@ -367,15 +371,24 @@ As sagews user:
             - build sage from source in /usr/local/sage directory, but as user sagews
                 export MAKE="make -j4"
                 export SAGE_ATLAS_LIB=/usr/lib/
-            - ssh-keygen -b 2048
             - /home/sagews/scripts/: 
                    - sudo ./add_users.py 40
                    - sudo ./init_sagews_worker_home.py
             - disk quotas: 
                  * root@sagewsworker:/etc# zile fstab
                    UUID=38cf5ce6-a41a-423b-812d-ab953b192e00 /               ext4    usrquota,errors=remount-ro 0       1
-                 * reboot
-             
+                 * reboot 
+            - ssh:
+                 * Generate public key for sagews account:
+                     ssh-keygen -b 2048 
+                 * As root, make two changes to /etc/ssh/sshd_config:
+                     PermitRootLogin no
+                     AuthorizedKeysFile "/home/authorized_keys"
+                 * As root, create /home/authorized_keys (owner/group=root,
+                   readable by all), which contains the public keys
+                   for each backend that is allowed to access this VM.
+                   It will automatically be able to ssh into *any*
+                   account on the machine, with no further config needed.
 
    * Worker (worker.py) -- 
         - a forking socket server using JSON messages
