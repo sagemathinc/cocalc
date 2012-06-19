@@ -8,7 +8,7 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-import os, json, socket, string, sys, tempfile, time, traceback
+import os, json, resource, socket, string, sys, tempfile, time, traceback
 
 ######################################################################    
     
@@ -190,7 +190,7 @@ class SageSocketServer(object):
 
     def use_unix_domain_socket(self):
         """Return True if we are using a local Unix Domain socket instead of opening a network port."""
-        return self._port == 0
+        return self._port == 'uds'
 
     def evaluate(self, expr, preparse, tag):
         try:
@@ -278,8 +278,13 @@ class SageSocketServer(object):
         else:
             # listen on a network port
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)            
-            print "Binding socket to http://%s:%s"%(self._hostname, self._port)
-            s.bind((self._hostname, self._port))
+            if self._port == 'auto':
+                s.bind((self._hostname, 0))
+                self._port = s.getsockname()[1] # see http://stackoverflow.com/questions/1365265/on-localhost-how-to-pick-a-free-port-number
+            else:
+                self._port = int(self._port)
+                s.bind((self._hostname, self._port))
+            print "Connected socket to http://%s:%s"%(self._hostname, self._port)
             register = {'port':self._port, 'hostname':self._hostname}
 
         if self._backend:
@@ -299,6 +304,7 @@ class SageSocketServer(object):
                 if pid == 0:
                     # child
                     self._recv_eval_send_loop(conn)
+                    
                 else:
                     # parent
                     print "Accepted a new connection, and created process %s to handle it"%pid
@@ -323,7 +329,7 @@ class SageSocketServer(object):
             print "All subprocesses have terminated."
 
 class SageSocketTestClient(object):
-    def __init__(self, socket_name='', port=0, hostname='', num_trials=1):
+    def __init__(self, socket_name='', port='', hostname='', num_trials=1):
         self._socket_name = socket_name
         self._port = port
         self._hostname = hostname if hostname else socket.gethostname()
@@ -331,7 +337,7 @@ class SageSocketTestClient(object):
 
     def use_unix_domain_socket(self):
         """Return True if we are using a local Unix Domain socket instead of opening a network port."""
-        return self._port == 0
+        return self._port == 'uds'
 
     def run(self):
         try:
@@ -340,7 +346,7 @@ class SageSocketTestClient(object):
                 s.connect(self._socket_name)
             else:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((self._hostname, self._port))
+                s.connect((self._hostname, int(self._port)))
                 
             b = JSONsocket(s)
 
@@ -402,12 +408,11 @@ def reset_account(user):
     subprocess.Popen(['ssh', '%s@localhost'%user, 'killall -u %s -9'%user]).wait()
     subprocess.Popen(['ssh', '%s@localhost'%user, 'chmod og-rwx $HOME && rm -rf /tmp "$HOME"']).wait()
 
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Run a worker")
-    parser.add_argument("--port", dest="port", type=int, default=0,
-                        help="port that worker binds to or 0 to instead use a local Unix Domain socket (default: 0)")
+    parser.add_argument("--port", dest="port", type=str, default='auto',
+                        help="numerical port that worker binds, 'auto' to find an available port, or 'uds' to instead use a local Unix Domain socket (default: 'auto')")
     parser.add_argument("--use_sage", dest="use_sage", type=str, default='True',
                         help="If True (the default), assume that the Sage library can be imported and is available")
     parser.add_argument("--hostname", dest="hostname", type=str, default=0,
@@ -430,15 +435,26 @@ if __name__ == '__main__':
     parser.add_argument('--reset_account', dest="reset_account", type=str, default='',
                         help="if specified reset just this account")
 
+    parser.add_argument('--daemon', dest='daemon', action='store_const', const=True, default=False,
+                        help="run as a silent daemon")
+
     args = parser.parse_args()
     args.use_sage = bool(eval(args.use_sage))
 
-    if args.reset_account:
-        reset_account(args.reset_account)
-    elif args.reset_all_accounts:
-        reset_all_accounts(args.conf)
-    elif args.client:
-        SageSocketTestClient(args.socket_name, args.port, args.hostname, args.num_trials).run()
+    def main():
+        if args.reset_account:
+            reset_account(args.reset_account)
+        elif args.reset_all_accounts:
+            reset_all_accounts(args.conf)
+        elif args.client:
+            SageSocketTestClient(socket_name=args.socket_name, port=args.port, hostname=args.hostname, num_trials=args.num_trials).run()
+        else:
+            SageSocketServer(args.backend, args.socket_name, args.port, args.hostname).run()
+
+
+    if args.daemon:
+        import daemon
+        with daemon.DaemonContext():
+            main()
     else:
-        SageSocketServer(args.backend, args.socket_name, args.port, args.hostname).run()
-    
+        main()

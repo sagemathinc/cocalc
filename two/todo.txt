@@ -4,12 +4,17 @@ Session 1: 9:37 - 12:30 (then lunch)
 
 Clear Tasks
 NOW:
-  [ ] worker starting via ssh (and scp'ing files, etc.)
+  [x] worker starting via ssh (and scp'ing files, etc.)
+      - looking at resource limits package in python
+(but needs testing)
 
+  [ ] ready http://www.python.org/dev/peps/pep-3143/
+      
 NEXT:
   [ ] clean up worker account
   [ ] use ssl for communication
   [ ] choosing which worker to assign to a workspace
+  [ ] make it so worker forked process shuts down sensibly maybe when gets SIGXCPU signal?)
 
 
 --------------

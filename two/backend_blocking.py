@@ -34,6 +34,8 @@ def init_worker(username, hostname, path):
         for key, value in conf['limits'].iteritems():
             setattr(worker, key, value)
 
+    import socket
+    worker.id_address = socket.gethostbyaddr(hostname)[2]
     s.add(worker)
     s.commit()
 
@@ -42,17 +44,17 @@ def init_worker(username, hostname, path):
         worker.accounts.append(db.WorkerAccount(name))
     s.commit()
         
-    # 4. scp newest worker.py file over
+    # 4. scp newest worker.py file over to /tmp/ so everybody (all accounts) can use it. 
     import os
     base = os.path.dirname(os.path.realpath(__file__))
-    args = ['scp', os.path.join(base, 'worker.py'), '%s@%s:%s/'%(username, hostname, path)]
+    args = ['scp', os.path.join(base, 'worker.py'), '%s@%s:/tmp/'%(username, hostname)]
     print args
     p = subprocess.Popen(args)
     if p.wait():
         sys.stderr.write("Error copying over new worker.py file")
 
     # 5. initialize workers
-    args = ['ssh', '%s@%s'%(username, hostname), 'python %s/worker.py --reset_all_accounts --conf=%s/conf.json'%(path, path)]
+    args = ['ssh', '%s@%s'%(username, hostname), 'python /tmp//worker.py --reset_all_accounts --conf=%s/conf.json'%path]
     print args
     if subprocess.Popen(args).wait():
         sys.stderr.write("Error initializing workers.")

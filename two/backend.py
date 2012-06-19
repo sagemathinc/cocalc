@@ -381,8 +381,34 @@ def clean_worker_account(account_id, callback):
     4. callback({'status':['ok' or 'error']})
     """
 
+def start_socket_server(account_id, callback):
+    """
+    1. Lookup in database.
+    2. Run via ssh /tmp/worker.py as a deamon.
+    """
+    try:
+        s = db.session()
+        account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
+        user = '%s@%s'%(account.username, account.worker.hostname)
+        remote_cmd = 'ulimit -v %s; sage --python /tmp/worker.py --hostname=%s --daemon'%(
+            1024*memory_limit, account.worker.ip_address)
+        async_subprocess(['ssh', user, remote_cmd], callback)
+    except Exception, err:
+        callback({'status':'error', 'mesg':str(err)}
+    
+    
+
 def start_worker_account(account_id, bundle_filename, callback):
     """
+    INPUT:
+
+    - account_id -- id of an Account entry in the database
+    - bundle_filename -- the name of a file on the filesystem that is
+      a git bundle; this file is assumed to be of the form rev_md5_hex.bundle,
+      so it will be unique.
+    - callback function called after this completes (or None)
+
+    What this does:
     1. Lookup account in the database
     2. Ensure account is clean; if not, clean it.
     3. Start secure sage socket server running -- it could take a
@@ -397,6 +423,7 @@ def start_worker_account(account_id, bundle_filename, callback):
         s = db.session()
         account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
         user = '%s@%s'%(account.username, account.worker.hostname)
+        manager = '%s@%s'%(account.worker.username, account.worker.hostname)
 
         # 2. Ensure account is clean
         def verify_clean():
@@ -404,8 +431,20 @@ def start_worker_account(account_id, bundle_filename, callback):
                 clean_account(account_id, copy_bundle)
             else:
                 copy_bundle({'status':'ok'})
-                
-        # Setup home directory git repo:
+
+        # 3. Start the socket server
+        def start_socket_server(mesg):
+            if mesg['status'] != 'ok':
+                callback(mesg)
+            else:
+                async_subprocess(['ssh', ,  update_database)
+
+        # 4. Setup home directory git repo:
+        #    - For security reasons, worker_account can't pull from backend.
+        #    - For quota reasons, worker_account can't have the bundle file, since it takes disk space.
+        #    - So we copy the bundle as the manager to /tmp, init, pull from that, then delete the bundle.
+        #    - We pull instead of cloning, since we want $HOME to *be*
+        #      the git repo, and we can't create that directory.
         # The template for this is:
         #     scp a785d...0 sagews@worker:/tmp/ && ssh sagews_worker_1@worker "git init&&git pull /tmp/a785d...0 master && ssh sagews@worker rm /tmp/a785d...0"
         def setup_git_repo(mesg):
@@ -414,13 +453,22 @@ def start_worker_account(account_id, bundle_filename, callback):
                 return
             account.is_clean = False
             s.commit()
-            async_subprocess(['scp', bundle_filename, '%s:'%user], start_socket_server)
+            
+            def copy_bundle():
+                async_subprocess(['scp', bundle_filename, manager + ':/tmp/'], callback=make_repo)
 
-        def start_socket_server(mesg):
-            if mesg['status'] != 'ok':
-                callback(mesg)
-            else:
-                async_subprocess(['ssh', ,  update_database)
+            def make_repo(mesg):
+                if mesg['status'] != 'ok':
+                    callback(mesg)
+                    return
+                async_subprocess(['ssh', user, 'git init && git pull "/tmp/%s" master'%bundle_filename], callback=delete_bundle)
+
+            def delete_bundle(mesg):
+
+                start_socket_server?
+
+            # go!
+            copy_bundle()
 
         def update_database(mesg):
             if mesg['status'] != 'ok':

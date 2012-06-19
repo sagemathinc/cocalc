@@ -71,13 +71,14 @@ class Worker(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String)  # managing user
     hostname = Column(String)
-    path = Column(String)     
+    path = Column(String)
 
     disk  = Column(Integer)    # megabytes
     ram   = Column(Integer)    # megabytes
     processes = Column(Integer)
     walltime = Column(Integer)
     cputime = Column(Integer)
+    id_address = Column(String)  # used to ensure workers listen on right network
     
     load_number = Column(Float)
     

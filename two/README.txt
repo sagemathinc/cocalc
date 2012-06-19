@@ -33,9 +33,13 @@ Python:
    * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
    * Tornadio2 -- https://github.com/mrjoes/tornadio2; Apache license 2.0
    * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
-   * requests (but I want to remove it, because it kind of sucks)
    * SQLite -- http://www.sqlite.org/; public domain (used by Python)
-   * python-memcached -- http://pypi.python.org/pypi/python-memcached/; Python license
+   * python-daemon -- http://pypi.python.org/pypi/python-daemon/; Python license, and will go into Python eventually
+   * requests (but I may get to remove it... we shall see)
+
+(not used yet)   * python-memcached -- http://pypi.python.org/pypi/python-memcached/; Python license
+
+easy_install tornado tornadio2 requests sqlalchemy python-daemon
 
 Javascript/CSS/HTML:
 
@@ -363,6 +367,11 @@ As sagews user:
             - disk quotas -- each user gets 125MB disk (and 250MB ram on average)
             - permissions on directories are locked down
             - firewalled so can only connect to some machines: http://www.cyberciti.biz/tips/block-outgoing-network-access-for-a-single-user-from-my-server-using-iptables.html
+            - PORT AVAILABILITY Lemma: It takes at least 63 users to use up all ports.
+              Proof: There are 64511 available ports, opening a port
+              uses up a file descriptor, our system-wide ulimit
+              limits the number of files a user may open to 1024, and
+              64511/1024 > 62
 
         - How configured:
             - Install ubuntu 12.04 in Ubuntu VM with a single 8GB fixed size disk with 4 cores and extra host-only network adapter
@@ -399,6 +408,10 @@ As sagews user:
              - comment out a line in /etc/pam.d/sshd to get rid of banner, .cache file, and speedup login:
                      # Print the message of the day upon successful login.
                      #session    optional     pam_motd.so # [1]
+             - made it so external worker network connection (NAT) is
+               *off* by default, since ssh'ing into it can be way slower
+               if it is on, and -- more importantly -- it is way more
+               secure not allowing an external network!
 
    * Worker (worker.py) -- 
         - a forking socket server using JSON messages
@@ -424,6 +437,8 @@ As sagews user:
             5. Backend can also do "scp workername@hostname:path/bundle ." to 
                get a new bundle that gets applied to the workspace
                repo (and should be undo-able).
+
+          
 
    * DOCUMENTS:
      * Supported Types:
