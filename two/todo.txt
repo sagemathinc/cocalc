@@ -1,34 +1,14 @@
 (2012-06-18) TODAY's minimal goals (Monday):
 
-Session 1:
-  [x] 8:42am-9:42am configure frontend again, due to vbox crash = corruption!
-  [x] 9:41am-?: configure backend Virtualbox Machine (a clone of
-        frontend but with different ssh key setup)
-
-Session 2:
-  [x] setup sagews_worker_2 and _3 accounts on laptop
-  [x] put conf.json file in sagews-worker
-  [x] test ssh through ssh to start stuff.
-  [x] database of worker accounts
-  [x] remove worker code I won't be using
-  [x] learn/install memcached
-  [x] implementing backend getting worker config via ssh (and scp'ing files?) and storing in database
-  [x] initializing worker machine
-  [X] *BUG* this hangs forever:
-sage backend.py
-Then:
-misc.post('http://localhost:8080/worker/init', {'username':'sagews', 'hostname':'worker', 'path':'.'})
-and leaves behind a sleeping process:
-blastoff:~ wstein$ ps ax |grep 15045
-15045 s000  S+     0:00.25 python backend_blocking.py --init_worker --username=sagews --hostname=worker --path="."
-  [x] make ip addresses of virtualbox machines static
-
-
 Clear Tasks
 NOW:
-NEXT:
-  [ ] choosing which worker to assign to a workspace
   [ ] worker starting via ssh (and scp'ing files, etc.)
+
+NEXT:
+  [ ] clean up worker account
+  [ ] use ssl for communication
+
+  [ ] choosing which worker to assign to a workspace
 
 Unclear tasks
 
@@ -183,4 +163,28 @@ DONE:
       (2) when run with args, tests only those modules
 
  [x] store process-port.pid file somewhere else.
+
+Session 1:
+  [x] 8:42am-9:42am configure frontend again, due to vbox crash = corruption!
+  [x] 9:41am-?: configure backend Virtualbox Machine (a clone of
+        frontend but with different ssh key setup)
+
+Session 2:
+  [x] setup sagews_worker_2 and _3 accounts on laptop
+  [x] put conf.json file in sagews-worker
+  [x] test ssh through ssh to start stuff.
+  [x] database of worker accounts
+  [x] remove worker code I won't be using
+  [x] learn/install memcached
+  [x] implementing backend getting worker config via ssh (and scp'ing files?) and storing in database
+  [x] initializing worker machine
+  [X] *BUG* this hangs forever:
+sage backend.py
+Then:
+misc.post('http://localhost:8080/worker/init', {'username':'sagews', 'hostname':'worker', 'path':'.'})
+and leaves behind a sleeping process:
+blastoff:~ wstein$ ps ax |grep 15045
+15045 s000  S+     0:00.25 python backend_blocking.py --init_worker --username=sagews --hostname=worker --path="."
+  [x] make ip addresses of virtualbox machines static
+
 

@@ -147,7 +147,8 @@ routes.extend([(r"/async", Async)])
 # Managing backends
 ##########################################################
 
-# Functions that take a callback option are only called if it is not None.
+# Functions that take a callback option only have the callback called
+# if it is not None.
 
 class Workspace(object):
     def __init__(self, id):
@@ -316,15 +317,15 @@ class RegisterManagerHandler(web.RequestHandler):
 
 
 #############################################################
-# Workers
+# Operations involving the Remote Workers
 #############################################################
 
 def init_worker(username, hostname, path, callback):
     """
-    Initialize all data for a given worker and the corresponding
-    accounts in the database.  This is done in a subprocess,
-    and when done callback gets called with {'status':'ok'}
-    or {'status':'error', 'mesg':'what went wrong'}.
+    Initialize all data for a given worker machine and the
+    corresponding accounts in the database.  This is done in a
+    subprocess, and when done callback gets called with
+    {'status':'ok'} or {'status':'error', 'mesg':'what went wrong'}.
 
     This will timeout after 60 seconds.  It takes significant time
     since it kills processes, deletes files, etc., for many users.
@@ -347,12 +348,6 @@ def init_worker(username, hostname, path, callback):
                       '--path="%s"'%path],
                      after, timeout=20)
     
-## def init_worker(username, hostname, path, callback):
-##     def after(mesg):
-##         callback(mesg)
-##     async_subprocess(['python', '-c', "print(2**1000000)"], after, timeout=5)
-    
-    
 class WorkerInitCommandHandler(web.RequestHandler):
     @auth_frontend
     @tornado.web.asynchronous
@@ -366,7 +361,60 @@ class WorkerInitCommandHandler(web.RequestHandler):
         self.write(mesg)
         self.finish()
         
-routes.extend([(r"/worker/init", WorkerInitCommandHandler)])        
+routes.extend([(r"/worker/init", WorkerInitCommandHandler)])
+
+def clean_worker_account(account_id, callback):
+    """
+    1. Lookup account in database.
+    2. If necessary, kill and cleanup all files associated with account_id.
+    3. Mark account as clean in database.
+    4. callback({'status':['ok' or 'error']})
+    """
+
+def start_worker_account(bundle_filename, account_id, callback):
+    """
+    1. Lookup account in the database and ensure verify that it is clean.
+    2. scp bundle file to that account.
+    3. ssh in and start socket server running.
+    4. update database
+    5. callback({'status':['ok' or 'error']})
+    """
+    try:
+        s = db.session()
+        account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
+        user = '%s@%s'%(account.username, account.worker.hostname)
+
+        def verify_clean():
+            if not account.is_clean:
+                clean_account(account_id, copy_bundle)
+            else:
+                copy_bundle({'status':'ok'})
+
+        def copy_bundle(mesg):
+            if mesg['status'] != 'ok':
+                callback(mesg)
+            else:
+                async_subprocess(['scp', bundle_filename, '%s:bundle'%user], start_socket_server)
+
+        def start_socket_server(mesg):
+            if mesg['status'] != 'ok':
+                callback(mesg)
+            else:
+                async_subprocess(...?,  update_database)
+
+        def update_database(mesg):
+            if mesg['status'] != 'ok':
+                callback(mesg)
+            else:
+                ???
+        
+        # start:
+        verify_clean()
+
+    except Exception, err:
+        callback({'status':'error', 'mesg':str(err)})
+    
+    
 
 
 #############################################################

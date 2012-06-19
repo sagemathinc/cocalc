@@ -125,14 +125,15 @@ class WorkerAccount(Base):
     id = Column(Integer, primary_key=True)
     worker_id = Column(Integer, ForeignKey('workers.id'))
     workspace_id = Column(Integer, ForeignKey('workspaces.id'))
+
+    is_clean = Column(Boolean)
     active = Column(Boolean)
     port = Column(Integer)
     username = Column(String)
 
-#    worker = relationship("Worker", backref=backref("accounts", order_by=id))
-
     def __init__(self, username):
         self.username = username
+        self.is_clean = True
         self.active = False
 
     def __repr__(self):
