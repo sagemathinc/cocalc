@@ -1,4 +1,6 @@
-(2012-06-18) TODAY's minimal goals (Monday):
+(2012-06-19)
+
+Session 1: 9:37 - 12:30 (then lunch)
 
 Clear Tasks
 NOW:
@@ -7,8 +9,10 @@ NOW:
 NEXT:
   [ ] clean up worker account
   [ ] use ssl for communication
-
   [ ] choosing which worker to assign to a workspace
+
+
+--------------
 
 Unclear tasks
 

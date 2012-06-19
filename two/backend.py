@@ -347,8 +347,9 @@ def init_worker(username, hostname, path, callback):
                       '--hostname=%s'%hostname,
                       '--path="%s"'%path],
                      after, timeout=20)
-    
-class WorkerInitCommandHandler(web.RequestHandler):
+
+## TODO: this is mainly for debugging    
+class WorkerInitHandler(web.RequestHandler):
     @auth_frontend
     @tornado.web.asynchronous
     def post(self):
@@ -356,12 +357,21 @@ class WorkerInitCommandHandler(web.RequestHandler):
         hostname = self.get_argument("hostname")
         path = self.get_argument("path")
         init_worker(username, hostname, path, self.callback)
-
     def callback(self, mesg):
         self.write(mesg)
         self.finish()
-        
-routes.extend([(r"/worker/init", WorkerInitCommandHandler)])
+routes.extend([(r"/worker/init", WorkerInitHandler)])
+
+
+def save_worker_account_state(account_id, log_message, callback):
+    """
+    1. Lookup account in database
+    2. Run command via ssh: "git add . && git commit -a -m 'log message'"
+    3. Then on local machine: cd path/to/bare/repo && git pull
+       (If we ever want to switch to bare, do: git fetch origin +refs/heads/*:refs/heads/*
+       see http://stackoverflow.com/questions/4698649/how-do-i-get-a-remote-tracking-branch-to-stay-up-to-date-with-remote-origin-in-a)
+    4. Update database to reflect last save time, etc. 
+    """
 
 def clean_worker_account(account_id, callback):
     """
@@ -371,51 +381,86 @@ def clean_worker_account(account_id, callback):
     4. callback({'status':['ok' or 'error']})
     """
 
-def start_worker_account(bundle_filename, account_id, callback):
+def start_worker_account(account_id, bundle_filename, callback):
     """
-    1. Lookup account in the database and ensure verify that it is clean.
-    2. scp bundle file to that account.
-    3. ssh in and start socket server running.
-    4. update database
-    5. callback({'status':['ok' or 'error']})
+    1. Lookup account in the database
+    2. Ensure account is clean; if not, clean it.
+    3. Start secure sage socket server running -- it could take a
+       second to startup since it imports sage; it doesn't need the
+       git repo in order to operate.
+    4. Setup home directory git repo.
+    5. update database
+    6. callback({'status':['ok' or 'error']})
     """
     try:
+        # 1. Lookup account in database
         s = db.session()
         account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
         user = '%s@%s'%(account.username, account.worker.hostname)
 
+        # 2. Ensure account is clean
         def verify_clean():
             if not account.is_clean:
                 clean_account(account_id, copy_bundle)
             else:
                 copy_bundle({'status':'ok'})
-
-        def copy_bundle(mesg):
+                
+        # Setup home directory git repo:
+        # The template for this is:
+        #     scp a785d...0 sagews@worker:/tmp/ && ssh sagews_worker_1@worker "git init&&git pull /tmp/a785d...0 master && ssh sagews@worker rm /tmp/a785d...0"
+        def setup_git_repo(mesg):
             if mesg['status'] != 'ok':
                 callback(mesg)
-            else:
-                async_subprocess(['scp', bundle_filename, '%s:bundle'%user], start_socket_server)
+                return
+            account.is_clean = False
+            s.commit()
+            async_subprocess(['scp', bundle_filename, '%s:'%user], start_socket_server)
 
         def start_socket_server(mesg):
             if mesg['status'] != 'ok':
                 callback(mesg)
             else:
-                async_subprocess(...?,  update_database)
+                async_subprocess(['ssh', ,  update_database)
 
         def update_database(mesg):
             if mesg['status'] != 'ok':
                 callback(mesg)
             else:
-                ???
+                account.active = True
+                s.commit()
         
         # start:
         verify_clean()
 
     except Exception, err:
+        try:  # no matter what, at least try to make things as bad if anything above fails mysteriously
+            account.is_clean = False
+            s.commit()
+        except: pass
         callback({'status':'error', 'mesg':str(err)})
     
     
+## TODO: this is mainly for debugging    
+class StartWorkerAccountHandler(web.RequestHandler):
+    @auth_frontend
+    @tornado.web.asynchronous
+    def post(self):
+        start_worker_account(self.get_argument('account_id'),
+                             self.get_argument('bundle_filename'), self.callback)
+    def callback(self, mesg):
+        self.write(mesg)
+        self.finish()
+        
+class CleanWorkerAccountHandler(web.RequestHandler):
+    @auth_frontend
+    @tornado.web.asynchronous
+    def post(self):
+        clean_worker_account(self.get_argument('account_id'), self.callback)
+    def callback(self, mesg):
+        self.write(mesg)
+        self.finish()
 
+routes.extend([(r"/worker/account/clean", CleanWorkerAccountHandler)])
 
 #############################################################
 # Session managers and workers

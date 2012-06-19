@@ -396,6 +396,9 @@ As sagews user:
                    It will automatically be able to ssh into *any*
                    account on the machine, with no further config needed.
              - static internal IP address as above
+             - comment out a line in /etc/pam.d/sshd to get rid of banner, .cache file, and speedup login:
+                     # Print the message of the day upon successful login.
+                     #session    optional     pam_motd.so # [1]
 
    * Worker (worker.py) -- 
         - a forking socket server using JSON messages
