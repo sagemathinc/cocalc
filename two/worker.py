@@ -385,13 +385,15 @@ def reset_all_accounts(conf_file):
     import subprocess
     # first launch all kills simultaneously
     print "Launch processes to kill all user processes..."
-    v = [subprocess.Popen(['ssh', '%s@localhost'%user, 'killall -u %s -9'%user]) for user in accounts]
+    v = [subprocess.Popen(['ssh', '%s@localhost'%user, 'killall -u %s -9'%user],
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for user in accounts]
     print "Wait for them all to finish..."
     for p in v: p.wait()
     # Now that all processes are dead (TODO: it should be, at least --
     # perhaps should worry about zombies?):
     print "Deleting all files owned by each user account..."
-    v = [subprocess.Popen(['ssh', '%s@localhost'%user, 'chmod og-rwx $HOME && rm -rf /tmp "$HOME"']) for user in accounts]
+    v = [subprocess.Popen(['ssh', '%s@localhost'%user, 'chmod og-rwx $HOME && rm -rf /tmp "$HOME"'],
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for user in accounts]
     print "Waiting for that to finish..."
     for p in v: p.wait()
     

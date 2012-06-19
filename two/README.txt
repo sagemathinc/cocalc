@@ -129,6 +129,12 @@ As sagews user:
             - lock permissions down better, just in case:
                    chmod -R og-rwx sagews
             - install guest additions
+            - static internal IP address:
+                   Configure networking (in GUI) --> Wired connection 2 --> IPv4 Settings
+                     Address = 192.168.56.150     (say)
+                     Netmask = 255.255.255.0
+                     Gateway = 0.0.0.0 
+                     Leave everything else blank
 
        - responsible for launching backend servers (e.g., via ssh or
          http daemon on backend machines)
@@ -389,6 +395,7 @@ As sagews user:
                    for each backend that is allowed to access this VM.
                    It will automatically be able to ssh into *any*
                    account on the machine, with no further config needed.
+             - static internal IP address as above
 
    * Worker (worker.py) -- 
         - a forking socket server using JSON messages

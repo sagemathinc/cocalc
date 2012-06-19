@@ -112,6 +112,12 @@ def async_subprocess(args, callback=None, timeout=10, cwd=None):
     def finished(fd, events):
         iol.remove_timeout(handle)
         iol.remove_handler(fd)
+        print "p.wait() = "
+        print p.wait()
+        print "stdout = "
+        print p.stdout.read()
+        print "stderr = "
+        print p.stderr.read()
         mesg.update({'stdout':p.stdout.read(), 'stderr':p.stderr.read(), 'exitcode':p.wait()})
         if callback is not None:
             callback(mesg)
@@ -341,7 +347,12 @@ def init_worker(username, hostname, path, callback):
                       '--path="%s"'%path],
                      after, timeout=20)
     
-
+## def init_worker(username, hostname, path, callback):
+##     def after(mesg):
+##         callback(mesg)
+##     async_subprocess(['python', '-c', "print(2**1000000)"], after, timeout=5)
+    
+    
 class WorkerInitCommandHandler(web.RequestHandler):
     @auth_frontend
     @tornado.web.asynchronous
