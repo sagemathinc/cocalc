@@ -12,13 +12,13 @@ from sqlalchemy.orm import sessionmaker
 class Entry(Base):
     __tablename__ = "entries"
     id = Column(Integer, primary_key=True)
-    formatted = Column(String)
+    module = Column(String)
+    levelname = Column(String)
     timestamp = Column(Float)
+    formatted = Column(String)
     ip_address = Column(String)
     levelno = Column(Integer)
-    levelname = Column(String)
     lineno = Column(Integer)
-    module = Column(String)
     pid = Column(Integer)
     
     def __init__(self, mesg):
@@ -28,7 +28,7 @@ class Entry(Base):
         return self.formatted
 
 class Database(object):
-    def __init__(self, file):
+    def __init__(self, file='log.sqlite3'):
         self._file = file
         self._engine = create_engine('sqlite:///%s'%file)
         if not os.path.exists(file):
@@ -53,17 +53,19 @@ class LogHandler(logging.Handler):
             ip_address = socket.gethostbyaddr(socket.gethostname())
         self._ip_address = ip_address
         
-    def emit(self, mesg):
+    def emit(self, record):
         if self._socket is None:
             self.connect()
         if self._socket is None:
+            sys.stderr.write(self.format(record) + '\n')
             return
-        obj = self.makePickle(mesg)
+        obj = self.makePickle(record)
         length_header = struct.pack(">L", len(obj))
         try:
             self._socket.write(length_header + obj)
         except IOError, err:
-            sys.stderr.write("LogHandler: logger down -- '%s'"%err)
+            sys.stderr.write("LogHandler: logger down -- '%s'\n"%err)
+            sys.stderr.write(self.format(record) + '\n')
             self._socket.close()
             self._socket = None
 
@@ -87,7 +89,7 @@ class TestLogHandler(LogHandler):
         try:
             self._socket.connect((self._hostname, self._port))
         except socket.error, err:
-            print err
+            sys.stderr.write("error connecting to logger: %s\n"%err)
             self._socket = None
 
 class TestLog(object):
@@ -101,7 +103,6 @@ class TestLog(object):
     def run(self):
         i = 0
         while True:
-            logging.warning('Oops -- sending log number %s', i)
             logging.info(raw_input('mesg: '))
             i += 1
 
@@ -146,10 +147,6 @@ class WebTestLog(object):
         
 
 
-
-#####################################################################
-# Python library (=command line) interface to the logging database
-#####################################################################
 
 
 
@@ -233,8 +230,6 @@ class WebServer(object):
 
     def run(self):
         raise NotImplementedError
-
-
 
 
 #####################################################################
