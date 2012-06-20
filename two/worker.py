@@ -72,9 +72,8 @@ def preparse_code(code):
         # shell escape (TODO: way better)
         code = 'print os.popen(eval("%r")).read()'%code[1:]
     else:
-        if args.use_sage:
-            import sage.all_cmdline
-            code = sage.all_cmdline.preparse(code)
+        import sage.all_cmdline
+        code = sage.all_cmdline.preparse(code)
     return code
 
 def strip_string_literals(code, state=None):
@@ -181,12 +180,17 @@ def divide_into_blocks(code):
 ##     log.flush()
 
 class SageSocketServer(object):
-    def __init__(self, backend, socket_name='', port=0, hostname=''):
+    def __init__(self, backend, socket_name='', port=0, hostname='', no_sage=False,
+                 use_ssl=False, certfile='', keyfile=''):
         self._backend = backend
         self._socket_name = socket_name
         self._port = port
         self._tag = None
+        self._use_ssl = use_ssl
+        self._certfile = certfile
+        self._keyfile = keyfile
         self._hostname = hostname if hostname else socket.gethostname()
+        self._no_sage = no_sage
 
     def use_unix_domain_socket(self):
         """Return True if we are using a local Unix Domain socket instead of opening a network port."""
@@ -194,7 +198,7 @@ class SageSocketServer(object):
 
     def evaluate(self, expr, preparse, tag):
         try:
-            if preparse:
+            if preparse and not self._no_sage:
                 expr = preparse_code(expr)
             r = str(eval(expr, self._namespace))
             msg = {'done':True, 'result':r}
@@ -208,7 +212,7 @@ class SageSocketServer(object):
         try:
             self._tag = tag
             for start, stop, block in divide_into_blocks(code):
-                if preparse:
+                if preparse and not self._no_sage:
                     block = preparse_code(block)
                 sys.stdout.reset(); sys.stderr.reset()                
                 exec compile(block, '', 'single') in self._namespace
@@ -252,7 +256,7 @@ class SageSocketServer(object):
 
         # create a clean namespace with Sage imported
         self._namespace = {}
-        if args.use_sage:
+        if not self._no_sage:
             exec "from sage.all_cmdline import *" in self._namespace
 
         while True:
@@ -277,14 +281,14 @@ class SageSocketServer(object):
             
         else:
             # listen on a network port
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)            
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             if self._port == 'auto':
                 s.bind((self._hostname, 0))
                 self._port = s.getsockname()[1] # see http://stackoverflow.com/questions/1365265/on-localhost-how-to-pick-a-free-port-number
             else:
                 self._port = int(self._port)
                 s.bind((self._hostname, self._port))
-            print "Connected socket to http://%s:%s"%(self._hostname, self._port)
+            print "Connected socket to %s:%s"%(self._hostname, self._port)
             register = {'port':self._port, 'hostname':self._hostname}
 
         if self._backend:
@@ -298,8 +302,13 @@ class SageSocketServer(object):
         
         try:
             while 1:
-                print "Waiting for connection..."
+                print "Waiting for %sconnection..."%('SSL secure ' if self._use_ssl else '')
                 conn, addr = s.accept()
+                if self._use_ssl:
+                    import ssl
+                    conn = ssl.wrap_socket(conn, server_side=True, certfile=self._certfile, keyfile=self._keyfile)
+                    print "Upgraded to SSL connection."
+                
                 pid = os.fork()
                 if pid == 0:
                     # child
@@ -309,6 +318,10 @@ class SageSocketServer(object):
                     # parent
                     print "Accepted a new connection, and created process %s to handle it"%pid
                     self._children.append(pid)
+        except Exception, err:
+
+            print "Error connecting: ", err
+            
         finally:
             print "Cleaning up server..."
             try:
@@ -329,7 +342,8 @@ class SageSocketServer(object):
             print "All subprocesses have terminated."
 
 class SageSocketTestClient(object):
-    def __init__(self, socket_name='', port='', hostname='', num_trials=1):
+    def __init__(self, socket_name='', port='', hostname='', num_trials=1, use_ssl=False):
+        self._use_ssl = use_ssl
         self._socket_name = socket_name
         self._port = port
         self._hostname = hostname if hostname else socket.gethostname()
@@ -346,6 +360,9 @@ class SageSocketTestClient(object):
                 s.connect(self._socket_name)
             else:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                if self._use_ssl:
+                    import ssl
+                    s = ssl.wrap_socket(s)
                 s.connect((self._hostname, int(self._port)))
                 
             b = JSONsocket(s)
@@ -422,8 +439,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run a worker")
     parser.add_argument("--port", dest="port", type=str, default='auto',
                         help="numerical port that worker binds, 'auto' to find an available port, or 'uds' to instead use a local Unix Domain socket (default: 'auto')")
-    parser.add_argument("--use_sage", dest="use_sage", type=str, default='True',
-                        help="If True (the default), assume that the Sage library can be imported and is available")
     parser.add_argument("--hostname", dest="hostname", type=str, default=0,
                         help="hostname to listen on (default: ''=socket.gethostname())")
     parser.add_argument("--backend", dest="backend", type=str, default='', 
@@ -447,8 +462,33 @@ if __name__ == '__main__':
     parser.add_argument('--daemon', dest='daemon', action='store_const', const=True, default=False,
                         help="run as a silent daemon")
 
+    parser.add_argument('--use_ssl', dest='use_ssl', default=False, action='store_const', const=True,
+                        help="if set, use SSL to encrypt communication between the client and server")
+    parser.add_argument('--certfile', dest='certfile', default='', type=str, help="SSL cert file to use")
+    parser.add_argument('--keyfile', dest='keyfile', default='', type=str, help="SSL key file to use")
+    parser.add_argument('--gen_cert', dest="gen_cert", default='', type=str,
+                        help="generate a self-signed 2048 bit certificate and put in this file; this overrides certfile and keyfile above")
+    parser.add_argument('--gen_cert_bits', dest="gen_cert_bits", default=1024, type=int,
+                        help="number of bits of RSA private key (default: 1024)")
+
+    parser.add_argument("--no_sage", dest="no_sage", default=False, action='store_const', const=True,
+                        help="if set, do *not* import the Sage library and do not preparse input")
+    
     args = parser.parse_args()
-    args.use_sage = bool(eval(args.use_sage))
+
+    if args.use_ssl and args.gen_cert:
+        # ensure certificate exists
+        if not os.path.exists(args.gen_cert):
+            print "Generating self-signed certificate: '%s'"%args.gen_cert
+            import subprocess
+            p = subprocess.Popen(['openssl', 'req', '-batch', '-new', '-x509', '-newkey', 'rsa:%s'%args.gen_cert_bits, '-days', '9999', '-nodes', '-out', args.gen_cert, '-keyout', args.gen_cert])
+            if p.wait():
+                print "Error running openssl"
+                os.unlink(args.gen_cert)
+                sys.exit(1)
+            os.chmod(args.gen_cert, 0600)
+        args.certfile = args.gen_cert
+        args.keyfile = args.gen_cert
 
     def main():
         if args.reset_account:
@@ -456,9 +496,11 @@ if __name__ == '__main__':
         elif args.reset_all_accounts:
             reset_all_accounts(args.conf)
         elif args.client:
-            SageSocketTestClient(socket_name=args.socket_name, port=args.port, hostname=args.hostname, num_trials=args.num_trials).run()
+            SageSocketTestClient(socket_name=args.socket_name, port=args.port, hostname=args.hostname,
+                                 num_trials=args.num_trials, use_ssl=args.use_ssl).run()
         else:
-            SageSocketServer(args.backend, args.socket_name, args.port, args.hostname).run()
+            SageSocketServer(args.backend, args.socket_name, args.port, args.hostname,
+                             use_ssl=args.use_ssl, certfile=args.certfile, keyfile=args.keyfile).run()
 
 
     if args.daemon:

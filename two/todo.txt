@@ -1,18 +1,15 @@
-(2012-06-19)
-
-Session 1: 9:37 - 12:30 (then lunch)
+(2012-06-20)
+Session 1: 7-1pm (then lunch, hang out downtown 1-4 with tish and sequoia)
+Session 2: 4-7 (then quick food and skate)
 
 Clear Tasks
 NOW:
-  [x] worker starting via ssh (and scp'ing files, etc.)
-      - looking at resource limits package in python
-(but needs testing)
-  [x] read http://www.python.org/dev/peps/pep-3143/
+  [ ] (good warm up and independent) support ssl in worker.py for communication
       
 NEXT:
-  [ ] clean up worker account
-  [ ] probably missing a lot of s.rollbacks() in exception handling...
-  [ ] use ssl for communication
+  [ ] read through code I wrote for worker <--> backend communication; 
+      make sure db transactions are limited in scope; use rollbacks.
+  [ ] clean up worker account (already done)
   [ ] choosing which worker to assign to a workspace
   [ ] make it so worker forked process shuts down sensibly maybe when gets SIGXCPU signal?)
 
@@ -197,3 +194,7 @@ blastoff:~ wstein$ ps ax |grep 15045
   [x] make ip addresses of virtualbox machines static
 
 
+  [x] worker starting via ssh (and scp'ing files, etc.)
+      - looking at resource limits package in python
+(but needs testing)
+  [x] read http://www.python.org/dev/peps/pep-3143/
