@@ -44,6 +44,11 @@ class Workspace(Base):
     id = Column(Integer, primary_key=True)  # same as in frontend database
     last_commit_timestamp = Column(Float)
     
+    accounts = relationship("WorkerAccount", order_by="WorkerAccount.id",
+                     backref='workspace',
+                     cascade='all, delete, delete-orphan',
+                     lazy='dynamic')
+
     def __init__(self, id):
         self.id = id
 
@@ -79,6 +84,7 @@ class Worker(Base):
     walltime = Column(Integer)
     cputime = Column(Integer)
     id_address = Column(String)  # used to ensure workers listen on right network
+    memory_limit = Column(Integer)
     
     load_number = Column(Float)
     

@@ -35,7 +35,7 @@ def init_worker(username, hostname, path):
             setattr(worker, key, value)
 
     import socket
-    worker.id_address = socket.gethostbyaddr(hostname)[2]
+    worker.ip_address = socket.gethostbyaddr(hostname)[2]
     s.add(worker)
     s.commit()
 
@@ -58,6 +58,23 @@ def init_worker(username, hostname, path):
     print args
     if subprocess.Popen(args).wait():
         sys.stderr.write("Error initializing workers.")
+
+def init_local_repo(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    if subprocess.Popen(['git', 'init'], cwd=path).wait():
+        sys.stderr.write("Error initializing repository.")
+    
+    open(os.path.join(self.path, '.gitignore'),'w').write('.sage\n')
+    if subprocess.Popen(['git', 'config', 'user.name', '.'], cwd=path).wait():
+        sys.stderr.write("Error configuring user.name")
+    if subprocess.Popen(['git', 'config', 'user.email', '.'], cwd=path).wait():
+        sys.stderr.write("Error configuring user.email")
+    if subprocess.Popen(['git', 'add', '.gitignore'], cwd=path).wait():
+        sys.stderr.write("Error adding gitignore")
+    if subprocess.Popen(['git', 'commit', '-a', '-m',  'added gitignore'], cwd=path).wait():
+        sys.stderr.write("Error doing first commit")
         
 
 #############################################################
@@ -76,7 +93,8 @@ if __name__ == '__main__':
     
     parser.add_argument('--init_worker', dest='init_worker', action="store_const", const=True, default=False,
                         help="initialize the worker machine using the account username@hostname with configuration in path/")
-
+    parser.add_argument('--init_local_repo', dest='init_git_repo', action="store_const", const=True, default=False,
+                        help="initialize the local git repository corresponding")
     args = parser.parse_args()
 
     if args.init_worker:

@@ -405,6 +405,15 @@ def reset_all_accounts(conf_file):
     
 def reset_account(user):
     import subprocess
+    # TODO: It is *might* be necessary to use a root account and do
+    # this cleanup from a root account, because a malicious user
+    # *might* be able to mess with the paths on ssh'ing in, or run a
+    # program that instantly kills any new processes; I don't know if
+    # either is possible.  If it is, then I won't be able to ensure that
+    # everything is killed until doing a VM reset.  A simple solution
+    # would be to make the manager user *be* root and change this and the
+    # above reset functions.  This may make perfect sense given how
+    # ephemeral worker VM's are. 
     subprocess.Popen(['ssh', '%s@localhost'%user, 'killall -u %s -9'%user]).wait()
     subprocess.Popen(['ssh', '%s@localhost'%user, 'chmod og-rwx $HOME && rm -rf /tmp "$HOME"']).wait()
 

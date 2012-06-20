@@ -30,7 +30,7 @@ between them.  The backend server is a TornadoWeb application.  It:
 
 DATA = None
 
-import argparse, datetime, functools, inspect, os, Queue, signal, json, socket, subprocess, sys, tempfile, time
+import argparse, datetime, functools, inspect, os, Queue, signal, json, socket, string, subprocess, sys, tempfile, time
 
 from tornado import web, iostream, ioloop
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -156,6 +156,10 @@ class Workspace(object):
         
     def path(self):
         return os.path.join(DATA, 'workspaces', str(self.id))
+
+    def init_git_repo(self, callback):
+        args = ['python', 'backend_blocking.py', '--init_local_repo', '--path="%s"'%self.path()]
+        async_subprocess(args, callback=callback)
         
     def _do_file_command(self, file, command, callback):        
         t = tempfile.mkstemp()
@@ -317,7 +321,7 @@ class RegisterManagerHandler(web.RequestHandler):
 
 
 #############################################################
-# Operations involving the Remote Workers
+# Operations involving the Remote Worker Machine and Accounts
 #############################################################
 
 def init_worker(username, hostname, path, callback):
@@ -336,19 +340,11 @@ def init_worker(username, hostname, path, callback):
        worker account and delete all files from their home
        directories.
     """
-    def after(mesg):
-        if mesg['exitcode']:
-            callback({'status':'error', 'mesg':'ssh failed', 'subprocess_mesg':mesg})
-        callback({'status':'ok'})
-        
-    async_subprocess(['python', 'backend_blocking.py',
-                      '--init_worker',
-                      '--username=%s'%username,
-                      '--hostname=%s'%hostname,
-                      '--path="%s"'%path],
-                     after, timeout=20)
+    async_subprocess(['python', 'backend_blocking.py', '--init_worker',
+                      '--username=%s'%username, '--hostname=%s'%hostname, '--path="%s"'%path],
+                     callback=callback, timeout=60)
 
-## TODO: this is mainly for debugging    
+## TODO: this route is mainly for debugging/testing, and is dangerous.    
 class WorkerInitHandler(web.RequestHandler):
     @auth_frontend
     @tornado.web.asynchronous
@@ -363,15 +359,55 @@ class WorkerInitHandler(web.RequestHandler):
 routes.extend([(r"/worker/init", WorkerInitHandler)])
 
 
-def save_worker_account_state(account_id, log_message, callback):
+def sanitize_log_message(s):
+    safe = string.ascii_letters + ' ;.,:_'
+    return ''.join([x if x in safe else '_' for x in s])
+
+
+def worker_account_commit(account_id, log_message, callback):
     """
-    1. Lookup account in database
-    2. Run command via ssh: "git add . && git commit -a -m 'log message'"
-    3. Then on local machine: cd path/to/bare/repo && git pull
-       (If we ever want to switch to bare, do: git fetch origin +refs/heads/*:refs/heads/*
-       see http://stackoverflow.com/questions/4698649/how-do-i-get-a-remote-tracking-branch-to-stay-up-to-date-with-remote-origin-in-a)
-    4. Update database to reflect last save time, etc. 
+    Tell the remote worker account to add any files and commit any
+    changes to their repository.
     """
+    try:
+        s = db.session()
+        account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
+        user = '%s@%s'%(account.username, account.worker.hostname)
+        log_message = sanitize_log_message(log_message)
+        remote_cmd = 'git add . && git commit -a -m "%s"'%log_message
+        async_subprocess(['ssh', user, remote_cmd], callback)
+    except Exception, err:
+        callback({'status':'error', 'mesg':str(err)})      
+    
+def pull_from_worker_account(account_id, callback):
+    """
+    Do this:
+    
+       1. cd path/to/repo && git pull account@worker_host
+       2. Update database to reflect last save time, etc. 
+    """
+    try:
+        s = db.session()
+        account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
+        user = '%s@%s'%(account.username, account.worker.hostname)
+        ws = account.workspace
+        
+        def do_pull():
+            async_subprocess(['git', 'pull', user + ':.'], callback=update_database, cwd=Workspace(ws.id).path())
+            
+        def update_database(mesg):
+            if mesg['status'] != 'ok':
+                callback(mesg)
+            else:
+                ws.last_commit_timestamp = db.now()
+                s.commit()
+
+        do_pull()
+            
+    except Exception, err:
+        s.rollback()
+        callback({'status':'error', 'mesg':str(err)}        
+
 
 def clean_worker_account(account_id, callback):
     """
@@ -380,6 +416,30 @@ def clean_worker_account(account_id, callback):
     3. Mark account as clean in database.
     4. callback({'status':['ok' or 'error']})
     """
+    try:
+        s = db.session()
+        account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
+        manager = '%s@%s'%(account.worker.username, account.worker.hostname)
+        if not account.is_clean:
+
+            def reset_account():
+                async_subprocess(['ssh', 'python /tmp/worker.py --reset_account=%s'%account.username],
+                                 callback=record_account_is_clean)
+
+            def record_account_is_clean(mesg):
+                if mesg['status'] != 'ok':
+                    callback(mesg)
+                else:
+                    account.is_clean = True
+                    s.commit()
+                    callback({'status':'ok'})
+
+
+            reset_account()
+        
+    except Exception, err:
+        s.rollback()
+        callback({'status':'error', 'mesg':str(err)}    
 
 def start_socket_server(account_id, callback):
     """
@@ -390,13 +450,58 @@ def start_socket_server(account_id, callback):
         s = db.session()
         account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
         user = '%s@%s'%(account.username, account.worker.hostname)
+        #TODO: put in other ulimit-tations, as specified in database
         remote_cmd = 'ulimit -v %s; sage --python /tmp/worker.py --hostname=%s --daemon'%(
-            1024*memory_limit, account.worker.ip_address)
+            1024*account.worker.ram, account.worker.ip_address)
         async_subprocess(['ssh', user, remote_cmd], callback)
     except Exception, err:
         callback({'status':'error', 'mesg':str(err)}
     
-    
+
+def setup_git_repo_in_worker_account(account_id, bundle_filename, callback):
+    """
+    Setup home directory git repo for a worker account.
+        
+        - For security reasons, worker_account can't pull from backend.
+        - For quota reasons, worker_account can't have the bundle
+          file, since it takes disk space.
+        - So we copy the bundle as the manager to /tmp, init, pull
+          from that, then delete the bundle.
+        - We pull instead of cloning, since we want $HOME to *be*
+          the git repo, and we can't create that directory.
+
+        - A "template" for this is:
+              scp a785d...0 sagews@worker:/tmp/ && ssh sagews_worker_1@worker "git init&&git pull /tmp/a785d...0 master && ssh sagews@worker rm /tmp/a785d...0"
+    """
+    try:
+        s = db.session()
+        account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
+        user = '%s@%s'%(account.username, account.worker.hostname)
+        manager = '%s@%s'%(account.worker.username, account.worker.hostname)
+        account.is_clean = False
+
+        def copy_bundle():
+            async_subprocess(['scp', bundle_filename, manager + ':/tmp/'], callback=make_repo)
+
+        def make_repo(mesg):
+            if mesg['status'] != 'ok':
+                callback(mesg)
+            else:
+                async_subprocess(['ssh', user, 'git init && git pull "/tmp/%s" master'%bundle_filename], callback=delete_bundle)
+
+        def delete_bundle(mesg):
+            async_subprocess(['ssh', manager, 'rm -f /tmp/%s'%bundle_filename], callback=callback)
+
+        copy_bundle()
+        s.commit()
+        
+    except Exception, err:
+        try:  # no matter what, at least try to mark things as bad if anything above fails mysteriously
+            account.is_clean = False
+            s.commit()
+        except: pass
+        callback({'status':'error', 'mesg':str(err)})
+
 
 def start_worker_account(account_id, bundle_filename, callback):
     """
@@ -407,86 +512,27 @@ def start_worker_account(account_id, bundle_filename, callback):
       a git bundle; this file is assumed to be of the form rev_md5_hex.bundle,
       so it will be unique.
     - callback function called after this completes (or None)
-
-    What this does:
-    1. Lookup account in the database
-    2. Ensure account is clean; if not, clean it.
-    3. Start secure sage socket server running -- it could take a
-       second to startup since it imports sage; it doesn't need the
-       git repo in order to operate.
-    4. Setup home directory git repo.
-    5. update database
-    6. callback({'status':['ok' or 'error']})
     """
-    try:
-        # 1. Lookup account in database
-        s = db.session()
-        account = s.query(db.WorkerAccount).filter(db.WorkerAccount.id == account_id)
-        user = '%s@%s'%(account.username, account.worker.hostname)
-        manager = '%s@%s'%(account.worker.username, account.worker.hostname)
+    # Ensure account is clean
+    def clean_account():
+        clean_worker_account(account_id, callback=setup_repo)
 
-        # 2. Ensure account is clean
-        def verify_clean():
-            if not account.is_clean:
-                clean_account(account_id, copy_bundle)
-            else:
-                copy_bundle({'status':'ok'})
+    # Setup git repo for worker account
+    def setup_repo(mesg):
+        if mesg['status'] != 'ok':
+            callback(mesg)
+        else:
+            setup_git_repo_in_worker_account(account_id, bundle_filename, callback=socket_server):
 
-        # 3. Start the socket server
-        def start_socket_server(mesg):
-            if mesg['status'] != 'ok':
-                callback(mesg)
-            else:
-                async_subprocess(['ssh', ,  update_database)
+    # Start the socket server
+    def socket_server(mesg):
+        if mesg['status'] != 'ok':
+            callback(mesg)
+        else:
+            start_socket_server(account_id, callback=callback)
 
-        # 4. Setup home directory git repo:
-        #    - For security reasons, worker_account can't pull from backend.
-        #    - For quota reasons, worker_account can't have the bundle file, since it takes disk space.
-        #    - So we copy the bundle as the manager to /tmp, init, pull from that, then delete the bundle.
-        #    - We pull instead of cloning, since we want $HOME to *be*
-        #      the git repo, and we can't create that directory.
-        # The template for this is:
-        #     scp a785d...0 sagews@worker:/tmp/ && ssh sagews_worker_1@worker "git init&&git pull /tmp/a785d...0 master && ssh sagews@worker rm /tmp/a785d...0"
-        def setup_git_repo(mesg):
-            if mesg['status'] != 'ok':
-                callback(mesg)
-                return
-            account.is_clean = False
-            s.commit()
+    clean_account()
             
-            def copy_bundle():
-                async_subprocess(['scp', bundle_filename, manager + ':/tmp/'], callback=make_repo)
-
-            def make_repo(mesg):
-                if mesg['status'] != 'ok':
-                    callback(mesg)
-                    return
-                async_subprocess(['ssh', user, 'git init && git pull "/tmp/%s" master'%bundle_filename], callback=delete_bundle)
-
-            def delete_bundle(mesg):
-
-                start_socket_server?
-
-            # go!
-            copy_bundle()
-
-        def update_database(mesg):
-            if mesg['status'] != 'ok':
-                callback(mesg)
-            else:
-                account.active = True
-                s.commit()
-        
-        # start:
-        verify_clean()
-
-    except Exception, err:
-        try:  # no matter what, at least try to make things as bad if anything above fails mysteriously
-            account.is_clean = False
-            s.commit()
-        except: pass
-        callback({'status':'error', 'mesg':str(err)})
-    
     
 ## TODO: this is mainly for debugging    
 class StartWorkerAccountHandler(web.RequestHandler):

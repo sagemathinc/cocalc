@@ -7,11 +7,11 @@ NOW:
   [x] worker starting via ssh (and scp'ing files, etc.)
       - looking at resource limits package in python
 (but needs testing)
-
-  [ ] ready http://www.python.org/dev/peps/pep-3143/
+  [x] read http://www.python.org/dev/peps/pep-3143/
       
 NEXT:
   [ ] clean up worker account
+  [ ] probably missing a lot of s.rollbacks() in exception handling...
   [ ] use ssl for communication
   [ ] choosing which worker to assign to a workspace
   [ ] make it so worker forked process shuts down sensibly maybe when gets SIGXCPU signal?)
@@ -22,7 +22,7 @@ NEXT:
 Unclear tasks
 
   [ ] need to start integrating centralized logging everywhere in my work ASAP; will make everything easier.
-
+  [ ] see note in reset_account function in worker.py
   [ ] worker registering 
   [ ] actual session from browser with computation working, using worker
   [ ] make worker.py support ssl by default when using network socket
