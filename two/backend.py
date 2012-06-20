@@ -48,6 +48,7 @@ import backend_database as db
 import logging
 logging.basicConfig()
 log = logging.getLogger()
+log.addHandler(TornadoLogHandler())
 
 #############################################################
 # HTTP Server handlers

@@ -43,7 +43,10 @@ class Database(object):
 #####################################################################
 
 class LogHandler(logging.Handler):
-    def __init__(self, port, hostname, ip_address):
+    def __init__(self, port=None, hostname=None, ip_address=None):
+        if port is None or hostname is None:
+            port, hostname = os.environ['SAGEWS_LOG'].split(':')
+            port = int(port)
         logging.Handler.__init__(self)
         self._hostname = str(hostname)
         self._port = int(port)
@@ -253,10 +256,10 @@ if __name__ == '__main__':
     parser.add_argument("--webport", dest="webport", type=int, default=8888,
                         help="port to use for testing web client (default: 8888)")
     
-    parser.add_argument("--hostname", dest="hostname", type=str, default=socket.gethostname(),
+    parser.add_argument("--hostname", dest="hostname", type=str, default='',
                         help="hostname/ip address for server to listen on")
-    parser.add_argument("--port", dest="port", type=int, default=8514,
-                        help="port to use for log server or web server (default: 8514)")
+    parser.add_argument("--port", dest="port", type=int, default=0,
+                        help="port to use for log server or web server (default: 0); you can also set the environment variable SAGEWS_LOG to 'hostname:port'")
 
     parser.add_argument("--certfile", dest="certfile", type=str, default="cert.pem",
                         help="use or autogenerate the given certfile")
@@ -268,6 +271,13 @@ if __name__ == '__main__':
                         help="file with rows ip addresses of computers that are allowed to connect")
 
     args = parser.parse_args()
+
+    if args.port == 0 or not args.hostname:
+        h, p = os.environ['SAGEWS_LOG'].split(':')
+    if not args.port:
+        args.port = int(p)
+    if not args.hostname:
+        args.hostname = h
 
     def main():
         if not os.path.exists(args.certfile):
