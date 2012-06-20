@@ -4,7 +4,75 @@ Session 2: 4-7 (then quick food and skate)
 
 Clear Tasks
 NOW:
-  [ ] need to start integrating centralized logging everywhere in my work ASAP; will make everything easier.
+  [ ] need to start integrating centralized logging everywhere in my work ASAP; will make everything easier:
+       Good Python logging tutorial: http://plumberjack.blogspot.com/2009/09/python-logging-101.html
+Which processes will log:
+
+    * backends: 
+        - log worker init
+        - log workspace start/stop/save events
+        - log inputs
+        - log replication of workspace bundles
+
+    * frontends:
+        - log account creation
+        - log user connecting
+        - log all kinds of actions that users take, e.g., renaming workspaces
+        - log admin actions
+
+Only the above machines will be allowed to log.  In particular, the
+workers will not log because: (1) they are untrusted so could corrupt
+logs, and (2) this way they *only* have to be able to make a network
+connection to one *single* ip on the same network -- the backend.  The
+log process will have a whitelist of allowed machines, and will deny 
+connections (or refuse to log) anything from any other machines.
+
+Both the backend and frontend processes are running Tornado servers,
+so the logging can easily be via Tornado's non-blocking SSL sockets.
+I need to use SSL sockets, since the log messages contain potentially
+sensitive information and it would be stupid to send them in the
+clear.
+
+The logs gets stored in a database.
+
+The logs need to get monitored in real time, possibly building
+statistical models, and messages get sent when things need to be dealt
+with.
+
+Steps to implement this:
+
+   [ ] implement a new python handler built on tornadio's ssl non-blocking sockets
+       [ ] define a new class
+       [ ] implement emit. 
+       [ ] see what else I might need from the examples in the loggers module in python
+       [ ] make messages record the ip address of the sender automatically
+       [ ] must be robust against logging server dieing.
+
+   [ ] implement a logging server/daemon using ideas from worker.py and ssl
+       [ ] argparse
+       [ ] ssl cert stuff
+       [ ] forking socket server
+       [ ] only accept connection from explicit whitelist of ip in a config file --whitelist=list
+       [ ] implement sqlalchemy database schema 
+       [ ] writing to database with timestamp column, so easy to drop old rows
+       [ ] analytics hooks:  
+            - right after writing message to database, call a function that has in-memory history
+            - under various conditions things will happen (e.g. email sent)
+       [ ] feature -- automatic replication to another log server
+           database (via a non-blocking subprocess and ssl socket --
+           don't use ssh since that would be too insecure)
+
+   [ ] interface to log database:
+       [ ] command line functions for standard queries
+       [ ] web interface to same command line functions
+
+
+
+
+-----------------------
+
+
+
 NEXT:
   [ ] read through code I wrote for worker <--> backend communication; 
       make sure db transactions are limited in scope; use rollbacks.
