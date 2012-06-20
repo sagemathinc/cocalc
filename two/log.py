@@ -4,7 +4,38 @@ import json, logging, os, socket, ssl, struct, sys
 #####################################################################
 # The SQLalchemy database
 #####################################################################
+from sqlalchemy.ext.declarative import declarative_base
+Base = declarative_base()
+from sqlalchemy import (create_engine, Column, Float, Integer, String)
+from sqlalchemy.orm import sessionmaker
 
+class Entry(Base):
+    __tablename__ = "entries"
+    id = Column(Integer, primary_key=True)
+    formatted = Column(String)
+    timestamp = Column(Float)
+    ip_address = Column(String)
+    levelno = Column(Integer)
+    levelname = Column(String)
+    lineno = Column(Integer)
+    module = Column(String)
+    pid = Column(Integer)
+    
+    def __init__(self, mesg):
+        self.__dict__.update(mesg)
+
+    def __repr__(self):
+        return self.formatted
+
+class Database(object):
+    def __init__(self, file):
+        self._file = file
+        self._engine = create_engine('sqlite:///%s'%file)
+        if not os.path.exists(file):
+            Base.metadata.create_all(self._engine)
+            
+    def session(self):
+        return sessionmaker(bind=self._engine)()
 
 
 #####################################################################
@@ -129,12 +160,13 @@ class WebTestLog(object):
 #####################################################################
 class LogServer(object):
     def __init__(self, port, certfile, dbfile, hostname, whitelist):
+        self._children = [] # todo: kill em all on exit and wait
+        self._db = Database(dbfile)
         self._port = port
         self._certfile = certfile
         self._dbfile = dbfile
         self._hostname = hostname
         self._whitelist = open(whitelist).read().split() if os.path.exists(whitelist) else None
-        self._children = [] # todo: kill em all on exit and wait
 
     def __del__(self):
         for pid in self._children:
@@ -184,7 +216,9 @@ class LogServer(object):
 
     def handle(self, mesg):
         mesg = json.loads(mesg)
-        print mesg
+        s = self._db.session()
+        s.add(Entry(mesg))
+        s.commit()
                     
 
 #####################################################################
