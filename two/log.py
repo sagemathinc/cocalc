@@ -1,5 +1,4 @@
-import logging, os, socket, ssl, struct
-
+import logging, os, socket, ssl, struct, sys
 
 
 #####################################################################
@@ -17,16 +16,33 @@ class TestLogHandler(logging.Handler):
         logging.Handler.__init__(self)
         self._hostname = str(hostname)
         self._port = int(port)
+        self._socket = None
+
+    def connect(self):
+        self._socket = ssl.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
+        try:
+            self._socket.connect((self._hostname, self._port))
+        except socket.error, err:
+            print err
+            self._socket = None
         
     def emit(self, record):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s = ssl.wrap_socket(s)
-        s.connect((self._hostname, self._port))
+        if self._socket is None:
+            self.connect()
+        if self._socket is None: return
         mesg = str(record)
-        length_header = struct.pack(">L", len(s))
-        s.send(length_header + mesg)
-        s.shutdown(0)
-        s.close()
+        length_header = struct.pack(">L", len(mesg))
+        try:
+            self._socket.sendall(length_header + mesg)
+        except socket.error, err:
+            print err
+            self._socket.close()
+            self._socket = None
+
+    def __del__(self):
+        if self._socket is not None:
+            self._socket.shutdown(0)
+            self._socket.close()
 
 class TestLog(object):
     def __init__(self, port, hostname):
@@ -39,30 +55,71 @@ class TestLog(object):
     def run(self):
         while True:
             logging.info(raw_input('mesg: '))
-        
     
 
 #####################################################################
 # The non-blocking SSL-enabled Tornado-based handler 
 #####################################################################
 
-class SSLIOStreamLogHandler(logging.Handler):
-    def __init__(self, hostname, port):
-        self._hostname = str(hostame)
+class TornadoLogHandler(logging.Handler):
+    def __init__(self, port, hostname):
+        logging.Handler.__init__(self)
+        self._hostname = str(hostname)
         self._port = int(port)
+        self._socket = None
+
+    def connect(self):
+        from tornado import iostream
+        try:
+            s = ssl.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), do_handshake_on_connect=False)
+            s.connect((self._hostname, self._port))
+            self._socket = iostream.SSLIOStream(s)
+        except socket.error, err:
+            sys.stderr.write("TornadoLogHandler: connection to logger failed -- '%s'"%err)            
+            self._socket = None
         
     def emit(self, record):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s = ssl.wrap_socket(s)
-        s.connect((self._hostname, self._port))
+        if self._socket is None:
+            self.connect()
+        if self._socket is None: return
         mesg = str(record)
-        length_header = struct.pack(">L", len(s))
-        s.send(length_header + mesg)
-        s.shutdown(0)
-        s.close()
-        
-        
+        length_header = struct.pack(">L", len(mesg))
+        try:
+            self._socket.write(length_header + mesg)
+        except IOError, err:
+            sys.stderr.write("TornadoLogHandler: logger down -- '%s'"%err)
+            self._socket.close()
+            self._socket = None
 
+    def __del__(self):
+        if self._socket is not None:
+            self._socket.close()
+        
+        
+class WebTestLog(object):
+    def __init__(self, port, hostname):
+        self._hostname = hostname
+        self._port = port
+        self._rootLogger = logging.getLogger('')
+        self._rootLogger.setLevel(logging.DEBUG)
+        self._rootLogger.addHandler(TornadoLogHandler(port=port, hostname=hostname))
+
+    def run(self):
+        logging.info('hello')
+        return
+        import tornado.ioloop
+        import tornado.web
+        class MainHandler(tornado.web.RequestHandler):
+            def get(self):
+                logging.info('hello')                
+                self.write("Logger")
+
+        application = tornado.web.Application([
+            (r"/", MainHandler),
+        ])
+        application.listen(8888)
+        tornado.ioloop.IOLoop.instance().start()
+        
 
 
 
@@ -84,6 +141,16 @@ class LogServer(object):
         self._dbfile = dbfile
         self._hostname = hostname
         self._whitelist = open(whitelist).read().split() if os.path.exists(whitelist) else None
+        self._children = [] # todo: kill em all on exit and wait
+
+    def __del__(self):
+        for pid in self._children:
+            try:
+                print "Killing %s..."%pid
+                os.kill(pid)
+                os.wait(pid)
+            except:
+                pass
 
     def run(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -91,14 +158,17 @@ class LogServer(object):
         s.bind((self._hostname, self._port))
         s.listen(5)
         while True:
-            # todo -- try accept this?
             print "Waiting for secure connection..."
-            conn, addr = s.accept()
-            if self._whitelist is not None and   addr not in self._whitelist:
-                print "Rejecting connection from %s since it is not in the whitelist"%addr
+            try:
+                conn, addr = s.accept()
+                if self._whitelist is not None and   addr not in self._whitelist:
+                    print "Rejecting connection from %s since it is not in the whitelist"%addr
+                    continue
+                import ssl
+                conn = ssl.wrap_socket(conn, server_side=True, certfile=self._certfile, keyfile=self._certfile)
+            except Exception, err:
+                sys.stderr.write("Error making connection: %s"%err)
                 continue
-            import ssl
-            conn = ssl.wrap_socket(conn, server_side=True, certfile=self._certfile, keyfile=self._certfile)
             pid = os.fork()
             if pid == 0:
                 # child
@@ -152,8 +222,11 @@ if __name__ == '__main__':
                         help="run as a log server that accepts ssl connections and writes to the database")
     parser.add_argument('--web_server', dest='web_server', action='store_const', const=True, default=False,
                         help="run a web server that allows one to browse the log database")
+    
     parser.add_argument('--test_client', dest='test_client', action='store_const', const=True, default=False,
                         help="run a simple command line test client for the log server")
+    parser.add_argument('--test_webclient', dest='test_webclient', action='store_const', const=True, default=False,
+                        help="run a simple testing web client serving on a random port for the Torando-based log server")
     
     parser.add_argument("--hostname", dest="hostname", type=str, default=socket.gethostname(),
                         help="hostname/ip address for server to listen on")
@@ -183,6 +256,8 @@ if __name__ == '__main__':
             WebServer(port=args.port, certfile=args.certfile, dbfile=args.dbfile, hostname=args.hostname).run()
         elif args.test_client:
             TestLog(port=args.port, hostname=args.hostname).run()
+        elif args.test_webclient:
+            WebTestLog(port=args.port, hostname=args.hostname).run()
             
     if args.daemon:
         import daemon
