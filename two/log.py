@@ -1,4 +1,4 @@
-import logging, os, socket, ssl, struct, sys
+import cPickle, logging, os, socket, ssl, struct, sys
 
 
 #####################################################################
@@ -11,13 +11,44 @@ import logging, os, socket, ssl, struct, sys
 # A simple test client
 #####################################################################
 
-class TestLogHandler(logging.Handler):
+class LogHandler(logging.Handler):
     def __init__(self, port, hostname):
         logging.Handler.__init__(self)
         self._hostname = str(hostname)
         self._port = int(port)
         self._socket = None
+        
+    def emit(self, mesg):
+        if self._socket is None:
+            self.connect()
+        if self._socket is None:
+            return
+        obj = self.makePickle(mesg)
+        length_header = struct.pack(">L", len(obj))
+        try:
+            self._socket.write(length_header + obj)
+        except IOError, err:
+            sys.stderr.write("LogHandler: logger down -- '%s'"%err)
+            self._socket.close()
+            self._socket = None
 
+    def makePickle(self, mesg):
+        # copied from python2.7/logging/handlers.py
+        ei = mesg.exc_info
+        if ei:
+            dummy = self.format(mesg) # just to get traceback text into mesg.exc_text
+            mesg.exc_info = None      # to avoid Unpickleable error
+        s = cPickle.dumps(mesg.__dict__, 1)
+        if ei:
+            mesg.exc_info = ei  # for next handler
+        return s
+
+    def __del__(self):
+        if self._socket is not None:
+            self._socket.close()
+        
+
+class TestLogHandler(LogHandler):
     def connect(self):
         self._socket = ssl.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
         try:
@@ -25,24 +56,6 @@ class TestLogHandler(logging.Handler):
         except socket.error, err:
             print err
             self._socket = None
-        
-    def emit(self, record):
-        if self._socket is None:
-            self.connect()
-        if self._socket is None: return
-        mesg = str(record)
-        length_header = struct.pack(">L", len(mesg))
-        try:
-            self._socket.sendall(length_header + mesg)
-        except socket.error, err:
-            print err
-            self._socket.close()
-            self._socket = None
-
-    def __del__(self):
-        if self._socket is not None:
-            self._socket.shutdown(0)
-            self._socket.close()
 
 class TestLog(object):
     def __init__(self, port, hostname):
@@ -55,19 +68,12 @@ class TestLog(object):
     def run(self):
         while True:
             logging.info(raw_input('mesg: '))
-    
 
 #####################################################################
 # The non-blocking SSL-enabled Tornado-based handler 
 #####################################################################
 
-class TornadoLogHandler(logging.Handler):
-    def __init__(self, port, hostname):
-        logging.Handler.__init__(self)
-        self._hostname = str(hostname)
-        self._port = int(port)
-        self._socket = None
-
+class TornadoLogHandler(LogHandler):
     def connect(self):
         from tornado import iostream
         try:
@@ -77,24 +83,7 @@ class TornadoLogHandler(logging.Handler):
         except socket.error, err:
             sys.stderr.write("TornadoLogHandler: connection to logger failed -- '%s'"%err)            
             self._socket = None
-        
-    def emit(self, record):
-        if self._socket is None:
-            self.connect()
-        if self._socket is None: return
-        mesg = str(record)
-        length_header = struct.pack(">L", len(mesg))
-        try:
-            self._socket.write(length_header + mesg)
-        except IOError, err:
-            sys.stderr.write("TornadoLogHandler: logger down -- '%s'"%err)
-            self._socket.close()
-            self._socket = None
 
-    def __del__(self):
-        if self._socket is not None:
-            self._socket.close()
-        
         
 class WebTestLog(object):
     def __init__(self, port, hostname, webport):
@@ -189,7 +178,8 @@ class LogServer(object):
             self.handle(mesg)
 
     def handle(self, mesg):
-        print mesg
+        print cPickle.loads(mesg)
+
                     
 
 #####################################################################

@@ -42,7 +42,7 @@ with.
 Steps to implement this:
 
    [ ] implement a new python handler built on tornadio's ssl non-blocking sockets
-       [ ] define a new class
+       [x] define a new class
        [ ] implement emit. 
        [ ] see what else I might need from the examples in the loggers module in python
        [ ] make messages record the ip address of the sender automatically
