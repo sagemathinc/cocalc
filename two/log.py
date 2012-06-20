@@ -97,16 +97,15 @@ class TornadoLogHandler(logging.Handler):
         
         
 class WebTestLog(object):
-    def __init__(self, port, hostname):
+    def __init__(self, port, hostname, webport):
         self._hostname = hostname
         self._port = port
+        self._webport = webport
         self._rootLogger = logging.getLogger('')
         self._rootLogger.setLevel(logging.DEBUG)
         self._rootLogger.addHandler(TornadoLogHandler(port=port, hostname=hostname))
 
     def run(self):
-        logging.info('hello')
-        return
         import tornado.ioloop
         import tornado.web
         class MainHandler(tornado.web.RequestHandler):
@@ -117,7 +116,7 @@ class WebTestLog(object):
         application = tornado.web.Application([
             (r"/", MainHandler),
         ])
-        application.listen(8888)
+        application.listen(self._webport)
         tornado.ioloop.IOLoop.instance().start()
         
 
@@ -224,9 +223,11 @@ if __name__ == '__main__':
                         help="run a web server that allows one to browse the log database")
     
     parser.add_argument('--test_client', dest='test_client', action='store_const', const=True, default=False,
-                        help="run a simple command line test client for the log server")
+                        help="run very simple command line test client for the log server")
     parser.add_argument('--test_webclient', dest='test_webclient', action='store_const', const=True, default=False,
-                        help="run a simple testing web client serving on a random port for the Torando-based log server")
+                        help="run very simple testing web client serving for the Torando-based log server; should specify --webport=xxxx")
+    parser.add_argument("--webport", dest="webport", type=int, default=8888,
+                        help="port to use for testing web client (default: 8888)")
     
     parser.add_argument("--hostname", dest="hostname", type=str, default=socket.gethostname(),
                         help="hostname/ip address for server to listen on")
@@ -257,7 +258,7 @@ if __name__ == '__main__':
         elif args.test_client:
             TestLog(port=args.port, hostname=args.hostname).run()
         elif args.test_webclient:
-            WebTestLog(port=args.port, hostname=args.hostname).run()
+            WebTestLog(port=args.port, hostname=args.hostname, webport=args.webport).run()
             
     if args.daemon:
         import daemon
