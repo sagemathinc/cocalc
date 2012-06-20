@@ -1,4 +1,4 @@
-import cPickle, logging, os, socket, ssl, struct, sys
+import json, logging, os, socket, ssl, struct, sys
 
 
 #####################################################################
@@ -12,11 +12,15 @@ import cPickle, logging, os, socket, ssl, struct, sys
 #####################################################################
 
 class LogHandler(logging.Handler):
-    def __init__(self, port, hostname):
+    def __init__(self, port, hostname, ip_address):
         logging.Handler.__init__(self)
         self._hostname = str(hostname)
         self._port = int(port)
         self._socket = None
+        if not ip_address:
+            # this is not reliable
+            ip_address = socket.gethostbyaddr(socket.gethostname())
+        self._ip_address = ip_address
         
     def emit(self, mesg):
         if self._socket is None:
@@ -32,16 +36,14 @@ class LogHandler(logging.Handler):
             self._socket.close()
             self._socket = None
 
-    def makePickle(self, mesg):
-        # copied from python2.7/logging/handlers.py
-        ei = mesg.exc_info
-        if ei:
-            dummy = self.format(mesg) # just to get traceback text into mesg.exc_text
-            mesg.exc_info = None      # to avoid Unpickleable error
-        s = cPickle.dumps(mesg.__dict__, 1)
-        if ei:
-            mesg.exc_info = ei  # for next handler
-        return s
+    def makePickle(self, record):
+        return json.dumps({
+            'formatted':self.format(record), 'timestamp':record.created, 'ip_address':self._ip_address,
+            'levelno':record.levelno, 'levelname':record.levelname,
+            'lineno':record.lineno, 'module':record.module, 'pid':record.process, 
+            })
+
+
 
     def __del__(self):
         if self._socket is not None:
@@ -63,11 +65,14 @@ class TestLog(object):
         self._port = port
         self._rootLogger = logging.getLogger('')
         self._rootLogger.setLevel(logging.DEBUG)
-        self._rootLogger.addHandler(TestLogHandler(port=port, hostname=hostname))
+        self._rootLogger.addHandler(TestLogHandler(port=port, hostname=hostname, ip_address="127.0.0.1"))
 
     def run(self):
+        i = 0
         while True:
+            logging.warning('Oops -- sending log number %s', i)
             logging.info(raw_input('mesg: '))
+            i += 1
 
 #####################################################################
 # The non-blocking SSL-enabled Tornado-based handler 
@@ -92,7 +97,7 @@ class WebTestLog(object):
         self._webport = webport
         self._rootLogger = logging.getLogger('')
         self._rootLogger.setLevel(logging.DEBUG)
-        self._rootLogger.addHandler(TornadoLogHandler(port=port, hostname=hostname))
+        self._rootLogger.addHandler(TornadoLogHandler(port=port, hostname=hostname, ip_address="127.0.0.1"))
 
     def run(self):
         import tornado.ioloop
@@ -178,8 +183,8 @@ class LogServer(object):
             self.handle(mesg)
 
     def handle(self, mesg):
-        print cPickle.loads(mesg)
-
+        mesg = json.loads(mesg)
+        print mesg
                     
 
 #####################################################################
