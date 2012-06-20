@@ -357,6 +357,9 @@ class SageSocketTestClient(object):
         try:
             if self.use_unix_domain_socket():
                 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                if self._use_ssl:
+                    import ssl
+                    s = ssl.wrap_socket(s)
                 s.connect(self._socket_name)
             else:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -475,20 +478,26 @@ if __name__ == '__main__':
                         help="if set, do *not* import the Sage library and do not preparse input")
     
     args = parser.parse_args()
+    if args.socket_name and args.port == 'auto':
+        args.port = 'uds'
 
-    if args.use_ssl and args.gen_cert:
-        # ensure certificate exists
-        if not os.path.exists(args.gen_cert):
-            print "Generating self-signed certificate: '%s'"%args.gen_cert
-            import subprocess
-            p = subprocess.Popen(['openssl', 'req', '-batch', '-new', '-x509', '-newkey', 'rsa:%s'%args.gen_cert_bits, '-days', '9999', '-nodes', '-out', args.gen_cert, '-keyout', args.gen_cert])
-            if p.wait():
-                print "Error running openssl"
-                os.unlink(args.gen_cert)
-                sys.exit(1)
-            os.chmod(args.gen_cert, 0600)
-        args.certfile = args.gen_cert
-        args.keyfile = args.gen_cert
+    if args.use_ssl:
+        if not args.certfile and not args.keyfile and not args.gen_cert:
+            args.gen_cert = 'cert.pem'
+            
+        if args.gen_cert:
+            # ensure certificate exists
+            if not os.path.exists(args.gen_cert):
+                print "Generating self-signed certificate: '%s'"%args.gen_cert
+                import subprocess
+                p = subprocess.Popen(['openssl', 'req', '-batch', '-new', '-x509', '-newkey', 'rsa:%s'%args.gen_cert_bits, '-days', '9999', '-nodes', '-out', args.gen_cert, '-keyout', args.gen_cert])
+                if p.wait():
+                    print "Error running openssl"
+                    os.unlink(args.gen_cert)
+                    sys.exit(1)
+                os.chmod(args.gen_cert, 0600)
+            args.certfile = args.gen_cert
+            args.keyfile = args.gen_cert
 
     def main():
         if args.reset_account:

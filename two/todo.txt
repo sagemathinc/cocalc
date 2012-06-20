@@ -4,8 +4,7 @@ Session 2: 4-7 (then quick food and skate)
 
 Clear Tasks
 NOW:
-  [ ] (good warm up and independent) support ssl in worker.py for communication
-      
+  [ ] need to start integrating centralized logging everywhere in my work ASAP; will make everything easier.
 NEXT:
   [ ] read through code I wrote for worker <--> backend communication; 
       make sure db transactions are limited in scope; use rollbacks.
@@ -18,7 +17,6 @@ NEXT:
 
 Unclear tasks
 
-  [ ] need to start integrating centralized logging everywhere in my work ASAP; will make everything easier.
   [ ] see note in reset_account function in worker.py
   [ ] worker registering 
   [ ] actual session from browser with computation working, using worker
@@ -198,3 +196,5 @@ blastoff:~ wstein$ ps ax |grep 15045
       - looking at resource limits package in python
 (but needs testing)
   [x] read http://www.python.org/dev/peps/pep-3143/
+  [x] support ssl in worker.py for communication
+      
