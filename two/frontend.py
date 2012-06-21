@@ -346,7 +346,15 @@ if __name__ == '__main__':
     parser.add_argument("--secure", "-s", dest="secure", action='store_const', const=True,
                         help="SSL secure mode (default: False)", default=False)
     
+    parser.add_argument("--log", dest="log", type=str, default="",
+                        help="if specified use secure remote log server at that location (e.g., 'localhost:9020')")
+    parser.add_argument("--log_tag", dest="log_tag", type=str, default="",
+                        help="tag to include in log messages, which could be used to identify this process, e.g., 'backend7'")
     args = parser.parse_args()
+
+    if args.log:
+        from log import TornadoLogHandler
+        log.addHandler(TornadoLogHandler(address=args.log, tag=args.log_tag))
 
     if not args.external:        
         args.external = args.address if args.address else socket.gethostname()

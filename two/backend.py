@@ -48,7 +48,6 @@ import backend_database as db
 import logging
 logging.basicConfig()
 log = logging.getLogger()
-log.addHandler(TornadoLogHandler())
 
 #############################################################
 # HTTP Server handlers
@@ -407,7 +406,7 @@ def pull_from_worker_account(account_id, callback):
             
     except Exception, err:
         s.rollback()
-        callback({'status':'error', 'mesg':str(err)}        
+        callback({'status':'error', 'mesg':str(err)})
 
 
 def clean_worker_account(account_id, callback):
@@ -440,7 +439,7 @@ def clean_worker_account(account_id, callback):
         
     except Exception, err:
         s.rollback()
-        callback({'status':'error', 'mesg':str(err)}    
+        callback({'status':'error', 'mesg':str(err)})
 
 def start_socket_server(account_id, callback):
     """
@@ -456,7 +455,7 @@ def start_socket_server(account_id, callback):
             1024*account.worker.ram, account.worker.ip_address)
         async_subprocess(['ssh', user, remote_cmd], callback)
     except Exception, err:
-        callback({'status':'error', 'mesg':str(err)}
+        callback({'status':'error', 'mesg':str(err)})
     
 
 def setup_git_repo_in_worker_account(account_id, bundle_filename, callback):
@@ -523,7 +522,7 @@ def start_worker_account(account_id, bundle_filename, callback):
         if mesg['status'] != 'ok':
             callback(mesg)
         else:
-            setup_git_repo_in_worker_account(account_id, bundle_filename, callback=socket_server):
+            setup_git_repo_in_worker_account(account_id, bundle_filename, callback=socket_server)
 
     # Start the socket server
     def socket_server(mesg):
@@ -820,6 +819,11 @@ if __name__ == '__main__':
                         help="URI of frontend server to status update to", default='')
     parser.add_argument("--stop", dest="stop", type=bool, 
                         help="Stop the backend with given id, if it is running", default=False)
+
+    parser.add_argument("--log", dest="log", type=str, default="",
+                        help="if specified use secure remote log server at that location (e.g., 'localhost:9020')")
+    parser.add_argument("--log_tag", dest="log_tag", type=str, default="",
+                        help="tag to include in log messages, which could be used to identify this process, e.g., 'backend7'")
     
     args = parser.parse_args()
 
@@ -834,6 +838,9 @@ if __name__ == '__main__':
     if debug:
         log.setLevel(logging.DEBUG)
 
+    if args.log:
+        from log import TornadoLogHandler
+        log.addHandler(TornadoLogHandler(address=args.log, tag=args.log_tag))
 
     if args.stop:
         stop(args.id, args.frontend_uri)

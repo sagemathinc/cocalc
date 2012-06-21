@@ -12,11 +12,11 @@ from sqlalchemy.orm import sessionmaker
 class Entry(Base):
     __tablename__ = "entries"
     id = Column(Integer, primary_key=True)
+    tag = Column(String)
     module = Column(String)
     levelname = Column(String)
     timestamp = Column(Float)
     formatted = Column(String)
-    ip_address = Column(String)
     levelno = Column(Integer)
     lineno = Column(Integer)
     pid = Column(Integer)
@@ -39,22 +39,17 @@ class Database(object):
 
 
 #####################################################################
-# A simple test client
+# Log Handler
 #####################################################################
 
 class LogHandler(logging.Handler):
-    def __init__(self, port=None, hostname=None, ip_address=None):
-        if port is None or hostname is None:
-            port, hostname = os.environ['SAGEWS_LOG'].split(':')
-            port = int(port)
+    def __init__(self, address, tag=''):
         logging.Handler.__init__(self)
-        self._hostname = str(hostname)
-        self._port = int(port)
+        h, p = address.split(':')
+        self._hostname = h
+        self._port = int(p)
         self._socket = None
-        if not ip_address:
-            # this is not reliable
-            ip_address = socket.gethostbyaddr(socket.gethostname())
-        self._ip_address = ip_address
+        self._tag = tag
         
     def emit(self, record):
         if self._socket is None:
@@ -74,7 +69,8 @@ class LogHandler(logging.Handler):
 
     def makePickle(self, record):
         return json.dumps({
-            'formatted':self.format(record), 'timestamp':record.created, 'ip_address':self._ip_address,
+            'tag':self._tag,
+            'formatted':self.format(record), 'timestamp':record.created, 
             'levelno':record.levelno, 'levelname':record.levelname,
             'lineno':record.lineno, 'module':record.module, 'pid':record.process, 
             })
@@ -96,12 +92,13 @@ class TestLogHandler(LogHandler):
             self._socket = None
 
 class TestLog(object):
-    def __init__(self, port, hostname):
+    def __init__(self, port, hostname, tag):
         self._hostname = hostname
         self._port = port
+        self._tag = tag
         self._rootLogger = logging.getLogger('')
         self._rootLogger.setLevel(logging.DEBUG)
-        self._rootLogger.addHandler(TestLogHandler(port=port, hostname=hostname, ip_address="127.0.0.1"))
+        self._rootLogger.addHandler(TestLogHandler('%s:%s'%(hostname, port), tag=tag))
 
     def run(self):
         i = 0
@@ -126,13 +123,14 @@ class TornadoLogHandler(LogHandler):
 
         
 class WebTestLog(object):
-    def __init__(self, port, hostname, webport):
+    def __init__(self, port, hostname, webport, tag):
         self._hostname = hostname
         self._port = port
         self._webport = webport
+        self._tag = tag
         self._rootLogger = logging.getLogger('')
         self._rootLogger.setLevel(logging.DEBUG)
-        self._rootLogger.addHandler(TornadoLogHandler(port=port, hostname=hostname, ip_address="127.0.0.1"))
+        self._rootLogger.addHandler(TornadoLogHandler('%s:%s'%(hostname, port), tag=tag))
 
     def run(self):
         import tornado.ioloop
@@ -256,10 +254,13 @@ if __name__ == '__main__':
     parser.add_argument("--webport", dest="webport", type=int, default=8888,
                         help="port to use for testing web client (default: 8888)")
     
-    parser.add_argument("--hostname", dest="hostname", type=str, default='',
+    parser.add_argument("--hostname", dest="hostname", type=str, default='localhost',
                         help="hostname/ip address for server to listen on")
     parser.add_argument("--port", dest="port", type=int, default=0,
-                        help="port to use for log server or web server (default: 0); you can also set the environment variable SAGEWS_LOG to 'hostname:port'")
+                        help="port to use for log server or web server")
+
+    parser.add_argument("--tag", dest="tag", type=str, default='',
+                        help="message tag, e.g., 'backend1'")
 
     parser.add_argument("--certfile", dest="certfile", type=str, default="cert.pem",
                         help="use or autogenerate the given certfile")
@@ -272,13 +273,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.port == 0 or not args.hostname:
-        h, p = os.environ['SAGEWS_LOG'].split(':')
-    if not args.port:
-        args.port = int(p)
-    if not args.hostname:
-        args.hostname = h
-
     def main():
         if not os.path.exists(args.certfile):
             import subprocess
@@ -290,9 +284,9 @@ if __name__ == '__main__':
         elif args.web_server:
             WebServer(port=args.port, certfile=args.certfile, dbfile=args.dbfile, hostname=args.hostname).run()
         elif args.test_client:
-            TestLog(port=args.port, hostname=args.hostname).run()
+            TestLog(port=args.port, hostname=args.hostname, tag=args.tag).run()
         elif args.test_webclient:
-            WebTestLog(port=args.port, hostname=args.hostname, webport=args.webport).run()
+            WebTestLog(port=args.port, hostname=args.hostname, webport=args.webport, tag=args.tag).run()
             
     if args.daemon:
         import daemon
