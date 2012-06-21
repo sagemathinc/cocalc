@@ -3,12 +3,14 @@ Clear Tasks
 NEXT:
 
 
+--------------
 
-  
+Clear tasks
+  [ ] make frontend ssh command that starts backend use subprocess
+
   [ ] read through code I wrote for worker <--> backend communication; 
       make sure db transactions are limited in scope; use rollbacks.
 
---------------
 
 Unclear tasks
 
@@ -17,10 +19,6 @@ Unclear tasks
   [ ] see note in reset_account function in worker.py
   [ ] worker registering 
   [ ] actual session from browser with computation working, using worker
-  [ ] make worker.py support ssl by default when using network socket
-  [ ] make backend.py support ssl by default when using network socket
-  [ ] way to push config info from frontend to backend about workers
-
   [ ] maybe change how backend gets configured by frontend (make more secure/robust)
 
  
@@ -55,7 +53,7 @@ TODO List:
 
 
 
-  [ ] fix permissions before spawning worker, and redo worker more effectively today -- project for today
+  [ ] fix permissions before spawning worker, and redo worker more effectively
    
       1. Run worker.py with:
 
@@ -103,9 +101,6 @@ today:
  [x] ssh/code to launch worker.py
 
  [ ] look into Bootstrap -- http://twitter.github.com/bootstrap/javascript.html
-
- [ ] setup grp permissions of workspaces/id (and reading of the chain
-     to it, but not of it)
 
  [ ] clean up after shutdown
        -- git checkout workspaces/id
@@ -265,3 +260,6 @@ Steps to implement this:
 -----------------------
   [x] make it so my new logger gets used. 
   [x] make it so when frontend starts backend, it passes useful --log message.
+  [x] way to push config info from frontend to backend about workers
+  [x] make worker.py support ssl by default when using network socket
+  [x] make backend.py support ssl by default when using network socket
