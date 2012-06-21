@@ -129,9 +129,14 @@ class BackendManager(object):
         path = backend.path
         workers = ','.join([w.hostname for w in backend.workers])
 
-        cmd = '''ssh "%s@%s" "cd '%s'&&exec ./sage -python backend.py %s --id=%s --workers=%s --port=%s --frontend=%s %s >stdout.log 2>stderr.log &"'''%(
+        backend_tag = 'backend%s'%backend.id
+
+        # TODO: change to use subprocess.
+        cmd = '''ssh "%s@%s" "cd '%s'&&exec ./sage -python backend.py %s --id=%s --workers=%s --port=%s --frontend=%s %s %s >stdout.log 2>stderr.log &"'''%(
             user, host, path, '--debug' if debug else '',
-            backend.id, workers, port, frontend_URI(), extra_args)
+            backend.id, workers, port, frontend_URI(),
+            '--log=%s --log_tag=%s'%(logger_url, backend_tag) if args.log else '',
+            extra_args)
         log.debug(cmd)
 
         return cmd

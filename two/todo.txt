@@ -2,7 +2,8 @@ Clear Tasks
 
 NEXT:
 
-  [ ] make it so when frontend starts backend, it passes useful --log message.
+
+
   
   [ ] read through code I wrote for worker <--> backend communication; 
       make sure db transactions are limited in scope; use rollbacks.
@@ -263,3 +264,4 @@ Steps to implement this:
 
 -----------------------
   [x] make it so my new logger gets used. 
+  [x] make it so when frontend starts backend, it passes useful --log message.
