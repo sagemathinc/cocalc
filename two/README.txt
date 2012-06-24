@@ -61,37 +61,68 @@ Database:
 Architecture
 ------------
 
-Component Diagram:
+   Client    Client    Client   Client   Client  Client
+     /|\
+      |
+   https1.1/websocket
+      |
+     \|/
+  SSL servers(stunnel?)   https://sagews.com
+     /|\
+      |
+      |
+     \|/
+ Load Balancer                        [+Failover Load Balancer(s)]          (HAProxy)  
+ /|\       /|\      /|\      /|\
+  |         |        |        |                                                                [Offsite Backups]
+  |http1.1  |        |        |                                     
+ \|/       \|/      \|/      \|/                                    [Memcached] 
+Backend  Backend  Backend  Backend    <--------------------------->  [Database]      [+Failover/backup read-only Data Server(s)]
+           /|\      /|\                                                  /|\
+            |        |        ------------------------------------------> |
+   ---------|        |        |                                          \|/
+   |                 |----------------------------------------------->  [Log]          [+Failover Log Server(s)]
+   |                          |
+  \|/                        \|/
+Worker   Worker    Worker   Worker
 
-                           ------> [Log] <-----
-                          |                    | 
-  ...                     |                    |
-[Client] <-->(load   [Frontend]             [Backend] <--
-[Client]   balancer) [Frontend]             [Backend]   |                    ...
-[Client] <--HTTPS--> [Frontend] <--HTTPS--> [Backend]   |HTTPS             [Worker]
-  /|\                [Frontend] <--HTTPS--> [Backend] <--                  [Worker]
-   |                                          ...                          [Worker]
-   ----------------socket.io over HTTPS---> [Backend] <----ssl sockets---> [Worker]
-                                                                           [Worker]
-1 million            n frontends             1000                          100
-               each with complete database
-(internet)         (>1 locations)          (~100 computers                 
-                                            at >1 locations)
 
-NOTE: In first implementation, frontends use a SQLite file.  However,
-in second implementation, probably switch to mySQL database, so
-frontends can be distributed on multiple machines, and database can be
-more easily replicated.  (And/or it will run on appengine.)
+SSL Server:
+  - probably "stunnel"
+  - encrypts/decrypts
+ 
+Load Balancer:
+  - probably HAproxy
+  - forwards unencrypted traffic to a choice of backend
 
- 10k simultaneous ?
+Backend:
+  - torando + tornadio2
+  - handles all user interaction
+  - basically proxies messages between clients and workers
 
-MINIMAL SERIOUS TEST SYSTEM requires 6 VM's: 
-   * 2 frontends 
-   * 2 backends
-   * 2 workers
-+ a simple load balancer to send traffic to frontends
+Worker: 
+  - gets git bundle from database server
+  - when started sets row of database with stats, time when started, ip address 
+  - when a workspace is activated or de-activated, stats updated in database
+ 
+Database:
+  - postgreSQL
+  - each workspace is stored as a git bundle (these are compressed,
+    and much more efficient space-wise than a bare repo)
 
-COMPONENT DETAILS:
+Log:
+  - encrypted socket-based
+  - JSON messages
+  - integrated with Python's standard logging system
+
+Memcached:
+  - used by backends/workers for speed
+
+Offsite backups:
+  - I could have 100TB of data to backup...?
+  - use Crashplan at a bare minimum
+
+MORE DETAILS:
   
    * Load Ballancer --
        - HAProxy: 
