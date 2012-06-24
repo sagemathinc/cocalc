@@ -55,37 +55,52 @@ Used as a separate process (no library linking):
 Library dependency:
    * memcached -- http://memcached.org/; looks like 3-clause BSD
 
+Database:
+   * PostgreSQL -- ??; MIT license (very permissive)
+
 Architecture
 ------------
 
 Component Diagram:
 
-  ...             [Frontend (slave/backup)]
-  ...   
-[Client]             [Frontend]
-[Client] <--HTTP---> [Frontend] <--HTTP--> [Backend]
-  /|\                           <--HTTP--> [Backend]
-   |                                          ...
-   ------------------socket.io-----------> [Backend] <----UD socket----> [Worker]
-
+                           ------> [Log] <-----
+                          |                    | 
+  ...                     |                    |
+[Client] <-->(load   [Frontend]             [Backend] <--
+[Client]   balancer) [Frontend]             [Backend]   |                    ...
+[Client] <--HTTPS--> [Frontend] <--HTTPS--> [Backend]   |HTTPS             [Worker]
+  /|\                [Frontend] <--HTTPS--> [Backend] <--                  [Worker]
+   |                                          ...                          [Worker]
+   ----------------socket.io over HTTPS---> [Backend] <----ssl sockets---> [Worker]
+                                                                           [Worker]
 1 million            n frontends             1000                          100
-                 many backups of frontend        
+               each with complete database
 (internet)         (>1 locations)          (~100 computers                 
-                                            at >2 locations)
+                                            at >1 locations)
 
-NOTE: In first implementation, n frontend on one machine, which will
-use a SQLite file.  However, in second implementation, switch to mySQL
-database, so frontends can be distributed on multiple machines, and
-database can be more easily replicated.  (And/or it will run on appengine.)
+NOTE: In first implementation, frontends use a SQLite file.  However,
+in second implementation, probably switch to mySQL database, so
+frontends can be distributed on multiple machines, and database can be
+more easily replicated.  (And/or it will run on appengine.)
 
  10k simultaneous ?
 
-MINIMAL TEST SYSTEM requires 6 VM's:
+MINIMAL SERIOUS TEST SYSTEM requires 6 VM's: 
    * 2 frontends 
    * 2 backends
    * 2 workers
++ a simple load balancer to send traffic to frontends
 
 COMPONENT DETAILS:
+  
+   * Load Ballancer --
+       - HAProxy: 
+           - http://haproxy.1wt.eu/
+           - HAProxy + socket.io config: https://github.com/mixu/sioconfig
+           - http://stackoverflow.com/questions/10639912/haproxy-socket-io-websocket-proxy-always-falls-back-to-long-polling
+           - "From my research around the web, it seems that HAProxy is the way to go to load balance my websocket connections": 
+             http://stackoverflow.com/questions/10896175/load-balance-websocket-connections-to-tornado-app-using-haproxy
+           - builds from source in seconds easily on OS X ("make TARGET=generic") and Linux.
 
    * Frontend (frontend.py) -- 
        - How Virtual Machine is configured (Virtual Box):
@@ -236,16 +251,22 @@ As sagews user:
                 - last update
                 - timestamp
          - Replication:
-           - each row has a timestamp = the current time in seconds since the Epoch (Float)
-           - replication is done by querying for all rows with stamp >= some time,
-             then importing/updating them into another db. 
-           - However, build to easily switch to say MySQL + standard replication
-           - Most of it could also run on AppEngine (start backends via a dedicated
-             HTTP head control server on cluster). 
-           - automatic take-over when a master fails;
-             - triggered by DNS pointing to this?
-             - frontend starts initiating replication
-             - handling requests
+           - My design *was* this:
+              - each row has a timestamp = the current time in seconds since the Epoch (Float)
+              - replication is done by querying for all rows with stamp >= some time,
+                then importing/updating them into another db. 
+              - However, build to easily switch to say MySQL + standard replication
+              - Most of it could also run on AppEngine (start backends via a dedicated
+                HTTP head control server on cluster). 
+              - automatic take-over when a master fails;
+                - triggered by DNS pointing to this?
+                - frontend starts initiating replication
+                - handling requests
+          - However, another design that could do replication is to
+            make all writes to the database go through some Python
+            API, which does the write to the database, and queues the
+            write up to be sent off to the other databases.  I don't
+            know if this is a good idea or not.   Maybe not.  
 
    * Desktop Frontend Client (static/sagews/desktop/frontend.[js,html,css]) -- 
         - Initial login
@@ -253,7 +274,9 @@ As sagews user:
              - mine + shared (sort by name, recent, last changed, etc.)
              - published
              - full text search of workspaces
-        - iFrame to embed view of workspace served directly from backend (or could use cross site mashup, but less well supported)
+        - iFrame to embed view of workspace served directly from
+          backend (or could use cross site mashup, but less well
+          supported)
  
    * Mobile Frontend Client (static/sagews/desktop/frontend.[js,html,css]) -- 
         - Initial login

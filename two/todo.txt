@@ -1,13 +1,25 @@
-Clear Tasks
+
+NOW:
+
 
 NEXT:
 
 
 --------------
 
-Clear tasks
-  [ ] make frontend ssh command that starts backend use subprocess
+Not sure task:
 
+
+  [ ] Display a list of workspaces (bare minimum possible):
+        - just use an readonly textarea
+  [ ] Select workspace to visit it
+        - type a number next to a button and press button
+  [ ] Create new workspace
+        - 
+
+Clear tasks
+
+  [ ] make frontend ssh command that starts backend use subprocess
   [ ] read through code I wrote for worker <--> backend communication; 
       make sure db transactions are limited in scope; use rollbacks.
 
@@ -20,6 +32,10 @@ Unclear tasks
   [ ] worker registering 
   [ ] actual session from browser with computation working, using worker
   [ ] maybe change how backend gets configured by frontend (make more secure/robust)
+
+
+
+
 
  
 -------------
