@@ -58,24 +58,23 @@ Library dependency:
 Database:
    * PostgreSQL -- ??; MIT license (very permissive)
 
+   * psycopg2 -- http://pypi.python.org/pypi/psycopg2/
+   * Tornado + postgresql -- https://gist.github.com/861193 ?
+
 Architecture
 ------------
 
    Client    Client    Client   Client   Client  Client
      /|\
       |
-   https1.1/websocket
-      |
-     \|/
-  SSL servers(stunnel?)   https://sagews.com
-     /|\
+   https1.1 (websocket)
       |
       |
-     \|/
+     \|/ https://sagews.com
  Load Balancer                        [+Failover Load Balancer(s)]          (HAProxy)  
  /|\       /|\      /|\      /|\
   |         |        |        |                                                                [Offsite Backups]
-  |http1.1  |        |        |                                     
+  |https1.1 |        |        |                                     
  \|/       \|/      \|/      \|/                                    [Memcached] 
 Backend  Backend  Backend  Backend    <--------------------------->  [Database]      [+Failover/backup read-only Data Server(s)]
            /|\      /|\                                                  /|\
@@ -86,23 +85,25 @@ Backend  Backend  Backend  Backend    <--------------------------->  [Database] 
   \|/                        \|/
 Worker   Worker    Worker   Worker
 
+Unfortunately, all communication anywhere has to be secure because
+workers might be compromised and have packet sniffer installed.  This
+means more work by the backends.
 
-SSL Server:
-  - probably "stunnel"
-  - encrypts/decrypts
- 
+
 Load Balancer:
   - probably HAproxy
-  - forwards unencrypted traffic to a choice of backend
+  - forward traffic to a choice of backend, with ip address stickiness (?)
 
 Backend:
   - torando + tornadio2
   - handles all user interaction
   - basically proxies messages between clients and workers
+  - many processes on one physical server or VM
 
 Worker: 
-  - gets git bundle from database server
-  - when started sets row of database with stats, time when started, ip address 
+  - start = obtain git bundle *directly* from database server; then start ssl-JSON socket server 
+  - save = send bundle back to database server
+  - when started, sets row of database with stats, time when started, ip address 
   - when a workspace is activated or de-activated, stats updated in database
  
 Database:

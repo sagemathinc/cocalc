@@ -1,11 +1,42 @@
 
-NOW:
+2012-06-26: 
+
+  I've taken some major turns in my design work, so the next steps are
+  unclear.  Thus I need to think this through.   I want to approach this
+  via creating cleanly designed components that are independent units, and
+  then assembling them together at the end.   For deployment, use several 
+  clean virtual machine, and ssh access to a root account in order to
+  configure the virtual machines dynamically.  
+
+The components:
+
+  * Client -- Javascript library that runs in any modern web browser
+    [ ] Write very simple ugly version that is fully functional.
+
+  * Load Balancer -- HAProxy
+    [ ] Learn how to deploy it and write config script.
+        Example config script on some SockJS site.
+
+  * Database -- PostgreSQL + SQLalchemy + Memcached + SSL
+    [ ] Assemble SQLalchemy schema by combining what is current
+        frontend and backend schema, plus actually store github bundle.
+
+  * Worker -- forking SSL socket server + Sage + JSON
+    [ ] Rewrite pulling code from backend.py in order to make this
+        into a single integrated component with a straightforward API.
+
+  * Backend -- HTTPS SockJS server; "create workspace" into DB queries; connect to worker
+    [ ] Rewrite what I have to use SockJS (remove socket.io)
+
+  * Static HTTP server -- simple nginx (no ssl)
+    [ ] Configuration so my static/ directory served using nginx.
+    [ ] Ability to serve static/ content created via statically publishing workspaces
+
+  * Log server -- SSL socket server + database writer + Python logging
+    [ ] update to use PostgreSQL database
 
 
-NEXT:
-
-
---------------
+------------------------------------------------
 
 Not sure task:
 
