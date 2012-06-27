@@ -1,11 +1,13 @@
 Sage Workspaces
----------------
+===============
 
-AUTHOR:
+Author
+------
 
    * William Stein
 
-LICENSE/COPYRIGHT: 
+Copyright
+---------
 
    * This code is *not* released under any license; in particular,
      this codebase is not "open source".
@@ -16,9 +18,11 @@ LICENSE/COPYRIGHT:
    * All dependencies are under very permissive licenses.
 
 
-DEPENDENCIES:
+Dependencies
+------------
 
-Python:
+Python
+------
 
    * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
    * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
@@ -28,21 +32,29 @@ Python:
 
 easy_install tornado tornadio2 requests sqlalchemy python-daemon python-memcached psycopg2
 
-Javascript/CSS/HTML:
+Javascript/CSS/HTML
+-------------------
 
    * jQuery, jQuery-ui, jQuery-mobile -- http://jquery.org/; MIT license
    * codemirror2 -- http://codemirror.net/; basically MIT license
    * jquery activity indicator -- MIT license
    * SockJS
 
-Library dependency:
+Library dependency
+------------------
+
    * memcached -- http://memcached.org/; 3-clause BSD
 
-Used as a separate process (no library linking):
+
+Used as a separate process (no library linking)
+-----------------------------------------------
+
    * Git -- http://git-scm.com/; GPL v2
    * Sage -- http://sagemath.org/; GPL v3+
   
-Database:
+Database
+--------
+
    * PostgreSQL -- http://postgresql.org/; MIT license
    * psycopg2 (postgreSQL Python bindings) -- http://pypi.python.org/pypi/psycopg2/
    * Tornado + postgresql -- https://gist.github.com/861193 ?
@@ -50,34 +62,36 @@ Database:
 
 ARCHITECTURE
 ------------
+
   * Client -- Javascript library that runs in any modern web browser
-    [ ] Write very simple ugly version that is fully functional.
+     - Write very simple ugly version that is fully functional.
 
   * Load Balancer -- HAProxy
-    [ ] Learn how to deploy it and write config script.
-        Example config script on some SockJS site.
+     - Learn how to deploy it and write config script.
+     - Example config script on some SockJS site.
 
   * Database -- PostgreSQL + SQLalchemy + Memcached + SSL
-    [ ] Assemble SQLalchemy schema by combining what is current
-        frontend and backend schema, plus actually store github bundle.
+     - Assemble SQLalchemy schema by combining what is current
+       frontend and backend schema, plus actually store github bundle.
 
   * Worker -- forking SSL socket server + Sage + JSON
-    [ ] Rewrite pulling code from backend.py in order to make this
-        into a single integrated component with a straightforward API.
+     - Rewrite pulling code from backend.py in order to make this
+       into a single integrated component with a straightforward API.
 
   * Backend -- HTTPS SockJS server; "create workspace" into DB queries; connect to worker
-    [ ] Rewrite what I have to use SockJS (remove socket.io)
+     - Rewrite what I have to use SockJS (remove socket.io)
 
   * Static HTTP server -- simple nginx (no ssl)
-    [ ] Configuration so my static/ directory served using nginx.
-    [ ] Ability to serve static/ content created via statically publishing workspaces
+     - Configuration so my static/ directory served using nginx.
+     - Ability to serve static/ content created via statically publishing workspaces
 
   * Log server -- SSL socket server + database writer + Python logging
-    [ ] update to use PostgreSQL database
+     - update to use PostgreSQL database
 
 
 Diagram
 -------
+<pre>
    Client    Client    Client   Client   Client  Client
      /|\
       |
@@ -98,3 +112,4 @@ Backend  Backend  Backend  Backend    <--------------------------->  [Database] 
    |                          |
   \|/                        \|/
 Worker   Worker    Worker   Worker
+</pre>
