@@ -1,4 +1,16 @@
+NOW:
 
+Worker:
+
+
+
+
+
+SOON:
+
+
+
+PLAN: Implement each component without UI polish.
 
   * Client -- Javascript library that runs in any modern web browser
     [ ] Write very simple ugly version that is fully functional.
