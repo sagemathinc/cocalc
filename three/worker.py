@@ -361,23 +361,27 @@ class SageSocketTestClient(object):
                     import ssl
                     s = ssl.wrap_socket(s)
                 s.connect(self._socket_name)
+                print "Connected to Sage Workspace server on the Unix Domain socket %s"%self._socket_name
             else:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 if self._use_ssl:
                     import ssl
                     s = ssl.wrap_socket(s)
                 s.connect((self._hostname, int(self._port)))
+                print "Connected to %sSage Workspace server at %s:%s"%('SSL encrypted ' if self._use_ssl else '',
+                                                                  self._hostname, self._port)
                 
             b = JSONsocket(s)
-
             while 1:
-                r = raw_input('sagews: ')
-                while True:
-                    z = raw_input('...     ')
-                    if z != '':
-                        r += '\n' + z
-                    else:
-                        break
+                r = raw_input('sage: ')
+                z = r
+                if z.rstrip().endswith(':'):
+                    while True:
+                        z = raw_input('...       ')
+                        if z != '':
+                            r += '\n    ' + z
+                        else:
+                            break
                 t = time.time()
                 for n in range(self._num_trials):
                     b.send({'execute':r})
