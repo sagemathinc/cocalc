@@ -1,5 +1,11 @@
 NOW:
 
+[x] proper basic worker.py logging
+
+[ ] fix Ctrl-D EOF bug in worker.py -- process gets left running full steam on EOF
+[ ] design protocol for new secure session as another user
+[ ] rewrite reset_all_accounts/reset_account to use that worker.py is root.
+
 Worker:
 
 How will this work?  
@@ -15,7 +21,8 @@ How will this work?
             os.setegid(pwd.getpwnam(user)[3])
             os.seteuid(pwd.getpwnam(user)[2])
   * then, fix any environment and PATH issues, e.g., DOT_SAGE
-* If running as normal user, just gets new session as usual, running as same user as the server
+* If running as normal user, just gets new session as usual, running
+  as same user as the server
 
 
 

@@ -28,8 +28,11 @@ class Entry(Base):
         return self.formatted
 
 class Database(object):
-    def __init__(self, file='log.sqlite3'):
+    def __init__(self, file):
         self._file = file
+        path = os.path.split(file)[0]
+        if path and not os.path.exists(path):
+            os.makedirs(path)
         self._engine = create_engine('sqlite:///%s'%file)
         if not os.path.exists(file):
             Base.metadata.create_all(self._engine)
@@ -82,7 +85,11 @@ class LogHandler(logging.Handler):
             self._socket.close()
         
 
-class TestLogHandler(LogHandler):
+#####################################################################
+# SSL-enabled log handler that client applications should user
+#####################################################################
+
+class StandardLogHandler(LogHandler):
     def connect(self):
         self._socket = ssl.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
         try:
@@ -98,13 +105,14 @@ class TestLog(object):
         self._tag = tag
         self._rootLogger = logging.getLogger('')
         self._rootLogger.setLevel(logging.DEBUG)
-        self._rootLogger.addHandler(TestLogHandler('%s:%s'%(hostname, port), tag=tag))
+        self._rootLogger.addHandler(StandardLogHandler('%s:%s'%(hostname, port), tag=tag))
 
     def run(self):
         i = 0
         while True:
             logging.info(raw_input('mesg: '))
             i += 1
+
 
 #####################################################################
 # The non-blocking SSL-enabled Tornado-based handler 
@@ -121,7 +129,7 @@ class TornadoLogHandler(LogHandler):
             sys.stderr.write("TornadoLogHandler: connection to logger failed -- '%s'"%err)            
             self._socket = None
 
-        
+# Testing Tornado webserver which verifies that TornadoLogHandler works        
 class WebTestLog(object):
     def __init__(self, port, hostname, webport, tag):
         self._hostname = hostname
@@ -264,7 +272,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--certfile", dest="certfile", type=str, default="cert.pem",
                         help="use or autogenerate the given certfile")
-    parser.add_argument("--dbfile", dest="dbfile", type=str, default="log.sqlite3",
+    parser.add_argument("--dbfile", dest="dbfile", type=str, default="data/log.sqlite3",
                         help="file in which to store the log database")
     parser.add_argument('--daemon', dest='daemon', action='store_const', const=True,
                         default=False, help="run as a daemon")

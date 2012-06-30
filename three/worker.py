@@ -10,6 +10,13 @@ sense anyways.
 
 import os, json, resource, socket, string, sys, tempfile, time, traceback
 
+##########################################################
+# Setup logging
+##########################################################
+import logging
+logging.basicConfig()
+log = logging.getLogger('')
+
 ######################################################################    
     
 class JSONsocket(object):
@@ -40,6 +47,7 @@ class JSONsocket(object):
                 return json.loads(mesg)
 
     def send(self, m):
+        log.debug("send: %s", m)
         self._s.send(json.dumps(m)+self._sep)
 
 
@@ -174,11 +182,6 @@ def divide_into_blocks(code):
             
     return blocks
         
-## log = open('log','a')
-## def lg(m, s):
-##     log.write('%s: %s\n'%(m,s))
-##     log.flush()
-
 class SageSocketServer(object):
     def __init__(self, backend, socket_name='', port=0, hostname='', no_sage=False,
                  use_ssl=False, certfile='', keyfile=''):
@@ -261,6 +264,7 @@ class SageSocketServer(object):
 
         while True:
             mesg = self._b.recv()
+            log.debug("receive: %s", mesg)
             if 'evaluate' in mesg:
                 self.evaluate(mesg['evaluate'], mesg.get('preparse', True), mesg.get('tag'))
                 continue
@@ -269,13 +273,14 @@ class SageSocketServer(object):
                 continue
 
     def run(self):
+        global log
             
         if self.use_unix_domain_socket():
             # use Unix Domain Sockets
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             if not self._socket_name:
                 self._socket_name = tempfile.mktemp() # unsafe, so we bind immediately below
-            print "Binding socket to %s"%self._socket_name
+            log.info("Binding socket to %s"%self._socket_name)
             s.bind(self._socket_name)
             register = {'socket_name':self._socket_name}
             
@@ -288,12 +293,12 @@ class SageSocketServer(object):
             else:
                 self._port = int(self._port)
                 s.bind((self._hostname, self._port))
-            print "Connected socket to %s:%s"%(self._hostname, self._port)
+            log.info("Binding socket %s:%s", self._hostname, self._port)
             register = {'port':self._port, 'hostname':self._hostname}
 
         if self._backend:
             url = 'http://%s/register_manager'%self._backend 
-            print "Registering with backend server at %s"%url  # todo: proper log
+            log.info("Registering with backend server at %s", url)
             import misc
             misc.post(url, data = register, timeout=5)  # TODO: 5?
 
@@ -302,28 +307,34 @@ class SageSocketServer(object):
         
         try:
             while 1:
-                print "Waiting for %sconnection..."%('SSL secure ' if self._use_ssl else '')
+                log.info("Waiting for %sconnection..."%('SSL secure ' if self._use_ssl else ''))
                 conn, addr = s.accept()
                 if self._use_ssl:
                     import ssl
                     conn = ssl.wrap_socket(conn, server_side=True, certfile=self._certfile, keyfile=self._keyfile)
-                    print "Upgraded to SSL connection."
+                    log.info("Upgraded to SSL connection.")
                 
                 pid = os.fork()
                 if pid == 0:
                     # child
+                    if args.log:
+                        log = logging.getLogger('')
+                        log.setLevel(logging.DEBUG)
+                        from log import StandardLogHandler
+                        log.addHandler(StandardLogHandler(address=args.log, tag='session'))
+                    
                     self._recv_eval_send_loop(conn)
                     
                 else:
                     # parent
-                    print "Accepted a new connection, and created process %s to handle it"%pid
+                    log.info("Accepted a new connection, and created process %s to handle it"%pid)
                     self._children.append(pid)
         except Exception, err:
 
-            print "Error connecting: ", err
+            log.error("Error connecting: %s", str(err))
             
         finally:
-            print "Cleaning up server..."
+            log.info("Cleaning up server...")
             try:
                 try:
                     if self.use_unix_domain_socket():
@@ -337,9 +348,9 @@ class SageSocketServer(object):
                     pass
             except OSError:
                 pass
-            print "Waiting for all forked subprocesses to terminate..."
+            log.info("Waiting for all forked subprocesses to terminate...")
             os.wait()
-            print "All subprocesses have terminated."
+            log.info("All subprocesses have terminated.")
 
 class SageSocketTestClient(object):
     def __init__(self, socket_name='', port='', hostname='', num_trials=1, use_ssl=False):
@@ -354,6 +365,7 @@ class SageSocketTestClient(object):
         return self._port == 'uds'
 
     def run(self):
+        log.disabled = True
         try:
             if self.use_unix_domain_socket():
                 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -361,27 +373,38 @@ class SageSocketTestClient(object):
                     import ssl
                     s = ssl.wrap_socket(s)
                 s.connect(self._socket_name)
-                print "Connected to Sage Workspace server on the Unix Domain socket %s"%self._socket_name
+                banner = "Connected to Sage Workspace server on the Unix Domain socket %s"%self._socket_name
             else:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 if self._use_ssl:
                     import ssl
                     s = ssl.wrap_socket(s)
                 s.connect((self._hostname, int(self._port)))
-                print "Connected to %sSage Workspace server at %s:%s"%('SSL encrypted ' if self._use_ssl else '',
+                banner = "Connected to %sSage Workspace server at %s:%s"%('SSL encrypted ' if self._use_ssl else '',
                                                                   self._hostname, self._port)
+            print '-'*(len(banner)+4)
+            print '| ' + banner + ' |'
+            print '-'*(len(banner)+4)
                 
             b = JSONsocket(s)
-            while 1:
-                r = raw_input('sage: ')
-                z = r
-                if z.rstrip().endswith(':'):
-                    while True:
-                        z = raw_input('...       ')
-                        if z != '':
-                            r += '\n    ' + z
-                        else:
-                            break
+            quit = False
+            while not quit:
+                try:
+                    r = raw_input('sage: ')
+                    z = r
+                    if z.rstrip().endswith(':'):
+                        while True:
+                            try:
+                                z = raw_input('...       ')
+                            except EOFError:
+                                quit = True
+                                break
+                            if z != '':
+                                r += '\n    ' + z
+                            else:
+                                break
+                except EOFError:
+                    break
                 t = time.time()
                 for n in range(self._num_trials):
                     b.send({'execute':r})
@@ -480,11 +503,28 @@ if __name__ == '__main__':
 
     parser.add_argument("--no_sage", dest="no_sage", default=False, action='store_const', const=True,
                         help="if set, do *not* import the Sage library and do not preparse input")
+
+
+    parser.add_argument("--log", dest="log", type=str, default="",
+                        help="if specified also log to secure remote log server at that location (e.g., 'localhost:9020')")
+    parser.add_argument("--log_tag", dest="log_tag", type=str, default="worker",
+                        help="tag to include in remote log server messages, which could be used to identify this process, e.g., 'worker'")
+    parser.add_argument('--log_level', dest='log_level', type=str, default='INFO',
+                        help="log level (default: INFO) useful options include WARNING and DEBUG")
     
     args = parser.parse_args()
     if args.socket_name and args.port == 'auto':
         args.port = 'uds'
 
+    if args.log:
+        from log import StandardLogHandler
+        log.addHandler(StandardLogHandler(address=args.log, tag=args.log_tag))
+
+    if args.log_level:
+        level = getattr(logging, args.log_level.upper())
+        #print "Setting log level to %s (=%s)"%(args.log_level, level)
+        log.setLevel(level)
+    
     if args.use_ssl:
         if not args.certfile and not args.keyfile and not args.gen_cert:
             args.gen_cert = 'cert.pem'
@@ -492,11 +532,11 @@ if __name__ == '__main__':
         if args.gen_cert:
             # ensure certificate exists
             if not os.path.exists(args.gen_cert):
-                print "Generating self-signed certificate: '%s'"%args.gen_cert
+                log.info("Generating self-signed certificate: '%s'", args.gen_cert)
                 import subprocess
                 p = subprocess.Popen(['openssl', 'req', '-batch', '-new', '-x509', '-newkey', 'rsa:%s'%args.gen_cert_bits, '-days', '9999', '-nodes', '-out', args.gen_cert, '-keyout', args.gen_cert])
                 if p.wait():
-                    print "Error running openssl"
+                    log.info("Error running openssl")
                     os.unlink(args.gen_cert)
                     sys.exit(1)
                 os.chmod(args.gen_cert, 0600)
