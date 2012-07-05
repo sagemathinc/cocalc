@@ -8,7 +8,14 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-import os, json, resource, socket, string, sys, tempfile, time, traceback
+import os, json, resource, signal, socket, string, sys, tempfile, time, traceback
+
+
+# Enable automatic child reaping -- see http://en.wikipedia.org/wiki/SIGCHLD
+# Otherwise, when a client disconnects a child is left hanging around.
+# We may want to change this later as worker becomes more
+# sophisticated, and perhaps handle SIGCHLD by setting some entry.
+signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 ##########################################################
 # Setup logging
@@ -358,7 +365,11 @@ class SageSocketServer(object):
             except OSError:
                 pass
             log.info("Waiting for all forked subprocesses to terminate...")
-            os.wait()
+            try:
+                os.wait()
+            except OSError:
+                log.info("There are no forked processes to terminate.")
+                pass
             log.info("All subprocesses have terminated.")
 
 class SageSocketTestClient(object):
