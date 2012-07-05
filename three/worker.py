@@ -353,9 +353,14 @@ class SageSocketServer(object):
                         
                     signal.signal(signal.SIGALRM, auth_fail)
                     signal.alarm(5)
-                    c = conn.recv(TOKEN_LENGTH)
+                    token = conn.recv(TOKEN_LENGTH)
                     signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
-                    
+                    if token != self._token:
+                        conn.send("NO")
+                        auth_fail()
+                    else:
+                        conn.send("OK")
+                        
                     # child
                     if args.log:
                         log = logging.getLogger('')
@@ -434,14 +439,20 @@ class SageSocketTestClient(object):
                 banner = "Connected to %sSage Workspace server at %s:%s"%('SSL encrypted ' if self._use_ssl else '',
                                                                   self._hostname, self._port)
 
-            log.info("Displaying banner")
+            # send authentication token
+            print "Authenticating..."
+            s.send(open(TOKEN_FILE).read())
+            r = s.recv(2)
+            if r == "OK":
+                print "Session granted."
+            else:
+                print "Session denied (invalid token)."
+                sys.exit(1)
+                
             print '-'*(len(banner)+4)
             print '| ' + banner + ' |'
             print '-'*(len(banner)+4)
 
-            # send authentication token
-            s.send(open(TOKEN_FILE).read())
-            
                 
             log.disabled = True
             b = JSONsocket(s)

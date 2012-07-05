@@ -74,3 +74,4 @@ DONE:
 [x] proper basic worker.py logging
 [x] fix Ctrl-D EOF bug in worker.py -- process gets left running full steam on EOF
 [x] worker: forked process gets left as a zombie when it quits; fix this.
+[x] auth token for worker
