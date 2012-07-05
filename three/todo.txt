@@ -1,20 +1,5 @@
 NOW:
 
-[ ] user switching: How will this work?  
-
-* It runs as either root or normal user
-* Imports the sage library
-* Client connects to socket
-* Fork
-* If running as root, change to user:
-        import os, pwd
-        if os.system('whoami') == 'root'
-            user = 'sagews'
-            os.setegid(pwd.getpwnam(user)[3])
-            os.seteuid(pwd.getpwnam(user)[2])
-  * then, fix any environment and PATH issues, e.g., DOT_SAGE
-* If running as normal user, just gets new session as usual, running
-  as same user as the server
 
 [ ] worker.py -- anti DOS measures
 
@@ -74,4 +59,18 @@ DONE:
 [x] proper basic worker.py logging
 [x] fix Ctrl-D EOF bug in worker.py -- process gets left running full steam on EOF
 [x] worker: forked process gets left as a zombie when it quits; fix this.
-[x] auth token for worker
+[x] implement auth token for worker
+[x] user switching: How will this work?  
+* It runs as either root or normal user
+* Imports the sage library
+* Client connects to socket
+* Fork
+* If running as root, change to user:
+        import os, pwd
+        if os.system('whoami') == 'root'
+            user = 'sagews'
+            os.setegid(pwd.getpwnam(user)[3])
+            os.seteuid(pwd.getpwnam(user)[2])
+  * then, fix any environment and PATH issues, e.g., DOT_SAGE
+* If running as normal user, just gets new session as usual, running
+  as same user as the server

@@ -8,7 +8,7 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-import os, json, random, resource, signal, socket, string, sys, tempfile, time, traceback
+import os, json, pwd, random, resource, signal, socket, string, sys, tempfile, time, traceback
 
 
 #####################################
@@ -215,6 +215,10 @@ class SageSocketServer(object):
         self._hostname = hostname if hostname else socket.gethostname()
         self._no_sage = no_sage
         self.init_token()
+        self._limits = {'CPU':1800,    # max CPU time = this many seconds of *cpu* time (not wall)
+                        'NOFILE':2048,  # max number of open files
+                        'DATA':1000000, # max heap size (todo: units?)
+                        }
 
     def init_token(self):
         alpha = '_' + string.ascii_letters + string.digits
@@ -279,6 +283,7 @@ class SageSocketServer(object):
         self._b.send(msg)
 
     def _recv_eval_send_loop(self, conn):
+        log.info("recv_eval_send_loop")
         # Redirect stdout and stderr to objects that write directly
         # to a JSONsocket.
         self._b = JSONsocket(conn)
@@ -347,6 +352,13 @@ class SageSocketServer(object):
                 pid = os.fork()
                 if pid == 0:
                     # client must send the secret authentication token within 10 seconds, or we refuse to serve
+                    # child
+                    if args.log:
+                        log = logging.getLogger('')
+                        log.setLevel(logging.DEBUG)
+                        from log import StandardLogHandler
+                        log.addHandler(StandardLogHandler(address=args.log, tag='session'))
+
                     def auth_fail(*args):
                         log.info("Client failed to correctly send token on time.")
                         sys.exit(1)
@@ -360,14 +372,48 @@ class SageSocketServer(object):
                         auth_fail()
                     else:
                         conn.send("OK")
-                        
-                    # child
-                    if args.log:
-                        log = logging.getLogger('')
-                        log.setLevel(logging.DEBUG)
-                        from log import StandardLogHandler
-                        log.addHandler(StandardLogHandler(address=args.log, tag='session'))
+
+                    # for safety -- since about to switch user and they must not know token
+                    del self._token   
+
+                    #############################################
+                    # switch user
+                    log.info("Dropping privileges")
+                    user = 'wstein'
+                    user = 'sagews-worker'
+                    assert user != 'root'
                     
+                    v = pwd.getpwnam(user)
+                    log.info("v = %s", v)
+                    os.setgid(v[3])
+                    os.setuid(v[2])
+                    log.info("Privileges successfully dropped to user %s", user)
+
+                    log.info("Modifying environment for restricted user")
+                    # TODO: make dir better; clean up on exit, notify clients on exit?
+                    os.environ['DOT_SAGE'] = '/tmp/xyz'
+                    os.environ['IPYTHON_DIR'] = '/tmp/xyz'
+
+
+                    #############################################                    
+                    # limit user
+                    
+                    if 'CPU' in self._limits:
+                        t = self._limits['CPU']
+                        log.info("Setting maximum CPU time to %s seconds", t)
+                        resource.setrlimit(resource.RLIMIT_CPU, (t,t))
+
+                    if 'NOFILE' in self._limits:
+                         t = self._limits['NOFILE']
+                         log.info("Setting maximum number of open files to %s", t)
+                         resource.setrlimit(resource.RLIMIT_NOFILE, (t,t))
+
+                    if 'DATA' in self._limits:
+                         t = self._limits['DATA']
+                         log.info("Setting maximum heap size to %s", t)
+                         resource.setrlimit(resource.RLIMIT_DATA, (t,t))
+                        
+
                     self._recv_eval_send_loop(conn)
                     
                 else:
@@ -376,8 +422,7 @@ class SageSocketServer(object):
                     self._children.append(pid)
 
         except Exception, err:
-            if pid:
-                log.error("Error connecting: %s", str(err))
+            log.error("Error connecting: %s", str(err))
             
         finally:
             if pid == 0:
@@ -622,7 +667,8 @@ if __name__ == '__main__':
                                  num_trials=args.num_trials, use_ssl=use_ssl).run()
         else:
             SageSocketServer(args.backend, args.socket_name, args.port, args.hostname,
-                             use_ssl=use_ssl, certfile=args.certfile, keyfile=args.keyfile).run()
+                             use_ssl=use_ssl, certfile=args.certfile, keyfile=args.keyfile,
+                             no_sage=args.no_sage).run()
 
 
     if args.daemon:
