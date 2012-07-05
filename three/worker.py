@@ -40,7 +40,11 @@ class JSONsocket(object):
         while True:
             i = self._data.find(self._sep)
             if i == -1:
-                self._data += self._s.recv(self._bufsize)
+                b = self._s.recv(self._bufsize)
+                #log.debug("recv: b='%s'; len(b)=%s", b, len(b))
+                if len(b) == 0:
+                    raise EOFError
+                self._data += b
             else:
                 mesg = self._data[:i]
                 self._data = self._data[i+1:]
@@ -329,11 +333,16 @@ class SageSocketServer(object):
                     # parent
                     log.info("Accepted a new connection, and created process %s to handle it"%pid)
                     self._children.append(pid)
-        except Exception, err:
 
-            log.error("Error connecting: %s", str(err))
+        except Exception, err:
+            if pid:
+                log.error("Error connecting: %s", str(err))
             
         finally:
+            if pid == 0:
+                log.info("A connection was terminated; forked subprocess with pid %s quitting", os.getpid())
+                return  # child -- no cleanup needed (?)
+            
             log.info("Cleaning up server...")
             try:
                 try:
@@ -425,7 +434,6 @@ class SageSocketTestClient(object):
                     print "%s,  number per second: %s"%(r, int(1/r) if r else 'infinity')
                 
         finally:
-            # properly close socket
             try:
                 s.shutdown(0)
                 s.close()

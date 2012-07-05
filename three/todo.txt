@@ -1,8 +1,5 @@
 NOW:
 
-[x] proper basic worker.py logging
-
-[ ] fix Ctrl-D EOF bug in worker.py -- process gets left running full steam on EOF
 [ ] design protocol for new secure session as another user
 [ ] rewrite reset_all_accounts/reset_account to use that worker.py is root.
 
@@ -23,6 +20,11 @@ How will this work?
   * then, fix any environment and PATH issues, e.g., DOT_SAGE
 * If running as normal user, just gets new session as usual, running
   as same user as the server
+
+
+
+
+
 
 
 
@@ -59,3 +61,10 @@ PLAN: Implement each component without UI polish.
     [ ] update to use PostgreSQL database
     [ ] make it timeout connections that it forks off
     [ ] can I rewrite to use tornado so it's a single process (no forking)?  that would scale more
+
+
+DONE:
+
+[x] proper basic worker.py logging
+[x] fix Ctrl-D EOF bug in worker.py -- process gets left running full steam on EOF
+
