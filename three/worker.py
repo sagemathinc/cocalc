@@ -8,9 +8,18 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-import os, json, resource, signal, socket, string, sys, tempfile, time, traceback
+import os, json, random, resource, signal, socket, string, sys, tempfile, time, traceback
 
 
+#####################################
+# Setup the authentication token file
+#####################################
+TOKEN_LENGTH = 16    # 16 = 60,000 years on the fastest cluster I can imagine
+if not os.path.exists('data'):
+    os.makedirs('data')
+TOKEN_FILE = os.path.join('data', 'worker.token')
+
+####################################
 # Enable automatic child reaping -- see http://en.wikipedia.org/wiki/SIGCHLD
 # Otherwise, when a client disconnects a child is left hanging around.
 # We may want to change this later as worker becomes more
@@ -205,6 +214,15 @@ class SageSocketServer(object):
         self._keyfile = keyfile
         self._hostname = hostname if hostname else socket.gethostname()
         self._no_sage = no_sage
+        self.init_token()
+
+    def init_token(self):
+        alpha = '_' + string.ascii_letters + string.digits
+        sr = random.SystemRandom()  # officially "suitable" for cryptographic use
+        self._token = ''.join([sr.choice(alpha) for _ in range(TOKEN_LENGTH)])
+        os.chmod(TOKEN_FILE, 0600) # set restrictive perm on file before writing token
+        open(TOKEN_FILE, 'w').write(self._token)
+        log.info("16-character random authentication token stored in %s"%TOKEN_FILE)
 
     def use_unix_domain_socket(self):
         """Return True if we are using a local Unix Domain socket instead of opening a network port."""
@@ -315,7 +333,8 @@ class SageSocketServer(object):
 
         self._children = []
         s.listen(5)
-        
+
+        pid = None
         try:
             while 1:
                 log.info("Waiting for %sconnection..."%('SSL secure ' if self._use_ssl else ''))
@@ -327,6 +346,16 @@ class SageSocketServer(object):
                 
                 pid = os.fork()
                 if pid == 0:
+                    # client must send the secret authentication token within 10 seconds, or we refuse to serve
+                    def auth_fail(*args):
+                        log.info("Client failed to correctly send token on time.")
+                        sys.exit(1)
+                        
+                    signal.signal(signal.SIGALRM, auth_fail)
+                    signal.alarm(5)
+                    c = conn.recv(TOKEN_LENGTH)
+                    signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
+                    
                     # child
                     if args.log:
                         log = logging.getLogger('')
@@ -385,9 +414,10 @@ class SageSocketTestClient(object):
         return self._port == 'uds'
 
     def run(self):
-        log.disabled = True
         try:
+            log.info("Connecting...")
             if self.use_unix_domain_socket():
+                log.info("using Unix domain socket")
                 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 if self._use_ssl:
                     import ssl
@@ -395,6 +425,7 @@ class SageSocketTestClient(object):
                 s.connect(self._socket_name)
                 banner = "Connected to Sage Workspace server on the Unix Domain socket %s"%self._socket_name
             else:
+                log.info("using network socket")
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 if self._use_ssl:
                     import ssl
@@ -402,10 +433,17 @@ class SageSocketTestClient(object):
                 s.connect((self._hostname, int(self._port)))
                 banner = "Connected to %sSage Workspace server at %s:%s"%('SSL encrypted ' if self._use_ssl else '',
                                                                   self._hostname, self._port)
+
+            log.info("Displaying banner")
             print '-'*(len(banner)+4)
             print '| ' + banner + ' |'
             print '-'*(len(banner)+4)
+
+            # send authentication token
+            s.send(open(TOKEN_FILE).read())
+            
                 
+            log.disabled = True
             b = JSONsocket(s)
             quit = False
             while not quit:
@@ -511,8 +549,8 @@ if __name__ == '__main__':
     parser.add_argument('--daemon', dest='daemon', action='store_const', const=True, default=False,
                         help="run as a silent daemon")
 
-    parser.add_argument('--use_ssl', dest='use_ssl', default=False, action='store_const', const=True,
-                        help="if set, use SSL to encrypt communication between the client and server")
+    parser.add_argument('--no_ssl', dest='no_ssl', default=False, action='store_const', const=True,
+                        help="if set, do not use SSL to encrypt communication between the client and server (default is to use SSL)")
     parser.add_argument('--certfile', dest='certfile', default='', type=str, help="SSL cert file to use")
     parser.add_argument('--keyfile', dest='keyfile', default='', type=str, help="SSL key file to use")
     parser.add_argument('--gen_cert', dest="gen_cert", default='', type=str,
@@ -530,7 +568,7 @@ if __name__ == '__main__':
                         help="tag to include in remote log server messages, which could be used to identify this process, e.g., 'worker'")
     parser.add_argument('--log_level', dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
-    
+
     args = parser.parse_args()
     if args.socket_name and args.port == 'auto':
         args.port = 'uds'
@@ -543,8 +581,9 @@ if __name__ == '__main__':
         level = getattr(logging, args.log_level.upper())
         #print "Setting log level to %s (=%s)"%(args.log_level, level)
         log.setLevel(level)
-    
-    if args.use_ssl:
+
+    use_ssl = not args.no_ssl
+    if use_ssl:
         if not args.certfile and not args.keyfile and not args.gen_cert:
             args.gen_cert = 'cert.pem'
             
@@ -569,10 +608,10 @@ if __name__ == '__main__':
             reset_all_accounts(args.conf)
         elif args.client:
             SageSocketTestClient(socket_name=args.socket_name, port=args.port, hostname=args.hostname,
-                                 num_trials=args.num_trials, use_ssl=args.use_ssl).run()
+                                 num_trials=args.num_trials, use_ssl=use_ssl).run()
         else:
             SageSocketServer(args.backend, args.socket_name, args.port, args.hostname,
-                             use_ssl=args.use_ssl, certfile=args.certfile, keyfile=args.keyfile).run()
+                             use_ssl=use_ssl, certfile=args.certfile, keyfile=args.keyfile).run()
 
 
     if args.daemon:
