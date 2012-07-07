@@ -17,15 +17,7 @@ import os, json, pwd, random, resource, shutil, signal, socket, string, sys, tem
 TOKEN_LENGTH = 16    # 16 = 60,000 years on the fastest cluster I can imagine
 if not os.path.exists('data'):
     os.makedirs('data')
-TOKEN_FILE = os.path.join('data', 'worker.token')
-
-####################################
-# Enable automatic child reaping -- see http://en.wikipedia.org/wiki/SIGCHLD
-# Otherwise, when a client disconnects a child is left hanging around.
-# We may want to change this later as worker becomes more
-# sophisticated, and perhaps handle SIGCHLD by setting some entry.
-signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-
+TOKEN_FILE = os.path.join('data', 'worker_tokens')
 
 ##########################################################
 # Setup logging
@@ -231,7 +223,7 @@ class SageSocketServer(object):
                         'DATA':1000000, # max heap size (todo: units?)
                         }
         self._connections = {}
-        signal.signal(signal.SIGCHILD, self._handle_child_term)
+        signal.signal(signal.SIGCHLD, self._handle_child_term)
 
     def _handle_child_term(self, signum, frame):
         while True:
@@ -243,7 +235,7 @@ class SageSocketServer(object):
                 
     def _configure_users(self, users):
         whoami = os.environ['USER']
-        if whoami == 'root' not users.strip():
+        if whoami == 'root' and not users.strip():
             raise RuntimeError("When running as root, you must specify at least one user")
         if users:
             self._users = [x.strip() for x in users.split()]
@@ -255,8 +247,9 @@ class SageSocketServer(object):
         sr = random.SystemRandom()  # officially "suitable" for cryptographic use
         self._tokens = [''.join([sr.choice(alpha) for _ in range(TOKEN_LENGTH)])
                            for _ in range(len(self._users))]
-        os.chmod(TOKEN_FILE, 0600) # set restrictive perm on file before writing token
-        open(TOKEN_FILE, 'w').write('\n'.join(self._tokens))
+        file = open(TOKEN_FILE,'w')
+        os.chmod(TOKEN_FILE, 0600) # set restrictive perm on file before writing to it
+        file.write('\n'.join(self._tokens))
         log.info("stored %s random 16-character authentication tokens in %s"%(
             len(self._users), TOKEN_FILE))
 
@@ -400,7 +393,8 @@ class SageSocketServer(object):
                     def auth_fail(*args):
                         log.info("Client failed to correctly send token on time.")
                         sys.exit(1)
-                        
+
+                    
                     signal.signal(signal.SIGALRM, auth_fail)
                     signal.alarm(5)
                     token = conn.recv(TOKEN_LENGTH)
@@ -421,7 +415,12 @@ class SageSocketServer(object):
                         log.info("Dropping privileges since server is running as root")
 
                         user = self._users[i]
+
+                        
                         v = pwd.getpwnam(user)
+
+                        os.chown(temp_path, v[2], v[3])
+                            
                         os.setgid(v[3])
                         os.setuid(v[2])
                         log.info("Privileges successfully dropped to user %s", user)
@@ -705,10 +704,13 @@ if __name__ == '__main__':
             SageSocketTestClient(socket_name=args.socket_name, port=args.port, hostname=args.hostname,
                                  num_trials=args.num_trials, use_ssl=use_ssl).run()
         else:
-            SageSocketServer(args.backend, args.socket_name, args.port, args.hostname,
+            try:
+                SageSocketServer(args.backend, args.socket_name, args.port, args.hostname,
                              use_ssl=use_ssl, certfile=args.certfile, keyfile=args.keyfile,
                              no_sage=args.no_sage, users=args.users).run()
-
+            except Exception, msg:
+                print '%s: %s'%(sys.argv[0], msg)
+                sys.exit(1)
 
     if args.daemon:
         import daemon
