@@ -1,10 +1,15 @@
 NOW:
 
-
+[ ] worker.py -- list of users for switching (command line option)
+[ ] todos near /tmp/xyz
 [ ] worker.py -- anti DOS measures
 
 
 SOON:
+
+[ ] configuration framework
+
+[ ] configure HAproxy
 
 [ ] design protocol for new secure session as another user
 [ ] rewrite reset_all_accounts/reset_account to use that worker.py is root.

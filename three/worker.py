@@ -8,7 +8,7 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-import os, json, pwd, random, resource, signal, socket, string, sys, tempfile, time, traceback
+import os, json, pwd, random, resource, shutil, signal, socket, string, sys, tempfile, time, traceback
 
 
 #####################################
@@ -25,6 +25,7 @@ TOKEN_FILE = os.path.join('data', 'worker.token')
 # We may want to change this later as worker becomes more
 # sophisticated, and perhaps handle SIGCHLD by setting some entry.
 signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+
 
 ##########################################################
 # Setup logging
@@ -201,10 +202,19 @@ def divide_into_blocks(code):
             i += 1
             
     return blocks
+
+class Connection(object):
+    def __init__(self, user=None, temp_path=None):
+        self._user = user
+        self._temp_path = temp_path
+        
+    def __del__(self):
+        if self._temp_path:
+            shutil.rmtree(self._temp_path)
         
 class SageSocketServer(object):
     def __init__(self, backend, socket_name='', port=0, hostname='', no_sage=False,
-                 use_ssl=False, certfile='', keyfile=''):
+                 use_ssl=False, certfile='', keyfile='', users=''):
         self._backend = backend
         self._socket_name = socket_name
         self._port = port
@@ -214,19 +224,41 @@ class SageSocketServer(object):
         self._keyfile = keyfile
         self._hostname = hostname if hostname else socket.gethostname()
         self._no_sage = no_sage
-        self.init_token()
+        self._configure_users(users)
+        self.init_tokens()
         self._limits = {'CPU':1800,    # max CPU time = this many seconds of *cpu* time (not wall)
                         'NOFILE':2048,  # max number of open files
                         'DATA':1000000, # max heap size (todo: units?)
                         }
+        self._connections = {}
+        signal.signal(signal.SIGCHILD, self._handle_child_term)
 
-    def init_token(self):
+    def _handle_child_term(self, signum, frame):
+        while True:
+            pid, exit_status = os.waitpid(-1, os.WNOHANG)
+            if not pid: return
+            if pid in self._connections:
+                log.info("Cleaning up after child process %s", pid)
+                del self._connections[pid]
+                
+    def _configure_users(self, users):
+        whoami = os.environ['USER']
+        if whoami == 'root' not users.strip():
+            raise RuntimeError("When running as root, you must specify at least one user")
+        if users:
+            self._users = [x.strip() for x in users.split()]
+        else:
+            self._users = [whoami]
+
+    def init_tokens(self):
         alpha = '_' + string.ascii_letters + string.digits
         sr = random.SystemRandom()  # officially "suitable" for cryptographic use
-        self._token = ''.join([sr.choice(alpha) for _ in range(TOKEN_LENGTH)])
+        self._tokens = [''.join([sr.choice(alpha) for _ in range(TOKEN_LENGTH)])
+                           for _ in range(len(self._users))]
         os.chmod(TOKEN_FILE, 0600) # set restrictive perm on file before writing token
-        open(TOKEN_FILE, 'w').write(self._token)
-        log.info("16-character random authentication token stored in %s"%TOKEN_FILE)
+        open(TOKEN_FILE, 'w').write('\n'.join(self._tokens))
+        log.info("stored %s random 16-character authentication tokens in %s"%(
+            len(self._users), TOKEN_FILE))
 
     def use_unix_domain_socket(self):
         """Return True if we are using a local Unix Domain socket instead of opening a network port."""
@@ -338,6 +370,7 @@ class SageSocketServer(object):
 
         self._children = []
         s.listen(5)
+        as_root = (os.environ['USER'] == 'root')
 
         pid = None
         try:
@@ -348,8 +381,13 @@ class SageSocketServer(object):
                     import ssl
                     conn = ssl.wrap_socket(conn, server_side=True, certfile=self._certfile, keyfile=self._keyfile)
                     log.info("Upgraded to SSL connection.")
-                
+
+
+                if as_root:
+                    temp_path = tempfile.mkdtemp()
+                    
                 pid = os.fork()
+
                 if pid == 0:
                     # client must send the secret authentication token within 10 seconds, or we refuse to serve
                     # child
@@ -367,57 +405,55 @@ class SageSocketServer(object):
                     signal.alarm(5)
                     token = conn.recv(TOKEN_LENGTH)
                     signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
-                    if token != self._token:
+                    if token not in self._tokens:
                         conn.send("NO")
                         auth_fail()
                     else:
                         conn.send("OK")
+                        i = self._tokens.index(token)
 
                     # for safety -- since about to switch user and they must not know token
-                    del self._token   
+                    del self._tokens   
 
                     #############################################
-                    # switch user
-                    log.info("Dropping privileges")
-                    user = 'wstein'
-                    user = 'sagews-worker'
-                    assert user != 'root'
-                    
-                    v = pwd.getpwnam(user)
-                    log.info("v = %s", v)
-                    os.setgid(v[3])
-                    os.setuid(v[2])
-                    log.info("Privileges successfully dropped to user %s", user)
+                    # switch user, if root
+                    if as_root:
+                        log.info("Dropping privileges since server is running as root")
 
-                    log.info("Modifying environment for restricted user")
-                    # TODO: make dir better; clean up on exit, notify clients on exit?
-                    os.environ['DOT_SAGE'] = '/tmp/xyz'
-                    os.environ['IPYTHON_DIR'] = '/tmp/xyz'
+                        user = self._users[i]
+                        v = pwd.getpwnam(user)
+                        os.setgid(v[3])
+                        os.setuid(v[2])
+                        log.info("Privileges successfully dropped to user %s", user)
 
+                        log.info("Modifying environment for restricted use")
 
-                    #############################################                    
-                    # limit user
-                    
-                    if 'CPU' in self._limits:
-                        t = self._limits['CPU']
-                        log.info("Setting maximum CPU time to %s seconds", t)
-                        resource.setrlimit(resource.RLIMIT_CPU, (t,t))
+                        # TODO: make dir better; clean up on exit, notify clients on exit...
+                        os.environ['DOT_SAGE'] = temp_path
+                        os.environ['IPYTHON_DIR'] = temp_path
 
-                    if 'NOFILE' in self._limits:
-                         t = self._limits['NOFILE']
-                         log.info("Setting maximum number of open files to %s", t)
-                         resource.setrlimit(resource.RLIMIT_NOFILE, (t,t))
+                        #############################################                    
+                        # limit user
+                        if 'CPU' in self._limits:
+                            t = self._limits['CPU']
+                            log.info("Setting maximum CPU time to %s seconds", t)
+                            resource.setrlimit(resource.RLIMIT_CPU, (t,t))
 
-                    if 'DATA' in self._limits:
-                         t = self._limits['DATA']
-                         log.info("Setting maximum heap size to %s", t)
-                         resource.setrlimit(resource.RLIMIT_DATA, (t,t))
-                        
+                        if 'NOFILE' in self._limits:
+                             t = self._limits['NOFILE']
+                             log.info("Setting maximum number of open files to %s", t)
+                             resource.setrlimit(resource.RLIMIT_NOFILE, (t,t))
+
+                        if 'DATA' in self._limits:
+                             t = self._limits['DATA']
+                             log.info("Setting maximum heap size to %s", t)
+                             resource.setrlimit(resource.RLIMIT_DATA, (t,t))
 
                     self._recv_eval_send_loop(conn)
                     
                 else:
                     # parent
+                    self._connections[pid] = Connection(temp_path=temp_path)
                     log.info("Accepted a new connection, and created process %s to handle it"%pid)
                     self._children.append(pid)
 
@@ -625,6 +661,9 @@ if __name__ == '__main__':
     parser.add_argument('--log_level', dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
 
+    parser.add_argument('--users', dest='users', type=str, default='',
+                        help="list of available users to switch to if running as root")
+
     args = parser.parse_args()
     if args.socket_name and args.port == 'auto':
         args.port = 'uds'
@@ -668,7 +707,7 @@ if __name__ == '__main__':
         else:
             SageSocketServer(args.backend, args.socket_name, args.port, args.hostname,
                              use_ssl=use_ssl, certfile=args.certfile, keyfile=args.keyfile,
-                             no_sage=args.no_sage).run()
+                             no_sage=args.no_sage, users=args.users).run()
 
 
     if args.daemon:
