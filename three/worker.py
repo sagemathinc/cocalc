@@ -10,14 +10,13 @@ sense anyways.
 
 import os, json, pwd, random, resource, shutil, signal, socket, string, sys, tempfile, time, traceback
 
-
 #####################################
 # Setup the authentication token file
 #####################################
 TOKEN_LENGTH = 16    # 16 = 60,000 years on the fastest cluster I can imagine
 if not os.path.exists('data'):
     os.makedirs('data')
-TOKEN_FILE = os.path.join('data', 'worker_tokens')
+TOKEN_FILE = os.path.join('data', 'worker_tokens_%s'%os.environ['USER'])
 
 ##########################################################
 # Setup logging
@@ -202,6 +201,7 @@ class Connection(object):
         
     def __del__(self):
         if self._temp_path:
+            log.info("Removing '%s'", self._temp_path)
             shutil.rmtree(self._temp_path)
         
 class SageSocketServer(object):
@@ -223,11 +223,15 @@ class SageSocketServer(object):
                         'DATA':1000000, # max heap size (todo: units?)
                         }
         self._connections = {}
+        #signal.signal(signal.SIGCHLD, signal.SIG_IGN)
         signal.signal(signal.SIGCHLD, self._handle_child_term)
 
     def _handle_child_term(self, signum, frame):
         while True:
-            pid, exit_status = os.waitpid(-1, os.WNOHANG)
+            try:
+                pid, exit_status = os.waitpid(-1, os.WNOHANG)
+            except:
+                return
             if not pid: return
             if pid in self._connections:
                 log.info("Cleaning up after child process %s", pid)
@@ -238,7 +242,7 @@ class SageSocketServer(object):
         if whoami == 'root' and not users.strip():
             raise RuntimeError("When running as root, you must specify at least one user")
         if users:
-            self._users = [x.strip() for x in users.split()]
+            self._users = [x.strip() for x in users.split(',')]
         else:
             self._users = [whoami]
 
@@ -252,6 +256,8 @@ class SageSocketServer(object):
         file.write('\n'.join(self._tokens))
         log.info("stored %s random 16-character authentication tokens in %s"%(
             len(self._users), TOKEN_FILE))
+        # TODO -- remove
+        log.info('\n'.join(self._tokens))
 
     def use_unix_domain_socket(self):
         """Return True if we are using a local Unix Domain socket instead of opening a network port."""
@@ -369,7 +375,12 @@ class SageSocketServer(object):
         try:
             while 1:
                 log.info("Waiting for %sconnection..."%('SSL secure ' if self._use_ssl else ''))
-                conn, addr = s.accept()
+                try:
+                    conn, addr = s.accept()
+                except socket.error:
+                    log.info("Handling a SIGCHLD signal, which temporarily stops server listening for incoming connections")
+                    continue
+                
                 if self._use_ssl:
                     import ssl
                     conn = ssl.wrap_socket(conn, server_side=True, certfile=self._certfile, keyfile=self._keyfile)
@@ -378,11 +389,14 @@ class SageSocketServer(object):
 
                 if as_root:
                     temp_path = tempfile.mkdtemp()
+                else:
+                    temp_path = None
                     
                 pid = os.fork()
 
                 if pid == 0:
                     # client must send the secret authentication token within 10 seconds, or we refuse to serve
+                    TIMEOUT = 10
                     # child
                     if args.log:
                         log = logging.getLogger('')
@@ -391,12 +405,11 @@ class SageSocketServer(object):
                         log.addHandler(StandardLogHandler(address=args.log, tag='session'))
 
                     def auth_fail(*args):
-                        log.info("Client failed to correctly send token on time.")
+                        log.info("Client failed to correctly send correct token within %s seconds.", TIMEOUT)
                         sys.exit(1)
 
-                    
                     signal.signal(signal.SIGALRM, auth_fail)
-                    signal.alarm(5)
+                    signal.alarm(TIMEOUT)
                     token = conn.recv(TOKEN_LENGTH)
                     signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
                     if token not in self._tokens:
@@ -457,7 +470,9 @@ class SageSocketServer(object):
                     self._children.append(pid)
 
         except Exception, err:
-            log.error("Error connecting: %s", str(err))
+            import traceback
+            traceback.print_exc(file=sys.stdout)
+            log.error("Error: %s %s", (type(err), str(err)))
             
         finally:
             if pid == 0:
@@ -487,12 +502,16 @@ class SageSocketServer(object):
             log.info("All subprocesses have terminated.")
 
 class SageSocketTestClient(object):
-    def __init__(self, socket_name='', port='', hostname='', num_trials=1, use_ssl=False):
-        self._use_ssl = use_ssl
+    def __init__(self, socket_name='', port='', hostname='', num_trials=1, use_ssl=False, token=''):
         self._socket_name = socket_name
         self._port = port
+        if not socket_name and port == 'auto':
+            print "You must specify a valid --port number or a --socket_name"
+            sys.exit(1)
+        self._use_ssl = use_ssl
         self._hostname = hostname if hostname else socket.gethostname()
         self._num_trials = num_trials
+        self._token = token if token else open(TOKEN_FILE).read()
 
     def use_unix_domain_socket(self):
         """Return True if we are using a local Unix Domain socket instead of opening a network port."""
@@ -521,7 +540,7 @@ class SageSocketTestClient(object):
 
             # send authentication token
             print "Authenticating..."
-            s.send(open(TOKEN_FILE).read())
+            s.send(self._token)
             r = s.recv(2)
             if r == "OK":
                 print "Session granted."
@@ -623,8 +642,13 @@ if __name__ == '__main__':
                         help="address:port of backend server to register with (or '' to not register)")
     parser.add_argument("--socket_name", dest="socket_name", type=str, default='',
                         help="name of UD socket to serve on (used for devel/testing)")
+
     parser.add_argument("--client", dest="client", action="store_const", const=True, default=False,
                         help="run a command line client instead (make sure to specify the socket with --socket_name or --port)")
+    parser.add_argument('--token', dest='token', type=str, default='',
+                        help="use this token to connect as a client")
+
+
     parser.add_argument('--num_trials', dest="num_trials", type=int, default=1,
                         help="used by the test client -- repeat inputs this many times and average time")
     parser.add_argument('--workspace_id', dest="workspace_id", type=int, default=-1,
@@ -702,7 +726,8 @@ if __name__ == '__main__':
             reset_all_accounts(args.conf)
         elif args.client:
             SageSocketTestClient(socket_name=args.socket_name, port=args.port, hostname=args.hostname,
-                                 num_trials=args.num_trials, use_ssl=use_ssl).run()
+                                 num_trials=args.num_trials, use_ssl=use_ssl,
+                                 token=args.token).run()
         else:
             try:
                 SageSocketServer(args.backend, args.socket_name, args.port, args.hostname,

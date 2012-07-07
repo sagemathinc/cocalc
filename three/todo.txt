@@ -1,11 +1,17 @@
 NOW:
 
-[ ] worker.py -- list of users for switching (command line option)
-[ ] todos near /tmp/xyz
-[ ] worker.py -- anti DOS measures
+[x] fix: server terminates when any client disconnects if we don't ignore SIGCHLD.
+[ ] server term should close client after n seconds
+
+
+[ ] startup time -- after fork even after importing sage -- is *very* slow.  Why?
 
 
 SOON:
+
+[ ] make it so client knows port of server?
+
+[ ] worker.py -- anti DOS measures (from users on own machine?)
 
 [ ] configuration framework
 
@@ -79,3 +85,6 @@ DONE:
   * then, fix any environment and PATH issues, e.g., DOT_SAGE
 * If running as normal user, just gets new session as usual, running
   as same user as the server
+[x] worker.py -- list of users for switching (command line option)
+[x] todos near /tmp/xyz
+
