@@ -1,7 +1,10 @@
 NOW:
 
-[x] fix: server terminates when any client disconnects if we don't ignore SIGCHLD.
-[ ] server term should close client after n seconds
+[ ] limiting memory usage doesn't work at all:
+   sage: import resource
+sage: resource.setrlimit(resource.RLIMIT_DATA, (10,10))
+sage: v = range(10^9)
+/Users/wstein/sage/build/sage-5.0/spkg/bin/sage: line 311: 51632 Killed: 9               sage-ipython "$@" -i
 
 
 [ ] startup time -- after fork even after importing sage -- is *very* slow.  Why?
@@ -87,4 +90,14 @@ DONE:
   as same user as the server
 [x] worker.py -- list of users for switching (command line option)
 [x] todos near /tmp/xyz
+[x] fix: server terminates when any client disconnects if we don't ignore SIGCHLD.
+
+[x] clients must be killed after n seconds (another limit):
+      - use a separate thread in the worker root process
+      - it will check every n seconds to see if anything needs to be killed:
+           use the Connection object
+      - if so, sends SIGQUIT, SIGKILL, etc. 
+
+[x] when main server terminates, it needs to kill the other thread that is watching
+    for connections to kill.
 

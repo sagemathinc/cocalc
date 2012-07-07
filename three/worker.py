@@ -8,7 +8,9 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-import os, json, pwd, random, resource, shutil, signal, socket, string, sys, tempfile, time, traceback
+import os, json, pwd, random, resource, shutil, signal, socket, string, sys, tempfile, threading, time, traceback
+
+CONNECTION_TERM_INTERVAL = 15
 
 #####################################
 # Setup the authentication token file
@@ -195,14 +197,34 @@ def divide_into_blocks(code):
     return blocks
 
 class Connection(object):
-    def __init__(self, user=None, temp_path=None):
+    def __init__(self, user=None, temp_path=None, max_walltime=None, pid=None):
         self._user = user
         self._temp_path = temp_path
+        self._start_walltime = time.time()
+        self._max_walltime = max_walltime
+        self._pid = pid
         
     def __del__(self):
+        # TODO: this should be a brutal and total cleanup of
+        # everything assocated with this connection
+        try:
+            self.signal(signal.SIGKILL)
+        except:
+            pass
         if self._temp_path:
             log.info("Removing '%s'", self._temp_path)
             shutil.rmtree(self._temp_path)
+
+    def time_remaining(self):
+        return self._max_walltime - self.walltime()
+
+    def walltime(self):
+        """Total time this connection has been opened."""
+        return time.time() - self._start_walltime
+
+    def signal(self, sig):
+        log.info("Sending signal %s to process %s", sig, self._pid)
+        os.kill(self._pid, sig)
         
 class SageSocketServer(object):
     def __init__(self, backend, socket_name='', port=0, hostname='', no_sage=False,
@@ -218,13 +240,33 @@ class SageSocketServer(object):
         self._no_sage = no_sage
         self._configure_users(users)
         self.init_tokens()
-        self._limits = {'CPU':1800,    # max CPU time = this many seconds of *cpu* time (not wall)
-                        'NOFILE':2048,  # max number of open files
-                        'DATA':1000000, # max heap size (todo: units?)
+
+        # some limits for testing purposes
+        self._limits = {'CPUTIME':360,     # max CPU time = this many seconds of *cpu* time (not wall)
+                        'NOFILE':2048,     # max number of open files
+                        'DATA':1000000,     # max heap size (todo: units?)
+                        'WALLTIME':3600,   # max wall time
                         }
+
+        
         self._connections = {}
-        #signal.signal(signal.SIGCHLD, signal.SIG_IGN)
         signal.signal(signal.SIGCHLD, self._handle_child_term)
+
+        # spawn a thread to periodically check to see if any connections
+        # need to be terminated because they have used too much time.
+        self._check_for_connection_timeouts()
+
+    def _check_for_connection_timeouts(self):
+        log.debug("Checking for connection timeouts...")
+        for pid, C in self._connections.items():
+            if C.time_remaining() <= 0:
+                C.signal(signal.SIGQUIT)
+            elif C.time_remaining() <= -2*CONNECTION_TERM_INTERVAL:
+                C.signal(signal.SIGKILL)
+            elif C.time_remaining() <= -4*CONNECTION_TERM_INTERVAL:
+                del self._connections[pid] # force brutal cleanup
+        self._connection_kill_timer = threading.Timer(CONNECTION_TERM_INTERVAL, self._check_for_connection_timeouts)
+        self._connection_kill_timer.start()
 
     def _handle_child_term(self, signum, frame):
         while True:
@@ -446,26 +488,23 @@ class SageSocketServer(object):
 
                         #############################################                    
                         # limit user
-                        if 'CPU' in self._limits:
-                            t = self._limits['CPU']
-                            log.info("Setting maximum CPU time to %s seconds", t)
-                            resource.setrlimit(resource.RLIMIT_CPU, (t,t))
+                        t = self._limits['CPUTIME']
+                        log.info("Setting maximum CPU time to %s seconds", t)
+                        resource.setrlimit(resource.RLIMIT_CPU, (t,t))
 
-                        if 'NOFILE' in self._limits:
-                             t = self._limits['NOFILE']
-                             log.info("Setting maximum number of open files to %s", t)
-                             resource.setrlimit(resource.RLIMIT_NOFILE, (t,t))
+                        t = self._limits['NOFILE']
+                        log.info("Setting maximum number of open files to %s", t)
+                        resource.setrlimit(resource.RLIMIT_NOFILE, (t,t))
 
-                        if 'DATA' in self._limits:
-                             t = self._limits['DATA']
-                             log.info("Setting maximum heap size to %s", t)
-                             resource.setrlimit(resource.RLIMIT_DATA, (t,t))
+                        t = self._limits['DATA']
+                        log.info("Setting maximum heap size to %s", t)
+                        resource.setrlimit(resource.RLIMIT_DATA, (t,t))
 
                     self._recv_eval_send_loop(conn)
                     
                 else:
                     # parent
-                    self._connections[pid] = Connection(temp_path=temp_path)
+                    self._connections[pid] = Connection(temp_path=temp_path, pid=pid, max_walltime=self._limits['WALLTIME'])
                     log.info("Accepted a new connection, and created process %s to handle it"%pid)
                     self._children.append(pid)
 
@@ -476,10 +515,15 @@ class SageSocketServer(object):
             
         finally:
             if pid == 0:
-                log.info("A connection was terminated; forked subprocess with pid %s quitting", os.getpid())
-                return  # child -- no cleanup needed (?)
-            
+                # child
+                log.info("The connection was terminated; the forked process with pid %s is quitting", os.getpid())
+                return  
+
+            # parent
             log.info("Cleaning up server...")
+            
+            self._connection_kill_timer.cancel()
+            
             try:
                 try:
                     if self.use_unix_domain_socket():
