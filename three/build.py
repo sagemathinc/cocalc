@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""
+Building the main components of sagews from source, ensuring that all
+important (usually security-related) options are compiled in.
+
+The components of sagews are:
+
+    * openssl  
+    * memcached
+    * python
+    * nginx
+    * haproxy
+    * postgreSQL
+
+For security and flexibility reasons, we want the option to regularly
+update or possibly modify components.
+
+Also, Sage is pre-installed in the worker VM.  
+
+"""
+
+import logging, os, shutil, subprocess, sys, time
+
+# Enable logging
+logging.basicConfig()
+log = logging.getLogger('')
+log.setLevel(logging.DEBUG)   # WARNING, INFO
+
+
+OS     = os.uname()[0]
+DATA   = os.path.abspath('data')
+SRC    = os.path.abspath(os.path.join(DATA, 'src'))
+BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
+TARGET = os.path.abspath(os.path.join(DATA, 'local'))
+
+# number of cpus
+try:
+    NCPU = os.sysconf("SC_NPROCESSORS_ONLN")
+except:
+    NCPU = int(subprocess.Popen("sysctl -n hw.ncpu", shell=True, stdin=subprocess.PIPE,
+                                stdout = subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True).stdout.read())
+
+log.info("detected %s cpus", NCPU)
+
+
+def cmd(s, path):
+    s = 'cd "%s" && '%path + s
+    log.info("cmd: %s", s)
+    if os.system(s):
+        raise RuntimeError('command failed: "%s"'%s)
+
+def extract_package(basename):
+    # find tar ball in SRC directory, extract it in build directory, and return resulting path
+    for filename in os.listdir(SRC):
+        if filename.split('-')[0] == basename:
+            i = filename.rfind('.tar.')
+            path = os.path.join(BUILD, filename[:i])
+            if os.path.exists(path):
+                shutil.rmtree(path)
+            cmd('tar xvf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
+            return path
+
+def build_openssl():
+    log.info("building openssl..."); start = time.time()
+    try:
+        path = extract_package('openssl')
+        cmd('./Configure %s --prefix="%s"'%(
+            'linux-x86_64' if os.uname()[0]=="Linux" else 'darwin64-x86_64-cc', TARGET), path)
+        cmd('make -j %s'%NCPU, path)
+        cmd('make install', path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start
+
+def build_memcached():
+    log.info("building memcached..."); start = time.time()
+    try:
+        path = extract_package('memcached')
+        cmd('./configure --prefix="%s" --enable-sasl'%TARGET, path)
+        cmd('make -j %s'%NCPU, path)
+        cmd('make install', path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
+def build_python():
+    log.info('building python'); start = time.time()
+    try:
+        path = extract_package('Python')
+        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('make -j %s'%NCPU, path)
+        cmd('make install', path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
+def build_nginx():
+    log.info('building nginx'); start = time.time()
+    try:
+        path = extract_package('nginx')
+        cmd('./configure --without-http_rewrite_module --prefix="%s"'%TARGET, path)
+        cmd('make -j %s'%NCPU, path)
+        cmd('make install', path)
+        cmd('mv sbin/nginx bin/', TARGET)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
+def build_haproxy():
+    log.info('building haproxy'); start = time.time()
+    try:
+        path = extract_package('haproxy')
+        cmd('make -j %s TARGET=%s'%(NCPU, 'linux2628' if OS=="Linux" else 'generic'), path)
+        cmd('cp haproxy "%s"/bin/'%TARGET, path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
+def build_postgresql():
+    log.info('building postgreSQL'); start = time.time()
+    try:
+        path = extract_package('postgresql')
+        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('make -j %s'%NCPU, path)
+        cmd('make install', path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
+
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Build packages from source")
+
+    parser.add_argument('--build_all', dest='build_all', action='store_const', const=True, default=False,
+                        help="build everything")
+
+    parser.add_argument('--build_openssl', dest='build_openssl', action='store_const', const=True, default=False,
+                        help="build the openssl library")
+
+    parser.add_argument('--build_memcached', dest='build_memcached', action='store_const', const=True, default=False,
+                        help="build memcached")
+
+    parser.add_argument('--build_python', dest='build_python', action='store_const', const=True, default=False,
+                        help="build the python interpreter")
+
+    parser.add_argument('--build_nginx', dest='build_nginx', action='store_const', const=True, default=False,
+                        help="build the nginx web server")
+
+    parser.add_argument('--build_haproxy', dest='build_haproxy', action='store_const', const=True, default=False,
+                        help="build the haproxy server")
+
+    parser.add_argument('--build_postgresql', dest='build_postgresql', action='store_const', const=True, default=False,
+                        help="build the postgresql database server")
+
+    args = parser.parse_args()
+
+    times = {}
+    if args.build_all or args.build_openssl:
+        times['openssl'] = build_openssl()
+
+    if args.build_all or args.build_memcached:
+        times['memcached'] = build_memcached()
+           
+    if args.build_all or args.build_python:
+        times['python'] = build_python()
+
+    if args.build_all or args.build_nginx:
+        times['nginx'] = build_nginx()
+
+    if args.build_all or args.build_haproxy:
+        times['haproxy'] = build_haproxy()
+        
+    if args.build_all or args.build_postgresql:
+        times['postgresql'] = build_postgresql()
+
+    if times:
+        log.info("Times: %s", times)

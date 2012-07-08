@@ -7,7 +7,7 @@ import logging, os
 # Enable logging
 logging.basicConfig()
 log = logging.getLogger('')
-log.setLevel(logging.DEBUG)   # warning, info
+log.setLevel(logging.DEBUG)   # WARNING, INFO
 
 
 DATA = 'data'
