@@ -1,16 +1,12 @@
 NOW:
 
-[ ] limiting memory usage doesn't work at all:
-   sage: import resource
-sage: resource.setrlimit(resource.RLIMIT_DATA, (10,10))
-sage: v = range(10^9)
-/Users/wstein/sage/build/sage-5.0/spkg/bin/sage: line 311: 51632 Killed: 9               sage-ipython "$@" -i
-
-
-[ ] startup time -- after fork even after importing sage -- is *very* slow.  Why?
-
 
 SOON:
+
+[ ] move all certfile generation stuff to a single master control / launcher module
+
+
+[ ] startup time -- after fork even after importing sage -- is *very* slow.  Fix.
 
 [ ] make it so client knows port of server?
 
@@ -101,3 +97,15 @@ DONE:
 [x] when main server terminates, it needs to kill the other thread that is watching
     for connections to kill.
 
+[x] clean up certfile in worker a bit
+
+[x] limiting memory usage doesn't work at all:
+  -- this is a well-known OS X "bug"/feature?
+   sage: import resource
+sage: resource.setrlimit(resource.RLIMIT_DATA, (10,10))
+sage: v = range(10^9)
+/Users/wstein/sage/build/sage-5.0/spkg/bin/sage: line 311: 51632 Killed: 9               sage-ipython "$@" -i
+
+This works perfectly on Linux:
+
+  megs=1000; resource.setrlimit(resource.RLIMIT_AS, (megs * 1048576L, -1L))

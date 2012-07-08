@@ -228,24 +228,23 @@ class Connection(object):
         
 class SageSocketServer(object):
     def __init__(self, backend, socket_name='', port=0, hostname='', no_sage=False,
-                 use_ssl=False, certfile='', keyfile='', users=''):
+                 use_ssl=False, certfile='', users=''):
         self._backend = backend
         self._socket_name = socket_name
         self._port = port
         self._tag = None
         self._use_ssl = use_ssl
         self._certfile = certfile
-        self._keyfile = keyfile
         self._hostname = hostname if hostname else socket.gethostname()
         self._no_sage = no_sage
         self._configure_users(users)
         self.init_tokens()
 
         # some limits for testing purposes
-        self._limits = {'CPUTIME':360,     # max CPU time = this many seconds of *cpu* time (not wall)
+        self._limits = {'CPUTIME':360,     # maximum CPU time in seconds
                         'NOFILE':2048,     # max number of open files
-                        'DATA':1000000,     # max heap size (todo: units?)
-                        'WALLTIME':3600,   # max wall time
+                        'VMEM':512,        # max total memory usage in meegabytes
+                        'WALLTIME':3600,   # max wall time in seconds
                         }
 
         
@@ -425,7 +424,7 @@ class SageSocketServer(object):
                 
                 if self._use_ssl:
                     import ssl
-                    conn = ssl.wrap_socket(conn, server_side=True, certfile=self._certfile, keyfile=self._keyfile)
+                    conn = ssl.wrap_socket(conn, server_side=True, certfile=self._certfile)
                     log.info("Upgraded to SSL connection.")
 
 
@@ -496,9 +495,12 @@ class SageSocketServer(object):
                         log.info("Setting maximum number of open files to %s", t)
                         resource.setrlimit(resource.RLIMIT_NOFILE, (t,t))
 
-                        t = self._limits['DATA']
-                        log.info("Setting maximum heap size to %s", t)
-                        resource.setrlimit(resource.RLIMIT_DATA, (t,t))
+                        t = self._limits['VMEM']
+                        if os.uname()[0] == 'Linux':
+                            log.info("Setting maximum virtual memory usage to %s megabytes", t)
+                            resource.setrlimit(resource.RLIMIT_AS, (t*1048576L, -1L))
+                        else:
+                            log.warning("Server not running on Linux, so there are ABSOLUTELY NO memory constraints in place.  (Except for development, there is no good excuse to ever run this program on anything but Linux in a sandboxed virtual machine.)")
 
                     self._recv_eval_send_loop(conn)
                     
@@ -710,12 +712,12 @@ if __name__ == '__main__':
 
     parser.add_argument('--no_ssl', dest='no_ssl', default=False, action='store_const', const=True,
                         help="if set, do not use SSL to encrypt communication between the client and server (default is to use SSL)")
-    parser.add_argument('--certfile', dest='certfile', default='', type=str, help="SSL cert file to use")
-    parser.add_argument('--keyfile', dest='keyfile', default='', type=str, help="SSL key file to use")
-    parser.add_argument('--gen_cert', dest="gen_cert", default='', type=str,
-                        help="generate a self-signed 2048 bit certificate and put in this file; this overrides certfile and keyfile above")
-    parser.add_argument('--gen_cert_bits', dest="gen_cert_bits", default=1024, type=int,
-                        help="number of bits of RSA private key (default: 1024)")
+
+    parser.add_argument("--certfile", dest="certfile", type=str, default="data/cert.pem",
+                        help="use or autogenerate the given certfile")
+    
+    parser.add_argument('--certfile_bits', dest="certfile_bits", default=2048, type=int,
+                        help="number of bits of RSA private key (default: 2048)")
 
     parser.add_argument("--no_sage", dest="no_sage", default=False, action='store_const', const=True,
                         help="if set, do *not* import the Sage library and do not preparse input")
@@ -746,22 +748,16 @@ if __name__ == '__main__':
 
     use_ssl = not args.no_ssl
     if use_ssl:
-        if not args.certfile and not args.keyfile and not args.gen_cert:
-            args.gen_cert = 'cert.pem'
-            
-        if args.gen_cert:
+        if not os.path.exists(args.certfile):
             # ensure certificate exists
-            if not os.path.exists(args.gen_cert):
-                log.info("Generating self-signed certificate: '%s'", args.gen_cert)
-                import subprocess
-                p = subprocess.Popen(['openssl', 'req', '-batch', '-new', '-x509', '-newkey', 'rsa:%s'%args.gen_cert_bits, '-days', '9999', '-nodes', '-out', args.gen_cert, '-keyout', args.gen_cert])
-                if p.wait():
-                    log.info("Error running openssl")
-                    os.unlink(args.gen_cert)
-                    sys.exit(1)
-                os.chmod(args.gen_cert, 0600)
-            args.certfile = args.gen_cert
-            args.keyfile = args.gen_cert
+            log.info("Generating self-signed certificate: '%s'", args.certfile)
+            import subprocess
+            p = subprocess.Popen(['openssl', 'req', '-batch', '-new', '-x509', '-newkey', 'rsa:%s'%args.certfile_bits, '-days', '9999', '-nodes', '-out', args.certfile, '-keyout', args.certfile])
+            if p.wait():
+                log.info("Error running openssl")
+                os.unlink(args.certfile)
+                sys.exit(1)
+            os.chmod(args.certfile, 0600)
 
     def main():
         if args.reset_account:
@@ -775,7 +771,7 @@ if __name__ == '__main__':
         else:
             try:
                 SageSocketServer(args.backend, args.socket_name, args.port, args.hostname,
-                             use_ssl=use_ssl, certfile=args.certfile, keyfile=args.keyfile,
+                             use_ssl=use_ssl, certfile=args.certfile, 
                              no_sage=args.no_sage, users=args.users).run()
             except Exception, msg:
                 print '%s: %s'%(sys.argv[0], msg)

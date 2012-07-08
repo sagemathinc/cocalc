@@ -284,7 +284,7 @@ if __name__ == '__main__':
     def main():
         if not os.path.exists(args.certfile):
             import subprocess
-            subprocess.Popen(['openssl', 'req', '-batch', '-new', '-x509', '-newkey', 'rsa:1024', '-days', '9999', '-nodes', '-out', args.certfile, '-keyout', args.certfile]).wait()
+            subprocess.Popen(['openssl', 'req', '-batch', '-new', '-x509', '-newkey', 'rsa:2048', '-days', '9999', '-nodes', '-out', args.certfile, '-keyout', args.certfile]).wait()
             os.chmod(args.certfile, 0600)
         if args.log_server:
             LogServer(port=args.port, certfile=args.certfile, dbfile=args.dbfile,
