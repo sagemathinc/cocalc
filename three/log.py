@@ -270,7 +270,7 @@ if __name__ == '__main__':
     parser.add_argument("--tag", dest="tag", type=str, default='',
                         help="message tag, e.g., 'backend1'")
 
-    parser.add_argument("--certfile", dest="certfile", type=str, default="cert.pem",
+    parser.add_argument("--certfile", dest="certfile", type=str, default="data/cert.pem",
                         help="use or autogenerate the given certfile")
     parser.add_argument("--dbfile", dest="dbfile", type=str, default="data/log.sqlite3",
                         help="file in which to store the log database")
