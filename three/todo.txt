@@ -2,6 +2,17 @@ NOW:
 
 [ ] create basic launcher / master control script
 
+-- ensure data directory exist and has right permissions
+-- read configuration file
+-- start relevant services on various machines:
+   - haproxy
+   - nginx
+   - postgreSQL server
+   - memcached
+   - backend(s)
+   - worker(s)
+
+
 
 SOON:
 
