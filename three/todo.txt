@@ -1,7 +1,12 @@
 NOW:
 
+[ ] create basic launcher / master control script
+
 
 SOON:
+
+[ ] sudo worker.py -- executing commands doesn't work at all on Linux
+    (but does on OS X), so probably a resource issue?
 
 [ ] move all certfile generation stuff to a single master control / launcher module
 
@@ -18,6 +23,8 @@ SOON:
 
 [ ] design protocol for new secure session as another user
 [ ] rewrite reset_all_accounts/reset_account to use that worker.py is root.
+
+[ ] log server going down is *fatal* to worker -- not acceptable design!
 
 Worker:
 

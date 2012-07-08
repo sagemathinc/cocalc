@@ -565,7 +565,7 @@ class SageSocketTestClient(object):
 
     def run(self):
         try:
-            log.info("Connecting...")
+            log.info("Connecting to host=%s, port=%s...", self._hostname, self._port)
             if self.use_unix_domain_socket():
                 log.info("using Unix domain socket")
                 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
