@@ -32,6 +32,14 @@ DATA   = os.path.abspath('data')
 SRC    = os.path.abspath(os.path.join(DATA, 'src'))
 BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
+PYTHON_PACKAGES = [  
+    'tornado',            # async webserver
+    'sockjs-tornado',     # websocket support
+    'python3-memcached',  # memcached for database 
+    'sqlalchemy',         # database ORM
+    'psycopg2',           # postgreSQL support for ORM
+    'momoko',             # async postgreSQL support
+    ]
 
 # number of cpus
 try:
@@ -128,6 +136,16 @@ def build_postgresql():
         return time.time()-start        
 
 
+def build_python_packages():
+    log.info('building python_packages'); start = time.time()
+    try:
+        path = extract_package('distribute')
+        cmd('python3 setup.py install', path)
+        cmd('./easy_install ' + ' '.join(PYTHON_PACKAGES), os.path.join(TARGET, 'bin'))
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
 
 
 if __name__ == "__main__":
@@ -155,6 +173,9 @@ if __name__ == "__main__":
     parser.add_argument('--build_postgresql', dest='build_postgresql', action='store_const', const=True, default=False,
                         help="build the postgresql database server")
 
+    parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
+                        help="build the python_packages interpreter")
+
     args = parser.parse_args()
 
     times = {}
@@ -175,6 +196,9 @@ if __name__ == "__main__":
         
     if args.build_all or args.build_postgresql:
         times['postgresql'] = build_postgresql()
+
+    if args.build_all or args.build_python_packages:
+        times['python_packages'] = build_python_packages()
 
     if times:
         log.info("Times: %s", times)

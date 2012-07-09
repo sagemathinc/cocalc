@@ -25,12 +25,15 @@ Python
 ------
 
    * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
-   * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
    * SQLite -- http://www.sqlite.org/; public domain (used by Python)
-   * python-daemon -- http://pypi.python.org/pypi/python-daemon/; Python license, and will go into Python eventually
    * python-memcached -- http://pypi.python.org/pypi/python-memcached/; Python license
+   * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
+   * psycopg -- to use postgreSQL from sqlalchemy
 
-easy_install tornado tornadio2 requests sqlalchemy python-daemon python-memcached psycopg2
+easy_install tornado sockjs-tornado python-memcached sqlalchemy psycopg2 momoko
+
+This doesn't install in python3, so...?
+   * python-daemon -- http://pypi.python.org/pypi/python-daemon/; Python license, and will go into Python eventually
 
 Javascript/CSS/HTML
 -------------------
