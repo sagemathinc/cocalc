@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Building the main components of sagews from source, ensuring that all
 important (usually security-related) options are compiled in.
@@ -41,12 +40,17 @@ PYTHON_PACKAGES = [
     'momoko',             # async postgreSQL support
     ]
 
+if not os.path.exists(BUILD):
+    os.makedirs(BUILD)
+
+os.environ['PATH'] = os.path.join(TARGET, 'bin') + ':' + os.environ['PATH']
+
 # number of cpus
 try:
     NCPU = os.sysconf("SC_NPROCESSORS_ONLN")
 except:
     NCPU = int(subprocess.Popen("sysctl -n hw.ncpu", shell=True, stdin=subprocess.PIPE,
-                                stdout = subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True).stdout.read())
+                 stdout = subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True).stdout.read())
 
 log.info("detected %s cpus", NCPU)
 
@@ -72,7 +76,7 @@ def build_openssl():
     log.info("building openssl..."); start = time.time()
     try:
         path = extract_package('openssl')
-        cmd('./Configure %s --prefix="%s"'%(
+        cmd('./Configure %s shared --prefix="%s"'%(
             'linux-x86_64' if os.uname()[0]=="Linux" else 'darwin64-x86_64-cc', TARGET), path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
@@ -95,7 +99,7 @@ def build_python():
     log.info('building python'); start = time.time()
     try:
         path = extract_package('Python')
-        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(TARGET,TARGET), path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
@@ -141,7 +145,7 @@ def build_python_packages():
     try:
         path = extract_package('distribute')
         cmd('python3 setup.py install', path)
-        cmd('./easy_install ' + ' '.join(PYTHON_PACKAGES), os.path.join(TARGET, 'bin'))
+        cmd('easy_install ' + ' '.join(PYTHON_PACKAGES), os.path.join(TARGET, 'bin'))
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
@@ -178,27 +182,29 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    times = {}
-    if args.build_all or args.build_openssl:
-        times['openssl'] = build_openssl()
+    try:
+        times = {}
+        if args.build_all or args.build_openssl:
+            times['openssl'] = build_openssl()
 
-    if args.build_all or args.build_memcached:
-        times['memcached'] = build_memcached()
-           
-    if args.build_all or args.build_python:
-        times['python'] = build_python()
+        if args.build_all or args.build_memcached:
+            times['memcached'] = build_memcached()
 
-    if args.build_all or args.build_nginx:
-        times['nginx'] = build_nginx()
+        if args.build_all or args.build_python:
+            times['python'] = build_python()
 
-    if args.build_all or args.build_haproxy:
-        times['haproxy'] = build_haproxy()
-        
-    if args.build_all or args.build_postgresql:
-        times['postgresql'] = build_postgresql()
+        if args.build_all or args.build_nginx:
+            times['nginx'] = build_nginx()
 
-    if args.build_all or args.build_python_packages:
-        times['python_packages'] = build_python_packages()
+        if args.build_all or args.build_haproxy:
+            times['haproxy'] = build_haproxy()
 
-    if times:
-        log.info("Times: %s", times)
+        if args.build_all or args.build_postgresql:
+            times['postgresql'] = build_postgresql()
+
+        if args.build_all or args.build_python_packages:
+            times['python_packages'] = build_python_packages()
+
+    finally:
+        if times:
+            log.info("Times: %s", times)
