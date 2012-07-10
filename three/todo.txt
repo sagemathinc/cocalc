@@ -1,7 +1,5 @@
 NOW:
 
-[ ] haproxy to nginx
-
 SOON:
 
 [ ] get log.py to work with py3
@@ -117,3 +115,5 @@ This works perfectly on Linux:
 
 [x] build system working on linux
 [x] serve static files with nginx
+[x] haproxy to nginx
+

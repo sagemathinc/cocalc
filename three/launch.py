@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Launch control
 """
@@ -37,7 +39,8 @@ def launch_nginx_servers():
     cmd('nginx -c "%s"'%os.path.abspath('nginx.conf'),'')
 
 def launch_haproxy_servers():
-    log.info('launching haproxy servers')    
+    log.info('launching haproxy servers')
+    cmd('sudo haproxy -f haproxy.conf', '')
 
 def launch_database_servers():
     log.info('launching database servers')        
@@ -75,6 +78,9 @@ if __name__ == "__main__":
     parser.add_argument('--launch_nginx', dest='launch_nginx', action='store_const', const=True, default=False,
                         help="launch the NGINX server")
 
+    parser.add_argument('--launch_haproxy', dest='launch_haproxy', action='store_const', const=True, default=False,
+                        help="launch the haproxy server")
+
     args = parser.parse_args()
     
     init_data_directory()
@@ -83,4 +89,6 @@ if __name__ == "__main__":
     if args.launch_nginx:
         launch_nginx_servers()
 
+    if args.launch_haproxy:
+        launch_haproxy_servers()
 
