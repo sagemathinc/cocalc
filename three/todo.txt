@@ -1,20 +1,10 @@
 NOW:
 
-[ ] create basic launcher / master control script
-
--- ensure data directory exist and has right permissions
--- read configuration file
--- start relevant services on various machines:
-   - haproxy
-   - nginx
-   - postgreSQL server
-   - memcached
-   - backend(s)
-   - worker(s)
-
-
+[ ] haproxy to nginx
 
 SOON:
+
+[ ] get log.py to work with py3
 
 [ ] sudo worker.py -- executing commands doesn't work at all on Linux
     (but does on OS X), so probably a resource issue?
@@ -36,20 +26,6 @@ SOON:
 [ ] rewrite reset_all_accounts/reset_account to use that worker.py is root.
 
 [ ] log server going down is *fatal* to worker -- not acceptable design!
-
-Worker:
-
-
-
-
-
-
-
-
-
-
-SOON:
-
 
 
 PLAN: Implement each component without UI polish.
@@ -127,3 +103,17 @@ sage: v = range(10^9)
 This works perfectly on Linux:
 
   megs=1000; resource.setrlimit(resource.RLIMIT_AS, (megs * 1048576L, -1L))
+[x] create basic launcher / master control script
+-- ensure data directory exist and has right permissions
+-- read configuration file
+-- start relevant services on various machines:
+   - haproxy
+   - nginx
+   - postgreSQL server
+   - memcached
+   - backend(s)
+   - worker(s)
+
+
+[x] build system working on linux
+[x] serve static files with nginx

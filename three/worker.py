@@ -8,6 +8,9 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
+# THIS USES Python2.  It imports the sage library, so there is no point in
+# worrying about Python3 for this. 
+
 import os, json, pwd, random, resource, shutil, signal, socket, string, sys, tempfile, threading, time, traceback
 
 CONNECTION_TERM_INTERVAL = 15
