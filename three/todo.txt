@@ -1,28 +1,17 @@
 NOW:
 
 SOON:
-
+[ ] sockjs or websocket + haproxy
 [ ] get log.py to work with py3
-
 [ ] sudo worker.py -- executing commands doesn't work at all on Linux
     (but does on OS X), so probably a resource issue?
-
 [ ] move all certfile generation stuff to a single master control / launcher module
-
-
 [ ] startup time -- after fork even after importing sage -- is *very* slow.  Fix.
-
 [ ] make it so client knows port of server?
-
 [ ] worker.py -- anti DOS measures (from users on own machine?)
-
 [ ] configuration framework
-
-[ ] configure HAproxy
-
 [ ] design protocol for new secure session as another user
 [ ] rewrite reset_all_accounts/reset_account to use that worker.py is root.
-
 [ ] log server going down is *fatal* to worker -- not acceptable design!
 
 
@@ -116,4 +105,5 @@ This works perfectly on Linux:
 [x] build system working on linux
 [x] serve static files with nginx
 [x] haproxy to nginx
+[x] psql database
 
