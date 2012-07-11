@@ -1,8 +1,8 @@
 NOW:
-[ ] simple tornado+sockjs+haproxy demo
 
-SOON:
-[ ] get log.py to work with py3
+
+
+IDEAS:
 [ ] sudo worker.py -- executing commands doesn't work at all on Linux
     (but does on OS X), so probably a resource issue?
 [ ] move all certfile generation stuff to a single master control / launcher module
@@ -10,43 +10,31 @@ SOON:
 [ ] make it so client knows port of server?
 [ ] worker.py -- anti DOS measures (from users on own machine?)
 [ ] configuration framework
-[ ] design protocol for new secure session as another user
 [ ] rewrite reset_all_accounts/reset_account to use that worker.py is root.
-[ ] log server going down is *fatal* to worker -- not acceptable design!
-
-
+[ ] log server going down is *fatal* to worker
 PLAN: Implement each component without UI polish.
-
   * Client -- Javascript library that runs in any modern web browser
     [ ] Write very simple ugly version that is fully functional.
-
   * Load Balancer -- HAProxy
     [ ] Learn how to deploy it and write config script.
         Example config script on some SockJS site.
-
   * Database -- PostgreSQL + SQLalchemy + Memcached + SSL
     [ ] Assemble SQLalchemy schema by combining what is current
         frontend and backend schema, plus actually store github bundle.
-
   * Worker -- forking SSL socket server + Sage + JSON
     [ ] Rewrite pulling code from backend.py in order to make this
         into a single integrated component with a straightforward API.
-
   * Backend -- HTTPS SockJS server; "create workspace" into DB queries; connect to worker
     [ ] Rewrite what I have to use SockJS (remove socket.io)
-
   * Static HTTP server -- simple nginx (no ssl)
     [ ] Configuration so my static/ directory served using nginx.
     [ ] Ability to serve static/ content created via statically publishing workspaces
-
   * Log server -- SSL socket server + database writer + Python logging
     [ ] update to use PostgreSQL database
     [ ] make it timeout connections that it forks off
     [ ] can I rewrite to use tornado so it's a single process (no forking)?  that would scale more
 
-
 DONE:
-
 [x] proper basic worker.py logging
 [x] fix Ctrl-D EOF bug in worker.py -- process gets left running full steam on EOF
 [x] worker: forked process gets left as a zombie when it quits; fix this.
@@ -107,3 +95,4 @@ This works perfectly on Linux:
 [x] haproxy to nginx
 [x] psql database
 
+[x] simple tornado+sockjs+haproxy demo
