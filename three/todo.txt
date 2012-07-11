@@ -1,7 +1,7 @@
 NOW:
+[ ] simple tornado+sockjs+haproxy demo
 
 SOON:
-[ ] sockjs or websocket + haproxy
 [ ] get log.py to work with py3
 [ ] sudo worker.py -- executing commands doesn't work at all on Linux
     (but does on OS X), so probably a resource issue?

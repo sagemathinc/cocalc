@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Building the main components of sagews from source, ensuring that all
 important (usually security-related) options are compiled in.
@@ -28,13 +30,14 @@ log.setLevel(logging.DEBUG)   # WARNING, INFO
 
 OS     = os.uname()[0]
 DATA   = os.path.abspath('data')
-SRC    = os.path.abspath(os.path.join(DATA, 'src'))
+SRC    = os.path.abspath('src')
 BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
+
 PYTHON_PACKAGES = [  
     'tornado',            # async webserver
     'sockjs-tornado',     # websocket support
-    'python3-memcached',  # memcached for database 
+    'python-memcached',  # memcached for database 
     'sqlalchemy',         # database ORM
     'psycopg2',           # postgreSQL support for ORM
     'momoko',             # async postgreSQL support
@@ -64,7 +67,7 @@ def cmd(s, path):
 def extract_package(basename):
     # find tar ball in SRC directory, extract it in build directory, and return resulting path
     for filename in os.listdir(SRC):
-        if filename.split('-')[0] == basename:
+        if filename.startswith(basename):
             i = filename.rfind('.tar.')
             path = os.path.join(BUILD, filename[:i])
             if os.path.exists(path):
@@ -144,13 +147,11 @@ def build_python_packages():
     log.info('building python_packages'); start = time.time()
     try:
         path = extract_package('distribute')
-        cmd('python3 setup.py install', path)
+        cmd('python setup.py install', path)
         cmd('easy_install ' + ' '.join(PYTHON_PACKAGES), os.path.join(TARGET, 'bin'))
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
-
-
 
 if __name__ == "__main__":
     import argparse

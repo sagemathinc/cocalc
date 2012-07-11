@@ -1,3 +1,40 @@
+<!doctype html>
+<html>
+<head>
 <title>Sage Workspace</title>
 
+<!-- jquery -->
+<script type="text/javascript" src="jquery/jquery.min.js"></script>
+
+<!-- sockjs -->
+<script type="text/javascript" src="sockjs/sockjs.min.js"></script>
+
+<script type="text/javascript">
+$(function() {
+
+   var sock = new SockJS('http://localhost');
+
+   sock.onopen = function() {
+       console.log('open');
+   };
+   sock.onmessage = function(e) {
+       console.log('message', e.data);
+   };
+   sock.onclose = function() {
+       console.log('close');
+   };
+
+})
+</script>
+
+
+</head>
+
+<body>
 <h1>Sage Workspace</h1>
+
+hi
+
+
+</body>
+</html>
