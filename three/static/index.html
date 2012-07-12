@@ -12,17 +12,22 @@
 <script type="text/javascript">
 $(function() {
 
-   var sock = new SockJS('http://localhost');
+   var conn = new SockJS('http://' + window.location.host + '/backend');
 
-   sock.onopen = function() {
-       console.log('open');
+   conn.onopen = function() {
+       $("#status").html("connected");
+       conn.send("hi there");
    };
-   sock.onmessage = function(e) {
-       console.log('message', e.data);
+
+   conn.onmessage = function(e) {
+       $("#mesg").append('message: ' + e.data + "<br>");
    };
-   sock.onclose = function() {
-       console.log('close');
+
+   conn.onclose = function() {
+       $("#status").html("disconnected");
    };
+
+
 
 })
 </script>
@@ -33,8 +38,10 @@ $(function() {
 <body>
 <h1>Sage Workspace</h1>
 
-hi
+Status: <div id="status"></div>
+<br><br>
 
+Message: <div id="mesg"></div>
 
 </body>
 </html>
