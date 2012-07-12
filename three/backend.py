@@ -1,35 +1,54 @@
 # -*- coding: utf-8 -*-
 """
-    Simple sockjs-tornado chat application. By default will listen on port 8080.
+Backend server
+
 """
-import sys
+import logging, socket, sys
 
-import tornado.ioloop
-import tornado.web
+import sockjs.tornado, tornado.ioloop, tornado.web
 
-import sockjs.tornado
-
+logging.getLogger().setLevel(logging.INFO)
+log = logging.getLogger('')
 
 class Connection(sockjs.tornado.SockJSConnection):
-    participants = set()
+    connections = set()
 
     def on_open(self, info):
-        self.broadcast(self.participants, "User connected.")
-        self.participants.add(self)
-        self.broadcast(self.participants, sys.argv[1] if len(sys.argv)>=2 else '')
-
-    def on_message(self, message):
-        self.broadcast(self.participants, message)
+        #self.broadcast(self.connections, "User connected.")
+        self.connections.add(self)
+        log.info("new connection from %s", self.__dict__)
 
     def on_close(self):
-        self.participants.remove(self)
-        self.broadcast(self.participants, "User disconnected.")
+        self.connections.remove(self)
+
+    def on_message(self, message):
+        pass
+
+
 
 if __name__ == "__main__":
-    import logging
-    logging.getLogger().setLevel(logging.DEBUG)
+    import argparse
+    parser = argparse.ArgumentParser(description="Run backend server")
+    parser.add_argument("--port", dest="port", type=int, default=0,
+                        help="port to listen on (default: 0 = determined by operating system)")
+    parser.add_argument('--log_level', dest='log_level', type=str, default='INFO',
+                        help="log level (default: INFO) useful options include WARNING and DEBUG")
+
+    args = parser.parse_args()
     
+    if not args.port:
+        # let OS pick a free port
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0))
+        args.port = s.getsockname()[1]
+        del s
+
+    if args.log_level:
+        level = getattr(logging, args.log_level.upper())
+        log.setLevel(level)
+
     Router = sockjs.tornado.SockJSRouter(Connection, '/backend')
     app = tornado.web.Application(Router.urls, debug=True)
-    app.listen(int(sys.argv[1]))
+    app.listen(args.port)
+
+    log.info("listening on port %s"%args.port)
     tornado.ioloop.IOLoop.instance().start()

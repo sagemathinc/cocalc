@@ -1,7 +1,10 @@
 NOW:
+[ ] clean up and restructure the simple demo to be more sage-ish -- sagews not chat demo:
+
+   [ ] launch.py should launch backend
+   [ ] message routing
 
 IDEAS:
-[ ] clean up and restructure the simple demo to be more sage-ish -- sagews not chat demo:
 [ ] sudo worker.py -- executing commands doesn't work at all on Linux
     (but does on OS X), so probably a resource issue?
 [ ] move all certfile generation stuff to a single master control / launcher module
@@ -97,3 +100,4 @@ This works perfectly on Linux:
 [x] simple tornado+sockjs+haproxy demo
 [x] simple load balancing + haproxy + sockjs demo
 [x] move the one static file to nginx instead of tornado
+   [x] optparse backend.py
