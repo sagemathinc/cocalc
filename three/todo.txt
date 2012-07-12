@@ -1,5 +1,6 @@
 NOW:
-
+[ ] clean up and restructure the simple demo to be more sage-ish -- sagews not chat demo
+[ ] 
 
 
 IDEAS:
@@ -96,3 +97,4 @@ This works perfectly on Linux:
 [x] psql database
 
 [x] simple tornado+sockjs+haproxy demo
+[x] simple load balancing + haproxy + sockjs demo

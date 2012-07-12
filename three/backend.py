@@ -2,6 +2,8 @@
 """
     Simple sockjs-tornado chat application. By default will listen on port 8080.
 """
+import sys
+
 import tornado.ioloop
 import tornado.web
 
@@ -25,9 +27,11 @@ class ChatConnection(sockjs.tornado.SockJSConnection):
 
         # Add client to the clients list
         self.participants.add(self)
+        self.broadcast(self.participants, sys.argv[1] if len(sys.argv)>=2 else '')
 
     def on_message(self, message):
         # Broadcast message
+        print message
         self.broadcast(self.participants, message)
 
     def on_close(self):
@@ -49,8 +53,11 @@ if __name__ == "__main__":
             debug=True
     )
 
-    # 3. Make Tornado app listen on port 8080
-    app.listen(9000)
+    # 3. Make Tornado app listen 
+    if len(sys.argv) == 2:
+        app.listen(int(sys.argv[1]))
+    else:
+        app.listen(9000)
 
     # 4. Start IOLoop
     tornado.ioloop.IOLoop.instance().start()
