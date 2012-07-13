@@ -1,7 +1,5 @@
 NOW:
 
-   [ ] rename "launch.py" to "admin.py". 
-
 SOON:
 
    [ ] base class functionality for each component:
@@ -116,3 +114,5 @@ This works perfectly on Linux:
    [x] optparse backend.py
    [x] new file: sagews.conf 
    [x] move conf files to a subdirectory conf/
+   [x] rename "launch.py" to "admin.py". 
+
