@@ -1,11 +1,11 @@
 NOW:
-
-SOON:
-
    [ ] base class functionality for each component:
           * start(which='all')
           * status(which='all')
           * stop(which='all')
+
+SOON:
+
    [ ] refactor existing code to work as above 
    [ ] admin: support start/stop/status backends
    [ ] admin: support start/stop/status workers

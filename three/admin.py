@@ -4,7 +4,23 @@
 Launch control
 """
 
-import logging, os, stat, time
+import logging, os, shutil, stat, subprocess, tempfile, time
+
+DATA = os.path.abspath('data')
+CONF = os.path.abspath('conf')
+LOGS = os.path.join(DATA, 'logs')
+
+whoami = os.getlogin()
+
+def run_capture(args):
+    return subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
+                            stderr=subprocess.PIPE).stdout.read()    
+
+def ps_stat(pid, run):
+    fields = ['%cpu', '%mem', 'etime', 'pid', 'start', 'cputime', 'rss', 'vsize']
+    v = run(['ps', '-p', str(pid), '-o', ' '.join(fields)]).splitlines()
+    if len(v) <= 1: return {}
+    return dict(zip(fields, v[-1].split()))
 
 log_files = {'postgresql':'postgres.log',
              }
@@ -17,9 +33,6 @@ logging.basicConfig()
 log = logging.getLogger('')
 log.setLevel(logging.DEBUG)   # WARNING, INFO
 
-
-DATA = os.path.abspath('data')
-LOGS = os.path.join(DATA, 'logs')
 def init_data_directory():
     log.info("ensuring that the data directory exist")
     if not os.path.exists(DATA):
@@ -39,8 +52,6 @@ DATABASE = os.path.join(DATA, 'db')
 def read_configuration_file():
     log.info('reading configuration file')
 
-
-
 def cmd(s, path='.'):
     s = 'cd "%s" && '%path + s
     log.info("cmd: %s", s)
@@ -48,9 +59,119 @@ def cmd(s, path='.'):
         raise RuntimeError('command failed: "%s"'%s)
 
 
-def launch_nginx_servers():
-    log.info('launching nginx servers')
-    cmd('nginx -c "%s"'%os.path.abspath('nginx.conf'),'')
+class Account(object):
+    def __init__(self, username, hostname='localhost'):
+        self._username = username
+        self._hostname = hostname
+        self._user_at = '%s@%s'%(self._username, self._hostname)
+
+    def run(self, args):
+        """Run command with given arguments using this account and return output."""
+        if self._username == whoami and self._hostname == 'localhost':
+            pre = []
+        elif self._username == 'root' and whoami != 'root':
+            pre = ['sudo']   # interactive
+        else:
+            pre = ['ssh', self._user_at]
+        return run_capture(pre + args)
+
+    def kill(self, pid, signal):
+        self.run(['kill', '-%s'%signal, str(pid)])
+
+    def readfile(self, filename):
+        if self._hostname == 'localhost':
+            try:
+                return open(filename).read()
+            except IOError:
+                pass
+            
+        path = tempfile.mkdtemp()  # secure
+        try:
+            dest = os.path.join(path, filename)
+            if self._hostname == 'localhost' and self._username == 'root':
+                # use sudo
+                run_capture(['sudo', 'cp', filename, dest])
+            else:
+                # use ssh
+                run_capture(['scp', '%s:"%s"'%(self._user_at, filename), dest])
+            if os.path.exists(dest):
+                return open(dest).read()
+        finally:
+            shutil.rmtree(path)
+        
+
+local_user = Account(username=whoami, hostname='localhost')
+
+class Component(object):
+    def __init__(self, processes):
+        self._processes = processes
+
+    def _match(self, ids):
+        return [p for p in self._processes if ids is None or p.id() in ids]
+        
+    def start(self, ids=None):
+        return [p.start() for p in self._match(ids)]
+                
+    def stop(self, ids=None):
+        return [p.stop() for p in self._match(ids)]
+
+    def reload(self, ids=None):
+        return [p.reload() for p in self._match(ids)]
+
+    def status(self, ids=None):
+        return [p.status() for p in self._match(ids)]        
+
+class Process(object):
+    def __init__(self, account, pidfile, start_cmd=None, stop_cmd=None, reload_cmd=None):
+        self._account = account
+        self._pidfile = pidfile
+        self._start_cmd = start_cmd
+        self._stop_cmd = stop_cmd
+        self._reload_cmd = reload_cmd
+        self._pid = None
+
+    def pid(self):
+        if self._pid is not None:
+            return self._pid
+        try:
+            self._pid = self._account.readfile(self._pidfile)
+        except IOError: # no file
+            self._pid = None
+        return self._pid
+        
+    def start(self):
+        self._pid = None
+        if self._start_cmd is not None:
+            return self._account.run(self._start_cmd)
+        
+    def stop(self):
+        self._pid = None            
+        if self._stop_cmd is not None:
+            return self._account.run(self._stop_cmd)
+        else:
+            return self._account.kill(self.pid())
+
+    def reload(self):
+        self._pid = None            
+        if self._reload_cmd is not None:
+            return self._account.run(self._reload_cmd)
+        else:
+            return 'reload not defined'
+
+    def status(self):
+        pid = self.pid()
+        return ps_stat(pid, self._account.run) if pid else {}
+
+
+nginx_cmd = ['nginx', '-c', os.path.join(CONF, 'nginx.conf')]
+nginx_pid = os.path.join(DATA, 'local/logs/nginx.pid')
+nginx = Component([Process(account = local_user,
+                           pidfile = nginx_pid,
+                           start_cmd = nginx_cmd,
+                           stop_cmd = nginx_cmd + ['-s', 'stop'],
+                           reload_cmd = nginx_cmd + ['-s', 'reload'])])
+
+    
 
 def launch_haproxy_servers():
     log.info('launching haproxy servers')
