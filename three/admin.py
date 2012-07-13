@@ -13,6 +13,7 @@ LOGS = os.path.join(DATA, 'logs')
 whoami = os.getlogin()
 
 def run_capture(args):
+    log.info("running %s", args)
     return subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                             stderr=subprocess.PIPE).stdout.read()    
 
@@ -75,7 +76,7 @@ class Account(object):
             pre = ['ssh', self._user_at]
         return run_capture(pre + args)
 
-    def kill(self, pid, signal):
+    def kill(self, pid, signal=15):
         self.run(['kill', '-%s'%signal, str(pid)])
 
     def readfile(self, filename):

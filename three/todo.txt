@@ -16,6 +16,7 @@ SOON:
         - do test: what is overhead of storing a BLOB of a git bundle?
 
 IDEAS:
+   [ ] reduce number of mime types in nginx.conf, since I will barely serve anything??
 [ ] sudo worker.py -- executing commands doesn't work at all on Linux
     (but does on OS X), so probably a resource issue?
 [ ] move all certfile generation stuff to a single master control / launcher module
