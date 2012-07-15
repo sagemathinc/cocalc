@@ -91,12 +91,10 @@ class Account(object):
     def copyfile(self, src, target):
         if self._hostname == 'localhost':
             if self._username == whoami:
-                open(filename).write(contents)
-                return
-            elif self._username = 'root':
-                sh['sudo', 'cp', src, target]
-                return
-        sh['scp', src, self._user_at + ':' + os.path.join(self._path, target)]
+                return shutil.copyfile(src, target)
+            elif self._username == 'root':
+                return sh['sudo', 'cp', src, target]
+        return sh['scp', src, self._user_at + ':' + os.path.join(self._path, target)]
 
     def readfile(self, filename):
         filename = os.path.join(self._path, filename)
@@ -242,6 +240,19 @@ haproxy = Component('haproxy', [HAproxyProcess(local_root,0)])
 ####################
 # PostgreSQL
 ####################
+def pg_conf(**options):
+    r = open('conf/postgresql.conf').read()
+    for key, value in options.iteritems():
+        i = r.find(key + ' = ')
+        if i == -1: raise ValueError('invalid postgreSQL option "%s"'%key)
+        start = i; stop = i
+        while r[start] != '\n':
+            start -= 1
+        while r[stop] != '\n':
+            stop += 1
+        r = r[:start+1] + '#%s\n%s = %s'%(r[start+1:stop], key, value) + r[stop:]
+    return r
+
 class PostgreSQLProcess(Process):
     def _cmd(self, name, *opts):
         return ['pg_ctl', name, '-D', self._db] + list(opts)
@@ -251,6 +262,7 @@ class PostgreSQLProcess(Process):
     
     def __init__(self, account, id):
         self._db = os.path.join(DATA, 'db')
+        self._conf = os.path.join(self._db, 'postgresql.conf')
         self._log = os.path.join('data/logs', log_files['postgresql'])
         Process.__init__(self, account, id,
                          pidfile    = os.path.join(self._db, 'postmaster.pid'),
@@ -264,11 +276,22 @@ class PostgreSQLProcess(Process):
     def status2(self):
         return self._account.run(self._cmd('status'))
 
-    def initdb(self):
+    def options(self):
+        try: return self._options
+        except AttributeError:
+            self._account.readfile(self._conf)
+
+        return self._options
+
+    def port(self):
+        return self.options()['port']
+
+    def initdb(self, **options):
         s = self._account.run(self._cmd('initdb'))
-        target = os.path.join(self._db, 'postgresql.conf')
-        s += '\n' + self._account.copyfile('conf/postgresql.conf', target)
-        return s
+        log.info(s)
+        src = tempfile.NamedTemporaryFile()
+        src.write(pg_conf(**options))
+        log.info(self._account.copyfile(src.name, self._conf))
 
     def createdb(self, name='sagews'):
         self._account.run(['createdb', '-p', ports['postgresql'], name])
