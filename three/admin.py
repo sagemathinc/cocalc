@@ -12,14 +12,20 @@ LOGS = os.path.join(DATA, 'logs')
 
 whoami = os.getlogin()
 
-def run_capture(args):
+def run(args):
     log.info("running %s", args)
     return subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
-                            stderr=subprocess.PIPE).stdout.read()    
+                            stderr=subprocess.PIPE).stdout.read()
+
+class SH(object):
+    def __getitem__(self, args):
+        return run([args] if isinstance(args, string) else [str(x) for x in args])
+    
+sh = SH()    
 
 def ps_stat(pid, run):
     fields = ['%cpu', '%mem', 'etime', 'pid', 'start', 'cputime', 'rss', 'vsize']
-    v = run(['ps', '-p', str(pid), '-o', ' '.join(fields)]).splitlines()
+    v = sh['ps', '-p', str(pid), '-o', ' '.join(fields)].splitlines()
     if len(v) <= 1: return {}
     return dict(zip(fields, v[-1].split()))
 
@@ -53,13 +59,6 @@ DATABASE = os.path.join(DATA, 'db')
 def read_configuration_file():
     log.info('reading configuration file')
 
-def cmd(s, path='.'):
-    s = 'cd "%s" && '%path + s
-    log.info("cmd: %s", s)
-    if os.system(s):
-        raise RuntimeError('command failed: "%s"'%s)
-
-
 class Account(object):
     def __init__(self, username, hostname='localhost'):
         self._username = username
@@ -74,10 +73,10 @@ class Account(object):
             pre = ['sudo']   # interactive
         else:
             pre = ['ssh', self._user_at]
-        return run_capture(pre + args)
+        return sh[pre + args]
 
     def kill(self, pid, signal=15):
-        self.run(['kill', '-%s'%signal, str(pid)])
+        self.run(['kill', '-%s'%signal, pid])
 
     def readfile(self, filename):
         if self._hostname == 'localhost':
@@ -91,10 +90,10 @@ class Account(object):
             dest = os.path.join(path, filename)
             if self._hostname == 'localhost' and self._username == 'root':
                 # use sudo
-                run_capture(['sudo', 'cp', filename, dest])
+                sh['sudo', 'cp', filename, dest]
             else:
                 # use ssh
-                run_capture(['scp', '%s:"%s"'%(self._user_at, filename), dest])
+                sh['scp', '%s:"%s"'%(self._user_at, filename), dest]
             if os.path.exists(dest):
                 return open(dest).read()
         finally:
@@ -176,21 +175,21 @@ nginx = Component([Process(account = local_user,
 
 def launch_haproxy_servers():
     log.info('launching haproxy servers')
-    cmd('sudo haproxy -f haproxy.conf', '')
+    sh['sudo', 'haproxy', '-f', 'haproxy.conf']
 
 def start_postgresql():
-    cmd('pg_ctl start -D "%s" -l data/logs/%s'%(DATABASE, log_files['postgresql']), '')
+    sh['pg_ctl', 'start', '-D', DATABASE, '-l', os.path.join('data/logs', log_files['postgresql'])]
     
 def initialize_postgresql_database():    
     # on OS X this initdb can fail.  The fix (see http://willbryant.net/software/mac_os_x/postgres_initdb_fatal_shared_memory_error_on_leopard) is to type "sudo sysctl -w kern.sysv.shmall=65536" and also create /etc/sysctl.conf with content "kern.sysv.shmall=65536".
-    cmd('initdb -D "%s"'%DATABASE, '')
-    cmd('rm postgresql.conf', 'data/db')
-    cmd('ln -s ../../postgresql.conf .', 'data/db')
+    sh['initdb', '-D', DATABASE]
+    os.unlink('data/db/postgresql.conf')
+    os.symlink('conf/postgresql.conf', os.path.join('data/db', 'postgresql.conf'))
     start_postgresql()
-    for i in range(5):
+    for i in range(5):  # race condition with server starting -- TODO: detect this better!
         time.sleep(0.5)
         try:
-            cmd('createdb -p %s sagews'%ports['postgresql'])
+            sh['createdb', '-p', ports['postgresql'], 'sagews']
             break
         except:
             pass
