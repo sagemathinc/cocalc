@@ -1,0 +1,42 @@
+UW Math building, existing hardware/OS in basement
+--------------------------------------------------
+ * Create two virtual machines (workers, everything else) and run them on one machine
+
+UW Math building, my office
+--------------------------------------------------
+  * Drop more RAM in bsd (which has only 6GB now)
+  * Create some virtual machines and run them on bsd
+
+UW Math building, new hardware in server room
+--------------------------------------------------
+Buy another UPS and the following 8 1U machines for < $20K:
+  * 2 HAProxy:  1U R415 with single AMD Opteron™ 4122, 4C 2.2GHz, 4GB RAM, iDrac6 --> $1087
+  * 2 Workers:  1U R415 with dual AMD Opteron™ 4284, 3.0GHz, 8C (so 16 cores), 16GB RAM, iDRAC6 express, 512GB HD ---> $1986
+  * 2 Database: 1U R415 with single AMD Opteron™ 4122, 4C 2.2GHz, 32GB RAM, iDrac6, 2x2TB disks ---> $2052
+  * 2 Backend:  1U R415 with dual AMD Opteron™ 4280, 2.8GHz, 8C, 8GB RAM, iDrac6 --> $1950
+
+UW Tower Central Hosting
+------------------------
+Buy the following and rent space: $16K + few K / year:
+  * 2 HAProxy:  1U R415 with single AMD Opteron™ 4122, 4C 2.2GHz, 4GB RAM, iDrac6 --> $1087
+  * >=2 Workers:  1U R415 with dual AMD Opteron™ 4284, 3.0GHz, 8C (so 16 cores), 16GB RAM, iDRAC6 express, 512GB HD ---> $1986
+  * 2 Database: 1U R415 with single AMD Opteron™ 4122, 4C 2.2GHz, 32GB RAM, iDrac6, 2x2TB disks ---> $2052
+  * >=2 Backend:  1U R415 with dual AMD Opteron™ 4280, 2.8GHz, 8C, 8GB RAM, iDrac6 --> $1950
+
+Amazon.com
+----------
+  * Rent spot instances at maybe $.10/hour (?)
+  * would just have VM's mapping to the machine topology above...
+
+ServedBy.net
+------------
+  * Two virtual machines, as above.
+
+Google
+------
+ * Google App Engine:
+    Even if they award me the money, I'll probably turn it down unless I can also use...   
+ * Google Compute Engine:
+    https://developers.google.com/compute/
+   Could be good, but it's hard to tell, since it isn't available yet. 
+
