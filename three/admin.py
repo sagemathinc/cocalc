@@ -75,7 +75,7 @@ def init_data_directory():
     log.info("ensuring that PATH starts with programs in DATA directory")
     os.environ['PATH'] = os.path.join(DATA, 'local/bin/') + ':' + os.environ['PATH']
 
-
+init_data_directory()
 
 ########################################
 # Local and remote UNIX user accounts
@@ -109,7 +109,7 @@ class Account(object):
         return sh[pre + args]
 
     def kill(self, pid, signal=15):
-        """Send the given signal to the process with given pid on self._hostname."""
+        """Send signal to the process with pid on self._hostname."""
         self.run(['kill', '-%s'%signal, pid])
 
     def copyfile(self, src, target):
@@ -125,6 +125,7 @@ class Account(object):
         return sh['scp', src, self._user_at + ':' + os.path.join(self._path, target)]
 
     def readfile(self, filename):
+        """Read the named file and return its contents."""
         filename = os.path.join(self._path, filename)
         if self._hostname == 'localhost':
             if not os.path.exists(filename):
@@ -133,7 +134,6 @@ class Account(object):
                 return open(filename).read()
             except IOError:
                 pass
-            
         path = tempfile.mkdtemp()  # secure
         try:
             dest = os.path.join(path, filename)
@@ -144,9 +144,6 @@ class Account(object):
             return open(dest).read()
         finally:
             shutil.rmtree(path)
-
-local_user = Account(username=whoami, hostname='localhost')
-local_root = Account(username='root', hostname='localhost')
 
 class Component(object):
     def __init__(self, id, processes):
@@ -246,8 +243,6 @@ class NginxProcess(Process):
     def __repr__(self):
         return "Nginx process %s at %s"%(self._id, self._account)
         
-nginx = Component('nginx', [NginxProcess(local_user, 0)])
-
 ####################
 # HAproxy
 ####################
@@ -260,9 +255,6 @@ class HAproxyProcess(Process):
         
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])
-
-
-haproxy = Component('haproxy', [HAproxyProcess(local_root,0)])
 
 
 ####################
@@ -305,12 +297,8 @@ class PostgreSQLProcess(Process):
         return self._account.run(self._cmd('status'))
 
     def options(self):
-        try: return self._options
-        except AttributeError:
-            self._account.readfile(self._conf)
-            # TODO
-            raise NotImplementedError
-        return self._options
+        v = [x for x in self._account.readfile(self._conf).splitlines() if x.strip() and not x.strip().startswith('#')]
+        return dict([[a.split()[0] for a in x.split('=')[:2]] for x in v])
 
     def port(self):
         return self.options()['port']
@@ -325,89 +313,41 @@ class PostgreSQLProcess(Process):
     def createdb(self, name='sagews'):
         self._account.run(['createdb', '-p', self.port(), name])
          
+####################
+# A configuration
+####################
+
+# define two important local accounts
+local_user = Account(username=whoami, hostname='localhost')
+local_root = Account(username='root', hostname='localhost')
+
+nginx      = Component('nginx', [NginxProcess(local_user, 0)])
+haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0)])
 
-
-## def launch_haproxy_servers():
-##     log.info('launching haproxy servers')
-##     sh['sudo', 'haproxy', '-f', 'haproxy.conf']
-
-## def start_postgresql():
-##     sh['pg_ctl', 'start', '-D', DATABASE, '-l', os.path.join('data/logs', log_files['postgresql'])]
-    
-## def initialize_postgresql_database():    
-##     # on OS X this initdb can fail.  The fix (see http://willbryant.net/software/mac_os_x/postgres_initdb_fatal_shared_memory_error_on_leopard) is to type "sudo sysctl -w kern.sysv.shmall=65536" and also create /etc/sysctl.conf with content "kern.sysv.shmall=65536".
-##     sh['initdb', '-D', DATABASE]
-##     os.unlink('data/db/postgresql.conf')
-##     os.symlink('conf/postgresql.conf', os.path.join('data/db', 'postgresql.conf'))
-##     start_postgresql()
-##     for i in range(5):  # race condition with server starting -- TODO: detect this better!
-##         time.sleep(0.5)
-##         try:
-##             sh['createdb', '-p', ports['postgresql'], 'sagews']
-##             break
-##         except:
-##             pass
-
-## def launch_postgresql_servers():
-##     log.info('launching postgresql servers')
-##     if not os.path.exists(DATABASE):
-##         initialize_postgresql_database()
-##     else:
-##         start_postgresql()
-
-## def launch_database_servers():
-##     log.info('launching database servers')        
-
-## def launch_memcached_servers():
-##     log.info('launching memcached servers')        
-
-## def launch_backend_servers():
-##     log.info('launching backend servers')        
-
-## def launch_worker_servers():
-##     log.info('launching worker servers')            
-
-## def launch_servers():
-##     launch_nginx_servers()
-##     launch_haproxy_servers()
-##     launch_database_servers()
-##     launch_memcached_servers()
-##     launch_backend_servers()
-##     launch_worker_servers()
-
-## def monitor_servers():
-##     # TODO
-##     import time
-##     time.sleep(1e6)
-
-## def quit_servers():
-##     # TODO
-##     return
-
 if __name__ == "__main__":
+
     import argparse
     parser = argparse.ArgumentParser(description="Launch components of sagews")
-
-    parser.add_argument('--launch_nginx', dest='launch_nginx', action='store_const', const=True, default=False,
-                        help="launch the NGINX server")
-
-    parser.add_argument('--launch_haproxy', dest='launch_haproxy', action='store_const', const=True, default=False,
-                        help="launch the haproxy server")
-
-    parser.add_argument('--launch_postgresql', dest='launch_postgresql', action='store_const', const=True, default=False,
-                        help="launch the postgresql database server")
-
-    args = parser.parse_args()
     
-    init_data_directory()
-    read_configuration_file()
 
-    if args.launch_nginx:
-        launch_nginx_servers()
+##     parser.add_argument('--launch_nginx', dest='launch_nginx', action='store_const', const=True, default=False,
+##                         help="launch the NGINX server")
 
-    if args.launch_haproxy:
-        launch_haproxy_servers()
+##     parser.add_argument('--launch_haproxy', dest='launch_haproxy', action='store_const', const=True, default=False,
+##                         help="launch the haproxy server")
 
-    if args.launch_postgresql:
-        launch_postgresql_servers()
+##     parser.add_argument('--launch_postgresql', dest='launch_postgresql', action='store_const', const=True, default=False,
+##                         help="launch the postgresql database server")
+
+##     args = parser.parse_args()
+    
+
+##     if args.launch_nginx:
+##         launch_nginx_servers()
+
+##     if args.launch_haproxy:
+##         launch_haproxy_servers()
+
+##     if args.launch_postgresql:
+##         launch_postgresql_servers()

@@ -4,9 +4,6 @@ Programming Todo
 NOW:
 
 SOON: 
-   [ ] read through admin.py
-   [ ] finish implementing postgresql options command
-   [ ] test starting/stopping haproxy, nginx, and database, and creating database
    [ ] admin: support start/stop/status backend
    [ ] admin: support start/stop/status worker
    [ ] admin: support start/stop/status log server
@@ -136,4 +133,6 @@ This works perfectly on Linux:
           * stop(which='all')
    [x] refactor existing code to work as above 
 
-[x] read about multiple ip addresses for one name (=round robin dns)
+   [x] read about multiple ip addresses for one name (=round robin dns)
+   [x] read through admin.py cleaning up; finish implementing postgresql options command
+   [x] test starting/stopping haproxy, nginx, and database, and creating database

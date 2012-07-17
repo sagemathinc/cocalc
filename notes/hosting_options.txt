@@ -23,6 +23,28 @@ Buy the following and rent space: $16K + few K / year:
   * 2 Database: 1U R415 with single AMD Opteron™ 4122, 4C 2.2GHz, 32GB RAM, iDrac6, 2x2TB disks ---> $2052
   * >=2 Backend:  1U R415 with dual AMD Opteron™ 4280, 2.8GHz, 8C, 8GB RAM, iDrac6 --> $1950
 
+When I spin this off as a separate company, I'll go with the
+following, but for now given the completely free bandwidth and
+physical hosting that UW offers, and the potential to hire students as
+sysadmins, it just makes sense for me to buy hardware!
+
+Rackspace.com
+-------------
+  * Bandwidth Out: 0.18/GB  (Bandwidth In is free) -- 1TB/month = $180
+  * Cloud images: 0.10/GB per month  -- 100GB      -- $10/month
+  * Backup: $0.10/GB per month (2TB of data)       -- $200/month
+  * Server price estimate -- non budget:
+       - 2 haproxy with 1GB ram each = 43.80*2 = $87.60/month
+       - 1 database server, 8GB ram, 320gb disk, ($350/month, at beginning) = $350/month
+       - 8 workers with 2GB ram = $87.60/each*8 = $700/month
+       - 2 backends with 1GB ram each = $87.60/month
+    Total: $1225/month compute + $390/month other = 1615/month = $19,380/year
+
+  * Budget version: 
+       - 1 worker with 4GB ram, 160gb disk, $175.20/month
+       - everything else on a machine with 8GB ram, 320gb disk: $350/month
+    Total: $525.20/month + $150/other = $675/month = $8,102/year
+
 Amazon.com
 ----------
   * Rent spot instances at maybe $.10/hour (?)
