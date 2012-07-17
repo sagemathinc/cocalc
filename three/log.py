@@ -222,6 +222,7 @@ class LogServer(object):
 
     def handle(self, mesg):
         mesg = json.loads(mesg)
+        print mesg
         s = self._db.session()
         s.add(Entry(mesg))
         s.commit()

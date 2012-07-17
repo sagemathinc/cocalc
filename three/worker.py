@@ -736,6 +736,12 @@ if __name__ == '__main__':
     parser.add_argument('--users', dest='users', type=str, default='',
                         help="list of available users to switch to if running as root")
 
+    parser.add_argument('--pidfile', dest='pidfile', type=str, default='',
+                        help="file to write pid of server to")
+
+    parser.add_argument('--stop', dest="stop", default=False, action="store_const", const=True,
+                        help="stop server (you must also specify --pidfile=...)")
+
     args = parser.parse_args()
     if args.socket_name and args.port == 'auto':
         args.port = 'uds'
@@ -748,6 +754,16 @@ if __name__ == '__main__':
         level = getattr(logging, args.log_level.upper())
         #print "Setting log level to %s (=%s)"%(args.log_level, level)
         log.setLevel(level)
+
+    if args.stop:
+        if not args.pidfile:
+            raise RuntimeError("you must specify --pidfile")
+        os.kill(int(open(args.pidfile).read()), 15)
+        sys.exit(0)
+
+    if args.pidfile:
+        open(args.pidfile,'w').write(str(os.getpid()))
+
 
     use_ssl = not args.no_ssl
     if use_ssl:
@@ -763,6 +779,7 @@ if __name__ == '__main__':
             os.chmod(args.certfile, 0600)
 
     def main():
+        log.info('main')
         if args.reset_account:
             reset_account(args.reset_account)
         elif args.reset_all_accounts:
@@ -781,6 +798,7 @@ if __name__ == '__main__':
                 sys.exit(1)
 
     if args.daemon:
+        log.info('running in daemon mode')
         import daemon
         with daemon.DaemonContext():
             main()

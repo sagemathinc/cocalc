@@ -258,7 +258,7 @@ class HAproxyProcess(Process):
 
 
 ####################
-# PostgreSQL
+# PostgreSQL Database
 ####################
 def pg_conf(**options):
     r = open('conf/postgresql.conf').read()
@@ -314,6 +314,41 @@ class PostgreSQLProcess(Process):
         self._account.run(['createdb', '-p', self.port(), name])
          
 ####################
+# Memcached
+####################
+class Memcached(Process):
+    pass
+
+####################
+# Backend
+####################
+class Backend(Process):
+    pass
+
+####################
+# Worker
+####################
+class Worker(Process):
+    def __init__(self, account, id, port):
+        self._port = port
+        pidfile = os.path.join(DATA, 'local/worker-%s.pid'%id)
+        Process.__init__(self, account, id,
+                         pidfile    = pidfile,
+                         start_cmd  = ['python', 'worker.py', '--daemon', '--port', port, '--pidfile', pidfile],
+                         stop_cmd   = ['python', 'worker.py', '--stop', '--pidfile', pidfile])
+
+    def port(self):
+        return self._port
+        
+
+
+
+#############################################################################################################
+#############################################################################################################
+
+
+
+####################
 # A configuration
 ####################
 
@@ -324,6 +359,8 @@ local_root = Account(username='root', hostname='localhost')
 nginx      = Component('nginx', [NginxProcess(local_user, 0)])
 haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0)])
+
+
 
 if __name__ == "__main__":
 

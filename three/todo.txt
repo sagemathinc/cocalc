@@ -2,10 +2,11 @@ Programming Todo
 ----------------
 
 NOW:
+   [ ] properly .conf file and daemonize worker!
 
 SOON: 
-   [ ] admin: support start/stop/status backend
    [ ] admin: support start/stop/status worker
+   [ ] admin: support start/stop/status backend
    [ ] admin: support start/stop/status log server
    [ ] implement basic message routing between workers and connected clients (?)
    [ ] two different haproxies at once (so either can be used if the other dies)
