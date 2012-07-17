@@ -14,6 +14,7 @@ import logging, os, shutil, signal, stat, subprocess, tempfile, time
 ############################################################
 DATA = 'data'
 CONF = 'conf'
+PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files 
 
 ####################
 # Running a subprocess
@@ -68,6 +69,9 @@ def init_data_directory():
     if not os.path.exists(DATA):
         os.makedirs(DATA)
 
+    if not os.path.exists(PIDS):
+        os.makedirs(PIDS)
+
     log.info("ensuring that '%s' has restrictive permissions", DATA)
     if os.stat(DATA)[stat.ST_MODE] != 0o40700:
         os.chmod(DATA, 0o40700)
@@ -107,6 +111,12 @@ class Account(object):
         else:
             pre = ['ssh', self._user_at]
         return sh[pre + args]
+
+    def abspath(self, path):
+        if self._hostname == 'localhost':
+            return os.path.abspath(path)
+        else:
+            return os.path.join(self.run('pwd'), path)
 
     def kill(self, pid, signal=15):
         """Send signal to the process with pid on self._hostname."""
@@ -317,7 +327,27 @@ class PostgreSQLProcess(Process):
 # Memcached
 ####################
 class Memcached(Process):
-    pass
+    def __init__(self, account, id, **options):
+        """
+        maxmem is in megabytes
+        """
+        self._options = options
+        pidfile = os.path.join(PIDS, 'memcached-%s.pid'%id)
+        Process.__init__(self, account, id,
+                         pidfile    = pidfile,
+                         start_cmd  = ['memcached', '-P', account.abspath(pidfile), '-d'] + \
+                                             sum([['-' + k, v] for k,v in options.iteritems()],[])
+                         )
+
+    def port(self):
+        return int(self._options.get('p', 11211))
+
+# example client usage:
+#  import memcache
+#  c = memcache.Client(['localhost:12000'])
+#  c.set(...); c.get(...)
+
+        
 
 ####################
 # Backend
@@ -359,7 +389,7 @@ local_root = Account(username='root', hostname='localhost')
 nginx      = Component('nginx', [NginxProcess(local_user, 0)])
 haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0)])
-
+memcached  = Component('memcached', [Memcached(local_user, 0)])
 
 
 if __name__ == "__main__":
