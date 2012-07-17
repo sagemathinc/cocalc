@@ -1,0 +1,57 @@
+Sagews hardware budget:
+----------------------
+
+   UTMOST                2000
+   COMPMATH-combinat    10000
+   Sage Foundation      10000
+
+Also, maybe I can rebudget some of my existing combinat after filing
+for a 1-year no-cost extension?
+
+   Seattle U management: 1500
+
+Ideas for Servers to buy:
+------------------------
+
+One choice:
+
+HAProxy:
+1U  (2) PowerEdge R210II with: dual core Intel Core I3 3.1Ghz, 8GB RAM, 1TB hard drive +tax--> $1141/each
+
+Workers:
+2U  (2) PowerEdge R815 with: 32 2.6Ghz cores, 32GB RAM, a 512GB SSD: $3997 + 400 + tax =  +tax --> $4793/each
+
+Database:
+2U  (2) PowerEdge R515 with Opteron 4238 (3.3Ghz), 6C, 16GB RAM, 2TB*2 disk (RAID 1) + tax --> $3000/each
+
+Backend:
+2U  (2) PowerEdge R715 with 2 x Opteron 6234 (2.4Ghz 12C), 16GB RAM, 512GB disk, ethernet, iDRAC6 ---> $2207+tax ---> $2405/each
+
+Total.............. $22,678
+
+
+---- More budget-oriented ---
+
+HAProxy:
+  1U R415 with single AMD Opteron™ 4122, 4C 2.2GHz, 4GB RAM, iDrac6 --> $1087
+
+Workers:
+  1U R415 with dual AMD Opteron™ 4284, 3.0GHz, 8C (so 16 cores), 16GB RAM, iDRAC6 express, 512GB HD ---> $1986
+
+Database:
+  1U R415 with single AMD Opteron™ 4122, 4C 2.2GHz, 32GB RAM, iDrac6, 2x2TB disks ---> $2052
+
+Backend:
+  1U R415 with dual AMD Opteron™ 4280, 2.8GHz, 8C, 8GB RAM, iDrac6 --> $1950
+
+Total: $15423, including tax, etc., for two of each.
+
+
+Once we start earning money, the first purchase would be a copy of
+this that is hosted in the UW tower (so free bandwidth).  
+
+
+
+  
+
+

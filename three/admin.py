@@ -4,15 +4,26 @@
 Launch control
 """
 
+####################
+# Standard imports
+####################
 import logging, os, shutil, signal, stat, subprocess, tempfile, time
 
+############################################################
+# Paths where data and configuration are stored
+############################################################
 DATA = 'data'
 CONF = 'conf'
-LOGS = os.path.join(DATA, 'logs')
 
-whoami = os.getlogin()
-
+####################
+# Running a subprocess
+####################
 def run(args, maxtime=5):
+    """
+    Run the command line specified by args (using subprocess.Popen)
+    and return the stdout and stderr, killing the subprocess if it
+    takes more than maxtime seconds to run.
+    """
     args = [str(x) for x in args]
     def timeout(*a):
         raise KeyboardInterrupt("running '%s' took more than %s seconds, so killed"%(' '.join(args), maxtime))
@@ -24,56 +35,68 @@ def run(args, maxtime=5):
                                 stderr=subprocess.PIPE).stdout.read()
     finally:
         signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
-        
+
+# A convenience object "sh":
+#      sh['list', 'of', ..., 'arguments'] to run a shell command
 
 class SH(object):
     def __getitem__(self, args):
         return run([args] if isinstance(args, str) else list(args))
-    
 sh = SH()    
 
-def ps_stat(pid, run):
+def process_status(pid, run):
+    """
+    Return the status of a process, obtained using the ps command.
+    The run option is used to run the command (so it could run on
+    a remote machine).  The result is a dictionary; it is empty if
+    the given process is not running. 
+    """
     fields = ['%cpu', '%mem', 'etime', 'pid', 'start', 'cputime', 'rss', 'vsize']
-    v = sh['ps', '-p', str(int(pid)), '-o', ' '.join(fields)].splitlines()
+    v = run(['ps', '-p', str(int(pid)), '-o', ' '.join(fields)]).splitlines()
     if len(v) <= 1: return {}
     return dict(zip(fields, v[-1].split()))
 
-log_files = {'postgresql':'postgres.log',
-             }
-
-ports = {'postgresql':5432,  # also coded into postgresql.conf
-         }  
-
-# Enable logging
+########################################
+# Standard Python Logging
+########################################
 logging.basicConfig()
 log = logging.getLogger('')
-log.setLevel(logging.DEBUG)   # WARNING, INFO
+log.setLevel(logging.DEBUG)   # WARNING, INFO, etc.
 
 def init_data_directory():
-    log.info("ensuring that the data directory exist")
+    log.info("ensuring that '%s' exist", DATA)
     if not os.path.exists(DATA):
         os.makedirs(DATA)
 
-    if not os.path.exists(LOGS):
-        os.makedirs(LOGS)
-
-    log.info("ensuring that the data directory has restrictive permissions")
+    log.info("ensuring that '%s' has restrictive permissions", DATA)
     if os.stat(DATA)[stat.ST_MODE] != 0o40700:
         os.chmod(DATA, 0o40700)
 
+    log.info("ensuring that PATH starts with programs in DATA directory")
     os.environ['PATH'] = os.path.join(DATA, 'local/bin/') + ':' + os.environ['PATH']
 
-DATABASE = os.path.join(DATA, 'db')
 
-def read_configuration_file():
-    log.info('reading configuration file')
+
+########################################
+# Local and remote UNIX user accounts
+########################################
+whoami = os.getlogin()
 
 class Account(object):
+    """
+    A UNIX user, which can be either local to this computer or remote.
+    
+    The sudo command (requiring a password) will be used for 'root@localhost',
+    and ssh will be used in *all* other cases, even 'root@any_other_machine'.
+    """
     def __init__(self, username, hostname='localhost', path='.'):
         self._username = username
         self._hostname = hostname
         self._path = path
         self._user_at = '%s@%s'%(self._username, self._hostname)
+
+    def __repr__(self):
+        return '%s:%s'%(self._user_at, self._path)
 
     def run(self, args):
         """Run command with given arguments using this account and return output."""
@@ -86,9 +109,14 @@ class Account(object):
         return sh[pre + args]
 
     def kill(self, pid, signal=15):
+        """Send the given signal to the process with given pid on self._hostname."""
         self.run(['kill', '-%s'%signal, pid])
 
     def copyfile(self, src, target):
+        """
+        Copy the file from the file named src on this computer to the
+        file named target on self._hostname.
+        """
         if self._hostname == 'localhost':
             if self._username == whoami:
                 return shutil.copyfile(src, target)
@@ -196,7 +224,7 @@ class Process(object):
 
     def status(self):
         pid = self.pid()
-        return ps_stat(pid, self._account.run) if pid else {}
+        return process_status(pid, self._account.run) if pid else {}
 
     def restart(self):
         self.stop()
@@ -263,7 +291,7 @@ class PostgreSQLProcess(Process):
     def __init__(self, account, id):
         self._db = os.path.join(DATA, 'db')
         self._conf = os.path.join(self._db, 'postgresql.conf')
-        self._log = os.path.join('data/logs', log_files['postgresql'])
+        self._log = 'data/logs/postgresql.log'
         Process.__init__(self, account, id,
                          pidfile    = os.path.join(self._db, 'postmaster.pid'),
                          start_cmd  = self._cmd('start', '-l', self._log),
@@ -280,7 +308,8 @@ class PostgreSQLProcess(Process):
         try: return self._options
         except AttributeError:
             self._account.readfile(self._conf)
-
+            # TODO
+            raise NotImplementedError
         return self._options
 
     def port(self):
@@ -294,7 +323,7 @@ class PostgreSQLProcess(Process):
         log.info(self._account.copyfile(src.name, self._conf))
 
     def createdb(self, name='sagews'):
-        self._account.run(['createdb', '-p', ports['postgresql'], name])
+        self._account.run(['createdb', '-p', self.port(), name])
          
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0)])
 
