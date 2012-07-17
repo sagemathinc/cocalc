@@ -89,6 +89,19 @@ UW hosting is AWESOME:
 Basically, 17U's cost $2880/year.  Damn.   And that is my fixed cost after the initial investment. 
 
 
+They also have tape based backups now, and it looks like it costs $730/year to backup 1 terabyte:
+
+      https://depts.washington.edu/uwtscat/node/151
+
+This is much cheaper than it was in 2008.
+
+There's also virtual hosting:
+
+   https://wiki.cac.washington.edu/pages/viewpage.action?pageId=28938559
+
+Wow. 
+
+
 
 
 
