@@ -53,5 +53,39 @@ this that is hosted in the UW tower (so free bandwidth).
 
 
   
+--------------------
+
+With combinat.math.washington.edu, I just realized I can do this:
+
+   1. PowerEdge R815 Rack Server with 64 2.3Ghz cores and 64GB RAM (8x8@1600Mhz)... $6857
+   2. 24 8GB 1600Mhz RAM modules from crucial (http://www.crucial.com/store/listparts.aspx?model=PowerEdge%20R815)... $2160 or $2616 (depending on power usage).
+
+Total: Less than $9500!  This is for a 64-core 256GB RAM machine.  Damn.   Such a thing would be great for my application.
+
+I could buy:
+
+    1. two haproxy nodes as above ($2K)
+    2. one such machine with 64GB RAM for $7000 + $400 for an SSD hard drive.
+    3. another such machine with 64GB RAM for $7000 + $400 for an SSD hard drive.
+
+Total: 2 + 7 + 7 + 1 = $17K.
+
+I would run my stack as several hypervisor virtual machines on each.   When one hardware node fails, the other will takeover.
+As usage grows, I'll add 256GB RAM and more SSD's.   
+
+And add another clone of this in UW central hosting, etc.
+
+Estimate: 8 simultaneous users per core; so the above when working
+would sustain 1024 simultaneous users, which is probably something
+like 250K actual users.  If each pays on average $1/month, that's 3
+million dollars per year.  Not bad for the cost!
+
+If I could get 20,000 paying users at $10/year, that easily pays my
+salary.  **  Or 3500 users at $5/month! **
+
+
+
+
+
 
 
