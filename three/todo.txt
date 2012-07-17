@@ -2,11 +2,10 @@ Programming Todo
 ----------------
 
 NOW:
-   [ ] properly daemonize worker (copy how memcached works, say)
 
 SOON: 
+   [ ] properly daemonize worker
    [ ] admin: support start/stop/status worker
-   [ ] admin: support start/stop/status backend
    [ ] admin: support start/stop/status log server
    [ ] implement basic message routing between workers and connected clients (?)
    [ ] two different haproxies at once (so either can be used if the other dies)
@@ -137,3 +136,5 @@ This works perfectly on Linux:
    [x] read about multiple ip addresses for one name (=round robin dns)
    [x] read through admin.py cleaning up; finish implementing postgresql options command
    [x] test starting/stopping haproxy, nginx, and database, and creating database
+   [x] properly daemonize backend
+   [x] admin: support start/stop/status backend

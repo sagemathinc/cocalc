@@ -14,7 +14,8 @@ import logging, os, shutil, signal, stat, subprocess, tempfile, time
 ############################################################
 DATA = 'data'
 CONF = 'conf'
-PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files 
+PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
+LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files 
 
 ####################
 # Running a subprocess
@@ -66,11 +67,10 @@ log.setLevel(logging.DEBUG)   # WARNING, INFO, etc.
 
 def init_data_directory():
     log.info("ensuring that '%s' exist", DATA)
-    if not os.path.exists(DATA):
-        os.makedirs(DATA)
 
-    if not os.path.exists(PIDS):
-        os.makedirs(PIDS)
+    for path in [DATA, PIDS, LOGS]:
+        if not os.path.exists(path):
+            os.makedirs(path)
 
     log.info("ensuring that '%s' has restrictive permissions", DATA)
     if os.stat(DATA)[stat.ST_MODE] != 0o40700:
@@ -353,13 +353,25 @@ class Memcached(Process):
 # Backend
 ####################
 class Backend(Process):
-    pass
+    def __init__(self, account, id, port, debug=True):
+        self._port = port
+        self._pidfile = os.path.join(PIDS, 'backend-%s.pid'%id)
+        self._logfile = os.path.join(LOGS, 'backend-%s.log'%id)
+        extra = []
+        if debug:
+            extra.append('-g')
+        Process.__init__(self, account, id, self._pidfile,
+                         start_cmd = ['python', 'backend.py', '-d', '-p', port,
+                                      '--pidfile', self._pidfile, '--logfile', self._logfile] + extra)
+
+    def __repr__(self):
+        return "Backend %s at %s on port %s"%(self.id(), self._account, self._port)
 
 ####################
 # Worker
 ####################
 class Worker(Process):
-    def __init__(self, account, id, port):
+    def __init__(self, account, id, port, debug=True):
         self._port = port
         pidfile = os.path.join(DATA, 'local/worker-%s.pid'%id)
         Process.__init__(self, account, id,
@@ -390,6 +402,7 @@ nginx      = Component('nginx', [NginxProcess(local_user, 0)])
 haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0)])
 memcached  = Component('memcached', [Memcached(local_user, 0)])
+backend    = Component('backend', [Backend(local_user, 0, 5560)])
 
 
 if __name__ == "__main__":

@@ -32,7 +32,6 @@ Python
 
 easy_install tornado sockjs-tornado python-memcached sqlalchemy psycopg2 momoko
 
-This doesn't install in python3, so...?
    * python-daemon -- http://pypi.python.org/pypi/python-daemon/; Python license, and will go into Python eventually
 
 Javascript/CSS/HTML
