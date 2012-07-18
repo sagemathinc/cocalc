@@ -99,19 +99,22 @@ class Account(object):
         self._hostname = hostname
         self._path = path
         self._user_at = '%s@%s'%(self._username, self._hostname)
+        if self._username == whoami and self._hostname == 'localhost':
+            self._pre = []
+        elif self._username == 'root' and whoami != 'root':
+            self._pre = ['sudo']   # interactive
+        else:
+            self._pre = ['ssh', self._user_at]
 
     def __repr__(self):
         return '%s:%s'%(self._user_at, self._path)
 
+    def system(self, args):
+        os.system(' '.join(self._pre + args))
+
     def run(self, args):
         """Run command with given arguments using this account and return output."""
-        if self._username == whoami and self._hostname == 'localhost':
-            pre = []
-        elif self._username == 'root' and whoami != 'root':
-            pre = ['sudo']   # interactive
-        else:
-            pre = ['ssh', self._user_at]
-        return sh[pre + args]
+        return sh[self._pre + args]
 
     def abspath(self, path):
         if self._hostname == 'localhost':
@@ -205,9 +208,14 @@ class Process(object):
         self._logfile = logfile
         self._log_database = log_database
         self._log_pidfile = os.path.splitext(pidfile)[0] + '-log.pid'
-        
+
     def id(self):
         return self._id
+
+    def log_tail(self):
+        if self._logfile is None:
+            raise NotImplementedError("the logfile is not known")
+        self._account.system(['tail', '-f', self._logfile])
 
     def _parse_pidfile(self, contents):
         return int(contents)
@@ -278,10 +286,19 @@ class Process(object):
 # Nginx
 ####################
 class NginxProcess(Process):
-    def __init__(self, account, id):
-        nginx_cmd = ['nginx', '-c', os.path.join(CONF, 'nginx.conf')]
+    def __init__(self, account, id, log_database=None, port=8080):
+        log = 'nginx-%s.log'%id
+        pid = 'nginx-%s.pid'%id
+        nginx = 'nginx.conf'
+        conf = open(os.path.join(CONF, nginx)).read()
+        for k, v in [('LOGFILE', log), ('PIDFILE', pid), ('HTTP_PORT', str(port))]:
+            conf = conf.replace(k,v)
+        open(os.path.join(DATA, nginx),'w').write(conf)
+        nginx_cmd = ['nginx', '-c', '../' + nginx]
         Process.__init__(self, account, id,
-                         pidfile    = os.path.join(DATA, 'local/nginx.pid'),
+                         log_database = log_database,
+                         logfile   = os.path.join(LOGS, log),
+                         pidfile    = os.path.join(PIDS, pid),
                          start_cmd  = nginx_cmd,
                          stop_cmd   = nginx_cmd + ['-s', 'stop'],
                          reload_cmd = nginx_cmd + ['-s', 'reload'])
