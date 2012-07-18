@@ -16,7 +16,7 @@ DATA = 'data'
 CONF = 'conf'
 PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files
-LOG_INTERVAL = 5  # raise to something much bigger -- 5 seconds is nice now for debugging.
+LOG_INTERVAL = 2  # raise to something much bigger -- 5 seconds is nice now for debugging.
 
 ####################
 # Running a subprocess
@@ -110,7 +110,9 @@ class Account(object):
         return '%s:%s'%(self._user_at, self._path)
 
     def system(self, args):
-        os.system(' '.join(self._pre + args))
+        c = ' '.join(self._pre + args)
+        log.info("running '%s' via system", c)
+        os.system(c)
 
     def run(self, args):
         """Run command with given arguments using this account and return output."""
@@ -197,11 +199,13 @@ class Component(object):
 
 class Process(object):
     def __init__(self, account, id, pidfile, logfile=None, log_database=None,
-                       start_cmd=None, stop_cmd=None, reload_cmd=None):
+                 start_cmd=None, stop_cmd=None, reload_cmd=None,
+                 start_using_system = False):
         self._account = account
         self._id = id
         self._pidfile = pidfile
         self._start_cmd = start_cmd
+        self._start_using_system = start_using_system
         self._stop_cmd = stop_cmd
         self._reload_cmd = reload_cmd
         self._pids = {}
@@ -256,7 +260,10 @@ class Process(object):
         self._pids = {}
         print self._start_logwatch()
         if self._start_cmd is not None:
-            print self._account.run(self._start_cmd)
+            if self._start_using_system:
+                print self._account.system(self._start_cmd)
+            else:
+                print self._account.run(self._start_cmd)
         
     def stop(self):
         self._stop_logwatch()
@@ -382,16 +389,21 @@ class PostgreSQLProcess(Process):
 #     import memcache; c = memcache.Client(['localhost:12000']); c.set(...); c.get(...)
 ####################
 class Memcached(Process):
-    def __init__(self, account, id, **options):
+    def __init__(self, account, id, log_database=None, **options):
         """
         maxmem is in megabytes
         """
         self._options = options
         pidfile = os.path.join(PIDS, 'memcached-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'memcached-%s.log'%id)
         Process.__init__(self, account, id,
                          pidfile    = pidfile,
+                         logfile    = logfile,
+                         log_database = log_database,
                          start_cmd  = ['memcached', '-P', account.abspath(pidfile), '-d'] + \
-                                             sum([['-' + k, v] for k,v in options.iteritems()],[])
+                                      ['-vv', '>' + logfile, '2>&1'] + \
+                                      sum([['-' + k, v] for k,v in options.iteritems()],[]),
+                         start_using_system = True
                          )
 
     def port(self):
@@ -442,10 +454,10 @@ local_root = Account(username='root', hostname='localhost')
 
 log_database = "postgresql://localhost:5432/sagews"
 
-nginx      = Component('nginx', [NginxProcess(local_user, 0)])
+nginx      = Component('nginx', [NginxProcess(local_user, 0, log_database=log_database)])
 haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0, log_database=log_database)])
-memcached  = Component('memcached', [Memcached(local_user, 0)])
+memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
 backend    = Component('backend', [Backend(local_user, 0, 5560)])
 
 

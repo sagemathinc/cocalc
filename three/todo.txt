@@ -3,7 +3,6 @@ Programming Todo
 
 NOW:
    
-   [ ] memcached logging
    [ ] backend logging
    [ ] worker logging
    [ ] haproxy logging (hardest) -- have to patch/modify log.c to:
@@ -183,3 +182,4 @@ See http://www.ruby-forum.com/topic/134115
        wait 1 second and do anything with log
      But instead do "nginx -s reload"
    [x] nginx logging 
+   [x] memcached logging
