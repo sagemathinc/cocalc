@@ -2,8 +2,6 @@ Programming Todo
 ----------------
 
 NOW:
-   
-   [ ] backend logging
    [ ] worker logging
    [ ] haproxy logging (hardest) -- have to patch/modify log.c to:
       (1) write to a file instead of a socket: printf("%s", log_ptr); in __send_log
@@ -183,3 +181,4 @@ See http://www.ruby-forum.com/topic/134115
      But instead do "nginx -s reload"
    [x] nginx logging 
    [x] memcached logging
+   [x] backend logging

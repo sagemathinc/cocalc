@@ -112,7 +112,7 @@ class Account(object):
     def system(self, args):
         c = ' '.join(self._pre + args)
         log.info("running '%s' via system", c)
-        os.system(c)
+        return os.system(c)
 
     def run(self, args):
         """Run command with given arguments using this account and return output."""
@@ -161,6 +161,28 @@ class Account(object):
             return open(dest).read()
         finally:
             shutil.rmtree(path)
+
+    def unlink(self, filename):
+        filename = os.path.join(self._path, filename)
+        if self._hostname == 'localhost' and self._username == whoami:
+            os.unlink(filename)
+            return
+        if self._hostname == 'localhost' and self._username == 'root':
+            sh['sudo', 'rm', filename]
+        else:
+            sh['ssh', self._user_at, 'rm', filename]
+
+    def is_running(self, pid):
+        if self._hostname == 'localhost':
+            try:
+                os.kill(pid, 0)
+                return True
+            except OSError:
+                return False
+        else:
+            return bool(os.system(['kill', '-0', str(os.getpid())]))
+            
+            
 
 ########################################
 # Component: named collection of Process objects
@@ -398,8 +420,7 @@ class Memcached(Process):
         logfile = os.path.join(LOGS, 'memcached-%s.log'%id)
         Process.__init__(self, account, id,
                          pidfile    = pidfile,
-                         logfile    = logfile,
-                         log_database = log_database,
+                         logfile    = logfile, log_database = log_database,
                          start_cmd  = ['memcached', '-P', account.abspath(pidfile), '-d'] + \
                                       ['-vv', '>' + logfile, '2>&1'] + \
                                       sum([['-' + k, v] for k,v in options.iteritems()],[]),
@@ -409,21 +430,30 @@ class Memcached(Process):
     def port(self):
         return int(self._options.get('p', 11211))
 
+    def stop(self):
+        # memcached doesn't delete its .pid file after exiting
+        pid = self.pid()
+        if pid is not None:
+            Process.stop(self)
+            if not self._account.is_running(pid):
+                self._account.unlink(self._pidfile)
+            
 
 ####################
 # Backend
 ####################
 class Backend(Process):
-    def __init__(self, account, id, port, debug=True):
+    def __init__(self, account, id, port, log_database=None, debug=True):
         self._port = port
-        self._pidfile = os.path.join(PIDS, 'backend-%s.pid'%id)
-        self._logfile = os.path.join(LOGS, 'backend-%s.log'%id)
+        pidfile = os.path.join(PIDS, 'backend-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'backend-%s.log'%id)
         extra = []
         if debug:
             extra.append('-g')
-        Process.__init__(self, account, id, self._pidfile,
+        Process.__init__(self, account, id, pidfile = pidfile,
+                         logfile = logfile, log_database=log_database,
                          start_cmd = ['./backend.py', '-d', '-p', port,
-                                      '--pidfile', self._pidfile, '--logfile', self._logfile] + extra)
+                                      '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
         return "Backend %s at %s on port %s"%(self.id(), self._account, self._port)
@@ -458,7 +488,7 @@ nginx      = Component('nginx', [NginxProcess(local_user, 0, log_database=log_da
 haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0, log_database=log_database)])
 memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
-backend    = Component('backend', [Backend(local_user, 0, 5560)])
+backend    = Component('backend', [Backend(local_user, 0, 5560, log_database=log_database)])
 
 
 if __name__ == "__main__":
