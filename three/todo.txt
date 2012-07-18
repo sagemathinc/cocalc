@@ -3,10 +3,10 @@ Programming Todo
 
 NOW:
 
+   
+
    [ ] in the admin script, make sure each Process has configured
        logfiles with rotation, and deleting old ones.
-
-[ ] postgres: dead easy
 
 [ ] haproxy: modify log.c to:
       (1) write to a file instead of a socket: printf("%s", log_ptr); in __send_log
@@ -186,3 +186,4 @@ This works perfectly on Linux:
 
    [x] write logwatch script
 
+   [x] postgres logging

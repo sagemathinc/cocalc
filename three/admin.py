@@ -15,12 +15,13 @@ import logging, os, shutil, signal, stat, subprocess, tempfile, time
 DATA = 'data'
 CONF = 'conf'
 PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
-LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files 
+LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files
+LOG_INTERVAL = 5  # raise to something much bigger -- 5 seconds is nice now for debugging.
 
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=5):
+def run(args, maxtime=10):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
@@ -192,7 +193,7 @@ class Component(object):
 ########################################
 
 class Process(object):
-    def __init__(self, account, id, pidfile, logfile0=None, log_database=None,
+    def __init__(self, account, id, pidfile, logfile=None, log_database=None,
                        start_cmd=None, stop_cmd=None, reload_cmd=None):
         self._account = account
         self._id = id
@@ -201,7 +202,7 @@ class Process(object):
         self._stop_cmd = stop_cmd
         self._reload_cmd = reload_cmd
         self._pids = {}
-        self._logfile0 = logfile0
+        self._logfile = logfile
         self._log_database = log_database
         self._log_pidfile = os.path.splitext(pidfile)[0] + '-log.pid'
         
@@ -228,33 +229,34 @@ class Process(object):
         return len(self.status()) > 0
 
     def _start_logwatch(self):
-        if self._log_database:
-            self._account.run(['./logwatch.py', '-l', self._logfile0, 
-                               '-d', self._log_database, '-p', self._log_pidfile])
+        if self._log_database and self._logfile:
+            self._account.run(['./logwatch.py', '-l', self._logfile, '-d', self._log_database,
+                               '-p', self._log_pidfile, '-t', LOG_INTERVAL])
 
     def log_pid(self):
         return self._read_pid(self._log_pidfile)
 
     def _stop_logwatch(self):
-        if self._log_database:
-            self._account.kill(self.log_pid())
-            os.unlink(self._log_pidfile)
+        if self._log_database and self._logfile and os.path.exists(self._log_pidfile):
+            try:
+                self._account.kill(self.log_pid())
+            except Exception, msg:
+                print msg
         
     def start(self):
         if self.is_running(): return
         self._pids = {}
+        print self._start_logwatch()
         if self._start_cmd is not None:
-            return self._account.run(self._start_cmd)
-        self._start_logwatch()
+            print self._account.run(self._start_cmd)
         
     def stop(self):
-        if self._stop_cmd is not None:
-            s = self._account.run(self._stop_cmd)
-        else:
-            s = self._account.kill(self.pid())
         self._stop_logwatch()
+        if self._stop_cmd is not None:
+            print self._account.run(self._stop_cmd)
+        else:
+            self._account.kill(self.pid())
         self._pids = {}
-        return s
 
     def reload(self):
         self._pid = None            
@@ -324,13 +326,14 @@ class PostgreSQLProcess(Process):
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])
     
-    def __init__(self, account, id):
-        self._db = os.path.join(DATA, 'db')
+    def __init__(self, account, id, log_database=None):
+        self._db   = os.path.join(DATA, 'db')
         self._conf = os.path.join(self._db, 'postgresql.conf')
-        self._log = 'data/logs/postgresql.log'
+        self._log  = os.path.join(LOGS, 'postgresql-%s.log'%id)
         Process.__init__(self, account, id,
+                         log_database=log_database, logfile = self._log,
                          pidfile    = os.path.join(self._db, 'postmaster.pid'),
-                         start_cmd  = self._cmd('start', '-l', self._log),
+                         start_cmd  = self._cmd('start') + ['-l', self._log],
                          stop_cmd   = self._cmd('stop'),
                          reload_cmd = self._cmd('reload'))
         
@@ -420,9 +423,11 @@ class Worker(Process):
 local_user = Account(username=whoami, hostname='localhost')
 local_root = Account(username='root', hostname='localhost')
 
+log_database = "postgresql://localhost:5432/sagews"
+
 nginx      = Component('nginx', [NginxProcess(local_user, 0)])
 haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
-postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0)])
+postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0, log_database=log_database)])
 memcached  = Component('memcached', [Memcached(local_user, 0)])
 backend    = Component('backend', [Backend(local_user, 0, 5560)])
 

@@ -41,34 +41,40 @@ def main(logfile, pidfile, timeout, database):
     filename = os.path.split(logfile)[-1]
     try:
         open(pidfile,'w').write(str(os.getpid()))
-        lastmod = mtime(logfile)
+        lastmod = None
         while True:
-            if lastmod != mtime(logfile):
-                while True: # file changed; now waiting to stabilize
+            modtime = mtime(logfile)
+            if lastmod != modtime:
+                lastmod = modtime
+                try:
+                    print "Get new connection..."
+                    session = get_session(database)
+                    c = open(logfile).read()
+                    if len(c) == 0:
+                        print "logfile is empty"
+                        continue
+                    for r in c.splitlines():
+                        session.add(LogMessage(r, filename))
+                    session.commit()
+                    session.close()
+                    print "Successful commit, now deleting file..."
+                    if mtime(logfile) != lastmod:
+                        # file changed during db send, so delete the part we sent
+                        open(logfile,'w').write(open(logfile).read()[len(c):])
+                    else:
+                        # just clear file
+                        open(logfile,'w').close()
                     lastmod = mtime(logfile)
-                    time.sleep(timeout)
-                    mod = mtime(logfile)
-                    if lastmod == mod:
-                        # file stabilized (e.g., the copy must have completed)
-                        try:
-                            # Get new connection each time, since submitting
-                            # log back to DB is rare, but must fault taulerant.
-                            session = get_session(database)
-                            for r in open(logfile).readlines():
-                                session.add(LogMessage(r, filename))
-                            session.commit()
-                            del session
-                            open(logfile,'w').close()  # clear file if submit worked
-                        except Exception, msg:
-                            print msg
-                        break
-            time.sleep(1)
+                except Exception, msg:
+                    print msg
+            print "Sleeping %s seconds"%timeout
+            time.sleep(timeout)
     finally:
         os.unlink(pidfile)
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Log watcher watches the given file, then submits it to a database if it subsequently does not change for t seconds; on success it then empties the file.  The file is assumed to change as a result of rotating a log file, not because the file is actively being written to.")
+    parser = argparse.ArgumentParser(description="Log watcher check on the logfile every to t seconds to see if it changes.  If so, it ships off the contents to the database, and on successful DB commit empties the file.  This is subject to race conditions that could result in a small amount of lost or corrupted data, but the simplicity of implementing this for all clients makes it worth it.")
 
     parser.add_argument("-g", dest='debug', default=False, action="store_const", const=True,
                         help="debug mode (default: False)")
@@ -78,8 +84,8 @@ if __name__ == "__main__":
                         help="SQLalchemy description of database server, e.g., postgresql://user@hostname:port/dbname")
     parser.add_argument("-p", dest="pidfile", type=str, required=True,
                         help="PID file of this daemon process")
-    parser.add_argument("-t", dest="timeout", type=int, default=2,  # TODO
-                        help="time in seconds file must remain unchanged after modification before we send to database")
+    parser.add_argument("-t", dest="timeout", type=int, default=60,  
+                        help="check every t seconds to see if logfile has changed")
     
 
     args = parser.parse_args()
@@ -88,10 +94,10 @@ if __name__ == "__main__":
     pidfile = os.path.abspath(args.pidfile)
 
     if args.debug:
-        main(logfile, pidfile, args.timeout, args.database)
+        main(logfile=logfile, pidfile=pidfile, timeout=args.timeout, database=args.database)
     else:
         with daemon.DaemonContext():
-            main(logfile, pidfile, args.timeout, args.database)
+            main(logfile=logfile, pidfile=pidfile, timeout=args.timeout, database=args.database)
     
     
     
