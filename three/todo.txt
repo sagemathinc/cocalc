@@ -2,32 +2,16 @@ Programming Todo
 ----------------
 
 NOW:
-
    
-
-   [ ] in the admin script, make sure each Process has configured
-       logfiles with rotation, and deleting old ones.
-
-[ ] haproxy: modify log.c to:
+   [ ] nginx logging 
+   [ ] memcached logging
+   [ ] backend logging
+   [ ] worker logging
+   [ ] haproxy logging (hardest) -- have to patch/modify log.c to:
       (1) write to a file instead of a socket: printf("%s", log_ptr); in __send_log
       (2) have to implement my own simple logrotate with two files:
                 haproxy.log
                 haproxy.log.0
-
-[ ] nginx: See http://www.ruby-forum.com/topic/134115   
-      in particular,
-       mv error.log error.log.0
-       kill -USR1 `cat master.nginx.pid`
-       wait 1 second and do anything with log
-     But instead do "nginx -s reload"
-
-   [ ] create logwatch.py, which watches a file for changes, and when
-       it changes, inserts it into a log database postgreSQL server
-       securely
-
-   [ ] when admin starts anything, it also starts one logwatch.py;
-       when it stops anything, it stops corresponding logwatch.py
-
 
 SOON: 
    [ ] admin -- systematic logfile support: 
@@ -185,5 +169,17 @@ This works perfectly on Linux:
          * Why *not* to log directly to a database: http://stackoverflow.com/questions/209497/using-a-sql-server-for-application-logging-pros-cons?lq=1
 
    [x] write logwatch script
-
    [x] postgres logging
+   [x] create logwatch.py, which watches a file for changes, and when
+       it changes, inserts it into a log database postgreSQL server
+       securely
+   [x] when admin starts anything, it also starts one logwatch.py;
+       when it stops anything, it stops corresponding logwatch.py
+
+   [-not-] idea about doing nginx right:
+See http://www.ruby-forum.com/topic/134115   
+      in particular,
+       mv error.log error.log.0
+       kill -USR1 `cat master.nginx.pid`
+       wait 1 second and do anything with log
+     But instead do "nginx -s reload"
