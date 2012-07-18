@@ -2,11 +2,39 @@ Programming Todo
 ----------------
 
 NOW:
+   [ ] LOGGING: I've spent a while now thinking about logging, and have
+       changed my mind about what I want to do.  
+         * get rid of log.py; it is potentially too low performance and is
+           tied to Python.
+         * do what is suggested on stackoverflow: "Write locally to
+           disk, then batch insert to the database periodically
+           (e.g. at log rollover time). Do that in a separate,
+           low-priority process. More efficient and more
+           robust... (Make sure that your database log table contains
+           a column for "which machine the log event came from" by the
+           way - very handy!)": http://stackoverflow.com/questions/290304/is-writing-server-log-files-to-a-database-a-good-idea
+         * Why *not* to log directly to a database: http://stackoverflow.com/questions/209497/using-a-sql-server-for-application-logging-pros-cons?lq=1
+
+     So, new plan:
+       [ ] in the admin script, make sure each Process has configured
+           logfiles with rotation, and deleting old ones.
+       [ ] have a function log(n) that reads the n-th log, e.g., log()
+           gives the current log, log(1) the previous one, etc.
+
+
+   
+
 
 SOON: 
-   [ ] properly daemonize worker
+   [ ] admin -- systematic logfile support: 
+         - must specify logfile when creating Process
+         - function to read what is new in logfile since last read
+         - function to empty logfile
+         - I will be able to build database on this, in uniform way
+           that doesn't require python logger support.  So it was a
+           day wasted on log.py...
+   [ ] simplify worker for my particular application and properly daemonize worker using same options as for backend
    [ ] admin: support start/stop/status worker
-   [ ] admin: support start/stop/status log server
    [ ] implement basic message routing between workers and connected clients (?)
    [ ] two different haproxies at once (so either can be used if the other dies)
    [ ] think about how to separate my data into multiple database for scalability
@@ -15,8 +43,9 @@ SOON:
    [ ] implement basic "single cell server"
    [ ] implement interacts
 
-IDEAS:
+SOMEDAY:
 
+   [ ] admin: support start/stop/status log server
 [ ] How to do multiple haproxies?:
     - do what stackoverflow does: heartbeat + haproxy: http://blog.stackoverflow.com/2010/01/stack-overflow-network-configuration/; http://www.linux-ha.org/wiki/Main_Page
     - this discussion says to use "DNS failover":  

@@ -182,10 +182,11 @@ class Component(object):
         return [p.status() for p in self._procs_with_id(ids)]
 
 class Process(object):
-    def __init__(self, account, id, pidfile, start_cmd=None, stop_cmd=None, reload_cmd=None):
+    def __init__(self, account, id, pidfile, logfile=None, start_cmd=None, stop_cmd=None, reload_cmd=None):
         self._account = account
         self._id = id
         self._pidfile = pidfile
+        self._logfile = logfile
         self._start_cmd = start_cmd
         self._stop_cmd = stop_cmd
         self._reload_cmd = reload_cmd
@@ -193,6 +194,12 @@ class Process(object):
 
     def id(self):
         return self._id
+
+    def log(self):
+        self._account.readfile(self._logfile)
+
+    def reset_log(self):
+        self._account.run(['echo', '', '>', self._logfile])
 
     def _parse_pidfile(self, contents):
         return int(contents)
@@ -324,7 +331,8 @@ class PostgreSQLProcess(Process):
         self._account.run(['createdb', '-p', self.port(), name])
          
 ####################
-# Memcached
+# Memcached -- use like so:
+#     import memcache; c = memcache.Client(['localhost:12000']); c.set(...); c.get(...)
 ####################
 class Memcached(Process):
     def __init__(self, account, id, **options):
@@ -342,12 +350,6 @@ class Memcached(Process):
     def port(self):
         return int(self._options.get('p', 11211))
 
-# example client usage:
-#  import memcache
-#  c = memcache.Client(['localhost:12000'])
-#  c.set(...); c.get(...)
-
-        
 
 ####################
 # Backend
@@ -403,7 +405,6 @@ haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0)])
 memcached  = Component('memcached', [Memcached(local_user, 0)])
 backend    = Component('backend', [Backend(local_user, 0, 5560)])
-
 
 if __name__ == "__main__":
 
