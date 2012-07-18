@@ -2,27 +2,31 @@ Programming Todo
 ----------------
 
 NOW:
-   [ ] LOGGING: I've spent a while now thinking about logging, and have
-       changed my mind about what I want to do.  
-         * get rid of log.py; it is potentially too low performance and is
-           tied to Python.
-         * do what is suggested on stackoverflow: "Write locally to
-           disk, then batch insert to the database periodically
-           (e.g. at log rollover time). Do that in a separate,
-           low-priority process. More efficient and more
-           robust... (Make sure that your database log table contains
-           a column for "which machine the log event came from" by the
-           way - very handy!)": http://stackoverflow.com/questions/290304/is-writing-server-log-files-to-a-database-a-good-idea
-         * Why *not* to log directly to a database: http://stackoverflow.com/questions/209497/using-a-sql-server-for-application-logging-pros-cons?lq=1
 
-     So, new plan:
-       [ ] in the admin script, make sure each Process has configured
-           logfiles with rotation, and deleting old ones.
-       [ ] have a function log(n) that reads the n-th log, e.g., log()
-           gives the current log, log(1) the previous one, etc.
+   [ ] in the admin script, make sure each Process has configured
+       logfiles with rotation, and deleting old ones.
 
+[ ] postgres: dead easy
 
-   
+[ ] haproxy: modify log.c to:
+      (1) write to a file instead of a socket: printf("%s", log_ptr); in __send_log
+      (2) have to implement my own simple logrotate with two files:
+                haproxy.log
+                haproxy.log.0
+
+[ ] nginx: See http://www.ruby-forum.com/topic/134115   
+      in particular,
+       mv error.log error.log.0
+       kill -USR1 `cat master.nginx.pid`
+       wait 1 second and do anything with log
+     But instead do "nginx -s reload"
+
+   [ ] create logwatch.py, which watches a file for changes, and when
+       it changes, inserts it into a log database postgreSQL server
+       securely
+
+   [ ] when admin starts anything, it also starts one logwatch.py;
+       when it stops anything, it stops corresponding logwatch.py
 
 
 SOON: 
@@ -167,3 +171,18 @@ This works perfectly on Linux:
    [x] test starting/stopping haproxy, nginx, and database, and creating database
    [x] properly daemonize backend
    [x] admin: support start/stop/status backend
+   [x] LOGGING THINKING: I've spent a while now thinking about logging, and have
+       changed my mind about what I want to do.  
+         * get rid of log.py; it is potentially too low performance and is
+           tied to Python.
+         * do what is suggested on stackoverflow: "Write locally to
+           disk, then batch insert to the database periodically
+           (e.g. at log rollover time). Do that in a separate,
+           low-priority process. More efficient and more
+           robust... (Make sure that your database log table contains
+           a column for "which machine the log event came from" by the
+           way - very handy!)": http://stackoverflow.com/questions/290304/is-writing-server-log-files-to-a-database-a-good-idea
+         * Why *not* to log directly to a database: http://stackoverflow.com/questions/209497/using-a-sql-server-for-application-logging-pros-cons?lq=1
+
+   [x] write logwatch script
+

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Launch control
+Administration and Launch control of sagews components
 """
 
 ####################
@@ -120,7 +120,8 @@ class Account(object):
 
     def kill(self, pid, signal=15):
         """Send signal to the process with pid on self._hostname."""
-        self.run(['kill', '-%s'%signal, pid])
+        if pid is not None:
+            self.run(['kill', '-%s'%signal, pid])
 
     def copyfile(self, src, target):
         """
@@ -155,6 +156,10 @@ class Account(object):
         finally:
             shutil.rmtree(path)
 
+########################################
+# Component: named collection of Process objects
+########################################
+
 class Component(object):
     def __init__(self, id, processes):
         self._processes = processes
@@ -181,53 +186,75 @@ class Component(object):
     def status(self, ids=None):
         return [p.status() for p in self._procs_with_id(ids)]
 
+
+########################################
+# Process: a daemon process that implements part of sagews
+########################################
+
 class Process(object):
-    def __init__(self, account, id, pidfile, logfile=None, start_cmd=None, stop_cmd=None, reload_cmd=None):
+    def __init__(self, account, id, pidfile, logfile0=None, log_database=None,
+                       start_cmd=None, stop_cmd=None, reload_cmd=None):
         self._account = account
         self._id = id
         self._pidfile = pidfile
-        self._logfile = logfile
         self._start_cmd = start_cmd
         self._stop_cmd = stop_cmd
         self._reload_cmd = reload_cmd
-        self._pid = None
-
+        self._pids = {}
+        self._logfile0 = logfile0
+        self._log_database = log_database
+        self._log_pidfile = os.path.splitext(pidfile)[0] + '-log.pid'
+        
     def id(self):
         return self._id
 
-    def log(self):
-        self._account.readfile(self._logfile)
-
-    def reset_log(self):
-        self._account.run(['echo', '', '>', self._logfile])
-
     def _parse_pidfile(self, contents):
         return int(contents)
+
+    def _read_pid(self, file):
+        try:
+            return self._pids[file]
+        except KeyError:
+            try:
+                self._pids[file] = self._parse_pidfile(self._account.readfile(file).strip())
+            except IOError: # no file
+                self._pids[file] = None
+        return self._pids[file]
     
     def pid(self):
-        if self._pid is not None:
-            return self._pid
-        try:
-            self._pid = self._parse_pidfile(self._account.readfile(self._pidfile).strip())
-        except IOError: # no file
-            self._pid = None
-        return self._pid
+        return self._read_pid(self._pidfile)
 
     def is_running(self):
         return len(self.status()) > 0
+
+    def _start_logwatch(self):
+        if self._log_database:
+            self._account.run(['./logwatch.py', '-l', self._logfile0, 
+                               '-d', self._log_database, '-p', self._log_pidfile])
+
+    def log_pid(self):
+        return self._read_pid(self._log_pidfile)
+
+    def _stop_logwatch(self):
+        if self._log_database:
+            self._account.kill(self.log_pid())
+            os.unlink(self._log_pidfile)
         
     def start(self):
         if self.is_running(): return
-        self._pid = None
+        self._pids = {}
         if self._start_cmd is not None:
             return self._account.run(self._start_cmd)
+        self._start_logwatch()
         
     def stop(self):
-        self._pid = None            
         if self._stop_cmd is not None:
-            return self._account.run(self._stop_cmd)
+            s = self._account.run(self._stop_cmd)
         else:
-            return self._account.kill(self.pid())
+            s = self._account.kill(self.pid())
+        self._stop_logwatch()
+        self._pids = {}
+        return s
 
     def reload(self):
         self._pid = None            
@@ -363,7 +390,7 @@ class Backend(Process):
         if debug:
             extra.append('-g')
         Process.__init__(self, account, id, self._pidfile,
-                         start_cmd = ['python', 'backend.py', '-d', '-p', port,
+                         start_cmd = ['./backend.py', '-d', '-p', port,
                                       '--pidfile', self._pidfile, '--logfile', self._logfile] + extra)
 
     def __repr__(self):
@@ -378,19 +405,12 @@ class Worker(Process):
         pidfile = os.path.join(DATA, 'local/worker-%s.pid'%id)
         Process.__init__(self, account, id,
                          pidfile    = pidfile,
-                         start_cmd  = ['python', 'worker.py', '--daemon', '--port', port, '--pidfile', pidfile],
-                         stop_cmd   = ['python', 'worker.py', '--stop', '--pidfile', pidfile])
+                         start_cmd  = ['./worker.py', '--daemon', '--port', port, '--pidfile', pidfile],
+                         stop_cmd   = ['./worker.py', '--stop', '--pidfile', pidfile])
 
     def port(self):
         return self._port
         
-
-
-
-#############################################################################################################
-#############################################################################################################
-
-
 
 ####################
 # A configuration
@@ -406,29 +426,8 @@ postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0)])
 memcached  = Component('memcached', [Memcached(local_user, 0)])
 backend    = Component('backend', [Backend(local_user, 0, 5560)])
 
+
 if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser(description="Launch components of sagews")
-    
-
-##     parser.add_argument('--launch_nginx', dest='launch_nginx', action='store_const', const=True, default=False,
-##                         help="launch the NGINX server")
-
-##     parser.add_argument('--launch_haproxy', dest='launch_haproxy', action='store_const', const=True, default=False,
-##                         help="launch the haproxy server")
-
-##     parser.add_argument('--launch_postgresql', dest='launch_postgresql', action='store_const', const=True, default=False,
-##                         help="launch the postgresql database server")
-
-##     args = parser.parse_args()
-    
-
-##     if args.launch_nginx:
-##         launch_nginx_servers()
-
-##     if args.launch_haproxy:
-##         launch_haproxy_servers()
-
-##     if args.launch_postgresql:
-##         launch_postgresql_servers()
