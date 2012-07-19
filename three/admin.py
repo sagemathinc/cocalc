@@ -16,7 +16,7 @@ DATA = 'data'
 CONF = 'conf'
 PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files
-LOG_INTERVAL = 2  # raise to something much bigger -- 5 seconds is nice now for debugging.
+LOG_INTERVAL = 10  # raise to something much bigger -- short is nice now for debugging.
 
 ####################
 # Running a subprocess
@@ -174,6 +174,15 @@ class Account(object):
         else:
             sh['ssh', self._user_at, 'rm', filename]
 
+    def path_exists(self, path):
+        if self._hostname == 'localhost' and self._username == whoami:
+            return os.path.exists(path)
+        no_such = 'No such file or directory'  # TODO: could be broken by naming the path this way...
+        if self._hostname == 'localhost' and self._username == 'root':
+            return no_such not in sh['sudo', 'stat', path]
+        else:
+            return no_such not in sh['ssh', self._user_at, 'stat', path]
+        
     def is_running(self, pid):
         if self._hostname == 'localhost':
             try:
@@ -274,9 +283,10 @@ class Process(object):
         return self._read_pid(self._log_pidfile)
 
     def _stop_logwatch(self):
-        if self._log_database and self._logfile and os.path.exists(self._log_pidfile):
+        if self._log_database and self._logfile and self._account.path_exists(self._log_pidfile):
             try:
                 self._account.kill(self.log_pid())
+                self._account.unlink(self._log_pidfile)
             except Exception, msg:
                 print msg
         
@@ -291,15 +301,21 @@ class Process(object):
                 print self._account.run(self._start_cmd)
         
     def stop(self):
+        if self.pid() is None: return
         self._stop_logwatch()
         if self._stop_cmd is not None:
             print self._account.run(self._stop_cmd)
         else:
             self._account.kill(self.pid())
+        try:
+            self._account.unlink(self._pidfile)
+        except Exception, msg:
+            print msg
         self._pids = {}
 
     def reload(self):
-        self._pid = None            
+        self._stop_logwatch()
+        self._pids = {}
         if self._reload_cmd is not None:
             return self._account.run(self._reload_cmd)
         else:
@@ -307,7 +323,14 @@ class Process(object):
 
     def status(self):
         pid = self.pid()
-        return process_status(pid, self._account.run) if pid else {}
+        if not pid: return {}
+        s = process_status(pid, self._account.run)
+        if not s:
+            self._stop_logwatch()
+            self._pids = {}
+            if self._account.path_exists(self._pidfile):
+                self._account.unlink(self._pidfile)
+        return s
 
     def restart(self):
         self.stop()
@@ -347,11 +370,23 @@ class HAproxyProcess(Process):
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
         Process.__init__(self, account, id, pidfile = pidfile,
                          logfile = logfile, log_database = log_database,
+                         start_using_system = True, 
                          start_cmd = ['HAPROXY_LOGFILE='+logfile, 'haproxy', '-D', '-f', 'conf/haproxy.conf', '-p', pidfile])
         
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])
 
+class HAproxyProcess8000(Process):
+    def __init__(self, account, id, log_database=None):
+        pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
+        Process.__init__(self, account, id, pidfile = pidfile,
+                         logfile = logfile, log_database = log_database,
+                         start_using_system = True, 
+                         start_cmd = ['HAPROXY_LOGFILE='+logfile, 'haproxy', '-D', '-f', 'conf/haproxy8000.conf', '-p', pidfile])
+        
+    def _parse_pidfile(self, contents):
+        return int(contents.splitlines()[0])
 
 ####################
 # PostgreSQL Database
@@ -384,7 +419,7 @@ class PostgreSQLProcess(Process):
                          log_database=log_database, logfile = self._log,
                          pidfile    = os.path.join(self._db, 'postmaster.pid'),
                          start_cmd  = self._cmd('start') + ['-l', self._log],
-                         stop_cmd   = self._cmd('stop'),
+                         stop_cmd   = self._cmd('stop') + ['-m', 'fast'],
                          reload_cmd = self._cmd('reload'))
         
     def restart(self):
@@ -481,24 +516,3 @@ class Worker(Process):
         return self._port
         
 
-####################
-# A configuration
-####################
-
-# define two important local accounts
-local_user = Account(username=whoami, hostname='localhost')
-local_root = Account(username='root', hostname='localhost')
-
-log_database = "postgresql://localhost:5432/sagews"
-
-nginx      = Component('nginx', [NginxProcess(local_user, 0, log_database=log_database)])
-haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
-postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0, log_database=log_database)])
-memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
-backend    = Component('backend', [Backend(local_user, 0, 5560, log_database=log_database)])
-worker     = Component('worker', [Worker(local_user, 0, 6000, log_database=log_database)])
-
-if __name__ == "__main__":
-
-    import argparse
-    parser = argparse.ArgumentParser(description="Launch components of sagews")

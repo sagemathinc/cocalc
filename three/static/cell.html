@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+<title>Sage Workspace</title>
+
+<!-- jquery -->
+<script type="text/javascript" src="jquery/jquery.min.js"></script>
+
+<!-- sockjs -->
+<script type="text/javascript" src="sockjs/sockjs.min.js"></script>
+
+<script type="text/javascript">
+$(function() {
+
+   var conn = new SockJS('http://' + window.location.host + '/backend');
+
+   conn.onopen = function() {
+       $("#status").html("connected");
+       conn.send("hi there");
+   };
+
+   conn.onmessage = function(e) {
+       $("#mesg").append('message: ' + e.data + "<br>");
+   };
+
+   conn.onclose = function() {
+       $("#status").html("disconnected");
+   };
+
+})
+</script>
+
+
+</head>
+
+<body>
+<h1>Sage Workspace</h1>
+
+Status: <div id="status"></div>
+<br><br>
+
+Message: <div id="mesg"></div>
+
+</body>
+</html>
