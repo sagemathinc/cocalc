@@ -1,9 +1,12 @@
 Programming Todo
 ----------------
 
-NOW/NEXT:
+NOW: 
 
+VERY SOON:
   [ ] simple single computation server using what I have
+  [ ] make top-level index.html for whole site mobile friendly
+
 
 SOON: 
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py

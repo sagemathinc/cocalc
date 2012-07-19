@@ -19,7 +19,7 @@ postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0, log_datab
 nginx      = Component('nginx', [NginxProcess(local_user, 0, log_database=log_database)])
 haproxy    = Component('haproxy', [HAproxyProcess8000(local_user, 0, log_database=log_database)])
 memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
-backend    = Component('backend', [Backend(local_user, 0, 5560, log_database=log_database)])
+backend    = Component('backend', [Backend(local_user, 0, 5000, log_database=log_database)])
 worker     = Component('worker', [Worker(local_user, 0, 6000, log_database=log_database)])
 
 all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,
