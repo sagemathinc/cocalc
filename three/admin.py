@@ -226,7 +226,8 @@ class Process(object):
                  start_cmd=None, stop_cmd=None, reload_cmd=None,
                  start_using_system = False):
         self._account = account
-        self._id = id
+        self._id = str(id)
+        assert len(self._id.split()) == 1
         self._pidfile = pidfile
         self._start_cmd = start_cmd
         self._start_using_system = start_using_system
@@ -341,11 +342,12 @@ class NginxProcess(Process):
 # HAproxy
 ####################
 class HAproxyProcess(Process):
-    def __init__(self, account, id):
-        pidfile = os.path.join(DATA, 'local/haproxy.pid')
-        Process.__init__(self, account, id,
-                         pidfile = pidfile,
-                         start_cmd = ['haproxy', '-f', 'conf/haproxy.conf', '-p', pidfile])
+    def __init__(self, account, id, log_database=None):
+        pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
+        Process.__init__(self, account, id, pidfile = pidfile,
+                         logfile = logfile, log_database = log_database,
+                         start_cmd = ['HAPROXY_LOGFILE='+logfile, 'haproxy', '-D', '-f', 'conf/haproxy.conf', '-p', pidfile])
         
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])

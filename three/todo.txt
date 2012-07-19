@@ -1,20 +1,14 @@
 Programming Todo
 ----------------
 
-NOW:
-   [ ] haproxy logging (hardest) -- have to patch/modify log.c to:
-         print instead of send to network socket -- printf("%s", log_ptr); in "__send_log"
+NOW/NEXT:
+
+  [ ] simple single computation server using what I have
+
 
 SOON: 
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
    [ ] separate worker client from worker
-   [ ] admin -- systematic logfile support: 
-         - must specify logfile when creating Process
-         - function to read what is new in logfile since last read
-         - function to empty logfile
-         - I will be able to build database on this, in uniform way
-           that doesn't require python logger support.  So it was a
-           day wasted on log.py...
    [ ] simplify worker for my particular application and properly daemonize worker using same options as for backend
    [ ] admin: support start/stop/status worker
    [ ] implement basic message routing between workers and connected clients (?)
@@ -182,3 +176,13 @@ See http://www.ruby-forum.com/topic/134115
    [x] backend logging
    [x] issue with postgresql pid -- nothing; I was confused
    [x] worker pidfile, logging, Process object, etc. 
+   [x] haproxy logging (hardest) -- have to patch/modify log.c to:
+         print instead of send to network socket -- printf("%s", log_ptr); in "__send_log"
+
+   [x] admin -- systematic logfile support: 
+         - must specify logfile when creating Process
+         - function to read what is new in logfile since last read
+         - function to empty logfile
+         - I will be able to build database on this, in uniform way
+           that doesn't require python logger support.  So it was a
+           day wasted on log.py...

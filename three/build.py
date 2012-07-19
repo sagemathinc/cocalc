@@ -31,6 +31,7 @@ log.setLevel(logging.DEBUG)   # WARNING, INFO
 OS     = os.uname()[0]
 DATA   = os.path.abspath('data')
 SRC    = os.path.abspath('src')
+PATCHES= os.path.join(SRC, 'patches')
 BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 
@@ -125,6 +126,9 @@ def build_haproxy():
     log.info('building haproxy'); start = time.time()
     try:
         path = extract_package('haproxy')
+
+        # patch log.c so it can write the log to a file instead of syslog
+        cmd('patch -p0 < %s/haproxy.patch'%PATCHES, path)  # diff -Naur src/log.c  ~/log.c > ../patches/haproxy.patch
         cmd('make -j %s TARGET=%s'%(NCPU, 'linux2628' if OS=="Linux" else 'generic'), path)
         cmd('cp haproxy "%s"/bin/'%TARGET, path)
     finally:
