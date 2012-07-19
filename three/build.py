@@ -142,7 +142,7 @@ def build_stunnel():
         path = extract_package('stunnel')
         cmd('./configure --prefix="%s"'%TARGET, path)        
         cmd('make -j %s'%NCPU, path)
-        cmd('make install', path)
+        cmd('make install < /dev/null', path)  # make build non-interactive -- I don't care about filling in a form for a demo example
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
