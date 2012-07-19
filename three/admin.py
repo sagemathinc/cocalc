@@ -16,7 +16,7 @@ DATA = 'data'
 CONF = 'conf'
 PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files
-LOG_INTERVAL = 10  # raise to something much bigger -- short is nice now for debugging.
+LOG_INTERVAL = 1  # raise to something much bigger -- short is nice now for debugging.
 
 ####################
 # Running a subprocess
@@ -221,6 +221,9 @@ class Component(object):
 
     def reload(self, ids=None):
         return [p.reload() for p in self._procs_with_id(ids)]
+
+    def restart(self, ids=None):
+        return [p.restart() for p in self._procs_with_id(ids)]
 
     def status(self, ids=None):
         return [p.status() for p in self._procs_with_id(ids)]

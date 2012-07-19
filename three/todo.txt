@@ -2,11 +2,9 @@ Programming Todo
 ----------------
 
 NOW: 
-
-VERY SOON:
-  [ ] simple single computation server using what I have
-  [ ] make top-level index.html for whole site mobile friendly
-
+  [ ] test under linux
+  [ ] actually use worker.py
+  [ ] make top-level mobile friendly index.html and also for cell
 
 SOON: 
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
@@ -195,3 +193,4 @@ See http://www.ruby-forum.com/topic/134115
          - I will be able to build database on this, in uniform way
            that doesn't require python logger support.  So it was a
            day wasted on log.py...
+  [x] simple single computation server using what I have

@@ -2,57 +2,27 @@
 <html>
 <head>
 <title>Sage Workspace -- Single Cell Server</title>
-
-<!-- jquery -->
 <script type="text/javascript" src="/jquery/jquery.min.js"></script>
-<!-- sockjs -->
 <script type="text/javascript" src="/sockjs/sockjs.min.js"></script>
-
+<script type="text/javascript" src="sagews.js"></script>
 <script type="text/javascript" src="cell.js"></script>
-
-<script type="text/javascript">
-$(function() {
-
-   var conn = new SockJS('http://' + window.location.host + '/backend');
-
-   conn.onopen = function() {
-       $("#connection_status").html("connected");
-       conn.send("hi there");
-   };
-
-   conn.onclose = function() {
-       $("#connection_status").html("disconnected");
-   };
-
-   conn.onmessage = function(e) {
-       console.log(e);
-   };
-
-   $("#evaluate").click(function(e) { 
-       var t = eval($("input").val());
-       $("#output").val("10");
-   });
-
-})
-</script>
-
-
 </head>
 
 <body>
 <h1>Sage Workspace -- Single Cell Server</h1>
 
-<div>Status: <span id="connection_status">disconnected</span></div>
+<div>Connection Status: <span id="connection_status"></span></div>
+<div>Run Status: <span id="run_status"></span></div>
+<div>Last Execute Time: <span id="time"></span></div>
 <br>
 
 <textarea rows=8 cols=120 id="input">
 2+3
 </textarea>
 <br>
-<button id="evaluate">Evaluate</button>
-<br>
+<button id="execute">Execute</button><br>
+
 <textarea rows=16 cols=120 id="output" readonly="readonly">
-5
 </textarea>
 
 

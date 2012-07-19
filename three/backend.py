@@ -3,7 +3,7 @@
 Backend server
 
 """
-import logging, os, socket, sys
+import json, logging, os, socket, sys
 
 import sockjs.tornado, tornado.ioloop, tornado.web
 
@@ -22,7 +22,18 @@ class Connection(sockjs.tornado.SockJSConnection):
         self.connections.remove(self)
 
     def on_message(self, message):
-        pass
+        message = json.loads(message)
+        log.info("on_message: '%s'", message)
+        if 'execute' in message:
+            self.execute(message['execute'], message['id'], message['session'])
+
+    def send_obj(self, obj):
+        log.info("sending: '%s'", obj)
+        self.send(json.dumps(obj))
+
+    def execute(self, input, id, session):
+        r = eval(input)
+        self.send_obj({'stdout':r, 'done':True, 'id':id})
 
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):

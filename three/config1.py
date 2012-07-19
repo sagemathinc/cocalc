@@ -47,6 +47,8 @@ if __name__ == "__main__":
     parser.add_argument("--stop", dest='stop', type=str, default='', help="stop given components")
     
     parser.add_argument("--status", dest='status', type=str, default='', help="status of given components")
+
+    parser.add_argument("--restart", dest='restart', type=str, default='', help="restart given components")
     
     args = parser.parse_args()
 
@@ -56,6 +58,8 @@ if __name__ == "__main__":
         args.stop = ALL
     if args.status == 'all':
         args.status = ALL
+    if args.restart == 'all':
+        args.restart = ALL
         
     for c in args.start.split(','):
         action(c, 'start')
@@ -63,5 +67,7 @@ if __name__ == "__main__":
         action(c, 'stop')
     for c in args.status.split(','):
         action(c, 'status')
+    for c in args.restart.split(','):
+        action(c, 'restart')
     
         
