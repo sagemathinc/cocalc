@@ -29,13 +29,17 @@ class LogMessage(Base):
         self.message = message
         self.logfile = logfile
 
-def get_session(database):
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+session_maker = None
 
-    engine = create_engine(database)
-    Base.metadata.create_all(engine)
-    return sessionmaker(bind=engine)()
+def get_session(database):
+    global session_maker
+    if session_maker is None:
+        engine = create_engine(database)
+        Base.metadata.create_all(engine)
+        session_maker = sessionmaker(bind=engine)
+    return session_maker()
 
 def main(logfile, pidfile, timeout, database):
     filename = os.path.split(logfile)[-1]
