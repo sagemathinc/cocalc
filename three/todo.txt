@@ -2,7 +2,7 @@ Programming Todo
 ----------------
 
 NOW: 
-  [ ] automatic reconnect
+  [ ] postgres logging is problematic due to: FATAL:  sorry, too many clients already
   [ ] use memcached to cache single cell evaluations between backends
   [ ] make top-level mobile friendly index.html and also for cell
   [ ] switch to use worker.py
@@ -199,3 +199,4 @@ See http://www.ruby-forum.com/topic/134115
   [x] simple single computation server using what I have
   [x] switch to testing with multiple backends instead of 1 in config1.py
   [x] test under linux
+  [x] automatic reconnect

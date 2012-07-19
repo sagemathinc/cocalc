@@ -16,7 +16,7 @@ DATA = 'data'
 CONF = 'conf'
 PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files
-LOG_INTERVAL = 1  # raise to something much bigger -- short is nice now for debugging.
+LOG_INTERVAL = 60  # raise to something much bigger -- short is nice now for debugging.
 
 ####################
 # Running a subprocess

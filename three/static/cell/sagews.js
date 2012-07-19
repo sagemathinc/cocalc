@@ -15,19 +15,6 @@ sagews.Backend = function(options) {
 	url:"http://" + window.location.host + "/backend",
     }, options||{});
 
-    /* Connection to backend */
-    var conn;
-    function connect() {
-	conn = new SockJS(opts.url);
-	conn.onopen = function () { opts.onopen(conn.protocol); };
-	conn.onclose = opts.onclose;
-    }
-    connect();
-
-    function send(obj) {
-	conn.send(JSON.stringify(obj));
-    }
-
     /* Execution of code */
     var id=0;
     var execute_callbacks = {};
@@ -38,11 +25,34 @@ sagews.Backend = function(options) {
 	send({session:-1, execute:input, id:id});
 	id += 1;
     }
-    conn.onmessage = function(e) {
-	$("#time").html((sagews.walltime() - time) + " milliseconds");
+    function onmessage(e) {
 	mesg = JSON.parse(e.data);
+	console.log(mesg);
+	$("#time").html((sagews.walltime() - time) + " milliseconds");
 	execute_callbacks[mesg.id](mesg);
 	if(mesg.done) { delete execute_callbacks[mesg.id]; }
+    }
+
+    /* Connection to backend */
+    var conn, retry_delay=1;
+    function connect() {
+	conn = new SockJS(opts.url);
+	conn.onclose = function() { 
+	    opts.onclose();
+	    if (retry_delay<2048) { retry_delay *= 2; }
+	    sagews.log("Trying to reconnect in " + retry_delay + " milliseconds");
+	    setTimeout(connect, retry_delay);
+	}
+	conn.onopen = function () { 
+	    opts.onopen(conn.protocol); 
+	    retry_delay = 1; 
+	};
+	conn.onmessage = onmessage;
+    }
+    connect();
+
+    function send(obj) {
+	conn.send(JSON.stringify(obj));
     }
 
     /* The actual backend object */
