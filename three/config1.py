@@ -41,6 +41,9 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Launch a simple testing sagews setup, where everything runs locally on one server as the same user.")
 
+    parser.add_argument("--init", dest='init', default=False, action="store_const", const=True,
+                        help="initialize for first usage")
+
     parser.add_argument("--start", dest='start', type=str, default='',
                         help="start comma separated list of components (or 'all'='%s')"%ALL)
 
@@ -51,6 +54,12 @@ if __name__ == "__main__":
     parser.add_argument("--restart", dest='restart', type=str, default='', help="restart given components")
     
     args = parser.parse_args()
+
+    if args.init:
+        for p in postgresql:
+            p.initdb()
+            p.createdb('sagews')
+        sys.exit(0)
 
     if args.start == 'all':
         args.start = ALL
