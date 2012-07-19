@@ -425,9 +425,6 @@ class PostgreSQLProcess(Process):
                          stop_cmd   = self._cmd('stop') + ['-m', 'fast'],
                          reload_cmd = self._cmd('reload'))
         
-    def restart(self):
-        return self._account.run(self._cmd('restart'))
-
     def status2(self):
         return self._account.run(self._cmd('status'))
 
