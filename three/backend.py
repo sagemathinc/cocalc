@@ -55,7 +55,7 @@ if __name__ == "__main__":
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='backend.pid',
                         help="store pid in this file (default: 'backend.pid')")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
-                        help="store log in this file (default: '')")
+                        help="store log in this file (default: '' = don't log to a file)")
 
     args = parser.parse_args()
     

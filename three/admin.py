@@ -66,17 +66,19 @@ logging.basicConfig()
 log = logging.getLogger('')
 log.setLevel(logging.DEBUG)   # WARNING, INFO, etc.
 
+def restrict(path):
+    log.info("ensuring that '%s' has restrictive permissions", path)
+    if os.stat(path)[stat.ST_MODE] != 0o40700:
+        os.chmod(path, 0o40700)
+
 def init_data_directory():
     log.info("ensuring that '%s' exist", DATA)
 
     for path in [DATA, PIDS, LOGS]:
         if not os.path.exists(path):
             os.makedirs(path)
-
-    log.info("ensuring that '%s' has restrictive permissions", DATA)
-    if os.stat(DATA)[stat.ST_MODE] != 0o40700:
-        os.chmod(DATA, 0o40700)
-
+        restrict(path)
+    
     log.info("ensuring that PATH starts with programs in DATA directory")
     os.environ['PATH'] = os.path.join(DATA, 'local/bin/') + ':' + os.environ['PATH']
 
@@ -110,7 +112,7 @@ class Account(object):
         return '%s:%s'%(self._user_at, self._path)
 
     def system(self, args):
-        c = ' '.join(self._pre + args)
+        c = ' '.join(self._pre + [str(x) for x in args])
         log.info("running '%s' via system", c)
         return os.system(c)
 
@@ -462,13 +464,16 @@ class Backend(Process):
 # Worker
 ####################
 class Worker(Process):
-    def __init__(self, account, id, port, debug=True):
+    def __init__(self, account, id, port, log_database=None, debug=True):
         self._port = port
-        pidfile = os.path.join(DATA, 'local/worker-%s.pid'%id)
-        Process.__init__(self, account, id,
-                         pidfile    = pidfile,
-                         start_cmd  = ['./worker.py', '--daemon', '--port', port, '--pidfile', pidfile],
-                         stop_cmd   = ['./worker.py', '--stop', '--pidfile', pidfile])
+        pidfile = os.path.join(PIDS, 'worker-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'worker-%s.log'%id)
+        Process.__init__(self, account, id, pidfile    = pidfile,
+                         logfile = logfile, log_database=log_database,
+                         start_cmd  = ['sage', '--python', 'worker.py', '--port', port,
+                                       '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
+                         start_using_system = True,  # since daemon mode currently broken
+                         stop_cmd   = ['sage', '--python', 'worker.py', '--stop', '--pidfile', pidfile])
 
     def port(self):
         return self._port
@@ -489,7 +494,7 @@ haproxy    = Component('haproxy', [HAproxyProcess(local_root,0)])
 postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0, log_database=log_database)])
 memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
 backend    = Component('backend', [Backend(local_user, 0, 5560, log_database=log_database)])
-
+worker     = Component('worker', [Worker(local_user, 0, 6000, log_database=log_database)])
 
 if __name__ == "__main__":
 

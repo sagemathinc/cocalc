@@ -9,9 +9,6 @@ Having an official-in-Sage socket protocol actually makes a lot of
 sense anyways.
 """
 
-# THIS USES Python2.  It imports the sage library, so there is no point in
-# worrying about Python3 for this. 
-
 import os, json, pwd, random, resource, shutil, signal, socket, string, sys, tempfile, threading, time, traceback
 
 CONNECTION_TERM_INTERVAL = 15
@@ -440,15 +437,9 @@ class SageSocketServer(object):
                 pid = os.fork()
 
                 if pid == 0:
+                    # child
                     # client must send the secret authentication token within 10 seconds, or we refuse to serve
                     TIMEOUT = 10
-                    # child
-                    if args.log:
-                        log = logging.getLogger('')
-                        log.setLevel(logging.DEBUG)
-                        from log import StandardLogHandler
-                        log.addHandler(StandardLogHandler(address=args.log, tag='session'))
-
                     def auth_fail(*args):
                         log.info("Client failed to correctly send correct token within %s seconds.", TIMEOUT)
                         sys.exit(1)
@@ -727,8 +718,8 @@ if __name__ == '__main__':
                         help="if set, do *not* import the Sage library and do not preparse input")
 
 
-    parser.add_argument("--log", dest="log", type=str, default="",
-                        help="if specified also log to secure remote log server at that location (e.g., 'localhost:9020')")
+    parser.add_argument("--logfile", dest="logfile", type=str, default="",
+                        help="store log in this file (default: '' = don't log to a file)")
     parser.add_argument("--log_tag", dest="log_tag", type=str, default="worker",
                         help="tag to include in remote log server messages, which could be used to identify this process, e.g., 'worker'")
     parser.add_argument('--log_level', dest='log_level', type=str, default='INFO',
@@ -747,24 +738,19 @@ if __name__ == '__main__':
     if args.socket_name and args.port == 'auto':
         args.port = 'uds'
 
-    if args.log:
-        from log import StandardLogHandler
-        log.addHandler(StandardLogHandler(address=args.log, tag=args.log_tag))
-
     if args.log_level:
         level = getattr(logging, args.log_level.upper())
-        #print "Setting log level to %s (=%s)"%(args.log_level, level)
         log.setLevel(level)
 
+    if args.logfile:
+        args.logfile = os.path.abspath(args.logfile)
+        log.addHandler(logging.FileHandler(args.logfile))
+        
     if args.stop:
         if not args.pidfile:
             raise RuntimeError("you must specify --pidfile")
         os.kill(int(open(args.pidfile).read()), 15)
         sys.exit(0)
-
-    if args.pidfile:
-        open(args.pidfile,'w').write(str(os.getpid()))
-
 
     use_ssl = not args.no_ssl
     if use_ssl:
@@ -780,6 +766,8 @@ if __name__ == '__main__':
             os.chmod(args.certfile, 0600)
 
     def main():
+        if args.pidfile:
+            open(args.pidfile,'w').write(str(os.getpid()))
         log.info('main')
         if args.reset_account:
             reset_account(args.reset_account)

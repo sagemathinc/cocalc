@@ -2,14 +2,12 @@ Programming Todo
 ----------------
 
 NOW:
-   [ ] worker logging
    [ ] haproxy logging (hardest) -- have to patch/modify log.c to:
-      (1) write to a file instead of a socket: printf("%s", log_ptr); in __send_log
-      (2) have to implement my own simple logrotate with two files:
-                haproxy.log
-                haproxy.log.0
+         print instead of send to network socket -- printf("%s", log_ptr); in "__send_log"
 
 SOON: 
+   [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
+   [ ] separate worker client from worker
    [ ] admin -- systematic logfile support: 
          - must specify logfile when creating Process
          - function to read what is new in logfile since last read
@@ -182,3 +180,5 @@ See http://www.ruby-forum.com/topic/134115
    [x] nginx logging 
    [x] memcached logging
    [x] backend logging
+   [x] issue with postgresql pid -- nothing; I was confused
+   [x] worker pidfile, logging, Process object, etc. 
