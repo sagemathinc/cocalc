@@ -21,7 +21,7 @@ LOG_INTERVAL = 60  # raise to something much bigger -- short is nice now for deb
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=10):
+def run(args, maxtime=10, verbose=True):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
@@ -32,7 +32,8 @@ def run(args, maxtime=10):
         raise KeyboardInterrupt("running '%s' took more than %s seconds, so killed"%(' '.join(args), maxtime))
     signal.signal(signal.SIGALRM, timeout)
     signal.alarm(maxtime)
-    log.info("running '%s'", ' '.join(args))
+    if verbose:
+        log.info("running '%s'", ' '.join(args))
     try:
         return subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE).stdout.read()
@@ -55,7 +56,7 @@ def process_status(pid, run):
     the given process is not running. 
     """
     fields = ['%cpu', '%mem', 'etime', 'pid', 'start', 'cputime', 'rss', 'vsize']
-    v = run(['ps', '-p', str(int(pid)), '-o', ' '.join(fields)]).splitlines()
+    v = run(['ps', '-p', str(int(pid)), '-o', ' '.join(fields)], verbose=False).splitlines()
     if len(v) <= 1: return {}
     return dict(zip(fields, v[-1].split()))
 
@@ -116,15 +117,19 @@ class Account(object):
         log.info("running '%s' via system", c)
         return os.system(c)
 
-    def run(self, args):
+    def run(self, args, **kwds):
         """Run command with given arguments using this account and return output."""
-        return sh[self._pre + args]
+        return run(self._pre + args, **kwds)
 
-    def abspath(self, path):
-        if self._hostname == 'localhost':
-            return os.path.abspath(path)
-        else:
-            return os.path.join(self.run('pwd'), path)
+    def abspath(self, path=None):
+        if not hasattr(self, '_abspath'):
+            if self._hostname == 'localhost' and self._username == whoami:
+                self._abspath = os.path.abspath(self._path)
+            else:
+                self._abspath = self.run(['pwd']).strip()
+        if not path:
+            return self._abspath
+        return os.path.join(self._abspath, path)
 
     def kill(self, pid, signal=15):
         """Send signal to the process with pid on self._hostname."""
@@ -163,6 +168,14 @@ class Account(object):
             return open(dest).read()
         finally:
             shutil.rmtree(path)
+
+    def writefile(self, filename, content):
+        if self._hostname == 'localhost' and self._username == whoami:
+            open(filename,'w').write(content)
+        else:
+            src = tempfile.NamedTemporaryFile()
+            src.write(content)
+            self.copyfile(src.name, filename)
 
     def unlink(self, filename):
         filename = os.path.join(self._path, filename)
@@ -304,8 +317,8 @@ class Process(object):
                 print self._account.run(self._start_cmd)
         
     def stop(self):
-        if self.pid() is None: return
         self._stop_logwatch()
+        if self.pid() is None: return
         if self._stop_cmd is not None:
             print self._account.run(self._stop_cmd)
         else:
@@ -343,16 +356,18 @@ class Process(object):
 ####################
 # Nginx
 ####################
-class NginxProcess(Process):
+class Nginx(Process):
     def __init__(self, account, id, log_database=None, port=8080):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
         conf = open(os.path.join(CONF, nginx)).read()
+        # fill in template        
         for k, v in [('LOGFILE', log), ('PIDFILE', pid), ('HTTP_PORT', str(port))]:
             conf = conf.replace(k,v)
-        open(os.path.join(DATA, nginx),'w').write(conf)
-        nginx_cmd = ['nginx', '-c', '../' + nginx]
+        nginx_conf = 'nginx-%s.conf'%id
+        account.writefile(filename=os.path.join(DATA, nginx_conf), content=conf)
+        nginx_cmd = ['nginx', '-c', '../' + nginx_conf]
         Process.__init__(self, account, id,
                          log_database = log_database,
                          logfile   = os.path.join(LOGS, log),
@@ -365,9 +380,32 @@ class NginxProcess(Process):
         return "Nginx process %s at %s"%(self._id, self._account)
         
 ####################
+# Stunnel
+####################
+class Stunnel(Process):
+    def __init__(self, account, id, accept_port, connect_port, log_database=None):
+        log = os.path.join(LOGS,'stunnel-%s.log'%id)
+        pid = account.abspath(os.path.join(PIDS,'stunnel-%s.pid'%id)) # abspath required by stunnel
+        stunnel = 'stunnel.conf'
+        conf = open(os.path.join(CONF, stunnel)).read()
+        # fill in template
+        for k, v in [('LOGFILE', log), ('PIDFILE', pid), ('ACCEPT_PORT', str(accept_port)), ('CONNECT_PORT', str(connect_port))]:
+            conf = conf.replace(k,v)
+        stunnel_conf = os.path.join(DATA, 'stunnel-%s.conf'%id)
+        account.writefile(filename=stunnel_conf, content=conf)
+        Process.__init__(self, account, id,
+                         log_database = log_database,
+                         logfile    = log,
+                         pidfile    = pid,
+                         start_cmd  = ['stunnel', stunnel_conf])
+
+    def __repr__(self):
+        return "Stunnel process %s at %s"%(self._id, self._account)
+
+####################
 # HAproxy
 ####################
-class HAproxyProcess(Process):
+class HAproxy(Process):
     def __init__(self, account, id, log_database=None):
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
@@ -379,7 +417,7 @@ class HAproxyProcess(Process):
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])
 
-class HAproxyProcess8000(Process):
+class HAproxy8000(Process):
     def __init__(self, account, id, log_database=None):
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
@@ -407,7 +445,7 @@ def pg_conf(**options):
         r = r[:start+1] + '#%s\n%s = %s'%(r[start+1:stop], key, value) + r[stop:]
     return r
 
-class PostgreSQLProcess(Process):
+class PostgreSQL(Process):
     def _cmd(self, name, *opts):
         return ['pg_ctl', name, '-D', self._db] + list(opts)
 
@@ -438,9 +476,7 @@ class PostgreSQLProcess(Process):
     def initdb(self, **options):
         s = self._account.run(self._cmd('initdb'))
         log.info(s)
-        src = tempfile.NamedTemporaryFile()
-        src.write(pg_conf(**options))
-        log.info(self._account.copyfile(src.name, self._conf))
+        self._account.writefile(filename=self._conf, content=pg_conf(**options))
 
     def createdb(self, name='sagews'):
         self._account.run(['createdb', '-p', self.port(), name])
@@ -486,7 +522,7 @@ class Memcached(Process):
 # Backend
 ####################
 class Backend(Process):
-    def __init__(self, account, id, port, log_database=None, debug=True):
+    def __init__(self, account, id, port, log_database=None, debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'backend-%s.pid'%id)
         logfile = os.path.join(LOGS, 'backend-%s.log'%id)
@@ -520,3 +556,6 @@ class Worker(Process):
         return self._port
         
 
+local_user = Account(username=whoami, hostname='localhost')
+root_user =  Account(username='root', hostname='localhost')
+remote_user =  Account(username=whoami, hostname='ubuntu')

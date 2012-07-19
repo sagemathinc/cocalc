@@ -2,28 +2,28 @@
 
 import sys
 
-from admin import (Account, Component,
-                   HAproxyProcess8000, NginxProcess, PostgreSQLProcess, Memcached, Backend, Worker,
-                   whoami)
+from admin import (Account, Component, whoami,
+                   HAproxy8000, Nginx, PostgreSQL, Memcached, Backend, Worker, Stunnel)
 
 ####################
 # A configuration
 ####################
 
-# define two important local accounts
 local_user = Account(username=whoami, hostname='localhost')
 
 log_database = "postgresql://localhost:5432/sagews"
 
-postgresql = Component('postgreSQL', [PostgreSQLProcess(local_user, 0, log_database=log_database)])
-nginx      = Component('nginx', [NginxProcess(local_user, 0, log_database=log_database)])
-haproxy    = Component('haproxy', [HAproxyProcess8000(local_user, 0, log_database=log_database)])
+postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, log_database=log_database)])
+nginx      = Component('nginx', [Nginx(local_user, 0, log_database=log_database)])
+stunnel    = Component('stunnel', [Stunnel(local_user, 0, accept_port=8443, connect_port=8000, log_database=log_database)])
+haproxy    = Component('haproxy', [HAproxy8000(local_user, 0, log_database=log_database)])
 memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
 backend    = Component('backend', [Backend(local_user, i, 5000+i, log_database=log_database) for i in range(3)])
 worker     = Component('worker', [Worker(local_user, 0, 6000, log_database=log_database)])
 
 all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,
-       'memcached':memcached, 'backend':backend, 'worker':worker}
+       'memcached':memcached, 'backend':backend, 'worker':worker,
+       'stunnel':stunnel}
 
 ALL = ','.join(all.keys())
 
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     if args.init:
         for p in postgresql:
-            p.initdb()
+            p.initdb(port=5432)
             p.createdb('sagews')
         sys.exit(0)
 

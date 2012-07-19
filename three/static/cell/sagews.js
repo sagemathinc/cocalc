@@ -17,7 +17,7 @@ sagews.Backend = function(options) {
     var opts = $.extend({
 	onopen:function(protocol) { sagews.log('open -- '+protocol); },
 	onclose:function() { sagews.log('onclose'); },
-	url:"http://" + window.location.host + "/backend",
+	url:window.location.protocol + "//" + window.location.host + "/backend",
     }, options||{});
 
     /* Execution of code */

@@ -83,6 +83,8 @@ if __name__ == "__main__":
     pidfile = os.path.abspath(args.pidfile)
     if args.logfile:
         logfile = os.path.abspath(args.logfile)
+    else:
+        logfile = None        
     main = lambda: run_server(port=args.port, debug=args.debug, pidfile=pidfile, logfile=logfile)
     if args.daemon:
         import daemon

@@ -9,6 +9,7 @@ NOW:
   [ ] scalabiility test: test using backend.py(s), also running on different VM's
   [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
              #daemon   -- commented out so I can just log to stdout 
+  [ ] clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
 
 SOON: 
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
@@ -21,9 +22,7 @@ SOON:
    [ ] sqlalchemy postgresql central DB server
         - do test: what is overhead of storing a BLOB of a git bundle?
    [ ] implement basic "single cell server"
-
-   [ ] implement interacts
-
+   [ ] implement interact
    [ ] logging -- it might be good if there were a common format for
        the date part of every log message, so the time when log row
        was *record* could be set, instead of the time of insertion in
@@ -203,3 +202,7 @@ See http://www.ruby-forum.com/topic/134115
   [x] automatic reconnect
   [x] postgres logging is problematic due to: FATAL:  sorry, too many clients already
   [x] issues with anything but websocket -- needed to load balance by IP address
+  [x] implement ssl (with a self-signed cert for now):
+          - just encrypting between haproxy and backend doesn't work, and is insane
+          - encrypting between backend and worker is probably insane too.
+          - use stunnel!?  YES, it is awesome!

@@ -136,6 +136,17 @@ def build_haproxy():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
 
+def build_stunnel():
+    log.info('building stunnel'); start = time.time()
+    try:
+        path = extract_package('stunnel')
+        cmd('./configure --prefix="%s"'%TARGET, path)        
+        cmd('make -j %s'%NCPU, path)
+        cmd('make install', path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
 def build_postgresql():
     log.info('building postgreSQL'); start = time.time()
     try:
@@ -180,6 +191,9 @@ if __name__ == "__main__":
     parser.add_argument('--build_haproxy', dest='build_haproxy', action='store_const', const=True, default=False,
                         help="build the haproxy server")
 
+    parser.add_argument('--build_stunnel', dest='build_stunnel', action='store_const', const=True, default=False,
+                        help="build the stunnel server")
+    
     parser.add_argument('--build_postgresql', dest='build_postgresql', action='store_const', const=True, default=False,
                         help="build the postgresql database server")
 
@@ -204,6 +218,9 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_haproxy:
             times['haproxy'] = build_haproxy()
+
+        if args.build_all or args.build_stunnel:
+            times['stunnel'] = build_stunnel()
 
         if args.build_all or args.build_postgresql:
             times['postgresql'] = build_postgresql()
