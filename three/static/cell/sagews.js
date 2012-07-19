@@ -1,7 +1,12 @@
 var sagews = {}; /* namespace for application */
 
 sagews.log = function(s) {
-    console.log(s);  // TODO: not cross platform!
+    var err;
+    try { 
+        console.log(s);  // TODO: not cross platform!
+    } catch(err) {
+//alert(s);
+    }
 }
 
 sagews.walltime = function() { return (new Date()).getTime(); }
@@ -27,7 +32,7 @@ sagews.Backend = function(options) {
     }
     function onmessage(e) {
 	mesg = JSON.parse(e.data);
-	console.log(mesg);
+	sagews.log(mesg);
 	$("#time").html((sagews.walltime() - time) + " milliseconds");
 	execute_callbacks[mesg.id](mesg);
 	if(mesg.done) { delete execute_callbacks[mesg.id]; }
@@ -44,6 +49,7 @@ sagews.Backend = function(options) {
 	    setTimeout(connect, retry_delay);
 	}
 	conn.onopen = function () { 
+	    sagews.log("connected.");
 	    opts.onopen(conn.protocol); 
 	    retry_delay = 1; 
 	};

@@ -2,11 +2,13 @@ Programming Todo
 ----------------
 
 NOW: 
-  [ ] use memcached to cache single cell evaluations between backends
   [ ] make top-level mobile friendly index.html and also for cell
+  [ ] use memcached to cache single cell evaluations between backends
   [ ] switch to use worker.py
   [ ] scalability test: using worker.py, but running on a different VM
   [ ] scalabiility test: test using backend.py(s), also running on different VM's
+  [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
+             #daemon   -- commented out so I can just log to stdout 
 
 SOON: 
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
@@ -200,3 +202,4 @@ See http://www.ruby-forum.com/topic/134115
   [x] test under linux
   [x] automatic reconnect
   [x] postgres logging is problematic due to: FATAL:  sorry, too many clients already
+  [x] issues with anything but websocket -- needed to load balance by IP address
