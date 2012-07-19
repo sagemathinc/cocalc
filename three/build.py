@@ -38,7 +38,8 @@ TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 PYTHON_PACKAGES = [  
     'tornado',            # async webserver
     'sockjs-tornado',     # websocket support
-    'python-memcached',  # memcached for database 
+    'python-memcached',   # memcached for database
+    'python-daemon',      # daemonization of python modules
     'sqlalchemy',         # database ORM
     'psycopg2',           # postgreSQL support for ORM
     'momoko',             # async postgreSQL support

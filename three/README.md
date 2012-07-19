@@ -47,6 +47,10 @@ Library dependency
 
    * memcached -- http://memcached.org/; 3-clause BSD
 
+On Linux, building memcached from source requires me to first do:
+
+  apt-get install libsasl2-dev libevent1-dev  
+
 
 Used as a separate process (no library linking)
 -----------------------------------------------

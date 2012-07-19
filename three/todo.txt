@@ -3,10 +3,12 @@ Programming Todo
 
 NOW: 
   [ ] test under linux
+  [ ] automatic reconnect
   [ ] use memcached to cache single cell evaluations between backends
   [ ] make top-level mobile friendly index.html and also for cell
   [ ] switch to use worker.py
-  [ ] test using worker.py, but running on a different VM
+  [ ] scalability test: using worker.py, but running on a different VM
+  [ ] scalabiility test: test using backend.py(s), also running on different VM's
 
 SOON: 
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
