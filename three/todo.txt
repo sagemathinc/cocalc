@@ -2,7 +2,6 @@ Programming Todo
 ----------------
 
 NOW: 
-  [ ] test under linux
   [ ] automatic reconnect
   [ ] use memcached to cache single cell evaluations between backends
   [ ] make top-level mobile friendly index.html and also for cell
@@ -199,3 +198,4 @@ See http://www.ruby-forum.com/topic/134115
            day wasted on log.py...
   [x] simple single computation server using what I have
   [x] switch to testing with multiple backends instead of 1 in config1.py
+  [x] test under linux

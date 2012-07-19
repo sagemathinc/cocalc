@@ -478,7 +478,11 @@ class Memcached(Process):
         if pid is not None:
             Process.stop(self)
             if not self._account.is_running(pid):
-                self._account.unlink(self._pidfile)
+                try:
+                    self._account.unlink(self._pidfile)
+                except Exception,msg:
+                    log.info("Issue unlinking pid file: %s", msg)
+                    
             
 
 ####################
