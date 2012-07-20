@@ -46,7 +46,8 @@ def client1(port, hostname):
     send(conn, CONF, json.dumps({'maxtime':3600, 'cputime':5}))
 
     send(conn, PID, '')
-    print "PID = %s"%recv(conn)[1]
+    pid = int(recv(conn)[1])
+    print "PID = %s"%pid
     
     id = 0
     while True:
@@ -68,11 +69,18 @@ def client1(port, hostname):
                         sys.stdout.write(mesg['stdout']); sys.stdout.flush()
                     if 'stderr' in mesg:
                         print '!  ' + '\n!  '.join(mesg['stderr'].splitlines())
-                    if mesg['done']:
+                    if mesg['done'] and mesg['id'] >= id:
                         break
             id += 1
+            
         except KeyboardInterrupt:
-            print "Press Control-D to quit."
+            print "Sending interrupt signal"
+            conn2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn2.connect((hostname, int(port)))
+            send(conn2, CONF, json.dumps({'control':'sigint', 'pid':pid}))
+            del conn2
+            id += 1
+            
     send(conn, TERM, '')
     print "\nExiting Sage worker client."
 
@@ -165,19 +173,22 @@ def session(conn, home, cputime, nofile, vmem):
         sys.exit(0)
         
     signal.signal(signal.SIGQUIT, handle_parent_sigquit)
-    
+
     while True:
-        typecode, mesg = recv(conn)
-        print 'INFO:child%s: received JSON message "%s" %s'%(pid, mesg, typecode)  # TODO
-        if mesg is None: break
-        if typecode == TERM:
-            sys.exit(0)
-        elif typecode == PID:
-            send(conn,STR,str(os.getpid()))
-        elif typecode == JSON:
-            handle_json_mesg(conn, mesg)
-        else:
-            raise RuntimeError("unknown message code: %s"%typecode)
+        try:
+            typecode, mesg = recv(conn)
+            print 'INFO:child%s: received JSON message "%s" %s'%(pid, mesg, typecode)  # TODO
+            if mesg is None: break
+            if typecode == TERM:
+                return
+            elif typecode == PID:
+                send(conn,STR,str(os.getpid()))
+            elif typecode == JSON:
+                handle_json_mesg(conn, mesg)
+            else:
+                raise RuntimeError("unknown message code: %s"%typecode)
+        except KeyboardInterrupt:
+            pass
 
 def rmtree(path):
     if not path.startswith('/tmp/') or path.startswith('/var/') or path.startswith('/private/'):
@@ -211,7 +222,7 @@ class Connection(object):
 
 connections = {}
 
-CONNECTION_TERM_INTERVAL = 2
+CONNECTION_TERM_INTERVAL = 15
 def check_for_connection_timeouts():
     global kill_timer
     print "Checking for connection timeouts...: %s"%connections
@@ -247,6 +258,14 @@ def handle_session_term(signum, frame):
 
 def control(mesg):
     log.info("control message: '%s'", mesg)
+    action = mesg['control']
+    if action == 'sigint':
+        if 'pid' not in mesg:
+            log.error("missing 'pid' key")
+        else:
+            os.kill(mesg['pid'], signal.SIGINT)
+    else:
+        log.error("unknown control action: '%s'", action)
     
 
 def serve(port, whitelist):
@@ -255,8 +274,8 @@ def serve(port, whitelist):
     signal.signal(signal.SIGCHLD, handle_session_term)
 
     log.info('pre-importing the sage library...')
-    import sage.all_cmdline
-    exec "from sage.all_cmdline import *" in namespace
+    import sage.all
+    exec "from sage.all import *" in namespace
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -295,6 +314,7 @@ def serve(port, whitelist):
             if pid == 0:
                 session(conn, home, cputime=config.get('cputime', None),
                         nofile=config.get('nofile',None), vmem=config.get('vmem',None))
+                sys.exit(0)
             else:
                 connections[pid] = Connection(pid, home, maxtime=config.get('maxtime',None))
                 log.info('accepted connection from %s (pid=%s)', addr, pid)
