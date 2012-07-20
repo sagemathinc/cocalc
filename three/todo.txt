@@ -2,11 +2,12 @@ Programming Todo
 ----------------
 
 NOW: 
+  [ ] don't allow mesg until connected
   [ ] make top-level mobile friendly index.html and also for cell
   [ ] use memcached to cache single cell evaluations between backends
   [ ] switch to use worker.py
   [ ] scalability test: using worker.py, but running on a different VM
-  [ ] scalabiility test: test using backend.py(s), also running on different VM's
+  [ ] scalability test: test using backend.py(s), also running on different VM's
   [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
              #daemon   -- commented out so I can just log to stdout 
   [ ] clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
@@ -206,3 +207,5 @@ See http://www.ruby-forum.com/topic/134115
           - just encrypting between haproxy and backend doesn't work, and is insane
           - encrypting between backend and worker is probably insane too.
           - use stunnel!?  YES, it is awesome!
+  [x] with stunnel haproxy sees everybody as coming from the same localhost ip, so load balancing  doesn't work at all:
+        Evidently one must patch stunnel -- http://www.completefusion.com/ssl-load-balancing-with-haproxy-and-stunnel-on-debian/
