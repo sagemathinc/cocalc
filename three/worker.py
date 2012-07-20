@@ -2,7 +2,7 @@
 """
 Worker server
 """
-import json, logging, os, shutil, signal, socket, sys, tempfile, threading, time, traceback
+import json, logging, os, resource, shutil, signal, socket, sys, tempfile, threading, time, traceback
 
 import parsing
 
@@ -10,6 +10,8 @@ NULL = '\0'
 JSON = 'J'
 TERM = 'T'
 CONF = '\1'
+PID = 'd'
+STR = 's'
 
 logging.basicConfig()
 log = logging.getLogger('worker')
@@ -41,7 +43,10 @@ def client1(port, hostname):
     conn.connect((hostname, int(port)))
 
     # send configuration
-    send(conn, CONF, json.dumps({'maxtime':2}))
+    send(conn, CONF, json.dumps({'maxtime':3600, 'cputime':5}))
+
+    send(conn, PID, '')
+    print "PID = %s"%recv(conn)[1]
     
     id = 0
     while True:
@@ -55,9 +60,9 @@ def client1(port, hostname):
                 typecode, mesg = recv(conn)
                 if mesg is None:
                     return
-                if typecode == TERM:
+                elif typecode == TERM:
                     return
-                if typecode == JSON:
+                elif typecode == JSON:
                     mesg = json.loads(mesg)
                     if 'stdout' in mesg:
                         sys.stdout.write(mesg['stdout']); sys.stdout.flush()
@@ -68,6 +73,7 @@ def client1(port, hostname):
             id += 1
         except KeyboardInterrupt:
             print "Press Control-D to quit."
+    send(conn, TERM, '')
     print "\nExiting Sage worker client."
 
 class OutputStream(object):
@@ -139,10 +145,20 @@ def drop_privileges(id, home):
     os.chdir(home)
 
 namespace = {}
-def child(conn, home):
+def session(conn, home, cputime, nofile, vmem):
     pid = os.getpid()
     if home is not None:
         drop_privileges(pid%5000+5000, home)
+
+    if cputime is not None:
+        resource.setrlimit(resource.RLIMIT_CPU, (cputime,cputime))
+    if nofile is not None:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (nofile,nofile))
+    if vmem is not None:
+        if os.uname()[0] == 'Linux':
+            resource.setrlimit(resource.RLIMIT_AS, (vmem*1048576L, -1L))
+    else:
+        log.warning("Server not running on Linux, so there are NO memory constraints.")
 
     def handle_parent_sigquit(signum, frame):
         send(conn, TERM, '')
@@ -152,12 +168,16 @@ def child(conn, home):
     
     while True:
         typecode, mesg = recv(conn)
+        print 'INFO:child%s: received JSON message "%s" %s'%(pid, mesg, typecode)  # TODO
         if mesg is None: break
-        if typecode == JSON:
-            print 'INFO:child%s: received JSON message "%s"'%(pid, mesg)  # TODO -- remove/comment out (can't log in child)
+        if typecode == TERM:
+            sys.exit(0)
+        elif typecode == PID:
+            send(conn,STR,str(os.getpid()))
+        elif typecode == JSON:
             handle_json_mesg(conn, mesg)
         else:
-            raise RuntimeError("unknown message code: %s"%mesg[0])
+            raise RuntimeError("unknown message code: %s"%typecode)
 
 def rmtree(path):
     if not path.startswith('/tmp/') or path.startswith('/var/') or path.startswith('/private/'):
@@ -214,7 +234,7 @@ def check_for_connection_timeouts():
     kill_timer = threading.Timer(CONNECTION_TERM_INTERVAL, check_for_connection_timeouts)
     kill_timer.start()
 
-def handle_child_term(signum, frame):
+def handle_session_term(signum, frame):
     while True:
         try:
             pid, exit_status = os.waitpid(-1, os.WNOHANG)
@@ -224,12 +244,15 @@ def handle_child_term(signum, frame):
         if pid in connections:
             log.info("Cleaning up after child process %s", pid)
             del connections[pid]
+
+def control(mesg):
+    log.info("control message: '%s'", mesg)
     
 
 def serve(port, whitelist):
     global connections, kill_timer
     check_for_connection_timeouts()
-    signal.signal(signal.SIGCHLD, handle_child_term)
+    signal.signal(signal.SIGCHLD, handle_session_term)
 
     log.info('pre-importing the sage library...')
     import sage.all_cmdline
@@ -255,20 +278,27 @@ def serve(port, whitelist):
             # first message is a configuration in json format
             typecode, config = recv(conn)
             if typecode != CONF:
-                log.error('invalid configuration -- wrong typecode')
+                log.error('invalid config -- wrong typecode')
                 continue
             else:
                 config = json.loads(config)
-                
+
             log.info('config = %s', config)
+
+            if 'control' in config:
+                # handle a control message
+                control(config)
+                continue
             
             home = tempfile.mkdtemp() if whoami == 'root' else None
             pid = os.fork()
             if pid == 0:
-                child(conn, home)
+                session(conn, home, cputime=config.get('cputime', None),
+                        nofile=config.get('nofile',None), vmem=config.get('vmem',None))
             else:
                 connections[pid] = Connection(pid, home, maxtime=config.get('maxtime',None))
                 log.info('accepted connection from %s (pid=%s)', addr, pid)
+                
     except Exception, err:
         import traceback
         traceback.print_exc(file=sys.stdout)
