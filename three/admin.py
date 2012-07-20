@@ -88,7 +88,7 @@ init_data_directory()
 ########################################
 # Local and remote UNIX user accounts
 ########################################
-whoami = os.getlogin()
+whoami = os.environ['USER']
 
 class Account(object):
     """

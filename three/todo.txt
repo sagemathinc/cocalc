@@ -2,6 +2,10 @@ Programming Todo
 ----------------
 
 NOW: 
+  [ ] worker.py: 
+        [ ] running as root
+        [ ] making up a user
+        [ ] limitations
   [ ] switch to use worker.py
   [ ] scalability test: using worker.py, but running on a different VM
   [ ] scalability test: test using backend.py(s), also running on different VM's

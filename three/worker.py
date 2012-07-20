@@ -2,18 +2,20 @@
 """
 Worker server
 """
-import json, logging, os, socket, sys, time, traceback
+import json, logging, os, shutil, signal, socket, sys, tempfile, threading, time, traceback
 
 import parsing
 
 NULL = '\0'
 JSON = 'J'
+TERM = 'T'
+CONF = '\1'
 
 logging.basicConfig()
 log = logging.getLogger('worker')
 log.setLevel(logging.INFO)
 
-whoami = os.getlogin()
+whoami = os.environ['USER']
 
 def send(conn, typecode, data):
     conn.send(str(len(data)+1)+NULL+typecode+data)
@@ -37,6 +39,10 @@ def recv(conn):
 def client1(port, hostname):
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.connect((hostname, int(port)))
+
+    # send configuration
+    send(conn, CONF, json.dumps({'maxtime':2}))
+    
     id = 0
     while True:
         try:
@@ -47,7 +53,10 @@ def client1(port, hostname):
             send(conn, JSON, json.dumps(mesg))
             while True:
                 typecode, mesg = recv(conn)
-                if mesg is None: return
+                if mesg is None:
+                    return
+                if typecode == TERM:
+                    return
                 if typecode == JSON:
                     mesg = json.loads(mesg)
                     if 'stdout' in mesg:
@@ -118,10 +127,29 @@ def handle_json_mesg(conn, mesg):
     else:
         send(conn, JSON, json.dumps({'error':"no action associated with message", 'done':True, 'id':mesg['id']}))
 
+
+def drop_privileges(id, home):        
+    gid = id
+    uid = id
+    os.chown(home, uid, gid)
+    os.setgid(gid)
+    os.setuid(uid)
+    os.environ['DOT_SAGE'] = home
+    os.environ['IPYTHON_DIR'] = home
+    os.chdir(home)
+
 namespace = {}
-def child(conn):
-    exec "from sage.all_cmdline import *" in namespace
+def child(conn, home):
     pid = os.getpid()
+    if home is not None:
+        drop_privileges(pid%5000+5000, home)
+
+    def handle_parent_sigquit(signum, frame):
+        send(conn, TERM, '')
+        sys.exit(0)
+        
+    signal.signal(signal.SIGQUIT, handle_parent_sigquit)
+    
     while True:
         typecode, mesg = recv(conn)
         if mesg is None: break
@@ -131,10 +159,81 @@ def child(conn):
         else:
             raise RuntimeError("unknown message code: %s"%mesg[0])
 
-connections = []
+def rmtree(path):
+    if not path.startswith('/tmp/') or path.startswith('/var/') or path.startswith('/private/'):
+        log.error("Trying to rmtree on '%s' is very suspicious! Refusing!", path)
+    else:
+        log.info("Removing '%s'", path)
+        shutil.rmtree(path)
+
+class Connection(object):
+    def __init__(self, pid, home, maxtime):
+        self._pid = pid
+        self._home = home
+        self._start_time = time.time()
+        self._maxtime = maxtime
+
+    def __repr__(self):
+        return 'pid=%s, home=%s, start_time=%s, maxtime=%s'%(
+            self._pid, self._home, self._start_time, self._maxtime)
+
+    def time_remaining(self):
+        if self._maxtime is not None:
+            return self._maxtime - (time.time() - self._start_time)
+
+    def signal(self, sig):
+        os.kill(self._pid, sig)
+
+    def remove_files(self):
+        if self._home is not None:
+            rmtree(self._home)
+            
+
+connections = {}
+
+CONNECTION_TERM_INTERVAL = 2
+def check_for_connection_timeouts():
+    global kill_timer
+    print "Checking for connection timeouts...: %s"%connections
+    
+    for pid, C in connections.items():
+        tm = C.time_remaining()
+        if tm is not None and tm < 0:
+            try:
+                if tm <= -3*CONNECTION_TERM_INTERVAL:
+                    connections[pid].remove_files()
+                    del connections[pid]
+                elif tm <= -2*CONNECTION_TERM_INTERVAL:
+                    C.signal(signal.SIGKILL)
+                else:
+                    C.signal(signal.SIGQUIT)
+            except OSError:
+                # means process is already dead
+                connections[pid].remove_files()                
+                del connections[pid]
+    kill_timer = threading.Timer(CONNECTION_TERM_INTERVAL, check_for_connection_timeouts)
+    kill_timer.start()
+
+def handle_child_term(signum, frame):
+    while True:
+        try:
+            pid, exit_status = os.waitpid(-1, os.WNOHANG)
+        except:
+            return
+        if not pid: return
+        if pid in connections:
+            log.info("Cleaning up after child process %s", pid)
+            del connections[pid]
+    
+
 def serve(port, whitelist):
+    global connections, kill_timer
+    check_for_connection_timeouts()
+    signal.signal(signal.SIGCHLD, handle_child_term)
+
     log.info('pre-importing the sage library...')
     import sage.all_cmdline
+    exec "from sage.all_cmdline import *" in namespace
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -148,15 +247,27 @@ def serve(port, whitelist):
                 conn, addr = s.accept()
             except socket.error, msg:
                 log.info('error accepting connection: %s', msg)
+
             if whitelist and addr[0] not in whitelist:
                 log.warning("connection attempt from '%s' which is not in whitelist (=%s)", addr[0], whitelist)
                 continue
+
+            # first message is a configuration in json format
+            typecode, config = recv(conn)
+            if typecode != CONF:
+                log.error('invalid configuration -- wrong typecode')
+                continue
+            else:
+                config = json.loads(config)
+                
+            log.info('config = %s', config)
             
+            home = tempfile.mkdtemp() if whoami == 'root' else None
             pid = os.fork()
             if pid == 0:
-                child(conn)
+                child(conn, home)
             else:
-                connections.append(pid)
+                connections[pid] = Connection(pid, home, maxtime=config.get('maxtime',None))
                 log.info('accepted connection from %s (pid=%s)', addr, pid)
     except Exception, err:
         import traceback
@@ -164,11 +275,8 @@ def serve(port, whitelist):
         log.error("error: %s %s", type(err), str(err))
     finally:
         if pid: # parent
-            for p in connections:
-                try:
-                    os.kill(p, 9)
-                except OSError:
-                    pass
+            kill_timer.cancel()
+            connections = {}  # triggers garbage collection, kills all outstanding workers and cleans up
             log.info("closing socket")
             s.shutdown(0)
             s.close()
