@@ -2,10 +2,6 @@ Programming Todo
 ----------------
 
 NOW: 
-  [ ] worker.py: 
-        [ ] running as root
-        [ ] making up a user
-        [ ] limitations
   [ ] switch to use worker.py
   [ ] scalability test: using worker.py, but running on a different VM
   [ ] scalability test: test using backend.py(s), also running on different VM's
@@ -214,3 +210,7 @@ See http://www.ruby-forum.com/topic/134115
         Evidently one must patch stunnel -- http://www.completefusion.com/ssl-load-balancing-with-haproxy-and-stunnel-on-debian/
   [x] make top-level mobile friendly index.html and also for cell
   [x] make top level index.html, etc. for desktop look jquery-ish
+  [x] worker.py: 
+        [x] running as root
+        [x] making up a user
+        [x] limitations
