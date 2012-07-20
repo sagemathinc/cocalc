@@ -502,7 +502,7 @@ class SageSocketServer(object):
                 else:
                     # parent
                     self._connections[pid] = Connection(temp_path=temp_path, pid=pid, max_walltime=self._limits['WALLTIME'])
-                    log.info("Accepted a new connection, and created process %s to handle it"%pid)
+                    log.info("Accepted a new connection, and created process %s to handle it", pid)
                     self._children.append(pid)
 
         except Exception, err:

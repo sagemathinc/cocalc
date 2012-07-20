@@ -7,8 +7,10 @@ import json, logging, os, socket, sys
 
 import sockjs.tornado, tornado.ioloop, tornado.web
 
-logging.getLogger().setLevel(logging.INFO)
-log = logging.getLogger('')
+logging.basicConfig()
+log = logging.getLogger('backend')
+log.setLevel(logging.INFO)
+
 
 class Connection(sockjs.tornado.SockJSConnection):
     connections = set()
@@ -81,11 +83,8 @@ if __name__ == "__main__":
         log.setLevel(level)
 
     pidfile = os.path.abspath(args.pidfile)
-    if args.logfile:
-        logfile = os.path.abspath(args.logfile)
-    else:
-        logfile = None        
-    main = lambda: run_server(port=args.port, debug=args.debug, pidfile=pidfile, logfile=logfile)
+    logfile = os.path.abspath(args.logfile) if args.logfile else None
+    main    = lambda: run_server(port=args.port, debug=args.debug, pidfile=pidfile, logfile=logfile)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():
