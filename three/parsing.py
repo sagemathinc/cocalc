@@ -4,9 +4,9 @@ parser.py
 Code for parsing Sage code blocks sensibly.
 """
 
-def get_input():
+def get_input(prompt):
     try:
-        r = raw_input('sage: ')
+        r = raw_input(prompt)
         z = r
         if z.rstrip().endswith(':'):
             while True:

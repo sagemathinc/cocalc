@@ -2,7 +2,7 @@
 """
 Worker server
 """
-import logging, os, socket, sys, time
+import json, logging, os, socket, sys, time
 
 import parsing
 
@@ -14,25 +14,48 @@ log.setLevel(logging.INFO)
 
 whoami = os.getlogin()
 
+def send(conn, data):
+    conn.send(str(len(data))+NULL+data)
+
+def recv(conn):
+    n = ''
+    while True:
+        a = conn.recv(1)
+        if len(a) == 0: return None  # EOF
+        if a == NULL: break
+        n += a
+    n = int(n)
+    m = ''
+    while len(m) < n:
+        t = conn.recv(min(8192,n-len(m)))
+        if len(t) == 0: return None  # EOF
+        m += t
+    return m
+
 def client1(port, hostname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((hostname, int(port)))
+    conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    conn.connect((hostname, int(port)))
     id = 0
     while True:
         code = parsing.get_input('sage [%s]: '%id)
         if code is None:  # EOF
             break
         mesg = {'execute':code, 'id':id}
-        s.send(json.dumps(mesg) + NULL)
+        send(conn, json.dumps(mesg))
         while True:
-            mesg = recv(s)
+            mesg = recv(conn)
+            if mesg is None:
+                return
             print mesg
-            if mesg['done']:
+            if json.loads(mesg)['done']:
                 break
             
-def child():
-    print "hi"
-    time.sleep(10000)
+def child(conn):
+    while True:
+        mesg = recv(conn)
+        print mesg
+        if mesg is None: break
+        send(conn, json.dumps({'done':True, 'foo':'bar'}))
 
 connections = []
 def serve(port):
@@ -50,14 +73,14 @@ def serve(port):
                 log.info('error accepting connection: %s', msg)
             pid = os.fork()
             if pid == 0:
-                child()
+                child(conn)
             else:
                 connections.append(pid)
                 log.info('accepted connection (pid=%s)', pid)
     except Exception, err:
         import traceback
         traceback.print_exc(file=sys.stdout)
-        log.error("error: %s %s", (type(err), str(err)))
+        log.error("error: %s %s", type(err), str(err))
     finally:
         if pid: # parent
             for p in connections:
