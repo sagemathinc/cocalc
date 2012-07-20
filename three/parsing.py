@@ -4,6 +4,8 @@ parser.py
 Code for parsing Sage code blocks sensibly.
 """
 
+import string
+
 def get_input(prompt):
     try:
         r = raw_input(prompt)
