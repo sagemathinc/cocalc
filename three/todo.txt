@@ -2,7 +2,6 @@ Programming Todo
 ----------------
 
 NOW: 
-  [ ] don't allow mesg until connected
   [ ] make top-level mobile friendly index.html and also for cell
   [ ] use memcached to cache single cell evaluations between backends
   [ ] switch to use worker.py
@@ -13,6 +12,7 @@ NOW:
   [ ] clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
 
 SOON: 
+  [ ] don't allow mesg until connected
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
    [ ] separate worker client from worker
    [ ] simplify worker for my particular application and properly daemonize worker using same options as for backend
