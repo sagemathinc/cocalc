@@ -1,6 +1,6 @@
 $(function(){
 
-    $("#connection_status").html("connecting..."); 
+   $("#connection_status").html("connecting..."); 
 
     var backend = sagews.Backend(
 	{'onopen':function(protocol) { $("#connection_status").html("connected ("+protocol+")"); },
