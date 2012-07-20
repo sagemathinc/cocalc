@@ -132,7 +132,7 @@ def child(conn):
             raise RuntimeError("unknown message code: %s"%mesg[0])
 
 connections = []
-def serve(port):
+def serve(port, whitelist):
     log.info('pre-importing the sage library...')
     import sage.all_cmdline
     
@@ -148,12 +148,16 @@ def serve(port):
                 conn, addr = s.accept()
             except socket.error, msg:
                 log.info('error accepting connection: %s', msg)
+            if whitelist and addr[0] not in whitelist:
+                log.warning("connection attempt from '%s' which is not in whitelist (=%s)", addr[0], whitelist)
+                continue
+            
             pid = os.fork()
             if pid == 0:
                 child(conn)
             else:
                 connections.append(pid)
-                log.info('accepted connection (pid=%s)', pid)
+                log.info('accepted connection from %s (pid=%s)', addr, pid)
     except Exception, err:
         import traceback
         traceback.print_exc(file=sys.stdout)
@@ -175,14 +179,14 @@ def serve(port):
                 pass
         
 
-def run_server(port, pidfile, logfile):
+def run_server(port, pidfile, logfile, whitelist):
     try:
         if pidfile:
             open(pidfile,'w').write(str(os.getpid()))
         if logfile:
             log.addHandler(logging.FileHandler(logfile))
-        log.info("port=%s, pidfile='%s', logfile='%s'", port, pidfile, logfile)
-        serve(port)
+        log.info("port=%s, pidfile='%s', logfile='%s', whitelist=%s", port, pidfile, logfile, whitelist)
+        serve(port, whitelist)
     finally:
         if pidfile:
             os.unlink(pidfile)
@@ -200,12 +204,15 @@ if __name__ == "__main__":
                         help="store pid in this file")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
-    parser.add_argument("--portfile", dest="portfile", type=str, default='',
-                        help="write port to this file")
+    parser.add_argument("--whitelist", dest="whitelist", type=str, default='',
+                        help="comma separated list of ip addresses from which we will accept incoming connnections (empty=accept any connection)")
+
     parser.add_argument("-c", dest="client", default=False, action="store_const", const=True,
                         help="run in test client mode number 1 (command line)")
     parser.add_argument("--hostname", dest="hostname", type=str, default='', 
                         help="hostname to connect to in client mode")
+    parser.add_argument("--portfile", dest="portfile", type=str, default='',
+                        help="write port to this file")
 
     args = parser.parse_args()
 
@@ -231,8 +238,9 @@ if __name__ == "__main__":
 
     pidfile = os.path.abspath(args.pidfile) if args.pidfile else ''
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
-    main    = lambda: run_server(port=args.port, pidfile=pidfile, logfile=logfile)
+    whitelist = args.whitelist.split(',') if args.whitelist else []
     
+    main    = lambda: run_server(port=args.port, pidfile=pidfile, logfile=logfile, whitelist=whitelist)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():
