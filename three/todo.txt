@@ -2,8 +2,6 @@ Programming Todo
 ----------------
 
 NOW: 
-  [ ] make top-level mobile friendly index.html and also for cell
-  [ ] use memcached to cache single cell evaluations between backends
   [ ] switch to use worker.py
   [ ] scalability test: using worker.py, but running on a different VM
   [ ] scalability test: test using backend.py(s), also running on different VM's
@@ -12,7 +10,8 @@ NOW:
   [ ] clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
 
 SOON: 
-  [ ] don't allow mesg until connected
+   [ ] user-selectable option to use memcached to cache single cell evaluations between backends
+   [ ] don't allow mesg until connected
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
    [ ] separate worker client from worker
    [ ] simplify worker for my particular application and properly daemonize worker using same options as for backend
@@ -209,3 +208,5 @@ See http://www.ruby-forum.com/topic/134115
           - use stunnel!?  YES, it is awesome!
   [x] with stunnel haproxy sees everybody as coming from the same localhost ip, so load balancing  doesn't work at all:
         Evidently one must patch stunnel -- http://www.completefusion.com/ssl-load-balancing-with-haproxy-and-stunnel-on-debian/
+  [x] make top-level mobile friendly index.html and also for cell
+  [x] make top level index.html, etc. for desktop look jquery-ish

@@ -4,12 +4,24 @@
 <title>Sage Workspace -- Single Cell Server</title>
 <script type="text/javascript" src="/jquery/jquery.min.js"></script>
 <script type="text/javascript" src="/sockjs/sockjs.min.js"></script>
+
+<script type="text/javascript" src="/jquery/jquery-ui/js/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="/jquery/jquery-ui/css/base.css"> 
+<link rel="stylesheet" href="/jquery/jquery-ui/css/humanity/jquery-ui.css"> 
+
 <script type="text/javascript" src="sagews.js"></script>
 <script type="text/javascript" src="cell.js"></script>
+
+<script type="text/javascript"> 
+$(function() {
+   $("#execute").button();
+});
+</script>
+
 </head>
 
 <body>
-<h1><a href="/">Sage Workspace</a> -- Single Cell Server</h1>
+<h1><a id="up" href="/">Sage Workspace</a>: Code Evaluator</h1>
 
 <div>Connection Status: <span id="connection_status"></span></div>
 <div>Run Status: <span id="run_status"></span></div>
@@ -17,7 +29,7 @@
 <br>
 
 <textarea rows=8 cols=120 id="input">
-2+3
+args.port
 </textarea>
 <br>
 <button id="execute">Execute</button><br>

@@ -3,13 +3,28 @@
 <head>
 <title>Sage Workspace</title>
 
+<script type="text/javascript" src="/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="/jquery/jquery-ui/js/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="/jquery/jquery-ui/css/base.css"> 
+<link rel="stylesheet" href="/jquery/jquery-ui/css/humanity/jquery-ui.css"> 
+
+<script type="text/javascript"> 
+$(function() {
+   $("#cell").button();
+   $("#cmdline").button();
+   $("#about").button();
+});
+</script>
+
 </head>
 
 <body>
 <h1>Sage Workspace</h1>
 
 <ul>
-<li><a href="cell/">Single Cell Server</a></li>
+<li><a id="cell" href="cell/">Single Cell Server</a></li>
+<!--<li><a id="cmdline" href="cmdline/">Command Line</a></li>-->
+<li><a id="about">About</li>
 </ul>
 
 </body>
