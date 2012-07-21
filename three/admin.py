@@ -75,7 +75,7 @@ def restrict(path):
 def init_data_directory():
     log.info("ensuring that '%s' exist", DATA)
 
-    for path in [DATA, PIDS, LOGS, os.path.join(DATA,'ssl')]:
+    for path in [DATA, PIDS, LOGS, os.path.join(DATA,'secrets')]:
         if not os.path.exists(path):
             os.makedirs(path)
         restrict(path)
