@@ -2,6 +2,9 @@ Programming Todo
 ----------------
 
 NOW: 
+
+  [ ] user PB in backend demo class that uses worker.py
+  [ ] add protobuf to build.py system
   [ ] switch to use worker.py in backend for execute action:  
   [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
   [ ] scalability test: using worker.py, but running on a different VM
@@ -216,3 +219,5 @@ See http://www.ruby-forum.com/topic/134115
         [x] making up a user
         [x] limitations
   [x] figure out how to use a proper ssl certificate
+  [x] switch to using PB for worker.py, since without a sane and efficient
+      message format I will be very, very unhappy.  

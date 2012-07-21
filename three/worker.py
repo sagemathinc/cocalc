@@ -2,51 +2,99 @@
 """
 Worker server
 """
-import json, logging, os, resource, shutil, signal, socket, sys, tempfile, threading, time, traceback
+import json, logging, os, resource, shutil, signal, socket, struct, sys, \
+       tempfile, threading, time, traceback
 
 import parsing
 
-NULL = '\0'
-JSON = 'J'
-TERM = 'T'
-CONF = '\1'
-PID = 'd'
-STR = 's'
-
+# configure logging
 logging.basicConfig()
 log = logging.getLogger('worker')
 log.setLevel(logging.INFO)
 
+
+# Google protocol buffers wrapper around a connection
+import mesg_pb2
+class ConnectionPB(object):
+    def __init__(self, conn):
+        assert not isinstance(conn, ConnectionPB)
+        self._conn = conn
+
+    def send(self, m):
+        s = m.SerializeToString()
+        length_header = struct.pack(">L", len(s))
+        self._conn.send(length_header + s)
+
+    def recv(self):
+        n = self._conn.recv(4)
+        if len(n) < 4:
+            raise EOFError
+        n = struct.unpack('>L', n)[0]
+        s = self._conn.recv(n)
+        while len(s) < n:
+            t = self._conn.recv(n - len(s))
+            if len(t) == 0:
+                raise EOFError
+            s += t
+        m = mesg_pb2.Message()
+        m.ParseFromString(s)
+        return m
+
+class Message(object):
+    def _new(self, tag, typ):
+        m = mesg_pb2.Message()
+        m.type = typ
+        if tag is not None:
+            m.tag = tag
+        return m
+        
+    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=512, tag=None):
+        m = self._new(tag=tag, typ=mesg_pb2.Message.START_SESSION)
+        m.start_session.max_walltime = max_walltime
+        m.start_session.max_cputime = max_cputime
+        m.start_session.max_numfiles = max_numfiles
+        m.start_session.max_vmem = max_vmem
+        return m
+
+    def session_description(self, pid, tag=None):
+        m = self._new(tag=tag, typ=mesg_pb2.Message.SESSION_DESCRIPTION)
+        m.session_description.pid = pid
+        return m
+
+    def send_signal(self, pid, signal=signal.SIGINT, tag=None):
+        m = self._new(tag=tag, typ=mesg_pb2.Message.SEND_SIGNAL)
+        m.send_signal.pid = pid
+        m.send_signal.signal = signal
+        return m
+
+    def terminate_session(self, tag=None):
+        return self._new(tag=tag, typ=mesg_pb2.Message.TERMINATE_SESSION)
+
+    def execute_code(self, code, tag=None):
+        m = self._new(tag=tag, typ=mesg_pb2.Message.EXECUTE_CODE)
+        m.execute_code.code = code
+        return m
+        
+
+    def output(self, tag=None, stdout=None, stderr=None, done=None):
+        m = self._new(tag=tag, typ=mesg_pb2.Message.OUTPUT)
+        if stdout: m.output.stdout = stdout
+        if stderr: m.output.stderr = stderr
+        if done: m.output.done = done
+        return m
+        
+message = Message()
+
 whoami = os.environ['USER']
-
-def send(conn, typecode, data):
-    conn.send(str(len(data)+1)+NULL+typecode+data)
-
-def recv(conn):
-    n = ''
-    while True:
-        a = conn.recv(1)
-        if len(a) == 0: return None, None  # EOF
-        if a == NULL: break
-        n += a
-    n = int(n)
-    m = ''
-    while len(m) < n:
-        t = conn.recv(min(8192,n-len(m)))
-        if len(t) == 0: return None, None  # EOF
-        m += t
-    if len(m) < 1: return None, None
-    return m[0], m[1:]
 
 def client1(port, hostname):
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.connect((hostname, int(port)))
+    conn = ConnectionPB(conn)
 
-    # send configuration
-    send(conn, CONF, json.dumps({'maxtime':3600, 'cputime':3600}))
-
-    send(conn, PID, '')
-    pid = int(recv(conn)[1])
+    conn.send(message.start_session())
+    mesg = conn.recv()
+    pid = mesg.session_description.pid
     print "PID = %s"%pid
     
     id = 0
@@ -55,21 +103,17 @@ def client1(port, hostname):
             code = parsing.get_input('sage [%s]: '%id)
             if code is None:  # EOF
                 break
-            mesg = {'execute':code, 'id':id}
-            send(conn, JSON, json.dumps(mesg))
+            conn.send(message.execute_code(code=code, tag=str(id)))
             while True:
-                typecode, mesg = recv(conn)
-                if mesg is None:
+                mesg = conn.recv()
+                if mesg.type == mesg_pb2.Message.TERMINATE_SESSION:
                     return
-                elif typecode == TERM:
-                    return
-                elif typecode == JSON:
-                    mesg = json.loads(mesg)
-                    if 'stdout' in mesg:
-                        sys.stdout.write(mesg['stdout']); sys.stdout.flush()
-                    if 'stderr' in mesg:
-                        print '!  ' + '\n!  '.join(mesg['stderr'].splitlines())
-                    if mesg['done'] and mesg['id'] >= id:
+                elif  mesg.type == mesg_pb2.Message.OUTPUT:
+                    if mesg.output.stdout:
+                        sys.stdout.write(mesg.output.stdout); sys.stdout.flush()
+                    if mesg.output.stderr:
+                        print '!  ' + '\n!  '.join(mesg.output.stderr.splitlines())
+                    if mesg.output.done and int(mesg.tag) >= id:
                         break
             id += 1
             
@@ -77,11 +121,12 @@ def client1(port, hostname):
             print "Sending interrupt signal"
             conn2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             conn2.connect((hostname, int(port)))
-            send(conn2, CONF, json.dumps({'control':'sigint', 'pid':pid}))
+            conn2 = ConnectionPB(conn2)
+            conn2.send(message.send_signal(pid))
             del conn2
             id += 1
-            
-    send(conn, TERM, '')
+
+    conn.send(message.terminate_session())
     print "\nExiting Sage worker client."
 
 class OutputStream(object):
@@ -107,11 +152,11 @@ class OutputStream(object):
         self._f(self._buf, done=done)
         self._buf = ''
 
-def execute(conn, id, code, preparse):
+def execute(conn, tag, code, preparse):
     def send_stdout(output, done):
-        send(conn, JSON, json.dumps({'stdout':output, 'id':id, 'done':done}))
+        conn.send(message.output(stdout=output, done=done, tag=tag))
     def send_stderr(output, done):
-        send(conn, JSON, json.dumps({'stderr':output, 'id':id, 'done':done}))
+        conn.send(message.output(stderr=output, done=done, tag=tag))        
     try:
         streams = (sys.stdout, sys.stderr)
         sys.stdout = OutputStream(send_stdout)
@@ -133,13 +178,6 @@ def execute(conn, id, code, preparse):
         else:
             sys.stdout.flush(done=True)
         (sys.stdout, sys.stderr) = streams
-
-def handle_json_mesg(conn, mesg):
-    mesg = json.loads(mesg)
-    if 'execute' in mesg:
-        execute(conn=conn, id=mesg['id'], code=mesg['execute'], preparse=mesg.get('preparse',True))
-    else:
-        send(conn, JSON, json.dumps({'error':"no action associated with message", 'done':True, 'id':mesg['id']}))
 
 
 def drop_privileges(id, home):        
@@ -169,24 +207,21 @@ def session(conn, home, cputime, nofile, vmem):
         log.warning("Server not running on Linux, so there are NO memory constraints.")
 
     def handle_parent_sigquit(signum, frame):
-        send(conn, TERM, '')
+        conn.send(message.terminate_session())
         sys.exit(0)
         
     signal.signal(signal.SIGQUIT, handle_parent_sigquit)
 
     while True:
         try:
-            typecode, mesg = recv(conn)
-            print 'INFO:child%s: received JSON message "%s" %s'%(pid, mesg, typecode)  # TODO
-            if mesg is None: break
-            if typecode == TERM:
+            mesg = conn.recv()
+            print 'INFO:child%s: received message "%s"'%(pid, mesg)
+            if mesg.type == mesg_pb2.Message.TERMINATE_SESSION:
                 return
-            elif typecode == PID:
-                send(conn,STR,str(os.getpid()))
-            elif typecode == JSON:
-                handle_json_mesg(conn, mesg)
+            elif mesg.type == mesg_pb2.Message.EXECUTE_CODE:
+                execute(conn=conn, tag=mesg.tag, code=mesg.execute_code.code, preparse=mesg.execute_code.preparse)
             else:
-                raise RuntimeError("unknown message code: %s"%typecode)
+                raise RuntimeError("invalid message '%s'"%mesg)
         except KeyboardInterrupt:
             pass
 
@@ -289,38 +324,43 @@ def serve(port, whitelist):
                 conn, addr = s.accept()
             except socket.error, msg:
                 log.info('error accepting connection: %s', msg)
+                continue
 
             if whitelist and addr[0] not in whitelist:
                 log.warning("connection attempt from '%s' which is not in whitelist (=%s)", addr[0], whitelist)
                 continue
 
-            # first message is a configuration in json format
-            typecode, config = recv(conn)
-            if typecode != CONF:
-                log.error('invalid config -- wrong typecode')
-                continue
-            else:
-                config = json.loads(config)
+            try:
+                conn = ConnectionPB(conn)
+                mesg = conn.recv()
+                if mesg.type == mesg_pb2.Message.SEND_SIGNAL:
+                    log.info("sending signal %s to process %s", mesg.send_signal.signal, mesg.send_signal.pid)
+                    os.kill(mesg.send_signal.pid, mesg.send_signal.signal)
+                    continue
 
-            log.info('config = %s', config)
+                if mesg.type != mesg_pb2.Message.START_SESSION:
+                    log.info('invalid message type request')
+                    continue
 
-            if 'control' in config:
-                # handle a control message
-                control(config)
-                continue
-            
-            home = tempfile.mkdtemp() if whoami == 'root' else None
-            pid = os.fork()
+                # start a session
+                start_session = mesg.start_session
+                home = tempfile.mkdtemp() if whoami == 'root' else None
+                pid = os.fork()
+                conn.send(message.session_description(pid))
+                
+            except Exception, msg:
+                print msg
+                traceback.print_exc()
+
             if pid == 0:
-                session(conn, home, cputime=config.get('cputime', None),
-                        nofile=config.get('nofile',None), vmem=config.get('vmem',None))
+                session(conn, home, start_session.max_cputime,
+                        start_session.max_numfiles, start_session.max_vmem)
                 sys.exit(0)
             else:
-                connections[pid] = Connection(pid, home, maxtime=config.get('maxtime',None))
+                connections[pid] = Connection(pid, home, start_session.max_walltime)
                 log.info('accepted connection from %s (pid=%s)', addr, pid)
                 
     except Exception, err:
-        import traceback
         traceback.print_exc(file=sys.stdout)
         log.error("error: %s %s", type(err), str(err))
     finally:
