@@ -75,7 +75,7 @@ def restrict(path):
 def init_data_directory():
     log.info("ensuring that '%s' exist", DATA)
 
-    for path in [DATA, PIDS, LOGS]:
+    for path in [DATA, PIDS, LOGS, os.path.join(DATA,'ssl')]:
         if not os.path.exists(path):
             os.makedirs(path)
         restrict(path)
@@ -173,9 +173,11 @@ class Account(object):
         if self._hostname == 'localhost' and self._username == whoami:
             open(filename,'w').write(content)
         else:
-            src = tempfile.NamedTemporaryFile()
+            src = tempfile.NamedTemporaryFile(delete=False)
             src.write(content)
+            src.close()
             self.copyfile(src.name, filename)
+            src.unlink(src.name)  # weird semantics
 
     def unlink(self, filename):
         filename = os.path.join(self._path, filename)
@@ -309,6 +311,7 @@ class Process(object):
     def start(self):
         if self.is_running(): return
         self._pids = {}
+        self._pre_start()
         print self._start_logwatch()
         if self._start_cmd is not None:
             if self._start_using_system:
@@ -384,21 +387,27 @@ class Nginx(Process):
 ####################
 class Stunnel(Process):
     def __init__(self, account, id, accept_port, connect_port, log_database=None):
-        log = os.path.join(LOGS,'stunnel-%s.log'%id)
-        pid = account.abspath(os.path.join(PIDS,'stunnel-%s.pid'%id)) # abspath required by stunnel
+        logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
+        pidfile = account.abspath(os.path.join(PIDS,'stunnel-%s.pid'%id)) # abspath required by stunnel
+        self._stunnel_conf = os.path.join(DATA, 'stunnel-%s.conf'%id)
+        self._accept_port = accept_port
+        self._connect_port = connect_port
+        Process.__init__(self, account, id,
+                         log_database = log_database,
+                         logfile    = logfile,
+                         pidfile    = pidfile,
+                         start_cmd  = ['stunnel', self._stunnel_conf])
+
+    def _pre_start(self):
         stunnel = 'stunnel.conf'
         conf = open(os.path.join(CONF, stunnel)).read()
         # fill in template
-        for k, v in [('LOGFILE', log), ('PIDFILE', pid), ('ACCEPT_PORT', str(accept_port)), ('CONNECT_PORT', str(connect_port))]:
+        for k, v in [('LOGFILE', self._logfile), ('PIDFILE', self._pidfile),
+                     ('ACCEPT_PORT', str(self._accept_port)),
+                     ('CONNECT_PORT', str(self._connect_port))]:
             conf = conf.replace(k,v)
-        stunnel_conf = os.path.join(DATA, 'stunnel-%s.conf'%id)
-        account.writefile(filename=stunnel_conf, content=conf)
-        Process.__init__(self, account, id,
-                         log_database = log_database,
-                         logfile    = log,
-                         pidfile    = pid,
-                         start_cmd  = ['stunnel', stunnel_conf])
-
+        self._account.writefile(filename=self._stunnel_conf, content=conf)
+        
     def __repr__(self):
         return "Stunnel process %s at %s"%(self._id, self._account)
 

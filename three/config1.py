@@ -10,12 +10,16 @@ from admin import (Account, Component, whoami,
 ####################
 
 local_user = Account(username=whoami, hostname='localhost')
+root_user = Account(username='root', hostname='localhost')
 
 log_database = "postgresql://localhost:5432/sagews"
 
 postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, log_database=log_database)])
 nginx      = Component('nginx', [Nginx(local_user, 0, log_database=log_database)])
-stunnel    = Component('stunnel', [Stunnel(local_user, 0, accept_port=8443, connect_port=8000, log_database=log_database)])
+
+#stunnel    = Component('stunnel', [Stunnel(local_user, 0, accept_port=8443, connect_port=8000, log_database=log_database)])
+stunnel    = Component('stunnel', [Stunnel(root_user, 0, accept_port=443, connect_port=8000, log_database=log_database)])
+
 haproxy    = Component('haproxy', [HAproxy8000(local_user, 0, log_database=log_database)])
 memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
 backend    = Component('backend', [Backend(local_user, i, 5000+i, log_database=log_database) for i in range(3)])

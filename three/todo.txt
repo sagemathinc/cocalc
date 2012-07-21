@@ -2,7 +2,7 @@ Programming Todo
 ----------------
 
 NOW: 
-  [ ] switch to use worker.py
+  [ ] switch to use worker.py in backend for execute action:  
   [ ] scalability test: using worker.py, but running on a different VM
   [ ] scalability test: test using backend.py(s), also running on different VM's
   [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
@@ -214,3 +214,4 @@ See http://www.ruby-forum.com/topic/134115
         [x] running as root
         [x] making up a user
         [x] limitations
+  [x] figure out how to use a proper ssl certificate

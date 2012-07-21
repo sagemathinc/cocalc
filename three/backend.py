@@ -5,11 +5,14 @@ Backend server
 """
 import json, logging, os, socket, sys
 
-import sockjs.tornado, tornado.ioloop, tornado.web
+from tornado import ioloop
+import sockjs.tornado, tornado.web
 
 logging.basicConfig()
 log = logging.getLogger('backend')
 log.setLevel(logging.INFO)
+
+#class 
 
 
 class Connection(sockjs.tornado.SockJSConnection):
@@ -50,7 +53,7 @@ def run_server(port, debug, pidfile, logfile):
         app = tornado.web.Application([(r"/", IndexHandler)] + Router.urls, debug=debug)
         app.listen(port)
         log.info("listening on port %s"%port)
-        tornado.ioloop.IOLoop.instance().start()
+        ioloop.IOLoop.instance().start()
     finally:
         os.unlink(pidfile)
 
