@@ -43,7 +43,7 @@ def client1(port, hostname):
     conn.connect((hostname, int(port)))
 
     # send configuration
-    send(conn, CONF, json.dumps({'maxtime':3600, 'cputime':5}))
+    send(conn, CONF, json.dumps({'maxtime':3600, 'cputime':3600}))
 
     send(conn, PID, '')
     pid = int(recv(conn)[1])

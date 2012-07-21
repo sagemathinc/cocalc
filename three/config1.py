@@ -22,7 +22,9 @@ stunnel    = Component('stunnel', [Stunnel(root_user, 0, accept_port=443, connec
 
 haproxy    = Component('haproxy', [HAproxy8000(local_user, 0, log_database=log_database)])
 memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
-backend    = Component('backend', [Backend(local_user, i, 5000+i, log_database=log_database) for i in range(3)])
+
+backend    = Component('backend', [Backend(local_user, i, 5000+i, log_database=log_database) for i in range(1)])
+
 worker     = Component('worker', [Worker(local_user, 0, 6000, log_database=log_database)])
 
 all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,

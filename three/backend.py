@@ -6,13 +6,12 @@ Backend server
 import json, logging, os, socket, sys
 
 from tornado import ioloop
+from tornado import iostream
 import sockjs.tornado, tornado.web
 
 logging.basicConfig()
 log = logging.getLogger('backend')
 log.setLevel(logging.INFO)
-
-#class 
 
 
 class Connection(sockjs.tornado.SockJSConnection):
@@ -37,8 +36,39 @@ class Connection(sockjs.tornado.SockJSConnection):
         self.send(json.dumps(obj))
 
     def execute(self, input, id, session):
-        r = eval(input)
-        self.send_obj({'stdout':r, 'done':True, 'id':id})
+        #self.send_obj({'stdout':r, 'done':True, 'id':id})
+
+        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.connect(('', 6000))
+        from worker import send, recv, CONF, PID, json, JSON, TERM
+        send(conn, CONF, json.dumps({'maxtime':60*10, 'cputime':60*10}))
+        send(conn, PID, '')
+        worker_pid = int(recv(conn)[1])
+        #self.send_obj({'stdout':'starting... using pid=%s'%worker_pid, 'done':False, 'id':id})
+        #log.info("now asking for computation to happen")
+        send(conn, JSON, json.dumps({'execute':input, 'id':id}))
+        some_output = False
+        while True:
+            #log.info("waiting for new output")
+            typecode, mesg = recv(conn)
+            #log.info('got %s, %s', typecode, mesg)
+            if mesg is None:
+                break
+            elif typecode == TERM:
+                break
+            elif typecode == JSON:
+                mesg = json.loads(mesg)
+                done = mesg.get('done', False)
+                if 'stdout' in mesg:
+                    some_output=True
+                    self.send_obj({'stdout':mesg['stdout'], 'done':done, 'id':id})
+                elif 'stderr' in mesg:
+                    some_output=True
+                    self.send_obj({'stderr':mesg['stderr'], 'done':done, 'id':id})
+                if done:
+                    break
+        if not some_output:
+            self.send_obj({'done':done, 'id':id})
 
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):

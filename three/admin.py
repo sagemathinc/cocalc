@@ -16,7 +16,7 @@ DATA = 'data'
 CONF = 'conf'
 PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files
-LOG_INTERVAL = 60  # raise to something much bigger -- short is nice now for debugging.
+LOG_INTERVAL = 360
 
 ####################
 # Running a subprocess
@@ -123,7 +123,7 @@ class Account(object):
 
     def abspath(self, path=None):
         if not hasattr(self, '_abspath'):
-            if self._hostname == 'localhost' and self._username == whoami:
+            if self._hostname == 'localhost':# and self._username == whoami:
                 self._abspath = os.path.abspath(self._path)
             else:
                 self._abspath = self.run(['pwd']).strip()
@@ -307,7 +307,10 @@ class Process(object):
                 self._account.unlink(self._log_pidfile)
             except Exception, msg:
                 print msg
-        
+
+    def _pre_start(self):
+        pass # overload to add extra config steps before start
+    
     def start(self):
         if self.is_running(): return
         self._pids = {}
@@ -556,10 +559,10 @@ class Worker(Process):
         logfile = os.path.join(LOGS, 'worker-%s.log'%id)
         Process.__init__(self, account, id, pidfile    = pidfile,
                          logfile = logfile, log_database=log_database,
-                         start_cmd  = ['sage', '--python', 'worker.py', '--port', port,
+                         start_cmd  = ['sage', '--python', 'worker.py', '-p', port,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
-                         start_using_system = True,  # since daemon mode currently broken
-                         stop_cmd   = ['sage', '--python', 'worker.py', '--stop', '--pidfile', pidfile])
+                         start_using_system = True)  # since daemon mode currently broken
+
 
     def port(self):
         return self._port

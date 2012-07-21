@@ -3,6 +3,7 @@ Programming Todo
 
 NOW: 
   [ ] switch to use worker.py in backend for execute action:  
+  [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
   [ ] scalability test: using worker.py, but running on a different VM
   [ ] scalability test: test using backend.py(s), also running on different VM's
   [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
