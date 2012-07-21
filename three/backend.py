@@ -38,33 +38,35 @@ class Connection(sockjs.tornado.SockJSConnection):
     def execute(self, input, id, session):
         #self.send_obj({'stdout':r, 'done':True, 'id':id})
 
+        log.info("executing '%s'...", input)
+
+        import mesg_pb2
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         conn.connect(('', 6000))
-        from worker import send, recv, CONF, PID, json, JSON, TERM
-        send(conn, CONF, json.dumps({'maxtime':60*10, 'cputime':60*10}))
-        send(conn, PID, '')
-        worker_pid = int(recv(conn)[1])
-        #self.send_obj({'stdout':'starting... using pid=%s'%worker_pid, 'done':False, 'id':id})
-        #log.info("now asking for computation to happen")
-        send(conn, JSON, json.dumps({'execute':input, 'id':id}))
+        from worker import message, ConnectionPB
+        conn = ConnectionPB(conn)
+        conn.send(message.start_session(max_walltime=60*10, max_cputime=60*10))
+        worker_pid = conn.recv().session_description.pid
+
+        log.info("now asking for computation to happen")
+        conn.send(message.execute_code(code=input, id=id))
+                  
         some_output = False
         while True:
-            #log.info("waiting for new output")
-            typecode, mesg = recv(conn)
-            #log.info('got %s, %s', typecode, mesg)
-            if mesg is None:
+            try:
+                mesg = conn.recv()
+            except EOFError:
                 break
-            elif typecode == TERM:
+            if mesg.type == mesg_pb2.Message.TERMINATE_SESSION:
                 break
-            elif typecode == JSON:
-                mesg = json.loads(mesg)
-                done = mesg.get('done', False)
-                if 'stdout' in mesg:
+            elif mesg.type == mesg_pb2.Message.OUTPUT:
+                done = mesg.output.done
+                if mesg.output.stdout:
                     some_output=True
-                    self.send_obj({'stdout':mesg['stdout'], 'done':done, 'id':id})
-                elif 'stderr' in mesg:
+                    self.send_obj({'stdout':mesg.output.stdout, 'done':done, 'id':id})
+                if mesg.output.stderr:
                     some_output=True
-                    self.send_obj({'stderr':mesg['stderr'], 'done':done, 'id':id})
+                    self.send_obj({'stderr':mesg.output.stderr, 'done':done, 'id':id})
                 if done:
                     break
         if not some_output:

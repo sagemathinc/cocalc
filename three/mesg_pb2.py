@@ -11,7 +11,7 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='mesg.proto',
   package='mthyme',
-  serialized_pb='\n\nmesg.proto\x12\x06mthyme\"3\n\x0b\x45xecuteCode\x12\x0c\n\x04\x63ode\x18\x01 \x02(\t\x12\x16\n\x08preparse\x18\x02 \x01(\x08:\x04true\"a\n\x0cStartSession\x12\x14\n\x0cmax_walltime\x18\x01 \x01(\x05\x12\x13\n\x0bmax_cputime\x18\x02 \x01(\x05\x12\x14\n\x0cmax_numfiles\x18\x03 \x01(\x05\x12\x10\n\x08max_vmem\x18\x04 \x01(\x05\"\x12\n\x10TerminateSession\"!\n\x12SessionDescription\x12\x0b\n\x03pid\x18\x01 \x02(\x05\")\n\nSendSignal\x12\x0b\n\x03pid\x18\x01 \x02(\x05\x12\x0e\n\x06signal\x18\x02 \x02(\x05\"=\n\x06Output\x12\x0e\n\x06stdout\x18\x01 \x01(\t\x12\x0e\n\x06stderr\x18\x02 \x01(\t\x12\x13\n\x04\x64one\x18\x03 \x01(\x08:\x05\x66\x61lse\"\xbf\x03\n\x07Message\x12\"\n\x04type\x18\x01 \x02(\x0e\x32\x14.mthyme.Message.Type\x12\x0b\n\x03tag\x18\x02 \x01(\t\x12)\n\x0c\x65xecute_code\x18\x03 \x01(\x0b\x32\x13.mthyme.ExecuteCode\x12+\n\rstart_session\x18\x04 \x01(\x0b\x32\x14.mthyme.StartSession\x12/\n\x11terminate_session\x18\x05 \x01(\x0b\x32\x14.mthyme.StartSession\x12\x37\n\x13session_description\x18\x06 \x01(\x0b\x32\x1a.mthyme.SessionDescription\x12\'\n\x0bsend_signal\x18\x07 \x01(\x0b\x32\x12.mthyme.SendSignal\x12\x1e\n\x06output\x18\x08 \x01(\x0b\x32\x0e.mthyme.Output\"x\n\x04Type\x12\x10\n\x0c\x45XECUTE_CODE\x10\x01\x12\x11\n\rSTART_SESSION\x10\x02\x12\x15\n\x11TERMINATE_SESSION\x10\x03\x12\x17\n\x13SESSION_DESCRIPTION\x10\x04\x12\x0f\n\x0bSEND_SIGNAL\x10\x05\x12\n\n\x06OUTPUT\x10\x06')
+  serialized_pb='\n\nmesg.proto\x12\x06mthyme\"3\n\x0b\x45xecuteCode\x12\x0c\n\x04\x63ode\x18\x01 \x02(\t\x12\x16\n\x08preparse\x18\x02 \x01(\x08:\x04true\"a\n\x0cStartSession\x12\x14\n\x0cmax_walltime\x18\x01 \x01(\x05\x12\x13\n\x0bmax_cputime\x18\x02 \x01(\x05\x12\x14\n\x0cmax_numfiles\x18\x03 \x01(\x05\x12\x10\n\x08max_vmem\x18\x04 \x01(\x05\"\x12\n\x10TerminateSession\"!\n\x12SessionDescription\x12\x0b\n\x03pid\x18\x01 \x02(\x05\")\n\nSendSignal\x12\x0b\n\x03pid\x18\x01 \x02(\x05\x12\x0e\n\x06signal\x18\x02 \x02(\x05\"=\n\x06Output\x12\x0e\n\x06stdout\x18\x01 \x01(\t\x12\x0e\n\x06stderr\x18\x02 \x01(\t\x12\x13\n\x04\x64one\x18\x03 \x01(\x08:\x05\x66\x61lse\"\xbe\x03\n\x07Message\x12\"\n\x04type\x18\x01 \x02(\x0e\x32\x14.mthyme.Message.Type\x12\n\n\x02id\x18\x02 \x01(\r\x12)\n\x0c\x65xecute_code\x18\x03 \x01(\x0b\x32\x13.mthyme.ExecuteCode\x12+\n\rstart_session\x18\x04 \x01(\x0b\x32\x14.mthyme.StartSession\x12/\n\x11terminate_session\x18\x05 \x01(\x0b\x32\x14.mthyme.StartSession\x12\x37\n\x13session_description\x18\x06 \x01(\x0b\x32\x1a.mthyme.SessionDescription\x12\'\n\x0bsend_signal\x18\x07 \x01(\x0b\x32\x12.mthyme.SendSignal\x12\x1e\n\x06output\x18\x08 \x01(\x0b\x32\x0e.mthyme.Output\"x\n\x04Type\x12\x10\n\x0c\x45XECUTE_CODE\x10\x01\x12\x11\n\rSTART_SESSION\x10\x02\x12\x15\n\x11TERMINATE_SESSION\x10\x03\x12\x17\n\x13SESSION_DESCRIPTION\x10\x04\x12\x0f\n\x0bSEND_SIGNAL\x10\x05\x12\n\n\x06OUTPUT\x10\x06')
 
 
 
@@ -48,8 +48,8 @@ _MESSAGE_TYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=663,
-  serialized_end=783,
+  serialized_start=662,
+  serialized_end=782,
 )
 
 
@@ -278,9 +278,9 @@ _MESSAGE = descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='tag', full_name='mthyme.Message.tag', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      name='id', full_name='mthyme.Message.id', index=1,
+      number=2, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -337,7 +337,7 @@ _MESSAGE = descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=336,
-  serialized_end=783,
+  serialized_end=782,
 )
 
 _MESSAGE.fields_by_name['type'].enum_type = _MESSAGE_TYPE

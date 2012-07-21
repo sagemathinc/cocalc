@@ -41,43 +41,43 @@ class ConnectionPB(object):
         return m
 
 class Message(object):
-    def _new(self, tag, typ):
+    def _new(self, id, typ):
         m = mesg_pb2.Message()
         m.type = typ
-        if tag is not None:
-            m.tag = tag
+        if id is not None:
+            m.id = id
         return m
         
-    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=512, tag=None):
-        m = self._new(tag=tag, typ=mesg_pb2.Message.START_SESSION)
+    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=512, id=None):
+        m = self._new(id=id, typ=mesg_pb2.Message.START_SESSION)
         m.start_session.max_walltime = max_walltime
         m.start_session.max_cputime = max_cputime
         m.start_session.max_numfiles = max_numfiles
         m.start_session.max_vmem = max_vmem
         return m
 
-    def session_description(self, pid, tag=None):
-        m = self._new(tag=tag, typ=mesg_pb2.Message.SESSION_DESCRIPTION)
+    def session_description(self, pid, id=None):
+        m = self._new(id=id, typ=mesg_pb2.Message.SESSION_DESCRIPTION)
         m.session_description.pid = pid
         return m
 
-    def send_signal(self, pid, signal=signal.SIGINT, tag=None):
-        m = self._new(tag=tag, typ=mesg_pb2.Message.SEND_SIGNAL)
+    def send_signal(self, pid, signal=signal.SIGINT, id=None):
+        m = self._new(id=id, typ=mesg_pb2.Message.SEND_SIGNAL)
         m.send_signal.pid = pid
         m.send_signal.signal = signal
         return m
 
-    def terminate_session(self, tag=None):
-        return self._new(tag=tag, typ=mesg_pb2.Message.TERMINATE_SESSION)
+    def terminate_session(self, id=None):
+        return self._new(id=id, typ=mesg_pb2.Message.TERMINATE_SESSION)
 
-    def execute_code(self, code, tag=None):
-        m = self._new(tag=tag, typ=mesg_pb2.Message.EXECUTE_CODE)
+    def execute_code(self, code, id=None):
+        m = self._new(id=id, typ=mesg_pb2.Message.EXECUTE_CODE)
         m.execute_code.code = code
         return m
         
 
-    def output(self, tag=None, stdout=None, stderr=None, done=None):
-        m = self._new(tag=tag, typ=mesg_pb2.Message.OUTPUT)
+    def output(self, id=None, stdout=None, stderr=None, done=None):
+        m = self._new(id=id, typ=mesg_pb2.Message.OUTPUT)
         if stdout: m.output.stdout = stdout
         if stderr: m.output.stderr = stderr
         if done: m.output.done = done
@@ -103,17 +103,17 @@ def client1(port, hostname):
             code = parsing.get_input('sage [%s]: '%id)
             if code is None:  # EOF
                 break
-            conn.send(message.execute_code(code=code, tag=str(id)))
+            conn.send(message.execute_code(code=code, id=id))
             while True:
                 mesg = conn.recv()
                 if mesg.type == mesg_pb2.Message.TERMINATE_SESSION:
                     return
-                elif  mesg.type == mesg_pb2.Message.OUTPUT:
+                elif mesg.type == mesg_pb2.Message.OUTPUT:
                     if mesg.output.stdout:
                         sys.stdout.write(mesg.output.stdout); sys.stdout.flush()
                     if mesg.output.stderr:
                         print '!  ' + '\n!  '.join(mesg.output.stderr.splitlines())
-                    if mesg.output.done and int(mesg.tag) >= id:
+                    if mesg.output.done and mesg.id >= id:
                         break
             id += 1
             
@@ -152,11 +152,11 @@ class OutputStream(object):
         self._f(self._buf, done=done)
         self._buf = ''
 
-def execute(conn, tag, code, preparse):
+def execute(conn, id, code, preparse):
     def send_stdout(output, done):
-        conn.send(message.output(stdout=output, done=done, tag=tag))
+        conn.send(message.output(stdout=output, done=done, id=id))
     def send_stderr(output, done):
-        conn.send(message.output(stderr=output, done=done, tag=tag))        
+        conn.send(message.output(stderr=output, done=done, id=id))        
     try:
         streams = (sys.stdout, sys.stderr)
         sys.stdout = OutputStream(send_stdout)
@@ -219,7 +219,7 @@ def session(conn, home, cputime, nofile, vmem):
             if mesg.type == mesg_pb2.Message.TERMINATE_SESSION:
                 return
             elif mesg.type == mesg_pb2.Message.EXECUTE_CODE:
-                execute(conn=conn, tag=mesg.tag, code=mesg.execute_code.code, preparse=mesg.execute_code.preparse)
+                execute(conn=conn, id=mesg.id, code=mesg.execute_code.code, preparse=mesg.execute_code.preparse)
             else:
                 raise RuntimeError("invalid message '%s'"%mesg)
         except KeyboardInterrupt:
@@ -349,8 +349,11 @@ def serve(port, whitelist):
                 conn.send(message.session_description(pid))
                 
             except Exception, msg:
-                print msg
+                log.debug('issue somewhere: "%s"', msg)
                 traceback.print_exc()
+                if pid == 0:
+                    sys.exit(0)
+                continue
 
             if pid == 0:
                 session(conn, home, start_session.max_cputime,

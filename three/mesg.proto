@@ -37,7 +37,7 @@ message Message {
                 SESSION_DESCRIPTION = 4; SEND_SIGNAL = 5;  OUTPUT = 6;}
 
     required Type   type = 1;
-    optional string tag = 2;
+    optional uint32 id = 2;
 
     optional ExecuteCode execute_code = 3;
     optional StartSession start_session = 4;

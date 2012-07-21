@@ -3,7 +3,7 @@ Programming Todo
 
 NOW: 
 
-  [ ] user PB in backend demo class that uses worker.py
+  [ ] use PB between backend and javascript client, if possible/sensible (?)
   [ ] add protobuf to build.py system
   [ ] switch to use worker.py in backend for execute action:  
   [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
@@ -221,3 +221,4 @@ See http://www.ruby-forum.com/topic/134115
   [x] figure out how to use a proper ssl certificate
   [x] switch to using PB for worker.py, since without a sane and efficient
       message format I will be very, very unhappy.  
+  [x] user PB in backend demo class that uses worker.py
