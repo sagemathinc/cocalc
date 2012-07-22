@@ -12,8 +12,11 @@ $(function(){
 	backend.execute($("#input").val(), 
 		function(mesg) { 
 		    var o = $("#output");
-		    o.val(o.val() + mesg.stdout);
-		    $("#run_status").html(mesg.done?"done":"running...");
+		    o.val(o.val() + mesg.output.stdout);
+		    if (mesg.output.stderr) {
+			o.val(o.val() + "\n!!!!!!!!!!!!!!\n" + mesg.output.stderr + "\n!!!!!!!!!!!!!\n");
+		    }
+		    $("#run_status").html(mesg.output.done?"done":"running...");
 		});
     });
 

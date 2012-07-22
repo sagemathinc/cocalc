@@ -41,6 +41,7 @@ from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHa
 # persistent connections to workers
 ###########################################
 
+import struct
 import mesg_pb2
 from worker import message
 
@@ -61,52 +62,70 @@ class NonblockingConnectionPB(object):
         def read_mesg(s):
             if len(s) < 4:
                 if callback is not None:
-                    callback(None)
+                    callback(self, None)
                 return
-            self._conn.read_bytes(int(s), handle_mesg)
+            self._conn.read_bytes(struct.unpack('>L', s)[0], handle_mesg)
         def handle_mesg(s):
             if callback is not None:
-                m = mesg.pb2.Message()
+                m = mesg_pb2.Message()
                 m.ParseFromString(s)
-                callback(m)
+                callback(self, m)
         read_length()
     
 
 class WorkerConnection(object):
     connections = set()
 
-    def __init__(self, hostname, port, **options):
+    def __init__(self, hostname, port, mesg_callback, init_callback, **options):
         self._options = options
+        self._hostname = hostname
+        self._port = port
+        self._init_callback = init_callback
+        self._mesg_callback = mesg_callback
         self._conn = NonblockingConnectionPB(hostname, port, self._start_session)
-        ioloop = ioloop.IOLoop.instance()
-        ioloop.add_handler(self._conn._sock.fileno(), self._recv, io_loop.READ)
+
+    def __repr__(self):
+        return "<WorkerConnection pid=%s %s:%s>"%(self._pid if hasattr(self, '_pid') else '?',
+                                                  self._hostname, self._port)
+
+    def _listen_for_messages(self):
+        log.info("listen for messages: %s", self)
+        io = ioloop.IOLoop.instance()
+        io.add_handler(self._conn._sock.fileno(), self._recv, io.READ)
+        self.on_open()
+        if self._init_callback is not None:
+            self._init_callback(self)
 
     def _start_session(self):
+        log.info("_start_session")
         self._conn.send(message.start_session(**self._options), self._recv_pid)
         
     def _recv_pid(self):
-        def set_pid(mesg):
+        log.info("_recv_pid")
+        def set_pid(c, mesg):
             self._pid = mesg.session_description.pid
+            log.info("set_pid = %s", self._pid)
+            self._listen_for_messages()
         self._conn.recv(set_pid)
 
-    def __del__(self):
-        ioloop = ioloop.IOLoop.instance()
-        ioloop.remove_handler(self._conn._sock.fileno())
-
     def _recv(self, fd, events):
-        self._conn.recv(self.on_message)
+        self._conn.recv(self._mesg_callback)
 
     def send(self, mesg, callback=None):
         self._conn.send(mesg, callback)
 
-    def on_open(self, info):
+    def close(self):
+        if hasattr(self, '_conn'):
+            log.info("deleting %s", self)
+            io = ioloop.IOLoop.instance()
+            io.remove_handler(self._conn._sock.fileno())
+        self.connections.remove(self)
+
+    def on_open(self):
         self.connections.add(self)
 
     def on_close(self):
         self.connections.remove(self)
-
-    def on_message(self, mesg):
-        pass
 
 
 
@@ -125,52 +144,43 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     def on_close(self):
         self.connections.remove(self)
 
-    def on_message(self, message):
-        message = json.loads(message)
-        log.info("on_message: '%s'", message)
-        if 'execute' in message:
-            self.execute(message['execute'], message['id'], message['session'])
+    def on_message(self, mesg):
+        mesg = json.loads(mesg)
+        log.info("on_message: '%s'", mesg)
+        if mesg['type'] == mesg_pb2.Message.EXECUTE_CODE:
+            self.execute_code(mesg)
 
     def send_obj(self, obj):
         log.info("sending: '%s'", obj)
         self.send(json.dumps(obj))
 
-    def execute(self, input, id, session):
-        #self.send_obj({'stdout':r, 'done':True, 'id':id})
+    def execute_code(self, mesg):
+        log.info("executing code '%s'...", mesg)
 
-        log.info("executing '%s'...", input)
-
-        import mesg_pb2
-        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        conn.connect(('', 6000))
-        from worker import message, ConnectionPB
-        conn = ConnectionPB(conn)
-        conn.send(message.start_session(max_walltime=60*10, max_cputime=60*10))
-        worker_pid = conn.recv().session_description.pid
-
-        log.info("now asking for computation to happen")
-        conn.send(message.execute_code(code=input, id=id))
-                  
-        some_output = False
-        while True:
-            try:
-                mesg = conn.recv()
-            except EOFError:
-                break
-            if mesg.type == mesg_pb2.Message.TERMINATE_SESSION:
-                break
-            elif mesg.type == mesg_pb2.Message.OUTPUT:
-                done = mesg.output.done
-                if mesg.output.stdout:
-                    some_output=True
-                    self.send_obj({'stdout':mesg.output.stdout, 'done':done, 'id':id})
-                if mesg.output.stderr:
-                    some_output=True
-                    self.send_obj({'stderr':mesg.output.stderr, 'done':done, 'id':id})
-                if done:
-                    break
-        if not some_output:
-            self.send_obj({'done':done, 'id':id})
+        id = mesg['id']
+        input = mesg['execute_code']['code']
+        
+        worker_conn = None
+        def start():
+            global worker_conn
+            log.info("making WorkerConnection...")
+            worker_conn = WorkerConnection('', 6000, mesg_callback=handle_mesg, init_callback=send_code)
+            
+        def send_code(worker_conn):
+            log.info("got connection; now sending code")
+            worker_conn.send(message.execute_code(code=input, id=id))
+            
+        def handle_mesg(worker_conn, mesg):
+            log.info("got mesg:\n%s", mesg)
+            if mesg.type == mesg_pb2.Message.OUTPUT:
+                #if mesg.output.done:
+                #    worker_conn.close()
+                mesg2 = {'type':mesg.type, 'id':mesg.id, 'output':{'done':mesg.output.done}}
+                mesg2['output']['stdout'] = mesg.output.stdout
+                mesg2['output']['stderr'] = mesg.output.stderr
+                log.info("translated to: %s", mesg2)
+                self.send_obj(mesg2)
+        start()
 
 class IndexHandler(BaseHandler):
     def get(self):
@@ -186,7 +196,6 @@ def run_server(base, port, debug, pidfile, logfile):
         open(pidfile,'w').write(str(os.getpid()))
         if logfile:
             log.addHandler(logging.FileHandler(logfile))
-        log.info("foo")
         Router = sockjs.tornado.SockJSRouter(BrowserSocketConnection, '/backend')
         handlers = [("/backend/index.html", IndexHandler),
                     ("/backend/auth/google", GoogleLoginHandler), ("/backend/auth/facebook", FacebookLoginHandler),

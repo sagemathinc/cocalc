@@ -13,6 +13,10 @@ sagews.walltime = function() { return (new Date()).getTime(); }
 
 sagews.Backend = function(options) {
 
+    // message types (see mesg.proto)
+    EXECUTE_CODE = 1; START_SESSION = 2; TERMINATE_SESSION = 3;
+    SESSION_DESCRIPTION = 4; SEND_SIGNAL = 5;  OUTPUT = 6;
+
     /* Merge in default options */
     var opts = $.extend({
 	onopen:function(protocol) { sagews.log('open -- '+protocol); },
@@ -22,20 +26,24 @@ sagews.Backend = function(options) {
 
     /* Execution of code */
     var id=0;
-    var execute_callbacks = {};
+    var output_callbacks = {};
     var time;
     function execute(input, callback) {
-	execute_callbacks[id] = callback;
+	output_callbacks[id] = callback;
 	time = sagews.walltime();
-	send({session:-1, execute:input, id:id});
+        mesg = {type:EXECUTE_CODE, id:id, execute_code:{code:input}};
+	send(mesg);
 	id += 1;
     }
+
     function onmessage(e) {
 	mesg = JSON.parse(e.data);
 	sagews.log(mesg);
 	$("#time").html((sagews.walltime() - time) + " milliseconds");
-	execute_callbacks[mesg.id](mesg);
-	if(mesg.done) { delete execute_callbacks[mesg.id]; }
+	if (mesg.type == OUTPUT) {
+    	    output_callbacks[mesg.id](mesg);
+    	    if(mesg.done) { delete output_callbacks[mesg.id]; }
+	}
     }
 
     /* Connection to backend */
