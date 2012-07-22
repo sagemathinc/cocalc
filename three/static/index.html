@@ -10,22 +10,26 @@
 
 <script type="text/javascript"> 
 $(function() {
-   $("#cell").button();
-   $("#cmdline").button();
-   $("#about").button();
+   $("#execute").button();
+   $("#sign_in").button();
 });
 </script>
 
 </head>
 
 <body>
+<div align="right"><button id="sign_in">Sign in</button></div>
+<br>
+
+<div align=center>
 <h1>mThyme</h1>
 
-<ul>
-<li><a id="cell" href="cell/">Code Cell</a></li>
-<!--<li><a id="cmdline" href="cmdline/">Command Line</a></li>-->
-<li><a id="about">About</li>
-</ul>
+<textarea rows=8 cols=120 id="input">
+
+</textarea>
+<br>
+<button id="execute">Execute</button><br>
+</div>
 
 </body>
 </html>
