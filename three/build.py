@@ -167,6 +167,8 @@ def build_protobuf():
         cmd('./configure --prefix="%s"'%TARGET, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
+        cmd('python setup.py install', os.path.join(path, 'python'))
+        cmd('sage setup.py install', os.path.join(path, 'python'))
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
