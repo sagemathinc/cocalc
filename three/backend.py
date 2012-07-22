@@ -2,6 +2,17 @@
 """
 Backend server
 
+    - user authentication: facebook and google
+
+    - persistent connections to workers via protocol buffers over an
+      unencrypted TCP network socket
+
+    - persistent connections to web browsers via JSON over sockjs and
+      other data over HTTP
+      
+    - transient connections to other backends via protocol buffers
+      over a secure SSL encrypted TCP socket
+
 """
 import json, logging, os, socket, sys
 
@@ -9,13 +20,101 @@ from tornado import ioloop
 from tornado import iostream
 import sockjs.tornado, tornado.web
 
+###########################################
+# logging
+###########################################
 logging.basicConfig()
 log = logging.getLogger('backend')
 log.setLevel(logging.INFO)
 
+###########################################
+# authentication with Facebook and Google
+###########################################
 from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHandler, UsernameHandler
 
-class Connection(sockjs.tornado.SockJSConnection):
+
+###########################################
+# transient encrypted connections to backends
+###########################################
+
+###########################################
+# persistent connections to workers
+###########################################
+
+import mesg_pb2
+from worker import message
+
+class NonblockingConnectionPB(object):
+    def __init__(self, hostname, port, callback=None):
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+        self._conn = iostream.IOStream(self._sock)
+        self._conn.connect((hostname, port), callback)
+
+    def send(self, mesg, callback=None):
+        s = mesg.SerializeToString()
+        length_header = struct.pack(">L", len(s))
+        self._conn.write(length_header + s, callback)
+
+    def recv(self, callback=None):
+        def read_length():
+            self._conn.read_bytes(4, read_mesg)
+        def read_mesg(s):
+            if len(s) < 4:
+                if callback is not None:
+                    callback(None)
+                return
+            self._conn.read_bytes(int(s), handle_mesg)
+        def handle_mesg(s):
+            if callback is not None:
+                m = mesg.pb2.Message()
+                m.ParseFromString(s)
+                callback(m)
+        read_length()
+    
+
+class WorkerConnection(object):
+    connections = set()
+
+    def __init__(self, hostname, port, **options):
+        self._options = options
+        self._conn = NonblockingConnectionPB(hostname, port, self._start_session)
+        ioloop = ioloop.IOLoop.instance()
+        ioloop.add_handler(self._conn._sock.fileno(), self._recv, io_loop.READ)
+
+    def _start_session(self):
+        self._conn.send(message.start_session(**self._options), self._recv_pid)
+        
+    def _recv_pid(self):
+        def set_pid(mesg):
+            self._pid = mesg.session_description.pid
+        self._conn.recv(set_pid)
+
+    def __del__(self):
+        ioloop = ioloop.IOLoop.instance()
+        ioloop.remove_handler(self._conn._sock.fileno())
+
+    def _recv(self, fd, events):
+        self._conn.recv(self.on_message)
+
+    def send(self, mesg, callback=None):
+        self._conn.send(mesg, callback)
+
+    def on_open(self, info):
+        self.connections.add(self)
+
+    def on_close(self):
+        self.connections.remove(self)
+
+    def on_message(self, mesg):
+        pass
+
+
+
+###########################################
+# persistent connections to browsers (sockjs)
+###########################################
+
+class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     connections = set()
 
     def on_open(self, info):
@@ -78,25 +177,31 @@ class IndexHandler(BaseHandler):
         log.info("connection from %s", self.current_user)
         self.write("Backend sagews Server on Port %s"%args.port)
 
+###########################################
+# tornado web server
+###########################################
+
 def run_server(base, port, debug, pidfile, logfile):
     try:
         open(pidfile,'w').write(str(os.getpid()))
         if logfile:
             log.addHandler(logging.FileHandler(logfile))
         log.info("foo")
-        Router = sockjs.tornado.SockJSRouter(Connection, '/backend')
+        Router = sockjs.tornado.SockJSRouter(BrowserSocketConnection, '/backend')
         handlers = [("/backend/index.html", IndexHandler),
                     ("/backend/auth/google", GoogleLoginHandler), ("/backend/auth/facebook", FacebookLoginHandler),
                     ("/backend/auth/logout", LogoutHandler), ("/backend/auth/username", UsernameHandler)]
-        log.info("about to read %s", os.path.join(base, "data/secrets/tornado.conf"))
         secrets = eval(open(os.path.join(base, "data/secrets/tornado.conf")).read())
-        log.info("secrets = %s", secrets)
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
         log.info("listening on port %s"%port)
         ioloop.IOLoop.instance().start()
     finally:
         os.unlink(pidfile)
+
+###########################################
+# command line interface
+###########################################
 
 if __name__ == "__main__":
     import argparse

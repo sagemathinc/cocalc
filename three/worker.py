@@ -48,7 +48,7 @@ class Message(object):
             m.id = id
         return m
         
-    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=512, id=None):
+    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=1024, id=None):
         m = self._new(id=id, typ=mesg_pb2.Message.START_SESSION)
         m.start_session.max_walltime = max_walltime
         m.start_session.max_cputime = max_cputime
