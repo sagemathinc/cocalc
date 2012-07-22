@@ -11,14 +11,17 @@
 <script type="text/javascript"> 
 $(function() {
    $("#execute").button();
-   $("#sign_in").button();
+   $("#google").button().click(function() { window.location = "/backend/auth/google"; });
+   $("#facebook").button().click(function() { window.location = "/backend/auth/facebook"; });
+   $("#sign_out").button().click(function() { $.ajax("/backend/auth/logout"); });
 });
 </script>
 
 </head>
 
 <body>
-<div align="right"><button id="sign_in">Sign in</button></div>
+<div align="right">Sign in: <button id="google">google</button> or <button id="facebook">facebook</button>
+<button id="sign_out">sign out</button></div>
 <br>
 
 <div align=center>
@@ -28,7 +31,7 @@ $(function() {
 
 </textarea>
 <br>
-<button id="execute">Execute</button><br>
+<button id="execute">Execute using Sage</button><br>
 </div>
 
 </body>

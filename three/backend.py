@@ -13,6 +13,7 @@ logging.basicConfig()
 log = logging.getLogger('backend')
 log.setLevel(logging.INFO)
 
+from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHandler, UsernameHandler
 
 class Connection(sockjs.tornado.SockJSConnection):
     connections = set()
@@ -72,8 +73,9 @@ class Connection(sockjs.tornado.SockJSConnection):
         if not some_output:
             self.send_obj({'done':done, 'id':id})
 
-class IndexHandler(tornado.web.RequestHandler):
+class IndexHandler(BaseHandler):
     def get(self):
+        log.info("connection from %s", self.current_user)
         self.write("Backend sagews Server on Port %s"%args.port)
 
 def run_server(port, debug, pidfile, logfile):
@@ -82,7 +84,11 @@ def run_server(port, debug, pidfile, logfile):
         if logfile:
             log.addHandler(logging.FileHandler(logfile))
         Router = sockjs.tornado.SockJSRouter(Connection, '/backend')
-        app = tornado.web.Application([(r"/", IndexHandler)] + Router.urls, debug=debug)
+        handlers = [("/backend/index.html", IndexHandler),
+                    ("/backend/auth/google", GoogleLoginHandler), ("/backend/auth/facebook", FacebookLoginHandler),
+                    ("/backend/auth/logout", LogoutHandler), ("/backend/auth/username", UsernameHandler)]
+        secrets = eval(open("data/secrets/tornado.conf").read())
+        app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
         log.info("listening on port %s"%port)
         ioloop.IOLoop.instance().start()
