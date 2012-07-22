@@ -99,7 +99,14 @@ class WorkerConnection(object):
     def _listen_for_messages(self):
         log.info("listen for messages: %s", self)
         io = ioloop.IOLoop.instance()
-        io.add_handler(self._conn._sock.fileno(), self._recv, io.READ)
+        print self._conn._sock.fileno()
+        try:
+            io.add_handler(self._conn._sock.fileno(), self._recv, io.READ)
+        except IOError:
+            # TODO: On linux for some reason sometimes the registration happens
+            # multiple times for the same connection, which causes an error.
+            # Ignoring the error seems to work fine. 
+            pass
         self.on_open()
         if self._init_callback is not None:
             self._init_callback(self)
