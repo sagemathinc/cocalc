@@ -41,9 +41,17 @@ from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHa
 # persistent connections to workers
 ###########################################
 
+WORKER_POOL = [('', 6000)]
+
 import struct
 import mesg_pb2
 from worker import message
+
+
+message_types_json = json.dumps(dict([(name, val.number) for name, val in mesg_pb2._MESSAGE_TYPE.values_by_name.iteritems()]))
+class MessageTypesHandler(BaseHandler):
+    def get(self):
+        self.write(message_types_json)
 
 class NonblockingConnectionPB(object):
     def __init__(self, hostname, port, callback=None):
@@ -198,6 +206,7 @@ def run_server(base, port, debug, pidfile, logfile):
             log.addHandler(logging.FileHandler(logfile))
         Router = sockjs.tornado.SockJSRouter(BrowserSocketConnection, '/backend')
         handlers = [("/backend/index.html", IndexHandler),
+                    ("/backend/message/types", MessageTypesHandler),
                     ("/backend/auth/google", GoogleLoginHandler), ("/backend/auth/facebook", FacebookLoginHandler),
                     ("/backend/auth/logout", LogoutHandler), ("/backend/auth/username", UsernameHandler)]
         secrets = eval(open(os.path.join(base, "data/secrets/tornado.conf")).read())

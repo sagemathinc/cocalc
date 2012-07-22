@@ -13,9 +13,13 @@ sagews.walltime = function() { return (new Date()).getTime(); }
 
 sagews.Backend = function(options) {
 
+    var types;
+
     // message types (see mesg.proto)
-    EXECUTE_CODE = 1; START_SESSION = 2; TERMINATE_SESSION = 3;
-    SESSION_DESCRIPTION = 4; SEND_SIGNAL = 5;  OUTPUT = 6;
+    $.getJSON("/backend/message/types", function(data) { types = data; })
+
+    /*EXECUTE_CODE = 1; START_SESSION = 2; TERMINATE_SESSION = 3;
+    SESSION_DESCRIPTION = 4; SEND_SIGNAL = 5;  OUTPUT = 6; */
 
     /* Merge in default options */
     var opts = $.extend({
@@ -31,7 +35,7 @@ sagews.Backend = function(options) {
     function execute(input, callback) {
 	output_callbacks[id] = callback;
 	time = sagews.walltime();
-        mesg = {type:EXECUTE_CODE, id:id, execute_code:{code:input}};
+        mesg = {type:types.EXECUTE_CODE, id:id, execute_code:{code:input}};
 	send(mesg);
 	id += 1;
     }
@@ -40,7 +44,7 @@ sagews.Backend = function(options) {
 	mesg = JSON.parse(e.data);
 	sagews.log(mesg);
 	$("#time").html((sagews.walltime() - time) + " milliseconds");
-	if (mesg.type == OUTPUT) {
+	if (mesg.type == types.OUTPUT) {
     	    output_callbacks[mesg.id](mesg);
     	    if(mesg.done) { delete output_callbacks[mesg.id]; }
 	}
