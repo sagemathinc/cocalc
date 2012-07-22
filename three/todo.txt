@@ -2,12 +2,10 @@ Programming Todo
 ----------------
 
 NOW: 
+  [ ] switch to use worker.py for backend
  
-
 SOON:
 
-  [ ] switch to use worker.py for backend
-  [ ] add protobuf to build.py system
   [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
   [ ] scalability test: using worker.py, but running on a different VM
   [ ] scalability test: test using backend.py(s), also running on different VM's
@@ -228,4 +226,4 @@ See http://www.ruby-forum.com/topic/134115
   [x] openauth -- since it is an extremely important key component of my architecture -- better get it right!:
         - simple standalone auth demo using tornadoweb with both Google and Facebook auth
   [x] authentication -- integrate into backend.  the cookie-cached "username" is still very ugly, but fixing that up is easy.
-  
+  [x] add protobuf to build.py system

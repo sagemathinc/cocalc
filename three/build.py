@@ -12,6 +12,7 @@ The components of sagews are:
     * nginx
     * haproxy
     * postgreSQL
+    * protobuf
 
 For security and flexibility reasons, we want the option to regularly
 update or possibly modify components.
@@ -159,6 +160,17 @@ def build_postgresql():
         return time.time()-start        
 
 
+def build_protobuf():
+    log.info('building protobuf'); start = time.time()
+    try:
+        path = extract_package('protobuf')
+        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('make -j %s'%NCPU, path)
+        cmd('make install', path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
 def build_python_packages():
     log.info('building python_packages'); start = time.time()
     try:
@@ -197,6 +209,9 @@ if __name__ == "__main__":
     parser.add_argument('--build_postgresql', dest='build_postgresql', action='store_const', const=True, default=False,
                         help="build the postgresql database server")
 
+    parser.add_argument('--build_protobuf', dest='build_protobuf', action='store_const', const=True, default=False,
+                        help="build Google's protocol buffers compiler")
+
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
                         help="build the python_packages interpreter")
 
@@ -224,6 +239,9 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_postgresql:
             times['postgresql'] = build_postgresql()
+
+        if args.build_all or args.build_protobuf:
+            times['protobuf'] = build_protobuf()
 
         if args.build_all or args.build_python_packages:
             times['python_packages'] = build_python_packages()
