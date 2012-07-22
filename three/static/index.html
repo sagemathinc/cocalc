@@ -13,13 +13,18 @@ $(function() {
    $("#execute").button();
    $("#google").button().click(function() { window.location = "/backend/auth/google"; });
    $("#facebook").button().click(function() { window.location = "/backend/auth/facebook"; });
-   $("#sign_out").button().click(function() { $.ajax("/backend/auth/logout"); });
+   $("#sign_out").button().click(function() { $.get("/backend/auth/logout", function() { username(); }) });
+
+   function username() { $("#username").load("/backend/auth/username"); }
+   username();
 });
+
 </script>
 
 </head>
 
 <body>
+User: <span id="username">Username</span> 
 <div align="right">Sign in: <button id="google">google</button> or <button id="facebook">facebook</button>
 <button id="sign_out">sign out</button></div>
 <br>

@@ -227,4 +227,5 @@ See http://www.ruby-forum.com/topic/134115
         nope; using protobuf with javascript evidently sucks, and isn't the right solution anyways.
   [x] openauth -- since it is an extremely important key component of my architecture -- better get it right!:
         - simple standalone auth demo using tornadoweb with both Google and Facebook auth
-
+  [x] authentication -- integrate into backend.  the cookie-cached "username" is still very ugly, but fixing that up is easy.
+  

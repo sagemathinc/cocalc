@@ -78,16 +78,19 @@ class IndexHandler(BaseHandler):
         log.info("connection from %s", self.current_user)
         self.write("Backend sagews Server on Port %s"%args.port)
 
-def run_server(port, debug, pidfile, logfile):
+def run_server(base, port, debug, pidfile, logfile):
     try:
         open(pidfile,'w').write(str(os.getpid()))
         if logfile:
             log.addHandler(logging.FileHandler(logfile))
+        log.info("foo")
         Router = sockjs.tornado.SockJSRouter(Connection, '/backend')
         handlers = [("/backend/index.html", IndexHandler),
                     ("/backend/auth/google", GoogleLoginHandler), ("/backend/auth/facebook", FacebookLoginHandler),
                     ("/backend/auth/logout", LogoutHandler), ("/backend/auth/username", UsernameHandler)]
-        secrets = eval(open("data/secrets/tornado.conf").read())
+        log.info("about to read %s", os.path.join(base, "data/secrets/tornado.conf"))
+        secrets = eval(open(os.path.join(base, "data/secrets/tornado.conf")).read())
+        log.info("secrets = %s", secrets)
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
         log.info("listening on port %s"%port)
@@ -125,7 +128,8 @@ if __name__ == "__main__":
 
     pidfile = os.path.abspath(args.pidfile)
     logfile = os.path.abspath(args.logfile) if args.logfile else None
-    main    = lambda: run_server(port=args.port, debug=args.debug, pidfile=pidfile, logfile=logfile)
+    base    = os.path.abspath('.')
+    main    = lambda: run_server(base=base, port=args.port, debug=args.debug, pidfile=pidfile, logfile=logfile)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():

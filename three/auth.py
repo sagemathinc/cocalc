@@ -31,9 +31,8 @@ class UsernameHandler(BaseHandler):
 class FacebookLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
     @tornado.web.asynchronous
     def get(self):
-        my_url = ("https://" + self.request.host +
-                  "/backend/auth/facebook?next=" +
-                  tornado.escape.url_escape(self.get_argument("next", "/")))
+        my_url = ("https://%s/backend/auth/facebook?next=%s"%(self.request.host,
+                  tornado.escape.url_escape(self.get_argument("next", "/"))))
         print my_url
         if self.get_argument("code", False):
             self.get_authenticated_user(
@@ -64,7 +63,7 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleMixin):
             self.get_authenticated_user(self.async_callback(self._on_auth))
             print "called get_authenticated_user"
             return
-        self.authenticate_redirect(callback_uri="https://maththyme.com/backend/auth/google")
+        self.authenticate_redirect(callback_uri="https://%s/backend/auth/google"%self.request.host)
 
     def _on_auth(self, user):
         print "_on_auth: %s"%user
