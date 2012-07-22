@@ -2,8 +2,6 @@ Programming Todo
 ----------------
 
 NOW: 
-  [ ] ensure workers die when spawned
-  [ ] switch to use worker.py for backend
  
 SOON:
 
@@ -230,3 +228,5 @@ See http://www.ruby-forum.com/topic/134115
   [x] authentication -- integrate into backend.  the cookie-cached "username" is still very ugly, but fixing that up is easy.
   [x] add protobuf to build.py system
   [x] get it to work on linux again. 
+  [x] ensure workers die when spawned
+  [x] switch to use worker.py for backend

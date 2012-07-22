@@ -92,6 +92,9 @@ class WorkerConnection(object):
         self._mesg_callback = mesg_callback
         self._conn = NonblockingConnectionPB(hostname, port, self._start_session)
 
+    def __del__(self):
+        print "deleting worker"
+
     def __repr__(self):
         return "<WorkerConnection pid=%s %s:%s>"%(self._pid if hasattr(self, '_pid') else '?',
                                                   self._hostname, self._port)
@@ -124,7 +127,7 @@ class WorkerConnection(object):
         self._conn.recv(set_pid)
 
     def _recv(self, fd, events):
-        self._conn.recv(self._mesg_callback)
+        self._conn.recv(lambda conn, mesg: self._mesg_callback(self, mesg))
 
     def send(self, mesg, callback=None):
         self._conn.send(mesg, callback)
@@ -179,7 +182,8 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
         def start():
             global worker_conn
             log.info("making WorkerConnection...")
-            worker_conn = WorkerConnection('', 6000, mesg_callback=handle_mesg, init_callback=send_code)
+            worker_conn = WorkerConnection('', 6000, mesg_callback=handle_mesg, init_callback=send_code,
+                                           max_cputime=30, max_walltime=60)
             
         def send_code(worker_conn):
             log.info("got connection; now sending code")
@@ -188,8 +192,8 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
         def handle_mesg(worker_conn, mesg):
             log.info("got mesg:\n%s", mesg)
             if mesg.type == mesg_pb2.Message.OUTPUT:
-                #if mesg.output.done:
-                #    worker_conn.close()
+                if mesg.output.done:
+                    worker_conn.close()
                 mesg2 = {'type':mesg.type, 'id':mesg.id, 'output':{'done':mesg.output.done}}
                 mesg2['output']['stdout'] = mesg.output.stdout
                 mesg2['output']['stderr'] = mesg.output.stderr
