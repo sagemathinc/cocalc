@@ -209,6 +209,7 @@ class Account(object):
             return bool(os.system(['kill', '-0', str(os.getpid())]))
             
             
+local_user = Account(username=whoami, hostname='localhost')
 
 ########################################
 # Component: named collection of Process objects
@@ -346,7 +347,7 @@ class Process(object):
     def status(self):
         pid = self.pid()
         if not pid: return {}
-        s = process_status(pid, self._account.run)
+        s = process_status(pid, local_user.run if self._account._hostname=='localhost' else self._account.run)
         if not s:
             self._stop_logwatch()
             self._pids = {}
@@ -391,7 +392,8 @@ class Nginx(Process):
 class Stunnel(Process):
     def __init__(self, account, id, accept_port, connect_port, log_database=None):
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
-        pidfile = account.abspath(os.path.join(PIDS,'stunnel-%s.pid'%id)) # abspath required by stunnel
+        base = account.abspath()
+        pidfile = os.path.join(base, PIDS,'stunnel-%s.pid'%id) # abspath of pidfile required by stunnel
         self._stunnel_conf = os.path.join(DATA, 'stunnel-%s.conf'%id)
         self._accept_port = accept_port
         self._connect_port = connect_port
@@ -399,7 +401,8 @@ class Stunnel(Process):
                          log_database = log_database,
                          logfile    = logfile,
                          pidfile    = pidfile,
-                         start_cmd  = ['stunnel', self._stunnel_conf])
+                         # stunnel typically run as sudo, and sudo need not preserve PATH on Linux.
+                         start_cmd  = [os.path.join(base, DATA, 'local/bin', 'stunnel'), self._stunnel_conf])
 
     def _pre_start(self):
         stunnel = 'stunnel.conf'
