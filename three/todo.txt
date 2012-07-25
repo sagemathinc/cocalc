@@ -2,9 +2,9 @@ Programming Todo
 ----------------
 
 NOW: 
- 
-SOON:
    [ ] delete a bunch of old static/ html/js -- need to start cleaner 
+
+SOON:
    [ ] max limit on number of simultaneous worker processes allowed by worker server
    [ ] dropbox oauth: I should support dropbox/google and maybe facebook (they have no storage so what is the point).
    [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
@@ -233,3 +233,12 @@ See http://www.ruby-forum.com/topic/134115
   [x] switch to use worker.py for backend
    [x] make it so the entry screen is live -- desktop
    [x] make it so the entry screen is live -- mobile
+   [x] error when using Safari to connect via https (even locally):
+           "Error during WebSocket handshake: location mismatch: wss://maththyme.com/backend/216/fcovda9f/websocket != ws://maththyme.com/backend/216/fcovda9f/websocket"
+       this causes a fallback to xhr-streaming.  This happens on all devices
+       I try to connect with.  We do get websocket when using http instead of https.
+
+       See https://groups.google.com/forum/?fromgroups#!topic/sockjs/BeMG5MLKb0c
+
+       Fact: Putting 'return "wss"'   as line 249 in data/local/lib/python2.7/site-packages/sockjs_tornado-0.0.4-py2.7.egg/sockjs/tornado/websocket.py fixes the problem.  
+ 

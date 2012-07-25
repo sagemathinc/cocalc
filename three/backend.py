@@ -151,6 +151,11 @@ class WorkerConnection(object):
 # persistent connections to browsers (sockjs)
 ###########################################
 
+# monkey patch websocket.py to detect https using the Origin header, since it
+# works with haproxy+stunnel, whereas using self.request.protocol does not.
+import sockjs.tornado.websocket
+sockjs.tornado.websocket.WebSocketHandler.get_websocket_scheme = lambda self: 'wss' if self.request.headers.get('Origin', 'https').startswith('https') else 'ws'
+
 class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     connections = set()
 
