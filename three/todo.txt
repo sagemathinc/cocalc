@@ -2,16 +2,17 @@ Programming Todo
 ----------------
 
 NOW: 
+   [ ] make it so the entry screen is live -- mobile
  
 SOON:
-
-  [ ] max limit on number of simultaneous worker processes allowed by worker server
-  [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
-  [ ] scalability test: using worker.py, but running on a different VM
-  [ ] scalability test: test using backend.py(s), also running on different VM's
-  [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
+   [ ] delete a bunch of old static/ html/js -- need to start cleaner 
+   [ ] max limit on number of simultaneous worker processes allowed by worker server
+   [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
+   [ ] scalability test: using worker.py, but running on a different VM
+   [ ] scalability test: test using backend.py(s), also running on different VM's
+   [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
              #daemon   -- commented out so I can just log to stdout 
-  [ ] clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
+   [ ] clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
 
    [ ] user-selectable option to use memcached to cache single cell evaluations between backends
    [ ] don't allow mesg until connected
@@ -230,3 +231,4 @@ See http://www.ruby-forum.com/topic/134115
   [x] get it to work on linux again. 
   [x] ensure workers die when spawned
   [x] switch to use worker.py for backend
+   [x] make it so the entry screen is live -- desktop

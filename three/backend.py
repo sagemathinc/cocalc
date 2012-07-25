@@ -183,7 +183,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
             global worker_conn
             log.info("making WorkerConnection...")
             worker_conn = WorkerConnection('', 6000, mesg_callback=handle_mesg, init_callback=send_code,
-                                           max_cputime=30, max_walltime=60)
+                                           max_cputime=30, max_walltime=30)
             
         def send_code(worker_conn):
             log.info("got connection; now sending code")

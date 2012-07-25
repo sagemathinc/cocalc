@@ -28,6 +28,34 @@ following, but for now given the completely free bandwidth and
 physical hosting that UW offers, and the potential to hire students as
 sysadmins, it just makes sense for me to buy hardware!
 
+Another Option:
+
+UW Math building:
+
+   * a 1U Dell R415 with 16 3Ghz cores, 64GB RAM, 3TB RAID5 (so 2TB
+     yield) costs $3,045.70.  I would run *everything* on one of
+     these, haproxy, workers, database, and backend, all in individual
+     machines.  The workers run in a VM, the backend and database only
+     *listen* on localhost, etc.
+
+   * I use one master HAproxy to load balance between all these
+     machines out there, with sticky ssl sessions.
+
+For redundancy, and as I scale up, I buy more of these 1U boxes.  All
+but one of them has a read-only replicated database, off of one master
+somewhere (maybe at google at some point?).  Most workspaces are
+actually stored in google drive/dropbox/whatever = cloud storage is a
+solved problem, so the database is actually relatively small (e.g.,
+1TB) in the long run.
+
+-- Or -- I can get another $6.5K 64-core opteron box with lots of RAM.  Let's
+see how that thing goes. 
+
+
+
+     
+
+
 Rackspace.com
 -------------
   * Bandwidth Out: 0.18/GB  (Bandwidth In is free) -- 1TB/month = $180
