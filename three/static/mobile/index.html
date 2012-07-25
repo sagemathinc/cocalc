@@ -9,6 +9,11 @@
 <script type="text/javascript" src="/jquery/jquery.min.js"></script>
 <script type="text/javascript" src="/jquery/jquery-mobile/jquery.mobile.min.js"></script>
 
+<script type="text/javascript" src="/sockjs/sockjs.min.js"></script>
+
+<script type="text/javascript" src="/sagews/sagews.js"></script>
+<script type="text/javascript" src="/mobile/index.js"></script>
+
 </head>
 
 <body>
@@ -17,14 +22,20 @@
 <h1>mThyme</h1>
 </div>
 <div data-role="content">
-<button id="sign_in">Sign In</button>
-    <ul data-role="listview" data-inset="true">
-<li><textarea id="input"></textarea>
+<span id="connection_status"></span>&nbsp;&nbsp;
+<span id="run_status"></span>&nbsp;&nbsp;
+<span id="time"></span>
 <br>
-<button id="execute">Execute</button>
-</li>
+  <ul data-role="listview" data-inset="true">
+    <li><textarea id="input"></textarea>
+      <br>
+      <button id="execute">Execute using Sage</button>
+      <br>
+      <textarea id="output" readonly="readonly"></textarea>
+    </li>
+    <li> Sign In<button id="google">google</button> <button id="facebook">facebook</button>  </li>
 
-    </ul>
+  </ul>
 </div>
 </div>
 
