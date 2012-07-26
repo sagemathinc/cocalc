@@ -73,8 +73,7 @@ class Message(object):
     def execute_code(self, code, id=None):
         m = self._new(id=id, typ=mesg_pb2.Message.EXECUTE_CODE)
         m.execute_code.code = code
-        return m
-        
+        return m        
 
     def output(self, id=None, stdout=None, stderr=None, done=None):
         m = self._new(id=id, typ=mesg_pb2.Message.OUTPUT)

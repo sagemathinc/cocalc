@@ -147,6 +147,29 @@ class WorkerConnection(object):
 
 
 
+
+###########################################
+# cacheing 
+###########################################
+import memcache
+MEMCACHE_SERVERS = ["127.0.0.1:11211"]
+class MemCache(object):
+    """Use memcache to implement a simple key:value store.  Keys are hashed, but verified for correctness on read."""
+    def __init__(self):
+        self._cache = memcache.Client(MEMCACHE_SERVERS)
+    def key(self, input):
+        return str(hash(input))
+    def __getitem__(self, input):
+        input = input.strip()
+        c = self._cache.get(self.key(input))
+        if c is not None and c[0] == input:
+            return c[1]
+    def __setitem__(self, input, result):
+        input = input.strip()
+        self._cache.set(self.key(input), (input, result))
+
+stateless_execution_cache = MemCache()     # cache results of stateless execution.
+
 ###########################################
 # persistent connections to browsers (sockjs)
 ###########################################
@@ -182,13 +205,21 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
 
         id = mesg['id']
         input = mesg['execute_code']['code']
-        
+        answer = stateless_execution_cache[input]
+        if answer is not None:
+            for m in answer:
+                m1 = dict(m)
+                m1['id'] = id
+                self.send_obj(m1)
+            return
+
+        result = []
         worker_conn = None
         def start():
             global worker_conn
             log.info("making WorkerConnection...")
             worker_conn = WorkerConnection('', 6000, mesg_callback=handle_mesg, init_callback=send_code,
-                                           max_cputime=30, max_walltime=30)
+                                           max_cputime=20, max_walltime=20)
             
         def send_code(worker_conn):
             log.info("got connection; now sending code")
@@ -203,6 +234,9 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
                 mesg2['output']['stdout'] = mesg.output.stdout
                 mesg2['output']['stderr'] = mesg.output.stderr
                 log.info("translated to: %s", mesg2)
+                result.append(mesg2)
+                if mesg.output.done:
+                    stateless_execution_cache[input] = result
                 self.send_obj(mesg2)
         start()
 

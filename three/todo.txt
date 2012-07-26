@@ -4,32 +4,28 @@ Programming Todo
 NOW: 
 
 SOON:
-   [ ] max limit on number of simultaneous worker processes allowed by worker server
+   [ ] if user submits a new stateless request in same session, then current one should be killed.
+   [ ] when worker.py killed, it doesn't properly clean up the processes that it forked off.   
+   [ ] var isn't defined
    [ ] dropbox oauth: I should support dropbox/google and maybe facebook (they have no storage so what is the point).
    [ ] scalability test: using worker.py, but running on a different VM
    [ ] scalability test: test using backend.py(s), also running on different VM's
    [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
              #daemon   -- commented out so I can just log to stdout 
    [ ] clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
-
-   [ ] user-selectable option to use memcached to cache single cell evaluations between backends
-   [ ] don't allow mesg until connected
    [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
-   [ ] separate worker client from worker
-   [ ] simplify worker for my particular application and properly daemonize worker using same options as for backend
-   [ ] admin: support start/stop/status worker
-   [ ] implement basic message routing between workers and connected clients (?)
    [ ] two different haproxies at once (so either can be used if the other dies)
    [ ] think about how to separate my data into multiple database for scalability
    [ ] sqlalchemy postgresql central DB server
         - do test: what is overhead of storing a BLOB of a git bundle?
-   [ ] implement basic "single cell server"
-   [ ] implement interact
+   [ ] max limit on number of simultaneous worker processes allowed by worker server
    [ ] logging -- it might be good if there were a common format for
        the date part of every log message, so the time when log row
        was *record* could be set, instead of the time of insertion in
        DB.  This could be very hard though, and would ungroup similar
        entries. 
+   [ ] implement interact
+   [ ] implement basic "single cell server"
 
 SOMEDAY:
 
@@ -250,3 +246,7 @@ See http://www.ruby-forum.com/topic/134115
 
    [x] delete a bunch of old static/ html/js -- need to start cleaner 
    [x] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
+   [x] implement basic message routing between workers and connected clients (?)
+   [x] admin: support start/stop/status worker
+   [x] simplify worker for my particular application and properly daemonize worker using same options as for backend
+   [x] use memcached to cache single cell evaluations 
