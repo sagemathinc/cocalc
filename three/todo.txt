@@ -4,14 +4,16 @@ Programming Todo
 NOW: 
 
 SOON:
+   [ ] "./config1 --restart=worker" doesn't work
    [ ] when worker.py killed, it doesn't properly clean up the processes that it forked off.   
    [ ] dropbox oauth: I should support dropbox/google and maybe facebook (they have no storage so what is the point).
    [ ] scalability test: using worker.py, but running on a different VM
    [ ] scalability test: test using backend.py(s), also running on different VM's
    [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
              #daemon   -- commented out so I can just log to stdout 
+   [ ] transient encrypted connections to backends
    [ ] clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
-   [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this when rewrite worker.py
+   [ ] worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
    [ ] two different haproxies at once (so either can be used if the other dies)
    [ ] think about how to separate my data into multiple database for scalability
    [ ] sqlalchemy postgresql central DB server
@@ -250,3 +252,5 @@ See http://www.ruby-forum.com/topic/134115
    [x] use memcached to cache single cell evaluations 
    [x] if user submits a new stateless request in same session, then current one should be killed.
    [x] var x isn't defined
+   [x] rewrite stateless execution as a separate class; 
+       this may address the "done=True" message not getting through weirdness

@@ -2,18 +2,21 @@
 """
 Backend server
 
-    - user authentication: facebook and google
+    - user authentication: Facebook, Google, Dropbox
 
-    - persistent connections to workers via protocol buffers over an
+    - persistent connections to workers speaking protocol buffers over an
       unencrypted TCP network socket
 
-    - persistent connections to web browsers via JSON over sockjs and
+    - persistent connections to web browsers speaking JSON over sockjs and
       other data over HTTP
       
-    - transient connections to other backends via protocol buffers
+    - transient connections to other backends speaking protocol buffers
       over a secure SSL encrypted TCP socket
 
 """
+
+WORKER_HOST=""; WORKER_PORT=6000   # TODO: hardcode for now
+
 import json, logging, os, socket, sys
 
 from tornado import ioloop
@@ -31,7 +34,6 @@ log.setLevel(logging.INFO)
 # authentication with Facebook and Google
 ###########################################
 from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHandler, UsernameHandler
-
 
 ###########################################
 # transient encrypted connections to backends
@@ -104,7 +106,6 @@ class WorkerConnection(object):
     def _listen_for_messages(self):
         log.info("listen for messages: %s", self)
         io = ioloop.IOLoop.instance()
-        print self._conn._sock.fileno()
         try:
             io.add_handler(self._conn._sock.fileno(), self._recv, io.READ)
         except IOError:
@@ -187,6 +188,7 @@ stateless_execution_cache = MemCache()     # cache results of stateless executio
 import sockjs.tornado.websocket
 sockjs.tornado.websocket.WebSocketHandler.get_websocket_scheme = lambda self: 'wss' if self.request.headers.get('Origin', 'https').startswith('https') else 'ws'
 
+# Define the sockjs connection:  backend <---> browser
 class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     connections = set()
 
@@ -210,50 +212,69 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     def stateless_execution(self, mesg):
         log.info("stateless executing code '%s'...", mesg)
 
-        if hasattr(self, '_stateless_worker_conn') and self._stateless_worker_conn is not None:
-            # TODO: send done/killed message to browser
-            self.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._stateless_worker_id,
-                           'output':{'done':True, 'stdout':'', 'stderr':'interrupted'}})
-            self._stateless_worker_conn.close()
-            self._stateless_worker_conn = None
-
-        id = mesg['id']
-        self._stateless_worker_id = id
+        if hasattr(self, '_stateless_execution'):
+            self._stateless_execution.kill()
+            
         input = mesg['execute_code']['code']
         answer = stateless_execution_cache[input]
         if answer is not None:
-            for m in answer:
+            for m in answer:  # replay messages
                 m1 = dict(m)
-                m1['id'] = id
+                m1['id'] = mesg['id']
                 self.send_obj(m1)
             return
 
-        result = []
-        def start():
-            log.info("making WorkerConnection...")
-            self._stateless_worker_conn = WorkerConnection('', 6000, mesg_callback=handle_mesg, init_callback=send_code,
-                                                 max_cputime=20, max_walltime=20)
-            
-        def send_code(worker_conn):
-            log.info("got connection; now sending code")
-            worker_conn.send(message.execute_code(code=input, id=id))
-            
-        def handle_mesg(worker_conn, mesg):
-            log.info("got mesg:\n%s", mesg)
-            if mesg.type == mesg_pb2.Message.OUTPUT:
-                if mesg.output.done:
-                    worker_conn.close()
-                    self._stateless_worker_conn = None
-                mesg2 = {'type':mesg.type, 'id':mesg.id, 'output':{'done':mesg.output.done}}
-                mesg2['output']['stdout'] = mesg.output.stdout
-                mesg2['output']['stderr'] = mesg.output.stderr
-                log.info("translated to: %s", mesg2)
-                result.append(mesg2)
-                if mesg.output.done:
-                    stateless_execution_cache[input] = result
-                self.send_obj(mesg2)
+        self._stateless_execution = StatelessExecution(self, mesg=mesg, host=WORKER_HOST, port=WORKER_PORT,
+                                                       max_cputime=5, max_walltime=5)
+        import gc; gc.collect()
 
-        start()
+class StatelessExecution(object):
+    def __init__(self, browser_conn, mesg, host, port, **options):
+        self._browser_conn = browser_conn
+        self._mesg = mesg
+        self._host = host
+        self._port = port
+        self._options = options
+        self._worker_conn = None
+        self._result = []
+        self._start()
+
+    def kill(self):
+        if self._worker_conn is not None:
+            self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
+                                         'output':{'done':True, 'stdout':'', 'stderr':'interrupted'}})
+            self._worker_conn.close()
+            self._worker_conn = None
+            
+    def _start(self):
+        log.info("making WorkerConnection...")
+        self._worker_conn = WorkerConnection(self._host, self._port,
+            mesg_callback=self._handle_mesg, init_callback=self._send_code, **self._options)
+
+    def _send_code(self, worker_conn):
+        log.info("got connection; now sending code")
+        worker_conn.send(message.execute_code(code=self._mesg['execute_code']['code'], id=self._mesg['id']))
+
+    def _handle_mesg(self, worker_conn, mesg):
+        log.info("got mesg:\n%s", mesg)
+        if mesg.type == mesg_pb2.Message.OUTPUT:
+            mesg2 = {'type':mesg.type, 'id':mesg.id, 'output':{'done':mesg.output.done}}
+            mesg2['output']['stdout'] = mesg.output.stdout
+            mesg2['output']['stderr'] = mesg.output.stderr
+            log.info("translated to: %s", mesg2)
+            self._result.append(mesg2)
+            if mesg.output.done:
+                stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
+            self._browser_conn.send_obj(mesg2)
+            if mesg.output.done:
+                worker_conn.close()
+                self._worker_conn = None
+
+
+
+###########################################
+# health, etc.
+###########################################
 
 class IndexHandler(BaseHandler):
     def get(self):
