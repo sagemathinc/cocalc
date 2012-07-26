@@ -47,7 +47,6 @@ import struct
 import mesg_pb2
 from worker import message
 
-
 message_types_json = json.dumps(dict([(name, val.number) for name, val in mesg_pb2._MESSAGE_TYPE.values_by_name.iteritems()]))
 class MessageTypesHandler(BaseHandler):
     def get(self):
@@ -57,7 +56,7 @@ class NonblockingConnectionPB(object):
     def __init__(self, hostname, port, callback=None):
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._conn = iostream.IOStream(self._sock)
-        self._conn.connect((hostname, port), callback)
+        self._conn.connect((hostname, port), lambda: callback(self))
 
     def send(self, mesg, callback=None):
         s = mesg.SerializeToString()
@@ -92,13 +91,16 @@ class WorkerConnection(object):
         self._mesg_callback = mesg_callback
         self._conn = NonblockingConnectionPB(hostname, port, self._start_session)
 
-    def __del__(self):
-        print "deleting worker"
-
     def __repr__(self):
         return "<WorkerConnection pid=%s %s:%s>"%(self._pid if hasattr(self, '_pid') else '?',
                                                   self._hostname, self._port)
 
+    def send_signal(self, signal):
+        """Tell worker to send given signal to the process."""
+        if hasattr(self, '_pid') and self._pid:
+            NonblockingConnectionPB(self._hostname, self._port,
+                    lambda C: C.send(message.send_signal(self._pid, signal)))
+        
     def _listen_for_messages(self):
         log.info("listen for messages: %s", self)
         io = ioloop.IOLoop.instance()
@@ -114,7 +116,7 @@ class WorkerConnection(object):
         if self._init_callback is not None:
             self._init_callback(self)
 
-    def _start_session(self):
+    def _start_session(self, conn):
         log.info("_start_session")
         self._conn.send(message.start_session(**self._options), self._recv_pid)
         
@@ -134,17 +136,23 @@ class WorkerConnection(object):
 
     def close(self):
         if hasattr(self, '_conn'):
-            log.info("deleting %s", self)
+            log.info("killing/deleting %s", self)
+            self.send_signal(9)
             io = ioloop.IOLoop.instance()
-            io.remove_handler(self._conn._sock.fileno())
-        self.connections.remove(self)
+            try:
+                io.remove_handler(self._conn._sock.fileno())
+            except KeyError:
+                pass
+        try:
+            self.connections.remove(self)
+        except KeyError:
+            pass
 
     def on_open(self):
         self.connections.add(self)
 
     def on_close(self):
         self.connections.remove(self)
-
 
 
 
@@ -183,7 +191,6 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     connections = set()
 
     def on_open(self, info):
-        #self.broadcast(self.connections, "User connected.")
         self.connections.add(self)
         log.info("new connection from %s", self.__dict__)
 
@@ -194,16 +201,24 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
         mesg = json.loads(mesg)
         log.info("on_message: '%s'", mesg)
         if mesg['type'] == mesg_pb2.Message.EXECUTE_CODE:
-            self.execute_code(mesg)
+            self.stateless_execution(mesg)
 
     def send_obj(self, obj):
         log.info("sending: '%s'", obj)
         self.send(json.dumps(obj))
 
-    def execute_code(self, mesg):
-        log.info("executing code '%s'...", mesg)
+    def stateless_execution(self, mesg):
+        log.info("stateless executing code '%s'...", mesg)
+
+        if hasattr(self, '_stateless_worker_conn') and self._stateless_worker_conn is not None:
+            # TODO: send done/killed message to browser
+            self.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._stateless_worker_id,
+                           'output':{'done':True, 'stdout':'', 'stderr':'interrupted'}})
+            self._stateless_worker_conn.close()
+            self._stateless_worker_conn = None
 
         id = mesg['id']
+        self._stateless_worker_id = id
         input = mesg['execute_code']['code']
         answer = stateless_execution_cache[input]
         if answer is not None:
@@ -214,12 +229,10 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
             return
 
         result = []
-        worker_conn = None
         def start():
-            global worker_conn
             log.info("making WorkerConnection...")
-            worker_conn = WorkerConnection('', 6000, mesg_callback=handle_mesg, init_callback=send_code,
-                                           max_cputime=20, max_walltime=20)
+            self._stateless_worker_conn = WorkerConnection('', 6000, mesg_callback=handle_mesg, init_callback=send_code,
+                                                 max_cputime=20, max_walltime=20)
             
         def send_code(worker_conn):
             log.info("got connection; now sending code")
@@ -230,6 +243,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
             if mesg.type == mesg_pb2.Message.OUTPUT:
                 if mesg.output.done:
                     worker_conn.close()
+                    self._stateless_worker_conn = None
                 mesg2 = {'type':mesg.type, 'id':mesg.id, 'output':{'done':mesg.output.done}}
                 mesg2['output']['stdout'] = mesg.output.stdout
                 mesg2['output']['stderr'] = mesg.output.stderr
@@ -238,6 +252,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
                 if mesg.output.done:
                     stateless_execution_cache[input] = result
                 self.send_obj(mesg2)
+
         start()
 
 class IndexHandler(BaseHandler):

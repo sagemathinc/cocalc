@@ -289,19 +289,7 @@ def handle_session_term(signum, frame):
         if pid in connections:
             log.info("Cleaning up after child process %s", pid)
             del connections[pid]
-
-def control(mesg):
-    log.info("control message: '%s'", mesg)
-    action = mesg['control']
-    if action == 'sigint':
-        if 'pid' not in mesg:
-            log.error("missing 'pid' key")
-        else:
-            os.kill(mesg['pid'], signal.SIGINT)
-    else:
-        log.error("unknown control action: '%s'", action)
     
-
 def serve(port, whitelist):
     global connections, kill_timer
     check_for_connection_timeouts()
@@ -333,6 +321,9 @@ def serve(port, whitelist):
                 conn = ConnectionPB(conn)
                 mesg = conn.recv()
                 if mesg.type == mesg_pb2.Message.SEND_SIGNAL:
+                    if mesg.send_signal.pid == 0:
+                        log.info("invalid signal mesg (pid=0?): %s", mesg)
+                        continue
                     log.info("sending signal %s to process %s", mesg.send_signal.signal, mesg.send_signal.pid)
                     os.kill(mesg.send_signal.pid, mesg.send_signal.signal)
                     continue
