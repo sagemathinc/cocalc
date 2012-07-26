@@ -2,10 +2,10 @@ Programming Todo
 ----------------
 
 NOW: 
+
 SOON:
    [ ] max limit on number of simultaneous worker processes allowed by worker server
    [ ] dropbox oauth: I should support dropbox/google and maybe facebook (they have no storage so what is the point).
-   [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
    [ ] scalability test: using worker.py, but running on a different VM
    [ ] scalability test: test using backend.py(s), also running on different VM's
    [ ] this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
@@ -28,7 +28,7 @@ SOON:
    [ ] logging -- it might be good if there were a common format for
        the date part of every log message, so the time when log row
        was *record* could be set, instead of the time of insertion in
-       DB.  This could ble very hard though, and would ungroup similar
+       DB.  This could be very hard though, and would ungroup similar
        entries. 
 
 SOMEDAY:
@@ -249,4 +249,4 @@ See http://www.ruby-forum.com/topic/134115
          ipad: safari (websocket), chrome (xhr-streaming).
 
    [x] delete a bunch of old static/ html/js -- need to start cleaner 
-
+   [x] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.

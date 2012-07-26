@@ -211,6 +211,10 @@ class IndexHandler(BaseHandler):
         log.info("connection from %s", self.current_user)
         self.write("Backend sagews Server on Port %s"%args.port)
 
+class AliveHandler(BaseHandler):
+    def options(self):
+        self.write("ok")
+
 ###########################################
 # tornado web server
 ###########################################
@@ -222,6 +226,7 @@ def run_server(base, port, debug, pidfile, logfile):
             log.addHandler(logging.FileHandler(logfile))
         Router = sockjs.tornado.SockJSRouter(BrowserSocketConnection, '/backend')
         handlers = [("/backend/index.html", IndexHandler),
+                    ("/alive", AliveHandler),
                     ("/backend/message/types", MessageTypesHandler),
                     ("/backend/auth/google", GoogleLoginHandler), ("/backend/auth/facebook", FacebookLoginHandler),
                     ("/backend/auth/logout", LogoutHandler), ("/backend/auth/username", UsernameHandler)]
