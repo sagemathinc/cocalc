@@ -3,7 +3,6 @@ Programming Todo
 
 NOW: 
 SOON:
-   [ ] delete a bunch of old static/ html/js -- need to start cleaner 
    [ ] max limit on number of simultaneous worker processes allowed by worker server
    [ ] dropbox oauth: I should support dropbox/google and maybe facebook (they have no storage so what is the point).
    [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
@@ -248,4 +247,6 @@ See http://www.ruby-forum.com/topic/134115
          android: chrome (xhr-streaming), firefox (websocket)
          iphone: safari (websocket), chrome (xhr-streaming).
          ipad: safari (websocket), chrome (xhr-streaming).
+
+   [x] delete a bunch of old static/ html/js -- need to start cleaner 
 
