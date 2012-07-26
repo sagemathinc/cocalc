@@ -12,7 +12,6 @@ logging.basicConfig()
 log = logging.getLogger('worker')
 log.setLevel(logging.INFO)
 
-
 # Google protocol buffers wrapper around a connection
 import mesg_pb2
 class ConnectionPB(object):
@@ -256,10 +255,10 @@ class Connection(object):
 
 connections = {}
 
-CONNECTION_TERM_INTERVAL = 15
+CONNECTION_TERM_INTERVAL = 5
 def check_for_connection_timeouts():
     global kill_timer
-    print "Checking for connection timeouts...: %s"%connections
+    log.info("Checking for connection timeouts...: %s", connections)
     
     for pid, C in connections.items():
         tm = C.time_remaining()
@@ -431,7 +430,7 @@ if __name__ == "__main__":
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
     whitelist = args.whitelist.split(',') if args.whitelist else []
     
-    main    = lambda: run_server(port=args.port, pidfile=pidfile, logfile=logfile, whitelist=whitelist)
+    main = lambda: run_server(port=args.port, pidfile=pidfile, logfile=logfile, whitelist=whitelist)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():

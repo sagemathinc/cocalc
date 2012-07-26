@@ -4,6 +4,9 @@ Programming Todo
 NOW: 
 
 SOON:
+ 
+   [ ] specify backend workers by putting them in a config file, which the
+       backend monitors for changes (via file descriptor)
    [ ] "./config1 --restart=worker" doesn't work
    [ ] when worker.py killed, it doesn't properly clean up the processes that it forked off.   
    [ ] dropbox oauth: I should support dropbox/google and maybe facebook (they have no storage so what is the point).
@@ -30,7 +33,7 @@ SOON:
 SOMEDAY:
 
    [ ] admin: support start/stop/status log server
-[ ] How to do multiple haproxies?:
+   [ ] How to do multiple haproxies?:
     - do what stackoverflow does: heartbeat + haproxy: http://blog.stackoverflow.com/2010/01/stack-overflow-network-configuration/; http://www.linux-ha.org/wiki/Main_Page
     - this discussion says to use "DNS failover":  
         * http://www.webhostingtalk.com/archive/index.php/t-1117385.html
@@ -254,3 +257,4 @@ See http://www.ruby-forum.com/topic/134115
    [x] var x isn't defined
    [x] rewrite stateless execution as a separate class; 
        this may address the "done=True" message not getting through weirdness
+   [x] implement stateful session support

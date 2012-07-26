@@ -15,35 +15,32 @@ Backend server
 
 """
 
-WORKER_HOST=""; WORKER_PORT=6000   # TODO: hardcode for now
-
 import json, logging, os, socket, sys
 
-from tornado import ioloop
-from tornado import iostream
+from tornado import ioloop, iostream
 import sockjs.tornado, tornado.web
 
 ###########################################
-# logging
+# Logging
 ###########################################
 logging.basicConfig()
 log = logging.getLogger('backend')
 log.setLevel(logging.INFO)
 
 ###########################################
-# authentication with Facebook and Google
+# Authentication with Facebook, Google, and DropBox (TODO)
 ###########################################
 from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHandler, UsernameHandler
 
 ###########################################
-# transient encrypted connections to backends
+# Transient encrypted connections to backends (TODO) for sending messages to browsers
 ###########################################
 
 ###########################################
-# persistent connections to workers
+# Persistent connections to workers
 ###########################################
 
-WORKER_POOL = [('', 6000)]
+WORKER_POOL = [('', 6000)]  # TODO
 
 import struct
 import mesg_pb2
@@ -195,6 +192,8 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     def on_open(self, info):
         self.connections.add(self)
         log.info("new connection from %s", self.__dict__)
+        #self._stateful_execution = StatefulExecution(self, host=WORKER_POOL[0][0], port=WORKER_POOL[0][1],
+        #                                             max_cputime=30, max_walltime=30)
 
     def on_close(self):
         self.connections.remove(self)
@@ -204,6 +203,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
         log.info("on_message: '%s'", mesg)
         if mesg['type'] == mesg_pb2.Message.EXECUTE_CODE:
             self.stateless_execution(mesg)
+            #self._stateful_execution.execute(mesg['execute_code']['code'], mesg['id'])
 
     def send_obj(self, obj):
         log.info("sending: '%s'", obj)
@@ -224,9 +224,9 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
                 self.send_obj(m1)
             return
 
-        self._stateless_execution = StatelessExecution(self, mesg=mesg, host=WORKER_HOST, port=WORKER_PORT,
-                                                       max_cputime=5, max_walltime=5)
-        import gc; gc.collect()
+        self._stateless_execution = StatelessExecution(self, mesg=mesg,
+            host=WORKER_POOL[0][0], port=WORKER_POOL[0][1], max_cputime=5, max_walltime=5)
+        
 
 class StatelessExecution(object):
     def __init__(self, browser_conn, mesg, host, port, **options):
@@ -242,7 +242,7 @@ class StatelessExecution(object):
     def kill(self):
         if self._worker_conn is not None:
             self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
-                                         'output':{'done':True, 'stdout':'', 'stderr':'interrupted'}})
+                                         'output':{'done':True, 'stdout':'', 'stderr':'killed'}})
             self._worker_conn.close()
             self._worker_conn = None
             
@@ -271,6 +271,48 @@ class StatelessExecution(object):
                 self._worker_conn = None
 
 
+class StatefulExecution(object):
+    def __init__(self, browser_conn, host, port, **options):
+        self._browser_conn = browser_conn
+        self._host = host
+        self._port = port
+        self._worker_conn = None
+        self._done = True
+        self._is_connected = False
+        def f(*args):
+            print "callback!!!!!!!!!!!!!!!"
+            self._is_connected = True
+        log.info("StatefulExecution: making WorkerConnection...")            
+        self._worker_conn = WorkerConnection(self._host, self._port, mesg_callback=self._handle_mesg,
+                        init_callback=f, **options)
+
+
+    def execute(self, input, id):
+        if self._is_connected:
+            self._done = False
+            log.info("sending code to execute: '%s'", input)        
+            self._worker_conn.send(message.execute_code(code=input, id=id))
+        else:
+            log.info("connection not ready yet -- TODO -- queue up input?")
+
+    def _handle_mesg(self, worker_conn, mesg):
+        log.info("StatefulExecution: got mesg:\n%s", mesg)
+        if mesg.type == mesg_pb2.Message.OUTPUT:
+            mesg2 = {'type':mesg.type, 'id':mesg.id, 'output':{'done':mesg.output.done}}
+            mesg2['output']['stdout'] = mesg.output.stdout
+            mesg2['output']['stderr'] = mesg.output.stderr
+            log.info("translated to: %s", mesg2)
+            self._browser_conn.send_obj(mesg2)
+            if mesg.output.done:
+                self._done = True
+                
+    def kill(self):
+        if self._worker_conn is not None:
+            self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
+                                         'output':{'done':True, 'stdout':'', 'stderr':'killed'}})
+            self._worker_conn.close()
+            self._worker_conn = None
+    
 
 ###########################################
 # health, etc.
