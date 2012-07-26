@@ -2,9 +2,8 @@ Programming Todo
 ----------------
 
 NOW: 
-   [ ] delete a bunch of old static/ html/js -- need to start cleaner 
-
 SOON:
+   [ ] delete a bunch of old static/ html/js -- need to start cleaner 
    [ ] max limit on number of simultaneous worker processes allowed by worker server
    [ ] dropbox oauth: I should support dropbox/google and maybe facebook (they have no storage so what is the point).
    [ ] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
@@ -242,3 +241,11 @@ See http://www.ruby-forum.com/topic/134115
 
        Fact: Putting 'return "wss"'   as line 249 in data/local/lib/python2.7/site-packages/sockjs_tornado-0.0.4-py2.7.egg/sockjs/tornado/websocket.py fixes the problem.  
  
+   [x] browser/platform testing with https all passes -- need external internet connection to do this due to checking certs:
+         os x: chrom (websocket)e, firefox new (websocket), firefox old (xhr-streaming), opera (iframe-eventsource), safari (websocket)
+         linux: chrome (websocket), firefox (websocket), opera (iframe-xhr-polling)
+         windows 7: chrome, ie9 (iframe-xhr-polling), ie8 (iframe-eventsource), opera (iframe-eventsource), operanext (iframe-xhr-polling) ie7 -- I do *NOT* support this, firefox (websocket)
+         android: chrome (xhr-streaming), firefox (websocket)
+         iphone: safari (websocket), chrome (xhr-streaming).
+         ipad: safari (websocket), chrome (xhr-streaming).
+
