@@ -297,7 +297,7 @@ def serve(port, whitelist):
 
     log.info('pre-importing the sage library...')
     import sage.all
-    exec "from sage.all import *" in namespace
+    exec "from sage.all import *; from sage.calculus.predefined import x" in namespace
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

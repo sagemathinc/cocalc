@@ -5,7 +5,6 @@ NOW:
 
 SOON:
    [ ] when worker.py killed, it doesn't properly clean up the processes that it forked off.   
-   [ ] var isn't defined
    [ ] dropbox oauth: I should support dropbox/google and maybe facebook (they have no storage so what is the point).
    [ ] scalability test: using worker.py, but running on a different VM
    [ ] scalability test: test using backend.py(s), also running on different VM's
@@ -250,3 +249,4 @@ See http://www.ruby-forum.com/topic/134115
    [x] simplify worker for my particular application and properly daemonize worker using same options as for backend
    [x] use memcached to cache single cell evaluations 
    [x] if user submits a new stateless request in same session, then current one should be killed.
+   [x] var x isn't defined
