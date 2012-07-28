@@ -2,10 +2,41 @@ Programming Todo
 ----------------
 
 NOW: 
+   [ ] backend: way for any backend to send a message to any connected
+       user, possibly connected to a different backend:
+     Proposal 2 (accepted):
+         - backends will have token from database
+         - add to ioloop listening on SSL+TCP socket (encrypted); only accept connection when given token
+         - send ProtoBuf messages
+         - connection terminated if no messages sent over it for t seconds
+         - *maybe* connections proxied through haproxy, so that backend is not actually on an external network.
+           I don't know if using haproxy is needed or a good idea; it is a small detail in the implementation.
+
+       Proposal 1 (rejected):
+         - backends will have access to a token they read from database, which they know but
+           not publicly available (since backends have to be able to get personal user data, 
+           the database must support this).
+         - Add another url handler:  /message
+            POST message with variables:
+                 token: the token
+                 message: the message, as a ProtoBuf -- the message format should have user id of recipient as part of message
+         - haproxy will also map 
+                /backend[n]/... to the n-th backend.
+         - each backend has an id number (the n above)
+         - backend communication will go via stunnel, so is secure
+           outside of LAN, where it matters
+         - messages might suggest pulling down static web content (e.g, describing an image), 
+           and url will be /backend[n]/static/[id].[ext]
+         Thoughts: the above seems untenable because of the overhead in estabilishing a complete 
+         HTTPS connection for every single message. 
 
 SOON:
+   [ ] backend: postgresql async client for tornado -- needed to
+       implement backend socket communication (just a little), and
+       will be generally very important.   This is the canonical
+       solution, but might be substantial work to implement with sqlalchemy
+           https://gist.github.com/861193
    [ ] admin: make default admin import less verbose
-   [ ] backend: transient encrypted connections between backends
    [ ] worker: worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
    [ ] worker/backend: range(10^4 ) *reliably* fails to get the final I/O terminate message through from backend to browser.
    [ ] worker: specify backend workers by putting them in a config file, which the
