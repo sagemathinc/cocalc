@@ -163,3 +163,12 @@ def userstring_to_list(s):
                         w.append(user[:j+1] + str(n))
         if u is not None: w.append(u)        
     return w
+
+
+def is_running(pid):
+    """Return True only if the process with given pid is running."""
+    try:
+        os.kill(pid,0)
+        return True
+    except:
+        return False

@@ -16,7 +16,7 @@ DATA = 'data'
 CONF = 'conf'
 PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files
-LOG_INTERVAL = 360
+LOG_INTERVAL = 6
 
 ####################
 # Running a subprocess
@@ -296,7 +296,7 @@ class Process(object):
     def _start_logwatch(self):
         if self._log_database and self._logfile:
             self._account.run(['./logwatch.py', '-l', self._logfile, '-d', self._log_database,
-                               '-p', self._log_pidfile, '-t', LOG_INTERVAL])
+                               '-p', self._log_pidfile, '-t', LOG_INTERVAL, '-w', self._pidfile])
 
     def log_pid(self):
         return self._read_pid(self._log_pidfile)
@@ -316,12 +316,12 @@ class Process(object):
         if self.is_running(): return
         self._pids = {}
         self._pre_start()
-        print self._start_logwatch()
         if self._start_cmd is not None:
             if self._start_using_system:
                 print self._account.system(self._start_cmd)
             else:
                 print self._account.run(self._start_cmd)
+        print self._start_logwatch()
         
     def stop(self):
         self._stop_logwatch()

@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--stop", dest='stop', type=str, default='', help="stop given components")
     
-    parser.add_argument("--status", dest='status', type=str, default='', help="status of given components")
+    parser.add_argument("--status", dest='status', type=str, default='all', help="status of given components")
 
     parser.add_argument("--restart", dest='restart', type=str, default='', help="restart given components")
     

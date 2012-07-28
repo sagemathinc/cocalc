@@ -5,7 +5,11 @@ Copyright (c) William Stein, 2012.  Not open source or free. Will be
 assigned to University of Washington.
 """
 
-import daemon, os, time
+import os, time
+
+import daemon
+
+import misc
 
 def mtime(file):
     try:
@@ -41,7 +45,7 @@ def get_session(database):
         session_maker = sessionmaker(bind=engine)
     return session_maker()
 
-def main(logfile, pidfile, timeout, database):
+def main(logfile, pidfile, watched_pidfile, timeout, database):
     filename = os.path.split(logfile)[-1]
     try:
         open(pidfile,'w').write(str(os.getpid()))
@@ -63,7 +67,7 @@ def main(logfile, pidfile, timeout, database):
                     session.close()
                     print "Successful commit, now deleting file..."
                     if mtime(logfile) != lastmod:
-                        # file changed during db send, so delete the part we sent
+                        # file appended to during db send, so delete the part of file we sent (but not the rest)
                         open(logfile,'w').write(open(logfile).read()[len(c):])
                     else:
                         # just clear file
@@ -73,6 +77,18 @@ def main(logfile, pidfile, timeout, database):
                     print msg
             print "Sleeping %s seconds"%timeout
             time.sleep(timeout)
+
+            if watched_pidfile:
+                print "Checking on pidfile of watched process"
+                if not os.path.exists(watched_pidfile):
+                    return
+                try:
+                    # pidfiles sometimes have more info in them; first line is always master pid
+                    if not misc.is_running(int(open(watched_pidfile).readlines()[0])):
+                        return
+                except IOError:  # in case file vanished after above check.
+                    pass
+                
     finally:
         os.unlink(pidfile)
 
@@ -90,18 +106,22 @@ if __name__ == "__main__":
                         help="PID file of this daemon process")
     parser.add_argument("-t", dest="timeout", type=int, default=60,  
                         help="check every t seconds to see if logfile has changed")
+    parser.add_argument("-w", dest="watched_pidfile", type=str, required=True,
+                        help="pid of the process being watched")
     
-
     args = parser.parse_args()
         
     logfile = os.path.abspath(args.logfile)
     pidfile = os.path.abspath(args.pidfile)
+    watched_pidfile = os.path.abspath(args.watched_pidfile)
 
+    f = lambda: main(logfile=logfile, pidfile=pidfile, watched_pidfile=watched_pidfile,
+                     timeout=args.timeout, database=args.database)
     if args.debug:
-        main(logfile=logfile, pidfile=pidfile, timeout=args.timeout, database=args.database)
+        f()
     else:
         with daemon.DaemonContext():
-            main(logfile=logfile, pidfile=pidfile, timeout=args.timeout, database=args.database)
+            f()
     
     
     

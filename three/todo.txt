@@ -2,9 +2,12 @@ Programming Todo
 ----------------
 
 NOW: 
+   [ ] range(10^4 ) *reliably* fails to get the final I/O terminate message through from backend to browser.
 
 SOON:
- 
+
+   [ ] refactor main() loop of logwatch -- too long!
+   [ ] make default admin import less verbose
    [ ] specify backend workers by putting them in a config file, which the
        backend monitors for changes (via file descriptor)
    [ ] "./config1 --restart=worker" doesn't work
@@ -257,4 +260,4 @@ See http://www.ruby-forum.com/topic/134115
    [x] var x isn't defined
    [x] rewrite stateless execution as a separate class; 
        this may address the "done=True" message not getting through weirdness
-   [x] implement stateful session support
+   [x] implement limited backend stateful session support
