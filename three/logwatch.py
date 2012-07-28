@@ -45,6 +45,37 @@ def get_session(database):
         session_maker = sessionmaker(bind=engine)
     return session_maker()
 
+def send_log_to_database(database, logfile, filename):
+    print "Get new connection..."
+    session = get_session(database)
+    c = open(logfile).read()
+    if len(c) == 0:
+        print "logfile is empty"
+        continue
+    for r in c.splitlines():
+        session.add(LogMessage(r, filename))
+    session.commit()
+    session.close()
+    print "Successful commit, now deleting file..."
+    if mtime(logfile) != lastmod:
+        # file appended to during db send, so delete the part of file we sent (but not the rest)
+        open(logfile,'w').write(open(logfile).read()[len(c):])
+    else:
+        # just clear file
+        open(logfile,'w').close()
+    lastmod = mtime(logfile)
+
+def watched_process_still_running(watched_pidfile):
+    if not os.path.exists(watched_pidfile):
+        return False
+    try:
+        # pidfiles sometimes have more info in them; first line is always master pid
+        if not misc.is_running(int(open(watched_pidfile).readlines()[0])):
+            return False
+    except IOError:  # in case file vanished after above check.
+        return os.path.exists(watched_pidfile)
+    return True
+
 def main(logfile, pidfile, watched_pidfile, timeout, database):
     filename = os.path.split(logfile)[-1]
     try:
@@ -55,40 +86,13 @@ def main(logfile, pidfile, watched_pidfile, timeout, database):
             if lastmod != modtime:
                 lastmod = modtime
                 try:
-                    print "Get new connection..."
-                    session = get_session(database)
-                    c = open(logfile).read()
-                    if len(c) == 0:
-                        print "logfile is empty"
-                        continue
-                    for r in c.splitlines():
-                        session.add(LogMessage(r, filename))
-                    session.commit()
-                    session.close()
-                    print "Successful commit, now deleting file..."
-                    if mtime(logfile) != lastmod:
-                        # file appended to during db send, so delete the part of file we sent (but not the rest)
-                        open(logfile,'w').write(open(logfile).read()[len(c):])
-                    else:
-                        # just clear file
-                        open(logfile,'w').close()
-                    lastmod = mtime(logfile)
+                    send_log_to_database(database, logfile, filename)
                 except Exception, msg:
                     print msg
             print "Sleeping %s seconds"%timeout
             time.sleep(timeout)
-
-            if watched_pidfile:
-                print "Checking on pidfile of watched process"
-                if not os.path.exists(watched_pidfile):
-                    return
-                try:
-                    # pidfiles sometimes have more info in them; first line is always master pid
-                    if not misc.is_running(int(open(watched_pidfile).readlines()[0])):
-                        return
-                except IOError:  # in case file vanished after above check.
-                    pass
-                
+            if not watched_process_still_running(watched_pidfile):
+                return
     finally:
         os.unlink(pidfile)
 
