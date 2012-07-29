@@ -32,7 +32,6 @@ log.setLevel(logging.INFO)
 ###########################################
 from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHandler, UsernameHandler
 
-
 ###########################################
 # Encrypted connections for backends to send messages to each other
 ###########################################
@@ -41,8 +40,13 @@ from backend_mesg import BackendConnectionServer, connect_to_backend
 def handle_backend_mesg(mesg):
     log.info("received backend message '%s'", mesg)
 
-
-
+class TestBackendMesgHandler(BaseHandler):
+    def get(self):
+        log.info("testing backend mesg system")
+        c = connect_to_backend(self.get_argument('hostname','localhost'), int(self.get_argument('port')))
+        mesg = message.output(id=7, stdout="some output", done=True)
+        c.send(mesg)
+        
 
 ###########################################
 # Persistent connections to workers
@@ -350,11 +354,16 @@ def run_server(base, port, debug, pidfile, logfile):
                     ("/backend/message/types", MessageTypesHandler),
                     ("/backend/auth/google", GoogleLoginHandler), ("/backend/auth/facebook", FacebookLoginHandler),
                     ("/backend/auth/logout", LogoutHandler), ("/backend/auth/username", UsernameHandler)]
+        if debug:
+            # It may be dangerous to export these handlers, so only do it in debug mode!
+            handlers.append(("/test_backend_mesg", TestBackendMesgHandler))
         secrets = eval(open(os.path.join(base, "data/secrets/tornado.conf")).read())
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
-        log.info("listening on port %s"%port)
-        backend_connection_server = BackendConnectionServer(7000, handle_backend_mesg)
+        log.info("accepting HTTP and websockets connections on port %s"%port)
+        tcp_port = 7000+port%1000 # TODO: real port!
+        log.info("accepting SSL/TCP connections on port %s"%tcp_port)
+        backend_connection_server = BackendConnectionServer(tcp_port, handle_backend_mesg) 
         ioloop.IOLoop.instance().start()
     finally:
         os.unlink(pidfile)
