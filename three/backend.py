@@ -10,8 +10,8 @@ Backend server
     - persistent connections to web browsers speaking JSON over sockjs and
       other data over HTTP
       
-    - transient connections to other backends speaking protocol buffers
-      over a secure SSL encrypted TCP socket
+    - connections to other backends speaking protocol buffers over a
+      secure SSL encrypted TCP socket
 
 """
 
@@ -32,9 +32,17 @@ log.setLevel(logging.INFO)
 ###########################################
 from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHandler, UsernameHandler
 
+
 ###########################################
-# Transient encrypted connections to backends (TODO) for sending messages to browsers
+# Encrypted connections for backends to send messages to each other
 ###########################################
+from backend_mesg import BackendConnectionServer, connect_to_backend
+
+def handle_backend_mesg(mesg):
+    log.info("received backend message '%s'", mesg)
+
+
+
 
 ###########################################
 # Persistent connections to workers
@@ -346,6 +354,7 @@ def run_server(base, port, debug, pidfile, logfile):
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
         log.info("listening on port %s"%port)
+        backend_connection_server = BackendConnectionServer(7000, handle_backend_mesg)
         ioloop.IOLoop.instance().start()
     finally:
         os.unlink(pidfile)
