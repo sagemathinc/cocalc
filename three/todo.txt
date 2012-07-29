@@ -5,9 +5,9 @@ NOW:
 
    [ ] backend: implement sendingmessage to any connected user,
        possibly connected to a different backend:
-       [ ] backend communication system working with ports hardcoded and no encryption
-       [ ] backend communication system with encryption
-       [ ] backend comm: move ports to database (or config file)
+       [x] backend communication system working with ports hardcoded and no encryption
+       [x] backend communication system with encryption
+       [ ] backend comm: move ports to database
 
 SOON:
    [ ] backend: postgresql async client for tornado -- needed to

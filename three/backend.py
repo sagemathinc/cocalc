@@ -15,7 +15,7 @@ Backend server
 
 """
 
-import json, logging, os, socket, sys
+import json, logging, os, socket, sys, time
 
 from tornado import ioloop, iostream
 import sockjs.tornado, tornado.web
@@ -43,9 +43,11 @@ def handle_backend_mesg(mesg):
 class TestBackendMesgHandler(BaseHandler):
     def get(self):
         log.info("testing backend mesg system")
+        t = time.time()
         c = connect_to_backend(self.get_argument('hostname','localhost'), int(self.get_argument('port')))
         mesg = message.output(id=7, stdout="some output", done=True)
         c.send(mesg)
+        self.write("sent message successfully in %.1f milliseconds"%(1000*(time.time()-t)))
         
 
 ###########################################
@@ -363,7 +365,10 @@ def run_server(base, port, debug, pidfile, logfile):
         log.info("accepting HTTP and websockets connections on port %s"%port)
         tcp_port = 7000+port%1000 # TODO: real port!
         log.info("accepting SSL/TCP connections on port %s"%tcp_port)
-        backend_connection_server = BackendConnectionServer(tcp_port, handle_backend_mesg) 
+        certfile = 'data/secrets/server.crt' # TODO
+        keyfile = 'data/secrets/server.key'  # TODO
+        backend_connection_server = BackendConnectionServer(tcp_port, handle_backend_mesg,
+                                                            certfile, keyfile) 
         ioloop.IOLoop.instance().start()
     finally:
         os.unlink(pidfile)
