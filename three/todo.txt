@@ -3,6 +3,19 @@ Programming Todo
 
 NOW: 
 
+   [ ] backend: postgresql async client for tornado -- needed to
+       implement backend socket communication (just a little), and
+       will be generally very important.   This is the canonical
+       solution, but might be substantial work to implement with sqlalchemy
+           https://gist.github.com/861193
+       Another possibility that looks better:
+           [ ] do not use SQLalchemy at all (sad, but I have only written
+               a few lines in logwatch.py so far in my newest version, so this
+               shouldn't be hard).
+           [ ] Directly use psycopg2 (which has builtin async support) and 
+               momoko which officially supports using PostgreSQL + Tornado.
+       This would explicitly tie us to PostgreSQL.
+
    [ ] backend: implement sendingmessage to any connected user,
        possibly connected to a different backend:
        [x] backend communication system working with ports hardcoded and no encryption
@@ -10,11 +23,6 @@ NOW:
        [ ] backend comm: move ports to database
 
 SOON:
-   [ ] backend: postgresql async client for tornado -- needed to
-       implement backend socket communication (just a little), and
-       will be generally very important.   This is the canonical
-       solution, but might be substantial work to implement with sqlalchemy
-           https://gist.github.com/861193
    [ ] backend: find a way to move the code for "Persistent connections to workers" into another file (like
        is done with "Authentication with Facebook, Google, and DropBox (TODO)")
    [ ] admin: make default admin import less verbose
