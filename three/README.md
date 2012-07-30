@@ -61,10 +61,12 @@ Database
    * PostgreSQL -- http://postgresql.org/; MIT license
    * psycopg2 (postgreSQL Python bindings) -- http://pypi.python.org/pypi/psycopg2/
    * Tornado + postgresql -- https://gist.github.com/861193 ?
-
+   * openVPN
 
 ARCHITECTURE
 ------------
+
+  * VPN -- tie together remote sites; openVPN
 
   * Client -- Javascript library that runs in any modern web browser
      - Write very simple ugly version that is fully functional.
