@@ -2,16 +2,14 @@
 Miscellaneous functions.
 """
 
-import os, tempfile, socket
-from StringIO import StringIO
-import urllib, urllib2
+import os
 
-import gc
-
-from urllib2 import URLError
+##########################################################################
+# Connecting to HTTP url's.
+##########################################################################
+import socket, urllib, urllib2
 
 def get(url, data=None, timeout=10):
-    # todo: rewrite using with
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(timeout)
     try:
@@ -22,7 +20,6 @@ def get(url, data=None, timeout=10):
         socket.setdefaulttimeout(old_timeout)
 
 def post(url, data=None, timeout=10):
-    # todo: rewrite using with
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(timeout)
     try:
@@ -34,6 +31,9 @@ def post(url, data=None, timeout=10):
     finally:
         socket.setdefaulttimeout(old_timeout)
 
+##########################################################################
+# Misc file/path management functions
+##########################################################################
 def all_files(path):
     """
     Return a sorted list of the names of all files in the given path, and in
@@ -71,6 +71,8 @@ def all_files(path):
     all.sort()
     return all
 
+# TODO: used?
+import tempfile
 
 _temp_prefix = None
 def is_temp_directory(path):
@@ -93,77 +95,9 @@ def is_temp_directory(path):
     return os.path.samefile(_temp_prefix, path)
 
 
-######################################################################
-
-def randint_set(i, j, n):
-    """
-    Return a set of n distinct randomly chosen integers in the closed
-    interval [i,j].
-
-    EXAMPLES::
-    
-        >>> import random; random.seed(0)
-        >>> randint_set(5, 10, 3)
-        set([9, 10, 7])
-        >>> randint_set(5, 10, 6)
-        set([5, 6, 7, 8, 9, 10])
-        >>> randint_set(5, 10, 7)
-        Traceback (most recent call last):
-        ...
-        ValueError: there is no such set    
-    """
-    import random
-    if j-i+1 == n:
-        return set(range(i,j+1))
-    if j-i+1 < n:
-        raise ValueError, "there is no such set"
-    v = set([random.randint(i,j)])
-    while len(v) < n:
-        v.add(random.randint(i,j))
-    return v
-
-
-
-######################################################################
-
-def userstring_to_list(s):
-    """
-    Given a string s, set the global variable workers.  The string s should
-    be something of the form: 'sagewsworker,sagews_worker_1-100, userfoo_5'
-    Thus:
-         - whitespace is ignored
-         - it is separated by commas
-         - a dash between two integers represents several distinct
-           accounts, e.g., foo1-3 means foo1,foo2,foo3; this dash must
-           be at the end of the name.
-
-    This is in misc, since it's conceivable that this expansion will
-    have to be done in various places.
-    """
-    # get rid of whitespace
-    s = ''.join(s.split())
-    # split on commas
-    v = s.split(',')
-    # expand ranges
-    w = []
-    for user in v:
-        u = user
-        i = user.rfind('-')
-        if i != -1:
-            j = i-1
-            while j>=0 and user[j].isdigit():
-                j -= 1
-            if j < i-1: # at least one digit to left
-                k = i+1
-                while k<len(user) and user[k].isdigit():
-                    k += 1
-                if k > i+1: # at least one digit to right
-                    u = None
-                    for n in range(int(user[j+1:i]), int(user[i+1:k])+1):
-                        w.append(user[:j+1] + str(n))
-        if u is not None: w.append(u)        
-    return w
-
+##########################################################################
+# Misc process functions
+##########################################################################
 
 def is_running(pid):
     """Return True only if the process with given pid is running."""
@@ -172,3 +106,11 @@ def is_running(pid):
         return True
     except:
         return False
+
+##########################################################################
+# Misc PostgreSQL database functions
+##########################################################################
+
+def table_exists(cur, tablename):
+    cur.execute("select exists(select * from information_schema.tables where table_name=%s)", (tablename,))
+    return cur.fetchone()[0]
