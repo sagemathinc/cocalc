@@ -12,7 +12,7 @@ from admin import (Account, Component, whoami,
 local_user = Account(username=whoami, hostname='localhost')
 root_user = Account(username='root', hostname='localhost')
 
-log_database = "postgresql://localhost:5432/sagews"
+log_database = "dbname=log"
 
 postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, log_database=log_database)])
 nginx      = Component('nginx', [Nginx(local_user, 0, log_database=log_database)])

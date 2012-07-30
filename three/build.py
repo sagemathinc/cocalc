@@ -41,7 +41,6 @@ PYTHON_PACKAGES = [
     'sockjs-tornado',     # websocket support
     'python-memcached',   # memcached for database
     'python-daemon',      # daemonization of python modules
-    'sqlalchemy',         # database ORM
     'psycopg2',           # postgreSQL support for ORM
     'momoko',             # async postgreSQL support
     ]

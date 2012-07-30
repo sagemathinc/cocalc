@@ -15,8 +15,7 @@ Copyright
    * My intention is to assign the copyright of this source code to
      the University of Washington during Summer 2012.
 
-   * All dependencies are under very permissive licenses.
-
+   * All dependencies are under permissive open source licenses.
 
 Dependencies
 ------------
@@ -27,12 +26,11 @@ Python
    * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
    * SQLite -- http://www.sqlite.org/; public domain (used by Python)
    * python-memcached -- http://pypi.python.org/pypi/python-memcached/; Python license
-   * SQLalchemy -- http://www.sqlalchemy.org/; MIT license
-   * psycopg -- to use postgreSQL from sqlalchemy
-
-easy_install tornado sockjs-tornado python-memcached sqlalchemy psycopg2 momoko
-
+   * psycopg2 -- to use postgreSQL from Python
+   * momoko -- to use psycopg2 from Tornado
    * python-daemon -- http://pypi.python.org/pypi/python-daemon/; Python license, and will go into Python eventually
+
+easy_install tornado sockjs-tornado python-memcached psycopg2 momoko python-daemon
 
 Javascript/CSS/HTML
 -------------------
@@ -50,7 +48,6 @@ Library dependency
 On Linux, building memcached from source requires me to first do:
 
   apt-get install libsasl2-dev libevent1-dev  
-
 
 Used as a separate process (no library linking)
 -----------------------------------------------
@@ -76,9 +73,7 @@ ARCHITECTURE
      - Learn how to deploy it and write config script.
      - Example config script on some SockJS site.
 
-  * Database -- PostgreSQL + SQLalchemy + Memcached + SSL
-     - Assemble SQLalchemy schema by combining what is current
-       frontend and backend schema, plus actually store github bundle.
+  * Database -- PostgreSQL + Memcached + SSL
 
   * Worker -- forking SSL socket server + Sage + JSON
      - Rewrite pulling code from backend.py in order to make this

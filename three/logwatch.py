@@ -8,6 +8,7 @@ assigned to University of Washington.
 import os, time
 
 import daemon
+import psycopg2
 
 import misc
 
@@ -17,53 +18,46 @@ def mtime(file):
     except OSError:
         return 0
 
-from sqlalchemy import (Column, DateTime, Integer, String, func)
+def table_exists(cur, tablename):
+    cur.execute("select exists(select * from information_schema.tables where table_name=%s)", (tablename,))
+    return cur.fetchone()[0]
 
-from sqlalchemy.ext.declarative import declarative_base
-Base = declarative_base()
+def create_log_table(cur):
+    cur.execute("CREATE TABLE log (id serial PRIMARY KEY, logfile varchar, time timestamp, message varchar)")
 
-class LogMessage(Base):
-    __tablename__ = "log"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    logfile = Column(String)
-    time = Column(DateTime, default=func.now())
-    message = Column(String)
-
-    def __init__(self, message, logfile):
-        self.message = message
-        self.logfile = logfile
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-session_maker = None
-
-def get_session(database):
-    global session_maker
-    if session_maker is None:
-        engine = create_engine(database)
-        Base.metadata.create_all(engine)
-        session_maker = sessionmaker(bind=engine)
-    return session_maker()
-
+lastmod = None
 def send_log_to_database(database, logfile, filename):
-    print "Get new connection..."
-    session = get_session(database)
+    global lastmod
+    print "Get new connection to database..."
+    conn = psycopg2.connect(database)
+    cur = conn.cursor()
+    if not table_exists(cur, 'log'):
+        create_log_table(cur)
     c = open(logfile).read()
     if len(c) == 0:
         print "logfile is empty"
-        continue
-    for r in c.splitlines():
-        session.add(LogMessage(r, filename))
-    session.commit()
-    session.close()
-    print "Successful commit, now deleting file..."
-    if mtime(logfile) != lastmod:
-        # file appended to during db send, so delete the part of file we sent (but not the rest)
-        open(logfile,'w').write(open(logfile).read()[len(c):])
-    else:
-        # just clear file
-        open(logfile,'w').close()
-    lastmod = mtime(logfile)
+        return
+    try:
+        now = psycopg2.TimestampFromTicks(time.time())
+        for r in c.splitlines():    
+            cur.execute("INSERT INTO log (logfile, time, message) VALUES(%s, %s, %s)",
+                        (filename, now, r))
+        conn.commit()
+        conn.rollback()
+        print "Successful commit, now deleting logfile..."
+        # potential race condition situation below
+        if mtime(logfile) != lastmod:
+            # file appended to during db send, so delete the part of file we sent (but not the rest)
+            open(logfile,'w').write(open(logfile).read()[len(c):])
+        else:
+            # just clear file
+            open(logfile,'w').close()
+        lastmod = mtime(logfile)
+    except Exception, msg:
+        print "Failed to commit log messages to databaes (%s)"%msg
+    finally:
+        cur.close()
+        conn.close()
 
 def watched_process_still_running(watched_pidfile):
     if not os.path.exists(watched_pidfile):
@@ -77,6 +71,7 @@ def watched_process_still_running(watched_pidfile):
     return True
 
 def main(logfile, pidfile, watched_pidfile, timeout, database):
+    global lastmod
     filename = os.path.split(logfile)[-1]
     try:
         open(pidfile,'w').write(str(os.getpid()))
