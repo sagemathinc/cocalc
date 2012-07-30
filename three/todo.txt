@@ -45,6 +45,7 @@ SOON:
    [ ] browser/worker/backend: interacts
    [ ] browser/worker/backend: 2d graphics
    [ ] backend/database: shortened url database
+   [ ] I didn't build openVPN with LZO, but I should so all network traffic is compressed, saving money.
 
 VAGUE:
    [ ] sqlalchemy postgresql central DB server
