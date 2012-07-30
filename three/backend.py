@@ -51,122 +51,17 @@ class TestBackendMesgHandler(BaseHandler):
         
 
 ###########################################
-# Persistent connections to workers
+# Async Connections to workers
 ###########################################
 
-WORKER_POOL = [('', 6000)]  # TODO
-
-import struct
-import mesg_pb2
-from worker import message
+from backend_worker import WorkerConnection, message, mesg_pb2
 
 message_types_json = json.dumps(dict([(name, val.number) for name, val in mesg_pb2._MESSAGE_TYPE.values_by_name.iteritems()]))
 class MessageTypesHandler(BaseHandler):
     def get(self):
         self.write(message_types_json)
 
-class NonblockingConnectionPB(object):
-    def __init__(self, hostname, port, callback=None):
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        self._conn = iostream.IOStream(self._sock)
-        self._conn.connect((hostname, port), lambda: callback(self))
-
-    def send(self, mesg, callback=None):
-        s = mesg.SerializeToString()
-        length_header = struct.pack(">L", len(s))
-        self._conn.write(length_header + s, callback)
-
-    def recv(self, callback=None):
-        def read_length():
-            self._conn.read_bytes(4, read_mesg)
-        def read_mesg(s):
-            if len(s) < 4:
-                if callback is not None:
-                    callback(self, None)
-                return
-            self._conn.read_bytes(struct.unpack('>L', s)[0], handle_mesg)
-        def handle_mesg(s):
-            if callback is not None:
-                m = mesg_pb2.Message()
-                m.ParseFromString(s)
-                callback(self, m)
-        read_length()
-    
-
-class WorkerConnection(object):
-    connections = set()
-
-    def __init__(self, hostname, port, mesg_callback, init_callback, **options):
-        self._options = options
-        self._hostname = hostname
-        self._port = port
-        self._init_callback = init_callback
-        self._mesg_callback = mesg_callback
-        self._conn = NonblockingConnectionPB(hostname, port, self._start_session)
-
-    def __repr__(self):
-        return "<WorkerConnection pid=%s %s:%s>"%(self._pid if hasattr(self, '_pid') else '?',
-                                                  self._hostname, self._port)
-
-    def send_signal(self, signal):
-        """Tell worker to send given signal to the process."""
-        if hasattr(self, '_pid') and self._pid:
-            NonblockingConnectionPB(self._hostname, self._port,
-                    lambda C: C.send(message.send_signal(self._pid, signal)))
-        
-    def _listen_for_messages(self):
-        log.info("listen for messages: %s", self)
-        io = ioloop.IOLoop.instance()
-        try:
-            io.add_handler(self._conn._sock.fileno(), self._recv, io.READ)
-        except IOError:
-            # TODO: On linux for some reason sometimes the registration happens
-            # multiple times for the same connection, which causes an error.
-            # Ignoring the error seems to work fine. 
-            pass
-        self.on_open()
-        if self._init_callback is not None:
-            self._init_callback(self)
-
-    def _start_session(self, conn):
-        log.info("_start_session")
-        self._conn.send(message.start_session(**self._options), self._recv_pid)
-        
-    def _recv_pid(self):
-        log.info("_recv_pid")
-        def set_pid(c, mesg):
-            self._pid = mesg.session_description.pid
-            log.info("set_pid = %s", self._pid)
-            self._listen_for_messages()
-        self._conn.recv(set_pid)
-
-    def _recv(self, fd, events):
-        self._conn.recv(lambda conn, mesg: self._mesg_callback(self, mesg))
-
-    def send(self, mesg, callback=None):
-        self._conn.send(mesg, callback)
-
-    def close(self):
-        if hasattr(self, '_conn'):
-            log.info("killing/deleting %s", self)
-            self.send_signal(9)
-            io = ioloop.IOLoop.instance()
-            try:
-                io.remove_handler(self._conn._sock.fileno())
-            except KeyError:
-                pass
-        try:
-            self.connections.remove(self)
-        except KeyError:
-            pass
-
-    def on_open(self):
-        self.connections.add(self)
-
-    def on_close(self):
-        self.connections.remove(self)
-
-
+WORKER_POOL = [('', 6000)]  # TODO
 
 ###########################################
 # cacheing 
@@ -263,7 +158,7 @@ class StatelessExecution(object):
     def _start(self):
         log.info("making WorkerConnection...")
         self._worker_conn = WorkerConnection(self._host, self._port,
-            mesg_callback=self._handle_mesg, init_callback=self._send_code, **self._options)
+            mesg_callback=self._handle_mesg, init_callback=self._send_code, log=log, **self._options)
 
     def _send_code(self, worker_conn):
         log.info("got connection; now sending code")
@@ -298,7 +193,7 @@ class StatefulExecution(object):
             self._is_connected = True
         log.info("StatefulExecution: making WorkerConnection...")            
         self._worker_conn = WorkerConnection(self._host, self._port, mesg_callback=self._handle_mesg,
-                        init_callback=f, **options)
+                        init_callback=f, log=log, **options)
 
 
     def execute(self, input, id):
