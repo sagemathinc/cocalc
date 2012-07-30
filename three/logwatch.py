@@ -11,16 +11,13 @@ import daemon
 import psycopg2
 
 import misc
+from db import table_exists
 
 def mtime(file):
     try:
         return os.path.getmtime(file)
     except OSError:
         return 0
-
-def table_exists(cur, tablename):
-    cur.execute("select exists(select * from information_schema.tables where table_name=%s)", (tablename,))
-    return cur.fetchone()[0]
 
 def create_log_table(cur):
     cur.execute("CREATE TABLE log (id serial PRIMARY KEY, logfile varchar, time timestamp, message varchar)")

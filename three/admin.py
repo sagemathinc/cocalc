@@ -97,7 +97,8 @@ class Account(object):
     The sudo command (requiring a password) will be used for 'root@localhost',
     and ssh will be used in *all* other cases, even 'root@any_other_machine'.
     """
-    def __init__(self, username, hostname='localhost', path='.'):
+    def __init__(self, username, hostname='localhost', path='.', site=''):
+        self._site = site
         self._username = username
         self._hostname = hostname
         self._path = path
@@ -252,7 +253,8 @@ class Component(object):
 class Process(object):
     def __init__(self, account, id, pidfile, logfile=None, log_database=None,
                  start_cmd=None, stop_cmd=None, reload_cmd=None,
-                 start_using_system = False):
+                 start_using_system = False,
+                 service=None):
         self._account = account
         self._id = str(id)
         assert len(self._id.split()) == 1
@@ -493,7 +495,7 @@ class PostgreSQL(Process):
         log.info(s)
         self._account.writefile(filename=self._conf, content=pg_conf(**options))
 
-    def createdb(self, name='sagews'):
+    def createdb(self, name):
         self._account.run(['createdb', '-p', self.port(), name])
          
 ####################
@@ -555,16 +557,18 @@ class Backend(Process):
 ####################
 # Worker
 ####################
+
 class Worker(Process):
     def __init__(self, account, id, port, log_database=None, debug=True):
         self._port = port
         pidfile = os.path.join(PIDS, 'worker-%s.pid'%id)
         logfile = os.path.join(LOGS, 'worker-%s.log'%id)
         Process.__init__(self, account, id, pidfile    = pidfile,
-                         logfile = logfile, log_database=log_database,
+                         logfile = logfile, log_database=log_database, 
                          start_cmd  = ['sage', '--python', 'worker.py', '-p', port,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
-                         start_using_system = True)  # since daemon mode currently broken
+                         start_using_system = True,  # since daemon mode currently broken
+                         service = ('worker', account, port))
 
 
     def port(self):

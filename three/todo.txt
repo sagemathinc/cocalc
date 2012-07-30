@@ -2,6 +2,8 @@ Programming Todo
 ----------------
 
 NOW: 
+
+
    [ ] backend: postgresql async client for tornado -- needed to
        implement backend socket communication (just a little), and
        will be generally very important.   This is the canonical
@@ -11,11 +13,11 @@ NOW:
            [ ] do not use SQLalchemy at all (sad, but I have only written
                a few lines in logwatch.py so far in my newest version, so this
                shouldn't be hard).
-           [ ] Directly use psycopg2 (which has builtin async support) and 
+           [x] Directly use psycopg2 (which has builtin async support) and 
                momoko which officially supports using PostgreSQL + Tornado.
        This would explicitly tie us to PostgreSQL.
 
-   [ ] backend: implement sendingmessage to any connected user,
+   [ ] backend: implement sending message to any connected user,
        possibly connected to a different backend:
        [x] backend communication system working with ports hardcoded and no encryption
        [x] backend communication system with encryption
@@ -95,4 +97,16 @@ DONE:
          HTTPS connection for every single message. 
    [x] backend: find a way to move the code for "Persistent connections to workers" into another file (like
        is done with "Authentication with Facebook, Google, and DropBox (TODO)")
-    
+   [x] yes, use a vpn???
+         I'm thinking about how to structure services, define their location,
+         make it so every service can connect to every other one, etc. 
+         One possibility is that I setup a VPN connecting all the
+         physical sites.   Hmmm.  
+         It looks like openVPN is a good choice. 
+            http://openvpn.net/index.php/open-source/overview.html
+         It takes only a few seconds to build from source.  It's small.  The documentation
+         seems excellent.  And using this will make it so I can easily use exactly one
+         config script to manage all the sites at once, that any node can talk to any 
+         other node, while they are all still behind a layer of security (not directly
+         on the web), etc. 
+   [x] add openvpn to build.py -- easy to build on linux; not sure how yet on OS X!

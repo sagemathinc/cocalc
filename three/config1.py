@@ -12,9 +12,15 @@ from admin import (Account, Component, whoami,
 local_user = Account(username=whoami, hostname='localhost')
 root_user = Account(username='root', hostname='localhost')
 
-log_database = "dbname=log"
+# Database configuration
+log_database = "dbname=log"    # TODO: will need to have network info, password, etc...
+conf_database = "dbname=conf"  
 
 postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, log_database=log_database)])
+postgresql[0].createdb('log')
+postgresql[0].createdb('conf')
+
+# static web server
 nginx      = Component('nginx', [Nginx(local_user, 0, log_database=log_database)])
 
 #stunnel    = Component('stunnel', [Stunnel(local_user, 0, accept_port=8443, connect_port=8000, log_database=log_database)])

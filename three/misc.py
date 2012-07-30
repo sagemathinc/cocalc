@@ -107,10 +107,3 @@ def is_running(pid):
     except:
         return False
 
-##########################################################################
-# Misc PostgreSQL database functions
-##########################################################################
-
-def table_exists(cur, tablename):
-    cur.execute("select exists(select * from information_schema.tables where table_name=%s)", (tablename,))
-    return cur.fetchone()[0]
