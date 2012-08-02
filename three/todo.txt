@@ -3,19 +3,7 @@ Programming Todo
 
 NOW: 
 
-
-   [ ] backend: postgresql async client for tornado -- needed to
-       implement backend socket communication (just a little), and
-       will be generally very important.   This is the canonical
-       solution, but might be substantial work to implement with sqlalchemy
-           https://gist.github.com/861193
-       Another possibility that looks better:
-           [ ] do not use SQLalchemy at all (sad, but I have only written
-               a few lines in logwatch.py so far in my newest version, so this
-               shouldn't be hard).
-           [x] Directly use psycopg2 (which has builtin async support) and 
-               momoko which officially supports using PostgreSQL + Tornado.
-       This would explicitly tie us to PostgreSQL.
+   [ ] setup openVPN
 
    [ ] backend: implement sending message to any connected user,
        possibly connected to a different backend:
@@ -111,3 +99,16 @@ DONE:
          other node, while they are all still behind a layer of security (not directly
          on the web), etc. 
    [x] add openvpn to build.py -- easy to build on linux; not sure how yet on OS X!
+   [x] backend: postgresql async client for tornado -- needed to
+       implement backend socket communication (just a little), and
+       will be generally very important.   This is the canonical
+       solution, but might be substantial work to implement with sqlalchemy
+           https://gist.github.com/861193
+       Another possibility that looks better:
+           [x] do not use SQLalchemy at all (sad, but I have only written
+               a few lines in logwatch.py so far in my newest version, so this
+               shouldn't be hard).
+           [x] Directly use psycopg2 (which has builtin async support) and 
+               momoko which officially supports using PostgreSQL + Tornado.
+       This would explicitly tie us to PostgreSQL.
+
