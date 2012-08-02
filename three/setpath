@@ -1,0 +1,1 @@
+export PATH=`pwd`/data/local/bin:`pwd`/data/local/sbin:$PATH
