@@ -2,9 +2,6 @@ TODO
 -----
 
 NOW: 
-   [ ] delete thyme gmail account (see msecure)
-   [ ] create salvusmath gmail account
-   [ ] change github repo to be called salvus (instead of sagews)
    [ ] move "three/" to "salvus/". 
 
 SOON:
@@ -150,3 +147,6 @@ DONE:
        * Good instructions: http://clearcove.ca/2010/11/how-to-secure-a-rails-app-on-heroku-with-ssl-firesheep/
        * Googling "godaddy ssl" really does provide a $12.99 deal for a year certificate!
 
+   [x] delete thyme gmail account (see msecure)
+   [x] create salvusmath gmail account
+   [x] change github repo to be called salvus (instead of sagews)
