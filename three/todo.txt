@@ -4,11 +4,11 @@ TODO
 NOW: 
 
 SOON:
+
    [ ] worker: "./config1 --restart=worker" doesn't work
    [ ] backend: general project is to implement sending message to any
        connected user, possibly connected to a different backend:
        [ ] backend comm: move ports to database
-   [ ] admin: make default admin import less verbose
    [ ] worker: worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
    [ ] worker/backend: range(10^4 ) *reliably* fails to get the final I/O terminate message through from backend to browser.
    [ ] worker: specify backend workers by putting them in a config file, which the
@@ -17,10 +17,10 @@ SOON:
    [ ] worker: max limit on number of simultaneous worker processes allowed by worker server
    [ ] worker: sudo worker.py -- executing commands doesn't work at all on Linux
        (but does on OS X), so probably a resource issue?
+
    [ ] backend: dropbox oauth: dropbox too 
    [ ] haproxy: this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
              #daemon   -- commented out so I can just log to stdout 
-   [ ] haproxy, etc.: clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf!
    [ ] haproxy: two different haproxies at once (so either can be used if the other dies)
    [ ] logging: format for date part of every log message, so in
        database the time when log row was *record* could be set,
@@ -31,6 +31,7 @@ SOON:
    [ ] I didn't build openVPN with LZO, but I should so all network traffic is compressed, saving money.
    [ ] come up with deployment plan
    [ ] setup openVPN
+   [ ] admin: make default admin import less verbose
 
 VAGUE:
 
@@ -122,3 +123,4 @@ DONE:
        ---> we will in the long run have a canonical site name, so let's just make that work with a template.
    [x] admin: config1 --status should default to status=all.
    [x] admin: redo the very limited use of templates to use python standard library templates.
+   [x] haproxy, etc.: clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf

@@ -368,12 +368,12 @@ class Process(object):
 # Nginx
 ####################
 class Nginx(Process):
-    def __init__(self, account, id, log_database=None, port=8080):
+    def __init__(self, account, id, port, log_database=None):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
         conf = Template(open(os.path.join(CONF, nginx)).read())
-        conf = conf.substitute(logfile=log, pidfile=pid, http_port=str(port))
+        conf = conf.substitute(logfile=log, pidfile=pid, http_port=port)
         nginx_conf = 'nginx-%s.conf'%id
         account.writefile(filename=os.path.join(DATA, nginx_conf), content=conf)
         nginx_cmd = ['nginx', '-c', '../' + nginx_conf]
@@ -409,9 +409,8 @@ class Stunnel(Process):
     def _pre_start(self):
         stunnel = 'stunnel.conf'
         conf = Template(open(os.path.join(CONF, stunnel)).read())
-        conf = conf.substitute(logfile = self._logfile, pidfile = self._pidfile,
-                               accept_port = str(self._accept_port),
-                               connect_port = str(self._connect_port))
+        conf = conf.substitute(logfile=self._logfile, pidfile=self._pidfile,
+                               accept_port=self._accept_port, connect_port=self._connect_port)
         self._account.writefile(filename=self._stunnel_conf, content=conf)
         
     def __repr__(self):
@@ -421,11 +420,46 @@ class Stunnel(Process):
 # HAproxy
 ####################
 class HAproxy(Process):
-    def __init__(self, account, id, sitename, log_database=None, conf_file='conf/haproxy.conf'):
-        # sitename -- address such that https://sitename is our site.
+    def __init__(self, account, id,
+                 sitename,    # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
+                 accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
+                 insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
+                 insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
+                 nginx_servers='',   # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...] 
+                 tornado_servers='', # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...]
+                 log_database=None,  
+                 conf_file='conf/haproxy.conf'):
+
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
-        conf = Template(open(conf_file).read()).substitute(sitename=sitename)
+
+        if nginx_servers:
+            t = Template('server nginx$n $ip:$port maxconn $maxconn')
+            nginx_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x['port'], maxconn=x['maxconn']) for
+                                                     n, x in enumerate(nginx_servers)]))
+
+        if tornado_servers:
+            t = Template('server tornado$n $ip:$port check maxconn $maxconn')
+            tornado_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x['port'], maxconn=x['maxconn']) for
+                                                     n, x in enumerate(tornado_servers)]))
+
+        if insecure_redirect_port:
+            insecure_redirect = Template(
+"""                
+frontend unsecured *:$port
+    redirect location https://$sitename
+""").substitute(port=insecure_redirect_port, sitename=sitename)
+        else:
+            insecure_redirect=''
+
+        conf = Template(open(conf_file).read()).substitute(
+            accept_proxy_port=accept_proxy_port,
+            insecure_testing_bind='bind *:%s'%insecure_testing_port if insecure_testing_port else '',
+            nginx_servers=nginx_servers,
+            tornado_servers=tornado_servers,
+            insecure_redirect=insecure_redirect
+            )
+        
         haproxy_conf = 'haproxy-%s.conf'%id
         target_conf = os.path.join(DATA, haproxy_conf)
         account.writefile(filename=target_conf, content=conf)

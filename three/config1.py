@@ -21,18 +21,30 @@ log_database = "dbname=log"    # TODO: will need to have network info, password,
 conf_database = "dbname=conf"  
 
 postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, log_database=log_database)])
-postgresql[0].createdb('log')
+try:
+    postgresql[0].createdb('log')
+except IOError:
+    postgresql[0].initdb()
+    postgresql[0].createdb('log')
+    
 postgresql[0].createdb('conf')
 
 # static web server
-nginx      = Component('nginx', [Nginx(local_user, 0, log_database=log_database)])
+nginx      = Component('nginx', [Nginx(local_user, 0, port=8080, log_database=log_database)])
 
 stunnel    = Component('stunnel', [Stunnel(root_user, 0, accept_port=443, connect_port=8000, log_database=log_database)])
 
-haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, log_database=log_database)])
-memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
-
 backend    = Component('backend', [Backend(local_user, i, 5000+i, log_database=log_database) for i in range(3)])
+
+haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, insecure_redirect_port=80,
+                                           accept_proxy_port=8000,  # same as connect_port of stunnel 
+                                           log_database=log_database,
+                                           insecure_testing_port=8001,
+                                           nginx_servers=[{'ip':'127.0.0.1', 'port':8080, 'maxconn':10000}],
+                                           tornado_servers=[{'ip':'127.0.0.1', 'port':(5000+n), 'maxconn':10000} for n in [0,1,2]]
+                                           )])
+
+memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
 
 worker     = Component('worker', [Worker(local_user, 0, 6000, log_database=log_database)])
 
