@@ -5,10 +5,15 @@ NOW:
 
 SOON:
 
+   [ ] database: when any component is started, entry is made in database
+   [ ] database: when any component is stopped, entry is made in database
+   [ ] database: function to check validity of entries; if anything not current, then updated.
+
+   [ ] database: table of connected browers and which tornado server they are connected to
+
+   [ ] tornado: implement sending message to any connected browser, possibly connected to a different tornado
+
    [ ] sage_server: "./config1 --restart=sage_server" doesn't work
-   [ ] tornado: general project is to implement sending message to any
-       connected user, possibly connected to a different tornado:
-       [ ] tornado comm: move ports to database
    [ ] sage_server: sage_server.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
    [ ] sage_server/tornado: range(10^4 ) *reliably* fails to get the final I/O terminate message through from tornado to browser.
    [ ] sage_server: specify tornado sage_servers by putting them in a config file, which the
