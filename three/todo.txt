@@ -2,6 +2,7 @@ TODO
 -----
 
 NOW: 
+   [ ] rebrand to "salvus"
 
 SOON:
 
