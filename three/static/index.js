@@ -1,10 +1,10 @@
 $(function(){
     $("#execute").button();
-    $("#google").button().click(function() { window.location = "/backend/auth/google"; });
-    $("#facebook").button().click(function() { window.location = "/backend/auth/facebook"; });
-    $("#sign_out").button().click(function() { $.get("/backend/auth/logout", function() { username(); }) });
+    $("#google").button().click(function() { window.location = "/tornado/auth/google"; });
+    $("#facebook").button().click(function() { window.location = "/tornado/auth/facebook"; });
+    $("#sign_out").button().click(function() { $.get("/tornado/auth/logout", function() { username(); }) });
 
-    function username() { $("#username").load("/backend/auth/username"); }
+    function username() { $("#username").load("/tornado/auth/username"); }
     username();
 
     $("#connection_status").html("connecting..."); 

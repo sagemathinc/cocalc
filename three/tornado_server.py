@@ -10,7 +10,7 @@ Tornado server
     - persistent connections to web browsers speaking JSON over sockjs and
       other data over HTTP
       
-    - connections to other backends speaking protocol buffers over a
+    - connections to other tornados speaking protocol buffers over a
       secure SSL encrypted TCP socket
 
     - almost static templated content, e.g., anything that needs to be
@@ -27,7 +27,7 @@ import sockjs.tornado, tornado.web
 # Logging
 ###########################################
 logging.basicConfig()
-log = logging.getLogger('backend')
+log = logging.getLogger('tornado')
 log.setLevel(logging.INFO)
 
 ###########################################
@@ -36,18 +36,18 @@ log.setLevel(logging.INFO)
 from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHandler, UsernameHandler
 
 ###########################################
-# Encrypted connections for backends to send messages to each other
+# Encrypted connections for tornados to send messages to each other
 ###########################################
-from tornado_mesg import TornadoConnectionServer, connect_to_backend
+from tornado_mesg import TornadoConnectionServer, connect_to_tornado
 
-def handle_backend_mesg(mesg):
-    log.info("received backend message '%s'", mesg)
+def handle_tornado_mesg(mesg):
+    log.info("received tornado message '%s'", mesg)
 
 class TestTornadoMesgHandler(BaseHandler):
     def get(self):
-        log.info("testing backend mesg system")
+        log.info("testing tornado mesg system")
         t = time.time()
-        c = connect_to_backend(self.get_argument('hostname','localhost'), int(self.get_argument('port')))
+        c = connect_to_tornado(self.get_argument('hostname','localhost'), int(self.get_argument('port')))
         mesg = message.output(id=7, stdout="some output", done=True)
         c.send(mesg)
         self.write("sent message successfully in %.1f milliseconds"%(1000*(time.time()-t)))
@@ -97,7 +97,7 @@ stateless_execution_cache = MemCache()     # cache results of stateless executio
 import sockjs.tornado.websocket
 sockjs.tornado.websocket.WebSocketHandler.get_websocket_scheme = lambda self: 'wss' if self.request.headers.get('Origin', 'https').startswith('https') else 'ws'
 
-# Define the sockjs connection:  backend <---> browser
+# Define the sockjs connection:  tornado <---> browser
 class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     connections = set()
 
@@ -105,7 +105,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
         self.connections.add(self)
         log.info("new connection from %s", self.__dict__)
         #self._stateful_execution = StatefulExecution(self, host=WORKER_POOL[0][0], port=WORKER_POOL[0][1],
-        #                                             max_cputime=30, max_walltime=30)
+        #                                             max_cputime=30, max_walltime=30, timeout=1)
 
     def on_close(self):
         self.connections.remove(self)
@@ -137,37 +137,43 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
             return
 
         self._stateless_execution = StatelessExecution(self, mesg=mesg,
-            host=WORKER_POOL[0][0], port=WORKER_POOL[0][1], max_cputime=5, max_walltime=5)
+            host=WORKER_POOL[0][0], port=WORKER_POOL[0][1], max_cputime=5, max_walltime=5, timeout=1)
         
 
 class StatelessExecution(object):
-    def __init__(self, browser_conn, mesg, host, port, **options):
+    def __init__(self, browser_conn, mesg, host, port, timeout, **options):
         self._browser_conn = browser_conn
         self._mesg = mesg
         self._host = host
         self._port = port
         self._options = options
-        self._worker_conn = None
+        self._sage_conn = None
         self._result = []
+        self._timeout = timeout
         self._start()
 
     def kill(self):
-        if self._worker_conn is not None:
+        if self._sage_conn is not None:
             self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
                                          'output':{'done':True, 'stdout':'', 'stderr':'killed'}})
-            self._worker_conn.close()
-            self._worker_conn = None
+            self._sage_conn.close()
+            self._sage_conn = None
             
     def _start(self):
-        log.info("making SageConnection...")
-        self._worker_conn = SageConnection(self._host, self._port,
-            mesg_callback=self._handle_mesg, init_callback=self._send_code, log=log, **self._options)
+        log.info("StatelessExecution: making SageConnection...")
+        self._sage_conn = SageConnection(self._host, self._port, mesg_callback=self._handle_mesg,
+             init_callback=self._send_code, fail_callback=self._fail, log=log, timeout=self._timeout, **self._options)
 
-    def _send_code(self, worker_conn):
+    def _send_code(self, sage_conn):
         log.info("got connection; now sending code")
-        worker_conn.send(message.execute_code(code=self._mesg['execute_code']['code'], id=self._mesg['id']))
+        sage_conn.send(message.execute_code(code=self._mesg['execute_code']['code'], id=self._mesg['id']))
 
-    def _handle_mesg(self, worker_conn, mesg):
+    def _fail(self, sage_conn):
+        self._sage_conn = None
+        self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
+                                      'output':{'done':True, 'stdout':'', 'stderr':'unable to connect to Sage server'}})
+
+    def _handle_mesg(self, sage_conn, mesg):
         log.info("got mesg:\n%s", mesg)
         if mesg.type == mesg_pb2.Message.OUTPUT:
             mesg2 = {'type':mesg.type, 'id':mesg.id, 'output':{'done':mesg.output.done}}
@@ -179,35 +185,41 @@ class StatelessExecution(object):
                 stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
             self._browser_conn.send_obj(mesg2)
             if mesg.output.done:
-                worker_conn.close()
-                self._worker_conn = None
+                sage_conn.close()
+                self._sage_conn = None
 
 
 class StatefulExecution(object):
-    def __init__(self, browser_conn, host, port, **options):
+    def __init__(self, browser_conn, host, port, timeout, **options):
         self._browser_conn = browser_conn
         self._host = host
         self._port = port
-        self._worker_conn = None
+        self._sage_conn = None
         self._done = True
         self._is_connected = False
+        self._timeout = timeout
         def f(*args):
             print "callback!!!!!!!!!!!!!!!"
             self._is_connected = True
         log.info("StatefulExecution: making SageConnection...")            
-        self._worker_conn = SageConnection(self._host, self._port, mesg_callback=self._handle_mesg,
-                        init_callback=f, log=log, **options)
+        self._sage_conn = SageConnection(self._host, self._port, mesg_callback=self._handle_mesg,
+                        init_callback=f, fail_callback=self._fail, timeout=self._timeout, log=log, **options)
 
+
+    def _fail(self, sage_conn):
+        self._sage_conn = None
+        self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
+                                      'output':{'done':True, 'stdout':'', 'stderr':'unable to connect to Sage server'}})
 
     def execute(self, input, id):
         if self._is_connected:
             self._done = False
             log.info("sending code to execute: '%s'", input)        
-            self._worker_conn.send(message.execute_code(code=input, id=id))
+            self._sage_conn.send(message.execute_code(code=input, id=id))
         else:
             log.info("connection not ready yet -- TODO -- queue up input?")
 
-    def _handle_mesg(self, worker_conn, mesg):
+    def _handle_mesg(self, sage_conn, mesg):
         log.info("StatefulExecution: got mesg:\n%s", mesg)
         if mesg.type == mesg_pb2.Message.OUTPUT:
             mesg2 = {'type':mesg.type, 'id':mesg.id, 'output':{'done':mesg.output.done}}
@@ -219,11 +231,11 @@ class StatefulExecution(object):
                 self._done = True
                 
     def kill(self):
-        if self._worker_conn is not None:
+        if self._sage_conn is not None:
             self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
                                          'output':{'done':True, 'stdout':'', 'stderr':'killed'}})
-            self._worker_conn.close()
-            self._worker_conn = None
+            self._sage_conn.close()
+            self._sage_conn = None
     
 
 ###########################################
@@ -248,15 +260,15 @@ def run_server(base, port, debug, pidfile, logfile):
         open(pidfile,'w').write(str(os.getpid()))
         if logfile:
             log.addHandler(logging.FileHandler(logfile))
-        Router = sockjs.tornado.SockJSRouter(BrowserSocketConnection, '/backend')
-        handlers = [("/backend/index.html", IndexHandler),
+        Router = sockjs.tornado.SockJSRouter(BrowserSocketConnection, '/tornado')
+        handlers = [("/tornado/index.html", IndexHandler),
                     ("/alive", AliveHandler),
-                    ("/backend/message/types", MessageTypesHandler),
-                    ("/backend/auth/google", GoogleLoginHandler), ("/backend/auth/facebook", FacebookLoginHandler),
-                    ("/backend/auth/logout", LogoutHandler), ("/backend/auth/username", UsernameHandler)]
+                    ("/tornado/message/types", MessageTypesHandler),
+                    ("/tornado/auth/google", GoogleLoginHandler), ("/tornado/auth/facebook", FacebookLoginHandler),
+                    ("/tornado/auth/logout", LogoutHandler), ("/tornado/auth/username", UsernameHandler)]
         if debug:
             # It may be dangerous to export these handlers, so only do it in debug mode!
-            handlers.append(("/test_backend_mesg", TestTornadoMesgHandler))
+            handlers.append(("/test_tornado_mesg", TestTornadoMesgHandler))
         secrets = eval(open(os.path.join(base, "data/secrets/tornado.conf")).read())
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
@@ -265,7 +277,7 @@ def run_server(base, port, debug, pidfile, logfile):
         log.info("accepting SSL/TCP connections on port %s"%tcp_port)
         certfile = 'data/secrets/server.crt' # TODO
         keyfile = 'data/secrets/server.key'  # TODO
-        tornado_connection_server = TornadoConnectionServer(tcp_port, handle_backend_mesg,
+        tornado_connection_server = TornadoConnectionServer(tcp_port, handle_tornado_mesg,
                                                             certfile, keyfile) 
         ioloop.IOLoop.instance().start()
     finally:
@@ -277,7 +289,7 @@ def run_server(base, port, debug, pidfile, logfile):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run backend server")
+    parser = argparse.ArgumentParser(description="Run tornado server")
     parser.add_argument("-p", dest="port", type=int, default=0,
                         help="port to listen on (default: 0 = determined by operating system)")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
@@ -286,8 +298,8 @@ if __name__ == "__main__":
                         help="debug mode (default: False)")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
-    parser.add_argument("--pidfile", dest="pidfile", type=str, default='backend.pid',
-                        help="store pid in this file (default: 'backend.pid')")
+    parser.add_argument("--pidfile", dest="pidfile", type=str, default='tornado.pid',
+                        help="store pid in this file (default: 'tornado.pid')")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
 

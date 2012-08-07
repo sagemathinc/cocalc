@@ -16,7 +16,7 @@ sagews.Backend = function(options) {
     var types;
 
     // message types (see mesg.proto)
-    $.getJSON("/backend/message/types", function(data) { types = data; })
+    $.getJSON("/tornado/message/types", function(data) { types = data; })
 
     /*EXECUTE_CODE = 1; START_SESSION = 2; TERMINATE_SESSION = 3;
     SESSION_DESCRIPTION = 4; SEND_SIGNAL = 5;  OUTPUT = 6; */
@@ -25,7 +25,7 @@ sagews.Backend = function(options) {
     var opts = $.extend({
 	onopen:function(protocol) { sagews.log('open -- '+protocol); },
 	onclose:function() { sagews.log('onclose'); },
-	url:window.location.protocol + "//" + window.location.host + "/backend",
+	url:window.location.protocol + "//" + window.location.host + "/tornado",
     }, options||{});
 
     /* Execution of code */
@@ -50,7 +50,7 @@ sagews.Backend = function(options) {
 	}
     }
 
-    /* Connection to backend */
+    /* Connection to tornado */
     var conn, retry_delay=1;
     function connect() {
 	conn = new SockJS(opts.url);
@@ -73,7 +73,7 @@ sagews.Backend = function(options) {
 	conn.send(JSON.stringify(obj));
     }
 
-    /* The actual backend object */
+    /* The actual connection object */
     return {
 	conn:conn,
 	send:send,

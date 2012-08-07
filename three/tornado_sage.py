@@ -1,19 +1,40 @@
 """
-backend_worker -- async connections to workers
+tornado_sage -- async connections to Sage server
 """
 
-import socket, struct
+import socket, struct, time
 
 from tornado import ioloop, iostream
 
 import mesg_pb2
-from worker import message
+
+from sage_server import message  # todo: move sage_server message out, due to GPL and linking.
 
 class NonblockingConnectionPB(object):
-    def __init__(self, hostname, port, callback=None):
+    def __init__(self, hostname, port, callback=None, timeout=5):
+        """
+        Make a nonblocking TCP connection to the given hostname and
+        port.  If connection hasn't succeeded after timeout seconds
+        call callback(self, False); otherwise, call callback(self, True).
+        """
+        self._timeout = ioloop.IOLoop.instance().add_timeout(time.time() + timeout, self._check_for_connection)
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._conn = iostream.IOStream(self._sock)
-        self._conn.connect((hostname, port), lambda: callback(self))
+        self._connected = False
+        self._callback = callback
+        self._conn.connect((hostname, port), self._on_connect)
+
+    def _check_for_connection(self):
+        if not self._connected:
+            print "FAILED CONNECTION!!"
+            self._callback(self, False)
+            self._conn.close()
+
+    def _on_connect(self):
+        print "Connected, removing timeout"
+        ioloop.IOLoop.instance().remove_timeout(self._timeout)
+        self._connected = True
+        self._callback(self, True)
 
     def send(self, mesg, callback=None):
         s = mesg.SerializeToString()
@@ -40,24 +61,27 @@ class NonblockingConnectionPB(object):
 class SageConnection(object):
     connections = set()
 
-    def __init__(self, hostname, port, mesg_callback, init_callback, log, **options):
+    def __init__(self, hostname, port, mesg_callback, init_callback, fail_callback, log, timeout, **options):
         self._options = options
         self._hostname = hostname
         self._port = port
         self._init_callback = init_callback
+        self._fail_callback = fail_callback
         self._mesg_callback = mesg_callback
         self._log = log
-        self._conn = NonblockingConnectionPB(hostname, port, self._start_session)
+        self._conn = NonblockingConnectionPB(hostname, port, callback=self._start_session, timeout=timeout)
 
     def __repr__(self):
         return "<SageConnection pid=%s %s:%s>"%(self._pid if hasattr(self, '_pid') else '?',
                                                   self._hostname, self._port)
 
     def send_signal(self, signal):
-        """Tell worker to send given signal to the process."""
+        """Tell Sage server to send given signal to the process."""
         if hasattr(self, '_pid') and self._pid:
-            NonblockingConnectionPB(self._hostname, self._port,
-                    lambda C: C.send(message.send_signal(self._pid, signal)))
+            def f(conn, success):
+                if success:
+                    conn.send(message.send_signal(self._pid, signal))
+            NonblockingConnectionPB(self._hostname, self._port, f)
         
     def _listen_for_messages(self):
         self._log.info("listen for messages: %s", self)
@@ -73,9 +97,12 @@ class SageConnection(object):
         if self._init_callback is not None:
             self._init_callback(self)
 
-    def _start_session(self, conn):
-        self._log.info("_start_session")
-        self._conn.send(message.start_session(**self._options), self._recv_pid)
+    def _start_session(self, conn, success):
+        self._log.info("_start_session: success=%s", success)
+        if not success:
+            self._fail_callback(self)
+        else:
+            self._conn.send(message.start_session(**self._options), self._recv_pid)
         
     def _recv_pid(self):
         self._log.info("_recv_pid")
@@ -98,7 +125,7 @@ class SageConnection(object):
             io = ioloop.IOLoop.instance()
             try:
                 io.remove_handler(self._conn._sock.fileno())
-            except KeyError:
+            except (KeyError, socket.error):
                 pass
         try:
             self.connections.remove(self)

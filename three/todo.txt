@@ -2,34 +2,32 @@ TODO
 -----
 
 NOW: 
-   [ ] rebrand to "salvus"
 
 SOON:
 
-   [ ] gracefully degrage if memcached dies
-   [ ] worker: "./config1 --restart=worker" doesn't work
-   [ ] backend: general project is to implement sending message to any
-       connected user, possibly connected to a different backend:
-       [ ] backend comm: move ports to database
-   [ ] worker: worker.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
-   [ ] worker/backend: range(10^4 ) *reliably* fails to get the final I/O terminate message through from backend to browser.
-   [ ] worker: specify backend workers by putting them in a config file, which the
-       backend monitors for changes (via file descriptor)
-   [ ] worker: when worker.py killed, it doesn't properly clean up the processes that it forked off.   
-   [ ] worker: max limit on number of simultaneous worker processes allowed by worker server
-   [ ] worker: sudo worker.py -- executing commands doesn't work at all on Linux
+   [ ] sage_server: "./config1 --restart=sage_server" doesn't work
+   [ ] tornado: general project is to implement sending message to any
+       connected user, possibly connected to a different tornado:
+       [ ] tornado comm: move ports to database
+   [ ] sage_server: sage_server.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
+   [ ] sage_server/tornado: range(10^4 ) *reliably* fails to get the final I/O terminate message through from tornado to browser.
+   [ ] sage_server: specify tornado sage_servers by putting them in a config file, which the
+       tornado monitors for changes (via file descriptor)
+   [ ] sage_server: when sage_server.py killed, it doesn't properly clean up the processes that it forked off.   
+   [ ] sage_server: max limit on number of simultaneous sage_server processes allowed by sage_server server
+   [ ] sage_server: sudo sage_server.py -- executing commands doesn't work at all on Linux
        (but does on OS X), so probably a resource issue?
 
-   [ ] backend: dropbox oauth: dropbox too 
+   [ ] tornado: dropbox oauth: dropbox too 
    [ ] haproxy: this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
              #daemon   -- commented out so I can just log to stdout 
    [ ] haproxy: two different haproxies at once (so either can be used if the other dies)
    [ ] logging: format for date part of every log message, so in
        database the time when log row was *record* could be set,
        instead of the time of insertion in DB.  
-   [ ] browser/worker/backend: interacts
-   [ ] browser/worker/backend: 2d graphics
-   [ ] backend/database: shortened url database
+   [ ] browser/sage_server/tornado: interacts
+   [ ] browser/sage_server/tornado: 2d graphics
+   [ ] tornado/database: shortened url database
    [ ] I didn't build openVPN with LZO, but I should so all network traffic is compressed, saving money.
    [ ] come up with deployment plan
    [ ] setup openVPN
@@ -41,8 +39,8 @@ VAGUE:
 
    [ ] sqlalchemy postgresql central DB server
         - do test: what is overhead of storing a BLOB of a git bundle?
-   [ ] scalability test: using worker.py, but running on a different VM
-   [ ] scalability test: test using backend.py(s), also running on different VM's
+   [ ] scalability test: using sage_server.py, but running on a different VM
+   [ ] scalability test: test using tornado.py(s), also running on different VM's
    [ ] think about how to separate my data into multiple database for scalability
    [ ] multiple haproxies for high availability:
     - do what stackoverflow does: heartbeat + haproxy: http://blog.stackoverflow.com/2010/01/stack-overflow-network-configuration/; http://www.linux-ha.org/wiki/Main_Page
@@ -55,39 +53,39 @@ VAGUE:
    [ ] move all certfile generation stuff to a single master control / launcher module
    [ ] startup time -- after fork even after importing sage -- is *very* slow.  Fix.
    [ ] make it so client knows port of server?
-   [ ] worker.py -- anti DOS measures (from users on own machine?)
+   [ ] sage_server.py -- anti DOS measures (from users on own machine?)
    [ ] configuration framework
-   [ ] rewrite reset_all_accounts/reset_account to use that worker.py is root.
-   [ ] log server going down is *fatal* to worker
+   [ ] rewrite reset_all_accounts/reset_account to use that sage_server.py is root.
+   [ ] log server going down is *fatal* to sage_server
 
 DONE:
-   [x] backend: decide on way for any backend to send a message to any connected
-       user, possibly connected to a different backend:
+   [x] tornado: decide on way for any tornado to send a message to any connected
+       user, possibly connected to a different tornado:
        Proposal 2 (accepted):
-         - backends will have token from database
+         - tornados will have token from database
          - add to ioloop listening on SSL+TCP socket (encrypted); only accept connection when given token
          - send ProtoBuf messages
          - connection terminated if no messages sent over it for t seconds
-         - *maybe* connections proxied through haproxy, so that backend is not actually on an external network.
+         - *maybe* connections proxied through haproxy, so that tornado is not actually on an external network.
            I don't know if using haproxy is needed or a good idea; it is a small detail in the implementation.
        Proposal 1 (rejected):
-         - backends will have access to a token they read from database, which they know but
-           not publicly available (since backends have to be able to get personal user data, 
+         - tornados will have access to a token they read from database, which they know but
+           not publicly available (since tornados have to be able to get personal user data, 
            the database must support this).
          - Add another url handler:  /message
             POST message with variables:
                  token: the token
                  message: the message, as a ProtoBuf -- the message format should have user id of recipient as part of message
          - haproxy will also map 
-                /backend[n]/... to the n-th backend.
-         - each backend has an id number (the n above)
-         - backend communication will go via stunnel, so is secure
+                /tornado[n]/... to the n-th tornado.
+         - each tornado has an id number (the n above)
+         - tornado communication will go via stunnel, so is secure
            outside of LAN, where it matters
          - messages might suggest pulling down static web content (e.g, describing an image), 
-           and url will be /backend[n]/static/[id].[ext]
+           and url will be /tornado[n]/static/[id].[ext]
          Thoughts: the above seems untenable because of the overhead in estabilishing a complete 
          HTTPS connection for every single message. 
-   [x] backend: find a way to move the code for "Persistent connections to workers" into another file (like
+   [x] tornado: find a way to move the code for "Persistent connections to sage_servers" into another file (like
        is done with "Authentication with Facebook, Google, and DropBox (TODO)")
    [x] yes, use a vpn???
          I'm thinking about how to structure services, define their location,
@@ -102,8 +100,8 @@ DONE:
          other node, while they are all still behind a layer of security (not directly
          on the web), etc. 
    [x] add openvpn to build.py -- easy to build on linux; not sure how yet on OS X!
-   [x] backend: postgresql async client for tornado -- needed to
-       implement backend socket communication (just a little), and
+   [x] tornado: postgresql async client for tornado -- needed to
+       implement tornado socket communication (just a little), and
        will be generally very important.   This is the canonical
        solution, but might be substantial work to implement with sqlalchemy
            https://gist.github.com/861193
@@ -115,8 +113,8 @@ DONE:
                momoko which officially supports using PostgreSQL + Tornado.
        This would explicitly tie us to PostgreSQL.
     
-    [x] backend communication system working with ports hardcoded and no encryption
-    [x] backend communication system with encryption
+    [x] tornado communication system working with ports hardcoded and no encryption
+    [x] tornado communication system with encryption
     [x] html: make "Thyme" name clear.
 
    [x] haproxy: put in a port 80 redirect to port 443
@@ -126,5 +124,8 @@ DONE:
    [x] admin: config1 --status should default to status=all.
    [x] admin: redo the very limited use of templates to use python standard library templates.
    [x] haproxy, etc.: clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf
-   [x] admin: rename "backend" to "tornado_server"/Tornado, worker to sage_server/Sage
-   [x] rename backend_worker to tornado_sage; rename backend_mesg to tornado_mesg
+   [x] admin: rename "backned" to "tornado_server"/Tornado, sage_server to sage_server/Sage
+   [x] rename backend_sage to tornado_sage; rename backend_mesg to tornado_mesg
+   [x] rebrand to "salvus"
+   [x] gracefully degrade when memcached dies: this is evidently 100% automatic by the client! WOW
+   [x] tornado: should degrade gracefully when sage server vanishes...

@@ -77,17 +77,17 @@ def connect(host, port):
     s.connect((host, port))
     return iostream.SSLIOStream(s)
 
-backend_connections = {}
-def connect_to_backend(host, port):
+tornado_connections = {}
+def connect_to_tornado(host, port):
     key = (host, port)
-    c = backend_connections.get(key, None)
+    c = tornado_connections.get(key, None)
     if c is not None:
         if c._socket.closed():
-            del backend_connections[key]
+            del tornado_connections[key]
         else:
             return c
     c = TornadoConnectionClient(host, port)
-    backend_connections[key] = c
+    tornado_connections[key] = c
     return c
 
 class TornadoConnectionClient(object):
