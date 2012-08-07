@@ -4,7 +4,6 @@ TODO
 NOW: 
 
 SOON:
-   [ ] admin: redo the very limited use of templates to use python standard library templates.
    [ ] worker: "./config1 --restart=worker" doesn't work
    [ ] backend: general project is to implement sending message to any
        connected user, possibly connected to a different backend:
@@ -122,3 +121,4 @@ DONE:
        XX but haproxy + nginx should be able to, but that is complicated.
        ---> we will in the long run have a canonical site name, so let's just make that work with a template.
    [x] admin: config1 --status should default to status=all.
+   [x] admin: redo the very limited use of templates to use python standard library templates.

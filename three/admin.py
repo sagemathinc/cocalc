@@ -9,6 +9,8 @@ Administration and Launch control of sagews components
 ####################
 import logging, os, shutil, signal, stat, subprocess, tempfile, time
 
+from string import Template
+
 ############################################################
 # Paths where data and configuration are stored
 ############################################################
@@ -370,10 +372,8 @@ class Nginx(Process):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
-        conf = open(os.path.join(CONF, nginx)).read()
-        # fill in template        
-        for k, v in [('LOGFILE', log), ('PIDFILE', pid), ('HTTP_PORT', str(port))]:
-            conf = conf.replace(k,v)
+        conf = Template(open(os.path.join(CONF, nginx)).read())
+        conf = conf.substitute(logfile=log, pidfile=pid, http_port=str(port))
         nginx_conf = 'nginx-%s.conf'%id
         account.writefile(filename=os.path.join(DATA, nginx_conf), content=conf)
         nginx_cmd = ['nginx', '-c', '../' + nginx_conf]
@@ -408,12 +408,10 @@ class Stunnel(Process):
 
     def _pre_start(self):
         stunnel = 'stunnel.conf'
-        conf = open(os.path.join(CONF, stunnel)).read()
-        # fill in template
-        for k, v in [('LOGFILE', self._logfile), ('PIDFILE', self._pidfile),
-                     ('ACCEPT_PORT', str(self._accept_port)),
-                     ('CONNECT_PORT', str(self._connect_port))]:
-            conf = conf.replace(k,v)
+        conf = Template(open(os.path.join(CONF, stunnel)).read())
+        conf = conf.substitute(logfile = self._logfile, pidfile = self._pidfile,
+                               accept_port = str(self._accept_port),
+                               connect_port = str(self._connect_port))
         self._account.writefile(filename=self._stunnel_conf, content=conf)
         
     def __repr__(self):
@@ -427,10 +425,7 @@ class HAproxy(Process):
         # sitename -- address such that https://sitename is our site.
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
-        conf = open(conf_file).read()
-        # fill in template        
-        for k, v in [('SITENAME', sitename)]:
-            conf = conf.replace(k,v)
+        conf = Template(open(conf_file).read()).substitute(sitename=sitename)
         haproxy_conf = 'haproxy-%s.conf'%id
         target_conf = os.path.join(DATA, haproxy_conf)
         account.writefile(filename=target_conf, content=conf)
