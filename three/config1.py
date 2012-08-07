@@ -43,6 +43,7 @@ all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,
 ALL = ','.join(all.keys())
 
 def action(c, what):
+    if c=='none': return
     print '%s %s:'%(what, c)
     c = c.strip()
     if not c: return
@@ -54,19 +55,19 @@ def action(c, what):
 if __name__ == "__main__":
 
     import argparse
-    parser = argparse.ArgumentParser(description="Launch a simple testing sagews setup, where everything runs locally on one server as the same user.")
+    parser = argparse.ArgumentParser(description="Control the thyme setup, where everything runs locally on one server as the same user.   Use '--status=' with nothing after '=' to get status of all processes, and similarly for start, stop, restart.")
 
     parser.add_argument("--init", dest='init', default=False, action="store_const", const=True,
                         help="initialize for first usage")
 
-    parser.add_argument("--start", dest='start', type=str, default='',
-                        help="start comma separated list of components (or 'all'='%s')"%ALL)
+    parser.add_argument("--start", dest='start', type=str, default='none',
+                        help="start comma separated list of components (or 'all'='%s')"%(ALL.replace(',',', ')))
 
-    parser.add_argument("--stop", dest='stop', type=str, default='', help="stop given components")
+    parser.add_argument("--stop", dest='stop', type=str, default='none', help="stop given components")
     
-    parser.add_argument("--status", dest='status', type=str, default='all', help="status of given components")
+    parser.add_argument("--status", dest='status', type=str, default='none', help="status of given components")
 
-    parser.add_argument("--restart", dest='restart', type=str, default='', help="restart given components")
+    parser.add_argument("--restart", dest='restart', type=str, default='none', help="restart given components")
     
     args = parser.parse_args()
 
@@ -76,13 +77,13 @@ if __name__ == "__main__":
             p.createdb('sagews')
         sys.exit(0)
 
-    if args.start == 'all':
+    if args.start in ['all', '']:
         args.start = ALL
-    if args.stop == 'all':
+    if args.stop in ['all', '']:
         args.stop = ALL
-    if args.status == 'all':
+    if args.status in ['all','']:
         args.status = ALL
-    if args.restart == 'all':
+    if args.restart in ['all', '']:
         args.restart = ALL
         
     for c in args.start.split(','):
