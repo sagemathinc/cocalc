@@ -2,6 +2,10 @@ TODO
 -----
 
 NOW: 
+   [ ] delete thyme gmail account (see msecure)
+   [ ] create salvusmath gmail account
+   [ ] change github repo to be called salvus (instead of sagews)
+   [ ] move "three/" to "salvus/". 
 
 SOON:
 
@@ -134,3 +138,15 @@ DONE:
    [x] rebrand to "salvus"
    [x] gracefully degrade when memcached dies: this is evidently 100% automatic by the client! WOW
    [x] tornado: should degrade gracefully when sage server vanishes...
+   [x] obtain an SSL certificate for https://salvusmath.com
+         https://wiki.cac.washington.edu/display/infra/UW+Certificate+Services
+       * Don't use UW's because their FAQ says: "Will all UW web servers
+         eventually get certs from the UW Services CA?  No, not at
+         all. Even when the UW Services CA expands its scope there
+         will be many cases where it is still appropriate for a web
+         server to use a certificate from a commercial CA. For
+         example, if a web server has many users from outside the UW
+         it will probably want to use a commercial CA certificate."
+       * Good instructions: http://clearcove.ca/2010/11/how-to-secure-a-rails-app-on-heroku-with-ssl-firesheep/
+       * Googling "godaddy ssl" really does provide a $12.99 deal for a year certificate!
+
