@@ -562,39 +562,39 @@ class Memcached(Process):
             
 
 ####################
-# Backend
+# Tornado
 ####################
-class Backend(Process):
+class Tornado(Process):
     def __init__(self, account, id, port, log_database=None, debug=False):
         self._port = port
-        pidfile = os.path.join(PIDS, 'backend-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'backend-%s.log'%id)
+        pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
         extra = []
         if debug:
             extra.append('-g')
         Process.__init__(self, account, id, pidfile = pidfile,
                          logfile = logfile, log_database=log_database,
-                         start_cmd = ['./backend.py', '-d', '-p', port,
+                         start_cmd = ['./tornado_server.py', '-d', '-p', port,
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
-        return "Backend %s at %s on port %s"%(self.id(), self._account, self._port)
+        return "Tornado server %s at %s on port %s"%(self.id(), self._account, self._port)
 
 ####################
-# Worker
+# Sage
 ####################
 
-class Worker(Process):
+class Sage(Process):
     def __init__(self, account, id, port, log_database=None, debug=True):
         self._port = port
-        pidfile = os.path.join(PIDS, 'worker-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'worker-%s.log'%id)
+        pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'sage-%s.log'%id)
         Process.__init__(self, account, id, pidfile    = pidfile,
                          logfile = logfile, log_database=log_database, 
-                         start_cmd  = ['sage', '--python', 'worker.py', '-p', port,
+                         start_cmd  = ['sage', '--python', 'sage_server.py', '-p', port,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
                          start_using_system = True,  # since daemon mode currently broken
-                         service = ('worker', account, port))
+                         service = ('sage', account, port))
 
 
     def port(self):

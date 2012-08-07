@@ -1,6 +1,6 @@
 """
-backend_mesg -- tornadoweb async SSL encrypted TCP communication
-between backends using protobufs
+tornado_mesg -- tornadoweb async SSL encrypted TCP communication
+                between tornado servers using protobufs
 """
 
 import datetime, errno, ssl, socket, struct, time   # system libraries
@@ -20,7 +20,7 @@ def listen(port):
 
 # openssl req -batch -new -x509 -newkey rsa:2048 -days 9999 -nodes -keyout cakey.pem -out cacert.pem 
 
-class BackendConnectionServer(object):
+class TornadoConnectionServer(object):
     def __init__(self, port, message_handler, certfile, keyfile, idle_timeout=30):
         self._idle_timeout = idle_timeout # in seconds
         self._socket = listen(port)
@@ -86,11 +86,11 @@ def connect_to_backend(host, port):
             del backend_connections[key]
         else:
             return c
-    c = BackendConnectionClient(host, port)
+    c = TornadoConnectionClient(host, port)
     backend_connections[key] = c
     return c
 
-class BackendConnectionClient(object):
+class TornadoConnectionClient(object):
     def __init__(self, host, port):
         self._socket = connect(host, port)
     def send(self, mesg, callback=None):

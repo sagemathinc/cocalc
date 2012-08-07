@@ -3,7 +3,7 @@
 import sys
 
 from admin import (Account, Component, whoami,
-                   HAproxy, Nginx, PostgreSQL, Memcached, Backend, Worker, Stunnel)
+                   HAproxy, Nginx, PostgreSQL, Memcached, Tornado, Sage, Stunnel)
 
 # this is for local testing/development; for deployment sitename="codethyme.com"
 from misc import local_ip_address
@@ -34,7 +34,7 @@ nginx      = Component('nginx', [Nginx(local_user, 0, port=8080, log_database=lo
 
 stunnel    = Component('stunnel', [Stunnel(root_user, 0, accept_port=443, connect_port=8000, log_database=log_database)])
 
-backend    = Component('backend', [Backend(local_user, i, 5000+i, log_database=log_database) for i in range(3)])
+tornado    = Component('tornado', [Tornado(local_user, i, 5000+i, log_database=log_database) for i in range(3)])
 
 haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, insecure_redirect_port=80,
                                            accept_proxy_port=8000,  # same as connect_port of stunnel 
@@ -46,10 +46,10 @@ haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, inse
 
 memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
 
-worker     = Component('worker', [Worker(local_user, 0, 6000, log_database=log_database)])
+sage     = Component('sage', [Sage(local_user, 0, 6000, log_database=log_database)])
 
 all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,
-       'memcached':memcached, 'backend':backend, 'worker':worker,
+       'memcached':memcached, 'tornado':tornado, 'sage':sage,
        'stunnel':stunnel}
 
 ALL = ','.join(all.keys())
@@ -63,6 +63,7 @@ def action(c, what):
         print "no component '%s'"%c
         sys.exit(1)
     print ' '*10 + str(getattr(all[c], what)())
+    print
 
 if __name__ == "__main__":
 

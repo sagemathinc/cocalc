@@ -37,7 +37,7 @@ class NonblockingConnectionPB(object):
         read_length()
     
 
-class WorkerConnection(object):
+class SageConnection(object):
     connections = set()
 
     def __init__(self, hostname, port, mesg_callback, init_callback, log, **options):
@@ -50,7 +50,7 @@ class WorkerConnection(object):
         self._conn = NonblockingConnectionPB(hostname, port, self._start_session)
 
     def __repr__(self):
-        return "<WorkerConnection pid=%s %s:%s>"%(self._pid if hasattr(self, '_pid') else '?',
+        return "<SageConnection pid=%s %s:%s>"%(self._pid if hasattr(self, '_pid') else '?',
                                                   self._hostname, self._port)
 
     def send_signal(self, signal):

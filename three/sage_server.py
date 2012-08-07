@@ -1,7 +1,23 @@
 #!/usr/bin/env python
 """
-Worker server
+Sage server -- unencrypted forking TCP server that can run as root,
+               create accounts on the fly, and serve sage as those
+               accounts, using protobuf messages.
 """
+
+# This is the one file that must be GPL'd because it imports the Sage library.
+# This file is not directly imported by anything else; the Python process it
+# runs is used over a TCP connection.  So nothing viral here. 
+
+########################################################################################
+#       Copyright (C) 2012 William Stein <wstein@gmail.com>
+#
+#  Distributed under the terms of the GNU General Public License (GPL), version 2+
+#
+#                  http://www.gnu.org/licenses/
+#########################################################################################
+
+
 import json, logging, os, resource, shutil, signal, socket, struct, sys, \
        tempfile, threading, time, traceback
 
@@ -9,7 +25,7 @@ import parsing
 
 # configure logging
 logging.basicConfig()
-log = logging.getLogger('worker')
+log = logging.getLogger('sage_server')
 log.setLevel(logging.INFO)
 
 # Google protocol buffers wrapper around a connection
@@ -125,7 +141,7 @@ def client1(port, hostname):
             id += 1
 
     conn.send(message.terminate_session())
-    print "\nExiting Sage worker client."
+    print "\nExiting Sage client."
 
 class OutputStream(object):
     def __init__(self, f, flush_size=4096, flush_interval=.1):
@@ -358,11 +374,11 @@ def serve(port, whitelist):
     finally:
         if pid: # parent
             kill_timer.cancel()
-            connections = {}  # triggers garbage collection, kills all outstanding workers and cleans up
+            connections = {}  # triggers garbage collection, kills all outstanding sage servers and cleans up
             log.info("closing socket")
             s.shutdown(0)
             s.close()
-            log.info("waiting for forked subprocesses to terminate")
+            log.info("waiting for forked Sage servers to terminate")
             try:
                 os.wait()
             except OSError:
@@ -383,7 +399,7 @@ def run_server(port, pidfile, logfile, whitelist):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run worker server")
+    parser = argparse.ArgumentParser(description="Run Sage server")
     parser.add_argument("-p", dest="port", type=int, default=0,
                         help="port to listen on (default: 0 = determined by operating system)")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',

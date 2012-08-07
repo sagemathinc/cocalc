@@ -5,6 +5,7 @@ NOW:
 
 SOON:
 
+   [ ] gracefully degrage if memcached dies
    [ ] worker: "./config1 --restart=worker" doesn't work
    [ ] backend: general project is to implement sending message to any
        connected user, possibly connected to a different backend:
@@ -124,3 +125,5 @@ DONE:
    [x] admin: config1 --status should default to status=all.
    [x] admin: redo the very limited use of templates to use python standard library templates.
    [x] haproxy, etc.: clean up specification of ports, especially for haproxy -- should be part of Process creation, not a file -- template the conf
+   [x] admin: rename "backend" to "tornado_server"/Tornado, worker to sage_server/Sage
+   [x] rename backend_worker to tornado_sage; rename backend_mesg to tornado_mesg

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Backend server
+Tornado server
 
     - user authentication: Facebook, Google, Dropbox
 
@@ -13,6 +13,9 @@ Backend server
     - connections to other backends speaking protocol buffers over a
       secure SSL encrypted TCP socket
 
+    - almost static templated content, e.g., anything that needs to be
+      translated to other languages (not javascript, but things like
+      help pages)
 """
 
 import json, logging, os, socket, sys, time
@@ -35,12 +38,12 @@ from auth import BaseHandler, GoogleLoginHandler, FacebookLoginHandler, LogoutHa
 ###########################################
 # Encrypted connections for backends to send messages to each other
 ###########################################
-from backend_mesg import BackendConnectionServer, connect_to_backend
+from tornado_mesg import TornadoConnectionServer, connect_to_backend
 
 def handle_backend_mesg(mesg):
     log.info("received backend message '%s'", mesg)
 
-class TestBackendMesgHandler(BaseHandler):
+class TestTornadoMesgHandler(BaseHandler):
     def get(self):
         log.info("testing backend mesg system")
         t = time.time()
@@ -54,7 +57,7 @@ class TestBackendMesgHandler(BaseHandler):
 # Async Connections to workers
 ###########################################
 
-from backend_worker import WorkerConnection, message, mesg_pb2
+from tornado_sage import SageConnection, message, mesg_pb2
 
 message_types_json = json.dumps(dict([(name, val.number) for name, val in mesg_pb2._MESSAGE_TYPE.values_by_name.iteritems()]))
 class MessageTypesHandler(BaseHandler):
@@ -156,8 +159,8 @@ class StatelessExecution(object):
             self._worker_conn = None
             
     def _start(self):
-        log.info("making WorkerConnection...")
-        self._worker_conn = WorkerConnection(self._host, self._port,
+        log.info("making SageConnection...")
+        self._worker_conn = SageConnection(self._host, self._port,
             mesg_callback=self._handle_mesg, init_callback=self._send_code, log=log, **self._options)
 
     def _send_code(self, worker_conn):
@@ -191,8 +194,8 @@ class StatefulExecution(object):
         def f(*args):
             print "callback!!!!!!!!!!!!!!!"
             self._is_connected = True
-        log.info("StatefulExecution: making WorkerConnection...")            
-        self._worker_conn = WorkerConnection(self._host, self._port, mesg_callback=self._handle_mesg,
+        log.info("StatefulExecution: making SageConnection...")            
+        self._worker_conn = SageConnection(self._host, self._port, mesg_callback=self._handle_mesg,
                         init_callback=f, log=log, **options)
 
 
@@ -230,7 +233,7 @@ class StatefulExecution(object):
 class IndexHandler(BaseHandler):
     def get(self):
         log.info("connection from %s", self.current_user)
-        self.write("Backend sagews Server on Port %s"%args.port)
+        self.write("Tornado sagews Server on Port %s"%args.port)
 
 class AliveHandler(BaseHandler):
     def options(self):
@@ -253,7 +256,7 @@ def run_server(base, port, debug, pidfile, logfile):
                     ("/backend/auth/logout", LogoutHandler), ("/backend/auth/username", UsernameHandler)]
         if debug:
             # It may be dangerous to export these handlers, so only do it in debug mode!
-            handlers.append(("/test_backend_mesg", TestBackendMesgHandler))
+            handlers.append(("/test_backend_mesg", TestTornadoMesgHandler))
         secrets = eval(open(os.path.join(base, "data/secrets/tornado.conf")).read())
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
@@ -262,7 +265,7 @@ def run_server(base, port, debug, pidfile, logfile):
         log.info("accepting SSL/TCP connections on port %s"%tcp_port)
         certfile = 'data/secrets/server.crt' # TODO
         keyfile = 'data/secrets/server.key'  # TODO
-        backend_connection_server = BackendConnectionServer(tcp_port, handle_backend_mesg,
+        tornado_connection_server = TornadoConnectionServer(tcp_port, handle_backend_mesg,
                                                             certfile, keyfile) 
         ioloop.IOLoop.instance().start()
     finally:

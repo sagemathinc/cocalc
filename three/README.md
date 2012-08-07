@@ -49,12 +49,6 @@ On Linux, building memcached from source requires me to first do:
 
   apt-get install libsasl2-dev libevent1-dev  
 
-Used as a separate process (no library linking)
------------------------------------------------
-
-   * Git -- http://git-scm.com/; GPL v2
-   * Sage -- http://sagemath.org/; GPL v3+
-  
 Database
 --------
 
@@ -63,33 +57,26 @@ Database
    * Tornado + postgresql -- https://gist.github.com/861193 ?
    * openVPN
 
+Used as a separate process (no library linking)
+-----------------------------------------------
+
+   * Git -- http://git-scm.com/; GPL v2
+   * Sage -- http://sagemath.org/; GPL v3+;  this is linked by sage_server.py, which thus must be GPL'd
+  
+
 ARCHITECTURE
 ------------
 
-  * VPN -- tie together remote sites; openVPN
-
-  * Client -- Javascript library that runs in any modern web browser
-     - Write very simple ugly version that is fully functional.
-
-  * Load Balancer -- HAProxy
-     - Learn how to deploy it and write config script.
-     - Example config script on some SockJS site.
-
-  * Database -- PostgreSQL + Memcached + SSL
-
-  * Worker -- forking SSL socket server + Sage + JSON
-     - Rewrite pulling code from backend.py in order to make this
-       into a single integrated component with a straightforward API.
-
-  * Backend -- HTTPS SockJS server; "create workspace" into DB queries; connect to worker
-     - Rewrite what I have to use SockJS (remove socket.io)
-
-  * Static HTTP server -- simple nginx (no ssl)
-     - Configuration so my static/ directory served using nginx.
-     - Ability to serve static/ content created via statically publishing workspaces
-
-  * Log server -- SSL socket server + database writer + Python logging
-     - update to use PostgreSQL database
+  * openVPN -- connect all computers at all sites into one unified
+               network address space with secure communication
+  * Browers -- Javascript client library that runs in web browser
+  * HAProxy load balancer 
+  * PostgreSQL database
+  * Memcached server -- to cache results, database access, etc.
+  * Sage server -- forking SSL socket server + Sage + JSON
+  * Tornado server -- HTTPS SockJS server; connect to sage server
+  * Nginx static HTTP server
+  * Log watchers -- lightweight process; periodically moves contents of logfiles to database
 
 
 Diagram
@@ -102,17 +89,20 @@ Diagram
       |
       |
      \|/ https://sagews.com
- Load Balancer                        [+Failover Load Balancer(s)]    (HAProxy)  
+ HAProxy Load Balancers                      
  /|\       /|\      /|\      /|\
-  |         |        |        |                                                   [Offsite Backups]
+  |         |        |        |                                                    (Backups)
   |https1.1 |        |        |                                     
- \|/       \|/      \|/      \|/                                    [Memcached] 
-Backend  Backend  Backend  Backend    <--------------------------->  [Database]   [+Slave DB Server(s)]
+ \|/       \|/      \|/      \|/                                      Memcached
+Tornado  Tornado  Tornado  Tornado    <--------------------------->   PostgreSQL   (+Slave PostgreSQL)
            /|\      /|\                                                  /|\
             |        |        ------------------------------------------> |
    ---------|        |        |                                          \|/
-   |                 |----------------------------------------------->  [Log]     [+Failover Log Server(s)]
+   |                 |-----------------------------------------------> Log Processes
    |                          |
   \|/                        \|/
-Worker   Worker    Worker   Worker
+ SageServer   SageServer  SageServer   SageServer
+
+
+     Dropbox     GoogleDrive       (User-published content)
 </pre>
