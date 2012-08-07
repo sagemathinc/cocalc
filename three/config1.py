@@ -3,7 +3,11 @@
 import sys
 
 from admin import (Account, Component, whoami,
-                   HAproxy8000, Nginx, PostgreSQL, Memcached, Backend, Worker, Stunnel)
+                   HAproxy, Nginx, PostgreSQL, Memcached, Backend, Worker, Stunnel)
+
+# this is for local testing/development; for deployment sitename="codethyme.com"
+from misc import local_ip_address
+sitename = local_ip_address()
 
 ####################
 # A configuration
@@ -23,10 +27,9 @@ postgresql[0].createdb('conf')
 # static web server
 nginx      = Component('nginx', [Nginx(local_user, 0, log_database=log_database)])
 
-#stunnel    = Component('stunnel', [Stunnel(local_user, 0, accept_port=8443, connect_port=8000, log_database=log_database)])
 stunnel    = Component('stunnel', [Stunnel(root_user, 0, accept_port=443, connect_port=8000, log_database=log_database)])
 
-haproxy    = Component('haproxy', [HAproxy8000(local_user, 0, log_database=log_database)])
+haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, log_database=log_database)])
 memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
 
 backend    = Component('backend', [Backend(local_user, i, 5000+i, log_database=log_database) for i in range(3)])

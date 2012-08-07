@@ -423,28 +423,25 @@ class Stunnel(Process):
 # HAproxy
 ####################
 class HAproxy(Process):
-    def __init__(self, account, id, log_database=None):
+    def __init__(self, account, id, sitename, log_database=None, conf_file='conf/haproxy.conf'):
+        # sitename -- address such that https://sitename is our site.
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
+        conf = open(conf_file).read()
+        # fill in template        
+        for k, v in [('SITENAME', sitename)]:
+            conf = conf.replace(k,v)
+        haproxy_conf = 'haproxy-%s.conf'%id
+        target_conf = os.path.join(DATA, haproxy_conf)
+        account.writefile(filename=target_conf, content=conf)
         Process.__init__(self, account, id, pidfile = pidfile,
                          logfile = logfile, log_database = log_database,
                          start_using_system = True, 
-                         start_cmd = ['HAPROXY_LOGFILE='+logfile, 'haproxy', '-D', '-f', 'conf/haproxy.conf', '-p', pidfile])
+                         start_cmd = ['HAPROXY_LOGFILE='+logfile, 'haproxy', '-D', '-f', target_conf, '-p', pidfile])
         
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])
 
-class HAproxy8000(Process):
-    def __init__(self, account, id, log_database=None):
-        pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
-        Process.__init__(self, account, id, pidfile = pidfile,
-                         logfile = logfile, log_database = log_database,
-                         start_using_system = True, 
-                         start_cmd = ['HAPROXY_LOGFILE='+logfile, 'haproxy', '-D', '-f', 'conf/haproxy8000.conf', '-p', pidfile])
-        
-    def _parse_pidfile(self, contents):
-        return int(contents.splitlines()[0])
 
 ####################
 # PostgreSQL Database

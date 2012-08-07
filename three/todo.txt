@@ -2,9 +2,10 @@ TODO
 -----
 
 NOW: 
+
 SOON:
-   [ ] haproxy+nginx: put in a port 80 redirect to port 443
    [ ] admin: config1 --status should default to status=all.
+   [ ] admin: redo the very limited use of templates to use python standard library templates.
    [ ] worker: "./config1 --restart=worker" doesn't work
    [ ] backend: general project is to implement sending message to any
        connected user, possibly connected to a different backend:
@@ -115,5 +116,9 @@ DONE:
     
     [x] backend communication system working with ports hardcoded and no encryption
     [x] backend communication system with encryption
-   [x] html: make "Thyme" name clear.
+    [x] html: make "Thyme" name clear.
 
+   [x] haproxy: put in a port 80 redirect to port 443
+       XX sadly, haproxy alone *can't* do this -- http://www.mentby.com/Group/haproxy/http-https-redirects.html
+       XX but haproxy + nginx should be able to, but that is complicated.
+       ---> we will in the long run have a canonical site name, so let's just make that work with a template.

@@ -107,3 +107,19 @@ def is_running(pid):
     except:
         return False
 
+
+##########################################################################
+# Misc misc network stuff
+##########################################################################
+
+def local_ip_address():
+    """
+    Return the ip address of the local network interface that is used
+    to communicate with the internet.
+    """
+    # See http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+    # Obviously, this requires internet access.
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8",80))
+    return s.getsockname()[0]
