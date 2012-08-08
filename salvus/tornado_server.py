@@ -82,12 +82,14 @@ class MemCache(object):
          but reading is done synchronously by default, though
          get_async is also supported.
     """
-    def __init__(self):
+    def __init__(self, namespace):
         self._cache = memcache.Client(MEMCACHE_SERVERS)
         self._async_cache = tornadoasyncmemcache.ClientPool(MEMCACHE_SERVERS, maxclients=256)
+        self._ram_cache = {}
+        self._namespace = namespace
         
     def key(self, key):
-        return str(hash(key))
+        return self._namespace + '.' + str(hash(key))
 
     def get_async(self, key, callback=None):
         # async get: result=self[key], then call the callback with result or
@@ -110,7 +112,7 @@ class MemCache(object):
         key = key.strip()
         self._async_cache.set(self.key(key), (key, result), callback=lambda data:None)
 
-stateless_execution_cache = MemCache()     # cache results of stateless execution.
+stateless_execution_cache = MemCache('stateless')
 
 ###########################################
 # persistent connections to browsers (sockjs)

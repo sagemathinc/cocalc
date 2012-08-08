@@ -3,6 +3,9 @@ TODO
 
 NOW: 
 
+
+
+
 [ ] "monitor": database
      [x] rename logwatch.py to monitor.py
      [x] change docs to indicate what monitor.py does
@@ -33,7 +36,8 @@ status:
   - virtual_size -- integer
   - resident_size -- integer
 
-     [ ] change to use -- options since - options are too short
+     [x] monitor: change to use -- options since - options are too short
+
      [ ] add address command line option to monitor.py, which gives
          the address and port that the service listens on: 
            "--address 10.7.1.5 --port 6000 --site padelford".  This will get entered into the
@@ -58,12 +62,8 @@ status:
          database, i.e., something like capped collection via a delete call: calls db.cap_table somehow...
 
 
-     [ ] decide on what computers to buy...
 
 SOON:
-
-   [ ] need to use namespace for my use of memcached in tornado_server.py
-   [ ] add in-process ram cache to tornado_server that I check first
 
 
    [ ] fix this, which is caused by postgresql[0].createdb('monitor') in config1.py:
@@ -109,6 +109,7 @@ SOON:
    [ ] come up with deployment plan
    [ ] setup openVPN
    [ ] admin: make default admin import less verbose
+     [ ] decide on what computers to buy...
 
 VAGUE:
 
@@ -237,3 +238,6 @@ DONE:
    [x] switch to using tornado-memcache client in tornado_server.py
    [x] Salvus favicon
    [x] salv.us certificate
+   [x] need to use namespace for my use of memcached in tornado_server.py
+   [x] decided not to add in-process ram cache to tornado_server that I check first, since this could easily lead to using up all available RAM if not implemented sensibly, and doing this sensibly is really complicated.
+           
