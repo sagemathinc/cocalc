@@ -10,8 +10,7 @@ NOW:
            "SQLalchemy description of database server, e.g., postgresql://user@hostname:port/dbname"
      [x] instead of putting the log in "log" database, put it in log table in monitor database
      [x] add cap_table function in db.py, which deletes all but most recent entries from a table
-     [x] code to define new table schemas:
-
+     [x] code to define new monitoring table schemas:
 services:
   - id - unique sequential integer
   - type - string: one of 'nginx', 'haproxy', 'sage', 'tornado', 'stunnel', 'openvpn', 'memcached', 'postgresql'

@@ -299,8 +299,9 @@ class Process(object):
 
     def _start_monitor(self):
         if self._log_database and self._logfile:
-            self._account.run(['./monitor.py', '-l', self._logfile, '-d', self._log_database,
-                               '-p', self._log_pidfile, '-t', LOG_INTERVAL, '-w', self._pidfile])
+            self._account.run(['./monitor.py', '--logfile', self._logfile, '--database', self._log_database,
+                               '--pidfile', self._log_pidfile, '--interval', LOG_INTERVAL,
+                               '--watched_pidfile', self._pidfile])
 
     def log_pid(self):
         return self._read_pid(self._log_pidfile)

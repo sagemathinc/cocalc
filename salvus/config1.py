@@ -14,7 +14,7 @@ sitename = 'salv.us'
 # A configuration
 ####################
 
-local_user = Account(username=whoami, hostname='localhost')
+local_user = Account(username='wstein', hostname='localhost')
 root_user = Account(username='root', hostname='localhost')
 
 # Database configuration
