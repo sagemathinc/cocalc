@@ -21,6 +21,44 @@ def mtime(file):
 def create_log_table(cur):
     cur.execute("CREATE TABLE log (id serial PRIMARY KEY, logfile varchar, time timestamp, message varchar)")
 
+def create_services_table(cur):
+    cur.execute("""
+CREATE TABLE services (
+    id serial PRIMARY KEY,
+    type varchar,
+    site varchar,
+    address varchar,
+    port integer,
+    running boolean,
+    username varchar,
+    pid integer,
+    monitor_pid integer)
+""")    
+
+def create_status_table(cur):
+    cur.execute("""
+CREATE TABLE status (
+    id integer,
+    time timestamp,
+    load integer,
+    percent_mem float,
+    percent_cpu float,
+    cputime float,
+    walltime float,
+    virtmem_size integer,
+    resmem_size integer,
+    PRIMARY KEY(id, time))
+""")
+
+
+def register_service(database):
+    if not table_exists(cur, 'services'):
+        create_services_table(cur)
+
+def update_status(database):
+    if not table_exists(cur, 'status'):
+        create_status_table(cur)
+
 lastmod = None
 def send_log_to_database(database, logfile, filename):
     global lastmod

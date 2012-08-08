@@ -10,8 +10,7 @@ NOW:
            "SQLalchemy description of database server, e.g., postgresql://user@hostname:port/dbname"
      [x] instead of putting the log in "log" database, put it in log table in monitor database
      [x] add cap_table function in db.py, which deletes all but most recent entries from a table
-
-     [ ] new table schemas:
+     [x] code to define new table schemas:
 
 services:
   - id - unique sequential integer
@@ -60,8 +59,13 @@ status:
          database, i.e., something like capped collection via a delete call: calls db.cap_table somehow...
 
 
+     [ ] decide on what computers to buy...
 
 SOON:
+
+   [ ] need to use namespace for my use of memcached in tornado_server.py
+   [ ] add in-process ram cache to tornado_server that I check first
+
 
    [ ] fix this, which is caused by postgresql[0].createdb('monitor') in config1.py:
  8787 | postgresql-0.log | 2012-08-08 11:18:05.854365 | STATEMENT:  CREATE DATABASE monitor;
