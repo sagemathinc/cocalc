@@ -44,7 +44,10 @@ haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, inse
                                            tornado_servers=[{'ip':'127.0.0.1', 'port':(5000+n), 'maxconn':10000} for n in [0,1,2]]
                                            )])
 
-memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database)])
+memcached  = Component('memcached', [Memcached(local_user, 0, log_database=log_database,
+                                               m=512,   # max memory to use for items in megabytes
+                                               c=8192,  # max simultaneous connections
+                                               )])
 
 sage     = Component('sage', [Sage(local_user, 0, 6000, log_database=log_database)])
 
