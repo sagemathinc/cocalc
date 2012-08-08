@@ -2,8 +2,6 @@ TODO
 -----
 
 NOW: 
-   [ ] move "three/" to "salvus/". 
-
 SOON:
 
    [ ] database: when any component is started, entry is made in database
@@ -150,3 +148,5 @@ DONE:
    [x] delete thyme gmail account (see msecure)
    [x] create salvusmath gmail account
    [x] change github repo to be called salvus (instead of sagews)
+   [x] massive renames and moves
+
