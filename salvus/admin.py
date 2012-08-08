@@ -297,15 +297,15 @@ class Process(object):
     def is_running(self):
         return len(self.status()) > 0
 
-    def _start_logwatch(self):
+    def _start_monitor(self):
         if self._log_database and self._logfile:
-            self._account.run(['./logwatch.py', '-l', self._logfile, '-d', self._log_database,
+            self._account.run(['./monitor.py', '-l', self._logfile, '-d', self._log_database,
                                '-p', self._log_pidfile, '-t', LOG_INTERVAL, '-w', self._pidfile])
 
     def log_pid(self):
         return self._read_pid(self._log_pidfile)
 
-    def _stop_logwatch(self):
+    def _stop_monitor(self):
         if self._log_database and self._logfile and self._account.path_exists(self._log_pidfile):
             try:
                 self._account.kill(self.log_pid())
@@ -325,10 +325,10 @@ class Process(object):
                 print self._account.system(self._start_cmd)
             else:
                 print self._account.run(self._start_cmd)
-        print self._start_logwatch()
+        print self._start_monitor()
         
     def stop(self):
-        self._stop_logwatch()
+        self._stop_monitor()
         if self.pid() is None: return
         if self._stop_cmd is not None:
             print self._account.run(self._stop_cmd)
@@ -341,7 +341,7 @@ class Process(object):
         self._pids = {}
 
     def reload(self):
-        self._stop_logwatch()
+        self._stop_monitor()
         self._pids = {}
         if self._reload_cmd is not None:
             return self._account.run(self._reload_cmd)
@@ -353,7 +353,7 @@ class Process(object):
         if not pid: return {}
         s = process_status(pid, local_user.run if self._account._hostname=='localhost' else self._account.run)
         if not s:
-            self._stop_logwatch()
+            self._stop_monitor()
             self._pids = {}
             if self._account.path_exists(self._pidfile):
                 self._account.unlink(self._pidfile)

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """
-
 Copyright (c) William Stein, 2012.  Not open source or free. Will be
 assigned to University of Washington.
 """
@@ -90,14 +89,14 @@ def main(logfile, pidfile, watched_pidfile, timeout, database):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Log watcher check on the logfile every to t seconds to see if it changes.  If so, it ships off the contents to the database, and on successful DB commit empties the file.  This is subject to race conditions that could result in a small amount of lost or corrupted data, but the simplicity of implementing this for all clients makes it worth it.")
+    parser = argparse.ArgumentParser(description="Monitor checks on the logfile every to t seconds to see if it changes, and when it does sends contents to the database, and on successful DB commit empties the file (this is subject to race conditions that could result in a small amount of lost or corrupted data, but the simplicity of implementing this for all clients makes it worth it, especially because the data isn't that important).   The monitor also put an entry in the services table, puts regular status updates in the status table, and these updates are memcached.")
 
     parser.add_argument("-g", dest='debug', default=False, action="store_const", const=True,
                         help="debug mode (default: False)")
     parser.add_argument("-l", dest='logfile', type=str, required=True,
                         help="when this file changes it is sent to the database server")
     parser.add_argument("-d", dest="database", type=str, required=True,
-                        help="SQLalchemy description of database server, e.g., postgresql://user@hostname:port/dbname")
+                        help="database server, e.g., dbname=log")
     parser.add_argument("-p", dest="pidfile", type=str, required=True,
                         help="PID file of this daemon process")
     parser.add_argument("-t", dest="timeout", type=int, default=60,  

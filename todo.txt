@@ -3,14 +3,14 @@ TODO
 
 NOW: 
 
-VERY SOON:
-
 [ ] "monitor": database
-     [ ] rename logwatch.py to monitor.py
-     [ ] change docs to indicate what monitor.py does
-     [ ] fix this doc, which must be wrong since we don't use sqlalchemy anymore:
+     [x] rename logwatch.py to monitor.py
+     [x] change docs to indicate what monitor.py does
+     [x] fix this doc, which must be wrong since we don't use sqlalchemy anymore:
            "SQLalchemy description of database server, e.g., postgresql://user@hostname:port/dbname"
-     [ ] instead of putting the log in "log" database, put it in log table in monitor database
+     [x] instead of putting the log in "log" database, put it in log table in monitor database
+     [ ] add support to admin.py to clean out old entries from the
+         database, i.e., something like capped collection via a delete call
      [ ] new table schemas:
 
 services:
@@ -48,15 +48,19 @@ status:
      [ ] add support to admin.py to easily query the database:
            - list of running processes and last status
            - status of lifetime of process
-     [ ] add support to admin.py to clean out old entries from the
-         database, i.e., something like capped collection via a delete call
      [ ] create query that will be used by backend to determine which
          sage_server to use, and use that -- might choose based on
          lowest load, etc.
      [ ] create query that will be used by backend to determine which
          memcache server to use
 
+
+
 SOON:
+
+   [ ] fix this, which is caused by postgresql[0].createdb('monitor') in config1.py:
+ 8787 | postgresql-0.log | 2012-08-08 11:18:05.854365 | STATEMENT:  CREATE DATABASE monitor;
+ 8786 | postgresql-0.log | 2012-08-08 11:18:05.854365 | ERROR:  database "monitor" already exists
 
    [ ] decide on what computers to buy from Dell to deploy in a few weeks
 

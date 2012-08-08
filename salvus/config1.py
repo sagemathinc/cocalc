@@ -17,18 +17,15 @@ local_user = Account(username=whoami, hostname='localhost')
 root_user = Account(username='root', hostname='localhost')
 
 # Database configuration
-log_database = "dbname=log"    # TODO: will need to have network info, password, etc...
-conf_database = "dbname=conf"  
+log_database = "dbname=monitor"    # TODO: will need to have network info, password, etc...
 
 postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, log_database=log_database)])
 try:
-    postgresql[0].createdb('log')
+    postgresql[0].createdb('monitor')
 except IOError:
     postgresql[0].initdb()
-    postgresql[0].createdb('log')
+    postgresql[0].createdb('monitor')
     
-postgresql[0].createdb('conf')
-
 # static web server
 nginx      = Component('nginx', [Nginx(local_user, 0, port=8080, log_database=log_database)])
 

@@ -274,7 +274,7 @@ connections = {}
 CONNECTION_TERM_INTERVAL = 5
 def check_for_connection_timeouts():
     global kill_timer
-    log.info("Checking for connection timeouts...: %s", connections)
+    log.debug("Checking for connection timeouts...: %s", connections)
     
     for pid, C in connections.items():
         tm = C.time_remaining()
