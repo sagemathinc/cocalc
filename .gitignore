@@ -8,5 +8,3 @@ logs
 *.sobj
 data/
 .#*
-*.tar.bz2
-*.tar.gz

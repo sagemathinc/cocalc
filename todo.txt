@@ -5,8 +5,6 @@ NOW:
 
      [ ] switch to using tornado-memcache client in tornado_server.py
 
-     [ ] checkin upstream source tar.bz2's to github repo.
-
 VERY SOON:
 
 [ ] "monitor": database
@@ -218,6 +216,9 @@ DONE:
    [x] Address this comment I found: "Site note: our 2gb VPS's memcahed is set up to accept over 40k requests. The default setting in memcached is 1024 which is WAY too low."
            http://blog.dpn.name/asyncronous-memcache-driver-for-tornado
 
-     [x] async tornado memcached:  
+   [x] async tornado memcached:  
            Solution: https://github.com/dpnova/tornado-memcache
          Add to build system.
+
+   [x] check-in upstream source tar.bz2's to github repo.
+
