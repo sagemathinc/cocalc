@@ -67,24 +67,48 @@ class MessageTypesHandler(BaseHandler):
 WORKER_POOL = [('', 6000)]  # TODO
 
 ###########################################
-# cacheing 
+# memcache usage
 ###########################################
-import memcache
+import memcache, tornadoasyncmemcache
 MEMCACHE_SERVERS = ["127.0.0.1:11211"]
 class MemCache(object):
-    """Use memcache to implement a simple key:value store.  Keys are hashed, but verified for correctness on read."""
+    """
+    Use memcache to implement a simple key:value store.
+    
+       * Keys are hashed, but verified for correctness on read; hash
+         collision implies only 1 object with that hash is stored.
+         
+       * Setting is done asynchronously (in that data is sent async),
+         but reading is done synchronously by default, though
+         get_async is also supported.
+    """
     def __init__(self):
         self._cache = memcache.Client(MEMCACHE_SERVERS)
-    def key(self, input):
-        return str(hash(input))
-    def __getitem__(self, input):
-        input = input.strip()
-        c = self._cache.get(self.key(input))
-        if c is not None and c[0] == input:
+        self._async_cache = tornadoasyncmemcache.ClientPool(MEMCACHE_SERVERS, maxclients=256)
+        
+    def key(self, key):
+        return str(hash(key))
+
+    def get_async(self, key, callback=None):
+        # async get: result=self[key], then call the callback with result or
+        # call callback with None if there is no such key.
+        def f(result):
+            if result is not None and result[0] == key:
+                callback(result[1])
+            else:
+                callback(None)
+        self._async_cache.get(self.key(key), callback=f)
+
+    def __getitem__(self, key):
+        # sync get:  self[key]
+        c = self._cache.get(self.key(key))
+        if c is not None and c[0] == key:
             return c[1]
-    def __setitem__(self, input, result):
-        input = input.strip()
-        self._cache.set(self.key(input), (input, result))
+        
+    def __setitem__(self, key, result):
+        # async set:   self[key] = result
+        key = key.strip()
+        self._async_cache.set(self.key(key), (key, result), callback=lambda data:None)
 
 stateless_execution_cache = MemCache()     # cache results of stateless execution.
 
@@ -127,7 +151,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
         if hasattr(self, '_stateless_execution'):
             self._stateless_execution.kill()
             
-        input = mesg['execute_code']['code']
+        input = mesg['execute_code']['code'].strip()
         answer = stateless_execution_cache[input]
         if answer is not None:
             for m in answer:  # replay messages

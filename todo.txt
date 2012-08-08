@@ -3,8 +3,6 @@ TODO
 
 NOW: 
 
-     [ ] switch to using tornado-memcache client in tornado_server.py
-
 VERY SOON:
 
 [ ] "monitor": database
@@ -53,7 +51,10 @@ status:
      [ ] add support to admin.py to clean out old entries from the
          database, i.e., something like capped collection via a delete call
      [ ] create query that will be used by backend to determine which
-         sage_server to use
+         sage_server to use, and use that -- might choose based on
+         lowest load, etc.
+     [ ] create query that will be used by backend to determine which
+         memcache server to use
 
 SOON:
 
@@ -221,4 +222,4 @@ DONE:
          Add to build system.
 
    [x] check-in upstream source tar.bz2's to github repo.
-
+   [x] switch to using tornado-memcache client in tornado_server.py
