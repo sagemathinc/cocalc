@@ -600,7 +600,3 @@ class Sage(Process):
     def port(self):
         return self._port
         
-
-local_user = Account(username=whoami, hostname='localhost')
-root_user =  Account(username='root', hostname='localhost')
-remote_user =  Account(username=whoami, hostname='ubuntu')

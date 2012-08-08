@@ -15,4 +15,3 @@ def init_tables(database):
         cur.execute("CREATE TABLE services (type varchar, site varchar, hostname varchar, port smallint)")
     
         
-

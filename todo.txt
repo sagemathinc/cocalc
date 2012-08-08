@@ -2,13 +2,70 @@ TODO
 -----
 
 NOW: 
+
+     [ ] async memcached:  
+           Solution: https://github.com/dpnova/tornado-memcache
+
+[ ] "monitor": database
+     [ ] rename logwatch.py to monitor.py
+     [ ] change docs to indicate what monitor.py does
+     [ ] fix this doc, which must be wrong since we don't use sqlalchemy anymore:
+           "SQLalchemy description of database server, e.g., postgresql://user@hostname:port/dbname"
+     [ ] instead of putting the log in "log" database, put it in log table in monitor database
+     [ ] new table schemas:
+
+services:
+  - id - unique sequential integer
+  - type - string: one of 'nginx', 'haproxy', 'sage', 'tornado', 'stunnel', 'openvpn', 'memcached', 'postgresql'
+  - site - string: where this service is physically located
+  - address - string (ip address or hostname)
+  - port - integer  
+  - running - boolean
+
+status:
+  - id -- unique id of service entry above
+  - timestamp -- timestamp
+  - load - integer
+  - percent_mem -- float
+  - percent_cpu -- float
+  - cputime -- float
+  - walltime -- float (etime in ps output)
+  - virtual_size -- integer
+  - resident_size -- integer
+
+     [ ] change to use -- options since - options are too short
+     [ ] add address command line option to monitor.py, which gives
+         the address and port that the service listens on: 
+           "--address 10.7.1.5 --port 6000 --site padelford".  This will get entered into the
+         database when process starts.  When this happens, we will also 
+         get the unique id that corresponds to this service, which will be used
+         by the monitor for all future db interaction.  
+     [ ] put periodic information in database about state of watched
+         processes; make a command line option for when info is put in
+         database; store something in memcached at same time as put in database, so 
+         query about latest status can be done instantly using memcached if in cache.
+     [ ] when monitored process terminates, update the corresponding entry (using id)
+         to set running to false
+     [ ] add support to admin.py to easily query the database:
+           - list of running processes and last status
+           - status of lifetime of process
+     [ ] add support to admin.py to clean out old entries from the
+         database, i.e., something like capped collection via a delete call
+     [ ] create query that will be used by backend to determine which
+         sage_server to use
+
 SOON:
 
-   [ ] database: when any component is started, entry is made in database
-   [ ] database: when any component is stopped, entry is made in database
+   [ ] update apple dev network account and make a first PhoneGap app for iphone
+   [ ] make a first PhoneGap app for iphone
+
    [ ] database: function to check validity of entries; if anything not current, then updated.
 
    [ ] database: table of connected browers and which tornado server they are connected to
+
+   [ ] admin: make it so this doesn't happen every time: 
+          INFO:root:running 'sudo cp /var/folders/fc/tdg_b00d2rv0_0c940cxttjc0000gp/T/tmp3XEkwZ data/haproxy-0.conf'
+
 
    [ ] tornado: implement sending message to any connected browser, possibly connected to a different tornado
 
@@ -149,4 +206,10 @@ DONE:
    [x] create salvusmath gmail account
    [x] change github repo to be called salvus (instead of sagews)
    [x] massive renames and moves
+
+   [x] get everything to work after the big rename: just rebuild.
+   [x] clean checkout and build on linux
+
+     [x] Address this comment I found: "Site note: our 2gb VPS's memcahed is set up to accept over 40k requests. The default setting in memcached is 1024 which is WAY too low."
+           http://blog.dpn.name/asyncronous-memcache-driver-for-tornado
 
