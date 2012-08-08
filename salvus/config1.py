@@ -6,8 +6,9 @@ from admin import (Account, Component, whoami,
                    HAproxy, Nginx, PostgreSQL, Memcached, Tornado, Sage, Stunnel)
 
 # this is for local testing/development; for deployment sitename="codethyme.com"
-from misc import local_ip_address
-sitename = local_ip_address()
+#from misc import local_ip_address
+#sitename = local_ip_address()
+sitename = 'salv.us'
 
 ####################
 # A configuration

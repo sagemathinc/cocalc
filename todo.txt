@@ -3,8 +3,6 @@ TODO
 
 NOW: 
 
-   [ ] salv.us certificate
-
 [ ] "monitor": database
      [x] rename logwatch.py to monitor.py
      [x] change docs to indicate what monitor.py does
@@ -235,3 +233,4 @@ DONE:
    [x] check-in upstream source tar.bz2's to github repo.
    [x] switch to using tornado-memcache client in tornado_server.py
    [x] Salvus favicon
+   [x] salv.us certificate
