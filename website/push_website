@@ -1,1 +1,1 @@
-rsync -r --delete ./ sage.math.washington.edu:www/thyme/
+rsync -r --delete ./ sage.math.washington.edu:www/salvus/
