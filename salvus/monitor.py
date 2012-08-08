@@ -24,7 +24,7 @@ def create_log_table(cur):
 lastmod = None
 def send_log_to_database(database, logfile, filename):
     global lastmod
-    print "Get new connection to database..."
+    print "Making psycopg2 connection to '%s'..."%database
     conn = psycopg2.connect(database)
     cur = conn.cursor()
     if not table_exists(cur, 'log'):
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", dest='logfile', type=str, required=True,
                         help="when this file changes it is sent to the database server")
     parser.add_argument("-d", dest="database", type=str, required=True,
-                        help="database server, e.g., dbname=log")
+                        help="database server, e.g., dbname=monitor")
     parser.add_argument("-p", dest="pidfile", type=str, required=True,
                         help="PID file of this daemon process")
     parser.add_argument("-t", dest="timeout", type=int, default=60,  

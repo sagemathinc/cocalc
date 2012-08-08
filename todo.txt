@@ -9,8 +9,7 @@ NOW:
      [x] fix this doc, which must be wrong since we don't use sqlalchemy anymore:
            "SQLalchemy description of database server, e.g., postgresql://user@hostname:port/dbname"
      [x] instead of putting the log in "log" database, put it in log table in monitor database
-     [ ] add support to admin.py to clean out old entries from the
-         database, i.e., something like capped collection via a delete call
+     [x] add cap_table function in db.py, which deletes all but most recent entries from a table
      [ ] new table schemas:
 
 services:
@@ -53,6 +52,8 @@ status:
          lowest load, etc.
      [ ] create query that will be used by backend to determine which
          memcache server to use
+     [ ] add support to admin.py to clean out old entries from the
+         database, i.e., something like capped collection via a delete call: calls db.cap_table somehow...
 
 
 
