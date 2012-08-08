@@ -192,6 +192,8 @@ def build_python_packages():
         path = extract_package('distribute')
         cmd('python setup.py install', path)
         cmd('easy_install ' + ' '.join(PYTHON_PACKAGES), os.path.join(TARGET, 'bin'))
+        path = extract_package('tornado-memcache')
+        cmd('python setup.py install', path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
@@ -231,7 +233,7 @@ if __name__ == "__main__":
                         help="build Google's protocol buffers compiler")
 
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
-                        help="build the python_packages interpreter")
+                        help="install all Python packages")
 
     args = parser.parse_args()
 

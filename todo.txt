@@ -3,8 +3,11 @@ TODO
 
 NOW: 
 
-     [ ] async memcached:  
-           Solution: https://github.com/dpnova/tornado-memcache
+     [ ] switch to using tornado-memcache client in tornado_server.py
+
+     [ ] checkin upstream source tar.bz2's to github repo.
+
+VERY SOON:
 
 [ ] "monitor": database
      [ ] rename logwatch.py to monitor.py
@@ -55,6 +58,8 @@ status:
          sage_server to use
 
 SOON:
+
+   [ ] decide on what computers to buy from Dell to deploy in a few weeks
 
    [ ] update apple dev network account and make a first PhoneGap app for iphone
    [ ] make a first PhoneGap app for iphone
@@ -210,6 +215,9 @@ DONE:
    [x] get everything to work after the big rename: just rebuild.
    [x] clean checkout and build on linux
 
-     [x] Address this comment I found: "Site note: our 2gb VPS's memcahed is set up to accept over 40k requests. The default setting in memcached is 1024 which is WAY too low."
+   [x] Address this comment I found: "Site note: our 2gb VPS's memcahed is set up to accept over 40k requests. The default setting in memcached is 1024 which is WAY too low."
            http://blog.dpn.name/asyncronous-memcache-driver-for-tornado
 
+     [x] async tornado memcached:  
+           Solution: https://github.com/dpnova/tornado-memcache
+         Add to build system.
