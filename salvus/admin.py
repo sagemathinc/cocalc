@@ -607,7 +607,8 @@ class Sage(Process):
                          pidfile    = pidfile,
                          logfile = logfile, monitor_database=monitor_database, 
                          start_cmd  = ['sage', '--python', 'sage_server.py', '-p', port,
-                                       '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
+                                       #'--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
+                                       '--pidfile', pidfile, '--logfile', logfile, '2>/tmp/a', '1>/tmp/b', '&'],
                          start_using_system = True,  # since daemon mode currently broken
                          service = ('sage', account, port))
 

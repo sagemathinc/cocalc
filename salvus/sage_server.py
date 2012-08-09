@@ -316,6 +316,7 @@ def serve(port, whitelist):
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)    
     s.bind(('', port))
     s.listen(5)
     pid = -1
@@ -360,10 +361,10 @@ def serve(port, whitelist):
                     sys.exit(0)
                 continue
 
-            if pid == 0:
+            if pid == 0: # child
                 session(conn, home, start_session.max_cputime,
                         start_session.max_numfiles, start_session.max_vmem)
-                sys.exit(0)
+                os._exit(0)
             else:
                 connections[pid] = Connection(pid, home, start_session.max_walltime)
                 log.info('accepted connection from %s (pid=%s)', addr, pid)
@@ -374,17 +375,28 @@ def serve(port, whitelist):
     finally:
         if pid: # parent
             kill_timer.cancel()
-            connections = {}  # triggers garbage collection, kills all outstanding sage servers and cleans up
-            log.info("closing socket")
-            s.shutdown(0)
-            s.close()
             log.info("waiting for forked Sage servers to terminate")
+            for pid, con in connections.iteritems():
+                con.signal(9)
+                
             try:
                 os.wait()
             except OSError:
                 pass
         
+            log.info("closing socket")
+            try:
+                s.shutdown(0)
+            except socket.error:
+                print 'issue 1'
+                pass
+            try:
+                s.close()
+            except socket.error:
+                print 'issue 2'
+                pass
 
+            
 def run_server(port, pidfile, logfile, whitelist):
     if pidfile:
         open(pidfile,'w').write(str(os.getpid()))

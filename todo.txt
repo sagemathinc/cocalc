@@ -3,7 +3,6 @@ TODO
 
 NOW: 
 
-     [ ] sage_server: "./config1 --restart=sage_server" doesn't work
      [ ] make backend determining sage_server query be async
 
 [ ] "monitor": database ...
@@ -251,4 +250,7 @@ status:
          lowest load, etc.
      [x] race condition: sage_server seems to delete its pid file even when it doesn't quit, which causes havoc...
          
+
+     [x] sage_server: "./config1 --restart=sage_server" doesn't work; this is because the
+         port isn't being freed quickly enough.  we use SO_REUSEADDR to fix this.
 
