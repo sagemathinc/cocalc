@@ -124,3 +124,47 @@ def local_ip_address():
     s.connect(("8.8.8.8",80))
     return s.getsockname()[0]
 
+
+##########################################################################
+# Other
+##########################################################################
+
+import random, time, traceback
+
+class call_until_succeed(object):
+    """
+    Decorator that makes it so that whenever a function is called, if
+    any exception is raised, then the function is re-called with
+    exactly the same arguments, after a delay.  The delay starts at
+    mindelay seconds and exponentially (times 2) increases (with a
+    slight random factor) until hitting maxdelay.  If it delays for a
+    total of totaldelay and totaldelay is not None, then it gives up
+    and re-raises the last exception.
+    """
+    def __init__(self, mindelay, maxdelay, totaldelay=None):
+        self._mindelay = mindelay
+        self._maxdelay = maxdelay
+        self._totaldelay = totaldelay
+        
+    def __call__(self, f):
+        def g(*args, **kwds):
+            attempts = 0
+            delay = (random.random() + 1)*self._mindelay
+            totaldelay = 0
+            while True:
+                attempts += 1
+                try:
+                    return f(*args, **kwds)
+                except:
+                    if self._totaldelay and totaldelay >= self._totaldelay:
+                        print("call_until_succeed: exception hit running %s; too long (>=%s)"%(f.__name__, self._totaldelay))
+                        raise
+
+                    # print stack trace and name of function
+                    print("call_until_succeed: exception hit %s times in a row running %s; retrying in %s seconds"%(attempts, f.__name__, delay))
+                    traceback.print_exc()
+                    time.sleep(delay)
+                    totaldelay += delay
+                    delay = min(2*delay, self._maxdelay)
+                    
+        return g

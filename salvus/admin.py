@@ -253,10 +253,13 @@ class Component(object):
 ########################################
 
 class Process(object):
-    def __init__(self, account, id, pidfile, logfile=None, log_database=None,
+    def __init__(self, account, id, name, port,
+                 pidfile, logfile=None, monitor_database=None,
                  start_cmd=None, stop_cmd=None, reload_cmd=None,
                  start_using_system = False,
                  service=None):
+        self._name = name
+        self._port = port
         self._account = account
         self._id = str(id)
         assert len(self._id.split()) == 1
@@ -267,8 +270,8 @@ class Process(object):
         self._reload_cmd = reload_cmd
         self._pids = {}
         self._logfile = logfile
-        self._log_database = log_database
-        self._log_pidfile = os.path.splitext(pidfile)[0] + '-log.pid'
+        self._monitor_database = monitor_database
+        self._monitor_pidfile = os.path.splitext(pidfile)[0] + '-log.pid'
 
     def id(self):
         return self._id
@@ -298,19 +301,22 @@ class Process(object):
         return len(self.status()) > 0
 
     def _start_monitor(self):
-        if self._log_database and self._logfile:
-            self._account.run(['./monitor.py', '--logfile', self._logfile, '--database', self._log_database,
-                               '--pidfile', self._log_pidfile, '--interval', LOG_INTERVAL,
-                               '--watched_pidfile', self._pidfile])
+        if self._monitor_database and self._logfile:
+            self._account.run(['./monitor.py', '--logfile', self._logfile, '--database', self._monitor_database,
+                               '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
+                               '--target_pidfile', self._pidfile,
+                               '--target_name', self._name,
+                               '--target_address', self._account._hostname,
+                               '--target_port', self._port])
 
-    def log_pid(self):
-        return self._read_pid(self._log_pidfile)
+    def monitor_pid(self):
+        return self._read_pid(self._monitor_pidfile)
 
     def _stop_monitor(self):
-        if self._log_database and self._logfile and self._account.path_exists(self._log_pidfile):
+        if self._monitor_database and self._logfile and self._account.path_exists(self._monitor_pidfile):
             try:
-                self._account.kill(self.log_pid())
-                self._account.unlink(self._log_pidfile)
+                self._account.kill(self.monitor_pid())
+                self._account.unlink(self._monitor_pidfile)
             except Exception, msg:
                 print msg
 
@@ -369,7 +375,7 @@ class Process(object):
 # Nginx
 ####################
 class Nginx(Process):
-    def __init__(self, account, id, port, log_database=None):
+    def __init__(self, account, id, port, monitor_database=None):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
@@ -378,8 +384,8 @@ class Nginx(Process):
         nginx_conf = 'nginx-%s.conf'%id
         account.writefile(filename=os.path.join(DATA, nginx_conf), content=conf)
         nginx_cmd = ['nginx', '-c', '../' + nginx_conf]
-        Process.__init__(self, account, id,
-                         log_database = log_database,
+        Process.__init__(self, account, id, name='nginx', port=port,
+                         monitor_database = monitor_database,
                          logfile   = os.path.join(LOGS, log),
                          pidfile    = os.path.join(PIDS, pid),
                          start_cmd  = nginx_cmd,
@@ -393,15 +399,15 @@ class Nginx(Process):
 # Stunnel
 ####################
 class Stunnel(Process):
-    def __init__(self, account, id, accept_port, connect_port, log_database=None):
+    def __init__(self, account, id, accept_port, connect_port, monitor_database=None):
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
         base = account.abspath()
         pidfile = os.path.join(base, PIDS,'stunnel-%s.pid'%id) # abspath of pidfile required by stunnel
         self._stunnel_conf = os.path.join(DATA, 'stunnel-%s.conf'%id)
         self._accept_port = accept_port
         self._connect_port = connect_port
-        Process.__init__(self, account, id,
-                         log_database = log_database,
+        Process.__init__(self, account, id, name='stunnel', port=accept_port, 
+                         monitor_database = monitor_database,
                          logfile    = logfile,
                          pidfile    = pidfile,
                          # stunnel typically run as sudo, and sudo need not preserve PATH on Linux.
@@ -421,14 +427,14 @@ class Stunnel(Process):
 # HAproxy
 ####################
 class HAproxy(Process):
-    def __init__(self, account, id,
+    def __init__(self, account, id, 
                  sitename,    # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers='',   # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...] 
                  tornado_servers='', # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...]
-                 log_database=None,  
+                 monitor_database=None,  
                  conf_file='conf/haproxy.conf'):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
@@ -464,8 +470,9 @@ frontend unsecured *:$port
         haproxy_conf = 'haproxy-%s.conf'%id
         target_conf = os.path.join(DATA, haproxy_conf)
         account.writefile(filename=target_conf, content=conf)
-        Process.__init__(self, account, id, pidfile = pidfile,
-                         logfile = logfile, log_database = log_database,
+        Process.__init__(self, account, id, name='haproxy', port=accept_proxy_port,
+                         pidfile = pidfile,
+                         logfile = logfile, monitor_database = monitor_database,
                          start_using_system = True, 
                          start_cmd = ['HAPROXY_LOGFILE='+logfile, 'haproxy', '-D', '-f', target_conf, '-p', pidfile])
         
@@ -496,12 +503,17 @@ class PostgreSQL(Process):
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])
     
-    def __init__(self, account, id, log_database=None):
+    def __init__(self, account, id, port=5432, monitor_database=None, **options):
         self._db   = os.path.join(DATA, 'db')
         self._conf = os.path.join(self._db, 'postgresql.conf')
         self._log  = os.path.join(LOGS, 'postgresql-%s.log'%id)
-        Process.__init__(self, account, id,
-                         log_database=log_database, logfile = self._log,
+
+        assert 'port' not in options, "port must be specified when creating PostgreSQL object"
+        self._options = options
+        self._options['port'] = port
+        
+        Process.__init__(self, account, id, name='postgresql', port=port,
+                         monitor_database=monitor_database, logfile = self._log,
                          pidfile    = os.path.join(self._db, 'postmaster.pid'),
                          start_cmd  = self._cmd('start') + ['-l', self._log],
                          stop_cmd   = self._cmd('stop') + ['-m', 'fast'],
@@ -514,32 +526,29 @@ class PostgreSQL(Process):
         v = [x for x in self._account.readfile(self._conf).splitlines() if x.strip() and not x.strip().startswith('#')]
         return dict([[a.split()[0] for a in x.split('=')[:2]] for x in v])
 
-    def port(self):
-        return self.options()['port']
-
-    def initdb(self, **options):
+    def initdb(self):
         s = self._account.run(self._cmd('initdb'))
         log.info(s)
-        self._account.writefile(filename=self._conf, content=pg_conf(**options))
+        self._account.writefile(filename=self._conf, content=pg_conf(**self._options))
 
     def createdb(self, name):
-        self._account.run(['createdb', '-p', self.port(), name])
+        self._account.run(['createdb', '-p', self._port, name])
          
 ####################
 # Memcached -- use like so:
 #     import memcache; c = memcache.Client(['localhost:12000']); c.set(...); c.get(...)
 ####################
 class Memcached(Process):
-    def __init__(self, account, id, log_database=None, **options):
+    def __init__(self, account, id, monitor_database=None, **options):
         """
         maxmem is in megabytes
         """
         self._options = options
         pidfile = os.path.join(PIDS, 'memcached-%s.pid'%id)
         logfile = os.path.join(LOGS, 'memcached-%s.log'%id)
-        Process.__init__(self, account, id,
+        Process.__init__(self, account, id, name='memcached', port=self.port(),
                          pidfile    = pidfile,
-                         logfile    = logfile, log_database = log_database,
+                         logfile    = logfile, monitor_database = monitor_database,
                          start_cmd  = ['memcached', '-P', account.abspath(pidfile), '-d'] + \
                                       ['-vv', '>' + logfile, '2>&1'] + \
                                       sum([['-' + k, v] for k,v in options.iteritems()],[]),
@@ -566,15 +575,16 @@ class Memcached(Process):
 # Tornado
 ####################
 class Tornado(Process):
-    def __init__(self, account, id, port, log_database=None, debug=False):
+    def __init__(self, account, id, port, monitor_database=None, debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
         logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
         extra = []
         if debug:
             extra.append('-g')
-        Process.__init__(self, account, id, pidfile = pidfile,
-                         logfile = logfile, log_database=log_database,
+        Process.__init__(self, account, id, name='tornado', port=port,
+                         pidfile = pidfile,
+                         logfile = logfile, monitor_database=monitor_database,
                          start_cmd = ['./tornado_server.py', '-d', '-p', port,
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
@@ -586,12 +596,13 @@ class Tornado(Process):
 ####################
 
 class Sage(Process):
-    def __init__(self, account, id, port, log_database=None, debug=True):
+    def __init__(self, account, id, port, monitor_database=None, debug=True):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
-        Process.__init__(self, account, id, pidfile    = pidfile,
-                         logfile = logfile, log_database=log_database, 
+        Process.__init__(self, account, id, name='sage', port=port,
+                         pidfile    = pidfile,
+                         logfile = logfile, monitor_database=monitor_database, 
                          start_cmd  = ['sage', '--python', 'sage_server.py', '-p', port,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
                          start_using_system = True,  # since daemon mode currently broken

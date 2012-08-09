@@ -12,28 +12,58 @@ import psycopg2
 import misc
 from db import table_exists
 
-def mtime(file):
-    try:
-        return os.path.getmtime(file)
-    except OSError:
-        return 0
-
-def create_log_table(cur):
-    cur.execute("CREATE TABLE log (id serial PRIMARY KEY, logfile varchar, time timestamp, message varchar)")
+#########################################################
+# services table
+#########################################################
 
 def create_services_table(cur):
     cur.execute("""
 CREATE TABLE services (
     id serial PRIMARY KEY,
-    type varchar,
-    site varchar,
+    name varchar,
     address varchar,
     port integer,
     running boolean,
     username varchar,
     pid integer,
     monitor_pid integer)
-""")    
+""")
+
+@misc.call_until_succeed(0.01, 60)
+def record_that_service_started(database, name, address, port, username, pid, monitor_pid):
+    conn = psycopg2.connect(database)
+    cur = conn.cursor()
+    try:
+        if not table_exists(cur, 'services'):
+            create_services_table(cur)
+        cur.execute("INSERT INTO services (name, address, port, running, username, pid, monitor_pid) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id", (name, address, port, True, username, pid, monitor_pid))
+        id = cur.fetchone()[0]
+        conn.commit()
+        return id
+    finally:
+        cur.close()
+        conn.close()
+
+@misc.call_until_succeed(0.01, 30)
+def record_that_service_stopped(database, id):
+    conn = psycopg2.connect(database)
+    cur = conn.cursor()
+    try:
+        if not table_exists(cur, 'services'):
+            return
+        cur.execute("UPDATE services SET running=%s WHERE id=%s", (False, id))
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+    
+    
+
+#########################################################
+# status updates table
+#########################################################
+
 
 def create_status_table(cur):
     cur.execute("""
@@ -50,34 +80,51 @@ CREATE TABLE status (
     PRIMARY KEY(id, time))
 """)
 
-
-def register_service(database):
-    if not table_exists(cur, 'services'):
-        create_services_table(cur)
-
 def update_status(database):
     if not table_exists(cur, 'status'):
         create_status_table(cur)
 
+
+#########################################################
+# log table
+#########################################################
+
+def create_log_table(cur):
+    cur.execute("""
+CREATE TABLE log (
+    id serial PRIMARY KEY,
+    sid integer,
+    logfile varchar,
+    time timestamp,
+    message varchar)
+""")
+
+def mtime(file):
+    try:
+        return os.path.getmtime(file)
+    except OSError:
+        return 0
+
 lastmod = None
-def send_log_to_database(database, logfile, filename):
+
+@misc.call_until_succeed(0.01, 30, 10)
+def send_log_to_database(database, sid, logfile, filename):
     global lastmod
     print "Making psycopg2 connection to '%s'..."%database
     conn = psycopg2.connect(database)
     cur = conn.cursor()
     if not table_exists(cur, 'log'):
         create_log_table(cur)
-    c = open(logfile).read()
+    c = unicode(open(logfile).read(), errors='ignore')  # ignore non-unicode characters in log file
     if len(c) == 0:
         print "logfile is empty"
         return
     try:
         now = psycopg2.TimestampFromTicks(time.time())
         for r in c.splitlines():    
-            cur.execute("INSERT INTO log (logfile, time, message) VALUES(%s, %s, %s)",
-                        (filename, now, r))
+            cur.execute("INSERT INTO log (sid, logfile, time, message) VALUES(%s, %s, %s, %s)",
+                        (sid, filename, now, r))
         conn.commit()
-        conn.rollback()
         print "Successful commit, now deleting logfile..."
         # potential race condition situation below
         if mtime(logfile) != lastmod:
@@ -88,23 +135,39 @@ def send_log_to_database(database, logfile, filename):
             open(logfile,'w').close()
         lastmod = mtime(logfile)
     except Exception, msg:
-        print "Failed to commit log messages to databaes (%s)"%msg
+        print "Failed to commit log messages to database (%s)"%msg
+        conn.rollback()
     finally:
         cur.close()
         conn.close()
 
-def watched_process_still_running(watched_pidfile):
-    if not os.path.exists(watched_pidfile):
-        return False
+def target_pid(target_pidfile):
+    if not os.path.exists(target_pidfile):
+        return None
     try:
         # pidfiles sometimes have more info in them; first line is always master pid
-        if not misc.is_running(int(open(watched_pidfile).readlines()[0])):
-            return False
+        pid = int(open(target_pidfile).readlines()[0])
+        if not misc.is_running(pid):
+            return None
+        return pid
     except IOError:  # in case file vanished after above check.
-        return os.path.exists(watched_pidfile)
-    return True
+        return None
 
-def main(logfile, pidfile, watched_pidfile, interval, database):
+def target_process_still_running(target_pidfile):
+    return target_pid(target_pidfile) is not None
+
+def main(name, logfile, pidfile, target_pidfile, target_address, target_port, interval, database):
+
+    @misc.call_until_succeed(0.01, 30, 60)  # processes (e.g., sage) can take a long time to start initially!
+    def f():
+        p = target_pid(target_pidfile)
+        assert p is not None
+        return p
+    wpid = f()
+    id = record_that_service_started(database=database,
+                                     name=name, address=target_address, port=target_port,
+                                     username=os.environ['USER'], pid=wpid, monitor_pid=os.getpid())
+    
     global lastmod
     filename = os.path.split(logfile)[-1]
     try:
@@ -115,15 +178,17 @@ def main(logfile, pidfile, watched_pidfile, interval, database):
             if lastmod != modtime:
                 lastmod = modtime
                 try:
-                    send_log_to_database(database, logfile, filename)
+                    send_log_to_database(database, id, logfile, filename)
                 except Exception, msg:
                     print msg
             print "Sleeping %s seconds"%interval
             time.sleep(interval)
-            if not watched_process_still_running(watched_pidfile):
+            if not target_process_still_running(target_pidfile):
+                record_that_service_stopped(database, id)
                 return
     finally:
         os.unlink(pidfile)
+        record_that_service_stopped(database, id)
 
 if __name__ == "__main__":
     import argparse
@@ -139,16 +204,24 @@ if __name__ == "__main__":
                         help="PID file of this daemon process")
     parser.add_argument("--interval", dest="interval", type=int, default=60,  
                         help="check every t seconds to see if logfile has changed and update status info")
-    parser.add_argument("--watched_pidfile", dest="watched_pidfile", type=str, required=True,
-                        help="file containing the pid of the process being watched")
+
+    parser.add_argument("--target_name", dest="target_name", type=str, required=True,
+                        help="descriptive name of the target service")
+    parser.add_argument("--target_pidfile", dest="target_pidfile", type=str, required=True,
+                        help="file containing the pid of the process being monitored")
+    parser.add_argument("--target_address", dest="target_address", type=str, required=True,
+                        help="address that the process being watched listens on")
+    parser.add_argument("--target_port", dest="target_port", type=int, required=True,
+                        help="port that the process being watched listen on")
     
     args = parser.parse_args()
         
     logfile = os.path.abspath(args.logfile)
     pidfile = os.path.abspath(args.pidfile)
-    watched_pidfile = os.path.abspath(args.watched_pidfile)
+    target_pidfile = os.path.abspath(args.target_pidfile)
 
-    f = lambda: main(logfile=logfile, pidfile=pidfile, watched_pidfile=watched_pidfile,
+    f = lambda: main(name=args.target_name, logfile=logfile, pidfile=pidfile, target_pidfile=target_pidfile,
+                     target_address=args.target_address, target_port=args.target_port,
                      interval=args.interval, database=args.database)
     if args.debug:
         f()
