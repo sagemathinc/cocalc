@@ -313,6 +313,10 @@ class Process(object):
         return self._read_pid(self._monitor_pidfile)
 
     def _stop_monitor(self):
+        # NOTE: This function should never need to be called; the
+        # monitor stops automatically when the process it is
+        # monitoring stops and it has succeeded in recording this fact
+        # in the database.
         if self._monitor_database and self._logfile and self._account.path_exists(self._monitor_pidfile):
             try:
                 self._account.kill(self.monitor_pid())
@@ -335,7 +339,6 @@ class Process(object):
         print self._start_monitor()
         
     def stop(self):
-        self._stop_monitor()
         if self.pid() is None: return
         if self._stop_cmd is not None:
             print self._account.run(self._stop_cmd)

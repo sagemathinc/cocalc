@@ -4,7 +4,7 @@ Copyright (c) William Stein, 2012.  Not open source or free. Will be
 assigned to University of Washington.
 """
 
-import os, time
+import os, subprocess, time
 
 import daemon
 import psycopg2
@@ -29,7 +29,7 @@ CREATE TABLE services (
     monitor_pid integer)
 """)
 
-@misc.call_until_succeed(0.01, 60)
+@misc.call_until_succeed(0.01, 60, 3600)
 def record_that_service_started(database, name, address, port, username, pid, monitor_pid):
     conn = psycopg2.connect(database)
     cur = conn.cursor()
@@ -44,7 +44,7 @@ def record_that_service_started(database, name, address, port, username, pid, mo
         cur.close()
         conn.close()
 
-@misc.call_until_succeed(0.01, 30)
+@misc.call_until_succeed(0.01, 15, 3600)
 def record_that_service_stopped(database, id):
     conn = psycopg2.connect(database)
     cur = conn.cursor()
@@ -57,32 +57,58 @@ def record_that_service_stopped(database, id):
         cur.close()
         conn.close()
 
-    
-    
-
 #########################################################
 # status updates table
 #########################################################
-
 
 def create_status_table(cur):
     cur.execute("""
 CREATE TABLE status (
     id integer,
     time timestamp,
-    load integer,
-    percent_mem float,
-    percent_cpu float,
+    pmem float,
+    pcpu float,
     cputime float,
-    walltime float,
-    virtmem_size integer,
-    resmem_size integer,
-    PRIMARY KEY(id, time))
+    vsize integer,
+    rss integer)
 """)
 
-def update_status(database):
-    if not table_exists(cur, 'status'):
-        create_status_table(cur)
+def cputime_to_float(s):
+    z = s.split(':')
+    cputime = float(z[-1])
+    if len(z) > 1:
+        cputime += float(z[-2])*60
+    if len(z) > 2:
+        cputime += float(z[-3])*3600
+    return cputime
+
+last_status = None
+@misc.call_until_succeed(0.01, 5, 10)  # give up relatively quickly since not so important
+def update_status(database, id, pid):
+    global last_status
+    conn = psycopg2.connect(database)
+    cur = conn.cursor()
+    try:
+        if not table_exists(cur, 'status'):
+            create_status_table(cur)
+        fields = ['pcpu', 'pmem', 'pid', 'cputime', 'rss', 'vsize']
+        v = subprocess.Popen(['ps', '-p', str(int(pid)), '-o', ' '.join(fields)],
+                             stdin=subprocess.PIPE, stdout = subprocess.PIPE,
+                             stderr=subprocess.PIPE).stdout.read().splitlines()
+        if len(v) <= 1:
+            return    # process not running -- no status
+        
+        d = dict(zip(fields, v[-1].split()))
+        if d != last_status:
+            last_status = d
+            cur.execute("INSERT INTO status (id, time, pmem, pcpu, cputime, vsize, rss) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                        (id, psycopg2.TimestampFromTicks(time.time()),
+                         d['pmem'], d['pcpu'], cputime_to_float(d['cputime']), d['vsize'], d['rss']))
+        
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
 
 
 #########################################################
@@ -174,6 +200,8 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
         open(pidfile,'w').write(str(os.getpid()))
         lastmod = None
         while True:
+            update_status(database, id, wpid)
+            
             modtime = mtime(logfile)
             if lastmod != modtime:
                 lastmod = modtime

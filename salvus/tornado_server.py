@@ -207,12 +207,11 @@ class StatelessExecution(object):
             mesg2['output']['stderr'] = mesg.output.stderr
             log.info("translated to: %s", mesg2)
             self._result.append(mesg2)
-            if mesg.output.done:
-                stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
             self._browser_conn.send_obj(mesg2)
             if mesg.output.done:
                 sage_conn.close()
                 self._sage_conn = None
+                stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
 
 
 class StatefulExecution(object):
