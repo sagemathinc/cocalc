@@ -4,7 +4,7 @@ Tornado server
 
     - user authentication: Facebook, Google, Dropbox
 
-    - persistent connections to workers speaking protocol buffers over an
+    - persistent connections to sage servers speaking protocol buffers over an
       unencrypted TCP network socket
 
     - persistent connections to web browsers speaking JSON over sockjs and
@@ -18,7 +18,7 @@ Tornado server
       help pages)
 """
 
-import json, logging, os, socket, sys, time
+import json, logging, os, random, socket, sys, time
 
 from tornado import ioloop, iostream
 import sockjs.tornado, tornado.web
@@ -54,7 +54,7 @@ class TestTornadoMesgHandler(BaseHandler):
         
 
 ###########################################
-# Async Connections to workers
+# Async Connections to Sage servers
 ###########################################
 
 from tornado_sage import SageConnection, message, mesg_pb2
@@ -64,7 +64,20 @@ class MessageTypesHandler(BaseHandler):
     def get(self):
         self.write(message_types_json)
 
-WORKER_POOL = [('', 6000)]  # TODO
+monitor_database = 'user=wstein dbname=monitor'  # TODO!
+
+import monitor
+def random_sage_server():
+    """Return a random Sage server that is currently up, according to the database."""
+    # TODO: we might want to instead base this on load, though there
+    # are subtle issues with that, since load changes so quickly and
+    # is hard to accurately measure.
+    x = [s for s in monitor.running_services(database=monitor_database) if s['name'] == 'sage']
+    if len(x) == 0:
+        # no sage servers available
+        return '', 0
+    t = random.choice(x)
+    return t['address'], t['port']
 
 ###########################################
 # memcache usage
@@ -130,7 +143,12 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     def on_open(self, info):
         self.connections.add(self)
         log.info("new connection from %s", self.__dict__)
-        #self._stateful_execution = StatefulExecution(self, host=WORKER_POOL[0][0], port=WORKER_POOL[0][1],
+        
+        #address, port = random_sage_server()
+        #if not port:
+            # TODO: handle error condition sensibly ??
+        #    raise RuntimeError("TOOD: handle this error sensibly")
+        #self._stateful_execution = StatefulExecution(self, address=address, port=port,
         #                                             max_cputime=30, max_walltime=30, timeout=1)
 
     def on_close(self):
@@ -162,15 +180,23 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
                 self.send_obj(m1)
             return
 
+        # TODO: redo to be asynchronous and use own cache...
+        address, port = random_sage_server()
+        if not port: # there are no sage servers at all available
+            # TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
+            self.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':mesg['id'],
+                           'output':{'done':True, 'stdout':'', 'stderr':'there are no Sage servers currently available'}})
+            return
+        
         self._stateless_execution = StatelessExecution(self, mesg=mesg,
-            host=WORKER_POOL[0][0], port=WORKER_POOL[0][1], max_cputime=5, max_walltime=5, timeout=1)
+                  address=address, port=port, max_cputime=5, max_walltime=5, timeout=1)
         
 
 class StatelessExecution(object):
-    def __init__(self, browser_conn, mesg, host, port, timeout, **options):
+    def __init__(self, browser_conn, mesg, address, port, timeout, **options):
         self._browser_conn = browser_conn
         self._mesg = mesg
-        self._host = host
+        self._address = address
         self._port = port
         self._options = options
         self._sage_conn = None
@@ -180,6 +206,7 @@ class StatelessExecution(object):
 
     def kill(self):
         if self._sage_conn is not None:
+            # TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
             self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
                                          'output':{'done':True, 'stdout':'', 'stderr':'killed'}})
             self._sage_conn.close()
@@ -187,7 +214,7 @@ class StatelessExecution(object):
             
     def _start(self):
         log.info("StatelessExecution: making SageConnection...")
-        self._sage_conn = SageConnection(self._host, self._port, mesg_callback=self._handle_mesg,
+        self._sage_conn = SageConnection(self._address, self._port, mesg_callback=self._handle_mesg,
              init_callback=self._send_code, fail_callback=self._fail, log=log, timeout=self._timeout, **self._options)
 
     def _send_code(self, sage_conn):
@@ -196,6 +223,7 @@ class StatelessExecution(object):
 
     def _fail(self, sage_conn):
         self._sage_conn = None
+        # TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
         self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
                                       'output':{'done':True, 'stdout':'', 'stderr':'unable to connect to Sage server'}})
 
@@ -215,9 +243,9 @@ class StatelessExecution(object):
 
 
 class StatefulExecution(object):
-    def __init__(self, browser_conn, host, port, timeout, **options):
+    def __init__(self, browser_conn, address, port, timeout, **options):
         self._browser_conn = browser_conn
-        self._host = host
+        self._address = address
         self._port = port
         self._sage_conn = None
         self._done = True
@@ -227,7 +255,7 @@ class StatefulExecution(object):
             print "callback!!!!!!!!!!!!!!!"
             self._is_connected = True
         log.info("StatefulExecution: making SageConnection...")            
-        self._sage_conn = SageConnection(self._host, self._port, mesg_callback=self._handle_mesg,
+        self._sage_conn = SageConnection(self._address, self._port, mesg_callback=self._handle_mesg,
                         init_callback=f, fail_callback=self._fail, timeout=self._timeout, log=log, **options)
 
 

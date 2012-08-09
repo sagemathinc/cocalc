@@ -2,11 +2,11 @@ TODO
 -----
 
 NOW: 
+     [ ] make backend determining sage_server query be async
+
+     [ ] sage_server seems to delete its pid file even when it doesn't quit, which causes havoc...
 
 [ ] "monitor": database ...
-     [ ] create query that will be used by backend to determine which
-         sage_server to use, and use that -- might choose based on
-         lowest load, etc.
      [ ] create query that will be used by backend to determine which
          memcache server to use??? or does this make sense -- just give all of them as a pool and let it decide.
      [ ] add support to admin.py to clean out old entries from the
@@ -60,6 +60,9 @@ SOON:
    [ ] setup openVPN
    [ ] admin: make default admin import less verbose
      [ ] decide on what computers to buy...
+
+   [ ] address this in tornado_server:
+          TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
 
 VAGUE:
 
@@ -244,3 +247,6 @@ status:
           [x] - list of running processes and last status
           [x] - should use memcache too, so must use clear API defined in monitor.py
           [x] - status of lifetime of process
+     [x] create synchronous query that will be used by backend to determine which
+         sage_server to use, and use that -- might choose based on
+         lowest load, etc.
