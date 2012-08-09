@@ -44,7 +44,7 @@ haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, inse
 
 memcached  = Component('memcached', [Memcached(local_user, 0, monitor_database=monitor_database,
                                                m=512,   # max memory to use for items in megabytes
-                                               c=8192,  # max simultaneous connections
+                                               c=4096,  # max simultaneous connections
                                                )])
 
 sage     = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in range(2)])
