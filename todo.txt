@@ -4,10 +4,6 @@ TODO
 NOW: 
 
 [ ] "monitor": database ...
-     [ ] add support to admin.py to easily query the database:
-           - list of running processes and last status
-           - status of lifetime of process
-           - should use memcache too, so must use clear API defined in monitor.py
      [ ] create query that will be used by backend to determine which
          sage_server to use, and use that -- might choose based on
          lowest load, etc.
@@ -244,3 +240,7 @@ status:
      [x] status -- put periodic information in database about state of watched processes
      [x] memcached + monitor: store something in memcached at same time as put in database, so 
          query about latest status can be done instantly using memcached if in cache.
+     [x] add support to easily query the monitor database and use memcached when appropriate
+          [x] - list of running processes and last status
+          [x] - should use memcache too, so must use clear API defined in monitor.py
+          [x] - status of lifetime of process

@@ -37,6 +37,8 @@ CREATE TABLE services (
     monitor_pid integer)
 """)
 
+service_columns = ['id', 'name', 'address', 'port', 'running', 'username', 'pid', 'monitor_pid']
+
 @misc.call_until_succeed(0.01, 60, 3600)
 def record_that_service_started(database, name, address, port, username, pid, monitor_pid):
     cache.delete('running_services')
@@ -55,7 +57,8 @@ def record_that_service_started(database, name, address, port, username, pid, mo
 
 @misc.call_until_succeed(0.01, 15, 3600)
 def record_that_service_stopped(database, id):
-    cache.delete('running_services')    
+    cache.delete('running_services')
+    cache.delete(status_key(id))
     conn = psycopg2.connect(database)
     cur = conn.cursor()
     try:
@@ -68,13 +71,17 @@ def record_that_service_stopped(database, id):
         conn.close()
 
 def running_services(database):
+    """
+    Return list of the currently running services. 
+    """
     r = cache.get('running_services')
     if r is not None:
         return r
     conn = psycopg2.connect(database)
     cur = conn.cursor()
-    cur.execute('SELECT (id,name,address,port,running,username,pid,monitor_pid) FROM services WHERE running')
+    cur.execute('SELECT * FROM services WHERE running')
     r = cur.fetchall()
+    r = [dict([(c,t[i]) for i,c in enumerate(service_columns)]) for t in r]
     cache.set('running_services', r)
     conn.close()
     return r
@@ -96,6 +103,8 @@ CREATE TABLE status (
     rss integer)
 """)
 
+status_columns = ['id', 'time', 'pmem', 'pcpu', 'cputime', 'vsize', 'rss']
+
 def cputime_to_float(s):
     z = s.split(':')
     cputime = float(z[-1])
@@ -108,6 +117,7 @@ def cputime_to_float(s):
 last_status = None
 @misc.call_until_succeed(0.01, 5, 10)  # give up relatively quickly since not so important
 def update_status(database, id, pid):
+    cache.delete(status_key(id))
     global last_status
     conn = psycopg2.connect(database)
     cur = conn.cursor()
@@ -133,6 +143,39 @@ def update_status(database, id, pid):
         cur.close()
         conn.close()
 
+def status_key(id):
+    return 'latest_status.%s'%id
+
+def latest_status(database, id):
+    """
+    Return latest status information about service with given id, or
+    None if there is no known status information.
+    """
+    key = status_key(id)
+    r = cache.get(key)
+    if r is not None:
+        return r
+    conn = psycopg2.connect(database)
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM status WHERE id=%s ORDER BY time DESC LIMIT 1', (id,))
+    r = cur.fetchall()
+    if len(r) == 0:
+        res = None
+    else:
+        t = r[0]
+        res = dict([(c, t[i]) for i, c in enumerate(status_columns)])
+    cache.set(key, res)
+    cur.close(); conn.close()    
+    return res
+
+def lifetime_status(database, id):
+    conn = psycopg2.connect(database)
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM status WHERE id=%s ORDER BY time ASC', (id,))
+    res = cur.fetchall()
+    cur.close(); conn.close()
+    return res
+    
 
 #########################################################
 # log table
