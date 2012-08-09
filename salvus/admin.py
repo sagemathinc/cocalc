@@ -14,10 +14,13 @@ from string import Template
 ############################################################
 # Paths where data and configuration are stored
 ############################################################
-DATA = 'data'
-CONF = 'conf'
-PIDS = os.path.join(DATA, 'pids')   # preferred location for pid files
-LOGS = os.path.join(DATA, 'logs')   # preferred location for pid files
+DATA   = 'data'
+CONF   = 'conf'
+PIDS   = os.path.join(DATA, 'pids')   # preferred location for pid files
+LOGS   = os.path.join(DATA, 'logs')   # preferred location for pid files
+BIN    = os.path.join(DATA, 'local', 'bin')
+PYTHON = os.path.join(BIN, 'python')
+
 LOG_INTERVAL = 6
 
 ####################
@@ -108,9 +111,9 @@ class Account(object):
         if self._username == whoami and self._hostname == 'localhost':
             self._pre = []
         elif self._username == 'root' and whoami != 'root':
-            self._pre = ['sudo']   # interactive
+            self._pre = ['sudo', 'LD_LIBRARY_PATH=%s/local/lib'%DATA]   # interactive
         else:
-            self._pre = ['ssh', self._user_at]
+            self._pre = ['ssh', self._user_at, 'LD_LIBRARY_PATH=%s/local/lib'%DATA]  # TODO: works?
 
     def __repr__(self):
         return '%s:%s'%(self._user_at, self._path)
@@ -302,7 +305,7 @@ class Process(object):
 
     def _start_monitor(self):
         if self._monitor_database and self._logfile:
-            self._account.run(['./monitor.py', '--logfile', self._logfile, '--database', self._monitor_database,
+            self._account.run([PYTHON, 'monitor.py', '--logfile', self._logfile, '--database', self._monitor_database,
                                '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
                                '--target_pidfile', self._pidfile,
                                '--target_name', self._name,
@@ -477,7 +480,7 @@ frontend unsecured *:$port
                          pidfile = pidfile,
                          logfile = logfile, monitor_database = monitor_database,
                          start_using_system = True, 
-                         start_cmd = ['HAPROXY_LOGFILE='+logfile, 'haproxy', '-D', '-f', target_conf, '-p', pidfile])
+                         start_cmd = ['HAPROXY_LOGFILE='+logfile, os.path.join(BIN, 'haproxy'), '-D', '-f', target_conf, '-p', pidfile])
         
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])
@@ -588,7 +591,7 @@ class Tornado(Process):
         Process.__init__(self, account, id, name='tornado', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
-                         start_cmd = ['./tornado_server.py', '-d', '-p', port,
+                         start_cmd = [PYTHON, 'tornado_server.py', '-d', '-p', port,
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
