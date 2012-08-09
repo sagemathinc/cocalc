@@ -7,10 +7,18 @@ assigned to University of Washington.
 import os, subprocess, time
 
 import daemon
+
 import psycopg2
 
 import misc
 from db import table_exists
+
+#########################################################
+# memcache support
+#########################################################
+import memcache
+MEMCACHE_SERVERS = ["127.0.0.1:11211"]  # TODO
+cache = memcache.Client(MEMCACHE_SERVERS)
 
 #########################################################
 # services table
@@ -31,6 +39,7 @@ CREATE TABLE services (
 
 @misc.call_until_succeed(0.01, 60, 3600)
 def record_that_service_started(database, name, address, port, username, pid, monitor_pid):
+    cache.delete('running_services')
     conn = psycopg2.connect(database)
     cur = conn.cursor()
     try:
@@ -46,6 +55,7 @@ def record_that_service_started(database, name, address, port, username, pid, mo
 
 @misc.call_until_succeed(0.01, 15, 3600)
 def record_that_service_stopped(database, id):
+    cache.delete('running_services')    
     conn = psycopg2.connect(database)
     cur = conn.cursor()
     try:
@@ -56,6 +66,19 @@ def record_that_service_stopped(database, id):
     finally:
         cur.close()
         conn.close()
+
+def running_services(database):
+    r = cache.get('running_services')
+    if r is not None:
+        return r
+    conn = psycopg2.connect(database)
+    cur = conn.cursor()
+    cur.execute('SELECT (id,name,address,port,running,username,pid,monitor_pid) FROM services WHERE running')
+    r = cur.fetchall()
+    cache.set('running_services', r)
+    conn.close()
+    return r
+    
 
 #########################################################
 # status updates table
@@ -179,8 +202,9 @@ def target_pid(target_pidfile):
     except IOError:  # in case file vanished after above check.
         return None
 
-def target_process_still_running(target_pidfile):
-    return target_pid(target_pidfile) is not None
+def target_process_still_running(target_pidfile, tpid):
+    p = target_pid(target_pidfile)
+    return p is not None and p == tpid
 
 def main(name, logfile, pidfile, target_pidfile, target_address, target_port, interval, database):
 
@@ -189,10 +213,10 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
         p = target_pid(target_pidfile)
         assert p is not None
         return p
-    wpid = f()
+    tpid = f()
     id = record_that_service_started(database=database,
                                      name=name, address=target_address, port=target_port,
-                                     username=os.environ['USER'], pid=wpid, monitor_pid=os.getpid())
+                                     username=os.environ['USER'], pid=tpid, monitor_pid=os.getpid())
     
     global lastmod
     filename = os.path.split(logfile)[-1]
@@ -200,7 +224,7 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
         open(pidfile,'w').write(str(os.getpid()))
         lastmod = None
         while True:
-            update_status(database, id, wpid)
+            update_status(database, id, tpid)
             
             modtime = mtime(logfile)
             if lastmod != modtime:
@@ -211,7 +235,7 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
                     print msg
             print "Sleeping %s seconds"%interval
             time.sleep(interval)
-            if not target_process_still_running(target_pidfile):
+            if not target_process_still_running(target_pidfile, tpid):
                 record_that_service_stopped(database, id)
                 return
     finally:
