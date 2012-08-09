@@ -2,9 +2,9 @@ TODO
 -----
 
 NOW: 
-     [ ] make backend determining sage_server query be async
 
-     [ ] sage_server seems to delete its pid file even when it doesn't quit, which causes havoc...
+     [ ] sage_server: "./config1 --restart=sage_server" doesn't work
+     [ ] make backend determining sage_server query be async
 
 [ ] "monitor": database ...
      [ ] create query that will be used by backend to determine which
@@ -35,7 +35,6 @@ SOON:
   
    [ ] tornado: implement sending message to any connected browser, possibly connected to a different tornado
 
-   [ ] sage_server: "./config1 --restart=sage_server" doesn't work
    [ ] sage_server: sage_server.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
    [ ] sage_server/tornado: range(10^4 ) *reliably* fails to get the final I/O terminate message through from tornado to browser.
    [ ] sage_server: specify tornado sage_servers by putting them in a config file, which the
@@ -250,3 +249,6 @@ status:
      [x] create synchronous query that will be used by backend to determine which
          sage_server to use, and use that -- might choose based on
          lowest load, etc.
+     [x] race condition: sage_server seems to delete its pid file even when it doesn't quit, which causes havoc...
+         
+

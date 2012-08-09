@@ -213,7 +213,7 @@ class StatelessExecution(object):
             self._sage_conn = None
             
     def _start(self):
-        log.info("StatelessExecution: making SageConnection...")
+        log.info("StatelessExecution: making SageConnection to address=%s, port=%s", self._address, self._port)        
         self._sage_conn = SageConnection(self._address, self._port, mesg_callback=self._handle_mesg,
              init_callback=self._send_code, fail_callback=self._fail, log=log, timeout=self._timeout, **self._options)
 
@@ -254,7 +254,7 @@ class StatefulExecution(object):
         def f(*args):
             print "callback!!!!!!!!!!!!!!!"
             self._is_connected = True
-        log.info("StatefulExecution: making SageConnection...")            
+        log.info("StatefulExecution: making SageConnection to address=%s, port=%s", self._address, self._port)
         self._sage_conn = SageConnection(self._address, self._port, mesg_callback=self._handle_mesg,
                         init_callback=f, fail_callback=self._fail, timeout=self._timeout, log=log, **options)
 

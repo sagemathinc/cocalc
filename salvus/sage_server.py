@@ -386,16 +386,12 @@ def serve(port, whitelist):
         
 
 def run_server(port, pidfile, logfile, whitelist):
-    try:
-        if pidfile:
-            open(pidfile,'w').write(str(os.getpid()))
-        if logfile:
-            log.addHandler(logging.FileHandler(logfile))
-        log.info("port=%s, pidfile='%s', logfile='%s', whitelist=%s", port, pidfile, logfile, whitelist)
-        serve(port, whitelist)
-    finally:
-        if pidfile:
-            os.unlink(pidfile)
+    if pidfile:
+        open(pidfile,'w').write(str(os.getpid()))
+    if logfile:
+        log.addHandler(logging.FileHandler(logfile))
+    log.info("port=%s, pidfile='%s', logfile='%s', whitelist=%s", port, pidfile, logfile, whitelist)
+    serve(port, whitelist)
 
 if __name__ == "__main__":
     import argparse

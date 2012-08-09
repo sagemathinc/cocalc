@@ -47,7 +47,7 @@ memcached  = Component('memcached', [Memcached(local_user, 0, monitor_database=m
                                                c=8192,  # max simultaneous connections
                                                )])
 
-sage     = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in [0,1,2]])
+sage     = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in range(1)])
 
 all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,
        'memcached':memcached, 'tornado':tornado, 'sage':sage,
