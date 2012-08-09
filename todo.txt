@@ -3,18 +3,16 @@ TODO
 
 NOW: 
 
-     [ ] make backend determining sage_server query be async
-
-[ ] "monitor": database ...
-     [ ] create query that will be used by backend to determine which
-         memcache server to use??? or does this make sense -- just give all of them as a pool and let it decide.
-     [ ] add support to admin.py to clean out old entries from the
-         database, i.e., something like capped collection via a delete call: calls db.cap_table somehow...
-
 
 SOON:
 
    [ ] setup a VPN and deploy something...
+
+   [ ] "monitor": database ...
+     [ ] create query that will be used by backend to determine which
+         memcache server to use??? or does this make sense -- just give all of them as a pool and let it decide.
+     [ ] add support to admin.py to clean out old entries from the
+         database, i.e., something like capped collection via a delete call: calls db.cap_table somehow...
 
    [ ] fix this, which is caused by postgresql[0].createdb('monitor') in config1.py:
  8787 | postgresql-0.log | 2012-08-08 11:18:05.854365 | STATEMENT:  CREATE DATABASE monitor;
@@ -254,3 +252,4 @@ status:
      [x] sage_server: "./config1 --restart=sage_server" doesn't work; this is because the
          port isn't being freed quickly enough.  we use SO_REUSEADDR to fix this.
 
+     [x] make tornado determining sage_server query be async

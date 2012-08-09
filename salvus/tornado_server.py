@@ -20,6 +20,8 @@ Tornado server
 
 import json, logging, os, random, socket, sys, time
 
+import momoko  # async postgresql
+
 from tornado import ioloop, iostream
 import sockjs.tornado, tornado.web
 
@@ -67,23 +69,49 @@ class MessageTypesHandler(BaseHandler):
 monitor_database = 'user=wstein dbname=monitor'  # TODO!
 
 import monitor
-def random_sage_server():
-    """Return a random Sage server that is currently up, according to the database."""
-    # TODO: we might want to instead base this on load, though there
-    # are subtle issues with that, since load changes so quickly and
-    # is hard to accurately measure.
-    x = [s for s in monitor.running_services(database=monitor_database) if s['name'] == 'sage']
-    if len(x) == 0:
-        # no sage servers available
-        return '', 0
-    t = random.choice(x)
-    return t['address'], t['port']
+def random_sage_server(callback):
+    """Find a random Sage server that is currently up, according to the databass, then do
+       callback(address, port).  If there are no available Sage servers, port=0."""
+    # IDEA: we might want to instead base this on load or roundrobin,
+    # though there are subtle issues with that, since load changes so
+    # quickly and is hard to accurately measure.  roundrobin could be
+    # hard, because the sage servers might come and go dynamically.
+
+    # For the record: this is a *synchronous* way to get all sage services
+    # x = [s for s in monitor.running_services(database=monitor_database) if s['name'] == 'sage']
+
+    def choose_server(x):
+        if len(x) == 0:
+            # no sage servers available
+            callback('',0)
+        else:
+            t = random.choice(x)
+            callback(t['address'], t['port'])
+
+    # Get all sage servers (async, except memcache):
+    x = cache.get('sage_servers')
+    if x is None:
+        # use momoko async postgres to get sage_servers
+        c = momoko.AsyncClient({'database':'monitor'})   # TODO -- specify more precisely, etc.
+        def f(cur):
+            x = [dict([(c,t[i]) for i,c in enumerate(monitor.service_columns)]) for t in cur.fetchall()]
+            log.debug("query got %s", x)
+            cache.set('sage_servers', x)
+            choose_server(x)
+        c.execute("select * from services where running and name='sage'", callback=f)
+        log.debug("started async query")
+    else:
+        log.debug("using sage servers '%s' from memcache", x)
+        choose_server(x)
+
 
 ###########################################
 # memcache usage
 ###########################################
 import memcache, tornadoasyncmemcache
 MEMCACHE_SERVERS = ["127.0.0.1:11211"]
+cache = memcache.Client(MEMCACHE_SERVERS)
+
 class MemCache(object):
     """
     Use memcache to implement a simple key:value store.
@@ -143,13 +171,15 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     def on_open(self, info):
         self.connections.add(self)
         log.info("new connection from %s", self.__dict__)
-        
-        #address, port = random_sage_server()
-        #if not port:
-            # TODO: handle error condition sensibly ??
-        #    raise RuntimeError("TOOD: handle this error sensibly")
-        #self._stateful_execution = StatefulExecution(self, address=address, port=port,
-        #                                             max_cputime=30, max_walltime=30, timeout=1)
+
+        def connect(address, port):
+            if not port:
+                # TODO: handle error condition sensibly ??
+                raise RuntimeError("TOOD: handle this error sensibly")
+            self._stateful_execution = StatefulExecution(self, address=address, port=port,
+                                                         max_cputime=30, max_walltime=30, timeout=1)
+        # TODO -- this is ONLY for testing right now    
+        #random_sage_server(connect)
 
     def on_close(self):
         self.connections.remove(self)
@@ -180,17 +210,17 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
                 self.send_obj(m1)
             return
 
-        # TODO: redo to be asynchronous and use own cache...
-        address, port = random_sage_server()
-        if not port: # there are no sage servers at all available
-            # TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
-            self.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':mesg['id'],
-                           'output':{'done':True, 'stdout':'', 'stderr':'there are no Sage servers currently available'}})
-            return
+        def connect_and_execute(address, port):
+            if not port: # there are no sage servers at all available
+                # TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
+                self.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':mesg['id'],
+                               'output':{'done':True, 'stdout':'', 'stderr':'there are no Sage servers currently available'}})
+                return
+
+            self._stateless_execution = StatelessExecution(self, mesg=mesg,
+                      address=address, port=port, max_cputime=5, max_walltime=5, timeout=1)
         
-        self._stateless_execution = StatelessExecution(self, mesg=mesg,
-                  address=address, port=port, max_cputime=5, max_walltime=5, timeout=1)
-        
+        random_sage_server(connect_and_execute)
 
 class StatelessExecution(object):
     def __init__(self, browser_conn, mesg, address, port, timeout, **options):

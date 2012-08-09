@@ -42,6 +42,7 @@ service_columns = ['id', 'name', 'address', 'port', 'running', 'username', 'pid'
 @misc.call_until_succeed(0.01, 60, 3600)
 def record_that_service_started(database, name, address, port, username, pid, monitor_pid):
     cache.delete('running_services')
+    if name == 'sage': cache.delete('sage_servers')    
     conn = psycopg2.connect(database)
     cur = conn.cursor()
     try:
@@ -56,9 +57,10 @@ def record_that_service_started(database, name, address, port, username, pid, mo
         conn.close()
 
 @misc.call_until_succeed(0.01, 15, 3600)
-def record_that_service_stopped(database, id):
+def record_that_service_stopped(database, id, name):
     cache.delete('running_services')
     cache.delete(status_key(id))
+    if name == 'sage': cache.delete('sage_servers')
     conn = psycopg2.connect(database)
     cur = conn.cursor()
     try:
@@ -279,11 +281,11 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
             print "Sleeping %s seconds"%interval
             time.sleep(interval)
             if not target_process_still_running(target_pidfile, tpid):
-                record_that_service_stopped(database, id)
+                record_that_service_stopped(database, id, name)
                 return
     finally:
         os.unlink(pidfile)
-        record_that_service_stopped(database, id)
+        record_that_service_stopped(database, id, name)
 
 if __name__ == "__main__":
     import argparse
