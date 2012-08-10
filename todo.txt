@@ -3,14 +3,15 @@ TODO
 
 NOW: 
 
+     [ ] create query that will be used by backend/monitor/etc. to determine 
+         memcache server to use??? or does this make sense -- just give all 
+         of them as a pool and let it decide.
 
 SOON:
 
    [ ] setup a VPN and deploy something...
 
    [ ] "monitor": database ...
-     [ ] create query that will be used by backend to determine which
-         memcache server to use??? or does this make sense -- just give all of them as a pool and let it decide.
      [ ] add support to admin.py to clean out old entries from the
          database, i.e., something like capped collection via a delete call: calls db.cap_table somehow...
 
@@ -33,6 +34,7 @@ SOON:
    [ ] tornado: implement sending message to any connected browser, possibly connected to a different tornado
 
    [ ] sage_server: sage_server.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
+
    [ ] sage_server/tornado: range(10^4 ) *reliably* fails to get the final I/O terminate message through from tornado to browser.
    [ ] sage_server: specify tornado sage_servers by putting them in a config file, which the
        tornado monitors for changes (via file descriptor)
@@ -253,3 +255,5 @@ status:
          port isn't being freed quickly enough.  we use SO_REUSEADDR to fix this.
 
      [x] make tornado determining sage_server query be async
+   [x] get it to start under linux 
+
