@@ -36,7 +36,8 @@ PATCHES= os.path.join(SRC, 'patches')
 BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 
-PYTHON_PACKAGES = [  
+PYTHON_PACKAGES = [
+    'ipython',            # a usable command line  
     'tornado',            # async webserver
     'sockjs-tornado',     # websocket support
     'python-memcached',   # memcached for database
