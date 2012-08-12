@@ -1,0 +1,18 @@
+combinat (high end internet facing machine) -- stunnel
+salvus.1 (vm on combinat)
+salvus.3 (vm on combinat)
+salvus.5 (vm on combinat)
+salvus.7 (vm on combinat)
+
+NOTES:
+
+stunnel --> combinat.math.washington.edu
+
+i.e., stunnel will connect to port 443 on combinat.
+
+combinat will connect via a *secure* openVPN tunnel to everything else.
+
+When combinat goes down, round robbin DNS will take over and clients will
+hit another server.
+
+

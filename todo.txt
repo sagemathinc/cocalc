@@ -3,14 +3,20 @@ TODO
 
 NOW: 
 
-     [ ] create query that will be used by backend/monitor/etc. to determine 
-         memcache server to use??? or does this make sense -- just give all 
-         of them as a pool and let it decide.
+   [ ] setup a VPN and deploy something...
+
 
 SOON:
 
-   [ ] setup a VPN and deploy something...
-
+   [ ] create query that will be used by backend/monitor/etc. to determine 
+       memcache pool:
+          [ ] make sure startup goes like this:
+             (1) start database
+             (2) start memcached
+             ... 
+          [ ] create the query to get memcached pool
+          [ ] use in tornado, monitor, etc. 
+     
    [ ] "monitor": database ...
      [ ] add support to admin.py to clean out old entries from the
          database, i.e., something like capped collection via a delete call: calls db.cap_table somehow...
@@ -18,8 +24,6 @@ SOON:
    [ ] fix this, which is caused by postgresql[0].createdb('monitor') in config1.py:
  8787 | postgresql-0.log | 2012-08-08 11:18:05.854365 | STATEMENT:  CREATE DATABASE monitor;
  8786 | postgresql-0.log | 2012-08-08 11:18:05.854365 | ERROR:  database "monitor" already exists
-
-   [ ] decide on what computers to buy from Dell to deploy in a few weeks
 
    [ ] update apple dev network account and make a first PhoneGap app for iphone
    [ ] make a first PhoneGap app for iphone
@@ -61,6 +65,8 @@ SOON:
 
    [ ] address this in tornado_server:
           TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
+
+   [ ] decide on what computers to buy from Dell to deploy in a few weeks
 
 VAGUE:
 

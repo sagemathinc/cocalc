@@ -1,0 +1,65 @@
+#############################
+Setting up an extra disposable /tmp in a VM:
+
+# 10 seconds
+VBoxManage createhd --filename tmp.vdi --size 8000 --variant Fixed  
+
+# 3 minutes?
+VBoxManage storageattach salvus.5 --storagectl "SATA Controller" --medium tmp.vdi --port 2 --type hdd   
+
+# Then:
+
+fdisk /dev/sdb1
+mkfs.ext4 /dev/sdb1
+blkid
+
+# In /etc/fstab
+UUID=c17acc97-a63d-46a6-a44e-c04127297082 /tmp       ext4 defaults 0 0 
+
+mount -a
+
+# fix permissions:
+
+chmod 1777 /tmp
+
+#####################
+
+For VNC, chicken of the vnc + portforwarding + password:
+
+# on combinat:
+   VBoxHeadless -s salvus.5 -n -m 3389 -o kzxcns
+
+# on laptop
+   ssh -L 3389:localhost:3389 combinat
+
+Note that the password is just extra help, since those ports are
+firewalled anyways (by the university).
+
+
+###########################
+Cloning a VM:
+
+# this takes about 24 seconds:
+
+time VBoxManage clonevm salvus.1 --name salvus.7 --register
+
+To remove:
+
+ time VBoxManage unregistervm salvus.7 --delete
+
+NOTE, after creation, will have to start with VNC, and change ethX's
+around a bit.  This takes a few minutes to boot the first time, due to
+the network being screwed up.  BETTER:
+
+  Delete content of /etc/udev/rules.d/70-persistent-net.rules
+
+
+
+
+###########################
+Reboot time:
+
+It takes < 30 seconds to fully reboot these VM's on combinat. 
+This means rebooting the sage_server machine regularly is 
+viable. 
+
