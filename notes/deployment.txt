@@ -1,16 +1,34 @@
 
- * geom (high end internet facing machine) -- openvpn
- * combinat (high end internet facing machine) -- stunnel (?)
+TODO:
+
+ [ ] the sage server machines needs to have outgoing network
+     firewalled massively (don't know how yet)
+
+ [ ] servedby1 will have to listen to outside world but *ONLY* for
+     ports 443 and 80, so database is not exposed
+
+Plan:
+
+standalone high-end internet facing machines:
+ * geom     -- openvpn server, stunnel, haproxy
+ * combinat -- redundent vpn server (?), ?
 
 combinat VM's:
- * salvus1 (vm on combinat)
- * salvus3 (vm on combinat)
- * salvus5 (vm on combinat)
- * salvus7 (vm on combinat)
+ * salvus1  -- memcached, nginx, tornado, postgresql master
+ * salvus7  -- memcached, nginx, tornado, postgresql slave
+ * salvus3  -- sage server
+ * salvus5  -- sage server
 
 Servedby.net VM's:
- * servedby1                 (174.127.179.97)
- * servedby2                 (174.127.179.98)
+ * servedby1 -- stunnel backup, haproxy, memcached, nginx, tornado, postgresql slave
+ * servedby2 -- sage server
+
+Redhawk VM's (I need to upgrade OS on Redhawk first...):
+ * rh1 -- memcached, nginx, tornado, postgresql slave
+ * rh2 -- memcached, nginx, tornado, postgresql slave
+ * rh3 -- sage server
+ * rh4 -- sage server
+
 
 VPN:
 
