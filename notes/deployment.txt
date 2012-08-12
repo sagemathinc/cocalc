@@ -1,8 +1,28 @@
-combinat (high end internet facing machine) -- stunnel
-salvus.1 (vm on combinat)
-salvus.3 (vm on combinat)
-salvus.5 (vm on combinat)
-salvus.7 (vm on combinat)
+
+ * geom (high end internet facing machine) -- openvpn
+ * combinat (high end internet facing machine) -- stunnel (?)
+
+combinat VM's:
+ * salvus1 (vm on combinat)
+ * salvus3 (vm on combinat)
+ * salvus5 (vm on combinat)
+ * salvus7 (vm on combinat)
+
+Servedby.net VM's:
+ * servedby1                 (174.127.179.97)
+ * servedby2                 (174.127.179.98)
+
+VPN:
+
+10.37.0.1  geom
+10.37.0.6  combinat
+10.37.0.26 salvus0   # laptop control
+10.37.0.10 salvus1
+10.37.0.14 salvus3
+10.37.0.18 salvus5
+10.37.0.22 salvus7
+10.37.0.30 servedby1
+10.37.0.34 servedby2
 
 NOTES:
 

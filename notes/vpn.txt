@@ -1,0 +1,82 @@
+I'm following http://openvpn.net/index.php/open-source/documentation/howto.html#quick
+
+sa1vus
+
+Private subnets numbers:
+
+I'm going to use... 10.37.0.0/24
+
+
+
+1. Generate the master Certificate Authority (CA) certificate & key
+
+cd salvus/salvus/data/build/openvpn-2.2.2/easy-rsa
+
+# edit vars:
+# -------------------------------------------
+# 
+export KEY_SIZE=2048   # !!
+
+#...
+
+export KEY_COUNTRY="US"
+export KEY_PROVINCE="WA"
+export KEY_CITY="Seattle"
+export KEY_ORG="University of Washington"
+export KEY_EMAIL="wstein@uw.edu"
+# these below don't work
+export KEY_OU="Department of Mathematics"
+export KEY_CN=OpenVPN-CA
+export KEY_NAME=CA
+#-------------------------------------------
+
+# initialize the PKI:
+
+. ./vars
+./clean-all
+./build-ca
+
+
+./build-key-server server
+
+#--------------
+Common Name (eg, your name or your server's hostname) [server]:
+Name [changeme]:server
+Email Address [wstein@uw.edu]:
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:********
+An optional company name []:              
+Using configuration from /Users/wstein/salvus/salvus/data/build/openvpn-2.2.2/easy-rsa/2.0/openssl-1.0.0.cnf
+Check that the request matches the signature
+Signature ok
+The Subject's Distinguished Name is as follows
+countryName           :PRINTABLE:'US'
+stateOrProvinceName   :PRINTABLE:'WA'
+localityName          :PRINTABLE:'Seattle'
+organizationName      :PRINTABLE:'University of Washington'
+organizationalUnitName:PRINTABLE:'Mathematics'
+commonName            :PRINTABLE:'server'
+name                  :PRINTABLE:'server'
+emailAddress          :IA5STRING:'wstein@uw.edu'
+Certificate is to be certified until Aug 10 05:44:58 2022 GMT (3650 days)
+Sign the certificate? [y/n]:y
+
+
+1 out of 1 certificate requests certified, commit? [y/n]y
+Write out database with 1 new entries
+Data Base Updated
+#---------------------
+
+./build-key salvus0  # laptop
+./build-key salvus1
+./build-key salvus3
+./build-key salvus5
+./build-key salvus7
+./build-key combinat
+
+./build-key servedby1
+./build-key servedby2
+
+./build-dh

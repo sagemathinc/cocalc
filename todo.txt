@@ -3,7 +3,9 @@ TODO
 
 NOW: 
 
-   [ ] setup a VPN and deploy something...
+   [x] setup openVPN
+   [ ] setup a private DNS server
+   [ ] understand how to remove SPOF's from openVPN
 
 
 SOON:
