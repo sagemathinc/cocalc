@@ -16,18 +16,59 @@ standalone high-end internet facing machines:
 combinat VM's:
  * salvus1  -- memcached, nginx, tornado, postgresql master
  * salvus7  -- memcached, nginx, tornado, postgresql slave
+ * salvus2  -- sage server
  * salvus3  -- sage server
+ * salvus4  -- sage server
  * salvus5  -- sage server
+ * salvus6  -- sage server
 
 Servedby.net VM's:
  * servedby1 -- stunnel backup, haproxy, memcached, nginx, tornado, postgresql slave
  * servedby2 -- sage server
 
 Redhawk VM's (I need to upgrade OS on Redhawk first...):
+ * redhawk -- ??
  * rh1 -- memcached, nginx, tornado, postgresql slave
- * rh2 -- memcached, nginx, tornado, postgresql slave
+ * rh2 -- memcached, nginx, tornado
  * rh3 -- sage server
  * rh4 -- sage server
+
+UW Tower (not yet; need to buy hardware -- 2 identical $4K machines: ~ 64GB ram & 32 cores):
+
+ * towera (host) -- openvpn server, stunnel, haproxy
+ * towera1 (vm) -- memcached, nginx, tornado, postgresql slave
+ * towera2 (vm) -- memcached, nginx, tornado
+ * towera3 -- sage server
+ * towera4 -- sage server
+ * towera5 -- sage server
+ * towera6 -- sage server
+ * towera7 -- sage server
+ * towera8 -- sage server
+
+ * towerb (host)
+ * towerb1 (vm) -- memcached, nginx, tornado, postgresql slave
+ * towerb2 (vm) -- memcached, nginx, tornado
+ * towerb3 -- sage server
+ * towerb4 -- sage server
+ * towerb5 -- sage server
+ * towerb6 -- sage server
+ * towerb7 -- sage server
+ * towerb8 -- sage server
+
+
+I consider a sage server VM to be able to handle about 20 simultaneous
+sessions... this may just be wrong.  It's a guess, esp. because a lot
+depends on what they are doing.  Probably memory is the limiting
+factor, actually.  We thus above would have 20*20 = 400 sessions at
+*once*.   
+
+What would I need to get 10000 sessions at once?  
+
+Maybe 50 machines, which would cost:
+   $200,000 + $1000/month
+
+10000 people at once would be probably a million users, which would at
+a $1/each month, would be a lot of money.
 
 
 VPN:
