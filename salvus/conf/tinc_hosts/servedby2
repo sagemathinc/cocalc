@@ -1,6 +1,7 @@
 Address = 192.168.0.101
 Subnet = 10.38.1.12/32
 Port = 8200 
+Compression = 9
 
 -----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEAzIRqCsJKTnGmNGwkXfmSs5/7xAIGQ7Wozt2h/ZGq2qNC236lFrle
