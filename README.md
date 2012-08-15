@@ -60,11 +60,11 @@ Database
    * PostgreSQL -- http://postgresql.org/; MIT license
    * psycopg2 (postgreSQL Python bindings) -- http://pypi.python.org/pypi/psycopg2/
    * Tornado + postgresql -- https://gist.github.com/861193 ?
-   * openVPN
 
 Used as a separate process (no library linking)
 -----------------------------------------------
 
+   * tinc -- VPN software -- http://www.tinc-vpn.org/; GPL v2+; 
    * Git -- http://git-scm.com/; GPL v2
    * Sage -- http://sagemath.org/; GPL v3+;  this is linked by sage_server.py, which thus must be GPL'd
   
@@ -72,8 +72,10 @@ Used as a separate process (no library linking)
 ARCHITECTURE
 ------------
 
-  * openVPN -- connect all computers at all sites into one unified
-               network address space with secure communication
+  * VPN -- use tinc to connect all computers at all sites into one
+            unified network address space with secure communication,
+            no single points of failure, and fast communication
+            between nodes on the same subnet.
   * Browers -- Javascript client library that runs in web browser
   * HAProxy load balancer 
   * PostgreSQL database

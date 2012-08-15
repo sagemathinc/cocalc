@@ -11,7 +11,7 @@ The components of sagews are:
     * python
     * nginx
     * haproxy
-    * openvpn 
+    * tinc  
     * postgreSQL
     * protobuf
 
@@ -90,14 +90,11 @@ def build_openssl():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
-def build_openvpn():
-    log.info('building openvpn'); start = time.time()
+def build_tinc():
+    log.info('building tinc'); start = time.time()
     try:
-        path = extract_package('openvpn')
-        # patch from http://thread.gmane.org/gmane.network.openvpn.devel/4953
-        cmd('patch -p0 < %s/openvpn.patch'%PATCHES, path)  # diff -Naur syshead.h  ~/syshead.h > ../patches/openvpn.patch
-        cmd('./configure --prefix="%s" --disable-lzo --with-ssl-headers=%s --with-ssl-lib=%s'%(
-            TARGET, os.path.join(TARGET, 'include/openssl'), os.path.join(TARGET, 'lib')), path)
+        path = extract_package('tinc')
+        cmd('./configure --prefix="%s"'%TARGET, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
@@ -209,8 +206,8 @@ if __name__ == "__main__":
     parser.add_argument('--build_openssl', dest='build_openssl', action='store_const', const=True, default=False,
                         help="build the openssl library")
 
-    parser.add_argument('--build_openvpn', dest='build_openvpn', action='store_const', const=True, default=False,
-                        help="build openvpn")
+    parser.add_argument('--build_tinc', dest='build_tinc', action='store_const', const=True, default=False,
+                        help="build tinc")
 
     parser.add_argument('--build_memcached', dest='build_memcached', action='store_const', const=True, default=False,
                         help="build memcached")
@@ -243,8 +240,8 @@ if __name__ == "__main__":
         if args.build_all or args.build_openssl:
             times['openssl'] = build_openssl()
 
-        if args.build_all or args.build_openvpn:
-            times['openvpn'] = build_openvpn()
+        if args.build_all or args.build_tinc:
+            times['tinc'] = build_tinc()
 
         if args.build_all or args.build_memcached:
             times['memcached'] = build_memcached()
