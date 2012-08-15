@@ -1,4 +1,4 @@
-ubnet = 10.38.1.10/32
+Subnet = 10.38.1.10/32
 Port = 8200
 
 -----BEGIN RSA PUBLIC KEY-----
