@@ -1,17 +1,27 @@
 TODO
 -----
 
+[ ] consider switching from postgresql to casandra -- ugh... but it
+    has the right properties, and I'll be fighting postgresql if I
+    don't do this from the start.  Right now, the database is the only
+    non-truly distributed multi-data center component...
+
+ This would mean getting rid of:
+   * momoko
+   * psycopg
+   * memcached (!?)
+
+
+
 NOW: 
+
+SOON:
+
+   [ ] *passphrase* + shared ssh keys and trust might be good (?)
 
    [ ] write crafting config2.py, which will deploy live on the web.
 
-   [ ] change my salvus installs on all machines in vpn to use git, so I can easily pull/push -- I guess I could just have them directly pull/push from my laptop or combinat account safely over the vpn.
-
-   [ ] change openvpn to use compression
-
    [ ] top goal: have the page be live with a single compute cell
-
-SOON:
 
    [ ] create query that will be used by backend/monitor/etc. to determine 
        memcache pool:
@@ -285,4 +295,10 @@ status:
 
    [x] change DNS clients to run in daemon mode, maybe connecting on
        startup (at least for the VMs)?
+
+   [x] change openvpn to use compression
+
+   [x]  change my salvus installs on all machines in vpn to use git, so I can easily pull/push -- I guess I could just have them directly pull/push from my laptop or combinat account safely over the vpn.
+
+[x] automate adding new host to vpn
 

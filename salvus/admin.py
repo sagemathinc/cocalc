@@ -718,6 +718,14 @@ Port = %s"""%(external_ip, ip_address, port))
     tincd = os.path.abspath('data/local/sbin/tincd')
     sh['sudo', tincd, '-k']
     sh['sudo', tincd]
-    
-    
+
+    print "To join the vpn automatically on startup,"
+    print "add this line to /etc/rc.local:\n"
+    print "  /home/salvus/salvus/salvus/data/local/sbin/tincd"
+    print "\nWhen you git pull on some remote hosts, you may have to"
+    print "delete the host files we pushed out above first"
+    print "You might also want to git add, push, etc., the new"
+    print "host file for this machine..."
+
+
     
