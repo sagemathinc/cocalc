@@ -1,3 +1,21 @@
+Starting VM's -- *always* do this by default:
+
+   nohup VBoxHeadless -s bsd1 --vrde off &
+
+
+We do *not* want that vrde to be on by default.
+
+
+
+#############################
+Deal with:  Error: failed to start machine. Error message: Nonexistent host networking interface, name 'vboxnet0' (VERR_INTERNAL_ERROR)
+
+VBoxManage hostonlyif create
+
+0%...10%...20%...30%...40%...50%...60%...70%...80%...90%...100%
+Interface 'vboxnet2' was successfully created
+
+
 #############################
 Setting up an extra disposable /tmp in a VM:
 
@@ -35,6 +53,17 @@ For VNC, chicken of the vnc + portforwarding + password:
 Note that the password is just extra help, since those ports are
 firewalled anyways (by the university).
 
+On BSD (mac host), we do this:
+
+ VBoxHeadless -s bsd1 --vrde on 
+
+This listens on port xxxx (watch console).  I then do:
+
+   ssh -L 5000:localhost:5000 wstein@bsd
+
+and use OS X's RDC client to localhost:5000, and it works!
+
+
 
 ###########################
 Cloning a VM:
@@ -47,12 +76,29 @@ To remove:
 
  time VBoxManage unregistervm salvus.7 --delete
 
+To rename is easy:
+  VBoxManage modifyvm salvus.1 --name combinat1
+
+To export/import:
+
+   IMPORTANT! Delete content of /etc/udev/rules.d/70-persistent-net.rules
+
+
+   time VBoxManage export combinat1 -o /scratch/combinat1.ova
+
+   time VBoxManage import combinat1.ova --vsys 0 --memory 4192 --cpus 6
+   VBoxManage modifyvm combinat1 --name bsd1
+
 NOTE, after creation, will have to start with VNC, and change ethX's
 around a bit.  This takes a few minutes to boot the first time, due to
 the network being screwed up.  BETTER:
 
   Delete content of /etc/udev/rules.d/70-persistent-net.rules
 
+
+Upgrade memory:
+
+   VBoxManage modifyvm bsd1 --memory 4096
 
 
 
@@ -63,3 +109,6 @@ It takes < 30 seconds to fully reboot these VM's on combinat.
 This means rebooting the sage_server machine regularly is 
 viable. 
 
+
+
+#########

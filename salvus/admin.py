@@ -619,3 +619,10 @@ class Sage(Process):
     def port(self):
         return self._port
         
+######################################################
+
+def is_alive(hostname, timeout=1):
+    return subprocess.Popen(['ping', '-t', str(timeout), '-c', '1', hostname],
+                            stdin=subprocess.PIPE, stdout = subprocess.PIPE,
+                            stderr=subprocess.PIPE).wait() == 0
+

@@ -3,10 +3,13 @@ TODO
 
 NOW: 
 
-   [x] setup openVPN
-   [ ] setup a private DNS server
-   [ ] understand how to remove SPOF's from openVPN
+   [ ] write crafting config2.py, which will deploy live on the web.
 
+   [ ] change my salvus installs on all machines in vpn to use git, so I can easily pull/push -- I guess I could just have them directly pull/push from my laptop or combinat account safely over the vpn.
+
+   [ ] change openvpn to use compression
+
+   [ ] top goal: have the page be live with a single compute cell
 
 SOON:
 
@@ -68,10 +71,17 @@ SOON:
    [ ] address this in tornado_server:
           TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
 
+infrastructure:
+   [ ] remove SPOF's from openVPN (?)
+   [ ] fix or ensure raid1 is working on combinat machine
+
    [ ] decide on what computers to buy from Dell to deploy in a few weeks
+        - buy RAM for bsd.math ?
+
+   [ ] install ubuntu 12.04 on redhawk
+
 
 VAGUE:
-
 
 
    [ ] sqlalchemy postgresql central DB server
@@ -264,4 +274,15 @@ status:
 
      [x] make tornado determining sage_server query be async
    [x] get it to start under linux 
+
+   [x] setup openVPN
+
+   [x] The domain name "salv.io" is also available ($100/year from
+       name.com), but more complicated to get.  Would it be better
+       than salv.us?  No, since it is hallucinogenic sage!
+
+   [x] setup a private DNS server -- instead use godaddy to do this. 
+
+   [x] change DNS clients to run in daemon mode, maybe connecting on
+       startup (at least for the VMs)?
 

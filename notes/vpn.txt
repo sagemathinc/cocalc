@@ -79,4 +79,142 @@ Data Base Updated
 ./build-key servedby1
 ./build-key servedby2
 
-./build-dh
+./build-dh       # should be 2048
+
+------------------------------------------------
+
+Next Task -- DNS in my VPN!
+
+"Ubuntu ships with BIND (Berkley Internet Naming Daemon), the most
+widely deployed DNS server."
+
+# do this on the vpnserver (say geom.math):
+
+First, I build bind on my laptop.  I'm going to try to configure it
+there.  If this can be made to work, I'll make bind9 part of salvus
+(put it in the repo, etc.), then roll out on geom, etc. 
+
+pwd
+# /Users/wstein/salvus/salvus/data/local/etc
+
+touch named.conf
+
+# Then this worked:
+
+sudo named -g
+
+# ctrl-c
+
+# Now, create the default rndc.key file
+
+rndc-confgen -a
+# wrote key file "/Users/wstein/salvus/salvus/data/local/etc/rndc.key"
+
+more rndc.key 
+
+#key "rndc-key" {
+#        algorithm hmac-md5;
+#        secret "xxx...";
+#};
+
+
+# Run as daemon:
+
+sudo named
+ps -ef|grep named
+rndc status
+
+# it works!
+dig @127.0.0.1 . NS
+
+
+########################################################
+# Now actually configuring it to do something useful!
+
+#############################
+# data/local/etc/named.conf
+
+options {
+    listen-on { 10.37.0.26; };
+};
+
+zone "salv.us" in {
+    type master;
+    file "db.salv.us";
+};
+
+
+#############################
+# data/local/etc/db.salv.us
+
+$TTL 3600
+
+@ IN SOA ns0.salv.us. ns1.salv.us. (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+
+; Name servers
+@    IN   NS  ns0.salv.us.
+@    IN   NS  ns1.salv.us.
+
+; Addresses for canonical names
+ns0       IN  A  10.37.0.26
+ns1       IN  A  10.37.0.26
+
+localhost IN  A  127.0.0.1
+salvus0   IN  A  10.37.0.26
+salvus1   IN  A  10.37.0.10
+geom      IN  A  10.37.0.1  
+combinat  IN  A  10.37.0.6
+salvus3   IN  A  10.37.0.14 
+salvus5   IN  A  10.37.0.18 
+salvus7   IN  A  10.37.0.22 
+servedby1 IN  A  10.37.0.30 
+servedby2 IN  A  10.37.0.34 
+
+
+
+###### 
+Test:
+
+nslookup servedby1.salv.us 10.37.0.26
+
+
+########################################################
+# Next, make the openVPN server push out the DNS to
+# clients when they connect.
+
+# In the file vpnserver1.conf, do this:
+
+push "dhcp-option DNS 10.37.0.26"
+
+
+
+
+
+....
+
+I give up!?  The *only* way this works is if I use my DNS server 
+on all members of the VPN.  That's just not reasonable, since some
+machines are dual use, but will still be part of the VPN.
+And when my DNS goes down, they would all get very slow (1 second
+resolv timeouts are normal).
+
+....
+
+Another idea... I reconfigure godaddy to use my own DNS servers for
+salv.us instead.  I can then make anything.salv.us point to anything I
+want completely publicly.
+
+Hmmm, now that I understand DNS (much) better, it occurs to me that
+godaddy already provides exactly what I'm trying to do.  I just didn't
+understand their configuration system at all...
+
+Wow, this totally solves the problem.
+
+Conclusion: I do *NOT* 
+
+

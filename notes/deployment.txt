@@ -1,30 +1,70 @@
+CONFIG GOAL for this week's rollout:
+-----------------------------------
+
+UW Server room
+==============
+  geom:
+    * geom      -- openvpn server, stunnel, haproxy
+
+  combinat:
+    * combinat  -- stunnel, haproxy
+    * combinat1  -- memcached, nginx, tornado, postgresql master
+    * combinat2  -- memcached, nginx, tornado, postgresql slave
+    * combinat3  -- sage server
+    * combinat4  -- sage server
+
+Servedby.net
+============
+    * servedby1 -- vpn server (redundant), stunnel backup, haproxy, memcached, nginx, tornado, postgresql slave
+    * servedby2 -- sage server
+
+My Office
+=========
+    * bsd1 -- stunnel, haproxy, memcached, nginx, tornado, postgresql slave
+    * bsd2 -- sage server
+
+
+-----------------
+
+
+
 
 TODO:
 
- [ ] the sage server machines needs to have outgoing network
-     firewalled massively (don't know how yet)
+ [x] setup combinat1 to start vpn on reboot
+ [x] bsd1 (clone combinat1)
+ [x] combinat3 -- configure vpn and hostname
+ [x] bsd2 (clone combinat3)
+ [x] combinat2 -- configure vpn and hostname
+ [x] combinat4 -- configure vpn and hostname
 
+ [x] make sure all vm's prefer google's dns and are in the domain salv.us
+dns-nameservers 8.8.8.8 8.8.4.4 
+dns-search salv.us 
+
+ [x] bsd1
+ [x] combinat1
+ [x] combinat2
+ [x] combinat3
+ [x] combinat4
+ [x] bsd2
+ 
+ [ ] ??probably remove the non-vpn local network access to machines -- better
+     to use RDP athen turn off. ??
+
+
+
+
+
+SOON:
+
+ [ ] the sage_server machines needs to have outgoing network
+     firewalled massively (don't know how yet)
  [ ] servedby1 will have to listen to outside world but *ONLY* for
      ports 443 and 80, so database is not exposed
 
-Plan:
-
-standalone high-end internet facing machines:
- * geom     -- openvpn server, stunnel, haproxy
- * combinat -- redundent vpn server (?), ?
-
-combinat VM's:
- * salvus1  -- memcached, nginx, tornado, postgresql master
- * salvus7  -- memcached, nginx, tornado, postgresql slave
- * salvus2  -- sage server
- * salvus3  -- sage server
- * salvus4  -- sage server
- * salvus5  -- sage server
- * salvus6  -- sage server
-
-Servedby.net VM's:
- * servedby1 -- stunnel backup, haproxy, memcached, nginx, tornado, postgresql slave
- * servedby2 -- sage server
+LATER:
+-------
 
 Redhawk VM's (I need to upgrade OS on Redhawk first...):
  * redhawk -- ??
@@ -94,4 +134,8 @@ combinat will connect via a *secure* openVPN tunnel to everything else.
 When combinat goes down, round robbin DNS will take over and clients will
 hit another server.
 
+
+DONE:
+
+ [x] write a script that determines which of the machines in our VPN are connected
 
