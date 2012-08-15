@@ -1,0 +1,12 @@
+Address = 174.127.179.98
+Subnet = 10.38.1.12/32
+Port = 8200 
+
+-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAzIRqCsJKTnGmNGwkXfmSs5/7xAIGQ7Wozt2h/ZGq2qNC236lFrle
+AbjO5JEEtfRLoWbvu1wH6xN1nIqJUt4jp9UAsOtlrJfV0rTZUq6/1815Ev8DYbTb
+5wQGSL76exrNgcEU/vOb6SAObim2kXNp/uIY1tKhys6lh66rPZo/Crh1iBmD7VRh
+BtJjAqOvYwSe1VtTmW3WlBfbpo1kgp6tqYp3dglBN96WynaGrEOexcqk9QxzMvLi
+SIgYtFNDylnXXUl/fBsick3ncM98kynkWhCnueMcENhPxwMCTWDCJiRxEnVBuckb
+msoesJi7ojYy8o/ob+G0MYUdLdjnt/ls1wIDAQAB
+-----END RSA PUBLIC KEY-----
