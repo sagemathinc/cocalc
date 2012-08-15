@@ -6,7 +6,6 @@ important (usually security-related) options are compiled in.
 
 The components of sagews are:
 
-    * openssl  
     * memcached
     * python
     * nginx
@@ -77,18 +76,6 @@ def extract_package(basename):
                 shutil.rmtree(path)
             cmd('tar xvf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
             return path
-
-def build_openssl():
-    log.info("building openssl..."); start = time.time()
-    try:
-        path = extract_package('openssl')
-        cmd('./Configure %s shared --prefix="%s"'%(
-            'linux-x86_64' if os.uname()[0]=="Linux" else 'darwin64-x86_64-cc', TARGET), path)
-        cmd('make -j %s'%NCPU, path)
-        cmd('make install', path)
-    finally:
-        log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start
 
 def build_tinc():
     log.info('building tinc'); start = time.time()
@@ -203,9 +190,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_all', dest='build_all', action='store_const', const=True, default=False,
                         help="build everything")
 
-    parser.add_argument('--build_openssl', dest='build_openssl', action='store_const', const=True, default=False,
-                        help="build the openssl library")
-
     parser.add_argument('--build_tinc', dest='build_tinc', action='store_const', const=True, default=False,
                         help="build tinc")
 
@@ -237,9 +221,6 @@ if __name__ == "__main__":
 
     try:
         times = {}
-        if args.build_all or args.build_openssl:
-            times['openssl'] = build_openssl()
-
         if args.build_all or args.build_tinc:
             times['tinc'] = build_tinc()
 
