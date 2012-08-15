@@ -1,0 +1,11 @@
+Address = salvus0
+Subnet = 10.38.1.1/32
+
+-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAtltl+Vs9cKhJKwts33CiJHt7R3nho27Oe7Do8Yof86wFonzpsb1y
+k9OHbJRTn5veKTTuKaJ6TbcYgc5ehKhLStFkGjMGlKPyUjn4t+hcY2qcPk171Lqa
+tgjAcyG8juLQRIyh+cTptWUFF5PyRrsnOO7PAglwszU2DdoQMC+JJsooOnEgy20g
+kyOxCgK9biTVvv7CrrrIvLfAM37rkPKxndq4siIA82dCDjSJz3/vuTpjsQ/xHe7I
+dOpwdikKam5mnaxMAXkJsiJUb1gcemqXjdXWCSydL+ew1KbpCvGdfkNHvTYz+zTf
+JijnxzU8cw/N6xZBysz0Vlf1y267wa4MAQIDAQAB
+-----END RSA PUBLIC KEY-----
