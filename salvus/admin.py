@@ -7,9 +7,11 @@ Administration and Launch control of sagews components
 ####################
 # Standard imports
 ####################
-import logging, os, shutil, signal, stat, subprocess, tempfile, time
+import logging, os, shutil, signal, socket, stat, subprocess, tempfile, time
 
 from string import Template
+
+import misc
 
 ############################################################
 # Paths where data and configuration are stored
@@ -621,8 +623,101 @@ class Sage(Process):
         
 ######################################################
 
+########################################
+# tinc VPN management
+########################################
+
 def is_alive(hostname, timeout=1):
     return subprocess.Popen(['ping', '-t', str(timeout), '-c', '1', hostname],
                             stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                             stderr=subprocess.PIPE).wait() == 0
 
+
+def tinc_conf(hostname, connect_to, external_ip=None, delete=True, port=8200):
+    """
+    Configure tinc on this machine, so it can be part of the VPN.
+
+    hostname = It *must* be the case that DNS resolves hostname.salv.us to the
+    ip address that this machine should have.  
+
+    connect_to = list of names of machines that this node should
+    try to establish a direct connection to.
+
+    external_ip = non-VPN address of this node; if None, it will
+    be automatically determined by connecting
+
+    delete = if true (the default), deletes contents of
+    data/local/etc/tinc and remakes from scratch
+    """
+    assert '.' not in hostname, "hostname must not contain a dot; it should be the name of this node on the VPN"
+    
+    SALVUS = os.path.realpath(__file__)
+    os.chdir(os.path.split(SALVUS)[0])
+
+    # make sure the directories are there
+    TARGET = 'data/local/etc/tinc'
+    if delete and os.path.exists(TARGET):
+        print "deleting '%s'"%TARGET
+        shutil.rmtree(TARGET)
+        
+    for path in [TARGET,  'data/local/var/run']:  # .../run used for pidfile
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+    # create symbolic link to hosts directory in salvus git repo
+    os.symlink(os.path.join('../../../../conf/tinc_hosts'),
+               os.path.join(TARGET, 'hosts'))
+
+    # determine what our ip address is
+    ip_address = socket.gethostbyname(hostname + '.salv.us')
+    print "ip address = ", ip_address
+
+    # Create the tinc-up script
+    tinc_up = os.path.join(TARGET, 'tinc-up')
+    open(tinc_up,'w').write(
+"""#!/bin/sh
+ifconfig $INTERFACE %s netmask 255.255.0.0
+"""%ip_address)
+    os.chmod(tinc_up, stat.S_IRWXU)
+
+    # Create tinc.conf
+    tinc_conf = open(os.path.join(TARGET, 'tinc.conf'),'w')
+    tinc_conf.write('Name = %s\n'%hostname)
+    for h in connect_to:
+        tinc_conf.write('ConnectTo = %s\n'%h)
+    # on OS X, we need this, but otherwise we don't:
+    if os.uname()[0] == "Darwin":
+        tinc_conf.write('Device = /dev/tap0\n')
+    tinc_conf.close()
+
+    # create the host/hostname file
+    if external_ip is None:
+        external_ip = misc.local_ip_address()
+    host_file = os.path.join(TARGET, 'hosts', hostname)
+    open(host_file,'w').write(
+"""Address = %s
+Subnet = %s/32
+Port = %s"""%(external_ip, ip_address, port))
+
+    # generate keys
+    sh['data/local/sbin/tincd', '-K']
+        
+    print "pushing out host file to servers (for security, requires typing password a few times):"
+    for h in connect_to:
+        addr = None
+        for x in open(os.path.join(TARGET, 'hosts', h)).readlines():
+            v = x.split()
+            if v[0].lower().startswith('address'):
+                addr = v[2]
+                break
+        if addr is None:
+            raise RuntimeError, "unable to find address of host %s"%h
+        sh['scp', host_file, addr + ':' + os.path.join('salvus/salvus', TARGET, 'hosts/')]
+
+    print "Starting tincd"
+    tincd = os.path.abspath('data/local/sbin/tincd')
+    sh['sudo', tincd, '-k']
+    sh['sudo', tincd]
+    
+    
+    
