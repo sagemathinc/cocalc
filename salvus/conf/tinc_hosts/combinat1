@@ -1,0 +1,11 @@
+Subnet = 10.38.1.7/32
+Port = 8200
+
+-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEA3sRwclpZ89FT31Gi/8WTA1pD1foofhBDcaNGY1FiUktufESLs0XX
+O317WnfpTUgfzjmf30Trkjo8ZQmotkUSQi8nhcx5CEJrkK6kZChrsmDQsSMBfqEk
+Cj+pt2qPauzXyRZb+R3t/ut8PwQTaL+cZKuACLWl6x1+3BMAPJUpopGHGSf2VnTD
+R9ecJhFrSkTEcB5qcvaGwthaAVu/fADjgOux+vXbgMFEhpUL88wQcPSD21lttBkk
+7dx9SpgrUzqt1ZRRw8skgMnNw4aCptxMwrDkvwyVMsy6KoKR+KdjUka38JeY+hwZ
+O5pfleSyYDLVGJLUiNWoBstoGnLlFQbQBwIDAQAB
+-----END RSA PUBLIC KEY-----
