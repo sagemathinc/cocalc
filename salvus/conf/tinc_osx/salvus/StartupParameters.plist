@@ -1,6 +1,5 @@
 {
-  Description     = "salvus vpn";
-  Provides        = ("salvus_vpn");
-  Requires        = ("Network Configuration");
+  Description     = "salvus";
+  Provides        = ("salvus");
   OrderPreference = "None";
 }
