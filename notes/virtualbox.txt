@@ -110,5 +110,8 @@ This means rebooting the sage_server machine regularly is
 viable. 
 
 
+ VBoxManage controlvm bsd1 reset
 
 #########
+
+

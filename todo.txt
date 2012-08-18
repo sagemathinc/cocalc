@@ -1,7 +1,8 @@
 TODO
 -----
 
-[ ] consider switching from postgresql to casandra -- ugh... but it
+NOW: 
+[ ] consider switching from postgresql to cassandra -- ugh... but it
     has the right properties, and I'll be fighting postgresql if I
     don't do this from the start.  Right now, the database is the only
     non-truly distributed multi-data center component...
@@ -9,15 +10,74 @@ TODO
  This would mean getting rid of:
    * momoko
    * psycopg
-   * memcached (!?)
-
-
-
-NOW: 
+   * memcached
 
 SOON:
 
-   [ ] *passphrase* + shared ssh keys and trust might be good (?)
+  [ ] more complicated VPN:
+
+  I think I need to put all the sage servers on a different vpn than  everything else:
+
+VPN's:
+
+   salvus: everything except the sage servers
+   sage:   all the sage servers + all tornados
+
+The tornados will be on *both* the salvus and sage network, so they can talk
+to the sage machines and the database and haproxy.  But the sage servers
+can *only* talk to the tornado machines and that is it.  And no databases
+will run on the same machines as the tornado machines.    Even if somebody
+roots a sage server, they do not get access to the salvus vpn, so it gains
+them little.   
+
+This way I will not have to worry a lot about security of the database
+(at least of the connections between nodes).  That said, anything in
+the database that is really sensitive may as well be encrypted.  How
+might that work?  What is sensitive?
+
+    highest level: email addresses of users, along with password hash (if not openid)
+    lower level:  their content (local cache or when not stored on google drive)
+
+* Password hash is fine, assuming we use a state of the art hashing algorithm!
+* email address must be protected.
+
+Why/when do we need email addresses?   
+
+Let userid = SHA1(email_address).   
+
+Then the tornado web servers do not need to know the email address do
+they?  They just need the SHA1 hash of it, which can be computed by
+the client, as long as that hash function is implemented in
+javascript.   For password recovery, the user would submit their
+email address, and I would compute the SHA1, verify it is correct,
+and then send email to that address.   Why else would I need to
+store their email?  If I want to send them status info about their
+accounts, the system, etc... but that can be done on a completely
+different server.
+
+SO... conclusion: the production network and big distributed database will
+*not* have any email addresses in it -- only the SHA1 of them. 
+
+There will be another super-secure database that contains email
+address and account info, and that server will be used for sending any
+relevant status emails, etc.  It can be passphrase protected in an
+encrypted file, etc.  When new people sign up, their email addresses
+could be sent public-key encrypted to that server, then added to the
+database.  The actual database should be pretty small; it'll just be a
+key:value store from userid to email_address (and possibly phone
+number for some sort of 2-factor thing).
+
+   [ ] *passphrase* + shared ssh keys:
+
+On my laptop and some computers somewhere on the net, I will setup the
+salvus account to have a passphrase protected .ssh private key, and
+make all the nodes trust that key.  This will be just like how I have
+things now, except now it's my wstein account on my laptop, and it's
+not passphrase protected.  I will also make it so root login is
+allowed on all nodes.  Then when I want to launch services or do
+anything to any nodes (or their hosts -- e.g., reset VM's), I can type
+the passphrase once and *everything* thereafter is password free and
+automatic.
 
    [ ] write crafting config2.py, which will deploy live on the web.
 
@@ -31,6 +91,9 @@ SOON:
              ... 
           [ ] create the query to get memcached pool
           [ ] use in tornado, monitor, etc. 
+
+   [ ] haproxy should also proxy ssl tcp connections to the tornado servers, so they 
+       can provide a simpler faster non-http API.  
      
    [ ] "monitor": database ...
      [ ] add support to admin.py to clean out old entries from the
