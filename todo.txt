@@ -2,17 +2,36 @@ TODO
 -----
 
 NOW: 
-[ ] consider switching from postgresql to cassandra -- ugh... but it
-    has the right properties, and I'll be fighting postgresql if I
-    don't do this from the start.  Right now, the database is the only
-    non-truly distributed multi-data center component...
 
- This would mean getting rid of:
-   * momoko
-   * psycopg
-   * memcached
 
-SOON:
+PLANNED:
+
+  [ ] switch from postgresql to cassandra in my code, and verify that it works
+  [ ] add cassandra to build system
+  [ ] remove usage of memcached, psycopg, memcached
+  [ ] actually remove memcached, psycopg, memcached from build system
+
+  [ ] vpn: setup servedby1 to be a vpn server (for redundancy)
+  [ ] vpn: change configuration so the vpn is called salvus (instead of being the default)
+  [ ] vpn: setup a separate vpn for sage servers
+
+  [ ] modify sage server to have a paramater to limit connections (in various ways)
+
+  [ ] deploy what I currently have
+
+  [ ] create phonegap interface for android
+  [ ] create phonegap interface for iOS
+  [ ] create socket interface
+
+  [ ] actually use logins for something:
+
+  [ ] make it so all past computations by a user are available to that user -- first real use of database
+
+
+  [ ] stateful sessions
+
+
+IDEAS:
 
   [ ] more complicated VPN:
 
