@@ -155,6 +155,22 @@ class MemCache(object):
 
 stateless_execution_cache = MemCache('stateless')
 
+
+
+####################################################
+# cassandra version of stateless_execution database
+####################################################
+import cassandra
+cassandra.init_cassandra_schema()   # TODO
+
+
+
+
+
+
+
+
+
 ###########################################
 # persistent connections to browsers (sockjs)
 ###########################################

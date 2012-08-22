@@ -3,10 +3,17 @@ TODO
 
 NOW: 
 
+  [ ] replace use of memcache with cassandra for computations in tornado_server
+
+  [ ] switch from postgresql to cassandra in my code, and verify that it works
+
+  [ ] change monitor.py
+
 
 PLANNED:
 
-  [ ] switch from postgresql to cassandra in my code, and verify that it works
+  [ ] look into http://www.monitor.us
+
   [ ] add cassandra to build system
   [ ] remove usage of memcached, psycopg, memcached
   [ ] actually remove memcached, psycopg, memcached from build system

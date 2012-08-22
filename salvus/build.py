@@ -157,6 +157,22 @@ def build_postgresql():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
 
+def build_cassandra():
+    log.info('installing cassandra'); start = time.time()
+    try:
+        path = extract_package('dsc-cassandra')
+        target2 = os.path.join(TARGET, 'cassandra')
+        print target2
+        if os.path.exists(target2):
+            shutil.rmtree(target2)
+        os.makedirs(target2)
+        print "copying over"
+        cmd('cp -rv * "%s"'%target2, path)
+        shutil.rmtree(os.path.join(target2, 'conf'))
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
 
 def build_protobuf():
     log.info('building protobuf'); start = time.time()
@@ -211,6 +227,9 @@ if __name__ == "__main__":
     parser.add_argument('--build_postgresql', dest='build_postgresql', action='store_const', const=True, default=False,
                         help="build the postgresql database server")
 
+    parser.add_argument('--build_cassandra', dest='build_cassandra', action='store_const', const=True, default=False,
+                        help="build the cassandra database server")
+
     parser.add_argument('--build_protobuf', dest='build_protobuf', action='store_const', const=True, default=False,
                         help="build Google's protocol buffers compiler")
 
@@ -241,6 +260,9 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_postgresql:
             times['postgresql'] = build_postgresql()
+
+        if args.build_all or args.build_cassandra:
+            times['cassandra'] = build_cassandra()
 
         if args.build_all or args.build_protobuf:
             times['protobuf'] = build_protobuf()
