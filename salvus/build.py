@@ -168,8 +168,7 @@ def build_cassandra():
         os.makedirs(target2)
         print "copying over"
         cmd('cp -rv * "%s"'%target2, path)
-        shutil.rmtree(os.path.join(target2, 'conf'))
-        shutil.copyfile('%s/start-cassandra'%PATCHES, os.path.join(TARGET, 'bin'))
+        cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(TARGET, 'bin')), path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        

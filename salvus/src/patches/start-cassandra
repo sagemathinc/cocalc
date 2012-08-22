@@ -12,7 +12,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     os.environ['CASSANDRA_CONF'] = args.confdir
 
-    cmd = "%s/../../cassandra/bin/cassandra -p %s %s"%(
-              os.path.realpath(__file__), args.pidfile, '-f' if args.foreground else '')
+    cmd = "%s/../cassandra/bin/cassandra -p %s %s"%(
+              os.path.split(os.path.realpath(__file__))[0], args.pidfile, '-f' if args.foreground else '')
     print cmd
     os.system(cmd)

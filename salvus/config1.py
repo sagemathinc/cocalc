@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import os, sys
 
 from admin import (Account, Component, whoami,
                    Cassandra, HAproxy, Nginx, PostgreSQL, Memcached, Tornado, Sage, Stunnel)
@@ -14,18 +14,20 @@ sitename = 'salv.us'
 # A configuration
 ####################
 
-local_user = Account(username='wstein', hostname='localhost')
+local_user = Account(username=os.environ['USER'], hostname='localhost')
 root_user = Account(username='root', hostname='localhost')
+
+cassandra = Component('cassandra', [Cassandra(local_user, 0)])
 
 # Database configuration
 monitor_database = "dbname=monitor user=wstein"    # TODO: will need to have network info, password, etc...
 
 postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, monitor_database=monitor_database)])
-try:
-    postgresql[0].createdb('monitor')
-except IOError:
-    postgresql[0].initdb()
-    postgresql[0].createdb('monitor')
+#try:
+#    postgresql[0].createdb('monitor')
+#except IOError:
+#    postgresql[0].initdb()
+#    postgresql[0].createdb('monitor')
     
 # static web server
 nginx      = Component('nginx', [Nginx(local_user, 0, port=8080, monitor_database=monitor_database)])
@@ -46,8 +48,6 @@ memcached  = Component('memcached', [Memcached(local_user, 0, monitor_database=m
                                                m=512,   # max memory to use for items in megabytes
                                                c=4096,  # max simultaneous connections
                                                )])
-
-cassandra = Component('cassandra', [Cassandra(local_user, 0)])
 
 sage     = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in range(2)])
 
