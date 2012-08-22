@@ -169,10 +169,10 @@ def build_cassandra():
         print "copying over"
         cmd('cp -rv * "%s"'%target2, path)
         shutil.rmtree(os.path.join(target2, 'conf'))
+        shutil.copyfile('%s/start-cassandra'%PATCHES, os.path.join(TARGET, 'bin'))
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
-
 
 def build_protobuf():
     log.info('building protobuf'); start = time.time()

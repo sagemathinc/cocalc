@@ -3,7 +3,7 @@
 import sys
 
 from admin import (Account, Component, whoami,
-                   HAproxy, Nginx, PostgreSQL, Memcached, Tornado, Sage, Stunnel)
+                   Cassandra, HAproxy, Nginx, PostgreSQL, Memcached, Tornado, Sage, Stunnel)
 
 # this is for local testing/development; for deployment sitename="codethyme.com"
 #from misc import local_ip_address
@@ -47,11 +47,13 @@ memcached  = Component('memcached', [Memcached(local_user, 0, monitor_database=m
                                                c=4096,  # max simultaneous connections
                                                )])
 
+cassandra = Component('cassandra', [Cassandra(local_user, 0)])
+
 sage     = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in range(2)])
 
 all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,
        'memcached':memcached, 'tornado':tornado, 'sage':sage,
-       'stunnel':stunnel}
+       'stunnel':stunnel, 'cassandra':cassandra}
 
 ALL = ','.join(all.keys())
 
