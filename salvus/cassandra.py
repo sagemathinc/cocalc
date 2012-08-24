@@ -23,14 +23,13 @@ CREATE KEYSPACE salvus WITH strategy_class='SimpleStrategy' AND strategy_options
 
 class StatelessExec(object):
     def __init__(self):
-        self._con = cql.connect(HOST)
+        self._con = cql.connect(HOST, keyspace='salvus', cql_version='3.0.0')
         
     def hash(self, input):
         return md5.md5(input).hexdigest()
 
     def __getitem__(self, input):
         cursor = self._con.cursor()
-        cursor.execute("USE salvus")
         cursor.execute("SELECT input, output FROM stateless_exec WHERE hash=:hash LIMIT 1", {'hash':self.hash(input)})
         c = cursor.fetchone()
         if len(c) > 0 and c[0] == input:
@@ -38,7 +37,6 @@ class StatelessExec(object):
         
     def __setitem__(self, input, output):
         cursor = self._con.cursor()
-        cursor.execute("USE salvus")
         cursor.execute("UPDATE stateless_exec SET input = :input, output = :output WHERE hash = :hash",
                        {'input':input, 'output':output, 'hash':self.hash(input)})
         
