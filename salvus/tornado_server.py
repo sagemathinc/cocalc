@@ -166,11 +166,6 @@ cassandra.init_cassandra_schema()   # TODO
 
 
 
-
-
-
-
-
 ###########################################
 # persistent connections to browsers (sockjs)
 ###########################################

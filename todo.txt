@@ -10,7 +10,9 @@ NOW:
   [ ] change monitor.py
 
 
-PLANNED:
+SOON:
+
+  [ ] admin.py -- setting environment variables on remote machines
 
   [ ] look into http://www.monitor.us
 
@@ -390,4 +392,6 @@ status:
    [x]  change my salvus installs on all machines in vpn to use git, so I can easily pull/push -- I guess I could just have them directly pull/push from my laptop or combinat account safely over the vpn.
 
 [x] automate adding new host to vpn
+
+  [x] config1.py and admin -- cassandra Process service
 
