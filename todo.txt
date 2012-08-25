@@ -3,11 +3,11 @@ TODO
 
 NOW: 
 
-  [ ] replace use of memcache with cassandra for computations in tornado_server
-
-  [ ] switch from postgresql to cassandra in my code, and verify that it works
+  [ ] switch from postgresql to cassandra in my code for registering services
 
   [ ] change monitor.py
+
+  [ ] restart of cassandra via my admin script fails, since maybe it takes too long to shut down
 
 
 SOON:
@@ -394,4 +394,6 @@ status:
 [x] automate adding new host to vpn
 
   [x] config1.py and admin -- cassandra Process service
+
+  [x] replace use of memcache with cassandra for computation caching in tornado_server
 

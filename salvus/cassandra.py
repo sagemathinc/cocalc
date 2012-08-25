@@ -24,11 +24,10 @@ CREATE KEYSPACE salvus WITH strategy_class='SimpleStrategy' AND strategy_options
 import cPickle
 
 class StatelessExec(object):
-    def __init__(self):
-        self._con = cql.connect(HOST, keyspace='salvus', cql_version='3.0.0')
-
     def cursor(self):
-        return cql.connect(HOST, keyspace='salvus', cql_version='3.0.0').cursor()  # TODO!!!
+        if not hasattr(self, '_con'):
+            self._con = cql.connect(HOST, keyspace='salvus', cql_version='3.0.0')
+        return self._con.cursor() 
         
     def hash(self, input):
         return md5.md5(input).hexdigest()
@@ -42,7 +41,6 @@ class StatelessExec(object):
         
     def __setitem__(self, input, output):
         cursor = self.cursor()
-        print {'input':input, 'output':output, 'hash':self.hash(input)}
         cursor.execute("UPDATE stateless_exec SET input = :input, output = :output WHERE hash = :hash",
                        {'input':input, 'output':cPickle.dumps(output), 'hash':self.hash(input)})
         
