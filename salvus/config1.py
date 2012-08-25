@@ -34,7 +34,7 @@ nginx      = Component('nginx', [Nginx(local_user, 0, port=8080, monitor_databas
 
 stunnel    = Component('stunnel', [Stunnel(root_user, 0, accept_port=443, connect_port=8000, monitor_database=monitor_database)])
 
-tornado    = Component('tornado', [Tornado(local_user, i, 5000+i, monitor_database=monitor_database) for i in range(3)])
+tornado    = Component('tornado', [Tornado(local_user, i, 5000+i, monitor_database=monitor_database) for i in range(1)])
 
 haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, insecure_redirect_port=80,
                                            accept_proxy_port=8000,  # same as connect_port of stunnel 

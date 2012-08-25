@@ -162,8 +162,7 @@ stateless_execution_cache = MemCache('stateless')
 ####################################################
 import cassandra
 cassandra.init_cassandra_schema()   # TODO
-
-
+stateless_execution_cache = cassandra.StatelessExec()
 
 
 ###########################################
