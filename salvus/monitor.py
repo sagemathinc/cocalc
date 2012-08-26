@@ -4,70 +4,40 @@ Copyright (c) William Stein, 2012.  Not open source or free. Will be
 assigned to University of Washington.
 """
 
-import os, subprocess, time
+import os, subprocess, time, uuid
 
 import daemon
 
-import psycopg2
-
 import misc
-from db import table_exists
 
-#########################################################
-# memcache support
-#########################################################
-import memcache
-MEMCACHE_SERVERS = ["127.0.0.1:11211"]  # TODO
-cache = memcache.Client(MEMCACHE_SERVERS)
+import cassandra
 
 #########################################################
 # services table
 #########################################################
 
-def create_services_table(cur):
-    cur.execute("""
-CREATE TABLE services (
-    id serial PRIMARY KEY,
-    name varchar,
-    address varchar,
-    port integer,
-    running boolean,
-    username varchar,
-    pid integer,
-    monitor_pid integer)
-""")
-
-service_columns = ['id', 'name', 'address', 'port', 'running', 'username', 'pid', 'monitor_pid']
+service_columns = ['name', 'address', 'port', 'running', 'username', 'pid', 'monitor_pid']
 
 @misc.call_until_succeed(0.01, 60, 3600)
-def record_that_service_started(database, name, address, port, username, pid, monitor_pid):
-    cache.delete('running_services')
-    if name == 'sage': cache.delete('sage_servers')    
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
+def record_that_service_started(name, address, port, username, pid, monitor_pid):
+    con = cassandra.connect()
+    cur = con.cursor()
     try:
-        if not table_exists(cur, 'services'):
-            create_services_table(cur)
-        cur.execute("INSERT INTO services (name, address, port, running, username, pid, monitor_pid) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id", (name, address, port, True, username, pid, monitor_pid))
-        id = cur.fetchone()[0]
-        conn.commit()
-        return id
+        service_id = uuid.uuid1()
+        cur.execute("UPDATE services SET service_id = :service_id, name = :name, address = :address, port = :port, running = :running, username = :username, pid = :pid, monitor_pid = :monitor_pid",
+                    {'service_id':service_id, 'name':name, 'address':address,
+                     'port':port, 'username':username, 'pid':pid, 'monitor_pid', monitor_pid})
+        return service_id
     finally:
         cur.close()
         conn.close()
 
 @misc.call_until_succeed(0.01, 15, 3600)
-def record_that_service_stopped(database, id, name):
-    cache.delete('running_services')
-    cache.delete(status_key(id))
-    if name == 'sage': cache.delete('sage_servers')
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
+def record_that_service_stopped(service_id):
+    con = cassandra.connect(); cur = con.cursor()
     try:
-        if not table_exists(cur, 'services'):
-            return
-        cur.execute("UPDATE services SET running=%s WHERE id=%s", (False, id))
-        conn.commit()
+        cur.execute("UPDATE services SET running = :running WHERE service_id = :service_id:",
+                    {'running':False, 'service_id':service_id})
     finally:
         cur.close()
         conn.close()

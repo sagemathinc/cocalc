@@ -6,19 +6,16 @@ important (usually security-related) options are compiled in.
 
 The components of sagews are:
 
-    * memcached
-    * python
-    * nginx
-    * haproxy
-    * tinc  
-    * postgreSQL
-    * protobuf
+    * python -- interpreter glue
+    * nginx -- static web server
+    * haproxy -- proxy and load ballancer
+    * tinc -- p2p vpn
+    * protobuf -- google's messaging api and format 
+    * cassandra -- distributed p2p database
+    * tornado -- web server
+    * sage (which we do not build here, yet -- perhaps we should)
 
-For security and flexibility reasons, we want the option to regularly
-update or possibly modify components.
-
-Also, Sage is pre-installed in the worker VM.  
-
+This supports OS X and Ubuntu 12.04 on AMD and Intel. 
 """
 
 import logging, os, shutil, subprocess, sys, time
@@ -39,10 +36,7 @@ PYTHON_PACKAGES = [
     'ipython',            # a usable command line  
     'tornado',            # async webserver
     'sockjs-tornado',     # websocket support
-    'python-memcached',   # memcached for database
     'python-daemon',      # daemonization of python modules
-    'psycopg2',           # postgreSQL support for ORM
-    'momoko',             # async postgreSQL support
     ]
 
 if not os.path.exists(BUILD):
@@ -82,17 +76,6 @@ def build_tinc():
     try:
         path = extract_package('tinc')
         cmd('./configure --prefix="%s"'%TARGET, path)
-        cmd('make -j %s'%NCPU, path)
-        cmd('make install', path)
-    finally:
-        log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
-
-def build_memcached():
-    log.info("building memcached..."); start = time.time()
-    try:
-        path = extract_package('memcached')
-        cmd('./configure --prefix="%s" --enable-sasl'%TARGET, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
@@ -146,17 +129,6 @@ def build_stunnel():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
 
-def build_postgresql():
-    log.info('building postgreSQL'); start = time.time()
-    try:
-        path = extract_package('postgresql')
-        cmd('./configure --prefix="%s"'%TARGET, path)
-        cmd('make -j %s'%NCPU, path)
-        cmd('make install', path)
-    finally:
-        log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
-
 def build_cassandra():
     log.info('installing cassandra'); start = time.time()
     try:
@@ -192,8 +164,6 @@ def build_python_packages():
         path = extract_package('distribute')
         cmd('python setup.py install', path)
         cmd('easy_install ' + ' '.join(PYTHON_PACKAGES), os.path.join(TARGET, 'bin'))
-        path = extract_package('tornado-memcache')
-        cmd('python setup.py install', path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
@@ -208,9 +178,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_tinc', dest='build_tinc', action='store_const', const=True, default=False,
                         help="build tinc")
 
-    parser.add_argument('--build_memcached', dest='build_memcached', action='store_const', const=True, default=False,
-                        help="build memcached")
-
     parser.add_argument('--build_python', dest='build_python', action='store_const', const=True, default=False,
                         help="build the python interpreter")
 
@@ -223,9 +190,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_stunnel', dest='build_stunnel', action='store_const', const=True, default=False,
                         help="build the stunnel server")
     
-    parser.add_argument('--build_postgresql', dest='build_postgresql', action='store_const', const=True, default=False,
-                        help="build the postgresql database server")
-
     parser.add_argument('--build_cassandra', dest='build_cassandra', action='store_const', const=True, default=False,
                         help="build the cassandra database server")
 
@@ -242,9 +206,6 @@ if __name__ == "__main__":
         if args.build_all or args.build_tinc:
             times['tinc'] = build_tinc()
 
-        if args.build_all or args.build_memcached:
-            times['memcached'] = build_memcached()
-
         if args.build_all or args.build_python:
             times['python'] = build_python()
 
@@ -256,9 +217,6 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_stunnel:
             times['stunnel'] = build_stunnel()
-
-        if args.build_all or args.build_postgresql:
-            times['postgresql'] = build_postgresql()
 
         if args.build_all or args.build_cassandra:
             times['cassandra'] = build_cassandra()

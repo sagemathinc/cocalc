@@ -1,7 +1,10 @@
-import md5    
+import sha
 import cql
 
 HOST='127.0.0.1'   # TODO!
+
+def connect(keyspace='salvus'):
+    return cql.connect(HOST, keyspace=keyspace, cql_version='3.0.0')
 
 def keyspace_exists(con, keyspace):
     try:
@@ -10,27 +13,72 @@ def keyspace_exists(con, keyspace):
     except cql.ProgrammingError:
         return False
 
+def create_stateless_exec_table(cursor):
+    ######################################
+    # stateless-execution cache:
+    ######################################        
+    # TODO: add columns for date time of exec and sage version
+    # TODO: is varchar the right type -- maybe blob?
+    cursor.execute("""
+CREATE TABLE stateless_exec(
+     hash varchar PRIMARY KEY,
+     input varchar,
+     output varchar)
+""")
+
+def create_services_table(cursor):
+    ######################################
+    # tracking registered components of salvus 
+    ######################################        
+    cursor.execute("""
+CREATE TABLE services (
+    service_id uuid PRIMARY KEY,
+    name varchar,
+    address varchar,
+    port int,
+    running boolean,
+    username varchar,
+    pid int,
+    monitor_pid int,
+)""")
+    
+    cursor.execute("""
+CREATE INDEX services_running_idx ON services (running);
+    """)
+    
+
+def create_status_table(cursor):
+    ######################################
+    # tracking registered components of salvus 
+    ######################################        
+    cursor.execute("""
+CREATE TABLE status (
+
+)""")
+
 def init_cassandra_schema():
-    con = cql.connect(HOST, cql_version='3.0.0')
+    con = connect(keyspace=None)
     cursor = con.cursor()
     if not keyspace_exists(con, 'salvus'):
         cursor.execute("""
 CREATE KEYSPACE salvus WITH strategy_class='SimpleStrategy' AND strategy_options:replication_factor=3""")
         cursor.execute("USE salvus")
-        # TODO: add columns for date time of exec and sage version
-        # TODO: is varchar the right type -- maybe blob?
-        cursor.execute("CREATE TABLE stateless_exec (hash varchar PRIMARY KEY, input varchar, output varchar)")
+        create_stateless_exec_table(cursor)
+        create_services_table(cursor)
+        create_status_table(cursor)
+        
+
 
 import cPickle
 
 class StatelessExec(object):
     def cursor(self):
         if not hasattr(self, '_con'):
-            self._con = cql.connect(HOST, keyspace='salvus', cql_version='3.0.0')
+            self._con = connect()
         return self._con.cursor() 
         
     def hash(self, input):
-        return md5.md5(input).hexdigest()
+        return sha.sha(input).hexdigest()
 
     def __getitem__(self, input):
         cursor = self.cursor()

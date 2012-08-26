@@ -3,6 +3,9 @@ TODO
 
 NOW: 
 
+  [ ] remove usage of memcached, psycopg, postgres
+  [ ] actually remove memcached, psycopg, postgres from build system
+
   [ ] switch from postgresql to cassandra in my code for registering services
 
   [ ] change monitor.py
@@ -16,9 +19,6 @@ SOON:
 
   [ ] look into http://www.monitor.us
 
-  [ ] add cassandra to build system
-  [ ] remove usage of memcached, psycopg, memcached
-  [ ] actually remove memcached, psycopg, memcached from build system
 
   [ ] vpn: setup servedby1 to be a vpn server (for redundancy)
   [ ] vpn: change configuration so the vpn is called salvus (instead of being the default)
@@ -369,7 +369,6 @@ status:
          lowest load, etc.
      [x] race condition: sage_server seems to delete its pid file even when it doesn't quit, which causes havoc...
          
-
      [x] sage_server: "./config1 --restart=sage_server" doesn't work; this is because the
          port isn't being freed quickly enough.  we use SO_REUSEADDR to fix this.
 
@@ -396,4 +395,6 @@ status:
   [x] config1.py and admin -- cassandra Process service
 
   [x] replace use of memcache with cassandra for computation caching in tornado_server
+
+  [x] add cassandra to build system
 
