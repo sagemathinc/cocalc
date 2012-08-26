@@ -3,8 +3,19 @@ import cql
 
 HOST='127.0.0.1'   # TODO!
 
+def time_to_timestamp(t):
+    """Convert a Python time.time()-style value (seconds since Epoch) to milliseconds since Epoch."""
+    return int(t*1000)
+
+def timestamp_to_time(t):
+    """Convert a Cassandra timestamp to the same units as Python's time.time() returns, which is seconds since the Epoch."""
+    return float(t)/1000
+
 def connect(keyspace='salvus'):
     return cql.connect(HOST, keyspace=keyspace, cql_version='3.0.0')
+
+def cursor(keyspace='salvus'):
+    return connect(keyspace=keyspace).cursor()
 
 def keyspace_exists(con, keyspace):
     try:
@@ -13,10 +24,11 @@ def keyspace_exists(con, keyspace):
     except cql.ProgrammingError:
         return False
 
+######################################
+# create various tables
+######################################        
+
 def create_stateless_exec_table(cursor):
-    ######################################
-    # stateless-execution cache:
-    ######################################        
     # TODO: add columns for date time of exec and sage version
     # TODO: is varchar the right type -- maybe blob?
     cursor.execute("""
@@ -27,9 +39,7 @@ CREATE TABLE stateless_exec(
 """)
 
 def create_services_table(cursor):
-    ######################################
-    # tracking registered components of salvus 
-    ######################################        
+    """Create table that tracks registered components of salvus."""
     cursor.execute("""
 CREATE TABLE services (
     service_id uuid PRIMARY KEY,
@@ -43,18 +53,34 @@ CREATE TABLE services (
 )""")
     
     cursor.execute("""
-CREATE INDEX services_running_idx ON services (running);
+CREATE INDEX ON services (running);
     """)
     
 
 def create_status_table(cursor):
-    ######################################
-    # tracking registered components of salvus 
-    ######################################        
+    """Tracking status of registered components of salvus as they run."""
     cursor.execute("""
 CREATE TABLE status (
-
+    service_id uuid,
+    time timestamp,
+    pmem float,
+    pcpu float,
+    cputime float,
+    vsize int,
+    rss int,
+    PRIMARY KEY(service_id, time)
 )""")
+
+def create_log_table(cursor):
+    cursor.execute("""
+CREATE TABLE log (
+    service_id uuid,
+    time timestamp,
+    logfile varchar,
+    message varchar,
+    PRIMARY KEY(service_id, time))
+""")
+    
 
 def init_cassandra_schema():
     con = connect(keyspace=None)
@@ -66,8 +92,10 @@ CREATE KEYSPACE salvus WITH strategy_class='SimpleStrategy' AND strategy_options
         create_stateless_exec_table(cursor)
         create_services_table(cursor)
         create_status_table(cursor)
+        create_log_table(cursor)
         
 
+##########################################################################
 
 import cPickle
 

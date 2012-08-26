@@ -21,13 +21,6 @@ cassandra = Component('cassandra', [Cassandra(local_user, 0)])
 
 # Database configuration
 monitor_database = "dbname=monitor user=wstein"    # TODO: will need to have network info, password, etc...
-
-postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, monitor_database=monitor_database)])
-#try:
-#    postgresql[0].createdb('monitor')
-#except IOError:
-#    postgresql[0].initdb()
-#    postgresql[0].createdb('monitor')
     
 # static web server
 nginx      = Component('nginx', [Nginx(local_user, 0, port=8080, monitor_database=monitor_database)])
@@ -44,15 +37,10 @@ haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, inse
                                            tornado_servers=[{'ip':'127.0.0.1', 'port':(5000+n), 'maxconn':10000} for n in [0,1,2]]
                                            )])
 
-memcached  = Component('memcached', [Memcached(local_user, 0, monitor_database=monitor_database,
-                                               m=512,   # max memory to use for items in megabytes
-                                               c=4096,  # max simultaneous connections
-                                               )])
+sage       = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in range(2)])
 
-sage     = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in range(2)])
-
-all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,
-       'memcached':memcached, 'tornado':tornado, 'sage':sage,
+all = {'nginx':nginx, 'haproxy':haproxy,
+       'tornado':tornado, 'sage':sage,
        'stunnel':stunnel, 'cassandra':cassandra}
 
 ALL = ','.join(all.keys())

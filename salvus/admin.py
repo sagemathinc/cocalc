@@ -316,7 +316,7 @@ class Process(object):
 
     def _start_monitor(self):
         if self._monitor_database and self._logfile:
-            self._account.run([PYTHON, 'monitor.py', '--logfile', self._logfile, '--database', self._monitor_database,
+            self._account.run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
                                '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
                                '--target_pidfile', self._pidfile,
                                '--target_name', self._name,
