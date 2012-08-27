@@ -51,11 +51,16 @@ CREATE TABLE services (
     pid int,
     monitor_pid int,
 )""")
-    
+
+    # index so we can search for which services are currently running
     cursor.execute("""
 CREATE INDEX ON services (running);
     """)
-    
+
+    # index so we can search for all services of a given type
+    cursor.execute("""
+CREATE INDEX ON services (sage);
+    """)
 
 def create_status_table(cursor):
     """Tracking status of registered components of salvus as they run."""
@@ -122,3 +127,10 @@ class StatelessExec(object):
         
     
 
+
+##########################################################################
+
+def get_sage_servers():
+    cur = cursor()
+    cur.execute("SELECT address, port FROM services WHERE running='true' and name='sage'")
+    return list(cur)

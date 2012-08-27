@@ -119,7 +119,7 @@ def send_log_to_database(service_id, logfile, filename):
     for r in c.splitlines():
         print {'logfile':logfile, 'message':r, 'service_id':service_id, 'time':now}
         cur.execute("UPDATE log SET logfile = :logfile, message = :message WHERE service_id = :service_id AND time = :time",
-                    {'logfile':logfile, 'message':r, 'service_id':service_id, 'time':now})
+                    {'logfile':os.path.split(logfile)[-1], 'message':r, 'service_id':service_id, 'time':now})
         
     # potential race condition situation below
     if mtime(logfile) != lastmod:

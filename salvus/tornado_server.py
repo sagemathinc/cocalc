@@ -20,10 +20,11 @@ Tornado server
 
 import json, logging, os, random, socket, sys, time
 
-import momoko  # async postgresql
-
 from tornado import ioloop, iostream
 import sockjs.tornado, tornado.web
+
+import cassandra
+cassandra.init_cassandra_schema()   # TODO
 
 ###########################################
 # Logging
@@ -56,13 +57,6 @@ class TestTornadoMesgHandler(BaseHandler):
         
 
 ###########################################
-# memcache usage
-###########################################
-import memcache
-MEMCACHE_SERVERS = ["127.0.0.1:11211"]
-cache = memcache.Client(MEMCACHE_SERVERS)
-
-###########################################
 # Async Connections to Sage servers
 ###########################################
 
@@ -93,31 +87,16 @@ def random_sage_server(callback):
             callback('',0)
         else:
             t = random.choice(x)
-            callback(t['address'], t['port'])
+            callback(t[0], t[1])
 
-    # Get all sage servers (async, except memcache):
-    x = cache.get('sage_servers')
-    if x is None:
-        # use momoko async postgres to get sage_servers
-        c = momoko.AsyncClient({'database':'monitor'})   # TODO -- specify more precisely, etc.
-        def f(cur):
-            x = [dict([(c,t[i]) for i,c in enumerate(monitor.service_columns)]) for t in cur.fetchall()]
-            log.debug("query got %s", x)
-            cache.set('sage_servers', x)
-            choose_server(x)
-        c.execute("select * from services where running and name='sage'", callback=f)
-        log.debug("started async query")
-    else:
-        log.debug("using sage servers '%s' from memcache", x)
-        choose_server(x)
-
+    # TODO: currently not async; maybe doesn't need to be as 
+    server = cassandra.get_sage_servers()
+    choose_server(server)
 
 
 ####################################################
 # cassandra version of stateless_execution database
 ####################################################
-import cassandra
-cassandra.init_cassandra_schema()   # TODO
 stateless_execution_cache = cassandra.StatelessExec()
 
 

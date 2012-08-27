@@ -3,11 +3,7 @@ TODO
 
 NOW: 
 
-  [ ] switch from postgresql to cassandra in my code for registering services
-
   [ ] change monitor.py
-
-  [ ] remove usage of memcached, psycopg, postgres
 
   [ ] restart of cassandra via my admin script fails, since maybe it takes too long to shut down
 
@@ -400,4 +396,7 @@ status:
   [x] add cassandra to build system
 
   [x] actually remove memcached, psycopg, postgres from build system
+
+  [x] switch from postgresql to cassandra in my code for registering services
+  [x] remove usage of memcached, psycopg, postgres
 
