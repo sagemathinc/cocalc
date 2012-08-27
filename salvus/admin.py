@@ -28,7 +28,7 @@ LOG_INTERVAL = 6
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=10, verbose=True):
+def run(args, maxtime=10, verbose=True, env=None):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
@@ -42,8 +42,10 @@ def run(args, maxtime=10, verbose=True):
     if verbose:
         log.info("running '%s'", ' '.join(args))
     try:
-        return subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
+        out = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE).stdout.read()
+        #log.info("output '%s'", out)
+        return out
     finally:
         signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
@@ -187,6 +189,13 @@ class Account(object):
             self.copyfile(src.name, filename)
             src.unlink(src.name)  # weird semantics
 
+    def makedirs(self, path):
+        if self._hostname == 'localhost' and self._username == whoami:
+            if not os.path.exists(path):
+                os.makedirs(path)
+        else:
+            self.run(['mkdir', '-p', path])
+
     def unlink(self, filename):
         filename = os.path.join(self._path, filename)
         if self._hostname == 'localhost' and self._username == whoami:
@@ -307,7 +316,7 @@ class Process(object):
 
     def _start_monitor(self):
         if self._monitor_database and self._logfile:
-            self._account.run([PYTHON, 'monitor.py', '--logfile', self._logfile, '--database', self._monitor_database,
+            self._account.run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
                                '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
                                '--target_pidfile', self._pidfile,
                                '--target_name', self._name,
@@ -624,6 +633,41 @@ class Sage(Process):
 ######################################################
 
 ########################################
+# Cassandra database server
+########################################
+# environ variable for conf/ dir:  CASSANDRA_CONF
+
+class Cassandra(Process):
+    def __init__(self, account, id, conf_template_path=None):
+        """
+        account - an Account
+        id -- arbitrary identifier
+        conf_template_path -- path that contains the conf files
+        """
+        cassandra_install = os.path.join(DATA, 'local', 'cassandra')
+        if conf_template_path is None:
+            conf_template_path = os.path.join(cassandra_install, 'conf')
+        assert os.path.exists(conf_template_path)
+        
+        target_path = os.path.join(DATA, 'cassandra-%s'%id)
+        account.makedirs(target_path)
+        log_path = os.path.join(target_path, 'log'); account.makedirs(log_path)
+        lib_path = os.path.join(target_path, 'lib'); account.makedirs(lib_path)
+        conf_path = os.path.join(target_path, 'conf'); account.makedirs(conf_path)
+        
+        for name in os.listdir(conf_template_path):
+            r = open(os.path.join(conf_template_path, name)).read()
+            r = r.replace('/var/log/cassandra', log_path)
+            r = r.replace('/var/lib/cassandra', lib_path)
+            account.writefile(filename=os.path.join(conf_path, name), content=r)
+
+        pidfile = os.path.join(PIDS, 'cassandra-%s.pid'%id)
+        Process.__init__(self, account=account, id=id, name='cassandra', port=9160,
+                         logfile = '%s/system.log'%log_path,
+                         pidfile = pidfile,
+                         start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile])
+
+########################################
 # tinc VPN management
 ########################################
 
@@ -718,6 +762,14 @@ Port = %s"""%(external_ip, ip_address, port))
     tincd = os.path.abspath('data/local/sbin/tincd')
     sh['sudo', tincd, '-k']
     sh['sudo', tincd]
-    
-    
+
+    print "To join the vpn automatically on startup,"
+    print "add this line to /etc/rc.local:\n"
+    print "  /home/salvus/salvus/salvus/data/local/sbin/tincd"
+    print "\nWhen you git pull on some remote hosts, you may have to"
+    print "delete the host files we pushed out above first"
+    print "You might also want to git add, push, etc., the new"
+    print "host file for this machine..."
+
+
     

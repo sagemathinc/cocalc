@@ -20,10 +20,11 @@ Tornado server
 
 import json, logging, os, random, socket, sys, time
 
-import momoko  # async postgresql
-
 from tornado import ioloop, iostream
 import sockjs.tornado, tornado.web
+
+import cassandra
+cassandra.init_cassandra_schema()   # TODO
 
 ###########################################
 # Logging
@@ -86,74 +87,18 @@ def random_sage_server(callback):
             callback('',0)
         else:
             t = random.choice(x)
-            callback(t['address'], t['port'])
+            callback(t[0], t[1])
 
-    # Get all sage servers (async, except memcache):
-    x = cache.get('sage_servers')
-    if x is None:
-        # use momoko async postgres to get sage_servers
-        c = momoko.AsyncClient({'database':'monitor'})   # TODO -- specify more precisely, etc.
-        def f(cur):
-            x = [dict([(c,t[i]) for i,c in enumerate(monitor.service_columns)]) for t in cur.fetchall()]
-            log.debug("query got %s", x)
-            cache.set('sage_servers', x)
-            choose_server(x)
-        c.execute("select * from services where running and name='sage'", callback=f)
-        log.debug("started async query")
-    else:
-        log.debug("using sage servers '%s' from memcache", x)
-        choose_server(x)
+    # TODO: currently not async; maybe doesn't need to be as 
+    server = cassandra.get_sage_servers()
+    choose_server(server)
 
 
-###########################################
-# memcache usage
-###########################################
-import memcache, tornadoasyncmemcache
-MEMCACHE_SERVERS = ["127.0.0.1:11211"]
-cache = memcache.Client(MEMCACHE_SERVERS)
+####################################################
+# cassandra version of stateless_execution database
+####################################################
+stateless_execution_cache = cassandra.StatelessExec()
 
-class MemCache(object):
-    """
-    Use memcache to implement a simple key:value store.
-    
-       * Keys are hashed, but verified for correctness on read; hash
-         collision implies only 1 object with that hash is stored.
-         
-       * Setting is done asynchronously (in that data is sent async),
-         but reading is done synchronously by default, though
-         get_async is also supported.
-    """
-    def __init__(self, namespace):
-        self._cache = memcache.Client(MEMCACHE_SERVERS)
-        self._async_cache = tornadoasyncmemcache.ClientPool(MEMCACHE_SERVERS, maxclients=256)
-        self._ram_cache = {}
-        self._namespace = namespace
-        
-    def key(self, key):
-        return self._namespace + '.' + str(hash(key))
-
-    def get_async(self, key, callback=None):
-        # async get: result=self[key], then call the callback with result or
-        # call callback with None if there is no such key.
-        def f(result):
-            if result is not None and result[0] == key:
-                callback(result[1])
-            else:
-                callback(None)
-        self._async_cache.get(self.key(key), callback=f)
-
-    def __getitem__(self, key):
-        # sync get:  self[key]
-        c = self._cache.get(self.key(key))
-        if c is not None and c[0] == key:
-            return c[1]
-        
-    def __setitem__(self, key, result):
-        # async set:   self[key] = result
-        key = key.strip()
-        self._async_cache.set(self.key(key), (key, result), callback=lambda data:None)
-
-stateless_execution_cache = MemCache('stateless')
 
 ###########################################
 # persistent connections to browsers (sockjs)

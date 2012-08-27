@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import sys
+import os, sys
 
 from admin import (Account, Component, whoami,
-                   HAproxy, Nginx, PostgreSQL, Memcached, Tornado, Sage, Stunnel)
+                   Cassandra, HAproxy, Nginx, PostgreSQL, Memcached, Tornado, Sage, Stunnel)
 
 # this is for local testing/development; for deployment sitename="codethyme.com"
 #from misc import local_ip_address
@@ -14,25 +14,20 @@ sitename = 'salv.us'
 # A configuration
 ####################
 
-local_user = Account(username='wstein', hostname='localhost')
+local_user = Account(username=os.environ['USER'], hostname='localhost')
 root_user = Account(username='root', hostname='localhost')
+
+cassandra = Component('cassandra', [Cassandra(local_user, 0)])
 
 # Database configuration
 monitor_database = "dbname=monitor user=wstein"    # TODO: will need to have network info, password, etc...
-
-postgresql = Component('postgreSQL', [PostgreSQL(local_user, 0, monitor_database=monitor_database)])
-try:
-    postgresql[0].createdb('monitor')
-except IOError:
-    postgresql[0].initdb()
-    postgresql[0].createdb('monitor')
     
 # static web server
 nginx      = Component('nginx', [Nginx(local_user, 0, port=8080, monitor_database=monitor_database)])
 
 stunnel    = Component('stunnel', [Stunnel(root_user, 0, accept_port=443, connect_port=8000, monitor_database=monitor_database)])
 
-tornado    = Component('tornado', [Tornado(local_user, i, 5000+i, monitor_database=monitor_database) for i in range(3)])
+tornado    = Component('tornado', [Tornado(local_user, i, 5000+i, monitor_database=monitor_database) for i in range(1)])
 
 haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, insecure_redirect_port=80,
                                            accept_proxy_port=8000,  # same as connect_port of stunnel 
@@ -42,16 +37,11 @@ haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, inse
                                            tornado_servers=[{'ip':'127.0.0.1', 'port':(5000+n), 'maxconn':10000} for n in [0,1,2]]
                                            )])
 
-memcached  = Component('memcached', [Memcached(local_user, 0, monitor_database=monitor_database,
-                                               m=512,   # max memory to use for items in megabytes
-                                               c=4096,  # max simultaneous connections
-                                               )])
+sage       = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in range(2)])
 
-sage     = Component('sage', [Sage(local_user, i, 6000+i, monitor_database=monitor_database) for i in range(2)])
-
-all = {'postgresql':postgresql, 'nginx':nginx, 'haproxy':haproxy,
-       'memcached':memcached, 'tornado':tornado, 'sage':sage,
-       'stunnel':stunnel}
+all = {'nginx':nginx, 'haproxy':haproxy,
+       'tornado':tornado, 'sage':sage,
+       'stunnel':stunnel, 'cassandra':cassandra}
 
 ALL = ','.join(all.keys())
 

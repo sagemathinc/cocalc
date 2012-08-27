@@ -1,9 +1,9 @@
 import admin
 
-HOSTS = ['salvus0',
-         'bsd', 'bsd1', 'bsd2',
-         'combinat', 'combinat1', 'combinat2', 'combinat3', 'combinat4',
-         'geom',
+HOSTS = ['salvus0', 'blastoff1',
+         'bsd0', 'bsd1', 'bsd2',  
+         'combinat0', 'combinat1', 'combinat2', 'combinat3', 'combinat4',
+         'geom0',
          'servedby1', 'servedby2']
 
 

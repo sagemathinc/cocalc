@@ -4,108 +4,47 @@ Copyright (c) William Stein, 2012.  Not open source or free. Will be
 assigned to University of Washington.
 """
 
-import os, subprocess, time
-
+import os, subprocess, time, uuid
 import daemon
-
-import psycopg2
-
-import misc
-from db import table_exists
-
-#########################################################
-# memcache support
-#########################################################
-import memcache
-MEMCACHE_SERVERS = ["127.0.0.1:11211"]  # TODO
-cache = memcache.Client(MEMCACHE_SERVERS)
+import cassandra, misc
 
 #########################################################
 # services table
 #########################################################
 
-def create_services_table(cur):
-    cur.execute("""
-CREATE TABLE services (
-    id serial PRIMARY KEY,
-    name varchar,
-    address varchar,
-    port integer,
-    running boolean,
-    username varchar,
-    pid integer,
-    monitor_pid integer)
-""")
-
-service_columns = ['id', 'name', 'address', 'port', 'running', 'username', 'pid', 'monitor_pid']
+service_columns = ['service_id', 'name', 'address', 'port', 'running', 'username', 'pid', 'monitor_pid']
 
 @misc.call_until_succeed(0.01, 60, 3600)
-def record_that_service_started(database, name, address, port, username, pid, monitor_pid):
-    cache.delete('running_services')
-    if name == 'sage': cache.delete('sage_servers')    
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
-    try:
-        if not table_exists(cur, 'services'):
-            create_services_table(cur)
-        cur.execute("INSERT INTO services (name, address, port, running, username, pid, monitor_pid) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id", (name, address, port, True, username, pid, monitor_pid))
-        id = cur.fetchone()[0]
-        conn.commit()
-        return id
-    finally:
-        cur.close()
-        conn.close()
+def record_that_service_started(name, address, port, username, pid, monitor_pid):    
+    service_id = uuid.uuid1()
+    cassandra.cursor().execute("""
+UPDATE services SET name = :name, address = :address, port = :port,
+                    running = :running, username = :username, pid = :pid, monitor_pid = :monitor_pid
+                    WHERE service_id = :service_id""",
+                               {'service_id':service_id, 'name':name, 'address':address, 'running':'true',
+                                'port':port, 'username':username, 'pid':pid, 'monitor_pid':monitor_pid})
+    return service_id
 
 @misc.call_until_succeed(0.01, 15, 3600)
-def record_that_service_stopped(database, id, name):
-    cache.delete('running_services')
-    cache.delete(status_key(id))
-    if name == 'sage': cache.delete('sage_servers')
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
-    try:
-        if not table_exists(cur, 'services'):
-            return
-        cur.execute("UPDATE services SET running=%s WHERE id=%s", (False, id))
-        conn.commit()
-    finally:
-        cur.close()
-        conn.close()
+def record_that_service_stopped(service_id):
+    cassandra.cursor().execute("UPDATE services SET running = :running WHERE service_id = :service_id",
+                {'running':'false', 'service_id':service_id})
 
-def running_services(database):
+def running_services():
     """
     Return list of the currently running services. 
     """
-    r = cache.get('running_services')
-    if r is not None:
-        return r
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM services WHERE running')
+    cur = cassandra.cursor()
+    cur.execute("SELECT * FROM services WHERE running = 'true'")
     r = cur.fetchall()
-    r = [dict([(c,t[i]) for i,c in enumerate(service_columns)]) for t in r]
-    cache.set('running_services', r)
-    conn.close()
-    return r
+    return [dict([(c,t[i]) for i,c in enumerate(service_columns)]) for t in r]
     
 
 #########################################################
 # status updates table
 #########################################################
 
-def create_status_table(cur):
-    cur.execute("""
-CREATE TABLE status (
-    id integer,
-    time timestamp,
-    pmem float,
-    pcpu float,
-    cputime float,
-    vsize integer,
-    rss integer)
-""")
-
-status_columns = ['id', 'time', 'pmem', 'pcpu', 'cputime', 'vsize', 'rss']
+status_columns = ['service_id', 'time', 'pmem', 'pcpu', 'cputime', 'vsize', 'rss']
 
 def cputime_to_float(s):
     z = s.split(':')
@@ -118,80 +57,47 @@ def cputime_to_float(s):
 
 last_status = None
 @misc.call_until_succeed(0.01, 5, 10)  # give up relatively quickly since not so important
-def update_status(database, id, pid):
-    cache.delete(status_key(id))
+def update_status(service_id, pid):
     global last_status
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
-    try:
-        if not table_exists(cur, 'status'):
-            create_status_table(cur)
-        fields = ['pcpu', 'pmem', 'pid', 'cputime', 'rss', 'vsize']
-        v = subprocess.Popen(['ps', '-p', str(int(pid)), '-o', ' '.join(fields)],
-                             stdin=subprocess.PIPE, stdout = subprocess.PIPE,
-                             stderr=subprocess.PIPE).stdout.read().splitlines()
-        if len(v) <= 1:
-            return    # process not running -- no status
-        
-        d = dict(zip(fields, v[-1].split()))
-        if d != last_status:
-            last_status = d
-            cur.execute("INSERT INTO status (id, time, pmem, pcpu, cputime, vsize, rss) VALUES (%s,%s,%s,%s,%s,%s,%s)",
-                        (id, psycopg2.TimestampFromTicks(time.time()),
-                         d['pmem'], d['pcpu'], cputime_to_float(d['cputime']), d['vsize'], d['rss']))
-        
-        conn.commit()
-    finally:
-        cur.close()
-        conn.close()
+    fields = ['pcpu', 'pmem', 'pid', 'cputime', 'rss', 'vsize']
+    v = subprocess.Popen(['ps', '-p', str(int(pid)), '-o', ' '.join(fields)],
+                         stdin=subprocess.PIPE, stdout = subprocess.PIPE,
+                         stderr=subprocess.PIPE).stdout.read().splitlines()
+    if len(v) <= 1:
+        return    # process not running -- no status
 
-def status_key(id):
-    return 'latest_status.%s'%id
+    d = dict(zip(fields, v[-1].split()))
+    if d != last_status:
+        last_status = d
+        now = cassandra.time_to_timestamp(time.time())
+        cputime = cputime_to_float(d['cputime'])
+        cassandra.cursor().execute("""UPDATE status SET 
+                                      pmem = :pmem, pcpu = :pcpu, cputime = :cputime, vsize = :vsize, rss = :rss
+                                      WHERE service_id = :service_id AND time = :time""",
+                    {'service_id':service_id, 'time':now, 'pmem':d['pmem'], 'pcpu':d['pcpu'],
+                     'cputime':cputime, 'vsize':d['vsize'], 'rss':d['rss']})
 
-def latest_status(database, id):
+def latest_status(service_id):
     """
     Return latest status information about service with given id, or
     None if there is no known status information.
     """
-    key = status_key(id)
-    r = cache.get(key)
-    if r is not None:
-        return r
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM status WHERE id=%s ORDER BY time DESC LIMIT 1', (id,))
-    r = cur.fetchall()
-    if len(r) == 0:
-        res = None
+    cur = cassandra.cursor()
+    cur.execute('SELECT * FROM status WHERE service_id = :service_id ORDER BY time DESC LIMIT 1', {'service_id':service_id})
+    r = cur.fetchone()
+    if r is None:
+        return None
     else:
-        t = r[0]
-        res = dict([(c, t[i]) for i, c in enumerate(status_columns)])
-    cache.set(key, res)
-    cur.close(); conn.close()    
-    return res
+        return dict([(c, r[i]) for i, c in enumerate(status_columns)])
 
-def lifetime_status(database, id):
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM status WHERE id=%s ORDER BY time ASC', (id,))
-    res = cur.fetchall()
-    cur.close(); conn.close()
-    return res
-    
+def lifetime_status(service_id):
+    cur = cassandra.cursor()
+    cur.execute('SELECT * FROM status WHERE service_id = :service_id ORDER BY time ASC', {'service_id':service_id})
+    return cur.fetchall()
 
 #########################################################
 # log table
 #########################################################
-
-def create_log_table(cur):
-    cur.execute("""
-CREATE TABLE log (
-    id serial PRIMARY KEY,
-    sid integer,
-    logfile varchar,
-    time timestamp,
-    message varchar)
-""")
 
 def mtime(file):
     try:
@@ -202,38 +108,27 @@ def mtime(file):
 lastmod = None
 
 @misc.call_until_succeed(0.01, 30, 10)
-def send_log_to_database(database, sid, logfile, filename):
+def send_log_to_database(service_id, logfile, filename):
     global lastmod
-    print "Making psycopg2 connection to '%s'..."%database
-    conn = psycopg2.connect(database)
-    cur = conn.cursor()
-    if not table_exists(cur, 'log'):
-        create_log_table(cur)
+    cur = cassandra.cursor()
     c = unicode(open(logfile).read(), errors='ignore')  # ignore non-unicode characters in log file
     if len(c) == 0:
         print "logfile is empty"
         return
-    try:
-        now = psycopg2.TimestampFromTicks(time.time())
-        for r in c.splitlines():    
-            cur.execute("INSERT INTO log (sid, logfile, time, message) VALUES(%s, %s, %s, %s)",
-                        (sid, filename, now, r))
-        conn.commit()
-        print "Successful commit, now deleting logfile..."
-        # potential race condition situation below
-        if mtime(logfile) != lastmod:
-            # file appended to during db send, so delete the part of file we sent (but not the rest)
-            open(logfile,'w').write(open(logfile).read()[len(c):])
-        else:
-            # just clear file
-            open(logfile,'w').close()
-        lastmod = mtime(logfile)
-    except Exception, msg:
-        print "Failed to commit log messages to database (%s)"%msg
-        conn.rollback()
-    finally:
-        cur.close()
-        conn.close()
+    now = cassandra.time_to_timestamp(time.time())
+    for r in c.splitlines():
+        print {'logfile':logfile, 'message':r, 'service_id':service_id, 'time':now}
+        cur.execute("UPDATE log SET logfile = :logfile, message = :message WHERE service_id = :service_id AND time = :time",
+                    {'logfile':os.path.split(logfile)[-1], 'message':r, 'service_id':service_id, 'time':now})
+        
+    # potential race condition situation below
+    if mtime(logfile) != lastmod:
+        # file appended to during db send, so delete the part of file we sent (but not the rest)
+        open(logfile,'w').write(open(logfile).read()[len(c):])
+    else:
+        # just clear file
+        open(logfile,'w').close()
+    lastmod = mtime(logfile)
 
 def target_pid(target_pidfile):
     if not os.path.exists(target_pidfile):
@@ -251,7 +146,7 @@ def target_process_still_running(target_pidfile, tpid):
     p = target_pid(target_pidfile)
     return p is not None and p == tpid
 
-def main(name, logfile, pidfile, target_pidfile, target_address, target_port, interval, database):
+def main(name, logfile, pidfile, target_pidfile, target_address, target_port, interval):
 
     @misc.call_until_succeed(0.01, 30, 60)  # processes (e.g., sage) can take a long time to start initially!
     def f():
@@ -259,9 +154,8 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
         assert p is not None
         return p
     tpid = f()
-    id = record_that_service_started(database=database,
-                                     name=name, address=target_address, port=target_port,
-                                     username=os.environ['USER'], pid=tpid, monitor_pid=os.getpid())
+    service_id = record_that_service_started(name=name, address=target_address, port=target_port,
+                                             username=os.environ['USER'], pid=tpid, monitor_pid=os.getpid())
     
     global lastmod
     filename = os.path.split(logfile)[-1]
@@ -269,23 +163,23 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
         open(pidfile,'w').write(str(os.getpid()))
         lastmod = None
         while True:
-            update_status(database, id, tpid)
+            update_status(service_id, tpid)
             
             modtime = mtime(logfile)
             if lastmod != modtime:
                 lastmod = modtime
                 try:
-                    send_log_to_database(database, id, logfile, filename)
+                    send_log_to_database(service_id, logfile, filename)
                 except Exception, msg:
                     print msg
             print "Sleeping %s seconds"%interval
             time.sleep(interval)
             if not target_process_still_running(target_pidfile, tpid):
-                record_that_service_stopped(database, id, name)
+                record_that_service_stopped(service_id)
                 return
     finally:
         os.unlink(pidfile)
-        record_that_service_stopped(database, id, name)
+        record_that_service_stopped(service_id)
 
 if __name__ == "__main__":
     import argparse
@@ -295,8 +189,6 @@ if __name__ == "__main__":
                         help="debug mode (default: False)")
     parser.add_argument("--logfile", dest='logfile', type=str, required=True,
                         help="when this file changes it is sent to the database server")
-    parser.add_argument("--database", dest="database", type=str, required=True,
-                        help="database server, e.g., dbname=monitor")
     parser.add_argument("--pidfile", dest="pidfile", type=str, required=True,
                         help="PID file of this daemon process")
     parser.add_argument("--interval", dest="interval", type=int, default=60,  
@@ -319,7 +211,7 @@ if __name__ == "__main__":
 
     f = lambda: main(name=args.target_name, logfile=logfile, pidfile=pidfile, target_pidfile=target_pidfile,
                      target_address=args.target_address, target_port=args.target_port,
-                     interval=args.interval, database=args.database)
+                     interval=args.interval)
     if args.debug:
         f()
     else:

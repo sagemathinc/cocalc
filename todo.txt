@@ -3,15 +3,110 @@ TODO
 
 NOW: 
 
-   [ ] write crafting config2.py, which will deploy live on the web.
+  [ ] change monitor.py
 
-   [ ] change my salvus installs on all machines in vpn to use git, so I can easily pull/push -- I guess I could just have them directly pull/push from my laptop or combinat account safely over the vpn.
+  [ ] restart of cassandra via my admin script fails, since maybe it takes too long to shut down
 
-   [ ] change openvpn to use compression
-
-   [ ] top goal: have the page be live with a single compute cell
 
 SOON:
+
+  [ ] admin.py -- setting environment variables on remote machines
+
+  [ ] look into http://www.monitor.us
+
+
+  [ ] vpn: setup servedby1 to be a vpn server (for redundancy)
+  [ ] vpn: change configuration so the vpn is called salvus (instead of being the default)
+  [ ] vpn: setup a separate vpn for sage servers
+
+  [ ] modify sage server to have a paramater to limit connections (in various ways)
+
+  [ ] deploy what I currently have
+
+  [ ] create phonegap interface for android
+  [ ] create phonegap interface for iOS
+  [ ] create socket interface
+
+  [ ] actually use logins for something:
+
+  [ ] make it so all past computations by a user are available to that user -- first real use of database
+
+
+  [ ] stateful sessions
+
+
+IDEAS:
+
+  [ ] html sanitizer: http://lxml.de/lxmlhtml.html#cleaning-up-html   also https://mail.google.com/mail/u/0/?shva=1#inbox/138bd8a66cc8c6af
+
+  [ ] more complicated VPN:
+
+  I think I need to put all the sage servers on a different vpn than  everything else:
+
+VPN's:
+
+   salvus: everything except the sage servers
+   sage:   all the sage servers + all tornados
+
+The tornados will be on *both* the salvus and sage network, so they can talk
+to the sage machines and the database and haproxy.  But the sage servers
+can *only* talk to the tornado machines and that is it.  And no databases
+will run on the same machines as the tornado machines.    Even if somebody
+roots a sage server, they do not get access to the salvus vpn, so it gains
+them little.   
+
+This way I will not have to worry a lot about security of the database
+(at least of the connections between nodes).  That said, anything in
+the database that is really sensitive may as well be encrypted.  How
+might that work?  What is sensitive?
+
+    highest level: email addresses of users, along with password hash (if not openid)
+    lower level:  their content (local cache or when not stored on google drive)
+
+* Password hash is fine, assuming we use a state of the art hashing algorithm!
+* email address must be protected.
+
+Why/when do we need email addresses?   
+
+Let userid = SHA1(email_address).   
+
+Then the tornado web servers do not need to know the email address do
+they?  They just need the SHA1 hash of it, which can be computed by
+the client, as long as that hash function is implemented in
+javascript.   For password recovery, the user would submit their
+email address, and I would compute the SHA1, verify it is correct,
+and then send email to that address.   Why else would I need to
+store their email?  If I want to send them status info about their
+accounts, the system, etc... but that can be done on a completely
+different server.
+
+SO... conclusion: the production network and big distributed database will
+*not* have any email addresses in it -- only the SHA1 of them. 
+
+There will be another super-secure database that contains email
+address and account info, and that server will be used for sending any
+relevant status emails, etc.  It can be passphrase protected in an
+encrypted file, etc.  When new people sign up, their email addresses
+could be sent public-key encrypted to that server, then added to the
+database.  The actual database should be pretty small; it'll just be a
+key:value store from userid to email_address (and possibly phone
+number for some sort of 2-factor thing).
+
+   [ ] *passphrase* + shared ssh keys:
+
+On my laptop and some computers somewhere on the net, I will setup the
+salvus account to have a passphrase protected .ssh private key, and
+make all the nodes trust that key.  This will be just like how I have
+things now, except now it's my wstein account on my laptop, and it's
+not passphrase protected.  I will also make it so root login is
+allowed on all nodes.  Then when I want to launch services or do
+anything to any nodes (or their hosts -- e.g., reset VM's), I can type
+the passphrase once and *everything* thereafter is password free and
+automatic.
+
+   [ ] write crafting config2.py, which will deploy live on the web.
+
+   [ ] top goal: have the page be live with a single compute cell
 
    [ ] create query that will be used by backend/monitor/etc. to determine 
        memcache pool:
@@ -21,6 +116,9 @@ SOON:
              ... 
           [ ] create the query to get memcached pool
           [ ] use in tornado, monitor, etc. 
+
+   [ ] haproxy should also proxy ssl tcp connections to the tornado servers, so they 
+       can provide a simpler faster non-http API.  
      
    [ ] "monitor": database ...
      [ ] add support to admin.py to clean out old entries from the
@@ -268,7 +366,6 @@ status:
          lowest load, etc.
      [x] race condition: sage_server seems to delete its pid file even when it doesn't quit, which causes havoc...
          
-
      [x] sage_server: "./config1 --restart=sage_server" doesn't work; this is because the
          port isn't being freed quickly enough.  we use SO_REUSEADDR to fix this.
 
@@ -285,4 +382,21 @@ status:
 
    [x] change DNS clients to run in daemon mode, maybe connecting on
        startup (at least for the VMs)?
+
+   [x] change openvpn to use compression
+
+   [x]  change my salvus installs on all machines in vpn to use git, so I can easily pull/push -- I guess I could just have them directly pull/push from my laptop or combinat account safely over the vpn.
+
+[x] automate adding new host to vpn
+
+  [x] config1.py and admin -- cassandra Process service
+
+  [x] replace use of memcache with cassandra for computation caching in tornado_server
+
+  [x] add cassandra to build system
+
+  [x] actually remove memcached, psycopg, postgres from build system
+
+  [x] switch from postgresql to cassandra in my code for registering services
+  [x] remove usage of memcached, psycopg, postgres
 
