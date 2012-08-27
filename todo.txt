@@ -3,8 +3,6 @@ TODO
 
 NOW: 
 
-  [ ] change monitor.py
-
   [ ] restart of cassandra via my admin script fails, since maybe it takes too long to shut down
 
 
@@ -399,4 +397,6 @@ status:
 
   [x] switch from postgresql to cassandra in my code for registering services
   [x] remove usage of memcached, psycopg, postgres
+
+  [x] change monitor.py
 

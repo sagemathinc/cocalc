@@ -353,15 +353,24 @@ class Process(object):
         print self._start_monitor()
         
     def stop(self):
-        if self.pid() is None: return
+        pid = self.pid()
+        if pid is None: return
         if self._stop_cmd is not None:
             print self._account.run(self._stop_cmd)
         else:
-            self._account.kill(self.pid())
+            self._account.kill(pid)
         try:
             self._account.unlink(self._pidfile)
         except Exception, msg:
             print msg
+
+        while True:
+            s = process_status(pid, local_user.run if self._account._hostname=='localhost' else self._account.run)
+            if not s:
+                break
+            print "waiting for %s to terminate"%pid
+            time.sleep(0.5)
+        
         self._pids = {}
 
     def reload(self):
