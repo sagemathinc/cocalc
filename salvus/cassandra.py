@@ -59,7 +59,7 @@ CREATE INDEX ON services (running);
 
     # index so we can search for all services of a given type
     cursor.execute("""
-CREATE INDEX ON services (sage);
+CREATE INDEX ON services (name);
     """)
 
 def create_status_table(cursor):
