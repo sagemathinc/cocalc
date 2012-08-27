@@ -3,8 +3,6 @@ TODO
 
 NOW: 
 
-  [ ] restart of cassandra via my admin script fails, since maybe it takes too long to shut down
-
 
 SOON:
 
@@ -399,4 +397,6 @@ status:
   [x] remove usage of memcached, psycopg, postgres
 
   [x] change monitor.py
+
+  [x] restart of cassandra via my admin script fails, since maybe it takes too long to shut down
 
