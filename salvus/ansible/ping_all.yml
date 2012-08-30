@@ -1,6 +1,0 @@
----
-- hosts: all
-  user: salvus
-  tasks:
-  - name: ping all hosts
-    action: ping 

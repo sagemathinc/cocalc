@@ -3,7 +3,7 @@
 import os, sys
 
 from admin import (Account, Component, whoami,
-                   Cassandra, HAproxy, Nginx, PostgreSQL, Memcached, Tornado, Sage, Stunnel)
+                   Cassandra, HAproxy, Nginx, Tornado, Sage, Stunnel)
 
 # this is for local testing/development; for deployment sitename="codethyme.com"
 #from misc import local_ip_address

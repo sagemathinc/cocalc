@@ -74,7 +74,9 @@ def process_status(pid, run):
 ########################################
 logging.basicConfig()
 log = logging.getLogger('')
-log.setLevel(logging.DEBUG)   # WARNING, INFO, etc.
+#log.setLevel(logging.DEBUG)   # WARNING, INFO, etc.
+#log.setLevel(logging.WARNING)   # WARNING, INFO, etc.
+log.setLevel(logging.INFO)   # WARNING, INFO, etc.
 
 def restrict(path):
     log.info("ensuring that '%s' has restrictive permissions", path)
@@ -506,96 +508,6 @@ frontend unsecured *:$port
         return int(contents.splitlines()[0])
 
 
-####################
-# PostgreSQL Database
-####################
-def pg_conf(**options):
-    r = open('conf/postgresql.conf').read()
-    for key, value in options.iteritems():
-        i = r.find(key + ' = ')
-        if i == -1: raise ValueError('invalid postgreSQL option "%s"'%key)
-        start = i; stop = i
-        while r[start] != '\n':
-            start -= 1
-        while r[stop] != '\n':
-            stop += 1
-        r = r[:start+1] + '#%s\n%s = %s'%(r[start+1:stop], key, value) + r[stop:]
-    return r
-
-class PostgreSQL(Process):
-    def _cmd(self, name, *opts):
-        return ['pg_ctl', name, '-D', self._db] + list(opts)
-
-    def _parse_pidfile(self, contents):
-        return int(contents.splitlines()[0])
-    
-    def __init__(self, account, id, port=5432, monitor_database=None, **options):
-        self._db   = os.path.join(DATA, 'db')
-        self._conf = os.path.join(self._db, 'postgresql.conf')
-        self._log  = os.path.join(LOGS, 'postgresql-%s.log'%id)
-
-        assert 'port' not in options, "port must be specified when creating PostgreSQL object"
-        self._options = options
-        self._options['port'] = port
-        
-        Process.__init__(self, account, id, name='postgresql', port=port,
-                         monitor_database=monitor_database, logfile = self._log,
-                         pidfile    = os.path.join(self._db, 'postmaster.pid'),
-                         start_cmd  = self._cmd('start') + ['-l', self._log],
-                         stop_cmd   = self._cmd('stop') + ['-m', 'fast'],
-                         reload_cmd = self._cmd('reload'))
-        
-    def status2(self):
-        return self._account.run(self._cmd('status'))
-
-    def options(self):
-        v = [x for x in self._account.readfile(self._conf).splitlines() if x.strip() and not x.strip().startswith('#')]
-        return dict([[a.split()[0] for a in x.split('=')[:2]] for x in v])
-
-    def initdb(self):
-        s = self._account.run(self._cmd('initdb'))
-        log.info(s)
-        self._account.writefile(filename=self._conf, content=pg_conf(**self._options))
-
-    def createdb(self, name):
-        self._account.run(['createdb', '-p', self._port, name])
-         
-####################
-# Memcached -- use like so:
-#     import memcache; c = memcache.Client(['localhost:12000']); c.set(...); c.get(...)
-####################
-class Memcached(Process):
-    def __init__(self, account, id, monitor_database=None, **options):
-        """
-        maxmem is in megabytes
-        """
-        self._options = options
-        pidfile = os.path.join(PIDS, 'memcached-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'memcached-%s.log'%id)
-        Process.__init__(self, account, id, name='memcached', port=self.port(),
-                         pidfile    = pidfile,
-                         logfile    = logfile, monitor_database = monitor_database,
-                         start_cmd  = ['memcached', '-P', account.abspath(pidfile), '-d'] + \
-                                      ['-vv', '>' + logfile, '2>&1'] + \
-                                      sum([['-' + k, v] for k,v in options.iteritems()],[]),
-                         start_using_system = True
-                         )
-
-    def port(self):
-        return int(self._options.get('p', 11211))
-
-    def stop(self):
-        # memcached doesn't delete its .pid file after exiting
-        pid = self.pid()
-        if pid is not None:
-            Process.stop(self)
-            if not self._account.is_running(pid):
-                try:
-                    self._account.unlink(self._pidfile)
-                except Exception,msg:
-                    log.info("Issue unlinking pid file: %s", msg)
-                    
-            
 
 ####################
 # Tornado
@@ -630,8 +542,7 @@ class Sage(Process):
                          pidfile    = pidfile,
                          logfile = logfile, monitor_database=monitor_database, 
                          start_cmd  = ['sage', '--python', 'sage_server.py', '-p', port,
-                                       #'--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
-                                       '--pidfile', pidfile, '--logfile', logfile, '2>/tmp/a', '1>/tmp/b', '&'],
+                                       '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
                          start_using_system = True,  # since daemon mode currently broken
                          service = ('sage', account, port))
 
@@ -779,4 +690,121 @@ Port = %s"""%(external_ip, ip_address, port))
     print "host file for this machine..."
 
 
+    
+########################################
+# Grouped collection of hosts
+# See the files conf/hosts* for examples.
+# The format is
+#   [group1]
+#   hostname1
+#   hostname2
+#   [group2]
+#   hostname3
+#   hostname1  # repeats allowed, comments allowed
+########################################
+
+class Hosts(object):
+    def __init__(self, filename, username=whoami):
+        self._ssh = {}
+        self._username = username
+        self._password = None
+        self._groups = {None:[]}
+        group = None
+        for r in open(filename).xreadlines():
+            line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
+            if line: # ignore blank lines
+                if line.startswith('['):  # host group
+                    group = line.strip(' []')
+                    self._groups[group] = []
+                else:
+                    self._groups[group].append(line)
+
+    def password(self, retry=False):
+        if self._password is None or retry:
+            import getpass
+            self._password = getpass.getpass("password: ")
+        return self._password
+
+    def ssh(self, hostname, timeout=10, keepalive=None):
+        key = (hostname, self._username)
+        if key in self._ssh:
+            return self._ssh[key]
+        import paramiko
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            ssh.connect(hostname=hostname, username=self._username, password=self._password, timeout=timeout)
+        except paramiko.AuthenticationException:
+            while True:
+                try:
+                    ssh.connect(hostname=hostname, username=self._username, password=self.password(retry=True))
+                    break
+                except paramiko.AuthenticationException, msg:
+                    print msg
+        if keepalive:
+            ssh.get_transport().set_keepalive(keepalive)
+        self._ssh[key] = ssh
+        return ssh
+
+    def __getitem__(self, query):
+        if query == 'all': # return all hosts
+            return list(sorted(set(sum(self._groups.values(),[]))))
+        elif query in self._groups:
+            return self._groups[query]
+        all = set(self['all'])
+        if query in all:
+            return [query]
+        return [x for x in all if x.startswith(query)]
+
+    def _do_map(self, callable, hostname, **kwds):
+        log.info('%s --> ', hostname)
+        x = callable(hostname, **kwds)
+        log.info(x)
+        return x
+    
+    def map(self, callable, query, **kwds):
+        return dict((hostname, self._do_map(callable, hostname, **kwds)) for hostname in self[query])
+
+    def ping(self, query, timeout=3):
+        return self.map(is_alive, query, timeout=timeout)
+
+    def exec_command(self, query, command, sudo=False, timeout=3):
+        return self.map(lambda hostname: self._exec_command(command, hostname, sudo=sudo, timeout=timeout),
+                        query=query)
+
+    def __call__(self, *args, **kwds):
+        for h,v in self.exec_command(*args, **kwds).iteritems():
+            print h + ':',
+            print v['stdout'],
+            print v['stderr'],
+            print
+    
+    def _exec_command(self, command, hostname, sudo, timeout):
+        start = time.time()
+        ssh = self.ssh(hostname, timeout=timeout)
+        chan = ssh.get_transport().open_session()
+        stdin = chan.makefile('wb')
+        stdout = chan.makefile('rb')
+        stderr = chan.makefile_stderr('rb')
+        chan.exec_command( ('sudo -S bash -c "%s"' % command.replace('"', '\\"')) if sudo  else command)
+        if sudo and not stdin.channel.closed:
+            try:
+                print "sending sudo password..."
+                stdin.write('%s\n' % self.password()); stdin.flush()
+            except:
+                pass                 # could have closed in the meantime if password cached
+        while not stdout.channel.closed:
+            time.sleep(0.05)
+            if time.time() - start >= timeout:
+                raise RuntimeError("on %s@%s command '%s' timed out"%(self._username, hostname, command))
+        return {'stdout':stdout.read(), 'stderr':stderr.read(), 'exit_status':chan.recv_exit_status()}
+                    
+                   
+                
+
+        
+    
+                
+                
+        
     
