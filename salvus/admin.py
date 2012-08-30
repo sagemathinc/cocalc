@@ -74,7 +74,9 @@ def process_status(pid, run):
 ########################################
 logging.basicConfig()
 log = logging.getLogger('')
-log.setLevel(logging.DEBUG)   # WARNING, INFO, etc.
+#log.setLevel(logging.DEBUG)   # WARNING, INFO, etc.
+#log.setLevel(logging.WARNING)   # WARNING, INFO, etc.
+log.setLevel(logging.INFO)   # WARNING, INFO, etc.
 
 def restrict(path):
     log.info("ensuring that '%s' has restrictive permissions", path)
@@ -587,8 +589,8 @@ class Cassandra(Process):
 # tinc VPN management
 ########################################
 
-def is_alive(hostname, maxtime=1):
-    return subprocess.Popen(['ping', '-t', str(maxtime), '-c', '1', hostname],
+def is_alive(hostname, timeout=1):
+    return subprocess.Popen(['ping', '-t', str(timeout), '-c', '1', hostname],
                             stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                             stderr=subprocess.PIPE).wait() == 0
 
@@ -702,7 +704,10 @@ Port = %s"""%(external_ip, ip_address, port))
 ########################################
 
 class Hosts(object):
-    def __init__(self, filename):
+    def __init__(self, filename, username=whoami):
+        self._ssh = {}
+        self._username = username
+        self._password = None
         self._groups = {None:[]}
         group = None
         for r in open(filename).xreadlines():
@@ -714,7 +719,34 @@ class Hosts(object):
                 else:
                     self._groups[group].append(line)
 
-    def __getitem__(self, query='all'):
+    def password(self, retry=False):
+        if self._password is None or retry:
+            import getpass
+            self._password = getpass.getpass("password: ")
+        return self._password
+
+    def ssh(self, hostname, timeout=10, keepalive=None):
+        key = (hostname, self._username)
+        if key in self._ssh:
+            return self._ssh[key]
+        import paramiko
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            ssh.connect(hostname=hostname, username=self._username, password=self._password, timeout=timeout)
+        except paramiko.AuthenticationException:
+            while True:
+                try:
+                    ssh.connect(hostname=hostname, username=self._username, password=self.password(retry=True))
+                    break
+                except paramiko.AuthenticationException, msg:
+                    print msg
+        if keepalive:
+            ssh.get_transport().set_keepalive(keepalive)
+        self._ssh[key] = ssh
+        return ssh
+
+    def __getitem__(self, query):
         if query == 'all': # return all hosts
             return list(sorted(set(sum(self._groups.values(),[]))))
         elif query in self._groups:
@@ -730,16 +762,46 @@ class Hosts(object):
         log.info(x)
         return x
     
-    def map(self, callable, query='all', **kwds):
+    def map(self, callable, query, **kwds):
         return dict((hostname, self._do_map(callable, hostname, **kwds)) for hostname in self[query])
 
-    def ping(self, query='all', maxtime=3):
-        return self.map(is_alive, query, maxtime=maxtime)
+    def ping(self, query, timeout=3):
+        return self.map(is_alive, query, timeout=timeout)
 
-    def run(self, args, query='all', username=whoami, maxtime=3, **kwds):
-        def f(hostname):
-            return Account(username, hostname).run(args, maxtime=maxtime, **kwds)
-        return self.map(f, query=query)
+    def exec_command(self, query, command, sudo=False, timeout=3):
+        return self.map(lambda hostname: self._exec_command(command, hostname, sudo=sudo, timeout=timeout),
+                        query=query)
+
+    def __call__(self, *args, **kwds):
+        for h,v in self.exec_command(*args, **kwds).iteritems():
+            print h + ':',
+            print v['stdout'],
+            print v['stderr'],
+            print
+    
+    def _exec_command(self, command, hostname, sudo, timeout):
+        start = time.time()
+        ssh = self.ssh(hostname, timeout=timeout)
+        chan = ssh.get_transport().open_session()
+        stdin = chan.makefile('wb')
+        stdout = chan.makefile('rb')
+        stderr = chan.makefile_stderr('rb')
+        chan.exec_command( ('sudo -S bash -c "%s"' % command.replace('"', '\\"')) if sudo  else command)
+        if sudo and not stdin.channel.closed:
+            try:
+                print "sending sudo password..."
+                stdin.write('%s\n' % self.password()); stdin.flush()
+            except:
+                pass                 # could have closed in the meantime if password cached
+        while not stdout.channel.closed:
+            time.sleep(0.05)
+            if time.time() - start >= timeout:
+                raise RuntimeError("on %s@%s command '%s' timed out"%(self._username, hostname, command))
+        return {'stdout':stdout.read(), 'stderr':stderr.read(), 'exit_status':chan.recv_exit_status()}
+                    
+                   
+                
+
         
     
                 
