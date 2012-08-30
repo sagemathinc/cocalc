@@ -13,7 +13,8 @@ The components of sagews are:
     * protobuf -- google's messaging api and format 
     * cassandra -- distributed p2p database
     * tornado -- web server
-    * sage (which we do not build here, yet -- perhaps we should)
+    * ansible -- configuration management (written in python) 
+    * sage (which we do not build here, yet -- perhaps we should)      
 
 This supports OS X and Ubuntu 12.04 on AMD and Intel. 
 """
@@ -70,6 +71,18 @@ def extract_package(basename):
                 shutil.rmtree(path)
             cmd('tar xvf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
             return path
+
+def build_ansible():
+    log.info('building ansible'); start = time.time()
+    try:
+        path = os.path.join(BUILD, 'ansible')
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        cmd("git clone git://github.com/ansible/ansible.git", BUILD)
+        cmd("python setup.py install", path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time() - start
 
 def build_tinc():
     log.info('building tinc'); start = time.time()
@@ -199,6 +212,9 @@ if __name__ == "__main__":
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
                         help="install all Python packages")
 
+    parser.add_argument('--build_ansible', dest='build_ansible', action='store_const', const=True, default=False,
+                        help="install ansible configuration management system")
+
     args = parser.parse_args()
 
     try:
@@ -226,6 +242,9 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_python_packages:
             times['python_packages'] = build_python_packages()
+
+        if args.build_all or args.build_ansible:
+            times['ansible'] = build_ansible()
 
     finally:
         if times:
