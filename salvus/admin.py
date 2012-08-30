@@ -799,6 +799,15 @@ class Hosts(object):
                 raise RuntimeError("on %s@%s command '%s' timed out"%(self._username, hostname, command))
         return {'stdout':stdout.read(), 'stderr':stderr.read(), 'exit_status':chan.recv_exit_status()}
                     
+    def public_ssh_keys(self, query, timeout=5):
+        return '\n'.join([x['stdout'] for x in self.exec_command(query, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
+
+    def git_pull(self, query, repo, timeout=5):
+        self(query, 'cd salvus && git pull %s'%repo, timeout=timeout)
+
+    def build(self, query, pkg_name, timeout=200):
+        self(query, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
+
                    
                 
 
