@@ -799,7 +799,7 @@ class Hosts(object):
                 raise RuntimeError("on %s@%s command '%s' timed out"%(self._username, hostname, command))
         return {'stdout':stdout.read(), 'stderr':stderr.read(), 'exit_status':chan.recv_exit_status()}
                     
-                    
+                   
                 
 
         
