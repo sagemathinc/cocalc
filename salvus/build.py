@@ -37,6 +37,7 @@ PYTHON_PACKAGES = [
     'tornado',            # async webserver
     'sockjs-tornado',     # websocket support
     'python-daemon',      # daemonization of python modules
+    'paramiko',           # ssh2 implementation in python
     ]
 
 if not os.path.exists(BUILD):

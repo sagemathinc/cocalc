@@ -1,9 +1,15 @@
+
+# import admin, config2; reload(admin); reload(config2); h = config2.hosts
+
 import admin
 
-hosts = admin.Hosts('conf/hosts2')
+hosts = admin.Hosts('conf/hosts2', username='salvus')
 
-def ping(timeout=2):
-    for hostname in hosts.all():
-        alive = admin.is_alive(hostname + '.salv.us', timeout)
-        print '%-15s%-10s'%(hostname, 'alive' if alive else '*missing*')
+def gitpull(query, timeout=5):
+    return hosts.exec_command(query, 'cd salvus && git pull git@combinat1.salv.us:.', timeout=timeout)
+
+def public_ssh_keys(query, timeout=5):
+    return '\n'.join([x['stdout'] for x in hosts.exec_command(query, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
+        
+    
     
