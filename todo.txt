@@ -2,7 +2,12 @@ TODO
 -----
 
 NOW: 
+[ ] consider switching from postgresql to cassandra -- ugh... but it
+    has the right properties, and I'll be fighting postgresql if I
+    don't do this from the start.  Right now, the database is the only
+    non-truly distributed multi-data center component...
 
+<<<<<<< HEAD
   [ ] write ansible playbooks for:
      [ ] updating git repos
 
@@ -41,6 +46,19 @@ IDEAS:
 
   I think I need to put all the sage servers on a different vpn than  everything else:
 
+=======
+ This would mean getting rid of:
+   * momoko
+   * psycopg
+   * memcached
+
+SOON:
+
+  [ ] more complicated VPN:
+
+  I think I need to put all the sage servers on a different vpn than  everything else:
+
+>>>>>>> a5a764e8cdc311050b975a8a9985b3224d6763e9
 VPN's:
 
    salvus: everything except the sage servers
@@ -387,6 +405,7 @@ status:
 
 [x] automate adding new host to vpn
 
+<<<<<<< HEAD
   [x] config1.py and admin -- cassandra Process service
 
   [x] replace use of memcache with cassandra for computation caching in tornado_server
@@ -404,3 +423,5 @@ status:
 
   [x] add ansible to build system
 
+=======
+>>>>>>> a5a764e8cdc311050b975a8a9985b3224d6763e9

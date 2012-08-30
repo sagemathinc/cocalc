@@ -1,6 +1,7 @@
 ---
-- hosts: laptop
+- hosts: geom0.salv.us
   user: salvus
   tasks:
   - name: update git salvus repo
-    action: git repo=wstein@salvus0.salv.us:salvus/ dest=/Users/salvus/salvus/
+    action: git repo=http://combinat1.salv.us dest=/home/salvus/salvus/
+    #action: shell cd salvus && git pull http://combinat1.salv.us

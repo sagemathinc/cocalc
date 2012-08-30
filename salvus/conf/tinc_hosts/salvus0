@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 Address = 10.0.1.74
 Subnet = 10.38.1.1/32
 Port = 8200
+=======
+Address = 192.168.56.1
+Port = 8200
+
+>>>>>>> a5a764e8cdc311050b975a8a9985b3224d6763e9
 -----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEAtCNyyl0veg58Elt0AE9GJHlDiA8WjHXq5yQhIIsd7bBtaocVCGoz
 iiXjXg5SC37Y2K+vnZJXrdkOVEjgaiqMJEPtJBHs0dMi/T2/dprMJ5I0cPTBOGfc
