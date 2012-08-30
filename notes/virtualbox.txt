@@ -1,3 +1,10 @@
+
+Ubuntu 12.04 with:
+
+   sudo apt-get install liblzo2-dev git libsqlite3-dev libssl-dev dpkg-dev g++ make m4 gfortran emacs 
+
+################################
+
 Starting VM's -- *always* do this by default:
 
    nohup VBoxHeadless -s bsd1 --vrde off &

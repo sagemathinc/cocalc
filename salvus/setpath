@@ -1,2 +1,0 @@
-export PATH=`pwd`/data/local/bin:`pwd`/data/local/sbin:$PATH
-export LD_LIBRARY_PATH=`pwd`/data/local/lib:$LD_LIBRARY_PATH
