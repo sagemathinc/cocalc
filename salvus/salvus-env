@@ -1,0 +1,6 @@
+P=`pwd`
+
+export ANSIBLE_LIBRARY=$P/data/local/ansible
+export ANSIBLE_HOSTS=$P/conf/ansible_hosts
+export PATH=$P/data/local/bin:`pwd`/data/local/sbin:$PATH
+export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
