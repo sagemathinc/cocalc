@@ -1,7 +1,10 @@
 ---
-- hosts: geom0.salv.us
+- hosts: 
+   - cassandra
+   - web
   user: salvus
   tasks:
   - name: update git salvus repo
-    action: git repo=http://combinat1.salv.us dest=/home/salvus/salvus/
-    #action: shell cd salvus && git pull http://combinat1.salv.us
+    action: shell cd salvus && git pull git@combinat1.salv.us:.
+    # i wish this worked, but it simply doesn't -- only cloning to a new repo works; pull doesn't
+    #action: git repo=git@combinat1.salv.us:. dest=/home/salvus/salvus/

@@ -10,7 +10,6 @@ combinat3.salv.us
 combinat4.salv.us
 
 [padelford]
-geom0.salv.us
 combinat0.salv.us
 combinat1.salv.us
 combinat2.salv.us
@@ -25,23 +24,20 @@ bsd2.salv.us
 servedby1.salv.us
 servedby2.salv.us
 
-
-# service distribution
 [sage]
-servedby2.salv.us
 combinat2.salv.us
 combinat3.salv.us
+servedby2.salv.us
 bsd2.salv.us
 
 [cassandra]
-servedby1.salv.us
 combinat4.salv.us
+servedby1.salv.us
 bsd1.salv.us
 
-[web]   # stunnel + haproxy + tornado + nginx on each
+[web]
+combinat1.salv.us
 servedby1.salv.us
 bsd1.salv.us
-geom0.salv.us
-combinat1.salv.us
 
 

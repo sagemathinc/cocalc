@@ -4,7 +4,24 @@ TODO
 NOW: 
 
   [ ] write ansible playbooks for:
-     [ ] updating git repos 
+     [ ] updating git repos: how?
+         * we want every node (except the sage server nodes) to 
+           be able to pull the latest version of the code.
+         * sage server will only have sage_server.py (and maybe
+           stuff it deps on).
+         It seems like copying all of the ssh public keys 
+         for all non-sage nodes to a single authorized_keys file
+         is the way to do this. 
+  
+      1. fix the id_rsa.pub files to have correct names
+      2. get them all using something like
+           ansible XXX -m shell -a "cat ~/.ssh/id_rsa.pub" -u salvus
+         (not the sage server machines!)
+      3. make "git" account on combinat1 that contains
+         salvus bare repo that we can push to, and whose 
+         .ssh/authorized_keys files is the concat of all the public keys.
+         and *USE git-shell* for safety.
+      4. test   
 
 SOON:
 
