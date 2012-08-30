@@ -1,0 +1,6 @@
+---
+- hosts: laptop
+  user: salvus
+  tasks:
+  - name: update git salvus repo
+    action: git repo=wstein@salvus0.salv.us:salvus/ dest=/Users/salvus/salvus/

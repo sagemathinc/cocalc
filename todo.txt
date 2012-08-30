@@ -3,8 +3,8 @@ TODO
 
 NOW: 
 
-  [ ] write ansible playbook for starting ... something
-
+  [ ] write ansible playbooks for:
+     [ ] updating git repos
 
 SOON:
 
