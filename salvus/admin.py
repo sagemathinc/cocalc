@@ -506,96 +506,6 @@ frontend unsecured *:$port
         return int(contents.splitlines()[0])
 
 
-####################
-# PostgreSQL Database
-####################
-def pg_conf(**options):
-    r = open('conf/postgresql.conf').read()
-    for key, value in options.iteritems():
-        i = r.find(key + ' = ')
-        if i == -1: raise ValueError('invalid postgreSQL option "%s"'%key)
-        start = i; stop = i
-        while r[start] != '\n':
-            start -= 1
-        while r[stop] != '\n':
-            stop += 1
-        r = r[:start+1] + '#%s\n%s = %s'%(r[start+1:stop], key, value) + r[stop:]
-    return r
-
-class PostgreSQL(Process):
-    def _cmd(self, name, *opts):
-        return ['pg_ctl', name, '-D', self._db] + list(opts)
-
-    def _parse_pidfile(self, contents):
-        return int(contents.splitlines()[0])
-    
-    def __init__(self, account, id, port=5432, monitor_database=None, **options):
-        self._db   = os.path.join(DATA, 'db')
-        self._conf = os.path.join(self._db, 'postgresql.conf')
-        self._log  = os.path.join(LOGS, 'postgresql-%s.log'%id)
-
-        assert 'port' not in options, "port must be specified when creating PostgreSQL object"
-        self._options = options
-        self._options['port'] = port
-        
-        Process.__init__(self, account, id, name='postgresql', port=port,
-                         monitor_database=monitor_database, logfile = self._log,
-                         pidfile    = os.path.join(self._db, 'postmaster.pid'),
-                         start_cmd  = self._cmd('start') + ['-l', self._log],
-                         stop_cmd   = self._cmd('stop') + ['-m', 'fast'],
-                         reload_cmd = self._cmd('reload'))
-        
-    def status2(self):
-        return self._account.run(self._cmd('status'))
-
-    def options(self):
-        v = [x for x in self._account.readfile(self._conf).splitlines() if x.strip() and not x.strip().startswith('#')]
-        return dict([[a.split()[0] for a in x.split('=')[:2]] for x in v])
-
-    def initdb(self):
-        s = self._account.run(self._cmd('initdb'))
-        log.info(s)
-        self._account.writefile(filename=self._conf, content=pg_conf(**self._options))
-
-    def createdb(self, name):
-        self._account.run(['createdb', '-p', self._port, name])
-         
-####################
-# Memcached -- use like so:
-#     import memcache; c = memcache.Client(['localhost:12000']); c.set(...); c.get(...)
-####################
-class Memcached(Process):
-    def __init__(self, account, id, monitor_database=None, **options):
-        """
-        maxmem is in megabytes
-        """
-        self._options = options
-        pidfile = os.path.join(PIDS, 'memcached-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'memcached-%s.log'%id)
-        Process.__init__(self, account, id, name='memcached', port=self.port(),
-                         pidfile    = pidfile,
-                         logfile    = logfile, monitor_database = monitor_database,
-                         start_cmd  = ['memcached', '-P', account.abspath(pidfile), '-d'] + \
-                                      ['-vv', '>' + logfile, '2>&1'] + \
-                                      sum([['-' + k, v] for k,v in options.iteritems()],[]),
-                         start_using_system = True
-                         )
-
-    def port(self):
-        return int(self._options.get('p', 11211))
-
-    def stop(self):
-        # memcached doesn't delete its .pid file after exiting
-        pid = self.pid()
-        if pid is not None:
-            Process.stop(self)
-            if not self._account.is_running(pid):
-                try:
-                    self._account.unlink(self._pidfile)
-                except Exception,msg:
-                    log.info("Issue unlinking pid file: %s", msg)
-                    
-            
 
 ####################
 # Tornado
@@ -630,8 +540,7 @@ class Sage(Process):
                          pidfile    = pidfile,
                          logfile = logfile, monitor_database=monitor_database, 
                          start_cmd  = ['sage', '--python', 'sage_server.py', '-p', port,
-                                       #'--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
-                                       '--pidfile', pidfile, '--logfile', logfile, '2>/tmp/a', '1>/tmp/b', '&'],
+                                       '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
                          start_using_system = True,  # since daemon mode currently broken
                          service = ('sage', account, port))
 
@@ -678,8 +587,8 @@ class Cassandra(Process):
 # tinc VPN management
 ########################################
 
-def is_alive(hostname, timeout=1):
-    return subprocess.Popen(['ping', '-t', str(timeout), '-c', '1', hostname],
+def is_alive(hostname, maxtime=1):
+    return subprocess.Popen(['ping', '-t', str(maxtime), '-c', '1', hostname],
                             stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                             stderr=subprocess.PIPE).wait() == 0
 
@@ -779,4 +688,61 @@ Port = %s"""%(external_ip, ip_address, port))
     print "host file for this machine..."
 
 
+    
+########################################
+# Grouped collection of hosts
+# See the files conf/hosts* for examples.
+# The format is
+#   [group1]
+#   hostname1
+#   hostname2
+#   [group2]
+#   hostname3
+#   hostname1  # repeats allowed, comments allowed
+########################################
+
+class Hosts(object):
+    def __init__(self, filename):
+        self._groups = {None:[]}
+        group = None
+        for r in open(filename).xreadlines():
+            line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
+            if line: # ignore blank lines
+                if line.startswith('['):  # host group
+                    group = line.strip(' []')
+                    self._groups[group] = []
+                else:
+                    self._groups[group].append(line)
+
+    def __getitem__(self, query='all'):
+        if query == 'all': # return all hosts
+            return list(sorted(set(sum(self._groups.values(),[]))))
+        elif query in self._groups:
+            return self._groups[query]
+        all = set(self['all'])
+        if query in all:
+            return [query]
+        return [x for x in all if x.startswith(query)]
+
+    def _do_map(self, callable, hostname, **kwds):
+        log.info('%s --> ', hostname)
+        x = callable(hostname, **kwds)
+        log.info(x)
+        return x
+    
+    def map(self, callable, query='all', **kwds):
+        return dict((hostname, self._do_map(callable, hostname, **kwds)) for hostname in self[query])
+
+    def ping(self, query='all', maxtime=3):
+        return self.map(is_alive, query, maxtime=maxtime)
+
+    def run(self, args, query='all', username=whoami, maxtime=3, **kwds):
+        def f(hostname):
+            return Account(username, hostname).run(args, maxtime=maxtime, **kwds)
+        return self.map(f, query=query)
+        
+    
+                
+                
+        
     
