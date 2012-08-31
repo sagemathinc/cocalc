@@ -10,15 +10,21 @@ cassandra
 
 [nginx]
 web
-
-[stunnel]
-web
+combinat0.salv.us
+bsd0.salv.us
 
 [tornado]
 web
 
+[stunnel]
+combinat0.salv.us
+servedby1.salv.us
+bsd0.salv.us
+
 [haproxy]
-web
+combinat0.salv.us
+servedby1.salv.us
+bsd0.salv.us
 
 [sage]
 sage
