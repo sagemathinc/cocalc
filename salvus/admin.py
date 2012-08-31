@@ -453,8 +453,9 @@ class Tornado(Process):
 # Sage
 ####################
 
+SAGE_PORT=6000  # also used in cassandra.py.
 class Sage(Process):
-    def __init__(self, id=0, port=6000, monitor_database=None, debug=True):
+    def __init__(self, id=0, port=SAGE_PORT, monitor_database=None, debug=True):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
@@ -751,6 +752,7 @@ class Hosts(object):
 class Services(object):
     def __init__(self, path, username=whoami):
         self._path = path
+        self._username = username
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
         services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del services[None]
@@ -759,12 +761,13 @@ class Services(object):
                                     'options':self._optparse([x for x in v if '=' in x])}) for k, v in services.iteritems()])
         if 'cassandra' in self._hosts._groups:
             self._cassandra = self._hosts._groups['cassandra']
+            import cassandra
+            cassandra.set_nodes(self._cassandra)
 
     def _optparse(self, v):
         # defaults
         opts = []
         sudo = False
-        sandboxed = False
         timeout = 10
         name = None
         for x in v:
@@ -775,17 +778,26 @@ class Services(object):
                 timeout = int(value.strip())
             elif var.strip() == 'name':
                 name = value.strip()
-            elif var.strip() == 'sandboxed':
-                sandboxed = eval(value.strip().capitalize())
             else:
                 opts.append(x)
         return {'options_string':','+(','.join(opts)), 'name':name,
-                'sudo':sudo, 'timeout':timeout, 'sandboxed':sandboxed}
+                'sudo':sudo, 'timeout':timeout}
         
-    def _action(self, query, name, action, options_string, sudo, timeout, sandboxed):
-        db_string = "" if sandboxed else ",monitor_database='%s'"%(','.join(self._cassandra))
+    def _action(self, query, name, action, options_string, sudo, timeout):
+        db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))
         cmd = "import admin; print admin.%s(id=0%s%s).%s()"%(name, db_string, options_string, action)
-        return self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
+        result = self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
+        if name == "Sage":
+            import cassandra
+            for address in result:
+                try:
+                    if action in ['start', 'restart']:
+                        cassandra.record_that_sage_server_started(address)
+                    elif action == 'stop':
+                        cassandra.record_that_sage_server_stopped(address)
+                except Exception, msg:
+                    print msg
+        return result
 
     def _action_parse(self, service, action):
         if service not in self._services:
@@ -796,24 +808,25 @@ class Services(object):
                 'name':(options['name'] if options['name'] else service).capitalize(),
                 'action':action,
                 'sudo':options['sudo'],
-                'timeout':options['timeout'], 'sandboxed':options['sandboxed']}
+                'timeout':options['timeout']}
 
-    def _all(self, callable):
-        return dict([(s, callable(s)) for s in self._ordered_service_names])
+    def _all(self, callable, reverse=False):
+        names = self._ordered_service_names
+        return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
     def start(self, service):
-        if service == 'all': return self._all(self.start)
+        if service == 'all': return self._all(self.start, reverse=False)
         return self._action(**self._action_parse(service, 'start'))
         
     def stop(self, service):
-        if service == 'all': return self._all(self.stop)
+        if service == 'all': return self._all(self.stop, reverse=True)
         return self._action(**self._action_parse(service, 'stop'))
 
     def status(self, service):
-        if service == 'all': return self._all(self.status)
+        if service == 'all': return self._all(self.status, reverse=False)
         return self._action(**self._action_parse(service, 'status'))
 
-    def restart(self, service):
+    def restart(self, service, reverse=True):
         if service == 'all': return self._all(self.restart)
         return self._action(**self._action_parse(service, 'restart'))
 

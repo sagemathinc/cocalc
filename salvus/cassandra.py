@@ -1,5 +1,5 @@
 
-import random, sha
+import random, sha, uuid
 import cql
 
 NODES = []
@@ -63,6 +63,19 @@ CREATE TABLE stateless_exec(
      output varchar)
 """)
 
+def create_sage_servers_table(cursor):
+    """Create table that tracks Sage servers."""
+    cursor.execute("""
+CREATE TABLE sage_servers (
+    address varchar PRIMARY KEY,
+    running boolean
+)""")
+    # index so we can search for which services are currently running
+    cursor.execute("""
+CREATE INDEX ON sage_servers (running);
+    """)
+
+
 def create_services_table(cursor):
     """Create table that tracks registered components of salvus."""
     cursor.execute("""
@@ -123,6 +136,7 @@ CREATE KEYSPACE salvus WITH strategy_class='SimpleStrategy' AND strategy_options
         create_services_table(cursor)
         create_status_table(cursor)
         create_log_table(cursor)
+        create_sage_servers_tables(cursor)
         
 
 ##########################################################################
@@ -152,10 +166,21 @@ class StatelessExec(object):
         
     
 
-
+##########################################################################
+# Sage servers
 ##########################################################################
 
+from admin import SAGE_PORT
 def get_sage_servers():
     cur = cursor()
-    cur.execute("SELECT address, port FROM services WHERE running='true' and name='sage'")
-    return list(cur)
+    cur.execute("SELECT address FROM sage_servers WHERE running='true'")
+    return [(address[0], SAGE_PORT) for address in cur]
+
+def record_that_sage_server_started(address):
+    cursor().execute("UPDATE sage_servers SET running = 'true' WHERE address = :address", {'address':address})
+
+def record_that_sage_server_stopped(address):
+    cursor().execute("UPDATE sage_servers SET running = 'false' WHERE address= :address", {'address':address})
+    
+    
+    
