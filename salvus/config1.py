@@ -29,7 +29,7 @@ stunnel    = Component('stunnel', [Stunnel(root_user, 0, accept_port=443, connec
 
 tornado    = Component('tornado', [Tornado(local_user, i, 5000+i, monitor_database=monitor_database) for i in range(1)])
 
-haproxy    = Component('haproxy', [HAproxy(root_user, 0, sitename=sitename, insecure_redirect_port=80,
+haproxy    = Component('haproxy', [Haproxy(root_user, 0, sitename=sitename, insecure_redirect_port=80,
                                            accept_proxy_port=8000,  # same as connect_port of stunnel 
                                            monitor_database=monitor_database,
                                            insecure_testing_port=8001,

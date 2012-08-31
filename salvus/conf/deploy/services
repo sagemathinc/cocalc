@@ -8,10 +8,14 @@ bsd1.salv.us
 [cassandra]
 cassandra
 
+[nginx1]
+name=nginx
+combinat1.salv.us
+
 [nginx]
 web
 combinat0.salv.us
-bsd0.salv.us
+#bsd0.salv.us
 
 [tornado]
 web
@@ -20,13 +24,13 @@ web
 sudo=True
 combinat0.salv.us
 servedby1.salv.us
-bsd0.salv.us
+#bsd0.salv.us
 
 [haproxy]
 sudo=True
 combinat0.salv.us
 servedby1.salv.us
-bsd0.salv.us
+#bsd0.salv.us
 
 [sage]
 sage
