@@ -403,7 +403,7 @@ class Process(object):
 # Nginx
 ####################
 class Nginx(Process):
-    def __init__(self, account, id, port, monitor_database=None):
+    def __init__(self, id=0, port=8080, monitor_database=None, account=local_user):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
@@ -427,7 +427,7 @@ class Nginx(Process):
 # Stunnel
 ####################
 class Stunnel(Process):
-    def __init__(self, account, id, accept_port, connect_port, monitor_database=None):
+    def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None, account=local_user):
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
         base = account.abspath()
         pidfile = os.path.join(base, PIDS,'stunnel-%s.pid'%id) # abspath of pidfile required by stunnel
@@ -455,15 +455,15 @@ class Stunnel(Process):
 # HAproxy
 ####################
 class HAproxy(Process):
-    def __init__(self, account, id, 
-                 sitename,    # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
+    def __init__(self, id=0, 
+                 sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers='',   # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...] 
                  tornado_servers='', # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...]
                  monitor_database=None,  
-                 conf_file='conf/haproxy.conf'):
+                 conf_file='conf/haproxy.conf', account=local_user):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
@@ -513,7 +513,7 @@ frontend unsecured *:$port
 # Tornado
 ####################
 class Tornado(Process):
-    def __init__(self, account, id, port, monitor_database=None, debug=False):
+    def __init__(self, id=0, port=5000, monitor_database=None, debug=False, account=local_user):
         self._port = port
         pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
         logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
@@ -534,7 +534,7 @@ class Tornado(Process):
 ####################
 
 class Sage(Process):
-    def __init__(self, account, id, port, monitor_database=None, debug=True):
+    def __init__(self, id=0, port=6000, monitor_database=None, debug=True, account=local_user):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
@@ -556,7 +556,7 @@ class Sage(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, account, id, conf_template_path=None):
+    def __init__(self, id=0, conf_template_path=None, account=local_user):
         """
         account - an Account
         id -- arbitrary identifier
@@ -703,21 +703,25 @@ Port = %s"""%(external_ip, ip_address, port))
 #   hostname1  # repeats allowed, comments allowed
 ########################################
 
+def parse_groupfile(filename):
+    groups = {None:[]}
+    group = None
+    for r in open(filename).xreadlines():
+        line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
+        if line: # ignore blank lines
+            if line.startswith('['):  # host group
+                group = line.strip(' []')
+                groups[group] = []
+            else:
+                groups[group].append(line)
+    return groups
+
 class Hosts(object):
     def __init__(self, filename, username=whoami):
         self._ssh = {}
         self._username = username
         self._password = None
-        self._groups = {None:[]}
-        group = None
-        for r in open(filename).xreadlines():
-            line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
-            if line: # ignore blank lines
-                if line.startswith('['):  # host group
-                    group = line.strip(' []')
-                    self._groups[group] = []
-                else:
-                    self._groups[group].append(line)
+        self._groups = parse_groupfile(filename)
 
     def password(self, retry=False):
         if self._password is None or retry:
@@ -805,14 +809,25 @@ class Hosts(object):
     def git_pull(self, query, repo, timeout=5):
         self(query, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
-    def build(self, query, pkg_name, timeout=200):
+    def build(self, query, pkg_name, timeout=250):
         self(query, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
+
+    def python_c(self, query, cmd, timeout=10, sudo=False):
+        command = 'cd \"$HOME/salvus/salvus\" && . salvus-env && python -c "%s"'%cmd
+        log.info("python_c: %s", command)
+        self(query, command, sudo=sudo, timeout=timeout)
 
                    
                 
+class Services(object):
+    def __init__(self, path, username=whoami):
+        self._path = path
+        self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
+        self._services = parse_groupfile(os.path.join(path, 'services'))
 
-        
-    
+    def _action(self, query, name, action, sudo=False, timeout=10):
+        cmd = "import admin; print admin.%s(id=0).%s()"%(name, action)
+        self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
                 
                 
         
