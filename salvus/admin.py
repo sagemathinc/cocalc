@@ -343,6 +343,9 @@ class Nginx(Process):
 ####################
 class Stunnel(Process):
     def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None):
+        pem = os.path.join(DATA, 'secrets/salv.us/nopassphrase.pem')
+        if not os.path.exists(pem):
+            raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
         base = abspath()
         pidfile = os.path.join(base, PIDS,'stunnel-%s.pid'%id) # abspath of pidfile required by stunnel
