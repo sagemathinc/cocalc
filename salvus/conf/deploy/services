@@ -8,10 +8,6 @@ bsd1.salv.us
 [cassandra]
 cassandra
 
-[nginx1]
-name=nginx
-combinat1.salv.us
-
 [nginx]
 web
 combinat0.salv.us
