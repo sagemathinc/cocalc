@@ -1,5 +1,10 @@
 # services
 
+[git]
+combinat1.salv.us
+servedby1.salv.us
+bsd1.salv.us
+
 [cassandra]
 cassandra
 

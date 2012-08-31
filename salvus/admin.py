@@ -79,19 +79,19 @@ log = logging.getLogger('')
 log.setLevel(logging.INFO)   # WARNING, INFO, etc.
 
 def restrict(path):
-    log.info("ensuring that '%s' has restrictive permissions", path)
+    #log.info("ensuring that '%s' has restrictive permissions", path)
     if os.stat(path)[stat.ST_MODE] != 0o40700:
         os.chmod(path, 0o40700)
 
 def init_data_directory():
-    log.info("ensuring that '%s' exist", DATA)
+    #log.info("ensuring that '%s' exist", DATA)
 
     for path in [DATA, PIDS, LOGS, os.path.join(DATA,'secrets')]:
         if not os.path.exists(path):
             os.makedirs(path)
         restrict(path)
     
-    log.info("ensuring that PATH starts with programs in DATA directory")
+    #log.info("ensuring that PATH starts with programs in DATA directory")
     os.environ['PATH'] = os.path.join(DATA, 'local/bin/') + ':' + os.environ['PATH']
 
 init_data_directory()
