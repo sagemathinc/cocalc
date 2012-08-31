@@ -97,139 +97,53 @@ def init_data_directory():
 init_data_directory()
 
 ########################################
-# Local and remote UNIX user accounts
+# Misc operating system interaction
 ########################################
-whoami = os.environ['USER']
+def system(args):
+    c = ' '.join([str(x) for x in args])
+    log.info("running '%s' via system", c)
+    return os.system(c)
 
-class Account(object):
-    """
-    A UNIX user, which can be either local to this computer or remote.
-    
-    The sudo command (requiring a password) will be used for 'root@localhost',
-    and ssh will be used in *all* other cases, even 'root@any_other_machine'.
-    """
-    def __init__(self, username, hostname='localhost', path='.', site=''):
-        self._site = site
-        self._username = username
-        self._hostname = hostname
-        self._path = path
-        self._user_at = '%s@%s'%(self._username, self._hostname)
-        if self._username == whoami and self._hostname == 'localhost':
-            self._pre = []
-        elif self._username == 'root' and whoami != 'root':
-            self._pre = ['sudo', 'LD_LIBRARY_PATH=%s/local/lib'%DATA]   # interactive
-        else:
-            self._pre = ['ssh', self._user_at, 'LD_LIBRARY_PATH=%s/local/lib'%DATA]  # TODO: works?
+def abspath(path='.'):
+    return os.path.abspath(path)
 
-    def __repr__(self):
-        return '%s:%s'%(self._user_at, self._path)
+def kill(pid, signal=15):
+    """Send signal to the process with pid."""
+    if pid is not None:
+        return run(['kill', '-%s'%signal, pid])
 
-    def system(self, args):
-        c = ' '.join(self._pre + [str(x) for x in args])
-        log.info("running '%s' via system", c)
-        return os.system(c)
+def copyfile(src, target):
+    return shutil.copyfile(src, target)
 
-    def run(self, args, **kwds):
-        """Run command with given arguments using this account and return output."""
-        return run(self._pre + args, **kwds)
+def readfile(filename):
+    """Read the named file and return its contents."""
+    if not os.path.exists(filename):
+        raise IOError, "no such file or directory: '%s'"%filename
+    try:
+        return open(filename).read()
+    except IOError:
+        pass
 
-    def abspath(self, path=None):
-        if not hasattr(self, '_abspath'):
-            if self._hostname == 'localhost':# and self._username == whoami:
-                self._abspath = os.path.abspath(self._path)
-            else:
-                self._abspath = self.run(['pwd']).strip()
-        if not path:
-            return self._abspath
-        return os.path.join(self._abspath, path)
+def writefile(filename, content):
+    open(filename,'w').write(content)
 
-    def kill(self, pid, signal=15):
-        """Send signal to the process with pid on self._hostname."""
-        if pid is not None:
-            self.run(['kill', '-%s'%signal, pid])
+def makedirs(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
-    def copyfile(self, src, target):
-        """
-        Copy the file from the file named src on this computer to the
-        file named target on self._hostname.
-        """
-        if self._hostname == 'localhost':
-            if self._username == whoami:
-                return shutil.copyfile(src, target)
-            elif self._username == 'root':
-                return sh['sudo', 'cp', src, target]
-        return sh['scp', src, self._user_at + ':' + os.path.join(self._path, target)]
+def unlink(filename):
+    os.unlink(filename)
 
-    def readfile(self, filename):
-        """Read the named file and return its contents."""
-        filename = os.path.join(self._path, filename)
-        if self._hostname == 'localhost':
-            if not os.path.exists(filename):
-                raise IOError, "no such file or directory: '%s'"%filename
-            try:
-                return open(filename).read()
-            except IOError:
-                pass
-        path = tempfile.mkdtemp()  # secure
-        try:
-            dest = os.path.join(path, filename)
-            if self._hostname == 'localhost' and self._username == 'root':
-                sh['sudo', 'cp', filename, dest]
-            else:
-                sh['scp', '%s:"%s"'%(self._user_at, filename), dest]
-            return open(dest).read()
-        finally:
-            shutil.rmtree(path)
+def path_exists(path):
+    return os.path.exists(path)
 
-    def writefile(self, filename, content):
-        if self._hostname == 'localhost' and self._username == whoami:
-            open(filename,'w').write(content)
-        else:
-            src = tempfile.NamedTemporaryFile(delete=False)
-            src.write(content)
-            src.close()
-            self.copyfile(src.name, filename)
-            src.unlink(src.name)  # weird semantics
-
-    def makedirs(self, path):
-        if self._hostname == 'localhost' and self._username == whoami:
-            if not os.path.exists(path):
-                os.makedirs(path)
-        else:
-            self.run(['mkdir', '-p', path])
-
-    def unlink(self, filename):
-        filename = os.path.join(self._path, filename)
-        if self._hostname == 'localhost' and self._username == whoami:
-            os.unlink(filename)
-            return
-        if self._hostname == 'localhost' and self._username == 'root':
-            sh['sudo', 'rm', filename]
-        else:
-            sh['ssh', self._user_at, 'rm', filename]
-
-    def path_exists(self, path):
-        if self._hostname == 'localhost' and self._username == whoami:
-            return os.path.exists(path)
-        no_such = 'No such file or directory'  # TODO: could be broken by naming the path this way...
-        if self._hostname == 'localhost' and self._username == 'root':
-            return no_such not in sh['sudo', 'stat', path]
-        else:
-            return no_such not in sh['ssh', self._user_at, 'stat', path]
-        
-    def is_running(self, pid):
-        if self._hostname == 'localhost':
-            try:
-                os.kill(pid, 0)
-                return True
-            except OSError:
-                return False
-        else:
-            return bool(os.system(['kill', '-0', str(os.getpid())]))
+def is_running(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
             
-            
-local_user = Account(username=whoami, hostname='localhost')
-
 ########################################
 # Component: named collection of Process objects
 ########################################
@@ -269,14 +183,13 @@ class Component(object):
 ########################################
 
 class Process(object):
-    def __init__(self, account, id, name, port,
+    def __init__(self, id, name, port,
                  pidfile, logfile=None, monitor_database=None,
                  start_cmd=None, stop_cmd=None, reload_cmd=None,
                  start_using_system = False,
                  service=None):
         self._name = name
         self._port = port
-        self._account = account
         self._id = str(id)
         assert len(self._id.split()) == 1
         self._pidfile = pidfile
@@ -295,7 +208,7 @@ class Process(object):
     def log_tail(self):
         if self._logfile is None:
             raise NotImplementedError("the logfile is not known")
-        self._account.system(['tail', '-f', self._logfile])
+        system(['tail', '-f', self._logfile])
 
     def _parse_pidfile(self, contents):
         return int(contents)
@@ -305,7 +218,7 @@ class Process(object):
             return self._pids[file]
         except KeyError:
             try:
-                self._pids[file] = self._parse_pidfile(self._account.readfile(file).strip())
+                self._pids[file] = self._parse_pidfile(readfile(file).strip())
             except IOError: # no file
                 self._pids[file] = None
         return self._pids[file]
@@ -318,12 +231,12 @@ class Process(object):
 
     def _start_monitor(self):
         if self._monitor_database and self._logfile:
-            self._account.run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
-                               '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
-                               '--target_pidfile', self._pidfile,
-                               '--target_name', self._name,
-                               '--target_address', self._account._hostname,
-                               '--target_port', self._port])
+            run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
+                 '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
+                 '--target_pidfile', self._pidfile,
+                 '--target_name', self._name,
+                 '--target_address', socket.gethostname(),
+                 '--target_port', self._port])
 
     def monitor_pid(self):
         return self._read_pid(self._monitor_pidfile)
@@ -333,10 +246,10 @@ class Process(object):
         # monitor stops automatically when the process it is
         # monitoring stops and it has succeeded in recording this fact
         # in the database.
-        if self._monitor_database and self._logfile and self._account.path_exists(self._monitor_pidfile):
+        if self._monitor_database and self._logfile and path_exists(self._monitor_pidfile):
             try:
-                self._account.kill(self.monitor_pid())
-                self._account.unlink(self._monitor_pidfile)
+                kill(self.monitor_pid())
+                unlink(self._monitor_pidfile)
             except Exception, msg:
                 print msg
 
@@ -349,25 +262,25 @@ class Process(object):
         self._pre_start()
         if self._start_cmd is not None:
             if self._start_using_system:
-                print self._account.system(self._start_cmd)
+                print system(self._start_cmd)
             else:
-                print self._account.run(self._start_cmd)
+                print run(self._start_cmd)
         print self._start_monitor()
         
     def stop(self):
         pid = self.pid()
         if pid is None: return
         if self._stop_cmd is not None:
-            print self._account.run(self._stop_cmd)
+            print run(self._stop_cmd)
         else:
-            self._account.kill(pid)
+            kill(pid)
         try:
-            self._account.unlink(self._pidfile)
+            unlink(self._pidfile)
         except Exception, msg:
             print msg
 
         while True:
-            s = process_status(pid, local_user.run if self._account._hostname=='localhost' else self._account.run)
+            s = process_status(pid, run)
             if not s:
                 break
             print "waiting for %s to terminate"%pid
@@ -379,19 +292,19 @@ class Process(object):
         self._stop_monitor()
         self._pids = {}
         if self._reload_cmd is not None:
-            return self._account.run(self._reload_cmd)
+            return run(self._reload_cmd)
         else:
             return 'reload not defined'
 
     def status(self):
         pid = self.pid()
         if not pid: return {}
-        s = process_status(pid, local_user.run if self._account._hostname=='localhost' else self._account.run)
+        s = process_status(pid, run)
         if not s:
             self._stop_monitor()
             self._pids = {}
-            if self._account.path_exists(self._pidfile):
-                self._account.unlink(self._pidfile)
+            if path_exists(self._pidfile):
+                unlink(self._pidfile)
         return s
 
     def restart(self):
@@ -403,16 +316,16 @@ class Process(object):
 # Nginx
 ####################
 class Nginx(Process):
-    def __init__(self, id=0, port=8080, monitor_database=None, account=local_user):
+    def __init__(self, id=0, port=8080, monitor_database=None):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
         conf = Template(open(os.path.join(CONF, nginx)).read())
         conf = conf.substitute(logfile=log, pidfile=pid, http_port=port)
         nginx_conf = 'nginx-%s.conf'%id
-        account.writefile(filename=os.path.join(DATA, nginx_conf), content=conf)
+        writefile(filename=os.path.join(DATA, nginx_conf), content=conf)
         nginx_cmd = ['nginx', '-c', '../' + nginx_conf]
-        Process.__init__(self, account, id, name='nginx', port=port,
+        Process.__init__(self, id, name='nginx', port=port,
                          monitor_database = monitor_database,
                          logfile   = os.path.join(LOGS, log),
                          pidfile    = os.path.join(PIDS, pid),
@@ -421,20 +334,20 @@ class Nginx(Process):
                          reload_cmd = nginx_cmd + ['-s', 'reload'])
 
     def __repr__(self):
-        return "Nginx process %s at %s"%(self._id, self._account)
+        return "Nginx process %s"%self._id
         
 ####################
 # Stunnel
 ####################
 class Stunnel(Process):
-    def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None, account=local_user):
+    def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None):
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
-        base = account.abspath()
+        base = abspath()
         pidfile = os.path.join(base, PIDS,'stunnel-%s.pid'%id) # abspath of pidfile required by stunnel
         self._stunnel_conf = os.path.join(DATA, 'stunnel-%s.conf'%id)
         self._accept_port = accept_port
         self._connect_port = connect_port
-        Process.__init__(self, account, id, name='stunnel', port=accept_port, 
+        Process.__init__(self, id, name='stunnel', port=accept_port, 
                          monitor_database = monitor_database,
                          logfile    = logfile,
                          pidfile    = pidfile,
@@ -446,10 +359,10 @@ class Stunnel(Process):
         conf = Template(open(os.path.join(CONF, stunnel)).read())
         conf = conf.substitute(logfile=self._logfile, pidfile=self._pidfile,
                                accept_port=self._accept_port, connect_port=self._connect_port)
-        self._account.writefile(filename=self._stunnel_conf, content=conf)
+        writefile(filename=self._stunnel_conf, content=conf)
         
     def __repr__(self):
-        return "Stunnel process %s at %s"%(self._id, self._account)
+        return "Stunnel process %s"%self._id
 
 ####################
 # HAproxy
@@ -463,7 +376,7 @@ class Haproxy(Process):
                  nginx_servers='',   # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...] 
                  tornado_servers='', # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...]
                  monitor_database=None,  
-                 conf_file='conf/haproxy.conf', account=local_user):
+                 conf_file='conf/haproxy.conf'):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
@@ -497,8 +410,8 @@ frontend unsecured *:$port
         
         haproxy_conf = 'haproxy-%s.conf'%id
         target_conf = os.path.join(DATA, haproxy_conf)
-        account.writefile(filename=target_conf, content=conf)
-        Process.__init__(self, account, id, name='haproxy', port=accept_proxy_port,
+        writefile(filename=target_conf, content=conf)
+        Process.__init__(self, id, name='haproxy', port=accept_proxy_port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database = monitor_database,
                          start_using_system = True, 
@@ -513,38 +426,38 @@ frontend unsecured *:$port
 # Tornado
 ####################
 class Tornado(Process):
-    def __init__(self, id=0, port=5000, monitor_database=None, debug=False, account=local_user):
+    def __init__(self, id=0, port=5000, monitor_database=None, debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
         logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
         extra = []
         if debug:
             extra.append('-g')
-        Process.__init__(self, account, id, name='tornado', port=port,
+        Process.__init__(self, id, name='tornado', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
                          start_cmd = [PYTHON, 'tornado_server.py', '-d', '-p', port,
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
-        return "Tornado server %s at %s on port %s"%(self.id(), self._account, self._port)
+        return "Tornado server %s on port %s"%(self.id(), self._port)
 
 ####################
 # Sage
 ####################
 
 class Sage(Process):
-    def __init__(self, id=0, port=6000, monitor_database=None, debug=True, account=local_user):
+    def __init__(self, id=0, port=6000, monitor_database=None, debug=True):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
-        Process.__init__(self, account, id, name='sage', port=port,
+        Process.__init__(self, id, name='sage', port=port,
                          pidfile    = pidfile,
                          logfile = logfile, monitor_database=monitor_database, 
                          start_cmd  = ['sage', '--python', 'sage_server.py', '-p', port,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
                          start_using_system = True,  # since daemon mode currently broken
-                         service = ('sage', account, port))
+                         service = ('sage', port))
 
 
     def port(self):
@@ -556,9 +469,8 @@ class Sage(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, id=0, conf_template_path=None, account=local_user):
+    def __init__(self, id=0, conf_template_path=None):
         """
-        account - an Account
         id -- arbitrary identifier
         conf_template_path -- path that contains the conf files
         """
@@ -568,19 +480,19 @@ class Cassandra(Process):
         assert os.path.exists(conf_template_path)
         
         target_path = os.path.join(DATA, 'cassandra-%s'%id)
-        account.makedirs(target_path)
-        log_path = os.path.join(target_path, 'log'); account.makedirs(log_path)
-        lib_path = os.path.join(target_path, 'lib'); account.makedirs(lib_path)
-        conf_path = os.path.join(target_path, 'conf'); account.makedirs(conf_path)
+        makedirs(target_path)
+        log_path = os.path.join(target_path, 'log'); makedirs(log_path)
+        lib_path = os.path.join(target_path, 'lib'); makedirs(lib_path)
+        conf_path = os.path.join(target_path, 'conf'); makedirs(conf_path)
         
         for name in os.listdir(conf_template_path):
             r = open(os.path.join(conf_template_path, name)).read()
             r = r.replace('/var/log/cassandra', log_path)
             r = r.replace('/var/lib/cassandra', lib_path)
-            account.writefile(filename=os.path.join(conf_path, name), content=r)
+            writefile(filename=os.path.join(conf_path, name), content=r)
 
         pidfile = os.path.join(PIDS, 'cassandra-%s.pid'%id)
-        Process.__init__(self, account=account, id=id, name='cassandra', port=9160,
+        Process.__init__(self, id=id, name='cassandra', port=9160,
                          logfile = '%s/system.log'%log_path,
                          pidfile = pidfile,
                          start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile])
