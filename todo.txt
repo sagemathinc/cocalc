@@ -3,7 +3,7 @@ TODO
 
 NOW: 
 
-  [ ] get single local to work on other OS X account
+  [ ] monitor.py -- pass in list of all cassandra nodes
 
   [ ] get single local to work on *linux*
 
@@ -446,4 +446,7 @@ write ansible playbooks for:
   [x] get local startup to work again using new config
 
   [x] fix all the bugs in admin.py as it is now so that it fully works for deploy/start/stop/restart each component locally.
+
+  [x] enable monitor.py to be used, so cassandra gets populated, so tornado_server.py knows about sage servers
+  [x] get single local to work on other OS X account
 

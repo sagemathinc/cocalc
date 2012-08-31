@@ -441,7 +441,7 @@ class Tornado(Process):
         Process.__init__(self, id, name='tornado', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
-                         start_cmd = [PYTHON, 'tornado_server.py', '-d', '-p', port,
+                         start_cmd = [PYTHON, 'tornado_server.py', '-p', port, '-d', 
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
