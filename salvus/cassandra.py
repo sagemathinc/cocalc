@@ -1,7 +1,27 @@
-import sha
+
+import random, sha
 import cql
 
-HOST='127.0.0.1'   # TODO!
+NODES = []
+last_node = -1
+
+# TODO: If possible, maybe this should get updated periodically using
+# nodetool (?), in case new nodes are added or removed.
+
+def set_nodes(nodes):
+    """input is a list of the cassandra nodes in the cluster"""
+    global NODES, last_node
+    NODES = nodes
+    last_node = random.randrange(len(NODES))
+
+# NOTE: There is no multi-host connection pool support at all in the cql python library as of Aug 2012:
+#      http://www.mail-archive.com/user@cassandra.apache.org/msg24312.html
+# We just use random robin here for now.
+def get_node():
+    global NODES, last_node
+    if len(NODES) == 0: raise RuntimeError("there are no cassandra nodes")
+    last_node = (last_node + 1)%len(NODES)
+    return NODES[last_node]
 
 def time_to_timestamp(t):
     """Convert a Python time.time()-style value (seconds since Epoch) to milliseconds since Epoch."""
@@ -12,7 +32,12 @@ def timestamp_to_time(t):
     return float(t)/1000
 
 def connect(keyspace='salvus'):
-    return cql.connect(HOST, keyspace=keyspace, cql_version='3.0.0')
+    for i in range(len(NODES)):
+        try:
+            return cql.connect(get_node(), keyspace=keyspace, cql_version='3.0.0')
+        except Exception, msg:
+            print msg  # TODO -- logger
+    raise RuntimeError("no cassandra nodes are up!! (selecting from %s)"%NODES)
 
 def cursor(keyspace='salvus'):
     return connect(keyspace=keyspace).cursor()

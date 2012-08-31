@@ -235,6 +235,7 @@ class Process(object):
         if self._monitor_database and self._logfile:
             run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
                  '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
+                 '--database_nodes', self._monitor_database,
                  '--target_pidfile', self._pidfile,
                  '--target_name', self._name,
                  '--target_address', socket.gethostname(),
@@ -441,7 +442,8 @@ class Tornado(Process):
         Process.__init__(self, id, name='tornado', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
-                         start_cmd = [PYTHON, 'tornado_server.py', '-p', port, '-d', 
+                         start_cmd = [PYTHON, 'tornado_server.py', '-p', port, '-d',
+                                      '--database_nodes', monitor_database,
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
@@ -474,7 +476,7 @@ class Sage(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, id=0, conf_template_path=None):
+    def __init__(self, id=0, monitor_database=None, conf_template_path=None):
         """
         id -- arbitrary identifier
         conf_template_path -- path that contains the conf files
@@ -500,7 +502,8 @@ class Cassandra(Process):
         Process.__init__(self, id=id, name='cassandra', port=9160,
                          logfile = '%s/system.log'%log_path,
                          pidfile = pidfile,
-                         start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile])
+                         start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile],
+                         monitor_database=monitor_database)
 
 ########################################
 # tinc VPN management
@@ -754,11 +757,14 @@ class Services(object):
         # parse options out, i.e., hosts/groups listed in the services file that have an '=' in them.
         self._services = dict([(k, {'hosts':[x for x in v if '=' not in x],
                                     'options':self._optparse([x for x in v if '=' in x])}) for k, v in services.iteritems()])
+        if 'cassandra' in self._hosts._groups:
+            self._cassandra = self._hosts._groups['cassandra']
 
     def _optparse(self, v):
         # defaults
         opts = []
         sudo = False
+        sandboxed = False
         timeout = 10
         name = None
         for x in v:
@@ -769,12 +775,16 @@ class Services(object):
                 timeout = int(value.strip())
             elif var.strip() == 'name':
                 name = value.strip()
+            elif var.strip() == 'sandboxed':
+                sandboxed = eval(value.strip().capitalize())
             else:
                 opts.append(x)
-        return {'options_string':','.join(opts), 'sudo':sudo, 'timeout':timeout, 'name':name}
+        return {'options_string':','+(','.join(opts)), 'name':name,
+                'sudo':sudo, 'timeout':timeout, 'sandboxed':sandboxed}
         
-    def _action(self, query, name, action, options_string, sudo, timeout):
-        cmd = "import admin; print admin.%s(id=0,%s).%s()"%(name, options_string, action)
+    def _action(self, query, name, action, options_string, sudo, timeout, sandboxed):
+        db_string = "" if sandboxed else ",monitor_database='%s'"%(','.join(self._cassandra))
+        cmd = "import admin; print admin.%s(id=0%s%s).%s()"%(name, db_string, options_string, action)
         return self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
 
     def _action_parse(self, service, action):
@@ -786,7 +796,7 @@ class Services(object):
                 'name':(options['name'] if options['name'] else service).capitalize(),
                 'action':action,
                 'sudo':options['sudo'],
-                'timeout':options['timeout']}
+                'timeout':options['timeout'], 'sandboxed':options['sandboxed']}
 
     def _all(self, callable):
         return dict([(s, callable(s)) for s in self._ordered_service_names])

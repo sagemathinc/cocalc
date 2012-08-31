@@ -22,4 +22,5 @@ tornado_servers=[{'ip':'salvus0.salv.us', 'port':5000, 'maxconn':10000}]
 web
 
 [sage]
+sandboxed=True
 sage
