@@ -25,6 +25,8 @@ PYTHON = os.path.join(BIN, 'python')
 
 LOG_INTERVAL = 6
 
+whoami = os.environ['USER']
+
 ####################
 # Running a subprocess
 ####################
@@ -371,7 +373,7 @@ class Haproxy(Process):
     def __init__(self, id=0, 
                  sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
-                 insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
+                 insecure_redirect_port=80,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers='',   # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...] 
                  tornado_servers='', # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...]
@@ -618,27 +620,29 @@ Port = %s"""%(external_ip, ip_address, port))
 def parse_groupfile(filename):
     groups = {None:[]}
     group = None
+    ordered_group_names = []
     for r in open(filename).xreadlines():
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
             if line.startswith('['):  # host group
                 group = line.strip(' []')
                 groups[group] = []
+                ordered_group_names.append(group)
             else:
                 groups[group].append(line)
-    return groups
+    return groups, ordered_group_names
 
 class Hosts(object):
     def __init__(self, filename, username=whoami):
         self._ssh = {}
         self._username = username
         self._password = None
-        self._groups = parse_groupfile(filename)
+        self._groups, _ = parse_groupfile(filename)
 
     def password(self, retry=False):
         if self._password is None or retry:
             import getpass
-            self._password = getpass.getpass("password: ")
+            self._password = getpass.getpass("%s's password: "%self._username)
         return self._password
 
     def ssh(self, hostname, timeout=10, keepalive=None):
@@ -707,7 +711,9 @@ class Hosts(object):
         stdin = chan.makefile('wb')
         stdout = chan.makefile('rb')
         stderr = chan.makefile_stderr('rb')
-        chan.exec_command( ('sudo -S bash -c "%s"' % command.replace('"', '\\"')) if sudo  else command)
+        cmd = ('sudo -S bash -c "%s"' % command.replace('"', '\\"')) if sudo  else command
+        log.info("hostname=%s, command=    %s", hostname, cmd)
+        chan.exec_command( cmd )
         if sudo and not stdin.channel.closed:
             try:
                 print "sending sudo password..."
@@ -740,11 +746,11 @@ class Services(object):
     def __init__(self, path, username=whoami):
         self._path = path
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
-        services = parse_groupfile(os.path.join(path, 'services'))
+        services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
+        del services[None]
         # parse options out, i.e., hosts/groups listed in the services file that have an '=' in them.
         self._services = dict([(k, {'hosts':[x for x in v if '=' not in x],
-                                    'options':self._optparse(sum([x.split(',') for x in v if '=' in x],[]))}) for
-                               k, v in services.iteritems()])
+                                    'options':self._optparse([x for x in v if '=' in x])}) for k, v in services.iteritems()])
 
     def _optparse(self, v):
         # defaults
@@ -765,8 +771,8 @@ class Services(object):
         return {'options_string':','.join(opts), 'sudo':sudo, 'timeout':timeout, 'name':name}
         
     def _action(self, query, name, action, options_string, sudo, timeout):
-        cmd = "import admin; print admin.%s(id=0).%s(%s)"%(name, action, options_string)
-        self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
+        cmd = "import admin; print admin.%s(id=0,%s).%s()"%(name, options_string, action)
+        return self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
 
     def _action_parse(self, service, action):
         if service not in self._services:
@@ -778,15 +784,24 @@ class Services(object):
                 'action':action,
                 'sudo':options['sudo'],
                 'timeout':options['timeout']}
+
+    def _all(self, callable):
+        return dict([(s, callable(s)) for s in self._ordered_service_names])
                 
     def start(self, service):
+        if service == 'all': return self._all(self.start)
         return self._action(**self._action_parse(service, 'start'))
         
     def stop(self, service):
+        if service == 'all': return self._all(self.stop)
         return self._action(**self._action_parse(service, 'stop'))
 
     def status(self, service):
+        if service == 'all': return self._all(self.status)
         return self._action(**self._action_parse(service, 'status'))
 
     def restart(self, service):
+        if service == 'all': return self._all(self.restart)
         return self._action(**self._action_parse(service, 'restart'))
+
+    
