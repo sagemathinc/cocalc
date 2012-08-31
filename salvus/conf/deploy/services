@@ -1,0 +1,19 @@
+# services
+
+[cassandra]
+cassandra
+
+[nginx]
+web
+
+[stunnel]
+web
+
+[tornado]
+web
+
+[haproxy]
+web
+
+[sage]
+sage
