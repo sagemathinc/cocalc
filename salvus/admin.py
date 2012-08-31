@@ -25,6 +25,8 @@ PYTHON = os.path.join(BIN, 'python')
 
 LOG_INTERVAL = 6
 
+whoami = os.environ['USER']
+
 ####################
 # Running a subprocess
 ####################

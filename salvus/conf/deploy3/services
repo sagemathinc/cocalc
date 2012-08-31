@@ -1,0 +1,21 @@
+# services
+
+[cassandra]
+cassandra
+
+[nginx]
+web
+
+[tornado]
+web
+
+[stunnel]
+sudo=True
+web
+
+[haproxy]
+sudo=True
+web
+
+[sage]
+sage
