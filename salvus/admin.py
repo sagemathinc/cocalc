@@ -454,7 +454,7 @@ class Stunnel(Process):
 ####################
 # HAproxy
 ####################
-class HAproxy(Process):
+class Haproxy(Process):
     def __init__(self, id=0, 
                  sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
@@ -751,6 +751,9 @@ class Hosts(object):
         return ssh
 
     def __getitem__(self, query):
+        v = query.split()
+        if len(v) > 1:
+            return list(sorted(set(sum([self[q] for q in v], []))))
         if query == 'all': # return all hosts
             return list(sorted(set(sum(self._groups.values(),[]))))
         elif query in self._groups:
@@ -777,11 +780,13 @@ class Hosts(object):
                         query=query)
 
     def __call__(self, *args, **kwds):
-        for h,v in self.exec_command(*args, **kwds).iteritems():
+        result = self.exec_command(*args, **kwds)
+        for h,v in result.iteritems():
             print h + ':',
             print v['stdout'],
             print v['stderr'],
             print
+        return result
     
     def _exec_command(self, command, hostname, sudo, timeout):
         start = time.time()
@@ -807,15 +812,15 @@ class Hosts(object):
         return '\n'.join([x['stdout'] for x in self.exec_command(query, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
 
     def git_pull(self, query, repo, timeout=5):
-        self(query, 'cd salvus && git pull %s'%repo, timeout=timeout)
+        return self(query, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
     def build(self, query, pkg_name, timeout=250):
-        self(query, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
+        return self(query, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
     def python_c(self, query, cmd, timeout=10, sudo=False):
         command = 'cd \"$HOME/salvus/salvus\" && . salvus-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
-        self(query, command, sudo=sudo, timeout=timeout)
+        return self(query, command, sudo=sudo, timeout=timeout)
 
                    
                 
@@ -823,12 +828,53 @@ class Services(object):
     def __init__(self, path, username=whoami):
         self._path = path
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
-        self._services = parse_groupfile(os.path.join(path, 'services'))
+        services = parse_groupfile(os.path.join(path, 'services'))
+        # parse options out, i.e., hosts/groups listed in the services file that have an '=' in them.
+        self._services = dict([(k, {'hosts':[x for x in v if '=' not in x],
+                                    'options':self._optparse(sum([x.split(',') for x in v if '=' in x],[]))}) for
+                               k, v in services.iteritems()])
 
-    def _action(self, query, name, action, sudo=False, timeout=10):
-        cmd = "import admin; print admin.%s(id=0).%s()"%(name, action)
-        self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
-                
-                
+    def _optparse(self, v):
+        # defaults
+        opts = []
+        sudo = False
+        timeout = 10
+        name = None
+        for x in v:
+            var, value = x.split('=')
+            if var.strip() == 'sudo':
+                sudo = eval(value.strip().capitalize())
+            elif var.strip() == 'timeout':
+                timeout = int(value.strip())
+            elif var.strip() == 'name':
+                name = value.strip()
+            else:
+                opts.append(x)
+        return {'options_string':','.join(opts), 'sudo':sudo, 'timeout':timeout, 'name':name}
         
-    
+    def _action(self, query, name, action, options_string, sudo, timeout):
+        cmd = "import admin; print admin.%s(id=0).%s(%s)"%(name, action, options_string)
+        self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
+
+    def _action_parse(self, service, action):
+        if service not in self._services:
+            raise ValueError("unknown service '%s'"%service)
+        options = self._services[service]['options']
+        return {'query':' '.join(self._services[service]['hosts']),
+                'options_string':options['options_string'],
+                'name':(options['name'] if options['name'] else service).capitalize(),
+                'action':action,
+                'sudo':options['sudo'],
+                'timeout':options['timeout']}
+                
+    def start(self, service):
+        return self._action(**self._action_parse(service, 'start'))
+        
+    def stop(self, service):
+        return self._action(**self._action_parse(service, 'stop'))
+
+    def status(self, service):
+        return self._action(**self._action_parse(service, 'status'))
+
+    def restart(self, service):
+        return self._action(**self._action_parse(service, 'restart'))

@@ -8,17 +8,29 @@ bsd1.salv.us
 [cassandra]
 cassandra
 
+[nginx1]
+name=nginx
+combinat1.salv.us
+
 [nginx]
 web
-
-[stunnel]
-web
+combinat0.salv.us
+#bsd0.salv.us
 
 [tornado]
 web
 
+[stunnel]
+sudo=True
+combinat0.salv.us
+servedby1.salv.us
+#bsd0.salv.us
+
 [haproxy]
-web
+sudo=True
+combinat0.salv.us
+servedby1.salv.us
+#bsd0.salv.us
 
 [sage]
 sage
