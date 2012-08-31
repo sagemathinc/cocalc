@@ -751,6 +751,9 @@ class Hosts(object):
         return ssh
 
     def __getitem__(self, query):
+        v = query.split()
+        if len(v) > 1:
+            return list(sorted(set(sum([self[q] for q in v], []))))
         if query == 'all': # return all hosts
             return list(sorted(set(sum(self._groups.values(),[]))))
         elif query in self._groups:
@@ -825,10 +828,19 @@ class Services(object):
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
         self._services = parse_groupfile(os.path.join(path, 'services'))
 
-    def _action(self, query, name, action, sudo=False, timeout=10):
-        cmd = "import admin; print admin.%s(id=0).%s()"%(name, action)
+    def _action(self, query, name, action, sudo=False, timeout=10, **kwds):
+        cmd = "import admin; print admin.%s(id=0).%s(**%r)"%(name, action, kwds)
         self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
                 
-                
+    def start(self, service):
+        query = ' '.join(self._services[service]) if (service in self._services)  else service
+        self._action(query, 'start')
         
+    def stop(self, service):
+        pass
     
+    def status(self, service):
+        pass
+
+    def restart(self, service):
+        pass

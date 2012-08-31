@@ -17,11 +17,13 @@ bsd0.salv.us
 web
 
 [stunnel]
+sudo=True
 combinat0.salv.us
 servedby1.salv.us
 bsd0.salv.us
 
 [haproxy]
+sudo=True
 combinat0.salv.us
 servedby1.salv.us
 bsd0.salv.us
