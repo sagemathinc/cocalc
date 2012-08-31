@@ -79,19 +79,19 @@ log = logging.getLogger('')
 log.setLevel(logging.INFO)   # WARNING, INFO, etc.
 
 def restrict(path):
-    log.info("ensuring that '%s' has restrictive permissions", path)
+    #log.info("ensuring that '%s' has restrictive permissions", path)
     if os.stat(path)[stat.ST_MODE] != 0o40700:
         os.chmod(path, 0o40700)
 
 def init_data_directory():
-    log.info("ensuring that '%s' exist", DATA)
+    #log.info("ensuring that '%s' exist", DATA)
 
     for path in [DATA, PIDS, LOGS, os.path.join(DATA,'secrets')]:
         if not os.path.exists(path):
             os.makedirs(path)
         restrict(path)
     
-    log.info("ensuring that PATH starts with programs in DATA directory")
+    #log.info("ensuring that PATH starts with programs in DATA directory")
     os.environ['PATH'] = os.path.join(DATA, 'local/bin/') + ':' + os.environ['PATH']
 
 init_data_directory()
@@ -403,7 +403,7 @@ class Process(object):
 # Nginx
 ####################
 class Nginx(Process):
-    def __init__(self, account, id, port, monitor_database=None):
+    def __init__(self, id=0, port=8080, monitor_database=None, account=local_user):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
@@ -427,7 +427,7 @@ class Nginx(Process):
 # Stunnel
 ####################
 class Stunnel(Process):
-    def __init__(self, account, id, accept_port, connect_port, monitor_database=None):
+    def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None, account=local_user):
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
         base = account.abspath()
         pidfile = os.path.join(base, PIDS,'stunnel-%s.pid'%id) # abspath of pidfile required by stunnel
@@ -454,16 +454,16 @@ class Stunnel(Process):
 ####################
 # HAproxy
 ####################
-class HAproxy(Process):
-    def __init__(self, account, id, 
-                 sitename,    # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
+class Haproxy(Process):
+    def __init__(self, id=0, 
+                 sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers='',   # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...] 
                  tornado_servers='', # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...]
                  monitor_database=None,  
-                 conf_file='conf/haproxy.conf'):
+                 conf_file='conf/haproxy.conf', account=local_user):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
@@ -513,7 +513,7 @@ frontend unsecured *:$port
 # Tornado
 ####################
 class Tornado(Process):
-    def __init__(self, account, id, port, monitor_database=None, debug=False):
+    def __init__(self, id=0, port=5000, monitor_database=None, debug=False, account=local_user):
         self._port = port
         pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
         logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
@@ -534,7 +534,7 @@ class Tornado(Process):
 ####################
 
 class Sage(Process):
-    def __init__(self, account, id, port, monitor_database=None, debug=True):
+    def __init__(self, id=0, port=6000, monitor_database=None, debug=True, account=local_user):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
@@ -556,7 +556,7 @@ class Sage(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, account, id, conf_template_path=None):
+    def __init__(self, id=0, conf_template_path=None, account=local_user):
         """
         account - an Account
         id -- arbitrary identifier
@@ -703,21 +703,25 @@ Port = %s"""%(external_ip, ip_address, port))
 #   hostname1  # repeats allowed, comments allowed
 ########################################
 
+def parse_groupfile(filename):
+    groups = {None:[]}
+    group = None
+    for r in open(filename).xreadlines():
+        line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
+        if line: # ignore blank lines
+            if line.startswith('['):  # host group
+                group = line.strip(' []')
+                groups[group] = []
+            else:
+                groups[group].append(line)
+    return groups
+
 class Hosts(object):
     def __init__(self, filename, username=whoami):
         self._ssh = {}
         self._username = username
         self._password = None
-        self._groups = {None:[]}
-        group = None
-        for r in open(filename).xreadlines():
-            line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
-            if line: # ignore blank lines
-                if line.startswith('['):  # host group
-                    group = line.strip(' []')
-                    self._groups[group] = []
-                else:
-                    self._groups[group].append(line)
+        self._groups = parse_groupfile(filename)
 
     def password(self, retry=False):
         if self._password is None or retry:
@@ -747,6 +751,9 @@ class Hosts(object):
         return ssh
 
     def __getitem__(self, query):
+        v = query.split()
+        if len(v) > 1:
+            return list(sorted(set(sum([self[q] for q in v], []))))
         if query == 'all': # return all hosts
             return list(sorted(set(sum(self._groups.values(),[]))))
         elif query in self._groups:
@@ -773,11 +780,13 @@ class Hosts(object):
                         query=query)
 
     def __call__(self, *args, **kwds):
-        for h,v in self.exec_command(*args, **kwds).iteritems():
+        result = self.exec_command(*args, **kwds)
+        for h,v in result.iteritems():
             print h + ':',
             print v['stdout'],
             print v['stderr'],
             print
+        return result
     
     def _exec_command(self, command, hostname, sudo, timeout):
         start = time.time()
@@ -799,12 +808,73 @@ class Hosts(object):
                 raise RuntimeError("on %s@%s command '%s' timed out"%(self._username, hostname, command))
         return {'stdout':stdout.read(), 'stderr':stderr.read(), 'exit_status':chan.recv_exit_status()}
                     
+    def public_ssh_keys(self, query, timeout=5):
+        return '\n'.join([x['stdout'] for x in self.exec_command(query, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
+
+    def git_pull(self, query, repo, timeout=5):
+        return self(query, 'cd salvus && git pull %s'%repo, timeout=timeout)
+
+    def build(self, query, pkg_name, timeout=250):
+        return self(query, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
+
+    def python_c(self, query, cmd, timeout=10, sudo=False):
+        command = 'cd \"$HOME/salvus/salvus\" && . salvus-env && python -c "%s"'%cmd
+        log.info("python_c: %s", command)
+        return self(query, command, sudo=sudo, timeout=timeout)
+
                    
                 
+class Services(object):
+    def __init__(self, path, username=whoami):
+        self._path = path
+        self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
+        services = parse_groupfile(os.path.join(path, 'services'))
+        # parse options out, i.e., hosts/groups listed in the services file that have an '=' in them.
+        self._services = dict([(k, {'hosts':[x for x in v if '=' not in x],
+                                    'options':self._optparse(sum([x.split(',') for x in v if '=' in x],[]))}) for
+                               k, v in services.iteritems()])
 
+    def _optparse(self, v):
+        # defaults
+        opts = []
+        sudo = False
+        timeout = 10
+        name = None
+        for x in v:
+            var, value = x.split('=')
+            if var.strip() == 'sudo':
+                sudo = eval(value.strip().capitalize())
+            elif var.strip() == 'timeout':
+                timeout = int(value.strip())
+            elif var.strip() == 'name':
+                name = value.strip()
+            else:
+                opts.append(x)
+        return {'options_string':','.join(opts), 'sudo':sudo, 'timeout':timeout, 'name':name}
         
-    
+    def _action(self, query, name, action, options_string, sudo, timeout):
+        cmd = "import admin; print admin.%s(id=0).%s(%s)"%(name, action, options_string)
+        self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
+
+    def _action_parse(self, service, action):
+        if service not in self._services:
+            raise ValueError("unknown service '%s'"%service)
+        options = self._services[service]['options']
+        return {'query':' '.join(self._services[service]['hosts']),
+                'options_string':options['options_string'],
+                'name':(options['name'] if options['name'] else service).capitalize(),
+                'action':action,
+                'sudo':options['sudo'],
+                'timeout':options['timeout']}
                 
-                
+    def start(self, service):
+        return self._action(**self._action_parse(service, 'start'))
         
-    
+    def stop(self, service):
+        return self._action(**self._action_parse(service, 'stop'))
+
+    def status(self, service):
+        return self._action(**self._action_parse(service, 'status'))
+
+    def restart(self, service):
+        return self._action(**self._action_parse(service, 'restart'))
