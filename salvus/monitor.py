@@ -146,7 +146,9 @@ def target_process_still_running(target_pidfile, tpid):
     p = target_pid(target_pidfile)
     return p is not None and p == tpid
 
-def main(name, logfile, pidfile, target_pidfile, target_address, target_port, interval):
+def main(name, logfile, pidfile, target_pidfile, target_address, target_port, interval, database_nodes):
+
+    cassandra.set_nodes(database_nodes.split(','))
 
     @misc.call_until_succeed(0.01, 30, 60)  # processes (e.g., sage) can take a long time to start initially!
     def f():
@@ -193,7 +195,8 @@ if __name__ == "__main__":
                         help="PID file of this daemon process")
     parser.add_argument("--interval", dest="interval", type=int, default=60,  
                         help="check every t seconds to see if logfile has changed and update status info")
-
+    parser.add_argument("--database_nodes", dest="database_nodes", type=str, required=True,
+                        help="list of ip addresses of all database nodes in the cluster")
     parser.add_argument("--target_name", dest="target_name", type=str, required=True,
                         help="descriptive name of the target service")
     parser.add_argument("--target_pidfile", dest="target_pidfile", type=str, required=True,
@@ -211,7 +214,7 @@ if __name__ == "__main__":
 
     f = lambda: main(name=args.target_name, logfile=logfile, pidfile=pidfile, target_pidfile=target_pidfile,
                      target_address=args.target_address, target_port=args.target_port,
-                     interval=args.interval)
+                     interval=args.interval, database_nodes=args.database_nodes)
     if args.debug:
         f()
     else:

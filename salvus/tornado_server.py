@@ -24,7 +24,6 @@ from tornado import ioloop, iostream
 import sockjs.tornado, tornado.web
 
 import cassandra
-cassandra.init_cassandra_schema()   # TODO
 
 ###########################################
 # Logging
@@ -283,7 +282,10 @@ class AliveHandler(BaseHandler):
 # tornado web server
 ###########################################
 
-def run_server(base, port, debug, pidfile, logfile):
+def run_server(base, port, debug, pidfile, logfile, database_nodes):
+    cassandra.set_nodes(database_nodes.split(','))
+    cassandra.init_cassandra_schema()
+    
     try:
         open(pidfile,'w').write(str(os.getpid()))
         if logfile:
@@ -330,6 +332,8 @@ if __name__ == "__main__":
                         help="store pid in this file (default: 'tornado.pid')")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
+    parser.add_argument("--database_nodes", dest="database_nodes", type=str, required=True,
+                        help="list of ip addresses of all database nodes in the cluster")
 
     args = parser.parse_args()
     
@@ -346,7 +350,8 @@ if __name__ == "__main__":
     pidfile = os.path.abspath(args.pidfile)
     logfile = os.path.abspath(args.logfile) if args.logfile else None
     base    = os.path.abspath('.')
-    main    = lambda: run_server(base=base, port=args.port, debug=args.debug, pidfile=pidfile, logfile=logfile)
+    main    = lambda: run_server(base=base, port=args.port, debug=args.debug, pidfile=pidfile,
+                                 logfile=logfile, database_nodes=args.database_nodes)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():

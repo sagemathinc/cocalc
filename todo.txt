@@ -3,23 +3,21 @@ TODO
 
 NOW: 
 
-  [ ] get rid of anything non-local from the non-Hosts top part of the admin module
-
-  [ ] thoughts: maybe I should get rid of "sudo" and just allow root
-      login -- for single user systems it is no worse, and so far my
-      approach to sudo is not robust.
-
-  [ ] get local startup to work again using new config
-
-  [ ] fix all the bugs in admin.py as it is now so that it fully works
-      for deploy/start/stop/restar each component.
+  [ ] get single local to work on *linux*
 
   [ ] I should be able to just disable ssh keys, since typing the
       password exactly once is needed anyways for sudo, and I can send
       a password for everything.
 
+  [ ] thoughts: maybe I should get rid of "sudo" and just allow root
+      login -- for single user systems it is no worse, and so far my
+      approach to sudo is not robust.   actually it is robust.
+
  
 SOON:
+
+  [ ] tornado server will be responsible for updating database with
+      status of sage servers if they go bad, i.e., for *complaining*, etc. not the sage servers themselves
 
   [ ] optimization: make it so all ssh tasks (with a query) happen in
       parallel using *threads* -- since they are io bound and we need
@@ -442,3 +440,22 @@ write ansible playbooks for:
          .ssh/authorized_keys files is the concat of all the public keys.
          and *USE git-shell* for safety.
       4. test   
+---
+
+  [x] get rid of anything non-local from the non-Hosts top part of the admin module
+
+  [x] get local startup to work again using new config
+
+  [x] fix all the bugs in admin.py as it is now so that it fully works for deploy/start/stop/restart each component locally.
+
+  [x] enable monitor.py to be used, so cassandra gets populated, so tornado_server.py knows about sage servers
+  [x] get single local to work on other OS X account
+
+  [x] monitor.py -- pass in list of all cassandra nodes
+  [x] make it so admin.py writes to database when starting/stoping sage server:
+  - when start, put entry in services table with these columns set, and set running true
+        uuid, address, port, running
+  - when stop, set running false for all servers with given (address, port)
+  - method to return running nodes
+  - later, add status info keyed on uuid, TTL, etc.
+

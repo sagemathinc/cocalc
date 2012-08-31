@@ -25,6 +25,8 @@ PYTHON = os.path.join(BIN, 'python')
 
 LOG_INTERVAL = 6
 
+whoami = os.environ['USER']
+
 ####################
 # Running a subprocess
 ####################
@@ -233,6 +235,7 @@ class Process(object):
         if self._monitor_database and self._logfile:
             run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
                  '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
+                 '--database_nodes', self._monitor_database,
                  '--target_pidfile', self._pidfile,
                  '--target_name', self._name,
                  '--target_address', socket.gethostname(),
@@ -341,6 +344,9 @@ class Nginx(Process):
 ####################
 class Stunnel(Process):
     def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None):
+        pem = os.path.join(DATA, 'secrets/salv.us/nopassphrase.pem')
+        if not os.path.exists(pem):
+            raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
         base = abspath()
         pidfile = os.path.join(base, PIDS,'stunnel-%s.pid'%id) # abspath of pidfile required by stunnel
@@ -371,7 +377,7 @@ class Haproxy(Process):
     def __init__(self, id=0, 
                  sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
-                 insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
+                 insecure_redirect_port=80,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers='',   # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...] 
                  tornado_servers='', # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...]
@@ -436,7 +442,8 @@ class Tornado(Process):
         Process.__init__(self, id, name='tornado', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
-                         start_cmd = [PYTHON, 'tornado_server.py', '-d', '-p', port,
+                         start_cmd = [PYTHON, 'tornado_server.py', '-p', port, '-d',
+                                      '--database_nodes', monitor_database,
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
@@ -446,8 +453,9 @@ class Tornado(Process):
 # Sage
 ####################
 
+SAGE_PORT=6000  # also used in cassandra.py.
 class Sage(Process):
-    def __init__(self, id=0, port=6000, monitor_database=None, debug=True):
+    def __init__(self, id=0, port=SAGE_PORT, monitor_database=None, debug=True):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
@@ -469,7 +477,7 @@ class Sage(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, id=0, conf_template_path=None):
+    def __init__(self, id=0, monitor_database=None, conf_template_path=None):
         """
         id -- arbitrary identifier
         conf_template_path -- path that contains the conf files
@@ -495,7 +503,8 @@ class Cassandra(Process):
         Process.__init__(self, id=id, name='cassandra', port=9160,
                          logfile = '%s/system.log'%log_path,
                          pidfile = pidfile,
-                         start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile])
+                         start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile],
+                         monitor_database=monitor_database)
 
 ########################################
 # tinc VPN management
@@ -618,27 +627,29 @@ Port = %s"""%(external_ip, ip_address, port))
 def parse_groupfile(filename):
     groups = {None:[]}
     group = None
+    ordered_group_names = []
     for r in open(filename).xreadlines():
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
             if line.startswith('['):  # host group
                 group = line.strip(' []')
                 groups[group] = []
+                ordered_group_names.append(group)
             else:
                 groups[group].append(line)
-    return groups
+    return groups, ordered_group_names
 
 class Hosts(object):
     def __init__(self, filename, username=whoami):
         self._ssh = {}
         self._username = username
         self._password = None
-        self._groups = parse_groupfile(filename)
+        self._groups, _ = parse_groupfile(filename)
 
     def password(self, retry=False):
         if self._password is None or retry:
             import getpass
-            self._password = getpass.getpass("password: ")
+            self._password = getpass.getpass("%s's password: "%self._username)
         return self._password
 
     def ssh(self, hostname, timeout=10, keepalive=None):
@@ -707,7 +718,9 @@ class Hosts(object):
         stdin = chan.makefile('wb')
         stdout = chan.makefile('rb')
         stderr = chan.makefile_stderr('rb')
-        chan.exec_command( ('sudo -S bash -c "%s"' % command.replace('"', '\\"')) if sudo  else command)
+        cmd = ('sudo -S bash -c "%s"' % command.replace('"', '\\"')) if sudo  else command
+        log.info("hostname=%s, command=    %s", hostname, cmd)
+        chan.exec_command( cmd )
         if sudo and not stdin.channel.closed:
             try:
                 print "sending sudo password..."
@@ -739,12 +752,17 @@ class Hosts(object):
 class Services(object):
     def __init__(self, path, username=whoami):
         self._path = path
+        self._username = username
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
-        services = parse_groupfile(os.path.join(path, 'services'))
+        services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
+        del services[None]
         # parse options out, i.e., hosts/groups listed in the services file that have an '=' in them.
         self._services = dict([(k, {'hosts':[x for x in v if '=' not in x],
-                                    'options':self._optparse(sum([x.split(',') for x in v if '=' in x],[]))}) for
-                               k, v in services.iteritems()])
+                                    'options':self._optparse([x for x in v if '=' in x])}) for k, v in services.iteritems()])
+        if 'cassandra' in self._hosts._groups:
+            self._cassandra = self._hosts._groups['cassandra']
+            import cassandra
+            cassandra.set_nodes(self._cassandra)
 
     def _optparse(self, v):
         # defaults
@@ -762,11 +780,24 @@ class Services(object):
                 name = value.strip()
             else:
                 opts.append(x)
-        return {'options_string':','.join(opts), 'sudo':sudo, 'timeout':timeout, 'name':name}
+        return {'options_string':','+(','.join(opts)), 'name':name,
+                'sudo':sudo, 'timeout':timeout}
         
     def _action(self, query, name, action, options_string, sudo, timeout):
-        cmd = "import admin; print admin.%s(id=0).%s(%s)"%(name, action, options_string)
-        self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
+        db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))
+        cmd = "import admin; print admin.%s(id=0%s%s).%s()"%(name, db_string, options_string, action)
+        result = self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
+        if name == "Sage":
+            import cassandra
+            for address in result:
+                try:
+                    if action in ['start', 'restart']:
+                        cassandra.record_that_sage_server_started(address)
+                    elif action == 'stop':
+                        cassandra.record_that_sage_server_stopped(address)
+                except Exception, msg:
+                    print msg
+        return result
 
     def _action_parse(self, service, action):
         if service not in self._services:
@@ -778,15 +809,25 @@ class Services(object):
                 'action':action,
                 'sudo':options['sudo'],
                 'timeout':options['timeout']}
+
+    def _all(self, callable, reverse=False):
+        names = self._ordered_service_names
+        return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
     def start(self, service):
+        if service == 'all': return self._all(self.start, reverse=False)
         return self._action(**self._action_parse(service, 'start'))
         
     def stop(self, service):
+        if service == 'all': return self._all(self.stop, reverse=True)
         return self._action(**self._action_parse(service, 'stop'))
 
     def status(self, service):
+        if service == 'all': return self._all(self.status, reverse=False)
         return self._action(**self._action_parse(service, 'status'))
 
-    def restart(self, service):
+    def restart(self, service, reverse=True):
+        if service == 'all': return self._all(self.restart)
         return self._action(**self._action_parse(service, 'restart'))
+
+    
