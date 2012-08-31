@@ -3,20 +3,17 @@ TODO
 
 NOW: 
 
-  [ ] get rid of anything non-local from the non-Hosts top part of the admin module
+  [ ] get single local to work on other OS X account
 
-  [ ] thoughts: maybe I should get rid of "sudo" and just allow root
-      login -- for single user systems it is no worse, and so far my
-      approach to sudo is not robust.
-
-  [ ] get local startup to work again using new config
-
-  [ ] fix all the bugs in admin.py as it is now so that it fully works
-      for deploy/start/stop/restar each component.
+  [ ] get single local to work on *linux*
 
   [ ] I should be able to just disable ssh keys, since typing the
       password exactly once is needed anyways for sudo, and I can send
       a password for everything.
+
+  [ ] thoughts: maybe I should get rid of "sudo" and just allow root
+      login -- for single user systems it is no worse, and so far my
+      approach to sudo is not robust.   actually it is robust.
 
  
 SOON:
@@ -442,3 +439,11 @@ write ansible playbooks for:
          .ssh/authorized_keys files is the concat of all the public keys.
          and *USE git-shell* for safety.
       4. test   
+---
+
+  [x] get rid of anything non-local from the non-Hosts top part of the admin module
+
+  [x] get local startup to work again using new config
+
+  [x] fix all the bugs in admin.py as it is now so that it fully works for deploy/start/stop/restart each component locally.
+
