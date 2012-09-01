@@ -25,6 +25,8 @@ PYTHON = os.path.join(BIN, 'python')
 
 LOG_INTERVAL = 6
 
+GIT_REPO='git@combinat1.salv.us:.'
+
 whoami = os.environ['USER']
 
 ####################
@@ -506,7 +508,7 @@ class Cassandra(Process):
                 for k,v in kwds.iteritems():
                     i = r.find('%s: '%k)
                     if i == -1:
-                        raise ValueError("no configuration options '%s'"%k)
+                        raise ValueError("no configuration option '%s'"%k)
                     j = r[i:].find('\n')
                     if j == -1:
                         j = len(r)
@@ -772,7 +774,7 @@ class Hosts(object):
     def public_ssh_keys(self, query, timeout=5):
         return '\n'.join([x['stdout'] for x in self.exec_command(query, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
 
-    def git_pull(self, query, repo, timeout=5):
+    def git_pull(self, query, repo=GIT_REPO, timeout=20):
         return self(query, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
     def build(self, query, pkg_name, timeout=250):
@@ -785,6 +787,10 @@ class Hosts(object):
 
     def apt_upgrade(self, query):
         return self(query,'apt-get update && apt-get -y upgrade', sudo=True, timeout=120)
+
+    def apt_install(self, query, pkg):
+        # EXAMPLE:   hosts.apt_install('cassandra', 'openjdk-7-jre')
+        return self(query, 'apt-get -y install %s'%pkg, sudo=True, timeout=120)
 
     def reboot(self, query):
         return self(query, 'reboot -h now', sudo=True, timeout=5)
