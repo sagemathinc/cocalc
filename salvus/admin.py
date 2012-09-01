@@ -795,6 +795,11 @@ class Hosts(object):
     def reboot(self, query):
         return self(query, 'reboot -h now', sudo=True, timeout=5)
 
+    def nodetool(self, query, args=''):
+        for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=10).iteritems():
+            print k
+            print v['stdout']
+
 class Services(object):
     def __init__(self, path, username=whoami):
         self._path = path
@@ -821,7 +826,9 @@ class Services(object):
         for hostname, o in v:
             o['seeds'] = seeds
             o['topology'] = topology
-            o['listen_address'] = socket.gethostbyname(hostname)
+            addr = socket.gethostbyname(hostname)
+            o['listen_address'] = addr
+            o['rpc_address'] = addr     
             if 'seed' in o: del o['seed']
         
     def _action(self, service, action, query):
