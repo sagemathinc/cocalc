@@ -1,10 +1,10 @@
 # services
 
 [cassandra]
-combinat4.salv.us   {'seed':True, 'topology':'DC0:RAC0', 'token':0}
-bsd1.salv.us        {'seed':True, 'topology':'DC1:RAC0', 'token':100}
-#bsd3.salv.us       {             'topology':'DC1:RAC0', 'token':85070591730234615865843651857942052964}
-servedby1.salv.us   {'seed':True, 'topology':'DC2:RAC0', 'token':200}
+combinat4.salv.us   {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
+bsd1.salv.us        {'seed':True, 'topology':'DC1:RAC0', 'initial_token':100}
+#bsd3.salv.us       {             'topology':'DC1:RAC0', 'initial_token':85070591730234615865843651857942052964}
+servedby1.salv.us   {'seed':True, 'topology':'DC2:RAC0', 'initial_token':200}
 
 [nginx]
 web

@@ -477,10 +477,10 @@ class Sage(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, id=0, monitor_database=None, conf_template_path=None):
+    def __init__(self, topology=None, id=0, monitor_database=None, conf_template_path=None, **kwds):
         """
         id -- arbitrary identifier
-        conf_template_path -- path that contains the conf files
+        conf_template_path -- path that contains the initial conf files
         """
         cassandra_install = os.path.join(DATA, 'local', 'cassandra')
         if conf_template_path is None:
@@ -492,11 +492,30 @@ class Cassandra(Process):
         log_path = os.path.join(target_path, 'log'); makedirs(log_path)
         lib_path = os.path.join(target_path, 'lib'); makedirs(lib_path)
         conf_path = os.path.join(target_path, 'conf'); makedirs(conf_path)
+
+        if topology:
+            kwds['endpoint_snitch'] = 'org.apache.cassandra.locator.PropertyFileSnitch'
+            kwds['class_name'] = 'org.apache.cassandra.locator.SimpleSeedProvider'
         
         for name in os.listdir(conf_template_path):
             r = open(os.path.join(conf_template_path, name)).read()
             r = r.replace('/var/log/cassandra', log_path)
             r = r.replace('/var/lib/cassandra', lib_path)
+
+            if name == 'cassandra.yaml':
+                for k,v in kwds.iteritems:
+                    i = r.find('%s: '%k)
+                    if i == -1:
+                        raise ValueError("no configuration options '%s'"%k)
+                    j = r[i:].find('\n')
+                    if j == -1:
+                        j = len(r)
+                    r = r[:i] + '%s: %s'%(k,v) + r[j+i:]
+
+            elif topology and name == 'cassandra-topology.properties':
+                
+                r = topology
+            
             writefile(filename=os.path.join(conf_path, name), content=r)
 
         pidfile = os.path.join(PIDS, 'cassandra-%s.pid'%id)
@@ -783,6 +802,21 @@ class Services(object):
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
 
+        ########################################
+        # resolve and globalize Cassandra options
+        ########################################        
+        v = self._services['cassandra']
+        # determine the seeds
+        seeds = ','.join([socket.gethostbyname(h) for h, o in v if o.get('seed',False)])
+        # determine global topology file; ip_address=data_center:rack
+        topology = '\n'.join(['%s=%s'%(socket.gethostbyname(h), o.get('topology', 'DC0:RAC0'))
+                                                              for h, o in v] + ['default=DC0:RAC0'])
+        # store globalized options
+        for hostname, o in v:
+            o['seeds'] = seeds
+            o['topology'] = topology
+            o['listen_address'] = socket.gethostbyname(hostname)
+            if 'seed' in o: del o['seed']
         
     def _action(self, service, action, query):
         if service not in self._services:
@@ -792,11 +826,10 @@ class Services(object):
         # the hostname matches the given query/group
         restrict = set(self._hosts[query])
         v = sum([[(h, dict(opts)) for h in self._hosts[query] if h in restrict] for query, opts in self._services[service]], [])
-        
+
         name = service.capitalize()
-        results = {}
-        
         db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))        
+        results = {}
 
         for hostname, options in v:
             if 'sudo' in options:
