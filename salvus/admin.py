@@ -504,9 +504,9 @@ class Cassandra(Process):
 
             if name == 'cassandra.yaml':
                 for k,v in kwds.iteritems():
-                    i = r.find('%s: '%k)
+                    i = r.find('%s:'%k)
                     if i == -1:
-                        raise ValueError("no configuration options '%s'"%k)
+                        raise ValueError("no configuration option '%s'"%k)
                     j = r[i:].find('\n')
                     if j == -1:
                         j = len(r)
