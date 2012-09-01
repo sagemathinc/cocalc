@@ -477,10 +477,10 @@ class Sage(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, id=0, monitor_database=None, conf_template_path=None):
+    def __init__(self, topology=None, id=0, monitor_database=None, conf_template_path=None, **kwds):
         """
         id -- arbitrary identifier
-        conf_template_path -- path that contains the conf files
+        conf_template_path -- path that contains the initial conf files
         """
         cassandra_install = os.path.join(DATA, 'local', 'cassandra')
         if conf_template_path is None:
@@ -492,11 +492,30 @@ class Cassandra(Process):
         log_path = os.path.join(target_path, 'log'); makedirs(log_path)
         lib_path = os.path.join(target_path, 'lib'); makedirs(lib_path)
         conf_path = os.path.join(target_path, 'conf'); makedirs(conf_path)
+
+        if topology:
+            kwds['endpoint_snitch'] = 'org.apache.cassandra.locator.PropertyFileSnitch'
+            kwds['class_name'] = 'org.apache.cassandra.locator.SimpleSeedProvider'
         
         for name in os.listdir(conf_template_path):
             r = open(os.path.join(conf_template_path, name)).read()
             r = r.replace('/var/log/cassandra', log_path)
             r = r.replace('/var/lib/cassandra', lib_path)
+
+            if name == 'cassandra.yaml':
+                for k,v in kwds.iteritems:
+                    i = r.find('%s: '%k)
+                    if i == -1:
+                        raise ValueError("no configuration options '%s'"%k)
+                    j = r[i:].find('\n')
+                    if j == -1:
+                        j = len(r)
+                    r = r[:i] + '%s: %s'%(k,v) + r[j+i:]
+
+            elif topology and name == 'cassandra-topology.properties':
+                
+                r = topology
+            
             writefile(filename=os.path.join(conf_path, name), content=r)
 
         pidfile = os.path.join(PIDS, 'cassandra-%s.pid'%id)
@@ -627,16 +646,26 @@ Port = %s"""%(external_ip, ip_address, port))
 def parse_groupfile(filename):
     groups = {None:[]}
     group = None
+    group_opts = []
     ordered_group_names = []
     for r in open(filename).xreadlines():
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
-            if line.startswith('['):  # host group
-                group = line.strip(' []')
+            i = line.find(' ')
+            if i == -1:
+                opts = {}
+                name = line
+            else:
+                name = line[:i]
+                opts = eval(line[i+1:])
+            if name.startswith('['):  # host group
+                group = name.strip(' []')
+                group_opts = opts
                 groups[group] = []
                 ordered_group_names.append(group)
             else:
-                groups[group].append(line)
+                opts.update(group_opts)
+                groups[group].append((name, opts))
     return groups, ordered_group_names
 
 class Hosts(object):
@@ -678,9 +707,9 @@ class Hosts(object):
         if len(v) > 1:
             return list(sorted(set(sum([self[q] for q in v], []))))
         if query == 'all': # return all hosts
-            return list(sorted(set(sum(self._groups.values(),[]))))
+            return list(sorted(set(sum([[x for x,_ in y] for y in self._groups.values()],[]))))
         elif query in self._groups:
-            return self._groups[query]
+            return [x for x,_ in self._groups[query]]
         all = set(self['all'])
         if query in all:
             return [query]
@@ -714,7 +743,14 @@ class Hosts(object):
     def _exec_command(self, command, hostname, sudo, timeout):
         start = time.time()
         ssh = self.ssh(hostname, timeout=timeout)
-        chan = ssh.get_transport().open_session()
+        import paramiko
+        try:
+            chan = ssh.get_transport().open_session()
+        except paramiko.SSHException:
+            # try again in case if remote machine got rebooted or something...
+            if hostname in self._ssh:
+                del self._ssh[hostname]
+            chan = self.ssh(hostname, timeout=timeout).get_transport().open_session()
         stdin = chan.makefile('wb')
         stdout = chan.makefile('rb')
         stderr = chan.makefile_stderr('rb')
@@ -747,87 +783,104 @@ class Hosts(object):
         log.info("python_c: %s", command)
         return self(query, command, sudo=sudo, timeout=timeout)
 
-                   
-                
+    def apt_upgrade(self, query):
+        return self(query,'apt-get update && apt-get -y upgrade', sudo=True, timeout=120)
+
+    def reboot(self, query):
+        return self(query, 'reboot -h now', sudo=True, timeout=5)
+
 class Services(object):
     def __init__(self, path, username=whoami):
         self._path = path
         self._username = username
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
-        services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
-        del services[None]
-        # parse options out, i.e., hosts/groups listed in the services file that have an '=' in them.
-        self._services = dict([(k, {'hosts':[x for x in v if '=' not in x],
-                                    'options':self._optparse([x for x in v if '=' in x])}) for k, v in services.iteritems()])
-        if 'cassandra' in self._hosts._groups:
-            self._cassandra = self._hosts._groups['cassandra']
-            import cassandra
-            cassandra.set_nodes(self._cassandra)
 
-    def _optparse(self, v):
-        # defaults
-        opts = []
-        sudo = False
-        timeout = 10
-        name = None
-        for x in v:
-            var, value = x.split('=')
-            if var.strip() == 'sudo':
-                sudo = eval(value.strip().capitalize())
-            elif var.strip() == 'timeout':
-                timeout = int(value.strip())
-            elif var.strip() == 'name':
-                name = value.strip()
-            else:
-                opts.append(x)
-        return {'options_string':','+(','.join(opts)), 'name':name,
-                'sudo':sudo, 'timeout':timeout}
+        import cassandra
+        self._cassandra = self._hosts['cassandra']
+        cassandra.set_nodes(self._cassandra)
+
+        self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
+        del self._services[None]
+
+        ########################################
+        # resolve and globalize Cassandra options
+        ########################################        
+        v = self._services['cassandra']
+        # determine the seeds
+        seeds = ','.join([socket.gethostbyname(h) for h, o in v if o.get('seed',False)])
+        # determine global topology file; ip_address=data_center:rack
+        topology = '\n'.join(['%s=%s'%(socket.gethostbyname(h), o.get('topology', 'DC0:RAC0'))
+                                                              for h, o in v] + ['default=DC0:RAC0'])
+        # store globalized options
+        for hostname, o in v:
+            o['seeds'] = seeds
+            o['topology'] = topology
+            o['listen_address'] = socket.gethostbyname(hostname)
+            if 'seed' in o: del o['seed']
         
-    def _action(self, query, name, action, options_string, sudo, timeout):
-        db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))
-        cmd = "import admin; print admin.%s(id=0%s%s).%s()"%(name, db_string, options_string, action)
-        result = self._hosts.python_c(query, cmd, sudo=sudo, timeout=timeout)
-        if name == "Sage":
-            import cassandra
-            for address in result:
-                try:
-                    if action in ['start', 'restart']:
-                        cassandra.record_that_sage_server_started(address)
-                    elif action == 'stop':
-                        cassandra.record_that_sage_server_stopped(address)
-                except Exception, msg:
-                    print msg
-        return result
-
-    def _action_parse(self, service, action):
+    def _action(self, service, action, query):
         if service not in self._services:
             raise ValueError("unknown service '%s'"%service)
-        options = self._services[service]['options']
-        return {'query':' '.join(self._services[service]['hosts']),
-                'options_string':options['options_string'],
-                'name':(options['name'] if options['name'] else service).capitalize(),
-                'action':action,
-                'sudo':options['sudo'],
-                'timeout':options['timeout']}
+
+        # v is list of pairs (hostname, options) defined in the services file, where
+        # the hostname matches the given query/group
+        restrict = set(self._hosts[query])
+        v = sum([[(h, dict(opts)) for h in self._hosts[query] if h in restrict] for query, opts in self._services[service]], [])
+
+        name = service.capitalize()
+        db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))        
+        results = {}
+
+        for hostname, options in v:
+            if 'sudo' in options:
+                sudo = True
+                del options['sudo']
+            else:
+                sudo = False
+            if 'timeout' in options:
+                timeout = options['timeout']
+                del options['timeout']
+            else:
+                timeout = 10
+                
+            cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
+            
+            results[hostname] = self._hosts.python_c(hostname, cmd, sudo=sudo, timeout=timeout)
+
+            if name == "Sage":
+                import cassandra
+                try:
+                    if action in ['start', 'restart']:
+                        cassandra.record_that_sage_server_started(hostname)
+                    elif action == 'stop':
+                        cassandra.record_that_sage_server_stopped(hostname)
+                except Exception, msg:
+                    print msg
+                    
+        return results
 
     def _all(self, callable, reverse=False):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
-    def start(self, service):
-        if service == 'all': return self._all(self.start, reverse=False)
-        return self._action(**self._action_parse(service, 'start'))
+    def start(self, service, query='all'):
+        if service == 'all':
+            return self._all(lambda x: self.start(x, query=query), reverse=False)
+        return self._action(service, 'start', query)
         
-    def stop(self, service):
-        if service == 'all': return self._all(self.stop, reverse=True)
-        return self._action(**self._action_parse(service, 'stop'))
+    def stop(self, service, query='all'):
+        if service == 'all':
+            return self._all(lambda x: self.stop(x, query=query), reverse=True)
+        return self._action(service, 'stop', query)
 
-    def status(self, service):
-        if service == 'all': return self._all(self.status, reverse=False)
-        return self._action(**self._action_parse(service, 'status'))
+    def status(self, service, query='all'):
+        if service == 'all':
+            return self._all(lambda x: self.status(x, query=query), reverse=False)
+        return self._action(service, 'status', query)
 
-    def restart(self, service, reverse=True):
-        if service == 'all': return self._all(self.restart)
-        return self._action(**self._action_parse(service, 'restart'))
+    def restart(self, service, query='all', reverse=True):
+        if service == 'all':
+            return self._all(lambda x: self.restart(x, query=query, reverse=reverse), reverse=reverse)
+        return self._action(service, 'restart', query)
 
     

@@ -1,3 +1,29 @@
+            elif line.startswith('<'): # use hosts listed in first column of non-commented lines in the named file
+                for x in open(os.path.join(os.path.split(filename)[0], line.strip(' <>'))).readlines():
+                    l = x.split('#')[0].strip().split()
+                    if l:
+                        groups[group].append(l[0])
+
+
+--------------------
+
+
+class CassandraConf(object):
+    def __init__(self, filename):
+        self._conf = []
+        for r in open(filename).readlines():
+            line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
+            if line:
+                hostname, location, token = line.split()
+                self._conf.append({'hostname':hostname, 'location':location, 'token':int(token)})
+
+    def nodes(self):
+        return [x['hostname'] for x in self._conf]
+                
+
+-------------
+
+
 ###########################################
 # memcache usage
 ###########################################
