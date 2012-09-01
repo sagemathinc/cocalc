@@ -1,12 +1,10 @@
 # services
 
-[git]
-combinat1.salv.us
-servedby1.salv.us
-bsd1.salv.us
-
 [cassandra]
-cassandra
+combinat4.salv.us   {'seed':True, 'topology':'DC0:RAC0', 'token':0}
+bsd1.salv.us        {'seed':True, 'topology':'DC1:RAC0', 'token':100}
+#bsd3.salv.us       {             'topology':'DC1:RAC0', 'token':85070591730234615865843651857942052964}
+servedby1.salv.us   {'seed':True, 'topology':'DC2:RAC0', 'token':200}
 
 [nginx]
 web
@@ -16,18 +14,15 @@ combinat0.salv.us
 [tornado]
 web
 
-[stunnel]
-sudo=True
+[stunnel] {'sudo':True}
 combinat0.salv.us
 servedby1.salv.us
 #bsd0.salv.us
 
-[haproxy]
-sudo=True
+[haproxy] {'sudo':True}
 combinat0.salv.us
 servedby1.salv.us
 #bsd0.salv.us
 
-[sage]
-sudo=True
+[sage] {'sudo':True}
 sage

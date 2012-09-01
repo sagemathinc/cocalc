@@ -12,7 +12,7 @@ def set_nodes(nodes):
     """input is a list of the cassandra nodes in the cluster"""
     global NODES, last_node
     NODES = nodes
-    last_node = random.randrange(len(NODES))
+    last_node = random.randrange(len(NODES)) if len(NODES) else -1
 
 # NOTE: There is no multi-host connection pool support at all in the cql python library as of Aug 2012:
 #      http://www.mail-archive.com/user@cassandra.apache.org/msg24312.html
