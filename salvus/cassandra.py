@@ -129,13 +129,13 @@ def init_cassandra_schema():
     con = connect(keyspace=None)
     cursor = con.cursor()
     if not keyspace_exists(con, 'salvus'):
-        cursor.execute("CREATE KEYSPACE salvus WITH placement_strategy = 'NetworkTopologyStrategy' AND strategy_options={DC0:1,DC1:1,DC2:1}")
+        cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 1 AND strategy_options:DC1 = 1 and strategy_options:DC2 = 1")
         cursor.execute("USE salvus")
         create_stateless_exec_table(cursor)
         create_services_table(cursor)
         create_status_table(cursor)
         create_log_table(cursor)
-        create_sage_servers_tables(cursor)
+        create_sage_servers_table(cursor)
         
 
 ##########################################################################
