@@ -503,7 +503,7 @@ class Cassandra(Process):
             r = r.replace('/var/lib/cassandra', lib_path)
 
             if name == 'cassandra.yaml':
-                for k,v in kwds.iteritems:
+                for k,v in kwds.iteritems():
                     i = r.find('%s: '%k)
                     if i == -1:
                         raise ValueError("no configuration options '%s'"%k)
