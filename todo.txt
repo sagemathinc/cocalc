@@ -7,17 +7,13 @@ NOW:
 
   [ ] I should be able to just disable ssh keys, since typing the
       password exactly once is needed anyways for sudo, and I can send
-      a password for everything.
-
-  [ ] thoughts: maybe I should get rid of "sudo" and just allow root
-      login -- for single user systems it is no worse, and so far my
-      approach to sudo is not robust.   actually it is robust.
-
+      a password for everything.  (??)
  
 SOON:
 
   [ ] tornado server will be responsible for updating database with
-      status of sage servers if they go bad, i.e., for *complaining*, etc. not the sage servers themselves
+      status of sage servers if they go bad, i.e., for *complaining*,
+      etc. not the sage servers themselves
 
   [ ] optimization: make it so all ssh tasks (with a query) happen in
       parallel using *threads* -- since they are io bound and we need
@@ -458,4 +454,8 @@ write ansible playbooks for:
   - when stop, set running false for all servers with given (address, port)
   - method to return running nodes
   - later, add status info keyed on uuid, TTL, etc.
+
+  [ ] no -- thoughts: maybe I should get rid of "sudo" and just allow root
+      login -- for single user systems it is no worse, and so far my
+      approach to sudo is not robust.   actually it is robust.
 

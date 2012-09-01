@@ -714,7 +714,14 @@ class Hosts(object):
     def _exec_command(self, command, hostname, sudo, timeout):
         start = time.time()
         ssh = self.ssh(hostname, timeout=timeout)
-        chan = ssh.get_transport().open_session()
+        import paramiko
+        try:
+            chan = ssh.get_transport().open_session()
+        except paramiko.SSHException:
+            # try again in case if remote machine got rebooted or something...
+            if hostname in self._ssh:
+                del self._ssh[hostname]
+            chan = self.ssh(hostname, timeout=timeout).get_transport().open_session()
         stdin = chan.makefile('wb')
         stdout = chan.makefile('rb')
         stderr = chan.makefile_stderr('rb')
@@ -746,6 +753,12 @@ class Hosts(object):
         command = 'cd \"$HOME/salvus/salvus\" && . salvus-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
         return self(query, command, sudo=sudo, timeout=timeout)
+
+    def apt_upgrade(self, query):
+        return self(query,'apt-get update && apt-get -y upgrade', sudo=True, timeout=120)
+
+    def reboot(self, query):
+        return self(query, 'reboot -h now', sudo=True, timeout=5)
 
                    
                 
@@ -799,11 +812,11 @@ class Services(object):
                     print msg
         return result
 
-    def _action_parse(self, service, action):
+    def _action_parse(self, service, action, query=None):
         if service not in self._services:
             raise ValueError("unknown service '%s'"%service)
         options = self._services[service]['options']
-        return {'query':' '.join(self._services[service]['hosts']),
+        return {'query':' '.join(self._services[service]['hosts']) if query is None else query,
                 'options_string':options['options_string'],
                 'name':(options['name'] if options['name'] else service).capitalize(),
                 'action':action,
@@ -814,20 +827,24 @@ class Services(object):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
-    def start(self, service):
-        if service == 'all': return self._all(self.start, reverse=False)
-        return self._action(**self._action_parse(service, 'start'))
+    def start(self, service, query=None):
+        if service == 'all':
+            return self._all(lambda x: self.start(query=query), reverse=False)
+        return self._action(**self._action_parse(service, 'start', query))
         
-    def stop(self, service):
-        if service == 'all': return self._all(self.stop, reverse=True)
-        return self._action(**self._action_parse(service, 'stop'))
+    def stop(self, service, query=None):
+        if service == 'all':
+            return self._all(lambda x: self.stop(query=query), reverse=True)
+        return self._action(**self._action_parse(service, 'stop', query))
 
-    def status(self, service):
-        if service == 'all': return self._all(self.status, reverse=False)
-        return self._action(**self._action_parse(service, 'status'))
+    def status(self, service, query=None):
+        if service == 'all':
+            return self._all(lambda x: self.status(query=query), reverse=False)
+        return self._action(**self._action_parse(service, 'status', query))
 
-    def restart(self, service, reverse=True):
-        if service == 'all': return self._all(self.restart)
-        return self._action(**self._action_parse(service, 'restart'))
+    def restart(self, service, query=None, reverse=True):
+        if service == 'all':
+            return self._all(lambda x: self.restart(x,query=query,reverse=reverse), reverse=reverse)
+        return self._action(**self._action_parse(service, 'restart', query))
 
     
