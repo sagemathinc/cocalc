@@ -22,6 +22,10 @@ PIDS   = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS   = os.path.join(DATA, 'logs')   # preferred location for pid files
 BIN    = os.path.join(DATA, 'local', 'bin')
 PYTHON = os.path.join(BIN, 'python')
+SECRETS = os.path.join(DATA,'secrets')
+
+# TODO: factor out all $HOME/salvus/salvus style stuff in code below and use BASE.
+BASE = 'salvus/salvus/'
 
 LOG_INTERVAL = 6
 
@@ -90,7 +94,7 @@ def restrict(path):
 def init_data_directory():
     #log.info("ensuring that '%s' exist", DATA)
 
-    for path in [DATA, PIDS, LOGS, os.path.join(DATA,'secrets')]:
+    for path in [DATA, PIDS, LOGS]:
         if not os.path.exists(path):
             os.makedirs(path)
         restrict(path)
@@ -346,7 +350,7 @@ class Nginx(Process):
 ####################
 class Stunnel(Process):
     def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None):
-        pem = os.path.join(DATA, 'secrets/salv.us/nopassphrase.pem')
+        pem = os.path.join(SECRETS, 'salv.us/nopassphrase.pem')
         if not os.path.exists(pem):
             raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
@@ -773,7 +777,7 @@ class Hosts(object):
             if time.time() - start >= timeout:
                 raise RuntimeError("on %s@%s command '%s' timed out"%(self._username, hostname, command))
         return {'stdout':stdout.read(), 'stderr':stderr.read(), 'exit_status':chan.recv_exit_status()}
-                    
+
     def public_ssh_keys(self, query, timeout=5):
         return '\n'.join([x['stdout'] for x in self.exec_command(query, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
 
@@ -808,6 +812,59 @@ class Hosts(object):
             print k
             print v['stdout']
 
+    #########################################################
+    # SFTP support
+    #########################################################    
+    def sftp_put(self, query, local_filename, remote_filename=None, timeout=5):
+        if remote_filename is None:
+            remote_filename = local_filename
+        for hostname in self[query]:
+            sftp = self.ssh(hostname, timeout=timeout).open_sftp()
+            log.info('put: %s --> %s:%s', local_filename, hostname, remote_filename)
+            sftp.put(local_filename, remote_filename)
+
+    def sftp_putdir(self, query, local_path, remote_containing_path='.', timeout=5):
+        # recursively copy over the local_path directory tree so that it is contained
+        # in remote_containing_path on the target
+        for hostname in self[query]:
+            sftp = self.ssh(hostname, timeout=timeout).open_sftp()
+            self._mkdir(sftp, remote_containing_path)
+            for dirpath, dirnames, filenames in os.walk(local_path):
+                print dirpath, dirnames, filenames
+                self._mkdir(sftp, os.path.join(remote_containing_path, dirpath))
+                for name in filenames:
+                    local = os.path.join(dirpath, name)
+                    remote = os.path.join(remote_containing_path, dirpath, name)
+                    log.info('put: %s --> %s:%s', local, hostname, remote)
+                    sftp.put(local, remote)
+
+    def sftp_get(self, hostname, remote_filename, local_filename=None, timeout=5):
+        if local_filename is None:
+            local_filename = remote_filename
+        ssh = self.ssh(hostname, timeout=timeout)
+        sftp = ssh.open_sftp()
+        sftp.get(remote_filename, local_filename)
+        # If I want to implement recursive get of directory: http://stackoverflow.com/questions/6674862/recursive-directory-download-with-paramiko
+
+    def rmdir(self, query, path, timeout=10):
+        # this is a very dangerous function!
+        self(query, 'rm -rf "%s"'%path, timeout=timeout)
+
+    def _mkdir(self, sftp, path, mode=0o40700):
+        try:
+            sftp.mkdir(path, mode)
+        except IOError:
+            from stat import S_ISDIR
+            if not S_ISDIR(sftp.stat(path).st_mode):
+                raise IOError("remote '%s' (on %s) exists and is not a path"%(path, hostname))
+        
+
+    def mkdir(self, query, path, timeout=10, mode=0o40700):  # default mode is restrictive=user only, on general principle.
+        for hostname in self[query]:
+            ssh = self.ssh(hostname, timeout=timeout)
+            sftp = ssh.open_sftp()
+            self._mkdir(sftp, path, mode)
+                    
 class Services(object):
     def __init__(self, path, username=whoami):
         self._path = path
@@ -869,6 +926,7 @@ class Services(object):
             results[hostname] = self._hosts.python_c(hostname, cmd, sudo=sudo, timeout=timeout)
 
             if name == "Sage":
+                # TODO: put in separate function
                 self.sage_firewall(hostname, action)
                 import cassandra
                 try:
@@ -881,8 +939,21 @@ class Services(object):
 
             elif name == "Cassandra":
                 self.cassandra_firewall(hostname, action)
+
+            elif name == "Stunnel":
+                self.stunnel_key_files(hostname, action)
                     
         return results
+
+    def stunnel_key_files(self, query, action):
+        target = os.path.join(BASE, SECRETS)
+        for hostname in self._hosts[query]:
+            if action == 'stop':
+                self._hosts.rmdir(hostname, target)
+            elif action in ['start', 'restart']:
+                self._hosts.mkdir(hostname, target)
+                self._hosts.sftp_putdir(hostname, os.path.join(SECRETS, 'salv.us'), BASE)
+                self._hosts.sftp_put(hostname, os.path.join(SECRETS, 'tornado.conf'), os.path.join(target, 'tornado.conf'))
 
     def cassandra_firewall(self, query, action):
         if action == "restart":
