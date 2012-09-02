@@ -384,7 +384,7 @@ class Haproxy(Process):
     def __init__(self, id=0, 
                  sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
-                 insecure_redirect_port=80,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
+                 insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers=None,   # list of ip addresses
                  tornado_servers=None, # list of ip addresses
