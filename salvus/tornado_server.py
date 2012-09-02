@@ -282,7 +282,7 @@ class AliveHandler(BaseHandler):
 # tornado web server
 ###########################################
 
-def run_server(base, port, debug, pidfile, logfile, database_nodes):
+def run_server(base, port, tcp_port, debug, pidfile, logfile, database_nodes):
     cassandra.set_nodes(database_nodes.split(','))
     cassandra.init_salvus_schema()
     
@@ -303,7 +303,6 @@ def run_server(base, port, debug, pidfile, logfile, database_nodes):
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
         log.info("accepting HTTP and websockets connections on port %s"%port)
-        tcp_port = 7000+port%1000 # TODO: real port!
         log.info("accepting SSL/TCP connections on port %s"%tcp_port)
         certfile = 'data/secrets/server.crt' # TODO
         keyfile = 'data/secrets/server.key'  # TODO
