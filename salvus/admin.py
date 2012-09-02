@@ -324,8 +324,9 @@ class Process(object):
 ####################
 # Nginx
 ####################
+NGINX_PORT = 8080
 class Nginx(Process):
-    def __init__(self, id=0, port=8080, monitor_database=None):
+    def __init__(self, id=0, port=NGINX_PORT, monitor_database=None):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
@@ -385,8 +386,8 @@ class Haproxy(Process):
                  accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
                  insecure_redirect_port=80,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
-                 nginx_servers='',   # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...] 
-                 tornado_servers='', # list of dictionaries [{'ip':ip, 'port':port, 'maxconn':number}, ...]
+                 nginx_servers=None,   # list of ip addresses
+                 tornado_servers=None, # list of ip addresses
                  monitor_database=None,  
                  conf_file='conf/haproxy.conf'):
 
@@ -437,8 +438,9 @@ frontend unsecured *:$port
 ####################
 # Tornado
 ####################
+TORNADO_PORT=5000
 class Tornado(Process):
-    def __init__(self, id=0, port=5000, monitor_database=None, debug=False):
+    def __init__(self, id=0, port=TORNADO_PORT, monitor_database=None, debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
         logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
@@ -878,9 +880,10 @@ class Services(object):
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
 
-        ########################################
-        # resolve and globalize Cassandra options
-        ########################################        
+        ##########################################
+        # resolve and globalize options
+        ##########################################
+        # Options for Cassandra
         v = self._services['cassandra']
         # determine the seeds
         seeds = ','.join([socket.gethostbyname(h) for h, o in v if o.get('seed',False)])
@@ -895,15 +898,31 @@ class Services(object):
             o['listen_address'] = addr
             o['rpc_address'] = addr     
             if 'seed' in o: del o['seed']
+
+        # Options for Haproxy
+        nginx_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',NGINX_PORT), 'maxconn':10000}
+                         for h, o in self._hostopts('nginx')]
+        tornado_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
+                           for h, o in self._hostopts('tornado')]
+        for _, o in self._hostopts('haproxy', copy=False):
+            if 'nginx_servers' not in o:
+                o['nginx_servers'] = nginx_servers
+            if 'tornado_servers' not in o:
+                o['tornado_servers'] = tornado_servers
+
+            
+
+    def _hostopts(self, service, query='all', copy=True):
+        """Return list of pairs (hostname, options) defined in the services file, where
+        the hostname matches the given query/group"""
+        restrict = set(self._hosts[query])
+        return sum([[(h, dict(opts) if copy else opts) for h in self._hosts[query] if h in restrict] for query, opts in self._services[service]], [])
         
     def _action(self, service, action, query):
         if service not in self._services:
             raise ValueError("unknown service '%s'"%service)
 
-        # v is list of pairs (hostname, options) defined in the services file, where
-        # the hostname matches the given query/group
-        restrict = set(self._hosts[query])
-        v = sum([[(h, dict(opts)) for h in self._hosts[query] if h in restrict] for query, opts in self._services[service]], [])
+        v = self._hostopts(service, query)
 
         name = service.capitalize()
         db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))        
