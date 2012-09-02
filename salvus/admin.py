@@ -33,6 +33,14 @@ GIT_REPO='git@combinat1.salv.us:.'
 
 whoami = os.environ['USER']
 
+# Default ports
+HAPROXY_PORT = 8000
+NGINX_PORT   = 8080
+SAGE_PORT    = 6000  # also used in cassandra.py.
+TORNADO_PORT = 5000
+TORNADO_TCP_PORT = 5001
+
+
 ####################
 # Running a subprocess
 ####################
@@ -324,7 +332,6 @@ class Process(object):
 ####################
 # Nginx
 ####################
-NGINX_PORT = 8080
 class Nginx(Process):
     def __init__(self, id=0, port=NGINX_PORT, monitor_database=None):
         log = 'nginx-%s.log'%id
@@ -350,7 +357,7 @@ class Nginx(Process):
 # Stunnel
 ####################
 class Stunnel(Process):
-    def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None):
+    def __init__(self, id=0, accept_port=443, connect_port=HAPROXY_PORT, monitor_database=None):
         pem = os.path.join(SECRETS, 'salv.us/nopassphrase.pem')
         if not os.path.exists(pem):
             raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
@@ -383,7 +390,7 @@ class Stunnel(Process):
 class Haproxy(Process):
     def __init__(self, id=0, 
                  sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
-                 accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
+                 accept_proxy_port=HAPROXY_PORT,  # port that stunnel sends decrypted traffic to
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers=None,   # list of ip addresses
@@ -438,8 +445,6 @@ frontend unsecured *:$port
 ####################
 # Tornado
 ####################
-TORNADO_PORT=5000
-TORNADO_TCP_PORT=5001
 class Tornado(Process):
     def __init__(self, id=0, port=TORNADO_PORT, tcp_port=TORNADO_TCP_PORT, monitor_database=None, debug=False):
         self._port = port
@@ -463,7 +468,6 @@ class Tornado(Process):
 # Sage
 ####################
 
-SAGE_PORT=6000  # also used in cassandra.py.
 class Sage(Process):
     def __init__(self, id=0, port=SAGE_PORT, monitor_database=None, debug=True):
         self._port = port
@@ -1006,7 +1010,7 @@ class Services(object):
             commands = []
         elif action == "start":
             # TODO: when we get bigger and only cassandra runs on cassandra nodes, remove all but 22 below!
-            commands = (['allow %s'%p for p in [22,80,443,5000,5001,8000,8080]] +
+            commands = (['allow %s'%p for p in [22,80,443,TORNADO_PORT,TORNADO_TCP_PORT,HAPROXY_PORT,NGINX_PORT]] +
                         ['allow from %s'%ip for ip in self._hosts.ip_addresses('cassandra tornado salvus0')] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535'])
         elif action == 'status':
