@@ -36,10 +36,13 @@ combinat4.salv.us
 bsd1.salv.us
 servedby1.salv.us
 
-
 [web]
 combinat1.salv.us
 servedby1.salv.us
 bsd1.salv.us
 
+[tornado]
+combinat1.salv.us
+servedby1.salv.us
+bsd1.salv.us
 

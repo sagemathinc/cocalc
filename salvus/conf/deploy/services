@@ -1,6 +1,6 @@
 # services
 
-[cassandra] {'timeout':30}  # it takes a while to start
+[cassandra] {'timeout':30, 'cluster_name':'salvus'} 
 combinat4.salv.us   {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 bsd1.salv.us        {'seed':True, 'topology':'DC1:RAC0', 'initial_token':100}
 #bsd3.salv.us       {             'topology':'DC1:RAC0', 'initial_token':85070591730234615865843651857942052964}
@@ -12,7 +12,7 @@ combinat0.salv.us
 #bsd0.salv.us
 
 [tornado]
-web
+tornado
 
 [stunnel] {'sudo':True}
 combinat0.salv.us

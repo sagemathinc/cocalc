@@ -284,7 +284,7 @@ class AliveHandler(BaseHandler):
 
 def run_server(base, port, debug, pidfile, logfile, database_nodes):
     cassandra.set_nodes(database_nodes.split(','))
-    cassandra.init_cassandra_schema()
+    cassandra.init_salvus_schema()
     
     try:
         open(pidfile,'w').write(str(os.getpid()))

@@ -87,7 +87,7 @@ CREATE TABLE services (
     running boolean,
     username varchar,
     pid int,
-    monitor_pid int,
+    monitor_pid int
 )""")
 
     # index so we can search for which services are currently running
@@ -111,8 +111,7 @@ CREATE TABLE status (
     cputime float,
     vsize int,
     rss int,
-    PRIMARY KEY(service_id, time)
-)""")
+    PRIMARY KEY(service_id, time))""")
 
 def create_log_table(cursor):
     cursor.execute("""
@@ -125,11 +124,11 @@ CREATE TABLE log (
 """)
     
 
-def init_cassandra_schema():
+def init_salvus_schema():
     con = connect(keyspace=None)
     cursor = con.cursor()
     if not keyspace_exists(con, 'salvus'):
-        cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 1 AND strategy_options:DC1 = 1 and strategy_options:DC2 = 1")
+        cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 3 AND strategy_options:DC1 = 3 and strategy_options:DC2 = 3")
         cursor.execute("USE salvus")
         create_stateless_exec_table(cursor)
         create_services_table(cursor)
