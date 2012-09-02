@@ -12,7 +12,7 @@ def set_nodes(nodes):
     """input is a list of the cassandra nodes in the cluster"""
     global NODES, last_node
     NODES = nodes
-    last_node = random.randrange(len(NODES))
+    last_node = random.randrange(len(NODES)) if len(NODES) else -1
 
 # NOTE: There is no multi-host connection pool support at all in the cql python library as of Aug 2012:
 #      http://www.mail-archive.com/user@cassandra.apache.org/msg24312.html
@@ -129,14 +129,13 @@ def init_cassandra_schema():
     con = connect(keyspace=None)
     cursor = con.cursor()
     if not keyspace_exists(con, 'salvus'):
-        cursor.execute("""
-CREATE KEYSPACE salvus WITH strategy_class='SimpleStrategy' AND strategy_options:replication_factor=3""")
+        cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 1 AND strategy_options:DC1 = 1 and strategy_options:DC2 = 1")
         cursor.execute("USE salvus")
         create_stateless_exec_table(cursor)
         create_services_table(cursor)
         create_status_table(cursor)
         create_log_table(cursor)
-        create_sage_servers_tables(cursor)
+        create_sage_servers_table(cursor)
         
 
 ##########################################################################
