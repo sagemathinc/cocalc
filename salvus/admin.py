@@ -894,9 +894,11 @@ class Services(object):
             commands = (['allow %s'%p for p in [22,80,443,5000,8000,8080]] +
                         ['allow from %s'%ip for ip in self._hosts.ip_addresses('cassandra tornado salvus0')] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535'])
+        elif action == 'status':
+            return
         else:
             raise ValueError("unknown action '%s'"%action)
-        self._hosts.ufw(query, commands)
+        return self._hosts.ufw(query, commands)
 
     def sage_firewall(self, query, action):
         if action == "restart":
@@ -907,9 +909,11 @@ class Services(object):
             commands = (['allow %s'%p for p in [22]] +
                         ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535', 'default deny outgoing'])
+        elif action == 'status':
+            return
         else:
             raise ValueError("unknown action '%s'"%action)
-        self._hosts.ufw(query, commands)
+        return self._hosts.ufw(query, commands)
 
     def _all(self, callable, reverse=False):
         names = self._ordered_service_names
