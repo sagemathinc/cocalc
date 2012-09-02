@@ -729,6 +729,9 @@ class Hosts(object):
     def ping(self, query, timeout=3):
         return self.map(is_alive, query, timeout=timeout)
 
+    def ip_addresses(self, query):
+        return [socket.gethostbyname(h) for h in self[query]]
+
     def exec_command(self, query, command, sudo=False, timeout=3):
         return self.map(lambda hostname: self._exec_command(command, hostname, sudo=sudo, timeout=timeout),
                         query=query)
@@ -794,6 +797,11 @@ class Hosts(object):
 
     def reboot(self, query):
         return self(query, 'reboot -h now', sudo=True, timeout=5)
+
+    def ufw(self, query, commands):
+        cmd = ' && '.join(['ufw --force reset'] + ['ufw ' + c for c in commands] +
+                             (['ufw --force enable'] if commands else []))
+        return self(query, cmd, sudo=True, timeout=10)
 
     def nodetool(self, query, args=''):
         for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=10).iteritems():
@@ -861,6 +869,7 @@ class Services(object):
             results[hostname] = self._hosts.python_c(hostname, cmd, sudo=sudo, timeout=timeout)
 
             if name == "Sage":
+                self.sage_firewall(hostname, action)
                 import cassandra
                 try:
                     if action in ['start', 'restart']:
@@ -869,8 +878,38 @@ class Services(object):
                         cassandra.record_that_sage_server_stopped(hostname)
                 except Exception, msg:
                     print msg
+
+            elif name == "Cassandra":
+                self.cassandra_firewall(hostname, action)
                     
         return results
+
+    def cassandra_firewall(self, query, action):
+        if action == "restart":
+            action = 'start'
+        if action == "stop":
+            commands = []
+        elif action == "start":
+            # TODO: when we get bigger and only cassandra runs on cassandra nodes, remove all but 22 below!
+            commands = (['allow %s'%p for p in [22,80,443,5000,8000,8080]] +
+                        ['allow from %s'%ip for ip in self._hosts.ip_addresses('cassandra tornado salvus0')] +
+                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535'])
+        else:
+            raise ValueError("unknown action '%s'"%action)
+        self._hosts.ufw(query, commands)
+
+    def sage_firewall(self, query, action):
+        if action == "restart":
+            action = 'start'
+        if action == "stop":
+            commands = []
+        elif action == "start":
+            commands = (['allow %s'%p for p in [22]] +
+                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')] +
+                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535', 'default deny outgoing'])
+        else:
+            raise ValueError("unknown action '%s'"%action)
+        self._hosts.ufw(query, commands)
 
     def _all(self, callable, reverse=False):
         names = self._ordered_service_names
