@@ -282,7 +282,7 @@ class AliveHandler(BaseHandler):
 # tornado web server
 ###########################################
 
-def run_server(base, port, debug, pidfile, logfile, database_nodes):
+def run_server(base, port, tcp_port, debug, pidfile, logfile, database_nodes):
     cassandra.set_nodes(database_nodes.split(','))
     cassandra.init_salvus_schema()
     
@@ -303,7 +303,6 @@ def run_server(base, port, debug, pidfile, logfile, database_nodes):
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
         app.listen(port)
         log.info("accepting HTTP and websockets connections on port %s"%port)
-        tcp_port = 7000+port%1000 # TODO: real port!
         log.info("accepting SSL/TCP connections on port %s"%tcp_port)
         certfile = 'data/secrets/server.crt' # TODO
         keyfile = 'data/secrets/server.key'  # TODO
@@ -322,6 +321,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tornado server")
     parser.add_argument("-p", dest="port", type=int, default=0,
                         help="port to listen on (default: 0 = determined by operating system)")
+    parser.add_argument("-t", dest="tcp_port", type=int, default=0,
+                        help="tcp port to listen on from other tornado servers (default: 0 = determined by operating system)")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-g", dest='debug', default=False, action="store_const", const=True,
@@ -342,6 +343,10 @@ if __name__ == "__main__":
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0))
         args.port = s.getsockname()[1]
         del s
+    if not args.tcp_port:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0))
+        args.tcp_port = s.getsockname()[1]
+        del s
 
     if args.log_level:
         level = getattr(logging, args.log_level.upper())
@@ -350,7 +355,7 @@ if __name__ == "__main__":
     pidfile = os.path.abspath(args.pidfile)
     logfile = os.path.abspath(args.logfile) if args.logfile else None
     base    = os.path.abspath('.')
-    main    = lambda: run_server(base=base, port=args.port, debug=args.debug, pidfile=pidfile,
+    main    = lambda: run_server(base=base, port=args.port, tcp_port=args.tcp_port, debug=args.debug, pidfile=pidfile,
                                  logfile=logfile, database_nodes=args.database_nodes)
     if args.daemon:
         import daemon

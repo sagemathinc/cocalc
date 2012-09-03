@@ -154,7 +154,11 @@ def build_protobuf():
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
         cmd('python setup.py install', os.path.join(path, 'python'))
-        cmd('sage setup.py install', os.path.join(path, 'python'))
+        try:
+            cmd('sage setup.py install', os.path.join(path, 'python'))
+        except:
+            # fine -- this just means Sage isn't installed on this node
+            pass
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        

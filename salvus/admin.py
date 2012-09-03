@@ -33,6 +33,14 @@ GIT_REPO='git@combinat1.salv.us:.'
 
 whoami = os.environ['USER']
 
+# Default ports
+HAPROXY_PORT = 8000
+NGINX_PORT   = 8080
+SAGE_PORT    = 6000  # also used in cassandra.py.
+TORNADO_PORT = 5000
+TORNADO_TCP_PORT = 5001
+
+
 ####################
 # Running a subprocess
 ####################
@@ -324,7 +332,6 @@ class Process(object):
 ####################
 # Nginx
 ####################
-NGINX_PORT = 8080
 class Nginx(Process):
     def __init__(self, id=0, port=NGINX_PORT, monitor_database=None):
         log = 'nginx-%s.log'%id
@@ -350,7 +357,7 @@ class Nginx(Process):
 # Stunnel
 ####################
 class Stunnel(Process):
-    def __init__(self, id=0, accept_port=443, connect_port=8000, monitor_database=None):
+    def __init__(self, id=0, accept_port=443, connect_port=HAPROXY_PORT, monitor_database=None):
         pem = os.path.join(SECRETS, 'salv.us/nopassphrase.pem')
         if not os.path.exists(pem):
             raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
@@ -383,7 +390,7 @@ class Stunnel(Process):
 class Haproxy(Process):
     def __init__(self, id=0, 
                  sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
-                 accept_proxy_port=8000,  # port that stunnel sends decrypted traffic to
+                 accept_proxy_port=HAPROXY_PORT,  # port that stunnel sends decrypted traffic to
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers=None,   # list of ip addresses
@@ -438,9 +445,8 @@ frontend unsecured *:$port
 ####################
 # Tornado
 ####################
-TORNADO_PORT=5000
 class Tornado(Process):
-    def __init__(self, id=0, port=TORNADO_PORT, monitor_database=None, debug=False):
+    def __init__(self, id=0, port=TORNADO_PORT, tcp_port=TORNADO_TCP_PORT, monitor_database=None, debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
         logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
@@ -450,7 +456,8 @@ class Tornado(Process):
         Process.__init__(self, id, name='tornado', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
-                         start_cmd = [PYTHON, 'tornado_server.py', '-p', port, '-d',
+                         start_cmd = [PYTHON, 'tornado_server.py',
+                                      '-p', port, '-t', tcp_port, '-d',
                                       '--database_nodes', monitor_database,
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
@@ -461,7 +468,6 @@ class Tornado(Process):
 # Sage
 ####################
 
-SAGE_PORT=6000  # also used in cassandra.py.
 class Sage(Process):
     def __init__(self, id=0, port=SAGE_PORT, monitor_database=None, debug=True):
         self._port = port
@@ -817,7 +823,7 @@ class Hosts(object):
     #########################################################
     # SFTP support
     #########################################################    
-    def sftp_put(self, query, local_filename, remote_filename=None, timeout=5):
+    def put(self, query, local_filename, remote_filename=None, timeout=5):
         if remote_filename is None:
             remote_filename = local_filename
         for hostname in self[query]:
@@ -825,7 +831,7 @@ class Hosts(object):
             log.info('put: %s --> %s:%s', local_filename, hostname, remote_filename)
             sftp.put(local_filename, remote_filename)
 
-    def sftp_putdir(self, query, local_path, remote_containing_path='.', timeout=5):
+    def putdir(self, query, local_path, remote_containing_path='.', timeout=5):
         # recursively copy over the local_path directory tree so that it is contained
         # in remote_containing_path on the target
         for hostname in self[query]:
@@ -840,7 +846,7 @@ class Hosts(object):
                     log.info('put: %s --> %s:%s', local, hostname, remote)
                     sftp.put(local, remote)
 
-    def sftp_get(self, hostname, remote_filename, local_filename=None, timeout=5):
+    def get(self, hostname, remote_filename, local_filename=None, timeout=5):
         if local_filename is None:
             local_filename = remote_filename
         ssh = self.ssh(hostname, timeout=timeout)
@@ -866,6 +872,15 @@ class Hosts(object):
             ssh = self.ssh(hostname, timeout=timeout)
             sftp = ssh.open_sftp()
             self._mkdir(sftp, path, mode)
+
+    def unlink(self, query, filename, timeout=10):
+        for hostname in self[query]:
+            ssh = self.ssh(hostname, timeout=timeout)
+            sftp = ssh.open_sftp()
+            try:
+                sftp.remove(filename)
+            except:
+                pass # file doesn't exist
                     
 class Services(object):
     def __init__(self, path, username=whoami):
@@ -961,6 +976,9 @@ class Services(object):
 
             elif name == "Stunnel":
                 self.stunnel_key_files(hostname, action)
+
+            elif name == "Tornado":
+                self.tornado_secrets(hostname, action)
                     
         return results
 
@@ -968,11 +986,22 @@ class Services(object):
         target = os.path.join(BASE, SECRETS)
         for hostname in self._hosts[query]:
             if action == 'stop':
-                self._hosts.rmdir(hostname, target)
+                self._hosts.rmdir(hostname, os.path.join(target, 'salv.us'))
             elif action in ['start', 'restart']:
                 self._hosts.mkdir(hostname, target)
-                self._hosts.sftp_putdir(hostname, os.path.join(SECRETS, 'salv.us'), BASE)
-                self._hosts.sftp_put(hostname, os.path.join(SECRETS, 'tornado.conf'), os.path.join(target, 'tornado.conf'))
+                self._hosts.putdir(hostname, os.path.join(SECRETS, 'salv.us'), BASE)
+
+    def tornado_secrets(self, query, action):
+        target = os.path.join(BASE, SECRETS)
+        files = ['tornado.conf', 'server.crt', 'server.key']
+        for hostname in self._hosts[query]:
+            if action == 'stop':
+                for name in files:
+                    self._hosts.unlink(hostname, os.path.join(target, name))
+            elif action in ['start', 'restart']:
+                self._hosts.mkdir(hostname, target)
+                for name in files:
+                    self._hosts.put(hostname, os.path.join(SECRETS, name), os.path.join(target, name))
 
     def cassandra_firewall(self, query, action):
         if action == "restart":
@@ -981,7 +1010,7 @@ class Services(object):
             commands = []
         elif action == "start":
             # TODO: when we get bigger and only cassandra runs on cassandra nodes, remove all but 22 below!
-            commands = (['allow %s'%p for p in [22,80,443,5000,8000,8080]] +
+            commands = (['allow %s'%p for p in [22,80,443,TORNADO_PORT,TORNADO_TCP_PORT,HAPROXY_PORT,NGINX_PORT]] +
                         ['allow from %s'%ip for ip in self._hosts.ip_addresses('cassandra tornado salvus0')] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535'])
         elif action == 'status':
