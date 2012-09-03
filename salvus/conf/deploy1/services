@@ -1,19 +1,19 @@
 # services
 
-[cassandra]
-cassandra
+[cassandra] {'cluster_name':'salvus1'}
+localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 
 [nginx]
-web
-
-[stunnel] {'sudo':True}
 web
 
 [tornado]
 web
 
-[haproxy] {'sudo':True, 'insecure_redirect_port':80, 'insecure_testing_port':8001, 'nginx_servers':[{'ip':'salvus0.salv.us', 'port':8080, 'maxconn':10000}], 'tornado_servers':[{'ip':'salvus0.salv.us', 'port':5000, 'maxconn':10000}]}
+[stunnel] {'sudo':True}
 web
 
-[sage]
+[haproxy] {'sudo':True}
+web
+
+[sage] {'sudo':True}
 sage

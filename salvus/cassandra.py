@@ -128,7 +128,9 @@ def init_salvus_schema():
     con = connect(keyspace=None)
     cursor = con.cursor()
     if not keyspace_exists(con, 'salvus'):
-        cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 3 AND strategy_options:DC1 = 3 and strategy_options:DC2 = 3")
+        cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'SimpleStrategy' and strategy_options:replication_factor=3")
+        # for when I'm rich:
+        #cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 3 AND strategy_options:DC1 = 3 and strategy_options:DC2 = 3")
         cursor.execute("USE salvus")
         create_stateless_exec_table(cursor)
         create_services_table(cursor)
@@ -182,3 +184,8 @@ def record_that_sage_server_stopped(address):
     
     
     
+
+
+def tokens(n):
+    RING_SIZE = 2**127
+    return [RING_SIZE / n * x for x in range(n)]

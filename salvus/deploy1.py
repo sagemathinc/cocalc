@@ -1,5 +1,5 @@
 
-# import admin, config2; reload(admin); reload(config2); h = config2.hosts
+# import admin, deploy1; reload(admin); reload(deploy1); h = deploy1.hosts; s=deploy1.services
 
 import admin
 

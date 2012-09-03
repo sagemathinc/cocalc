@@ -246,6 +246,8 @@ class Process(object):
         return len(self.status()) > 0
 
     def _start_monitor(self):
+        # TODO: temporarily disabled -- they do no real good anyways.
+        return
         if self._monitor_database and self._logfile:
             run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
                  '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
@@ -446,7 +448,8 @@ frontend unsecured *:$port
 # Tornado
 ####################
 class Tornado(Process):
-    def __init__(self, id=0, port=TORNADO_PORT, tcp_port=TORNADO_TCP_PORT, monitor_database=None, debug=False):
+    def __init__(self, id=0, address='', port=TORNADO_PORT, tcp_port=TORNADO_TCP_PORT,
+                 monitor_database=None, debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
         logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
@@ -457,8 +460,10 @@ class Tornado(Process):
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
                          start_cmd = [PYTHON, 'tornado_server.py',
-                                      '-p', port, '-t', tcp_port, '-d',
+                                      '-p', port, '-t', tcp_port,
+                                      '--address', address,
                                       '--database_nodes', monitor_database,
+                                      '-d',
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
@@ -469,14 +474,15 @@ class Tornado(Process):
 ####################
 
 class Sage(Process):
-    def __init__(self, id=0, port=SAGE_PORT, monitor_database=None, debug=True):
+    def __init__(self, id=0, address='', port=SAGE_PORT, monitor_database=None, debug=True):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
         Process.__init__(self, id, name='sage', port=port,
                          pidfile    = pidfile,
                          logfile = logfile, monitor_database=monitor_database, 
-                         start_cmd  = ['sage', '--python', 'sage_server.py', '-p', port,
+                         start_cmd  = ['sage', '--python', 'sage_server.py',
+                                       '-p', port, '--address', address,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
                          start_using_system = True,  # since daemon mode currently broken
                          service = ('sage', port))
@@ -815,8 +821,8 @@ class Hosts(object):
                              (['ufw --force enable'] if commands else []))
         return self(query, cmd, sudo=True, timeout=10)
 
-    def nodetool(self, query, args=''):
-        for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=10).iteritems():
+    def nodetool(self, query, args='', timeout=20):
+        for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout).iteritems():
             print k
             print v['stdout']
 
@@ -895,17 +901,26 @@ class Services(object):
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
 
+        # this is the canonical list of options, expanded out by service and host.
+        def hostopts(service, query='all', copy=True):
+            """Return list of pairs (hostname, options) defined in the services file, where
+            the hostname matches the given query/group"""
+            restrict = set(self._hosts[query])
+            return sum([[(h, dict(opts) if copy else opts) for h in self._hosts[query] if h in restrict]
+                               for query, opts in self._services[service]], [])
+    
+        self._options = dict([(service, hostopts(service)) for service in self._ordered_service_names])
+
         ##########################################
-        # resolve and globalize options
+        # Programatically fill in extra options to the list 
         ##########################################
-        # Options for Cassandra
-        v = self._services['cassandra']
+        # CASSANDRA options
+        v = self._options['cassandra']
         # determine the seeds
         seeds = ','.join([socket.gethostbyname(h) for h, o in v if o.get('seed',False)])
         # determine global topology file; ip_address=data_center:rack
         topology = '\n'.join(['%s=%s'%(socket.gethostbyname(h), o.get('topology', 'DC0:RAC0'))
                                                               for h, o in v] + ['default=DC0:RAC0'])
-        # store globalized options
         for hostname, o in v:
             o['seeds'] = seeds
             o['topology'] = topology
@@ -914,24 +929,38 @@ class Services(object):
             o['rpc_address'] = addr     
             if 'seed' in o: del o['seed']
 
-        # Options for Haproxy
+        # HAPROXY options
         nginx_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',NGINX_PORT), 'maxconn':10000}
-                         for h, o in self._hostopts('nginx')]
+                         for h, o in self._options['nginx']]
         tornado_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
-                           for h, o in self._hostopts('tornado')]
-        for _, o in self._hostopts('haproxy', copy=False):
+                           for h, o in self._options['tornado']]
+        for _, o in self._options['haproxy']:
             if 'nginx_servers' not in o:
                 o['nginx_servers'] = nginx_servers
             if 'tornado_servers' not in o:
                 o['tornado_servers'] = tornado_servers
 
+        # TORNADO options
+        for hostname, o in self._options['tornado']:
+            # very important: set to listen only on our VPN!
+            o['address'] = socket.gethostbyname(hostname)
+        
+        # SAGE options
+        for hostname, o in self._options['sage']:
+            # very, very important: set to listen only on our VPN!  There is an attack where a local user
+            # can bind to a more specific address and same port on a machine, and intercept all trafic.
+            # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
+            # By binding on a specific ip address, we prevent this.
+            o['address'] = socket.gethostbyname(hostname)
             
 
-    def _hostopts(self, service, query='all', copy=True):
-        """Return list of pairs (hostname, options) defined in the services file, where
-        the hostname matches the given query/group"""
-        restrict = set(self._hosts[query])
-        return sum([[(h, dict(opts) if copy else opts) for h in self._hosts[query] if h in restrict] for query, opts in self._services[service]], [])
+    def _hostopts(self, service, query):
+        """
+        Return copy of pairs (hostname, options_dict) for the given
+        service, restricted by the given query.
+        """
+        hosts = set(self._hosts[query])
+        return [(h,dict(o)) for h,o in self._options[service] if h in hosts]
         
     def _action(self, service, action, query):
         if service not in self._services:
@@ -953,7 +982,7 @@ class Services(object):
                 timeout = options['timeout']
                 del options['timeout']
             else:
-                timeout = 10
+                timeout = 30
                 
             cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
             
@@ -985,6 +1014,7 @@ class Services(object):
     def stunnel_key_files(self, query, action):
         target = os.path.join(BASE, SECRETS)
         for hostname in self._hosts[query]:
+            if hostname == 'localhost': continue
             if action == 'stop':
                 self._hosts.rmdir(hostname, os.path.join(target, 'salv.us'))
             elif action in ['start', 'restart']:
@@ -995,6 +1025,7 @@ class Services(object):
         target = os.path.join(BASE, SECRETS)
         files = ['tornado.conf', 'server.crt', 'server.key']
         for hostname in self._hosts[query]:
+            if hostname == 'localhost': continue
             if action == 'stop':
                 for name in files:
                     self._hosts.unlink(hostname, os.path.join(target, name))
@@ -1024,10 +1055,11 @@ class Services(object):
             action = 'start'
         if action == "stop":
             commands = []
-        elif action == "start":
-            commands = (['allow %s'%p for p in [22]] +
+        elif action == "start":   # 22=ssh, 53=dns, 8200=tinc vpn, 
+            commands = (['allow %s'%p for p in [22]] + ['allow out %s'%p for p in [22,53,8200]] +
                         ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')] +
-                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535', 'default deny outgoing'])
+                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535',
+                         'default deny outgoing'])
         elif action == 'status':
             return
         else:

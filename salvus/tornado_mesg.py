@@ -9,21 +9,22 @@ from tornado import ioloop, iostream
 
 import mesg_pb2   # Google's protobuf
 
-def listen(port):
+def listen(address, port):
     """Create a nonblocking socket listening for connections on the given port."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.setblocking(0)
-    s.bind(('', port))
+    s.bind((address, port))
     s.listen(128)
     return s
 
 # openssl req -batch -new -x509 -newkey rsa:2048 -days 9999 -nodes -keyout cakey.pem -out cacert.pem 
 
 class TornadoConnectionServer(object):
-    def __init__(self, port, message_handler, certfile, keyfile, idle_timeout=30):
+    def __init__(self, port, address, message_handler, certfile, keyfile, idle_timeout=30):
+        self._address = address
         self._idle_timeout = idle_timeout # in seconds
-        self._socket = listen(port)
+        self._socket = listen(address, port)
         self._message_handler = message_handler
         self._certfile = certfile
         self._keyfile = keyfile

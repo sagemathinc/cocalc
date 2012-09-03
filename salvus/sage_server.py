@@ -190,6 +190,7 @@ def execute(conn, id, code, preparse):
             sys.stdout.flush()
             sys.stderr.flush(done=True)
         else:
+            sys.stderr.flush()
             sys.stdout.flush(done=True)
         (sys.stdout, sys.stderr) = streams
 
@@ -305,19 +306,25 @@ def handle_session_term(signum, frame):
             log.info("Cleaning up after child process %s", pid)
             del connections[pid]
     
-def serve(port, whitelist):
+def serve(port, address, whitelist):
     global connections, kill_timer
     check_for_connection_timeouts()
     signal.signal(signal.SIGCHLD, handle_session_term)
 
     log.info('pre-importing the sage library...')
     import sage.all
-    exec "from sage.all import *; from sage.calculus.predefined import x" in namespace
+
+    # Doing an integral starts embedded ECL; unfortunately, it can
+    # easily get put in a broken state after fork that impacts future
+    # forks, so we can't do that!
+    #exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+    
+    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)    
-    s.bind(('', port))
+    s.bind((address, port))
     s.listen(5)
     pid = -1
     try:
@@ -397,13 +404,13 @@ def serve(port, whitelist):
                 pass
 
             
-def run_server(port, pidfile, logfile, whitelist):
+def run_server(port, address, pidfile, logfile, whitelist):
     if pidfile:
         open(pidfile,'w').write(str(os.getpid()))
     if logfile:
         log.addHandler(logging.FileHandler(logfile))
-    log.info("port=%s, pidfile='%s', logfile='%s', whitelist=%s", port, pidfile, logfile, whitelist)
-    serve(port, whitelist)
+    log.info("port=%s, address=%s, pidfile='%s', logfile='%s', whitelist=%s", port, address, pidfile, logfile, whitelist)
+    serve(port, address, whitelist)
 
 if __name__ == "__main__":
     import argparse
@@ -414,6 +421,8 @@ if __name__ == "__main__":
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
+    parser.add_argument("--address", dest="address", type=str, default='',
+                        help="address of interface to bind to")
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
                         help="store pid in this file")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
@@ -454,7 +463,7 @@ if __name__ == "__main__":
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
     whitelist = args.whitelist.split(',') if args.whitelist else []
     
-    main = lambda: run_server(port=args.port, pidfile=pidfile, logfile=logfile, whitelist=whitelist)
+    main = lambda: run_server(port=args.port, address=args.address, pidfile=pidfile, logfile=logfile, whitelist=whitelist)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():
