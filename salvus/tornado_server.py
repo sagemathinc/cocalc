@@ -282,7 +282,7 @@ class AliveHandler(BaseHandler):
 # tornado web server
 ###########################################
 
-def run_server(base, port, tcp_port, debug, pidfile, logfile, database_nodes):
+def run_server(base, port, tcp_port, debug, address, pidfile, logfile, database_nodes):
     cassandra.set_nodes(database_nodes.split(','))
     cassandra.init_salvus_schema()
     
@@ -301,12 +301,12 @@ def run_server(base, port, tcp_port, debug, pidfile, logfile, database_nodes):
             handlers.append(("/test_tornado_mesg", TestTornadoMesgHandler))
         secrets = eval(open(os.path.join(base, "data/secrets/tornado.conf")).read())
         app = tornado.web.Application(handlers + Router.urls, debug=debug, **secrets)
-        app.listen(port)
+        app.listen(port, address=address)
         log.info("accepting HTTP and websockets connections on port %s"%port)
         log.info("accepting SSL/TCP connections on port %s"%tcp_port)
         certfile = 'data/secrets/server.crt' # TODO
         keyfile = 'data/secrets/server.key'  # TODO
-        tornado_connection_server = TornadoConnectionServer(tcp_port, handle_tornado_mesg,
+        tornado_connection_server = TornadoConnectionServer(tcp_port, address, handle_tornado_mesg,
                                                             certfile, keyfile) 
         ioloop.IOLoop.instance().start()
     finally:
@@ -329,6 +329,8 @@ if __name__ == "__main__":
                         help="debug mode (default: False)")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
+    parser.add_argument("--address", dest="address", type=str, default='',
+                        help="address of interface to bind to")
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='tornado.pid',
                         help="store pid in this file (default: 'tornado.pid')")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
@@ -355,7 +357,8 @@ if __name__ == "__main__":
     pidfile = os.path.abspath(args.pidfile)
     logfile = os.path.abspath(args.logfile) if args.logfile else None
     base    = os.path.abspath('.')
-    main    = lambda: run_server(base=base, port=args.port, tcp_port=args.tcp_port, debug=args.debug, pidfile=pidfile,
+    main    = lambda: run_server(base=base, port=args.port, tcp_port=args.tcp_port,
+                                 debug=args.debug, address=args.address, pidfile=pidfile,
                                  logfile=logfile, database_nodes=args.database_nodes)
     if args.daemon:
         import daemon

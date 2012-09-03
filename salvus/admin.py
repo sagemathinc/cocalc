@@ -446,7 +446,8 @@ frontend unsecured *:$port
 # Tornado
 ####################
 class Tornado(Process):
-    def __init__(self, id=0, port=TORNADO_PORT, tcp_port=TORNADO_TCP_PORT, monitor_database=None, debug=False):
+    def __init__(self, id=0, address='', port=TORNADO_PORT, tcp_port=TORNADO_TCP_PORT,
+                 monitor_database=None, debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
         logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
@@ -457,7 +458,8 @@ class Tornado(Process):
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
                          start_cmd = [PYTHON, 'tornado_server.py',
-                                      '-p', port, '-t', tcp_port, 
+                                      '-p', port, '-t', tcp_port,
+                                      '--address', address,
                                       '--database_nodes', monitor_database,
                                       '-d',
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
@@ -470,14 +472,15 @@ class Tornado(Process):
 ####################
 
 class Sage(Process):
-    def __init__(self, id=0, port=SAGE_PORT, monitor_database=None, debug=True):
+    def __init__(self, id=0, address='', port=SAGE_PORT, monitor_database=None, debug=True):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
         Process.__init__(self, id, name='sage', port=port,
                          pidfile    = pidfile,
                          logfile = logfile, monitor_database=monitor_database, 
-                         start_cmd  = ['sage', '--python', 'sage_server.py', '-p', port,
+                         start_cmd  = ['sage', '--python', 'sage_server.py',
+                                       '-p', port, '--address', address,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
                          start_using_system = True,  # since daemon mode currently broken
                          service = ('sage', port))
@@ -897,16 +900,15 @@ class Services(object):
         del self._services[None]
 
         ##########################################
-        # resolve and globalize options
+        # Programatically fill in options
         ##########################################
-        # Options for Cassandra
+        # CASSANDRA options
         v = self._services['cassandra']
         # determine the seeds
         seeds = ','.join([socket.gethostbyname(h) for h, o in v if o.get('seed',False)])
         # determine global topology file; ip_address=data_center:rack
         topology = '\n'.join(['%s=%s'%(socket.gethostbyname(h), o.get('topology', 'DC0:RAC0'))
                                                               for h, o in v] + ['default=DC0:RAC0'])
-        # store globalized options
         for hostname, o in v:
             o['seeds'] = seeds
             o['topology'] = topology
@@ -915,7 +917,7 @@ class Services(object):
             o['rpc_address'] = addr     
             if 'seed' in o: del o['seed']
 
-        # Options for Haproxy
+        # HAPROXY options
         nginx_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',NGINX_PORT), 'maxconn':10000}
                          for h, o in self._hostopts('nginx')]
         tornado_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
@@ -926,6 +928,18 @@ class Services(object):
             if 'tornado_servers' not in o:
                 o['tornado_servers'] = tornado_servers
 
+        # TORNADO options
+        for hostname, o in self._hostopts('tornado', copy=False):
+            # very important: set to listen only on our VPN!
+            o['address'] = socket.gethostbyname(hostname)
+        
+        # SAGE options
+        for hostname, o in self._hostopts('sage', copy=False):
+            # very, very important: set to listen only on our VPN!  There is an attack where a local user
+            # can bind to a more specific address and same port on a machine, and intercept all trafic.
+            # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
+            # By binding on a specific ip address, we prevent this.
+            o['address'] = socket.gethostbyname(hostname)
             
 
     def _hostopts(self, service, query='all', copy=True):
