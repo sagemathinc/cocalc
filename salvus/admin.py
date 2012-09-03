@@ -1000,6 +1000,7 @@ class Services(object):
     def stunnel_key_files(self, query, action):
         target = os.path.join(BASE, SECRETS)
         for hostname in self._hosts[query]:
+            if hostname == 'localhost': continue
             if action == 'stop':
                 self._hosts.rmdir(hostname, os.path.join(target, 'salv.us'))
             elif action in ['start', 'restart']:
@@ -1010,6 +1011,7 @@ class Services(object):
         target = os.path.join(BASE, SECRETS)
         files = ['tornado.conf', 'server.crt', 'server.key']
         for hostname in self._hosts[query]:
+            if hostname == 'localhost': continue
             if action == 'stop':
                 for name in files:
                     self._hosts.unlink(hostname, os.path.join(target, name))

@@ -162,7 +162,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
                 return
 
             self._stateless_execution = StatelessExecution(self, mesg=mesg,
-                      address=address, port=port, max_cputime=5, max_walltime=5, timeout=1)
+                      address=address, port=port, max_cputime=3, max_walltime=3, timeout=1)
         
         random_sage_server(connect_and_execute)
 

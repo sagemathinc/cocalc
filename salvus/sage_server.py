@@ -312,7 +312,7 @@ def serve(port, address, whitelist):
 
     log.info('pre-importing the sage library...')
     import sage.all
-    exec "from sage.all import *; from sage.calculus.predefined import x" in namespace
+    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -403,7 +403,7 @@ def run_server(port, address, pidfile, logfile, whitelist):
     if logfile:
         log.addHandler(logging.FileHandler(logfile))
     log.info("port=%s, address=%s, pidfile='%s', logfile='%s', whitelist=%s", port, address, pidfile, logfile, whitelist)
-    serve(port, whitelist)
+    serve(port, address, whitelist)
 
 if __name__ == "__main__":
     import argparse
@@ -456,7 +456,7 @@ if __name__ == "__main__":
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
     whitelist = args.whitelist.split(',') if args.whitelist else []
     
-    main = lambda: run_server(port=args.port, address=address, pidfile=pidfile, logfile=logfile, whitelist=whitelist)
+    main = lambda: run_server(port=args.port, address=args.address, pidfile=pidfile, logfile=logfile, whitelist=whitelist)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():

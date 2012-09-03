@@ -56,6 +56,9 @@ SOON:
 
 IDEAS:
 
+  [ ] have way to turn off all lazy imports so that initial startup is
+      looong, but forking then doing computations is fast.
+
   [ ] html sanitizer: http://lxml.de/lxmlhtml.html#cleaning-up-html   also https://mail.google.com/mail/u/0/?shva=1#inbox/138bd8a66cc8c6af
 
   [ ] more complicated VPN:
