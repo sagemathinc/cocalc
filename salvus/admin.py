@@ -816,8 +816,8 @@ class Hosts(object):
                              (['ufw --force enable'] if commands else []))
         return self(query, cmd, sudo=True, timeout=10)
 
-    def nodetool(self, query, args=''):
-        for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=10).iteritems():
+    def nodetool(self, query, args='', timeout=20):
+        for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout).iteritems():
             print k
             print v['stdout']
 
@@ -1025,8 +1025,8 @@ class Services(object):
             action = 'start'
         if action == "stop":
             commands = []
-        elif action == "start":   # 8200=tinc vpn
-            commands = (['allow %s'%p for p in [22]] + ['allow out %s'%p for p in [22,8200]] +
+        elif action == "start":   # 22=ssh, 53=dns, 8200=tinc vpn, 
+            commands = (['allow %s'%p for p in [22]] + ['allow out %s'%p for p in [22,53,8200]] +
                         ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535',
                          'default deny outgoing'])

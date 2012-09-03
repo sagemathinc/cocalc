@@ -5,6 +5,24 @@ NOW:
 
 SOON:
 
+ [ ] sage network still too open -- it allows outgoing 22 and 8200 and 53 to anywhere. 
+     really need to lock down much more eventually somehow...
+
+ [ ] salv.us new homepage needs to have google analytics javascript on it;
+     acknowledgement of hosting?
+
+ [ ] thought: nodes such as combinat0 can't be on same network as DB, so how do we monitor them?
+     Maybe we should have an axiom: monitored processes are never on
+     the same machine (or even datacenter) as what they monitor?
+     I could spawn them all over, send password over ssh, and they
+     login regularly to do their work...  Then they can complain when
+     a machine gets unresponsive, rather than complain by their silence!
+     Also, could always have two monitors for any service on different
+     machines (centers), so when a machine running a monitor goes
+     down, then other monitor still works.
+
+ [ ] issue: monitor.py scripts aren't ending quickly enough if cassandra already terminated...
+
   [ ] tornado server will be responsible for updating database with
       status of sage servers if they go bad, i.e., for *complaining*,
       etc. not the sage servers themselves
