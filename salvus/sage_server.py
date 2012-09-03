@@ -190,6 +190,7 @@ def execute(conn, id, code, preparse):
             sys.stdout.flush()
             sys.stderr.flush(done=True)
         else:
+            sys.stderr.flush()
             sys.stdout.flush(done=True)
         (sys.stdout, sys.stderr) = streams
 
@@ -312,7 +313,13 @@ def serve(port, address, whitelist):
 
     log.info('pre-importing the sage library...')
     import sage.all
-    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+
+    # Doing an integral starts embedded ECL; unfortunately, it can
+    # easily get put in a broken state after fork that impacts future
+    # forks, so we can't do that!
+    #exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+    
+    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

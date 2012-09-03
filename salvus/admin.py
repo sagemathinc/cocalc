@@ -246,6 +246,8 @@ class Process(object):
         return len(self.status()) > 0
 
     def _start_monitor(self):
+        # TODO: temporarily disabled -- they do no real good anyways.
+        return
         if self._monitor_database and self._logfile:
             run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
                  '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
@@ -899,11 +901,21 @@ class Services(object):
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
 
+        # this is the canonical list of options, expanded out by service and host.
+        def hostopts(service, query='all', copy=True):
+            """Return list of pairs (hostname, options) defined in the services file, where
+            the hostname matches the given query/group"""
+            restrict = set(self._hosts[query])
+            return sum([[(h, dict(opts) if copy else opts) for h in self._hosts[query] if h in restrict]
+                               for query, opts in self._services[service]], [])
+    
+        self._options = dict([(service, hostopts(service)) for service in self._ordered_service_names])
+
         ##########################################
-        # Programatically fill in options
+        # Programatically fill in extra options to the list 
         ##########################################
         # CASSANDRA options
-        v = self._services['cassandra']
+        v = self._options['cassandra']
         # determine the seeds
         seeds = ','.join([socket.gethostbyname(h) for h, o in v if o.get('seed',False)])
         # determine global topology file; ip_address=data_center:rack
@@ -919,22 +931,22 @@ class Services(object):
 
         # HAPROXY options
         nginx_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',NGINX_PORT), 'maxconn':10000}
-                         for h, o in self._hostopts('nginx')]
+                         for h, o in self._options['nginx']]
         tornado_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
-                           for h, o in self._hostopts('tornado')]
-        for _, o in self._hostopts('haproxy', copy=False):
+                           for h, o in self._options['tornado']]
+        for _, o in self._options['haproxy']:
             if 'nginx_servers' not in o:
                 o['nginx_servers'] = nginx_servers
             if 'tornado_servers' not in o:
                 o['tornado_servers'] = tornado_servers
 
         # TORNADO options
-        for hostname, o in self._hostopts('tornado', copy=False):
+        for hostname, o in self._options['tornado']:
             # very important: set to listen only on our VPN!
             o['address'] = socket.gethostbyname(hostname)
         
         # SAGE options
-        for hostname, o in self._hostopts('sage', copy=False):
+        for hostname, o in self._options['sage']:
             # very, very important: set to listen only on our VPN!  There is an attack where a local user
             # can bind to a more specific address and same port on a machine, and intercept all trafic.
             # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
@@ -942,11 +954,13 @@ class Services(object):
             o['address'] = socket.gethostbyname(hostname)
             
 
-    def _hostopts(self, service, query='all', copy=True):
-        """Return list of pairs (hostname, options) defined in the services file, where
-        the hostname matches the given query/group"""
-        restrict = set(self._hosts[query])
-        return sum([[(h, dict(opts) if copy else opts) for h in self._hosts[query] if h in restrict] for query, opts in self._services[service]], [])
+    def _hostopts(self, service, query):
+        """
+        Return copy of pairs (hostname, options_dict) for the given
+        service, restricted by the given query.
+        """
+        hosts = set(self._hosts[query])
+        return [(h,dict(o)) for h,o in self._options[service] if h in hosts]
         
     def _action(self, service, action, query):
         if service not in self._services:
@@ -968,7 +982,7 @@ class Services(object):
                 timeout = options['timeout']
                 del options['timeout']
             else:
-                timeout = 20
+                timeout = 30
                 
             cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
             
