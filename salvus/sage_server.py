@@ -317,9 +317,9 @@ def serve(port, address, whitelist):
     # Doing an integral starts embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future
     # forks, so we can't do that!
-    #exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
     
-    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
+    #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
