@@ -14,13 +14,12 @@ SOON:
       to keep a persistent connection, hence forking is not
       appropriate.
 
-  [ ] admin.py -- setting environment variables on remote machines
+  [ ] need to get 443 unblocked and serve stunnel on bsd and combinat!
+      good test thatis unblocked: "telnet 128.208.160.193 443"
 
   [ ] look into http://www.monitor.us
 
   [ ] modify sage server to have a paramater to limit connections (in various ways)
-
-  [ ] deploy what I currently have
 
   [ ] create phonegap interface for android
   [ ] create phonegap interface for iOS
@@ -33,6 +32,9 @@ SOON:
 
   [ ] stateful sessions
 
+  [ ] get rid of whitelist option in sage_server -- much better to use a firewall!
+
+  [ ] ufw firewall on sage machines -- should only open outgoing 8200 to limited list of targets
 
 IDEAS:
 
@@ -448,8 +450,10 @@ write ansible playbooks for:
       login -- for single user systems it is no worse, and so far my
       approach to sudo is not robust.   actually it is robust.
 
-  NOT NEEDED, due to ufw firewall
+  NOT NEEDED, due to ufw firewallo
   [ ] vpn: setup servedby1 to be a vpn server (for redundancy)
   [ ] vpn: change configuration so the vpn is called salvus (instead of being the default)
   [ ] vpn: setup a separate vpn for sage servers
+
+  [ ] admin.py -- setting environment variables on remote machines
 

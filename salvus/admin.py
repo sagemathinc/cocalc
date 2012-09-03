@@ -457,8 +457,9 @@ class Tornado(Process):
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
                          start_cmd = [PYTHON, 'tornado_server.py',
-                                      '-p', port, '-t', tcp_port, '-d',
+                                      '-p', port, '-t', tcp_port, 
                                       '--database_nodes', monitor_database,
+                                      '-d',
                                       '--pidfile', pidfile, '--logfile', logfile] + extra)
 
     def __repr__(self):
@@ -953,7 +954,7 @@ class Services(object):
                 timeout = options['timeout']
                 del options['timeout']
             else:
-                timeout = 10
+                timeout = 20
                 
             cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
             
@@ -1024,10 +1025,11 @@ class Services(object):
             action = 'start'
         if action == "stop":
             commands = []
-        elif action == "start":
-            commands = (['allow %s'%p for p in [22]] +
+        elif action == "start":   # 8200=tinc vpn
+            commands = (['allow %s'%p for p in [22]] + ['allow out %s'%p for p in [22,8200]] +
                         ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')] +
-                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535', 'default deny outgoing'])
+                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535',
+                         'default deny outgoing'])
         elif action == 'status':
             return
         else:
