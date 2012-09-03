@@ -41,9 +41,7 @@ class NonblockingConnectionPB(object):
         length_header = struct.pack(">L", len(s))
         self._conn.write(length_header + s, callback)
 
-    def recv(self, callback=None):
-        def read_length():
-            self._conn.read_bytes(4, read_mesg)
+    def recv(self, length=None, callback=None):
         def read_mesg(s):
             if len(s) < 4:
                 if callback is not None:
@@ -55,7 +53,10 @@ class NonblockingConnectionPB(object):
                 m = mesg_pb2.Message()
                 m.ParseFromString(s)
                 callback(self, m)
-        read_length()
+        if length is None:        
+            self._conn.read_bytes(4, read_mesg)
+        else:
+            read_mesg(length)
     
 
 class SageConnection(object):
@@ -85,10 +86,7 @@ class SageConnection(object):
         
     def _listen_for_messages(self):
         self._log.info("listen for messages: %s", self)
-        io = ioloop.IOLoop.instance()
-        fd = self._conn._sock.fileno()
-        io.remove_handler(fd)
-        io.add_handler(fd, self._recv, io.READ)
+        self._conn._conn.read_bytes(4, self._recv)  # call self._recv when we receive 4 bytes of length.
         self.on_open()
         if self._init_callback is not None:
             self._init_callback(self)
@@ -106,10 +104,11 @@ class SageConnection(object):
             self._pid = mesg.session_description.pid
             self._log.info("set_pid = %s", self._pid)
             self._listen_for_messages()
-        self._conn.recv(set_pid)
+        self._conn.recv(callback=set_pid)
 
-    def _recv(self, fd, events):
-        self._conn.recv(lambda conn, mesg: self._mesg_callback(self, mesg))
+    def _recv(self, length):
+        self._conn.recv(length, callback=lambda conn, mesg: self._mesg_callback(self, mesg))
+        self._conn._conn.read_bytes(4, self._recv)  # call self._recv again when we receive 4 bytes of length.
 
     def send(self, mesg, callback=None):
         self._conn.send(mesg, callback)

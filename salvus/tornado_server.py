@@ -18,6 +18,8 @@ Tornado server
       help pages)
 """
 
+USE_CACHE = False
+
 import json, logging, os, random, socket, sys, time
 
 from tornado import ioloop, iostream
@@ -146,13 +148,15 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
             self._stateless_execution.kill()
             
         input = mesg['execute_code']['code'].strip()
-        answer = stateless_execution_cache[input]
-        if answer is not None:
-            for m in answer:  # replay messages
-                m1 = dict(m)
-                m1['id'] = mesg['id']
-                self.send_obj(m1)
-            return
+
+        if USE_CACHE:
+            answer = stateless_execution_cache[input]
+            if answer is not None:
+                for m in answer:  # replay messages
+                    m1 = dict(m)
+                    m1['id'] = mesg['id']
+                    self.send_obj(m1)
+                return
 
         def connect_and_execute(address, port):
             if not port: # there are no sage servers at all available
@@ -213,7 +217,8 @@ class StatelessExecution(object):
             if mesg.output.done:
                 sage_conn.close()
                 self._sage_conn = None
-                stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
+                if USE_CACHE:
+                    stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
 
 
 class StatefulExecution(object):
