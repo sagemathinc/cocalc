@@ -166,7 +166,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
                 return
 
             self._stateless_execution = StatelessExecution(self, mesg=mesg,
-                      address=address, port=port, max_cputime=3, max_walltime=3, timeout=1)
+                      address=address, port=port, max_cputime=5, max_walltime=5, timeout=5)
         
         random_sage_server(connect_and_execute)
 
@@ -203,7 +203,7 @@ class StatelessExecution(object):
         self._sage_conn = None
         # TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
         self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
-                                      'output':{'done':True, 'stdout':'', 'stderr':'unable to connect to Sage server'}})
+                                      'output':{'done':True, 'stdout':'', 'stderr':'unable to connect to Sage server (%s)'%self._address}})
 
     def _handle_mesg(self, sage_conn, mesg):
         log.info("got mesg:\n%s", mesg)
