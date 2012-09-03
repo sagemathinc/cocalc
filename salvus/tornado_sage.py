@@ -86,13 +86,9 @@ class SageConnection(object):
     def _listen_for_messages(self):
         self._log.info("listen for messages: %s", self)
         io = ioloop.IOLoop.instance()
-        try:
-            io.add_handler(self._conn._sock.fileno(), self._recv, io.READ)
-        except IOError:
-            # TODO: On linux for some reason sometimes the registration happens
-            # multiple times for the same connection, which causes an error.
-            # Ignoring the error seems to work fine. 
-            pass
+        fd = self._conn._sock.fileno()
+        io.remove_handler(fd)
+        io.add_handler(fd, self._recv, io.READ)
         self.on_open()
         if self._init_callback is not None:
             self._init_callback(self)
