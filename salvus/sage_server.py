@@ -187,10 +187,10 @@ def execute(conn, id, code, preparse):
     finally:
         # there must be exactly one done message
         if sys.stderr._buf:
-            sys.stdout.flush()
+            if sys.stdout._buf:
+                sys.stdout.flush()
             sys.stderr.flush(done=True)
         else:
-            sys.stderr.flush()
             sys.stdout.flush(done=True)
         (sys.stdout, sys.stderr) = streams
 
