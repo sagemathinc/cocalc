@@ -405,12 +405,12 @@ class Haproxy(Process):
 
         if nginx_servers:
             t = Template('server nginx$n $ip:$port maxconn $maxconn')
-            nginx_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x['port'], maxconn=x['maxconn']) for
+            nginx_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', NGINX_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(nginx_servers)]))
 
         if tornado_servers:
             t = Template('server tornado$n $ip:$port check maxconn $maxconn')
-            tornado_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x['port'], maxconn=x['maxconn']) for
+            tornado_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',TORNADO_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(tornado_servers)]))
 
         if insecure_redirect_port:
