@@ -1,6 +1,6 @@
-Address = geom.math.washington.edu 8200
+Address = 128.208.160.194
 Subnet = 10.38.1.3/32
-Port = 8200
+
 
 -----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEA2m/xLxl83IV9cBgAurQZsL5esTfWmNq+ho8b0k+HJZ+LWnritKPU

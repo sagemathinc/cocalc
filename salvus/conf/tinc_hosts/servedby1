@@ -1,6 +1,6 @@
-Address = 192.168.0.100 
+Address = 174.127.179.97
 Subnet = 10.38.1.11/32
-Port = 8200 
+ 
 
 -----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEAzjB0IYHHPl+j5xYgXr4M2iZlhCQVvCmtuIsYhJyMKX/wE0ZRH4PW

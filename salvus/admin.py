@@ -618,8 +618,7 @@ ifconfig $INTERFACE %s netmask 255.255.0.0
     host_file = os.path.join(TARGET, 'hosts', hostname)
     open(host_file,'w').write(
 """Address = %s
-Subnet = %s/32
-Port = %s"""%(external_ip, ip_address, port))
+Subnet = %s/32"""%(external_ip, ip_address, port))
 
     # generate keys
     sh['data/local/sbin/tincd', '-K']
