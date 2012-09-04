@@ -18,7 +18,7 @@ Tornado server
       help pages)
 """
 
-USE_EXEC_CACHE = False
+USE_EXEC_CACHE = True
 
 import json, logging, os, random, socket, sys, time
 
