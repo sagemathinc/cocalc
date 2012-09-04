@@ -1,7 +1,5 @@
 Address = 128.208.160.193
 Subnet = 10.38.1.2/32
- 
-
 -----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEAqo1n2N8WsSTsNLHjYEgVxqRaUGeweK55MZ1uUlfpKfBtDMnGcHr7
 ZOwJd0itCIsnxDez1oanYp9dKLmOZSB2YpmZq6RkWsRwTZLxptJkItsfN2gEtug1
