@@ -18,6 +18,8 @@ Tornado server
       help pages)
 """
 
+USE_EXEC_CACHE = True
+
 import json, logging, os, random, socket, sys, time
 
 from tornado import ioloop, iostream
@@ -146,13 +148,15 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
             self._stateless_execution.kill()
             
         input = mesg['execute_code']['code'].strip()
-        answer = stateless_execution_cache[input]
-        if answer is not None:
-            for m in answer:  # replay messages
-                m1 = dict(m)
-                m1['id'] = mesg['id']
-                self.send_obj(m1)
-            return
+
+        if USE_EXEC_CACHE:
+            answer = stateless_execution_cache[input]
+            if answer is not None:
+                for m in answer:  # replay messages
+                    m1 = dict(m)
+                    m1['id'] = mesg['id']
+                    self.send_obj(m1)
+                return
 
         def connect_and_execute(address, port):
             if not port: # there are no sage servers at all available
@@ -162,7 +166,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
                 return
 
             self._stateless_execution = StatelessExecution(self, mesg=mesg,
-                      address=address, port=port, max_cputime=3, max_walltime=3, timeout=1)
+                      address=address, port=port, max_cputime=5, max_walltime=5, timeout=5)
         
         random_sage_server(connect_and_execute)
 
@@ -199,7 +203,7 @@ class StatelessExecution(object):
         self._sage_conn = None
         # TODO: message should not use stderr, but instead maybe a new/extended protobuf2 type
         self._browser_conn.send_obj({'type':mesg_pb2.Message.OUTPUT, 'id':self._mesg['id'],
-                                      'output':{'done':True, 'stdout':'', 'stderr':'unable to connect to Sage server'}})
+                                      'output':{'done':True, 'stdout':'', 'stderr':'unable to connect to Sage server (%s)'%self._address}})
 
     def _handle_mesg(self, sage_conn, mesg):
         log.info("got mesg:\n%s", mesg)
@@ -213,7 +217,8 @@ class StatelessExecution(object):
             if mesg.output.done:
                 sage_conn.close()
                 self._sage_conn = None
-                stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
+                if USE_EXEC_CACHE:
+                    stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
 
 
 class StatefulExecution(object):

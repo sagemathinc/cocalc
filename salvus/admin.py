@@ -701,7 +701,7 @@ class Hosts(object):
             self._password = getpass.getpass("%s's password: "%self._username)
         return self._password
 
-    def ssh(self, hostname, timeout=10, keepalive=None):
+    def ssh(self, hostname, timeout=20, keepalive=None):
         key = (hostname, self._username)
         if key in self._ssh:
             return self._ssh[key]
@@ -750,7 +750,7 @@ class Hosts(object):
     def ip_addresses(self, query):
         return [socket.gethostbyname(h) for h in self[query]]
 
-    def exec_command(self, query, command, sudo=False, timeout=3):
+    def exec_command(self, query, command, sudo=False, timeout=20):
         return self.map(lambda hostname: self._exec_command(command, hostname, sudo=sudo, timeout=timeout),
                         query=query)
 
@@ -795,13 +795,13 @@ class Hosts(object):
     def public_ssh_keys(self, query, timeout=5):
         return '\n'.join([x['stdout'] for x in self.exec_command(query, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
 
-    def git_pull(self, query, repo=GIT_REPO, timeout=20):
+    def git_pull(self, query, repo=GIT_REPO, timeout=30):
         return self(query, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
     def build(self, query, pkg_name, timeout=250):
         return self(query, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
-    def python_c(self, query, cmd, timeout=10, sudo=False):
+    def python_c(self, query, cmd, timeout=30, sudo=False):
         command = 'cd \"$HOME/salvus/salvus\" && . salvus-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
         return self(query, command, sudo=sudo, timeout=timeout)

@@ -63,7 +63,7 @@ class Message(object):
             m.id = id
         return m
         
-    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=1024, id=None):
+    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=2048, id=None):
         m = self._new(id=id, typ=mesg_pb2.Message.START_SESSION)
         m.start_session.max_walltime = max_walltime
         m.start_session.max_cputime = max_cputime
@@ -187,10 +187,10 @@ def execute(conn, id, code, preparse):
     finally:
         # there must be exactly one done message
         if sys.stderr._buf:
-            sys.stdout.flush()
+            if sys.stdout._buf:
+                sys.stdout.flush()
             sys.stderr.flush(done=True)
         else:
-            sys.stderr.flush()
             sys.stdout.flush(done=True)
         (sys.stdout, sys.stderr) = streams
 
@@ -317,9 +317,9 @@ def serve(port, address, whitelist):
     # Doing an integral starts embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future
     # forks, so we can't do that!
-    #exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
     
-    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
+    #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
