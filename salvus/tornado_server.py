@@ -18,7 +18,7 @@ Tornado server
       help pages)
 """
 
-USE_CACHE = False
+USE_EXEC_CACHE = False
 
 import json, logging, os, random, socket, sys, time
 
@@ -149,7 +149,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
             
         input = mesg['execute_code']['code'].strip()
 
-        if USE_CACHE:
+        if USE_EXEC_CACHE:
             answer = stateless_execution_cache[input]
             if answer is not None:
                 for m in answer:  # replay messages
@@ -217,7 +217,7 @@ class StatelessExecution(object):
             if mesg.output.done:
                 sage_conn.close()
                 self._sage_conn = None
-                if USE_CACHE:
+                if USE_EXEC_CACHE:
                     stateless_execution_cache[self._mesg['execute_code']['code']] = self._result
 
 
