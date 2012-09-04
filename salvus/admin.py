@@ -555,7 +555,7 @@ def is_alive(hostname, timeout=1):
                             stderr=subprocess.PIPE).wait() == 0
 
 
-def tinc_conf(hostname, connect_to, external_ip=None, delete=True, port=8200):
+def tinc_conf(hostname, connect_to, external_ip=None, delete=True):
     """
     Configure tinc on this machine, so it can be part of the VPN.
 
@@ -618,7 +618,7 @@ ifconfig $INTERFACE %s netmask 255.255.0.0
     host_file = os.path.join(TARGET, 'hosts', hostname)
     open(host_file,'w').write(
 """Address = %s
-Subnet = %s/32"""%(external_ip, ip_address, port))
+Subnet = %s/32"""%(external_ip, ip_address))
 
     # generate keys
     sh['data/local/sbin/tincd', '-K']
@@ -1054,8 +1054,8 @@ class Services(object):
             action = 'start'
         if action == "stop":
             commands = []
-        elif action == "start":   # 22=ssh, 53=dns, 8200=tinc vpn, 
-            commands = (['allow %s'%p for p in [22]] + ['allow out %s'%p for p in [22,53,8200]] +
+        elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn, 
+            commands = (['allow %s'%p for p in [22]] + ['allow out %s'%p for p in [22,53,655]] +
                         ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535',
                          'default deny outgoing'])
