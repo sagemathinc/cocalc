@@ -5,6 +5,14 @@ NOW:
 
 SOON:
 
+ [ ] BUG: sage server We should not allow incoming traffic to port 6000 even from the same machine!!!
+
+ [ ] BUG: tornado servers (etc) need to know which servers are sage
+servers: The tornado servers know that the machine is a sage server,
+so it can't send messages as if it were not a sage server.  It also
+can't change it's ip address or identification on the VPN, because it
+would have to put new keys on the vpn server nodes.
+
  [ ] sage network still too open -- it allows outgoing 22 and 8200 and 53 to anywhere. 
      really need to lock down much more eventually somehow...
 
@@ -31,9 +39,6 @@ SOON:
       parallel using *threads* -- since they are io bound and we need
       to keep a persistent connection, hence forking is not
       appropriate.
-
-  [ ] need to get 443 unblocked and serve stunnel on bsd and combinat!
-      good test thatis unblocked: "telnet 128.208.160.193 443"
 
   [ ] look into http://www.monitor.us
 
@@ -477,4 +482,7 @@ write ansible playbooks for:
   [ ] vpn: setup a separate vpn for sage servers
 
   [ ] admin.py -- setting environment variables on remote machines
+
+  [x] need to get 443 unblocked and serve stunnel on bsd and combinat!
+      good test that is unblocked: "telnet 128.208.160.193 443"
 
