@@ -1019,6 +1019,8 @@ class Services(object):
             elif action in ['start', 'restart']:
                 self._hosts.mkdir(hostname, target)
                 self._hosts.putdir(hostname, os.path.join(SECRETS, 'salv.us'), BASE)
+        # avoid race condition where file is there but not there.
+        time.sleep(.5)
 
     def tornado_secrets(self, query, action):
         target = os.path.join(BASE, SECRETS)
@@ -1032,6 +1034,8 @@ class Services(object):
                 self._hosts.mkdir(hostname, target)
                 for name in files:
                     self._hosts.put(hostname, os.path.join(SECRETS, name), os.path.join(target, name))
+        # avoid race condition where file is there but not there.
+        time.sleep(.5)
 
     def cassandra_firewall(self, query, action):
         if action == "restart":
