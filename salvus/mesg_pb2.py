@@ -10,14 +10,14 @@ from google.protobuf import descriptor_pb2
 
 DESCRIPTOR = descriptor.FileDescriptor(
   name='mesg.proto',
-  package='mthyme',
-  serialized_pb='\n\nmesg.proto\x12\x06mthyme\"3\n\x0b\x45xecuteCode\x12\x0c\n\x04\x63ode\x18\x01 \x02(\t\x12\x16\n\x08preparse\x18\x02 \x01(\x08:\x04true\"a\n\x0cStartSession\x12\x14\n\x0cmax_walltime\x18\x01 \x01(\x05\x12\x13\n\x0bmax_cputime\x18\x02 \x01(\x05\x12\x14\n\x0cmax_numfiles\x18\x03 \x01(\x05\x12\x10\n\x08max_vmem\x18\x04 \x01(\x05\"\x12\n\x10TerminateSession\"!\n\x12SessionDescription\x12\x0b\n\x03pid\x18\x01 \x02(\x05\")\n\nSendSignal\x12\x0b\n\x03pid\x18\x01 \x02(\x05\x12\x0e\n\x06signal\x18\x02 \x02(\x05\"=\n\x06Output\x12\x0e\n\x06stdout\x18\x01 \x01(\t\x12\x0e\n\x06stderr\x18\x02 \x01(\t\x12\x13\n\x04\x64one\x18\x03 \x01(\x08:\x05\x66\x61lse\"\xbe\x03\n\x07Message\x12\"\n\x04type\x18\x01 \x02(\x0e\x32\x14.mthyme.Message.Type\x12\n\n\x02id\x18\x02 \x01(\r\x12)\n\x0c\x65xecute_code\x18\x03 \x01(\x0b\x32\x13.mthyme.ExecuteCode\x12+\n\rstart_session\x18\x04 \x01(\x0b\x32\x14.mthyme.StartSession\x12/\n\x11terminate_session\x18\x05 \x01(\x0b\x32\x14.mthyme.StartSession\x12\x37\n\x13session_description\x18\x06 \x01(\x0b\x32\x1a.mthyme.SessionDescription\x12\'\n\x0bsend_signal\x18\x07 \x01(\x0b\x32\x12.mthyme.SendSignal\x12\x1e\n\x06output\x18\x08 \x01(\x0b\x32\x0e.mthyme.Output\"x\n\x04Type\x12\x10\n\x0c\x45XECUTE_CODE\x10\x01\x12\x11\n\rSTART_SESSION\x10\x02\x12\x15\n\x11TERMINATE_SESSION\x10\x03\x12\x17\n\x13SESSION_DESCRIPTION\x10\x04\x12\x0f\n\x0bSEND_SIGNAL\x10\x05\x12\n\n\x06OUTPUT\x10\x06')
+  package='salvus',
+  serialized_pb='\n\nmesg.proto\x12\x06salvus\"3\n\x0b\x45xecuteCode\x12\x0c\n\x04\x63ode\x18\x01 \x02(\t\x12\x16\n\x08preparse\x18\x02 \x01(\x08:\x04true\"a\n\x0cStartSession\x12\x14\n\x0cmax_walltime\x18\x01 \x01(\x05\x12\x13\n\x0bmax_cputime\x18\x02 \x01(\x05\x12\x14\n\x0cmax_numfiles\x18\x03 \x01(\x05\x12\x10\n\x08max_vmem\x18\x04 \x01(\x05\"\x12\n\x10TerminateSession\"!\n\x12SessionDescription\x12\x0b\n\x03pid\x18\x01 \x02(\x05\")\n\nSendSignal\x12\x0b\n\x03pid\x18\x01 \x02(\x05\x12\x0e\n\x06signal\x18\x02 \x02(\x05\"=\n\x06Output\x12\x0e\n\x06stdout\x18\x01 \x01(\t\x12\x0e\n\x06stderr\x18\x02 \x01(\t\x12\x13\n\x04\x64one\x18\x03 \x01(\x08:\x05\x66\x61lse\"\xbe\x03\n\x07Message\x12\"\n\x04type\x18\x01 \x02(\x0e\x32\x14.salvus.Message.Type\x12\n\n\x02id\x18\x02 \x01(\r\x12)\n\x0c\x65xecute_code\x18\x03 \x01(\x0b\x32\x13.salvus.ExecuteCode\x12+\n\rstart_session\x18\x04 \x01(\x0b\x32\x14.salvus.StartSession\x12/\n\x11terminate_session\x18\x05 \x01(\x0b\x32\x14.salvus.StartSession\x12\x37\n\x13session_description\x18\x06 \x01(\x0b\x32\x1a.salvus.SessionDescription\x12\'\n\x0bsend_signal\x18\x07 \x01(\x0b\x32\x12.salvus.SendSignal\x12\x1e\n\x06output\x18\x08 \x01(\x0b\x32\x0e.salvus.Output\"x\n\x04Type\x12\x10\n\x0c\x45XECUTE_CODE\x10\x01\x12\x11\n\rSTART_SESSION\x10\x02\x12\x15\n\x11TERMINATE_SESSION\x10\x03\x12\x17\n\x13SESSION_DESCRIPTION\x10\x04\x12\x0f\n\x0bSEND_SIGNAL\x10\x05\x12\n\n\x06OUTPUT\x10\x06')
 
 
 
 _MESSAGE_TYPE = descriptor.EnumDescriptor(
   name='Type',
-  full_name='mthyme.Message.Type',
+  full_name='salvus.Message.Type',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -55,20 +55,20 @@ _MESSAGE_TYPE = descriptor.EnumDescriptor(
 
 _EXECUTECODE = descriptor.Descriptor(
   name='ExecuteCode',
-  full_name='mthyme.ExecuteCode',
+  full_name='salvus.ExecuteCode',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     descriptor.FieldDescriptor(
-      name='code', full_name='mthyme.ExecuteCode.code', index=0,
+      name='code', full_name='salvus.ExecuteCode.code', index=0,
       number=1, type=9, cpp_type=9, label=2,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='preparse', full_name='mthyme.ExecuteCode.preparse', index=1,
+      name='preparse', full_name='salvus.ExecuteCode.preparse', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=True, default_value=True,
       message_type=None, enum_type=None, containing_type=None,
@@ -90,34 +90,34 @@ _EXECUTECODE = descriptor.Descriptor(
 
 _STARTSESSION = descriptor.Descriptor(
   name='StartSession',
-  full_name='mthyme.StartSession',
+  full_name='salvus.StartSession',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     descriptor.FieldDescriptor(
-      name='max_walltime', full_name='mthyme.StartSession.max_walltime', index=0,
+      name='max_walltime', full_name='salvus.StartSession.max_walltime', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='max_cputime', full_name='mthyme.StartSession.max_cputime', index=1,
+      name='max_cputime', full_name='salvus.StartSession.max_cputime', index=1,
       number=2, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='max_numfiles', full_name='mthyme.StartSession.max_numfiles', index=2,
+      name='max_numfiles', full_name='salvus.StartSession.max_numfiles', index=2,
       number=3, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='max_vmem', full_name='mthyme.StartSession.max_vmem', index=3,
+      name='max_vmem', full_name='salvus.StartSession.max_vmem', index=3,
       number=4, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -139,7 +139,7 @@ _STARTSESSION = descriptor.Descriptor(
 
 _TERMINATESESSION = descriptor.Descriptor(
   name='TerminateSession',
-  full_name='mthyme.TerminateSession',
+  full_name='salvus.TerminateSession',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
@@ -160,13 +160,13 @@ _TERMINATESESSION = descriptor.Descriptor(
 
 _SESSIONDESCRIPTION = descriptor.Descriptor(
   name='SessionDescription',
-  full_name='mthyme.SessionDescription',
+  full_name='salvus.SessionDescription',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     descriptor.FieldDescriptor(
-      name='pid', full_name='mthyme.SessionDescription.pid', index=0,
+      name='pid', full_name='salvus.SessionDescription.pid', index=0,
       number=1, type=5, cpp_type=1, label=2,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -188,20 +188,20 @@ _SESSIONDESCRIPTION = descriptor.Descriptor(
 
 _SENDSIGNAL = descriptor.Descriptor(
   name='SendSignal',
-  full_name='mthyme.SendSignal',
+  full_name='salvus.SendSignal',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     descriptor.FieldDescriptor(
-      name='pid', full_name='mthyme.SendSignal.pid', index=0,
+      name='pid', full_name='salvus.SendSignal.pid', index=0,
       number=1, type=5, cpp_type=1, label=2,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='signal', full_name='mthyme.SendSignal.signal', index=1,
+      name='signal', full_name='salvus.SendSignal.signal', index=1,
       number=2, type=5, cpp_type=1, label=2,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -223,27 +223,27 @@ _SENDSIGNAL = descriptor.Descriptor(
 
 _OUTPUT = descriptor.Descriptor(
   name='Output',
-  full_name='mthyme.Output',
+  full_name='salvus.Output',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     descriptor.FieldDescriptor(
-      name='stdout', full_name='mthyme.Output.stdout', index=0,
+      name='stdout', full_name='salvus.Output.stdout', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='stderr', full_name='mthyme.Output.stderr', index=1,
+      name='stderr', full_name='salvus.Output.stderr', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='done', full_name='mthyme.Output.done', index=2,
+      name='done', full_name='salvus.Output.done', index=2,
       number=3, type=8, cpp_type=7, label=1,
       has_default_value=True, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -265,62 +265,62 @@ _OUTPUT = descriptor.Descriptor(
 
 _MESSAGE = descriptor.Descriptor(
   name='Message',
-  full_name='mthyme.Message',
+  full_name='salvus.Message',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     descriptor.FieldDescriptor(
-      name='type', full_name='mthyme.Message.type', index=0,
+      name='type', full_name='salvus.Message.type', index=0,
       number=1, type=14, cpp_type=8, label=2,
       has_default_value=False, default_value=1,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='id', full_name='mthyme.Message.id', index=1,
+      name='id', full_name='salvus.Message.id', index=1,
       number=2, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='execute_code', full_name='mthyme.Message.execute_code', index=2,
+      name='execute_code', full_name='salvus.Message.execute_code', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='start_session', full_name='mthyme.Message.start_session', index=3,
+      name='start_session', full_name='salvus.Message.start_session', index=3,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='terminate_session', full_name='mthyme.Message.terminate_session', index=4,
+      name='terminate_session', full_name='salvus.Message.terminate_session', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='session_description', full_name='mthyme.Message.session_description', index=5,
+      name='session_description', full_name='salvus.Message.session_description', index=5,
       number=6, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='send_signal', full_name='mthyme.Message.send_signal', index=6,
+      name='send_signal', full_name='salvus.Message.send_signal', index=6,
       number=7, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='output', full_name='mthyme.Message.output', index=7,
+      name='output', full_name='salvus.Message.output', index=7,
       number=8, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -360,42 +360,42 @@ class ExecuteCode(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _EXECUTECODE
   
-  # @@protoc_insertion_point(class_scope:mthyme.ExecuteCode)
+  # @@protoc_insertion_point(class_scope:salvus.ExecuteCode)
 
 class StartSession(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _STARTSESSION
   
-  # @@protoc_insertion_point(class_scope:mthyme.StartSession)
+  # @@protoc_insertion_point(class_scope:salvus.StartSession)
 
 class TerminateSession(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _TERMINATESESSION
   
-  # @@protoc_insertion_point(class_scope:mthyme.TerminateSession)
+  # @@protoc_insertion_point(class_scope:salvus.TerminateSession)
 
 class SessionDescription(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _SESSIONDESCRIPTION
   
-  # @@protoc_insertion_point(class_scope:mthyme.SessionDescription)
+  # @@protoc_insertion_point(class_scope:salvus.SessionDescription)
 
 class SendSignal(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _SENDSIGNAL
   
-  # @@protoc_insertion_point(class_scope:mthyme.SendSignal)
+  # @@protoc_insertion_point(class_scope:salvus.SendSignal)
 
 class Output(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _OUTPUT
   
-  # @@protoc_insertion_point(class_scope:mthyme.Output)
+  # @@protoc_insertion_point(class_scope:salvus.Output)
 
 class Message(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _MESSAGE
   
-  # @@protoc_insertion_point(class_scope:mthyme.Message)
+  # @@protoc_insertion_point(class_scope:salvus.Message)
 
 # @@protoc_insertion_point(module_scope)

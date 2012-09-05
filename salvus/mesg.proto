@@ -1,6 +1,6 @@
 /* protoc mesg.proto --python_out=. */
 
-package mthyme;
+package salvus;
 
 message ExecuteCode {
     required string code = 1;  
