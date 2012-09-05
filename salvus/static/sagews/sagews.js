@@ -43,7 +43,7 @@ sagews.Backend = function(options) {
     function onmessage(e) {
 	mesg = JSON.parse(e.data);
 	sagews.log(mesg);
-	$("#time").html((sagews.walltime() - time) + " milliseconds");
+	$("#time").html((sagews.walltime() - time)/1000.0 + " s");
 	if (mesg.type == types.OUTPUT) {
     	    output_callbacks[mesg.id](mesg);
     	    if(mesg.done) { delete output_callbacks[mesg.id]; }

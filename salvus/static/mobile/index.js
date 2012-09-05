@@ -8,6 +8,7 @@ $(function(){
 
     function execute_code() {
 	$("#output").val("");
+	$("#time").html("");
 	$("#run_status").html("running");
 	backend.execute($("#input").val(), 
 		function(mesg) { 
@@ -16,7 +17,7 @@ $(function(){
 		    if (mesg.output.stderr) {
 			o.val(o.val() + "\n!!!!!!!!!!!!!!\n" + mesg.output.stderr + "\n!!!!!!!!!!!!!\n");
 		    }
-		    $("#run_status").html(mesg.done?"done":"running...");
+		    $("#run_status").html(mesg.output.done?"":"running...");
 		});
     }
 

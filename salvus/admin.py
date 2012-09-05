@@ -44,7 +44,7 @@ TORNADO_TCP_PORT = 5001
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=10, verbose=True, env=None):
+def run(args, maxtime=10, verbose=True):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
