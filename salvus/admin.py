@@ -806,11 +806,22 @@ class Hosts(object):
         return self(query, command, sudo=sudo, timeout=timeout)
 
     def apt_upgrade(self, query):
-        return self(query,'apt-get update && apt-get -y upgrade', sudo=True, timeout=120)
+        # some nodes (e.g., sage nodes) have a firewall that disables upgrading via apt,
+        # so we temporarily disable it.
+        try:
+            return self(query,'ufw --force disable && apt-get update && apt-get -y upgrade', sudo=True, timeout=120)
+            # very important to re-enable the firewall, no matter what!
+        finally:
+            self(query,'ufw --force enable', sudo=True, timeout=120)
+        
 
     def apt_install(self, query, pkg):
         # EXAMPLE:   hosts.apt_install('cassandra', 'openjdk-7-jre')
-        return self(query, 'apt-get -y install %s'%pkg, sudo=True, timeout=120)
+        try:
+            return self(query, 'ufw --force disable && apt-get -y install %s'%pkg, sudo=True, timeout=120)
+        finally:
+            self(query,'ufw --force enable', sudo=True, timeout=120)
+        
 
     def reboot(self, query):
         return self(query, 'reboot -h now', sudo=True, timeout=5)

@@ -5,6 +5,25 @@ NOW:
 
 SOON:
 
+ [ ] Optimization/robustness: eliminate the *dependence* on DNS for everything in my vpn, i.e., make all nodes in the VPN have an up-2-date /etc/hosts file.   This will be faster and protect against failures like DNS going down...
+I annoted the conf/deploy/hosts file with this info. Made a proper file on combinat:
+
+192.168.56.201 combinat1.vm
+192.168.56.205 combinat2.vm
+192.168.56.203 combinat3.vm
+192.168.56.207 combinat4.vm
+
+174.127.179.97 servedby1.vm
+174.127.179.98 servedby2.vm
+
+10.38.1.4 bsd0.salv.us
+10.38.1.5 bsd1.salv.us
+10.38.1.6 bsd2.salv.us
+
+
+
+ [ ] BUG: This seems to not work?!  "[1..300]", but smaller ranges do.  Very serious bug!
+
  [ ] BUG: sage server We should not allow incoming traffic to port 6000 even from the same machine!!!
 
  [ ] BUG: tornado servers (etc) need to know which servers are sage
@@ -59,7 +78,44 @@ would have to put new keys on the vpn server nodes.
 
   [ ] ufw firewall on sage machines -- should only open outgoing 8200 to limited list of targets
 
+  [ ] upgrading sage (goes in admin.py):
+
+Upgrading/installing Sage
+---------------
+host = 'combinat2'
+# stop sage server
+s.stop('sage', host)
+
+# delete old sage
+h(host, 'rm -rf sage')  
+
+# get new sage
+ver = '5.3'
+h(host, 'rm -f sage-%s.tar; wget -q http://boxen.math.washington.edu/home/release/sage-%s/sage-%s.tar && tar xvf sage-%s.tar && mv sage-%s sage; rm -f sage-%s.tar'%(ver, ver, ver, ver, ver, ver), timeout=5*60)
+
+# build sage and run full test suite
+h(host, '''echo "cd sage ; export MAKE='make -j8' ; make test >/dev/null 2>/dev/null & " > .build_sage; chmod +x .build_sage''')
+h(host, './.build_sage')
+
+# check back later and verify that all tests pass; if not, notify user
+?
+
+# install google protobuf2
+h(host, 'cd salvus/salvus && sage build.py --build_protobuf')
+
+# switch it on
+# ??? something with script in /usr/local/bin/ as sudo.
+
+# run a functional test using command line sage_server client.
+
+
+-----------------------
+
+
+
 IDEAS:
+
+  [ ] investigate more robust DNS options?? http://news.ycombinator.com/item?id=4500993
 
   [ ] have way to turn off all lazy imports so that initial startup is
       looong, but forking then doing computations is fast.

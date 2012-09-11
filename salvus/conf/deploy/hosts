@@ -1,13 +1,13 @@
 # sites
 
 [laptop]
-salvus0.salv.us
+salvus0.salv.us   # 10.38.1.1
 
 [combinatvm]
-combinat1.salv.us
-combinat2.salv.us
-combinat3.salv.us
-combinat4.salv.us
+combinat1.salv.us # 10.38.1.7
+combinat2.salv.us # 10.38.1.8
+combinat3.salv.us # 10.38.1.9
+combinat4.salv.us # 10.38.1.10
 
 [padelford]
 combinat0.salv.us
@@ -17,13 +17,13 @@ combinat3.salv.us
 combinat4.salv.us
 
 [office]
-bsd0.salv.us
-bsd1.salv.us
-bsd2.salv.us
+bsd0.salv.us     # 10.38.1.4
+bsd1.salv.us     # 10.38.1.5
+bsd2.salv.us     # 10.38.1.6
 
 [servedby]
-servedby1.salv.us
-servedby2.salv.us
+servedby1.salv.us   # 10.38.1.11
+servedby2.salv.us   # 10.38.1.12
 
 [sage]
 combinat2.salv.us
