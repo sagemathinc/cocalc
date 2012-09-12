@@ -21,16 +21,20 @@ I annoted the conf/deploy/hosts file with this info. Made a proper file on combi
 10.38.1.6 bsd2.salv.us
 
 
+ [ ] optimize vpn speed: http://www.tinc-vpn.org/pipermail/tinc/2009-December/002093.html
 
  [ ] BUG: This seems to not work?!  "[1..300]", but smaller ranges do.  Very serious bug!
+     This also hangs: 'a'*1500
 
- [ ] BUG: sage server We should not allow incoming traffic to port 6000 even from the same machine!!!
+ [ ] BUG: sage server We should not allow incoming traffic to port
+     6000 even from the same machine!!!
 
  [ ] BUG: tornado servers (etc) need to know which servers are sage
-servers: The tornado servers know that the machine is a sage server,
-so it can't send messages as if it were not a sage server.  It also
-can't change it's ip address or identification on the VPN, because it
-would have to put new keys on the vpn server nodes.
+     servers: The tornado servers know that the machine is a sage
+     server, so it can't send messages as if it were not a sage
+     server.  It also can't change it's ip address or identification
+     on the VPN, because it would have to put new keys on the vpn
+     server nodes.
 
  [ ] sage network still too open -- it allows outgoing 22 and 8200 and 53 to anywhere. 
      really need to lock down much more eventually somehow...
