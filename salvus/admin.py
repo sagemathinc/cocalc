@@ -1105,3 +1105,16 @@ class Services(object):
         return self._action(service, 'restart', query)
 
     
+##############################################
+# Starting/stopping/creating virtual machines
+##############################################
+
+class VirtualMachine(object):
+    def __init__(self, vmhost, ip_address, machine_type):
+        self._vmhost = vmhost
+        self._ip_address = ipaddress
+        self._machine_type = machine_type
+
+    def start(self):
+        raise NotImplementedError
+        
