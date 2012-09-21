@@ -545,6 +545,30 @@ class Cassandra(Process):
                          start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile],
                          monitor_database=monitor_database)
 
+    
+##############################################
+# A Virtual Machine
+##############################################
+class VirtualMachine(Process):
+    def __init__(self, ip_address, machine_type, id=0, monitor_database=None, name='virtual_machine', port=0):
+        """
+        INPUT:
+        
+            - ip_address -- ip_address machine gets on the VPN
+            - machine_type -- string; one of 'sage', 'web', 'cassandra'
+            - id -- optional
+            - port -- if given, ssh to this port to ssh into the machine
+            - name -- default: "virtual_machine"
+        """
+        self._ip_address = ip_address
+        self._machine_type = machine_type
+        Process.__init__(self, id=id, name=name, port=port,
+                         pidfile = pidfile,
+                         start_cmd = [], # TODO!
+                         monitor_database=monitor_database)
+        
+        
+
 ########################################
 # tinc VPN management
 ########################################
@@ -1104,17 +1128,3 @@ class Services(object):
             return self._all(lambda x: self.restart(x, query=query, reverse=reverse), reverse=reverse)
         return self._action(service, 'restart', query)
 
-    
-##############################################
-# Starting/stopping/creating virtual machines
-##############################################
-
-class VirtualMachine(object):
-    def __init__(self, vmhost, ip_address, machine_type):
-        self._vmhost = vmhost
-        self._ip_address = ipaddress
-        self._machine_type = machine_type
-
-    def start(self):
-        raise NotImplementedError
-        
