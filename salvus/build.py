@@ -44,6 +44,7 @@ if not os.path.exists(BUILD):
     os.makedirs(BUILD)
 
 os.environ['PATH'] = os.path.join(TARGET, 'bin') + ':' + os.environ['PATH']
+os.environ['LD_LIBRARY_PATH'] = os.path.join(TARGET, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
 
 # number of cpus
 try:
