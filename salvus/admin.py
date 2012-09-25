@@ -550,23 +550,22 @@ class Cassandra(Process):
 # A Virtual Machine
 ##############################################
 class VirtualMachine(Process):
-    def __init__(self, ip_address, machine_type, id=0, monitor_database=None, name='virtual_machine', port=0):
+    def __init__(self, ip_address, machine_type, id=0, monitor_database=None, name='virtual_machine'):
         """
         INPUT:
         
             - ip_address -- ip_address machine gets on the VPN
             - machine_type -- string; one of 'sage', 'web', 'cassandra'
             - id -- optional
-            - port -- if given, ssh to this port to ssh into the machine
             - name -- default: "virtual_machine"
         """
         self._ip_address = ip_address
         self._machine_type = machine_type
-        Process.__init__(self, id=id, name=name, port=port,
+        pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
+        Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile,
-                         start_cmd = [], # TODO!
+                         start_cmd = [PYTHON, 'vm.py', '--ip_address', ip_address, '--machine_type', machine_type, '--pidfile', pidfile],
                          monitor_database=monitor_database)
-        
         
 
 ########################################
