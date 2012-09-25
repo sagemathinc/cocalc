@@ -4,5 +4,3 @@ export PATH=$P/data/local/bin:$P/data/local/sbin:$P/data/local/cassandra/bin:$PA
 
 export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 
-export ANSIBLE_LIBRARY=$P/data/local/ansible
-export ANSIBLE_HOSTS=$P/ansible/hosts
