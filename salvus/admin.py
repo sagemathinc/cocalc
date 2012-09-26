@@ -589,7 +589,7 @@ def tinc_conf(hostname, connect_to, external_ip=None, delete=True):
     try to establish a direct connection to.
 
     external_ip = non-VPN address of this node; if None, it will
-    be automatically determined by connecting
+    be automatically determined by connecting to the outside world
 
     delete = if true (the default), deletes contents of
     data/local/etc/tinc and remakes from scratch
