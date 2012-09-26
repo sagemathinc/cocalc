@@ -564,7 +564,7 @@ class VirtualMachine(Process):
         pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile,
-                         start_cmd = [PYTHON, 'vm.py', '--ip_address', ip_address, '--machine_type', machine_type, '--pidfile', pidfile],
+                         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address, '--machine_type', machine_type, '--pidfile', pidfile],
                          monitor_database=monitor_database)
         
 
