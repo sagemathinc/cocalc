@@ -656,7 +656,7 @@ Subnet = %s/32"""%(external_ip, ip_address))
                 break
         if addr is None:
             raise RuntimeError, "unable to find address of host %s"%h
-        sh['scp', host_file, addr + ':' + os.path.join('salvus/salvus', TARGET, 'hosts/')]
+        run(['scp', host_file, addr + ':' + os.path.join('salvus/salvus', TARGET, 'hosts/')], maxtime=60)
 
     print "Starting tincd"
     tincd = os.path.abspath('data/local/sbin/tincd')
