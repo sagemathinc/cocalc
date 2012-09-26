@@ -33,7 +33,7 @@ BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 
 PYTHON_PACKAGES = [
-    'ipython',            # a usable command line  
+    'ipython','readline', # a usable command line  (ipython uses readline)
     'tornado',            # async webserver
     'sockjs-tornado',     # websocket support
     'python-daemon',      # daemonization of python modules
