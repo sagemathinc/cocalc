@@ -34,7 +34,19 @@ class TincConf(object):
         shutil.rmtree(self._path)
 
 def run_vm(ip_address, machine_type, pidfile):
-    files = TincConf(ip_address)
+    ############################
+    # 1. tinc vpn configuration
+    ############################
+    tinc_conf = TincConf(ip_address)
+    files = tinc_conf.files()
+    # put the public key in our local db
+    shutil.copyfile(files[ip_address], os.path.join('conf', 'tinc_hosts', ip_address))
+    
+    #################################
+    # 2. create and start vm running
+    #################################
+
+    # ?
     
 
 if __name__ == "__main__":
