@@ -1,16 +1,40 @@
+import os, shutil, socket, tempfile
+
+from admin import sh
 import daemon
 
+HOSTNAME = socket.gethostname()
 SALVUS = os.path.realpath(__file__)
 os.chdir(os.path.split(SALVUS)[0])
 
-def configure_tinc(ip_address):
-    tinc_up = "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.255.0.0"%ip_address
-    tinc_conf = "Name = %s\nConnectTo = %s"%(ip_address, HOSTNAME)
-    
-    return {'tinc-up':tinc_up, 'tinc.conf':tinc_conf, 'rsa_key.priv':rsa_key, 'hosts_file':hosts_file}
+class TincConf(object):
+    """
+    Generate and store all the tinc configuration files needed by a
+    node in a private temp directory, which is deleted when this instance
+    goes out of scope.
+
+    Use obj.files() to get a mapping filename:absolute_path_to_file.
+    """
+    def __init__(self, ip_address):
+        path = tempfile.mkdtemp()
+        self._path = path
+
+        open(os.path.join(path, 'tinc-up'),'w').write("#!/bin/sh\nifconfig $INTERFACE %s netmask 255.255.0.0"%ip_address)
+        open(os.path.join(path, 'tinc.conf'),'w').write("Name = %s\nConnectTo = %s"%(ip_address, HOSTNAME))
+        sh['tincd', '--config', path, '-K']
+        open(os.path.join(path, ip_address),'w').write(
+            "Subnet = %s/32\n%s"%(ip_address,open(os.path.join(path, 'rsa_key.priv')).read().strip()))
+        
+        self._files = dict([(file, os.path.join(path, file)) for file in ['tinc-up', 'tinc.conf', ip_address, 'rsa_key.pub']])
+
+    def files(self):
+        return self._files
+        
+    def __del__(self):
+        shutil.rmtree(self._path)
 
 def run_vm(ip_address, machine_type, pidfile):
-    files = configure_tinc(ip_address)
+    files = TincConf(ip_address)
     
 
 if __name__ == "__main__":
