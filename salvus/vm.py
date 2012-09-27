@@ -46,7 +46,10 @@ def run_vm(ip_address, machine_type, pidfile):
     # 2. create and start vm running
     #################################
 
-    # ?
+    # ?  -- need to stay running until vm fails
+    
+
+    
     
 
 if __name__ == "__main__":

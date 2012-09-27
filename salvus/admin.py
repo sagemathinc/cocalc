@@ -665,7 +665,7 @@ Subnet = %s/32"""%(external_ip, ip_address))
 
     print "To join the vpn automatically on startup,"
     print "add this line to /etc/rc.local:\n"
-    print "  /home/salvus/salvus/salvus/data/local/sbin/tincd"
+    print "  nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd"
     print "\nWhen you git pull on some remote hosts, you may have to"
     print "delete the host files we pushed out above first"
     print "You might also want to git add, push, etc., the new"
