@@ -5,6 +5,7 @@ NOW:
 
 SOON:
 
+
  [ ] Optimization/robustness: eliminate the *dependence* on DNS for everything in my vpn, i.e., make all nodes in the VPN have an up-2-date /etc/hosts file.   This will be faster and protect against failures like DNS going down...
 I annoted the conf/deploy/hosts file with this info. Made a proper file on combinat:
 
@@ -22,6 +23,9 @@ I annoted the conf/deploy/hosts file with this info. Made a proper file on combi
 
 
  [ ] optimize vpn speed: http://www.tinc-vpn.org/pipermail/tinc/2009-December/002093.html
+
+ [ ] BUG: if you have a block that fails in input, then additional
+     blocks shouldn't be evaluated but they are...
 
  [ ] BUG: This seems to not work?!  "[1..300]", but smaller ranges do.  Very serious bug!
      This also hangs: 'a'*1500

@@ -45,6 +45,9 @@ def run_vm(ip_address, machine_type, pidfile):
     #################################
     # 2. create and start vm running
     #################################
+    # - create the copy-on-write qcow2 image
+    img = ip_address + '.img'
+    sh['qemu-img', 'create', '-b', 'salvus_base.img', '-f', 'qcow2', img]
 
     # ?  -- need to stay running until vm fails
     

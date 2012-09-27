@@ -1,0 +1,2448 @@
+Aug 10, 2012:
+------------
+
+I'm setting up VM's on my infrastructure.  Right now I have:
+
+   * virtualbox machines running in spare cycles on geom.math.washington.edu (24-core, 128GB RAM, 128GB SSD for salvus):
+
+configuring:
+
+   * salvus1: 8GB disk, 8GB RAM, 8 cores: machine -- stunnel, haproxy, nginx, database (master), tornado
+   * salvus4: 8GB disk + 8GB extra /tmp disk, 16 cores; 16GB RAM: sage server
+
+   * virtualbox machines running in spare cycles on combinat.math.washington.edu (64-core, 192GB RAM, 64GB HD for salvus)
+
+   * salvus5: 8GB disk, 8GB RAM: machine -- stunnel, haproxy, nginx, database (slave), tornado
+   * salvus8: 8GB disk + 8GB extra /tmp disk, 16 cores; 16GB RAM: sage server
+
+   * 1 virtual machine at servedby.net
+
+
+!!!
+
+combinat is massively faster than geom at running virtual machines.  
+Either there is something really weird with the disk (which I doubt, since
+boxen had the same problem), or the instruction set support, or BIOS 
+configuration, or something. Very weird. 
+
+
+Aug 27, 2012:
+------------
+
+My primary goal for this morning is getting the basic demo to work
+using Cassandra, having completely removed postgreSQL + memcached.
+Once that is done, I'll work on deployment.  I'm going to investigate
+partial other-people-wrote-them replacements for admin.py, just
+because that script is complicated, and generic:
+   * ansible
+   * "open source configuration management software" (wikipedia)
+
+  * As of 6:08am (in about 15-20 minutes of time) my primary goal is done -- it works.
+
+I think I'll deal with this first:
+
+  [x] restart of cassandra via my admin script fails, since maybe it takes too long to shut down
+
+OK, that was easy...
+
+Then onto serious stuff.
+
+Testing out Ansible (http://ansible.github.com/) 
+
+   easy_install jinja2 pyyaml paramiko
+   export ANSIBLE_LIBRARY=/Users/wstein/salvus/salvus/data/local/ansible
+   export ANSIBLE_HOSTS=/Users/wstein/salvus/salvus/conf/ansible_hosts
+   git clone git://github.com/ansible/ansible.git
+   cd ansible && python setup.py install
+
+Setting up a public git server on combinat1:
+
+  http://git-scm.com/book/en/Git-on-the-Server-Public-Access
+
+
+salvus@combinat1:~$ apt-get install apache2
+salvus@combinat1:~$ git clone salvus salvus.git
+salvus@combinat1:~$ cd salvus.git/.git/hooks;  cp post-update.sample post-update; cd
+salvus@combinat1:~$ more /etc/apache2/httpd.conf 
+<VirtualHost *:80>
+    DocumentRoot /home/salvus/salvus.git/.git
+    <Directory /home/salvus/salvus.git/.git>
+        Order allow,deny
+        allow from all
+    </Directory>
+</VirtualHost>
+
+Then:
+  http://combinat1.salv.us/
+gives the repo. 
+
+   export ANSIBLE_LIBRARY=/Users/wstein/salvus/salvus/data/local/ansible
+   export ANSIBLE_HOSTS=/Users/wstein/salvus/salvus/conf/ansible_hosts
+
+OK, done (in seconds), and now this works to automatically update 
+all nodes to latest version.
+
+  ansible all -m shell -a "cd salvus; git pull http://combinat1.salv.us" -u salvus
+
+Useful:
+
+  ansible cassandra -a "df -h" -u salvus
+
+Build cassandra on all nodes:
+
+  ansible all -m shell -a "cd salvus/salvus; ./build.py --build_cassandra" -u salvus
+
+
+
+I'm now working on diving up the nodes and deploying. 
+
+[cassandra]
+servedby1.salv.us -- just asked them to give me 64GB disk space
+bsd1.salv.us -- creating and easily adding a 64GB disk:
+
+   VBoxManage createhd --filename cassandra.vdi --size 64000 --variant Fixed   # takes about 10 minutes, at least?
+   ansible bsd1 -a "shutdown -h now" -u salvus -s -K  # shutdown bsd1...
+   VBoxManage storageattach bsd1 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd      
+   nohup VBoxHeadless -s bsd1 --vrde off &
+
+# format:
+   ssh salvus@bsd1
+   sudo su
+   fdisk /dev/sdb   # make 1 new partition that is the whole thing
+   mkfs.ext4 /dev/sdb1
+# get uuid:
+   ls -lh /dev/disk/by-uuid
+   702faff3-0626-439f-94f9-c4174efd68de
+# edit /etc/fstab:
+   UUID=702faff3-0626-439f-94f9-c4174efd68de /cassandra               ext4    errors=remount-ro 0       1
+# make path:
+   mkdir /cassandra
+   chown salvus. /cassandra
+
+   mount -a
+   
+   
+  
+
+combinat4.salv.us -- 
+   1. need to use lvm to expand my existing 64GB partition:
+- stop all vm's:
+
+ansible combinatvm -a "shutdown -h now" -u salvus -s -K
+ps ax |grep VBox  # confirm it worked (on combinat)
+
+- kill vpn server:
+
+2134 ?        Ss     0:34 /home/salvus/salvus/salvus/data/local/sbin/tincd
+
+- umount the volume
+
+df -h
+/dev/mapper/combinat-salvus    60G   50G  7.0G  88% /home/salvus
+
+
+- lvextend -L+64G /dev/mapper/combinat-salvus
+FAIL!
+  Extending logical volume salvus to 123.60 GiB
+  Insufficient free space: 16384 extents needed, but only 9968 available
+
+I did math and got:
+
+- lvextend -L+38.9G /dev/mapper/combinat-salvus
+  Rounding up size to full physical extent 38.90 GiB
+  Extending logical volume salvus to 98.50 GiB
+  Logical volume salvus successfully resized
+
+- e2fsck -f /dev/mapper/combinat-salvus
+- resize2fs /dev/mapper/combinat-salvus
+- mount /home/salvus
+- df -h
+/dev/mapper/combinat-salvus    99G   51G   44G  54% /home/salvus
+
+   2. make a new 40GB lvm drive  -- that's all the space we have.  This is just an initial testing deployment!
+
+# it took only about 2 minutes!
+
+
+   3. attach it to combinat4
+
+VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd      
+
+# oops -- already had users.vdi -- this was designed for running sage.  need to use a different vm!
+# should use combinat2.salv.us
+
+VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium none --port 2 --type hdd 
+
+VBoxManage closemedium disk cassandra.vdi
+VBoxManage list hdds
+mv cassandra.vdi ../combinat2
+
+# fix what I broke:
+VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium tmp.vdi --port 2 --type hdd 
+
+cd ../combinat2
+VBoxManage storageattach combinat2 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd      
+
+
+# woah -- I got the hostnames wrong!
+VBoxManage modifyvm combinat2 --name combinat4a
+VBoxManage modifyvm combinat4 --name combinat2
+VBoxManage modifyvm combinat4a --name combinat4
+
+# repeat steps as for bsd1 above to format and mount disk as /cassandra
+done
+
+
+
+----
+
+OK, now that I know how I'm going to setup things up for the initial
+release, and have sufficient disk space, back to learning about
+ansible!
+
+Aug 29, 2012:
+------------
+
+It's 5:08pm.  I will now quickly check if there any obvious things
+better than ansible, but if not, I'll start setting up my
+infrastructure using it.
+
+I'm just going to go with ansible. Why?  Because it is actually very
+close to what I already wrote with my admin.py, at least in spirit.  
+Use ssh, etc. 
+
+I setup git@combinat1 as follows:
+
+1. sudo adduser git
+
+2. git@combinat1:~$ git --bare init
+Initialized empty Git repository in /home/git/
+
+3. On my laptop:
+blastoff:salvus wstein$ git push git@combinat1:. master
+
+4. make .ssh/authorized_keys be the file with keys for
+   all the non-sage servers:
+
+blastoff:ansible wstein$ scp authorized_keys git@combinat1:.ssh/
+
+5. Change shell to git-shell for security purposes:
+   chsh -s /usr/bin/git-shell git
+
+6. test with ansible
+
+I have to change this in /etc/ssh/ssh_config:
+
+   StrictHostKeyChecking no
+
+on every host, so it doesn't ask for the ssh key the first time.
+
+  ansible combinat4.salv.us -m shell -a "echo 'StrictHostKeyChecking no' >> /etc/ssh/ssh_config" -u salvus -s -K
+
+
+---
+
+First thing to do on Aug 30:
+
+   - finish adding strict host checking and authorized keys even for the sage servers; we want them
+     to be up to date with the VPN, etc. 
+
+
+August 30, 2012:
+
+Goal for today: nail down control of infrastructure. 
+
+More precisely, type password once and do all of following:
+
+   * ability to update salvus git repo on all nodes easily
+
+   * start sage servers
+
+   * start nginx, haproxy, 
+
+
+   * start cassandra
+
+   * monitor to see what is running or not
+
+   * 
+
+   
+---
+
+OK, after using ansible more, I do not like it.  But there are things
+I like about it.  However, those things are all really paramiko
+things, so I'm getting rid of ansible from salvus, and just adding
+paramiko, then finishing my admin.py script.
+
+
+---
+
+My tinc vpn is still not in great shape.  I really need to make the
+configuration much more centralized and systematic, e.g., all the
+tinc.conf files for all nodes need to be in the repo.  
+
+I've been having trouble on my laptop since I didn't have
+   TCPonly = yes
+set in tinc.conf.
+
+I want to install paramiko everywhere....
+
+-----
+
+OK, I need to do this ... TODAY:
+
+ [ ] start nginx running on several nodes automatically
+... etc.
+
+HOW.
+
+ Problem 1: How to get status of nginx.  There is a pidfile.
+
+  
+Aug 31, 2012:
+-------------
+  cd salvus/salvus/data/secrets/
+  scp -r wstein@salvus0.salv.us:/Users/wstein/salvus/salvus/data/secrets/salv.us .
+  scp wstein@salvus0.salv.us:/Users/wstein/salvus/salvus/data/secrets/tornado.conf .
+
+Sept 1, 2012:
+-------------
+  
+I'm trying to deploy now!  It'll be a lot of debugging of every component...
+
+Obvious todos for today:
+
+ [x] change firewall rules for servedby1, so it can take http/https traffic
+ [x] godaddy: point salv.us as combinat and servedby1
+ [x] apt-get upgrade vm machines -- on general principal
+ [x] http://salv.us is the normal website served by apache; start on servedby1 also
+
+---
+
+Went to breakfast with Tish and did work on the vert ramp for 2 hours and cleaned house.
+
+---
+
+until 5:30
+ [x] get cassandra setup and running on cluster
+
+------
+
+5:30-8:30: went skateboarding and hanging out with kids at Jefferson
+
+------
+
+9:00pm: 
+
+ [ ] protect cassandra nodes as follows:
+     use iptables to make a rule so all incoming packets from interfaces that are
+     aimed at the cassandra ports are blocked, unless they come from one of a white-listed
+     group of nodes.  These will be exactly the tornado nodes.   
+     This way we still only need one VPN!
+
+Goal: block incoming packets to Cassandra default ports: 7000, 7001, 9160 except
+from a very specific list of hosts, namely all hosts running tornado.
+
+ufw deny 7000,7001,9160
+
+Sept 2, 2012:
+-------------
+
+ [x] I'm very confused about cassandra, due to *nothing* in the salvus keyspace working -- I get
+     "Unable to complete request: one or more nodes were unavailable." 
+     no matter what I do.  Why?
+
+     - If I create a new columnfamily in the same keyspace, it fails:
+
+      cqlsh:salvus> create columnfamily foo (key varchar primary key, value varchar);
+      cqlsh:salvus> update foo set value='stein' where key='william';
+      Unable to complete request: one or more nodes were unavailable.
+
+     - if I create a new keyspace and table in it, things work fine:
+
+cqlsh:salvus> CREATE KEYSPACE test2 WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 1 AND strategy_options:DC1 = 1 and strategy_options:DC2 = 1;
+cqlsh:salvus> use test2;
+cqlsh:test2> create columnfamily foo (key varchar primary key, value varchar);
+cqlsh:test2> update foo set value='stein' where key='william';
+cqlsh:test2> select * from foo;
+ KEY     | value
+---------+-------
+ william | stein
+
+... And I made the whole schema and it seems to work fine?!
+
+Maybe I mucked things up by accidentally using CQL2?
+
+Delete everything and restart:
+
+import admin, deploy; reload(admin); reload(deploy); h = deploy.hosts; s=deploy.services
+h.ping('cassandra')
+s.stop('cassandra')
+s.status('cassandra')
+h('cassandra', 'rm -rf /home/salvus/salvus/salvus/data/cassandra-0', timeout=10)
+s.start('cassandra')
+s.status('cassandra')
+
+---
+
+cassandra.init_cassandra_schema()
+c = cassandra.cursor()
+c.execute('select * from services')
+# BOOM!
+   OperationalError: Unable to complete request: one or more nodes were unavailable.
+
+
+How to change keyspace options.   
+
+Use cassandra-cli (!):
+
+$ cassandra-cli -h servedby1.salv.us -k salvus
+[default@salvus] update keyspace salvus with strategy_options={DC0:3, DC1:3, DC2:3};
+50c04637-08eb-38a7-94bc-c84eeb0b82ac
+Waiting for schema agreement...
+... schemas agree across the cluster
+[default@salvus] 
+    
+This does work.  This fixes the problem, strangely, and much to my surprise. 
+
+Moreover, this sucker is frightenlying DURABLE.  I just tried killing 2 out of 3 of the nodes,
+and everything "just works". Amazing. 
+
+
+ [x] I see "Cluster: Test Cluster" when I do "describe cluster".  This should be "salvus"!
+
+ [x] protect cassandra nodes as follows:
+     use iptables to make a rule so all incoming packets from interfaces that are
+     aimed at the cassandra ports are blocked, unless they come from one of a white-listed
+     group of nodes.  These will be exactly the tornado nodes.   
+     This way we still only need one VPN!
+
+Goal: block incoming packets to Cassandra default ports: 7000, 7001, 9160 except
+from a very specific list of hosts, namely all hosts running tornado.
+
+>>> import admin, deploy; reload(admin); reload(deploy); h = deploy.hosts; s=deploy.services
+>>> ','.join(h.ip_addresses('tornado cassandra laptop'))
+10.38.1.5,10.38.1.7,10.38.1.10,10.38.1.1,10.38.1.11
+
+ufw reset
+ufw allow 
+ufw allow proto tcp from 10.38.1.10 to any port 7000,7001,9160
+ufw deny 9160
+ufw deny 7000
+ufw deny 7001
+ufw enable
+ufw status
+
+
+So it's possible...
+
+http://www.datastax.com/docs/1.1/references/firewall_ref
+
+What I want for each cassandra node (which in some cases is also other services except sage):
+
+0. Reset
+
+  ufw --force reset  
+
+1. Allow ssh, nginx, http, stunnel, tornado access from anywhere, which means anywhere in VPN.
+  
+  ufw allow 22
+  ufw allow 80
+  ufw allow 443
+  ufw allow 5000
+  ufw allow 8000
+  ufw allow 8080
+
+2. Allow all access from salvus0 (master control), tornado, and cassandra nodes.
+
+  ufw allow from 10.38.1.1; ufw allow from 10.38.1.5; ufw allow from 10.38.1.7; ufw allow from 10.38.1.10; ufw allow from 10.38.1.11
+
+3. Deny everything else. 
+
+  ufw deny proto tcp to any port 1:65535; ufw deny proto udp to any port 1:65535
+
+4. Start it
+
+  ufw --force enable
+
+[x] DAMN -- somehow I managed to firewall myself out of servedby1 anyways!  Time to learn how to get
+a console on those boxes...  I will attempt with MS windows.
+
+It turns out using Windows + Firefox *WORKS*.   Nothing else works, even IE....  To get the cursor out
+of the VMRC console, hit "control+right_alt/option".
+
+
+  [x] OK, make activating the above firewall automatic.
+
+ [x] similar firewall for sage nodes:
+      * accept 22 from everywhere
+      * accept 6000 (the sage server port)  from all tornado nodes  and from salvus0
+      * deny everything else
+      * deny all outgoing
+
+ [x] commit and gitpush to all nodes...
+
+ [x] start stunnel's
+
+ [x] make it so haproxy auto-determines nginx and tornado nodes, so they don't have to be passed in -- more precisely, the admin program finds this info at runtime. 
+
+ [x] get haproxy setup and running on cluster
+
+ [x] get nginx setup and running on cluster
+
+ [x] get tornado setup and running on cluster:
+
+   -- I forgot about the second inter-tornado-server communications tcp port.  The firewall is blocking it.
+      But also, even with that disabled, it isn't working.  
+      Oh, 7000 is the Cassandra port, isn't it?  Yep. 
+      So... I'll make an option to pass in the port to Tornado, and have the port be 5001.
+
+ [x] database is not working again !
+     I'm going to try getting rid of "data centers", since after all with only one node per, we get *no* advantage yet.
+
+ [x] get sage setup and running on cluster
+
+ 
+
+
+Sept 3, 2012:
+-------------
+
+I'm pretty excited to wake up and see that salvus is still actually
+working, after I turned it on yesterday.
+
+----------------------------
+
+ [x] sage machines don't have DNS so they can't lookup tinc network.  for now, unblock dns.
+
+ [x] major security issue: make sure Sage/tornado servers *only* bind to VPN address!
+
+ [x] make a fully working local deployment: OS X only
+
+ [x] fixed that very annoying sage_server bug where computation doesn't terminate, even though it does; disable monitor.py as pointless
+
+Next up
+
+ [x] https://salv.us doesn't work in safari or opera
+ [x] fix the damned SSL cert!
+ [ ] make a fully working local deployment: 2 linux vm's
+ [ ] update sockjs-tornado: https://github.com/mrjoes/sockjs-tornado
+ [ ] delete files created by running sage process:
+print os.popen('hostname').read()
+open('/tmp/foo','w').write('a'*1000000)
+print os.popen('ls -lh /tmp/').read()
+ [ ] quota on sage process
+ [ ] when fail to connect to sage server (i.e., maybe it is down), should try another, unless there are none left!
+
+
+Sept 4, 2012:
+------------
+
+For better or worse, I just totally redid the VPN right now that all ports are opened. :-)
+
+git pull https://github.com/williamstein/salvus.git
+williamstein
+
+admin.tinc_conf('servedby1',...)
+
+vi data/local/etc/tinc/tinc.conf 
+ConnectTo = bsd0
+ConnectTo = combinat0
+ConnectTo = servedby1
+
+killall tincd
+/home/salvus/salvus/salvus/data/local/sbin/tincd -D -d 3
+----
+
+starting everything again seemed flakie.  ick.
+
+---
+
+Now to try killing 2 out of 3 stunnel's and see what happens.
+
+---
+
+The non-local network speed is completely killing evaluation.
+I need to make it so only the local cassandras are used, and
+we don't make a new connection each time.
+Likewise with sage compute.  Basically we need to implement the snitch,
+since without that we're in pain.
+
+[ ] Thought: i wonder if my websocket issues are related to
+the haproxy load balancing alg?
+
+...
+
+[x] i just got obsessed with the ssl cert issue for a minute and found this site:
+
+http://www.webhostingtalk.com/showthread.php?t=1038061
+
+I think it means that I need to put the contents of gd_bundle.crt in
+nopassphrase.pem, in the right order.  Wow that worked!  I just put
+gd_bundle.crt at the end of nopassphrase.pem, and we're good to go!!
+
+
+2012-09-04 at 10:37pm.
+
+done * I'm going to move the Time: line in the UI to the top bar.
+ * I might make the output expand in mobile mode, if I have the energy.  (nope!)
+ * I might add a javascript spinner animation when the computation runs, if I have the energy.
+
+
+Email to Jason Grout about architecture:
+-----------------------------------------
+
+
+BUG: sage server We should not allow incoming traffic to port 6000 even from the same machine!!!
+
+salvus@bsd2:~/salvus/salvus$ sage -python sage_server.py -c -p 6000 --hostname bsd2.salv.us
+PID = 17184
+sage [0]: 2+3
+5
+sage [1]: 
+Exiting Sage client.
+
+Or in salvus:
+print os.popen('echo "2+2" | sage -python sage_server.py -c -p 6000 --hostname bsd2.salv.us').read()
+
+Maybe?
+import os, socket   
+print socket.gethostname()
+os.system('echo "2+2" | sage -python /tmp/sage_server.py -c -p 6000 --hostname `hostname`.salv.us > /tmp/a')
+print "out=", open('/tmp/a').read()
+
+
+On Tue, Sep 4, 2012 at 9:00 AM, Jason Grout <jason.grout@drake.edu> wrote:
+> On 9/3/12 8:39 PM, William Stein wrote:
+>>
+>> I did some design work and evaluation of infrastructure, then made choices
+>> and implemented things. The technical aspects of design have changed
+>> substantially from what I showed you in June, though its fundamentally
+>> similar. Here are the main software components I'm using: * Tinc -- VPN *
+>> Stunnel -- SSL termination * Haproxy -- load balancing and proxy server *
+>> Cassandra -- database * Nginx -- static content * Tornado -- websocket
+>> server; messaging; dynamic content * Sage -- math Also, I'm using *
+>> Protobuf2 -- binary message format * Paramiko -- configuration management
+>> (paramiko is an ssh implementation in Python)
+>
+>
+> (yep; we're using paramiko to launch Sage processes and provide the HMAC
+> initial key for messages.)
+>
+>
+>>
+>> Sage server processes with the library pre-imported runs as root in
+>> completely separate virtual machines from anything else. When a server
+>> receives a connection, it forks, and drops privileges to a *random*
+>> user id (there is no need to actually create the user).   I haven't
+>> setup automatic quotas in my current deployment yet, but I had that in
+>> a previous version and will soon.          I had implemented the sage
+>> server using SSL and passwords, but completely removed that.  Instead,
+>> the server machine is on a VPN and has a firewall (setup using ufw)
+>> that only allows packets in from a select white list of other machines
+>> on the same VPN.
+>
+>
+> That's interesting dropping to a user without creating an account. Do you
+> clean up after that account after a computation session?
+
+Yes. They can only create a limited number of files under /tmp and
+those all get deleted when their session terminated.  The current
+version of the code doesn't actually do the cleanup, though some
+version I wrote this summer does.
+
+> As for VPN: We had talked about having server machines talking directly with
+> the client (e.g., websockets)---is that forwarded through the VPN, or are
+> the websocket and dynamic data messages allowed to any computer from the
+> server?
+
+The processes running Sage *only* communicate with a separate computer
+(on the same vpn) that is running a Tornado server.   The Tornado
+server then talks
+to the clients (albiet, through haproxy + stunnel).  So the architecture is:
+
+   (Sage) <---> (Tornado) <---> (Haproxy)  <---> (Stunnel)  <---> (Client)
+                                /|\
+                                 |
+                                \|/
+                         (Cassandra)
+
+I intend to support three types of clients:
+
+       1. sockjs (so basically websocket or long polling)
+
+       2. a classical JSON HTTP api, with polling, though I'll
+severely restrict the amount of polling per second allowed.
+
+       3. a standard SSL TCP socket .
+
+Type 1 will be preferred for web browsers.    Type 2 will allow for
+simplistic clients, easy use from urllib2 (say), and it should even be
+possible to make it worth with something like lynx (no javascript),
+though obviously that will require the user to click a link to see the
+progress of their computation.   Type 3 will be for the command line
+client, the desktop GUI application, and maybe a mobile app.
+
+
+> I can imagine that the control messages (like start a new Sage
+> instance) would only be allowed through the VPN.
+
+When my script starts the Sage server process it also configures a
+very restrictive firewall for that machine.  It blocks all incoming
+traffic except for traffic on one port from the machines on the VPN
+that are running tornado, and ssh so I can manage the machine.   It
+blocks almost all outgoing traffic (some outgoing traffic is required
+to stay on the VPN).
+
+> What happens if a server
+> is compromised? Can it compromise the rest of the network through the VPN
+> easily?
+
+It could disable the firewall, then send bogus messages to tornado
+servers.  These would be annoying, but I don't think they would cause
+very serious trouble or lead to information leakage.  The tornado
+servers know that the machine is a
+sage server, so it can't send messages as if it were not a sage
+server.  It also can't change it's ip address or identification on the
+VPN, because it would have to put new keys on the vpn server nodes.
+
+> In other words, do you absolutely trust any message over the VPN is
+> valid, without authentication?
+
+
+
+>
+>
+>
+>
+>>
+>> I had to switch from PostgreSQL to Cassandra because of my longterm
+>> estimated storage requirements, and my design goals regarding salvus
+>> being able withstand certain types of hardware and network failures.
+>> For similar reasons, I switched from OpenVPN (which has a single point
+>> of failure) to Tinc, which is a p2p vpn with no single points of
+>> failure.  With my current *design*, you can just randomly kill quite a
+>> few machines, and the system just stays up.
+>>
+>> Also, as I explained to you, I had planned to implement storage of
+>> user data on nodes, replicated using git and coordinates using
+>> PostgreSQL... but it turns out that Cassandra already does everything
+>> I was planning to implement and much, much more regarding distributed
+>> storage of data.  So that was another reason to use Cassandra instead
+>> of PostgreSQL.  I'm also not using memcached anymore, since Cassandra
+>> -- properly configured -- does much the same thing, with much less and
+>> cleaner client code needed.
+>
+>
+> Using git to synchronize things, we also had versioned data.  Are you still
+> trying to version data in Cassandra?  Are you storing *all* user data/files
+> in Cassandra?  I'm not familiar enough with Cassandra to really have a feel
+> for how data needs to be structured, but it seems like you need to basically
+> implement GridFS for Cassandra.
+
+No.  I will simply be storing git bundles in Cassandra.  All data is
+still versioned, and I do not have to implement 'GridFS'.
+
+
+2012-09-05 at 12:36pm. 
+----------------------
+
+I'm doing budget work for a grant right now.   We have:
+
+  (10648*1.269 + 500)/.8 = 17515.3900000000 = amount I need to bring
+  in to pay myself and for hosting costs
+
+I will thus make getting $20K/month my goal for income from Salvus for this year. 
+
+At $99/year (or $10/month), that would require 2400 users.  That's my
+target for paying customers for year 1.
+
+
+Sept 18, 2012:
+--------------
+    [ ] implement a private cloud setup on my laptop with 3 vm's
+        - setup rados cluster
+        - setup ceph and test
+        - try with ganeti, unless it is too hard; if so, switch to a java stack?
+
+    [ ] implement private cloud setup on 01-04salvus machines.
+    [ ] order four new machines for UW tower using DOD + Sage Foundation + combinat
+
+    [ ] admin script: make it do the ssh stuff in parallel, somehow.
+    [ ] expand deploy config to make full use of the new machines.
+    [ ] upgrade tornado in salvus -- 2.4 is out!
+    [ ] salvus programming:
+         [ ] automated sage server disk quotas 
+         [ ] remove all files after session terminates
+         [ ] make choice of sage server determined by speed/success with previous choice
+         [ ] make choice of database determined by speed/success with previous choice
+         [ ] update jquery
+         [ ] desktop -- codemirror 2 editor
+         [ ] update jquery-mobile
+         [ ] mobile -- growing output
+         [ ] optional user login/accounts: local/google/facebook -- terms of usage agreement
+         [ ] nice way to browse/delete from/rank/publish past computations
+         [ ] communication between tornado servers sending the proto messages to correct recipients
+         [ ] way to send generic json message from sage process to browser; ensure fast
+         [ ] persistent sessions (options appears on login)
+         [ ] embed ability to compute via "mashup" in other webpages via a javascript snippet.
+ 
+
+------------
+
+
+----------------------------------------------------
+
+Ceph is starting to finally do something useful...  This is a
+nontrivial piece of software!
+
+1. Install newest ceph/rados:
+
+wget -q -O- https://raw.github.com/ceph/ceph/master/keys/release.asc | sudo apt-key add - 
+echo deb http://ceph.com/debian/ $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/ceph.list 
+sudo apt-get update && sudo apt-get install ceph
+
+2. Config:
+   - make /dev/sdb1 with a btrfs formated filesystem on each node
+   - do *NOT* put anything in /etc/fstab!
+
+3. I made a file ceph1.conf: 
+   - on salvus1 in /var/lib/ceph.
+
+Here is the one I used here:
+
+#----------------------------------------
+
+[mon]
+    mon data = /var/lib/ceph/mon
+
+[mon.1]
+   host = salvus1
+   mon addr = 192.168.56.150:6789
+
+[mon.2]
+   host = salvus2
+   mon addr = 192.168.56.151:6789
+
+[mon.3]
+   host = salvus3
+   mon addr = 192.168.56.152:6789
+
+
+[mds]
+  mds data = /var/lib/ceph/mds
+
+[mds.1]
+  host =salvus1
+
+[mds.2]
+  host =salvus2
+
+[mds.3]
+  host =salvus3
+
+[osd]
+    osd data = /var/lib/ceph/osd
+    osd journal = /var/lib/ceph/osd/journal
+    osd journal size=100; journal size, in megabytes
+
+[osd.0]
+    host = salvus1
+    btrfs devs = /dev/sdb1
+
+[osd.2]
+    host = salvus2
+    btrfs devs = /dev/sdb1
+
+[osd.3]
+    host = salvus3
+    btrfs devs = /dev/sdb1
+
+#----------------------------------------
+
+4. Setup password-less login as root via ssh from salvus1 to salvus2 and salvus3.
+
+ a. On all nodes -- Edit /etc/ssh/sshd_config to allow root login, then 
+        /etc/init.d/ssh restart
+    Also, set root passwd.
+
+   ssh-keygen -b 2048
+   ssh-copy-id salvus2
+   ssh-copy-id salvus3
+
+5. Push out config:
+
+    mkcephfs -a -c /var/lib/ceph/ceph1.conf --mkbtrfs 
+
+6. Try it:
+
+    root@salvus1:~# mount -t ceph `hostname`:/ /ceph
+    root@salvus1:/# df -h |grep mnt
+    192.168.56.150:/   24G  2.8G   22G  12% /ceph
+
+and similar from other machines.
+
+7. WTF?  I made 100 files on salvus3 and have:
+
+root@salvus2:/ceph/z# time ls
+real	0m3.998s
+
+repeatedly.  Why is it so incredibly slow?  The network connection is very fast -- 24MB/s.
+
+I also tried copying a 100MB file to /ceph, and it takes
+forever... basically hanging/killing the whole thing!  This is
+ridiculous.  
+
+I tried turning of noatime, and that fixed nothing.
+Transfer of a single 100MB file takes the time it should.
+But ls of a bunch of small files is insanely slow.
+
+The slowness problem completely vanishing by using ceph-fuse: 
+
+    mkdir /ceph
+    ceph-fuse -m `hostname` /ceph
+
+This is fast.
+
+----
+
+Yeah!  Now back to:
+
+  http://blog.bob.sh/2012/02/basic-ceph-storage-kvm-virtualisation.html
+
+  "A Basic Ceph Storage & KVM Virtualisation Tutorial"
+
+Making snapshots works:
+
+mkdir /ceph/test
+cd /ceph/test
+touch a b c
+mkdir .snap/my_snapshot
+
+Trying out RBD:
+
+   modprobe rbd  # necessary!
+   rbd create mydisk --size 150 # in megabytes
+   rbd list
+   echo "192.168.56.150 name=admin rbd mydisk" > /sys/bus/rbd/add
+   ls -lh /dev/rbd/rbd/mydisk
+        lrwxrwxrwx 1 root root 10 Sep 18 20:20 /dev/rbd/rbd/mydisk -> ../../rbd0
+   mkfs -t ext4 /dev/rbd/rbd/mydisk
+   mkdir /mnt/mydisk
+    mount /dev/rbd/rbd/mydisk /mnt/mydisk
+
+Benchmark:
+
+  python -c "for i in range(1000): open(str(i),'w').write(str(i))"
+
+Is fast!
+
+  python -c "open('a','w').write('1'*(10**8))"
+
+Now try to make a KVM VM:
+
+   rados mkpool vm_disks 
+   qemu-img create -f rbd rbd:vm_disks/box1_disk1 1G
+   
+# disk.xml:
+
+<disk type='network' device='disk'>
+  <source protocol='rbd' name='vm_disks/box1_disk1'/>
+  <target dev='vda' bus='virtio'/>
+</disk>
+
+###########################
+
+Too slow network on my laptop because of network...
+
+-----------------
+
+Setup on 01-02salvus in server room with Rados and Ganeti.
+
+1. Setup password-less root around
+
+root@01salvus:~# ssh-keygen -b 2048
+root@01salvus:~# ssh-copy-id 02salvus.math.washington.edu
+root@01salvus:~# ssh-copy-id 03salvus.math.washington.edu
+root@01salvus:~# ssh-copy-id 04salvus.math.washington.edu
+
+Making the /etc/hosts file contain:
+
+128.95.224.230 01salvus 01salvus.math.washington.edu
+128.95.224.232 02salvus 02salvus.math.washington.edu
+128.95.224.237 03salvus 03salvus.math.washington.edu
+128.95.224.240 04salvus 04salvus.math.washington.edu
+
+
+On salvus01 and salvus02:
+-------------------------
+
+Making /etc/hostname file contain:  
+   02salvus.math.washington.edu
+
+Then type "service hostname restart"
+
+2. Create an LVM logical volume to use for Rados:
+
+  lvcreate --name ganeti_test --size 20G lvm
+  lvdisplay
+  lvscan
+
+Do the same on 02salvus:
+
+  lvcreate --name ganeti_test --size 20G 02salvus   # i named the lvm differently
+  
+3. Create ceph config file:
+
+/var/lib/ceph/ceph0.conf
+
+[mon]
+    mon data = /var/lib/ceph/mon
+[mon.1]
+   host = 01salvus
+   mon addr = 128.95.224.230:6789
+[mon.2]
+   host = 02salvus
+   mon addr = 128.95.224.232:6789
+
+[mds]
+  mds data = /var/lib/ceph/mds
+[mds.1]
+  host = 01salvus
+[mds.2]
+  host = 02salvus
+
+[osd]
+    osd data = /var/lib/ceph/osd
+    osd journal = /var/lib/ceph/osd/journal
+    osd journal size=500; journal size, in megabytes
+[osd.1]
+    host = 01salvus
+    btrfs devs = /dev/lvm/ganeti_test
+[osd.2]
+    host = 02salvus
+    btrfs devs = /dev/02salvus/ganeti_test
+
+4. Push out config and make filesystem:
+
+   mkcephfs -a -c /var/lib/ceph/ceph0.conf --mkbtrfs 
+
+5. Test it out:
+   # on each of 01salvus and 02salvus:
+
+   /etc/init.d/ceph start
+   mkdir /mnt/ceph; ceph-fuse -m `hostname` /mnt/ceph
+
+   
+root@01salvus:/var/lib/ceph# df -h |grep ceph
+/dev/mapper/lvm-ganeti_test   20G  504M   18G   3% /var/lib/ceph/osd
+ceph-fuse                     40G  5.1G   35G  13% /mnt/ceph
+   
+---------
+
+Success.  Now moving on to ganeti. 
+
+GANETI test install:
+
+1. Prereq:
+  # apt-get install kvm python-paramiko  iputils-arping ndisc6 python-pyparsing  python-pyinotify python-pycurl socat qemu ganeti2 ganeti-htools ganeti-instance-debootstrap
+
+   root@02salvus:/mnt/ceph# kvm --version
+   QEMU emulator version 1.0 (qemu-kvm-1.0), Copyright (c) 2003-2008 Fabrice Bellard
+
+2. Configuration:
+
+   - fix the /etc/hostname file to the fqdn, etc.
+
+   - I'm not doing any network config.  It seems that Ubuntu + kvm
+     already does that and creates virbr0.
+
+   - I'm going to start by trying the older ganeti-2.4.5 that comes with
+     Ubuntu.  If that fails, I'll try ganeti-2.6.0 from source, which is here:
+          http://code.google.com/p/ganeti/downloads/list
+          wget http://ganeti.googlecode.com/files/ganeti-2.6.0.tar.gz
+
+   - FAIL: it turns out that RADOS support is new; it's not in ubuntu's ganeti.
+     So, uninstall that and build from source.
+
+apt-get remove ganeti2 ganeti-htools
+wget http://ganeti.googlecode.com/files/ganeti-2.6.0.tar.gz
+cd ganeti-2.6.0/
+./configure --localstatedir=/var --sysconfdir=/etc
+make -j20
+make install
+
+Logout, then login, then:
+
+root@01salvus:~# gnt-cluster  --version
+gnt-cluster (ganeti v2.6.0) 2.6.0
+
+
+
+3. Initialization:
+
+Lots of crap, but see the line at the very, very end of this step.
+
+   - I uncommented a line in /etc/default/ganeti-instance-debootstrap 
+       EXTRA_PKGS="acpi-support-base,console-tools,udev,linux-image-amd64"
+
+   - CLUSTERNAME:   Huh?  
+      I added *this* to /etc/hosts on 01salvus and 02salvus, 
+      and made the CLUSTERNAME "ganeti".
+
+# this ip is something I don't have allocated to me, but it is in my range, so 
+# I'm "taking" it.  
+
+128.208.160.190 ganeti
+
+root@01salvus:/etc/default# gnt-cluster init ganeti
+
+Oops:
+Failure: prerequisites not met for this operation:
+error type: wrong_input, error details:
+Error: volume group 'xenvg' missing
+specify --no-lvm-storage if you are not using lvm
+
+gnt-cluster init --enabled-hypervisors=kvm --vg-name=lvm --no-drbd-storage --master-netdev=virbr0 ganeti
+
+
+gnt-cluster destroy --yes-do-it
+# fail, so
+
+rm -rf /var/lib/ganeti/; mkdir /var/lib/ganeti
+
+
+   gnt-cluster init --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage --master-netdev=virbr0 --ipolicy-disk-templates=rbd ganeti 
+
+<ARGH>
+
+No dice.  This Ganeti is seeming really frustrating.  Given how broken the demo
+in the video is, etc., I'm not enthuised.  Also, given that I will at some point
+want a hybrid cloud with Amazon, I'm even less enthuised.
+
+The main other options are:
+
+  * CloudStack.
+  * OpenNebula
+  * Eucalyptus
+
+CloudStack does work with RADOS/Ceph:
+
+   http://ceph.com/docs/master/rbd/rbd-cloudstack/
+   "You can use RBD to run instances on in Apache CloudStack.
+   This can be done by adding a RBD pool as Primary Storage."
+   Then many caveats.
+</ARGH>
+
+---------------
+
+Back to trying ganeti...  I had hit this:
+
+  http://theengguy.blogspot.com/2012/06/ganeti-not-working-in-ubuntu-1204.html
+
+as I found looking in:
+
+   /var/log/ganeti/commands.log 
+
+I did this as they recommend:
+
+###########################################
+aptitude install build-essential dpkg-dev
+apt-get source python-pycurl
+aptitude build-dep python-pycurl
+aptitude install libcurl4-openssl-dev
+cd pycurl-7.19.0
+perl -p -i -e "s/gnutls/openssl/" debian/control
+dpkg-buildpackage -rfakeroot -b
+cd ..
+dpkg -i python-pycurl_7.19.0-4ubuntu3_amd64.deb
+###########################################
+
+
+Now I hit:
+
+     "Error 60: SSL certificate problem"
+
+I note that I completely misunderstood the "--master-netdev" parameter, and this could be the problem.
+
+   gnt-cluster init --master-netdev=eth0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti 
+
+
+-----------
+
+I'm going to try my own python install from scratch in /root, since this is just 
+messed up.
+
+ cd 
+ mkdir local
+ wget http://python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2
+ tar xf Python-2.7.3.tar.bz2 
+ cd Python-2.7.3/ 
+ ./configure --prefix=/root/local
+ make install
+ 
+# Modify /root/.bash_profile so /root/local/bin is in front of path
+# and logout/login/confirm.
+
+   export PATH=$HOME/local/bin:$HOME/local/sbin:$PATH
+
+# Install easy_install:
+
+ wget http://pypi.python.org/packages/source/s/setuptools/setuptools-0.6c11.tar.gz
+ tar xf setuptools-0.6c11.tar.gz 
+ cd setuptools-0.6c11/   
+ python setup.py install
+
+# Now install deps:
+
+ easy_install pyopenssl paramiko pycurl pyparsing pyinotify  simplejson
+
+# Install ganeti into this Python
+
+wget http://ganeti.googlecode.com/files/ganeti-2.6.0.tar.gz
+tar xf ganeti-2.6.0.tar.gz
+cd ganeti-2.6.0/
+./configure --localstatedir=/var --sysconfdir=/etc --prefix=/root/local
+make
+make install
+
+
+gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti 
+
+To get it to actually use my new python, I have to install my replace command and do:
+
+root@01salvus:~/local/sbin# replace /usr/bin/python "/usr/bin/env python" *
+
+# same in /root/local/lib/ganeti
+
+... and we have exactly the same problem still.
+
+Report of the same symptom:
+
+  https://groups.google.com/forum/?fromgroups=#!topic/ganeti/P7hWx_GLAbY
+
+And... indeed, that was the problem!!!
+The problem is that there is an old ganeti process running from the last attempt.
+Killing that, cleaning everything up, etc., and everything is fine.
+
+I ran using the system-wide version, and all is good, so I will not be
+using the version in /root/.
+
+Hmm.  The master device really is on the web and using "128.208.160.190".
+
+THIS WORKED:
+
+gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti 
+
+--
+4. Join other node to cluster:
+
+ gnt-node add 02salvus.math.washington.edu
+
+I had *problems* with this until I removed the 02salvus name from the /etc/hosts file!
+I.e., I *had* to remove the short version!!! Crazy.
+
+root@01salvus:/usr/local/lib/python2.7/dist-packages/ganeti# gnt-node list
+Node                         DTotal DFree MTotal MNode MFree Pinst Sinst
+01salvus.math.washington.edu      -     -  62.9G  1.0G 61.7G     0     0
+02salvus.math.washington.edu      -     -  62.9G  1.0G 61.7G     0     0
+
+--
+
+5. Actually use it?
+
+root@01salvus:/usr/local/lib/python2.7/dist-packages/ganeti# gnt-os list
+Can't get the OS list
+
+This is because I didn't do this:
+ 
+  http://docs.ganeti.org/ganeti/current/html/install.html#installing-the-operating-system-support-packages
+
+which is explained wrong!!!!!  What the FUCK.
+
+./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc --with-os-dir=/srv/ganeti/os
+make && make install
+
+This must be done on all nodes.
+
+ cd /tmp
+ wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-0.9.tar.gz
+ tar xzf ganeti-instance-debootstrap-0.9.tar.gz
+ cd ganeti-instance-debootstrap-0.9
+ ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc --with-os-dir=/srv/ganeti/os
+  make && make install
+
+---
+
+Now it actually works to do "gnt-os list". !!
+
+
+Add this to /etc/hosts:
+   192.168.122.10 test1
+
+Now try to create an instance:
+   gnt-instance add -n 01salvus:02salvus -o debootstrap -t rbd -s 10G test1
+
+This fails with:
+
+  Hypervisor parameter validation failed on node 01salvus.math.washington.edu: Parameter 'kernel_path' fails validation: not found or not a file (current value: '/boot/vmlinuz-3-kvmU')
+
+So we do this (as suggested at http://geekfun.com/2009/07/14/tips-on-using-ganeti-to-manage-a-kvm-based-virtual-machine-cluster-on-ubunty-jaunty-jackelope-9-04/):
+
+  cd /boot
+  ln -s vmlinuz-3.2.0-29-generic vmlinuz-3-kvmU
+
+Next error on trying again with the same input:
+
+  error type: wrong_input, error details:
+  OS name must include a variant
+
+# from https://groups.google.com/forum/?fromgroups=#!topic/ganeti/YVk1MBJzR-E
+
+
+   gnt-instance add -n 01salvus -o debootstrap+default -t rbd -s 4G test1
+
+Next error -- checking bridges on destination node '01salvus.math.washington.edu': Missing bridges xen-br0 
+
+   gnt-instance add -n 01salvus -o debootstrap+default --net 0:link=virbr0 -t rbd -s 4G test1
+
+# the docs say "bridge=", but they are wrong.  
+
+Fails due to lack of /sys/bus/rbd/devices, so I do
+
+    modprobe rbd
+
+and try again:
+
+It got further, but failed with:
+
+This may result in very poor performance, (re)-partitioning suggested.
+I: Retrieving Release
+E: Failed getting release file http://ftp.us.debian.org/debian/dists/lenny/Release,
+
+which indeed does not exist.
+...
+
+
+The debootstrap instance is too old, so try with a newer one, on ALL NODES:
+
+ cd /tmp
+ wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-0.11.tar.gz
+ tar xzf ganeti-instance-debootstrap-0.11.tar.gz
+ cd ganeti-instance-debootstrap-0.11
+ ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc --with-os-dir=/srv/ganeti/os
+  make && make install
+
+
+Try again:
+
+  gnt-instance remove test1
+  gnt-instance add -n 01salvus -o debootstrap+default --net 0:link=virbr0 -t rbd -s 4G test1
+
+This file shows the install is working:
+
+  root@01salvus:/var/log/ganeti/os# tail -f  add-debootstrap+default-test1-2012-09-19_17_41_42.log
+
+
+After installing (about 20 minutes?), the instance fails to start:
+
+
+  Failure: command execution error:
+  Could not start instance: Error while executing backend function: 'pool'
+
+This is because it's completely broken for everybody.  Gees.
+
+  https://groups.google.com/forum/?fromgroups=#!topic/ganeti/tV4MVBJyS-Q
+
+I tried applying the one-line patch there and no change...
+
+   gnt-instance startup test1
+
+I'm going to try the latest git repo of ganeti...
+
+If that doesn't work, it's time to go for DRBD, which is clearly much
+more well supported.
+
+   git clone git://git.ganeti.org/ganeti.git
+   apt-get install autogen automake pandoc python-docutils python-sphinx graphviz
+   ./autogen.sh
+   ./configure --localstatedir=/var --sysconfdir=/etc
+   make && make install
+
+This did not work.  Hmm.
+
+----
+
+What to do.  
+
+I should try a local simple storage first before even trying drbd.
+
+Try again with plain with a 1-node cluster:
+
+  gnt-instance remove test1
+
+gnt-node remove 02salvus.math.washington.edu
+gnt-cluster destroy --yes-do-it
+gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --vg-name=lvm ganeti 
+
+  gnt-instance add -n 01salvus -o debootstrap+default --net 0:link=virbr0 -t plain -s 4G test1
+
+This did fully work.
+
+I tried the Ganeti Web Manager and it really sucks. 
+I'm officially rejecting ganeti as a possible component of salvus.  Oh well. 
+
+Options:
+  * list here: http://www.linux-kvm.org/page/Management_Tools
+  * CloudStack
+  * OpenNebula
+  * Eucalyptus
+  * OpenStack
+
+
+* the openstack distributed storage: http://www.openstack.org/software/openstack-storage/
+
+Cloudstack on ubuntu 12.04:
+  http://www.cloudstack.org/forum/6-general-discussion/11158-302-on-ubuntu-1204.html
+
+---------------
+
+OpenNebula:
+
+Looks like the only big-usage academic/truly free cloud option. 
+
+Packages:
+
+  http://dev.opennebula.org/packages/opennebula-3.6.0/Ubuntu-12.04/
+
+wget http://dev.opennebula.org/packages/opennebula-3.6.0/Ubuntu-12.04/Ubuntu-12.04-opennebula_3.6.0-1_amd64.deb
+dpkg -i Ubuntu-12.04-opennebula_3.6.0-1_amd64.deb
+apt-get install -f -y
+----
+
+I'm trying out OpenNebula via a VM manager as explained here: http://opennebula.org/cloud:sandbox:kvm
+
+  ./installer.sh frontend 128.208.160.190
+
+Domain frontend created from /root/frontend.xml
+
+Appliance started, called frontend. The IP is 128.208.160.190
+
+A copy of the frontend VM description file is located at
+~/frontend.xml. You can use it to start the frontend again executing:
+ $ virsh create ~/frontend.xml
+
+
+ICK.
+--
+
+CloudStack... doesn't seem to support Ubuntu 12.04 and seems weird.
+
+===================
+
+Eucalyptus: looks interesting. Try it.
+
+Following http://www.eucalyptus.com/download/eucalyptus/ubuntu-12
+  
+
+  wget http://www.eucalyptus.com/sites/all/modules/pubdlcnt/pubdlcnt.php?file=/sites/all/files/c1240596-eucalyptus-release-key.pub&nid=878
+  apt-key add *eucalyptus-release-key.pub
+
+  echo "deb http://downloads.eucalyptus.com/software/eucalyptus/3.1/ubuntu precise main" > /etc/apt/sources.list.d/eucalyptus.list 
+
+  echo "deb http://downloads.eucalyptus.com/software/euca2ools/2.1/ubuntu precise main" > /etc/apt/sources.list.d/euca2ools.list
+
+  apt-get update
+
+  apt-get install eucalyptus-cloud eucalyptus-cc eucalyptus-sc eucalyptus-walrus 
+  apt-get install  eucalyptus-nc
+
+
+  /usr/sbin/euca_conf --initialize
+
+￼service eucalyptus-cloud start
+
+ service eucalyptus-cc start
+￼service eucalyptus-nc start
+
+root@01salvus:~# netstat -a |grep 8773
+tcp        0      0 *:8773                  *:*                     LISTEN     
+udp        0      0 228.7.7.3:8773          *:*                                
+udp        0      0 01salvus.math.wash:8773 *:*                                
+root@01salvus:~# netstat -a |grep 8774
+tcp        0      0 *:8774                  *:*                     LISTEN     
+root@01salvus:~# netstat -a |grep 8775
+tcp        0      0 *:8775                  *:*                     LISTEN     
+
+Registering COMPONENTS:
+
+  /usr/sbin/euca_conf --register-walrus --partition walrus --host 01salvus --component walrus-01salvus
+
+￼/usr/sbin/euca_conf --register-cluster --partition cluster01 --host 01salvus --component cc-01salvus
+
+  /usr/sbin/euca_conf --register-sc --partition cluster01 --host 01salvus --component sc-01salvus
+
+￼/usr/sbin/euca_conf --register-nodes "01salvus"
+
+CREDENTIALS:
+
+  /usr/sbin/euca_conf --get-credentials admin.zip
+  unzip admin.zip
+  source eucarc
+
+WEB INTERFACE:
+
+  ssh -L 8443:localhost:8443 salvus@01salvus
+
+Then visit:
+  
+  https://localhost:8443/
+
+Login and password are *both* "admin".
+
+
+Eucalyptus seems to have thought through security much more clearly
+than the other systems.  Bravo!!
+
+The admin interface mostly works, though search is broken.
+
+   root@01salvus:~/eucalyptus# eustore-describe-images
+   1107385945 centos      x86_64  2012.07.05     CentOS 5 1.3GB root, Hypervisor-Specific Kernels
+   root@01salvus:~/eucalyptus# eustore-install-image -i 1107385945  -b walrus -k "Hypervisor-Specific Kernels"
+
+That actually does download it.  But fails because kernel specified wrong...
+
+I have no idea how to specify k... and yet my second guess works:
+
+
+   root@01salvus:~/eucalyptus# eustore-install-image -i 1107385945  -b walrus -k kvm
+
+--------------------------------------
+
+My god, this shit is just so heavy.   What about plain libvirt?
+
+apt-get install virtinst virt-viewer
+
+virt-install -n test1 -r 512 -f ./test1.img -s 5 -c ./ubuntu-12.04-server-amd64.iso -w network:virbr0 -m 54:52:00:00:10:01 -v --os-type=linux --noautoconsole
+
+FAIL.
+
+As root:
+
+virt-install -n test1 -r 512 -f ./test1.img -s 5 -c ./ubuntu-12.04-server-amd64.iso -m 54:52:00:00:10:01 -v --os-type=linux --noautoconsole
+
+
+Hmm, learn about http://virt-tools.org/
+
+This article looks good:  http://www.sysadminworld.com/2012/ubuntu-12-04-kvm-virtualization/
+
+chmod a+rw ubuntu-12.04-server-amd64.iso
+
+virt-install -v --graphics vnc,port=8123 --name test2 --ram 1024 --disk path=/tmp/test2.img,size=4  -c ubuntu-12.04-server-amd64.iso 
+
+
+Try as normal user (salvus) and fail.
+Found this page: http://forums.gentoo.org/viewtopic-t-925976-start-0.html
+Says to do:
+
+  gpasswd -a qemu kvm
+
+ie add "qemu" to kvm group, due to privilage issues.
+That does not help.
+
+What did fix the problem is doing:
+
+root@01salvus:/dev# ls -lh kvm
+crw-rw---- 1 root kvm 10, 232 Sep 19 21:57 kvm
+root@01salvus:/dev# chmod a+rw kvm
+root@01salvus:/dev# ls -lh kvm
+crw-rw-rw- 1 root kvm 10, 232 Sep 19 21:57 kvm
+
+which is pretty dangerous/evil, at least if this were a big multi-user system, which it isn't.
+
+
+#  apt-get remove eucalyptus-cloud eucalyptus-cc eucalyptus-sc eucalyptus-walrus  eucalyptus-nc
+
+
+
+---
+
+Have to spoof mac for wifi router to let me back!
+
+sh-3.2# ifconfig en0
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	ether 10:40:f3:91:6b:26 
+	inet6 fe80::1240:f3ff:fe91:6b26%en0 prefixlen 64 scopeid 0x4 
+	inet 169.254.76.216 netmask 0xffff0000 broadcast 169.254.255.255
+	media: autoselect
+	status: active
+
+
+
+...
+
+OK, after a very long day of this, I've learned one thing:
+
+   USE libvert directly!
+
+There is no significant value added for me in using any of the private cloud systems. 
+
+By using libvirt I can even using Ceph/RDB if I want and it is fast enough...
+
+Now I need to properly learn kvm and libvirt.
+
+---------------
+
+Sept 20, 2012:
+-------------
+
+virt-install + rados block device?
+
+Trying stuff from here:  http://blog.bob.sh/2012/02/basic-ceph-storage-kvm-virtualisation.html
+
+  modprobe rbd
+  rados mkpool vm_disks
+  qemu-img create -f rbd rbd:vm_disks/test1 4G
+
+# get around lack of functionality in virt-install:
+root@01salvus:/tmp/virt# pwd
+/tmp/virt
+root@01salvus:/tmp/virt# more disk.xml
+<disk type='network' device='disk'>
+  <source protocol='rbd' name='vm_disks/test1'/>
+  <target dev='vda' bus='virtio'/>
+</disk>
+
+
+
+
+Also, make sure to enable caching or it will be dog slow!
+   See http://ceph.com/wiki/QEMU-RBD
+
+Too frustrating with shitty internet!
+
+
+
+
+Wait:
+
+   http://www.osrg.net/sheepdog/
+
+   "Sheepdog is a distributed storage system for QEMU/KVM. It provides
+   highly available block level storage volumes that can be attached
+   to QEMU/KVM virtual machines. Sheepdog scales to several hundreds
+   nodes, and supports advanced volume management features such as
+   snapshot, cloning, and thin provisioning."
+
+   Heh, that's what I *need*!!!
+
+
+Try it out:
+
+   sudo su
+   aptitude install corosync libcorosync-dev liburcu-dev
+   git clone git://github.com/collie/sheepdog.git
+   cd sheepdog
+   ./autogen.sh
+   ./configure 
+   make
+   make install
+
+   lvcreate --name sheep_test --size 20G lvm
+   lvscan
+   mkfs.btrfs /dev/lvm/sheep_test
+   mkdir /mnt/sheep
+   mount /dev/lvm/sheep_test /mnt/sheep
+   df -h
+   sheep /mnt/sheep
+
+It just doesn't work at all.  aRgh.
+
+#
+
+I will now plan out the functionality I want with VM's, exactly.
+----------------------------------------------------------------
+
+VM types:
+=========
+Salvus:
+   * sage server -- small, but LOTS of ephemeral machines
+   * web: tornado, etc. -- small; ephemeral
+   * cassandra server -- lots of *disk* that must not be redundant or replicated
+                      -- several on each node
+                      -- might as well use raw lvm
+
+Sage build machines:
+   * not my problem
+
+Sage web services:
+   * sagemath.org, etc.  very stable
+
+Sage compute services:
+   * ?
+
+
+For each salvus machine, at least, I need to:
+
+    - decide on machine name and ip address ---> put in cassandra db
+    - generating private and public keys --> publish public key (in cassandra db)
+    - adding public keys to all tinc servers --> (tell them to update from db)
+    - making sure the machine knows its private keys --> create a tiny img with the key and any other config info
+    - decide on which node to start the machine --> put in cassandra db
+    - copy/update any files to that machine's local storage --> paramiko
+    - start machine --> paramiko
+
+Also we will have to monitor machines:
+
+    - for each machine listed in cassandra db:
+        - ping it and record time (or timeout)
+        - use paramiko to login and check on top status
+
+Stopping machines:
+
+    - change cassandra db 
+
+-------------------
+
+At the core, I need to write something like this:
+
+class VirtualMachine(object):
+    def __init__(self, host, ip_address, machine_type):
+    def start(self):
+    def stop(self):
+    def restart(self):
+    def status(self):
+
+-----
+
+I just looked at the openstack website again, and watched a video, and it looks
+fantastic featurewise.  It's written mostly in python.  Maybe give it a try:
+
+http://www.hastexo.com/resources/docs/installing-openstack-essex-20121-ubuntu-1204-precise-pangolin
+
+No, it is soooo complicated!  And probably not mature.
+
+---------
+
+
+
+Sept 22, 2012:
+==============
+
+This is a session of playing with libvirt/kvm, just to get comfortable.  It's nice!
+
+   [ ] setup a template libvirt VM for running other services
+   [ ] setup a template libvirt ubuntu VM for running Sage 
+
+Started these installs at 6:45am
+ 
+# base salvus image
+virt-install --os-variant=ubuntuprecise -v --graphics vnc,port=8122 --name salvus --vcpus=2  --ram 4096 --disk path=salvus.img,size=4 -c ubuntu-12.04-server-amd64.iso 
+
+ virsh -c qemu:///session undefine salvus
+
+
+
+
+
+# salvus_sage
+virt-install -v --graphics vnc,port=8124 --name salvus_sage --vcpus=16 --ram 8192 --disk path=salvus_sage.img,size=12 -c ubuntu-12.04-server-amd64.iso 
+
+ssh -L 8124:localhost:8124 salvus@01salvus.math.washington.edu
+
+XML definitions of machines are here:
+
+$HOME/.libvirt/qemu/
+
+virsh -c qemu:///session start salvus_web
+virsh -c qemu:///session start salvus_sage
+virsh -c qemu:///session list
+
+To ssh into a machine:
+
+virsh -c qemu:///session qemu-monitor-command --hmp salvus_sage 'hostfwd_add ::2222-:22'   # NOT persistent?!
+ssh localhost -p 2222
+
+I'm going to try to install sage from source on there -- see how long it takes, etc. 
+
+I'm also going to try a build test on geom -- I hope it works!
+
+
+Sept 23, 2012
+============
+
+I tried benchmarking factorial(10^7) in a new virt-install'ed vm, and
+it was 14 seconds, versus around 15 seconds not in the VM.
+
+The other main issue is how incredibly slow the network is.  Maybe
+that is easily fixed by re-installing the OS, since I seriously tested
+a lot on here.  On geom -- using kvm -- the network is fine. 
+
+Just curious if this was because of running using qemu but without kvm?
+
+It's kvm.  Weird. 
+
+My next guess is it is because limited hardware of the CPU is made available to the
+machine, so optimizations aren't done.
+
+I'll start a test of this.
+
+In the vm, we have:
+
+salvus@salvus-sage:~$ cat /proc/cpuinfo |grep flags|tail -1
+flags		: fpu de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 syscall nx lm nopl pni cx16 popcnt hypervisor lahf_lm svm abm sse4a
+
+On the host we have:
+salvus@01salvus:~$ cat /proc/cpuinfo |grep flags|tail -1
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl nonstop_tsc extd_apicid aperfmperf pni pclmulqdq monitor ssse3 cx16 sse4_1 sse4_2 popcnt aes xsave avx lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs xop skinit wdt lwp fma4 nodeid_msr topoext perfctr_core arat cpb npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold
+
+
+The flags are restricted for live migration.   But we will only migrate between opterons, so...
+
+
+virsh capabilities
+
+<capabilities>
+
+  <host>
+    <uuid>44454c4c-4c00-1047-8030-b1c04f395631</uuid>
+    <cpu>
+      <arch>x86_64</arch>
+      <model>Opteron_G3</model>
+      <vendor>AMD</vendor>
+      <topology sockets='1' cores='4' threads='2'/>
+      <feature name='wdt'/>
+      <feature name='skinit'/>
+      <feature name='osvw'/>
+      <feature name='3dnowprefetch'/>
+      <feature name='cr8legacy'/>
+      <feature name='extapic'/>
+      <feature name='cmp_legacy'/>
+      <feature name='pdpe1gb'/>
+      <feature name='fxsr_opt'/>
+      <feature name='mmxext'/>
+      <feature name='aes'/>
+      <feature name='sse4.2'/>
+      <feature name='sse4.1'/>
+      <feature name='ssse3'/>
+      <feature name='ht'/>
+      <feature name='vme'/>
+    </cpu>
+
+Putting this in the machine's XML had no effect at all.
+
+
+From the man virt-install page:
+
+ --cpu host
+           Expose the host CPUs configuration to the guest. This enables the guest to take advantage of many of the host
+           CPUs features (better performance), but may cause issues if migrating the guest to a host without an identical
+           CPU.
+
+I'll try a new install with "--cpu host" and see what happens.   I'm going to do this on 03salvus too, to see if the networking issues
+is resolved.
+
+virt-install -v --cpu host --graphics vnc,port=8124 --name salvus_sage --vcpus=16 --ram 8192 --disk path=salvus_sage.img,size=12 -c ubuntu-12.04-server-amd64.iso 
+
+NOTE: The physical network on all the salvus nodes is way too slow. It's 10MB/s, but should be 100?!
+The card is: Broadcom NetXtreme II BCM5716 1000Base-T
+Not a problem with combinat using *NOT* the same card.
+
+Exactly this problem: http://www.linuxquestions.org/questions/linux-networking-3/broadcom-nic-slow-854656/
+
+Compiling the driver on 03salvus.
+
+Neat trick here:  http://ubuntuforums.org/showthread.php?t=1870780&page=2
+
+   apt-get install apt-file
+   apt-file search linkage.h
+
+But we need:
+
+  apt-get install linux-source
+
+  Reboot!
+
+
+Trying to build driver, but still hitting the error:
+
+  ln -s /usr/src/linux-headers-3.2.0-31/include/asm-generic /usr/src/linux-headers-3.2.0-31/include/asm
+  rm /usr/src/linux-headers-3.2.0-31/include/asm
+
+This got nowhere:
+  ln -s /usr/src/linux-headers-3.2.0-31-generic/arch/x86/include/asm /usr/include/asm
+
+---
+
+According to http://manpages.ubuntu.com/manpages/lucid/man4/bce.4freebsd.html
+"1000baseSX   Sets 1000Mbps operation.  Only full-duplex mode is supported
+                  at this speed."
+
+So the question is how to use the builtin driver, but set to the above speed. 
+
+Try:
+
+  ifconfig eth0 media 1000baseSX
+
+  apt-get install ethtool
+
+  ethtool eth0
+
+   root@03salvus:/etc# /sbin/mii-tool 
+   eth0: negotiated 100baseTx-FD, link ok
+  ...
+
+
+ ifconfig eth0 media 1000baseTx
+
+What I want: [   31.797673] bnx2 0000:01:00.0: eth0: NIC Copper Link is Up, 1000 Mbps full duplex
+root@combinat:/home/wstein# /sbin/mii-tool 
+eth0: negotiated 1000baseT-FD flow-control, link ok
+
+
+What I got:  [   25.759307] bnx2 0000:01:00.0: eth0: NIC Copper Link is Up, 100 Mbps full duplex
+root@03salvus:/etc# /sbin/mii-tool 
+eth0: negotiated 100baseTx-FD, link ok
+
+----
+
+I think it is the CABLE!  That's what this page says:  http://ubuntuforums.org/archive/index.php/t-1283713.html
+
+Moreover, 02salvus and 04salvus do connect fine at gigabit. 
+
+Solution: swap out the cables on 01salvus and 03salvus!!!!
+
+
+---
+
+I should test virtualbox on ...
+
+
+In the meantime, on 01salvus, I'll try this:
+
+   virt-install -v --cpu host --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk sparse=true,path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso 
+
+   ssh -L 8125:localhost:8125 salvus@01salvus.math.washington.edu
+
+   virsh -c qemu:///session start salvus_sage_cpuhost
+
+   virsh -c qemu:///session qemu-monitor-command --hmp salvus_sage_cpuhost 'hostfwd_add ::2223-:22'   # NOT persistent?!
+
+   scp -P 2223 sage-5.3.tar localhost:
+
+-----------
+
+So finally, I'll do this whole test on 02salvus, which has a solid network, and is pretty clean.
+
+
+   scp 01salvus:.screenrc .
+   virt-install -v --cpu host --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso    
+   ssh -L 8125:localhost:8125 salvus@02salvus.math.washington.edu
+
+   virsh -c qemu:///session start salvus_sage_cpuhost
+   virsh -c qemu:///session qemu-monitor-command --hmp salvus_sage_cpuhost 'hostfwd_add ::2222-:22'   
+   ssh localhost -p 2222
+   wget http://sage.math.washington.edu/home/release/sage-5.3/sage-5.3.tar
+   sudo apt-get install g++ gfortran m4 make dpkg-dev libssl-dev
+   sleep 6000; export MAKE="make -j16"; tar xvf sage-5.3.tar; cd sage-5.3; make
+   
+
+I solved the networking slowdown issue!
+(Thanks to https://help.ubuntu.com/community/KVM/Networking)
+
+    <interface type='user'>
+      <mac address='52:54:00:be:75:c2'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+      <model type='virtio'/>  <!-- ADD THIS LINE to ~/.libvirt/qemu/salvus_sage_cpuhost.xml --> 
+    </interface>
+
+This should be something I can do via the virt-install line with:
+
+   -net nic,model=virtio -net user
+
+so, this should be it:
+
+   virt-install -v --cpu host -net nic,model=virtio -net user --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso    
+
+---
+
+Sept 24, 2012
+=============
+
+I had no real time to work today at all, because of teaching, shoping,
+the vert ramp paperwork and banking stuff, etc.  Until right now.  I
+did get to fix the network and do a clean re-install of 01salvus.
+
+Great discussion of the qcow2 image format: http://people.gnome.org/~markmc/qcow-image-format.html
+
+I'm going to take another stab at making template virtual machines for:
+
+ (1) sage, (2) web, (3) cassandra
+
+Step 1: make a base template
+
+
+   virt-install -v --cpu host --network user,model=virtio --graphics vnc,port=8125 --name salvus_base --vcpus=2 --ram 4096 --disk path=salvus_base.img,size=8 -c ubuntu-12.04-server-amd64.iso
+ 
+   ssh -L 8125:localhost:8125 salvus@01salvus.math.washington.edu
+
+Setup LVM with one big root partition and no swap (swap will be on another image).
+
+   virsh -c qemu:///session start salvus_base
+   virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'   
+
+Sept 25, 2012
+=============
+
+  [ ] setup 01salvus, 02salvus, 03salvus, 04salvus to each be tinc VPN servers
+      * for that, should install salvus on each, which requires a bootstrap
+            git clone https://github.com/williamstein/salvus.git   # and type login: williamstein, password: ....
+      * I fixed the /etc/hosts files back to stock, plus put in shortcuts for the cluster.
+      * on each node:  git clone 01salvus:salvus/
+      * fixed build system
+            git push https://github.com/williamstein/salvus.git
+
+* woops:
+    WARNING: IPython History requires SQLite, your history will not be saved
+     WARNING: Readline services not available or not loaded.WARNING: The auto-indent feature requires the readline libraryPython 2.7
+
+Fix:
+    . salvus-env
+    sudo apt-get install libncurses-dev
+    easy_install readline
+Ick:
+    WARNING: IPython History requires SQLite, your history will not be saved
+
+Fix:
+    . salvus-env
+    sudo apt-get install libsqlite3-dev
+    ./build.py --build_python
+
+sudo apt-get install libncurses-dev libsqlite-dev
+cd salvus/salvus; . salvus-env; easy_install readline ; ./build.py --build_python
+
+Finally:
+
+   >>> import admin
+   >>> admin.tinc_conf('01salvus', ['combinat0', 'bsd0', 'servedby1'])
+.... argh
+
+First... should I run "repair" on a cassandra node? I haven't in week(s).  Here's how:
+1. Look in conf/deploy/services for the cassandra nodes.
+2. ssh salvus@bsd1.salv.us "cd salvus/salvus/; . salvus-env; nodetool repair"
+
+  [ ] working with the vpn is too difficult right now, because list of
+      hosts isn't all stored in a database.  fix this.
+
+Options:
+
+  - right now the vpn info *is* in a database, namely the git repo.
+    But pushing and pulling to/from that every time I modify the vpn
+    seem bad. 
+
+  - use Cassandra to store the vpn info:
+       - advantage: no single point of failure
+       - disadvantage: only a few nodes can connect to cassandra, so we'll have to 
+         run another service just to deal with this. 
+       - service is called tinc_directory.py
+       - the *only* machines that need access to the directory database are the
+         virtual machine hosts, since they will be configuring the tinc directory
+         when they provision a machine.
+       - actually, this service could just be rolled into the tornado
+         server itself, since it can talk to cassandra, and any host
+         on the vpn can talk to the tornado server.
+       - bootstrap?!  there is a catch 22, since when no vm's are
+         started, obviously nothing can work!  How about the program
+         that starts up a node reconfigures tinc with the latest host
+         files, etc., as soon as it can contact a tornado node and
+         that node works... but until then it uses the last
+         potentially stale default hosts info.
+       - problem: if I do this via tornado, I have to somehow deal with authentication, 
+         since it is necessary to write to the database when provisioning new nodes.
+         i don't have to worry about ssl, since all traffic is encrypted.
+  
+  - use a sqlite file on the "master control node" --> SPOF
+  
+  - put a postgresql server back into salvus just for this --> SPOF
+
+  - get better at just using the git repo for this (or is this is a
+    non-option if we start provisioning hundreds of machines?)
+
+  - use control node filesystem:
+      - admin can only be done from vm host nodes
+
+  - for automatically provisioning new vm's there is already a SPOF, namely the
+    machine on which the vm is running.  So we really only need to put the public
+    key for the vm in the hosts/ directory for *that* one machine.  There is no
+    point in putting it anywhere else.   This could be dynamic: when we start a VM,
+    we generate the keys and put them in the hosts/ directory; when we stop the VM,
+    we remove them.  That's it.       Since we have far fewer VM hosts, we just continue
+    as is with them.   This would all be pretty easy.
+
+Let's get 01salvus on our VPN:
+
+salvus@01salvus:~$ cd salvus/salvus/
+salvus@01salvus:~/salvus/salvus$ . salvus-env
+salvus@01salvus:~/salvus/salvus$ ipython
+
+   >>> import admin; admin.tinc_conf('01salvus', ['combinat0', 'bsd0'])
+
+sudo apt-get install liblzo2-dev
+
+NOTE: VPN thoughts for later...: According to
+http://www.tinc-vpn.org/pipermail/tinc/2010-March/002276.html the
+algorithm to determine path is very naive -- one of the shortest
+paths.  However, in tinc 1.1 (which I would have to upgrade to) they
+use a much better algorithm.  To build 1.1 on OSX, do this first
+export CFLAGS="-fnested-functions"
+
+TODO: should add "servedby1" to list of servers above, but then have
+to change the firewall rules for that machine to allow connections
+from salvus nodes.
+
+For other nodes:
+
+       cd salvus/salvus/; . salvus-env; git pull 01salvus:salvus/; sudo apt-get install liblzo2-dev; ./build.py --build_tinc; ipython
+       import admin, os; admin.tinc_conf(os.popen('hostname').read().strip(), ['combinat0', 'bsd0'])
+
+       git add .; git commit -a -v
+
+Back on 01salvus:
+
+git pull 02salvus:salvus/
+ 
+  [x] just installed updates on bsd.math and restarted those virtual
+      machines.  some of the combinat vm's were mysteriously crashed!
+
+  [ ] test setup salvus-base to be on vpn but not public.
+
+  [ ] test out copy on write with my template vm above:
+
+qemu-img create -f qcow2 -b winxp.img test01.img
+
+  [x] *** System restart required ***  -- wonder about -- 
+Answer: http://askubuntu.com/questions/28530/how-can-i-tell-what-package-requires-a-reboot-of-my-system
+salvus@01salvus:~$ more  /var/run/reboot-required.pkgs
+linux-image-3.2.0-31-generic
+linux-base
+dbus
+
+  [ ] 01salvus needs -- apt-get update; apt-get upgrade 
+
+
+-------
+
+Sept 26, 2012
+
+I'm still learning how to make template base virtual machines, etc.
+
+This looks relevant:
+
+  http://www.linux-kvm.com/content/how-you-can-use-qemukvm-base-images-be-more-productive-part-1
+
+$ qemu-img create -b  salvus_base.img -f  qcow2    salvus_base-clone.img
+$ ls -lh salvu*.img
+-rw-r--r-- 1 salvus salvus 193K Sep 26 20:20 salvus_base-clone.img
+-rwxrwxr-x 1 salvus salvus 8.0G Sep 26 20:19 salvus_base.img
+
+
+$ virt-install -v --cpu host --network user,model=virtio --graphics vnc,port=8126 --name salvus_base_clone --vcpus=2 --ram 4096 --disk path=salvus_base-clone.img  --boot hd
+
+FAIL
+
+$ virsh --connect qemu:///session destroy salvus_base_clone
+$ virsh --connect qemu:///session undefine salvus_base_clone
+
+I want to start a "transient" domain.
+
+"Rebasing base images" (i.e., merging):
+
+  http://www.linux-kvm.com/content/be-more-productive-base-images-part-2
+
+  qemu-img convert windows-clone.qcow2 –O qcow2 windows-marketing.qcow2
+
+
+
+$ virt-install -v --cpu host --network user,model=virtio --graphics vnc,port=8126 --name salvus_base_clone --vcpus=2 --ram 4096 --import --disk salvus_base-clone.img --noautoconsole
+
+FAIL
+
+Test the image
+
+
+# apt-get install guestmount
+# add salvus user to fuse group !!!
+mkdir x
+guestmount -a salvus_base-clone.img --rw x -i    
+
+
+From a random place I found this:
+
+virt-install --vcpus $CPUS \
+  --ram $MEM --import \
+  --name $TARGET_NAME \
+  --disk $TARGET_IMG,device=disk,bus=virtio,format=qcow2 $DISK_SWAP \
+  --vnc --noautoconsole --force \
+  --network=$NETWORK,mac=$MAC \
+  $NETWORK2
+
+#And made this, which worked!!
+
+$ virt-install --cpu host --network user,model=virtio --graphics vnc,port=8126 --name salvus_base_clone --vcpus=2 --ram 4096 --import --disk salvus_base-clone.img,device=disk,bus=virtio,format=qcow2 --noautoconsole
+
+# are macs of 2 machines made this way different?
+
+qemu-img create -b  salvus_base.img -f  qcow2    salvus_base-clone1.img  # 0.070s
+qemu-img create -b  salvus_base.img -f  qcow2    salvus_base-clone2.img  # 0.080s
+
+virt-install --cpu host --network user,model=virtio --graphics vnc,port=8120 --name salvus_base_clone1 --vcpus=2 --ram 4096 --import --disk salvus_base-clone1.img,device=disk,bus=virtio,format=qcow2 --noautoconsole  # 5.829s
+
+virt-install --cpu host --network user,model=virtio --graphics vnc,port=8121 --name salvus_base_clone2 --vcpus=2 --ram 4096 --import --disk salvus_base-clone2.img,device=disk,bus=virtio,format=qcow2 --noautoconsole  # 
+
+  ssh -L 8120:localhost:8120 -L 8121:localhost:8121 salvus@01salvus
+
+MACs are different.  Good.
+
+Hmm. but the network sucks.  need to retry that parameter and fix this.
+
+  virsh -c qemu:///session list
+  virsh -c qemu:///session qemu-monitor-command --hmp salvus_base_clone2 'hostfwd_add ::2222-:22'   
+
+
+I wonder about recompacting .img, but don't really need to worry about that...
+
+Network performance testing:
+
+  sudo apt-get install iperf
+
+iperf -s # on server
+iperf -c servername # on client
+
+Hit control-c
+
+From this we see that the connection 01salvus <--> virtual machine: is
+very fast, but the additional NAT is very slow.  Maybe with tinc this
+doesn't matter.
+
+Through tinc, between combinat0 and 01salvus (physical machines), we get:
+
+   [  3]  0.0-10.0 sec   270 MBytes   226 Mbits/sec
+
+which is I guess OK, given that it is encrypted, etc. 
+
+From combinat1 -- a *VirtualBox* VM -- to 01salvus over tinc:
+
+   salvus@combinat1:~$ iperf -c 01salvus.salv.us
+   ------------------------------------------------------------
+   Client connecting to 01salvus.salv.us, TCP port 5001
+   TCP window size: 16.4 KByte (default)
+   ------------------------------------------------------------
+   [  3] local 10.38.1.7 port 39425 connected with 10.38.1.14 port 5001
+   [ ID] Interval       Transfer     Bandwidth
+   [  3]  0.0-10.0 sec  43.6 MBytes  36.4 Mbits/sec
+ 
+To combinat.math.washington.edu from combinat1:
+
+   [  3]  0.0- 3.0 sec   187 MBytes   522 Mbits/sec
+
+Over usual network:
+
+salvus@combinat1:~$ iperf -t 3 -c 01salvus.math.washington.edu
+------------------------------------------------------------
+Client connecting to 01salvus.math.washington.edu, TCP port 5001
+TCP window size: 23.5 KByte (default)
+------------------------------------------------------------
+[  3] local 10.0.2.15 port 38370 connected with 128.95.224.230 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 3.0 sec   168 MBytes   469 Mbits/secx	
+
+So tinc is *killing* us here!
+
+Change to *only* use combinat0 as tinc server.... and the result is just acceptable (though it varies):
+
+salvus@combinat1:~$ iperf  -c 01salvus.math.washington.edu
+------------------------------------------------------------
+Client connecting to 01salvus.math.washington.edu, TCP port 5001
+TCP window size: 23.5 KByte (default)
+------------------------------------------------------------
+[  3] local 10.0.2.15 port 38374 connected with 128.95.224.230 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.1 sec   124 MBytes   104 Mbits/sec
+
+
+I reniced to -19 the tinc process on combinat0 and I got:
+
+[  3]  0.0-10.1 sec   342 MBytes   285 Mbits/sec
+
+W00t
+
+Not every time, but it is something.  Check this out:
+
+salvus@combinat1:~$ iperf  -c 01salvus.math.washington.edu
+------------------------------------------------------------
+Client connecting to 01salvus.math.washington.edu, TCP port 5001
+TCP window size: 23.5 KByte (default)
+------------------------------------------------------------
+[  3] local 10.0.2.15 port 38385 connected with 128.95.224.230 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.0 sec   577 MBytes   484 Mbits/sec
+
+Moral: always "nice -19" the tincd.
+
+  nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd
+
+I did that on 01salvus, combinat1, and combinat0, and now I get
+consistently 340+ Mbits/sec, which is consistent with compression.  So
+Virtualbox networking is just fine, and tincd is not evil.
+
+Need to install salvus in the base image.
+
+1. Delete the machines I made:
+
+virsh --connect qemu:///session undefine salvus_base_clone1
+virsh --connect qemu:///session undefine salvus_base_clone2
+
+virsh --connect qemu:///session destroy salvus_base_clone2
+
+
+virsh --connect qemu:///session list --all
+
+2. Start base machine:
+
+virsh --connect qemu:///session start salvus_base
+virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'   
+ssh localhost -p 2222
+
+3. Make it better:
+
+sudo apt-get install git iperf
+sudo apt-get autoremove
+
+sudo apt-get install liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs23
+
+
+I just did 
+
+   wget http://sage.math.washington.edu/home/release/sage-5.3/sage-5.3.tar
+
+when logged in via "ssh localhost -p 2222" and that ssh network thing died, as did the whole
+NETWORK!  But not the vm. Restarting the network on the host fixed the problem temporarily.
+This is of course very worrisome. 
+
+----
+
+I'm putting the vm base on the vpn, since that's what really matters.
+
+DONE.
+
+I get this consistently:
+
+salvus@salvus-base:~/salvus/salvus$ iperf -P 3 -t 5 -c combinat0.salv.us
+------------------------------------------------------------
+Client connecting to combinat0.salv.us, TCP port 5001
+TCP window size: 22.9 KByte (default)
+------------------------------------------------------------
+[  3] local 10.38.1.254 port 33181 connected with 10.38.1.2 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 5.0 sec   121 MBytes   202 Mbits/sec
+
+No hangs.
+
+salvus@salvus-base:~/salvus/salvus$ iperf -c 01salvus.salv.us
+------------------------------------------------------------
+Client connecting to 01salvus.salv.us, TCP port 5001
+TCP window size: 22.9 KByte (default)
+------------------------------------------------------------
+[  3] local 10.38.1.254 port 47411 connected with 10.38.1.14 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.0 sec   256 MBytes   215 Mbits/sec
+
+See tinc taking a full core in top:
+
+ 9163 root       1 -19 15116 1540 1168 R   98  0.0   1:13.61 tincd    
+
+---
+
+1. Now add more cores and RAM and build Sage on base VM.
+
+  emacs /home/salvus/.libvirt/qemu/salvus_base.xml
+
+and change vcpu from 2 to 16.
+    change ram from 4194304 to 16777216
+
+2. start:
+
+    virsh --connect qemu:///session start salvus_base
+
+3. Notice that it's on the vpn!
+
+   mosh salvus@10.38.1.254  # works fine
+
+4. Consistent scp speed from 01salvus to vm:     26.0MB/s
+
+salvus@01salvus:~$ scp ubuntu-12.04-server-amd64.iso 10.38.1.254:
+ubuntu-12.04-server-amd64.iso                                                                                         14%  101MB  26.0MB/s   00:22 ETA
+
+5. start some other useful stuff installing:  
+ 
+     sudo apt-get install texlive
+
+6. start sage build:
+
+    export MAKE="make -j8"; make ptestlong
+
+
+ ssh -L 8125:localhost:8125  salvus@01salvus
+
+----
+
+Idea to fix network problem:
+
+This is the problem, exactly.
+   http://serverfault.com/questions/362038/qemu-kvm-virtual-machine-virtio-network-freeze-under-load
+
+Will it be as good?
+
+     "Preliminary tests suggest that I don't have the problem if I
+     substitute e1000 for virtio in the first -net flag to qemu-kvm."
+
+I'm going to try a speed test on this, by cloning the other img (live?!), then
+making a new machine using that. 
+
+
+   qemu-img convert salvus_base.img nettest.img
+
+
+   virt-install -d --cpu host --network user,model=e1000 --graphics vnc,port=8122 --name nettest --vcpus=2 --ram 4096 --import --disk nettest.img,device=disk,bus=virtio,format=qcow2 --noautoconsole 
+
+This fails with "Unable to read from monitor: Connection reset by peer", no matter what I do . Weird. 
+I think I'll just wait and setup a copy-on-write image as before. 
+
+  qemu-img create -b  salvus_base.img -f  qcow2    salvus_base-clone1.img
+
+  virt-install --cpu host --network user,model=e1000 --graphics vnc,port=8120 --name salvus_base_clone1 --vcpus=2 --ram 4096 --import --disk salvus_base-clone1.img,device=disk,bus=virtio,format=qcow2 --noautoconsole  
+
+Make another clone right now with virtio
+
+  qemu-img create -b  salvus_base.img -f  qcow2    salvus_base-virtio.img
+
+  virt-install --cpu host --network user,model=virtio --graphics vnc,port=8121 --name salvus_base_virtio --vcpus=2 --ram 4096 --import --disk salvus_base-virtio.img,device=disk,bus=virtio,format=qcow2 --noautoconsole 
+
+It really is necessary to generate new keys, etc. 
+
+THIS IS REALLY THE BUG:
+
+  https://bugs.launchpad.net/ubuntu/+source/qemu-kvm/+bug/997978
+
+Apply fix there:
+
+   sudo apt-get install python-software-properties
+   sudo add-apt-repository ppa:ubuntu-virt/kvm-network-hang
+   sudo apt-get update
+   sudo apt-get install qemu-kvm
+
+ virsh --connect qemu:///session start salvus_base_virtio
+
+... and this seems to be working so far!
+
