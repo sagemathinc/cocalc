@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """
-Sage server -- unencrypted forking TCP server that can run as root,
+sage_server.py -- unencrypted forking TCP server that can run as root,
                create accounts on the fly, and serve sage as those
                accounts, using protobuf messages.
 """
 
-# This is the one file that must be GPL'd because it imports the Sage library.
-# This file is not directly imported by anything else; the Python process it
-# runs is used over a TCP connection.  So nothing viral here. 
+# This is the one file that must be GPL'd (if salvus is
+# redistributed...) because it imports the Sage library.  This file is
+# not directly imported by anything else; the Python process it runs
+# is used over a TCP connection.  So nothing viral here.
 
 ########################################################################################
 #       Copyright (C) 2012 William Stein <wstein@gmail.com>

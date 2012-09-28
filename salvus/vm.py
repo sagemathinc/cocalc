@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+"""
+vm.py -- create and run a virtual machine based on the standard
+         salvus_base template with the given memory and vcpus, and add
+         the vm to our tinc VPN.  When this script terminates, the vm
+         is destroyed, undefined, and the image file associated with
+         it is deleted.
+"""
+
+#######################################################################
+# Copyright (c) William Stein, 2012.  Not open source or free. Will be
+# assigned to University of Washington.
+#######################################################################
+
 import os, shutil, socket, tempfile, time
 
 import daemon
@@ -7,7 +21,7 @@ from admin import sh
 def virsh(command, name):
     return sh['virsh', '--connect', 'qemu:///session', command, name].strip()
 
-def run_vm(ip_address, machine_type, pidfile, vcpus=2, ram=4096):
+def run_kvm(ip_address, machine_type, vcpus, ram):
     #################################
     # create the copy-on-write image
     #################################
@@ -42,7 +56,7 @@ def run_vm(ip_address, machine_type, pidfile, vcpus=2, ram=4096):
     # create and start the vm itself
     #################################
     sh['virt-install', '--cpu', 'host', '--network', 'user,model=virtio', '--name',
-       ip_address, '--vcpus',vcpus, '--ram', ram, '--import', '--disk',
+       ip_address, '--vcpus', vcpus, '--ram', 1024*ram, '--import', '--disk',
        new_img + ',device=disk,bus=virtio,format=qcow2', '--noautoconsole']
 
     ##########################################################################
@@ -57,29 +71,45 @@ def run_vm(ip_address, machine_type, pidfile, vcpus=2, ram=4096):
         virsh('undefine', ip_address)
         os.unlink(new_img)
 
+def run_virtualbox(ip_address, machine_type, vcpus, ram):
+    raise NotImplementedError
+
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="vm.py starts a virtual machine with a given IP address and type on this computer.")
+    parser = argparse.ArgumentParser(description="vm.py starts virtual machine with given IP address and type on this computer")
 
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
+    parser.add_argument("--vm_type", dest="vm_type", type=str, default="kvm",
+                        help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--ip_address", dest="ip_address", type=str, required=True,
                         help="ip address of the virtual machine on the VPN")
-    parser.add_argument("--machine_type", dest="machine_type", type=str, required=True,
-                        help="type of virtual machine: one of 'sage', 'web', 'cassandra'")
+    parser.add_argument("--vcpus", dest="vcpus", type=str, default="2",
+                        help="number of virtual cpus")
+    parser.add_argument("--ram", dest="ram", type=int, default=4,
+                        help="Gigabytes of ram")
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
                         help="store pid in this file")
 
     args = parser.parse_args()
-
-    if args.daemon and not args.pidfile:
-        print "%s: must specify pidfile in daemon mode"%sys.argv[0]
-        sys.exit(1)
-
-    main = lambda: run_vm(ip_address=args.ip_address, machine_type=args.machine_type, pidfile=args.pidfile)
-    if args.daemon:
-        import daemon
-        with daemon.DaemonContext():
+    
+    def main():
+        if parser.vm_type == 'kvm':
+            run_kvm(args.ip_address, args.vcpus, args.ram)
+        elif parser.vm_type == 'virtualbox':
+            run_virtualbox(args.ip_address, args.vcpus, args.ram)
+        else:
+            print "Unknown vm_type '%s'"%parser.vm_type
+            sys.exit(1)
+    try:
+        if pidfile:
+            open(pidfile,'w').write(str(os.getpid()))
+        if args.daemon:
+            import daemon
+            with daemon.DaemonContext():
+                main()
+        else:
             main()
-    else:
-        main()
+    finally:
+        if pidfile:
+            os.unlink(pidfile)

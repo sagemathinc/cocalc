@@ -2633,3 +2633,27 @@ Filesystem                     Size  Used Avail Use% Mounted on
   cd vm
   qemu-img create -b salvus_base.img -f qcow2 10.38.1.20.img
   mkdir mnt; guestmount -i -a 10.38.1.20.img --rw mnt
+
+Sept 28:
+========
+In base vm with 16 cores, the time to doctest all sage (after doing it once already):
+
+salvus@salvus-base:~/sage-current$ time sage -tp 20 devel/sage/sage/
+
+real    7m23.826s
+user    98m13.080s
+sys     13m17.094s
+
+I'm curious how long on the non-VM (bare metal hardware). 
+Also, I'm curious how long while building on the bare metal hardware at the same time...
+
+MAIN Goal now is getting vm.py to actually work.
+
+On bare metal, repeatedly:
+salvus@01salvus:~/sage-5.3$ time ./sage -tp 20 devel/sage/sage
+real    6m2.230s
+user    82m51.347s
+sys     11m13.054s
+
+That's pretty cool -- kvm isn't costing us much at all -- it's 81% of
+bare metal overall.
