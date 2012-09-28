@@ -35,7 +35,7 @@ class TincConf(object):
 
 def run_vm(ip_address, machine_type, pidfile):
     ############################
-    # 1. tinc vpn configuration
+    # tinc vpn configuration
     ############################
     tinc_conf = TincConf(ip_address)
     files = tinc_conf.files()
@@ -43,11 +43,19 @@ def run_vm(ip_address, machine_type, pidfile):
     shutil.copyfile(files[ip_address], os.path.join('conf', 'tinc_hosts', ip_address))
     
     #################################
-    # 2. create and start vm running
+    # create vm
     #################################
     # - create the copy-on-write qcow2 image
     img = ip_address + '.img'
     sh['qemu-img', 'create', '-b', 'salvus_base.img', '-f', 'qcow2', img]
+    # - mount the image and configure tinc info.
+    mnt = tempfile.mkdtemp()
+    sh['guestmount', '-i', '-a', img, '--rw', mnt]
+    
+    
+    # - unmount image
+    sh['fusermount', '-u', mnt]
+    
 
     # ?  -- need to stay running until vm fails
     

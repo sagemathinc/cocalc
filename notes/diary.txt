@@ -2435,14 +2435,198 @@ THIS IS REALLY THE BUG:
 
   https://bugs.launchpad.net/ubuntu/+source/qemu-kvm/+bug/997978
 
+IMPORTANT: **************************
 Apply fix there:
 
-   sudo apt-get install python-software-properties
-   sudo add-apt-repository ppa:ubuntu-virt/kvm-network-hang
-   sudo apt-get update
-   sudo apt-get install qemu-kvm
+   sudo apt-get install python-software-properties; sudo add-apt-repository ppa:ubuntu-virt/kvm-network-hang; sudo apt-get update; sudo apt-get install qemu-kvm
 
  virsh --connect qemu:///session start salvus_base_virtio
 
 ... and this seems to be working so far!
+
+
+Problems left to solve before I can just code this:
+
+[ ] How to mount an img as salvus user (not root)
+
+     virsh -c qemu:///session list
+     sudo apt-get install libguestfs-tools
+     virt-filesystems -a salvus_base-virtio.img
+
+Fix was easy - this is a slight security risk though (see http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=615029).
+
+     sudo chmod a+r /boot/vmlinuz-* # used by guestmount
+     mkdir mnt; guestmount -i -a salvus_base-virtio.img --rw mnt
+     ls mnt 
+     fusermount -u mnt
+
+[ ] get pid of kvm process
+
+     virsh --connect qemu:///session start salvus_base_virtio
+
+This yields 52227, so we have that to check with:
+
+     ps ax |grep kvm|grep salvus_base_virtio
+
+Consider using python bindings for some of this?
+
+     apt-get install ipython
+
+ipython
+
+In [1]: import libvirt
+In [2]: import sys
+In [3]: conn = libvirt.openReadOnly(None)
+In [4]: conn
+Out[4]: <libvirt.virConnect instance at 0x208c128>
+In [5]: dom0 = conn.lookupByName("salvus_base_virtio")
+In [6]: dom0
+Out[6]: <libvirt.virDomain instance at 0x1e8fb90>
+In [7]: dom0.info()
+Out[7]: [1, 4194304L, 4194304L, 2, 8270000000L]
+In [12]: dom0.isActive()
+Out[12]: 1
+In [17]: %timeit dom0.isActive()
+1000 loops, best of 3: 389 us per loop
+
+So instead of watching for the pid, I can call isActive periodically.
+This means that my vm.py script/daemon must use the system-wide python.
+That should be OK.
+
+Fix autoboot thing.
+
+
+   sudo apt-get install iotop
+
+
+This makes it so I don't have to prefix virsh with that --connect stuff:
+
+   export VIRSH_DEFAULT_CONNECT_URI="qemu:///session"
+
+Put in .bash_profile on all four machines...
+
+Renaming from salvus_base to template?  Actually salvus_base is a good name.
+
+virsh start salvus_base
+
+root@salvus-base:/boot/grub# vi /etc/grub.d/00_header 
+root@salvus-base:/boot/grub# update-grub2
+
+OK, done.
+
+Make a "backup" of my image:
+
+   rsync -axvH images/ 02salvus:images/
+
+--RESIZING MY ROOT DISK IMG-----------------------------
+My / disk is almost full, which could be annoying and complicating for
+now good reason down the line.  Let's deal with this now, following:
+
+   http://serverfault.com/questions/324281/how-do-you-increase-a-kvm-guests-disk-space
+
+First:
+
+  time qemu-img resize images/salvus_base.img +8G
+
+  virsh start salvus_base
+
+
+root@salvus-base:/home/salvus# fdisk /dev/sda
+
+Command (m for help): p
+
+Disk /dev/sda: 17.2 GB, 17179869184 bytes
+255 heads, 63 sectors/track, 2088 cylinders, total 33554432 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x000d72a0
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *        2048      499711      248832   83  Linux
+/dev/sda2          501758    16775167     8136705    5  Extended
+/dev/sda5          501760    16775167     8136704   8e  Linux LVM
+
+
+* delete partitions 2 and 5
+
+New: extended partition:
+
+Command (m for help): n
+Partition type:
+   p   primary (1 primary, 0 extended, 3 free)
+   e   extended
+Select (default p): e
+Partition number (1-4, default 2): 
+Using default value 2
+First sector (499712-33554431, default 499712): 
+Using default value 499712
+Last sector, +sectors or +size{K,M,G} (499712-33554431, default 33554431): 
+Using default value 33554431
+
+Command (m for help): p
+
+Disk /dev/sda: 17.2 GB, 17179869184 bytes
+255 heads, 63 sectors/track, 2088 cylinders, total 33554432 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x000d72a0
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *        2048      499711      248832   83  Linux
+/dev/sda2          499712    33554431    16527360    5  Extended
+
+New logical partition:
+
+Command (m for help): n
+Partition type:
+   p   primary (1 primary, 1 extended, 2 free)
+   l   logical (numbered from 5)
+Select (default p): l
+Adding logical partition 5
+First sector (501760-33554431, default 501760): 
+Using default value 501760
+Last sector, +sectors or +size{K,M,G} (501760-33554431, default 33554431): 
+Using default value 33554431
+
+Fix type
+
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *        2048      499711      248832   83  Linux
+/dev/sda2          499712    33554431    16527360    5  Extended
+/dev/sda5          501760    33554431    16526336   8e  Linux LVM
+
+"write" out and reboot.
+
+
+pvdisplay
+pvresize /dev/sda5
+pvdisplay
+lvresize /dev/salvus-base/root -l +2048
+resize2fs /dev/salvus-base/root
+
+It worked:
+
+root@salvus-base:/home/salvus# resize2fs /dev/salvus-base/root
+resize2fs 1.42 (29-Nov-2011)
+Filesystem at /dev/salvus-base/root is mounted on /; on-line resizing required
+old_desc_blocks = 1, new_desc_blocks = 1
+Performing an on-line resize of /dev/salvus-base/root to 4130816 (4k) blocks.
+The filesystem on /dev/salvus-base/root is now 4130816 blocks long.
+
+root@salvus-base:/home/salvus# df -h
+Filesystem                     Size  Used Avail Use% Mounted on
+/dev/mapper/salvus--base-root   16G  6.5G  8.3G  44% /
+udev                           7.9G  4.0K  7.9G   1% /dev
+tmpfs                          3.2G  248K  3.2G   1% /run
+none                           5.0M     0  5.0M   0% /run/lock
+none                           7.9G     0  7.9G   0% /run/shm
+/dev/sda1                      228M   47M  169M  22% /boot
+root@salvus-base:/home/salvus# df -h /
+Filesystem                     Size  Used Avail Use% Mounted on
+/dev/mapper/salvus--base-root   16G  6.5G  8.3G  44% /
+
+---------------------------
 
