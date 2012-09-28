@@ -1,67 +1,61 @@
-import os, shutil, socket, tempfile
+import os, shutil, socket, tempfile, time
 
-from admin import sh
 import daemon
 
-HOSTNAME = socket.gethostname()
-SALVUS = os.path.realpath(__file__)
-os.chdir(os.path.split(SALVUS)[0])
+from admin import sh
 
-class TincConf(object):
-    """
-    Generate and store all the tinc configuration files needed by a
-    node in a private temp directory, which is deleted when this instance
-    goes out of scope.
+def virsh(command, name):
+    return sh['virsh', '--connect', 'qemu:///session', command, name].strip()
 
-    Use obj.files() to get a mapping filename:absolute_path_to_file.
-    """
-    def __init__(self, ip_address):
-        path = tempfile.mkdtemp()
-        self._path = path
-
-        open(os.path.join(path, 'tinc-up'),'w').write("#!/bin/sh\nifconfig $INTERFACE %s netmask 255.255.0.0"%ip_address)
-        open(os.path.join(path, 'tinc.conf'),'w').write("Name = %s\nConnectTo = %s"%(ip_address, HOSTNAME))
-        sh['tincd', '--config', path, '-K']
-        open(os.path.join(path, ip_address),'w').write(
-            "Subnet = %s/32\n%s"%(ip_address,open(os.path.join(path, 'rsa_key.priv')).read().strip()))
-        
-        self._files = dict([(file, os.path.join(path, file)) for file in ['tinc-up', 'tinc.conf', ip_address, 'rsa_key.pub']])
-
-    def files(self):
-        return self._files
-        
-    def __del__(self):
-        shutil.rmtree(self._path)
-
-def run_vm(ip_address, machine_type, pidfile):
-    ############################
-    # tinc vpn configuration
-    ############################
-    tinc_conf = TincConf(ip_address)
-    files = tinc_conf.files()
-    # put the public key in our local db
-    shutil.copyfile(files[ip_address], os.path.join('conf', 'tinc_hosts', ip_address))
+def run_vm(ip_address, machine_type, pidfile, vcpus=2, ram=4096):
+    #################################
+    # create the copy-on-write image
+    #################################
+    vm_path = os.path.join(os.environ['HOME'], 'vm')
+    new_img = os.path.join(vm_path, ip_address + '.img')
+    base_img = os.path.join(vm_path, 'salvus_base.img')
+    sh['qemu-img', 'create', '-b', base_img, '-f', 'qcow2', new_img]
     
     #################################
-    # create vm
+    # configure the vm's image
     #################################
-    # - create the copy-on-write qcow2 image
-    img = ip_address + '.img'
-    sh['qemu-img', 'create', '-b', 'salvus_base.img', '-f', 'qcow2', img]
-    # - mount the image and configure tinc info.
-    mnt = tempfile.mkdtemp()
-    sh['guestmount', '-i', '-a', img, '--rw', mnt]
-    
-    
-    # - unmount image
-    sh['fusermount', '-u', mnt]
-    
+    # - mount the image in a temp directory
+    tmp_path = tempfile.mkdtemp()
+    sh['guestmount', '-i', '-a', new_img, '--rw', tmp_path]
+    tinc_path = os.path.join(mnt, 'home/salvus/salvus/salvus/data/local/etc/tinc/')
+    open(os.path.join(tinc_path, 'tinc-up'),'w').write(
+        "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.255.0.0"%ip_address)
+    open(os.path.join(tinc_path, 'tinc.conf'),'w').write(
+        "Name = %s\nConnectTo = %s"%(ip_address, socket.gethostname()))
+    sh['tincd', '--config', tinc_path, '-K']
+    host_file = os.path.join(tinc_path, ip_address)
+    open(host_file,'w').write("Subnet = %s/32\n%s"%(
+        ip_address, open(os.path.join(tinc_path, 'rsa_key.priv')).read().strip()))
+    # put the tinc public key in our local db, so that the vm can connect to host.
+    shutil.copyfile(host_file, os.path.join(os.path.realpath(__file__),
+                                            'conf', 'tinc_hosts', ip_address))
+    # - unmount image and remove tmp_path
+    sh['fusermount', '-u', tmp_path]
+    os.unlink(tmp_path)
 
-    # ?  -- need to stay running until vm fails
-    
+    #################################
+    # create and start the vm itself
+    #################################
+    sh['virt-install', '--cpu', 'host', '--network', 'user,model=virtio', '--name',
+       ip_address, '--vcpus',vcpus, '--ram', ram, '--import', '--disk',
+       new_img + ',device=disk,bus=virtio,format=qcow2', '--noautoconsole']
 
-    
-    
+    ##########################################################################
+    # - run until vm terminates or we receive term signal, undefined, destroy
+    ##########################################################################
+    try:
+        while virsh('domstate', ip_address) == 'running':
+            time.sleep(1)
+    except:
+        # clean up
+        virsh('destroy', ip_address)
+        virsh('undefine', ip_address)
+        os.unlink(new_img)
 
 if __name__ == "__main__":
     import argparse

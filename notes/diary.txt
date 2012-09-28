@@ -2630,3 +2630,6 @@ Filesystem                     Size  Used Avail Use% Mounted on
 
 ---------------------------
 
+  cd vm
+  qemu-img create -b salvus_base.img -f qcow2 10.38.1.20.img
+  mkdir mnt; guestmount -i -a 10.38.1.20.img --rw mnt

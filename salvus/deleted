@@ -1,3 +1,33 @@
+class TincConf(object):
+    """
+    Generate and store all the tinc configuration files needed by a
+    node in a private temp directory, which is deleted when this instance
+    goes out of scope.
+
+    Use obj.files() to get a mapping filename:absolute_path_to_file.
+    """
+    def __init__(self, ip_address):
+        path = tempfile.mkdtemp()
+        self._path = path
+
+        open(os.path.join(path, 'tinc-up'),'w').write("#!/bin/sh\nifconfig $INTERFACE %s netmask 255.255.0.0"%ip_address)
+        open(os.path.join(path, 'tinc.conf'),'w').write("Name = %s\nConnectTo = %s"%(ip_address, HOSTNAME))
+        sh['tincd', '--config', path, '-K']
+        open(os.path.join(path, ip_address),'w').write(
+            "Subnet = %s/32\n%s"%(ip_address,open(os.path.join(path, 'rsa_key.priv')).read().strip()))
+        
+        self._files = dict([(file, os.path.join(path, file)) for file in ['tinc-up', 'tinc.conf', ip_address, 'rsa_key.pub']])
+
+    def files(self):
+        return self._files
+        
+    def __del__(self):
+        shutil.rmtree(self._path)
+
+
+
+----------------------
+
             elif line.startswith('<'): # use hosts listed in first column of non-commented lines in the named file
                 for x in open(os.path.join(os.path.split(filename)[0], line.strip(' <>'))).readlines():
                     l = x.split('#')[0].strip().split()
