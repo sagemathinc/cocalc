@@ -410,7 +410,11 @@ def run_server(port, address, pidfile, logfile, whitelist):
     if logfile:
         log.addHandler(logging.FileHandler(logfile))
     log.info("port=%s, address=%s, pidfile='%s', logfile='%s', whitelist=%s", port, address, pidfile, logfile, whitelist)
-    serve(port, address, whitelist)
+    try:
+        serve(port, address, whitelist)
+    finally:
+        if pidfile:
+            os.unlink(pidfile)
 
 if __name__ == "__main__":
     import argparse
