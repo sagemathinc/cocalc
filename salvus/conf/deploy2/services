@@ -1,0 +1,4 @@
+# services
+
+[vm]
+01salvus.salv.us  {'machines':['10.38.2.%s'%i for i in range(1,4)]}

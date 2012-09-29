@@ -2657,3 +2657,14 @@ sys     11m13.054s
 
 That's pretty cool -- kvm isn't costing us much at all -- it's 81% of
 bare metal overall.
+---
+
+Working on loging now that I can start vm's, etc.
+
+salvus@01salvus:~/salvus/salvus$ . salvus-env 
+salvus@01salvus:~/salvus/salvus$ ./vm.py --ip_address=10.38.1.38 --hostname=01salvus1 --logfile=log -d
+
+
+# need to do this in the base vm:
+sage -sh
+easy_install protobuf
