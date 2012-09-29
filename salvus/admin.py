@@ -550,7 +550,7 @@ class Cassandra(Process):
 # A Virtual Machine
 ##############################################
 class VirtualMachine(Process):
-    def __init__(self, ip_address, machine_type, id=0, monitor_database=None, name='virtual_machine'):
+    def __init__(self, ip_address, vcpus=2, ram=4, vm_type='kvm', id=0, monitor_database=None, name='virtual_machine'):
         """
         INPUT:
         
@@ -562,11 +562,14 @@ class VirtualMachine(Process):
         self._ip_address = ip_address
         self._machine_type = machine_type
         pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
+        logfile = os.path.join(LOGS, 'vm-%s.log'%ip_address)
+        start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address,
+                     '--pidfile', pidfile, '--logfile', logfile,
+                     '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type]
         Process.__init__(self, id=id, name=name, port=0,
-                         pidfile = pidfile,
-                         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address, '--machine_type', machine_type, '--pidfile', pidfile],
+                         pidfile = pidfile, logfile = logfile,
+                         start_cmd = start_cmd,
                          monitor_database=monitor_database)
-        
 
 ########################################
 # tinc VPN management
