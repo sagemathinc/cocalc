@@ -555,9 +555,7 @@ class VirtualMachine(Process):
         INPUT:
         
             - ip_address -- ip_address machine gets on the VPN
-            - machine_type -- string; one of 'sage', 'web', 'cassandra'
-            - id -- optional
-            - name -- default: "virtual_machine"
+            ...TODO 
         """
         self._ip_address = ip_address
         self._machine_type = machine_type
@@ -1081,7 +1079,7 @@ class Services(object):
             commands = []
         elif action == "start":
             # TODO: when we get bigger and only cassandra runs on cassandra nodes, remove all but 22 below!
-            commands = (['allow %s'%p for p in [22,80,443,TORNADO_PORT,TORNADO_TCP_PORT,HAPROXY_PORT,NGINX_PORT]] +
+            commands = (['allow %s'%p for p in [22,80,443,655,TORNADO_PORT,TORNADO_TCP_PORT,HAPROXY_PORT,NGINX_PORT]] +
                         ['allow from %s'%ip for ip in self._hosts.ip_addresses('cassandra tornado salvus0')] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535'])
         elif action == 'status':
