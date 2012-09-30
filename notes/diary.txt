@@ -2668,3 +2668,189 @@ salvus@01salvus:~/salvus/salvus$ ./vm.py --ip_address=10.38.1.38 --hostname=01sa
 # need to do this in the base vm:
 sage -sh
 easy_install protobuf
+
+On the host machines:
+
+   sudo apt-get install guestmount
+   sudo chmod a+r /boot/vmlinuz-* # used by guestmount
+
+Trying on 02salvus:
+
+./vm.py --ip_address 2.1
+virsh -c qemu:///session qemu-monitor-command --hmp 10.38.2.1 'hostfwd_add ::2222-:22'   
+ssh localhost -p 2222
+
+
+On 04salvus:
+
+sudo apt-get install virtinst
+
+---
+
+7:10am Sept 30:
+===============
+
+I just changed the /etc/rc.local's to 
+ 
+   nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd
+
+I can autostart/stop/etc. VM's on all *salvus machines.  However, the
+tinc vpn thing doesn't work on 03salvus and 04salvus.  I have no idea
+why.  Here is my plan to find out:
+
+[] start a VM on 03salvus
+       salvus@03salvus:~$ cd salvus/salvus/; . salvus-env; ./vm.py --ip_address=3.1
+
+[] see if it works magically; if so, done -- try 04salvus 
+   DOESN'T WORK
+
+[] start a VM on 01salvus, and verify that vpn does work.
+       salvus@01salvus:~$ cd salvus/salvus/; . salvus-env; ./vm.py --ip_address=2.1
+
+[] swap in various ways the two vm credentials exactly and see what happens:
+
+   1. add host public key for 3.1 vm to 01salvus server and try to connect manually:
+       salvus@03salvus:~$ virsh -c qemu:///session qemu-monitor-command --hmp 10.38.3.1 'hostfwd_add ::2222-:22'   
+       salvus@03salvus:~$ ssh localhost -p 2222
+       salvus@10dot38dot3dot1:~$ sudo scp /home/salvus/salvus/salvus/data/local/etc/tinc/hosts/10dot38dot3dot1 salvus.math.washington.edu@01salvus:salvus/salvus/data/local/
+       salvus@10dot38dot3dot1:~$ vi /home/salvus/salvus/salvus/data/local/etc/tinc/tinc.conf  # change 03salvus to 01salvus
+       salvus@10dot38dot3dot1:~$ sudo su
+       root@10dot38dot3dot1:/home/salvus# killall tincd
+       root@10dot38dot3dot1:/home/salvus# /home/salvus/salvus/salvus/data/local/sbin/tincd -D -d3
+    ## this actually works!
+  2. OK, test that network is solid:
+salvus@10dot38dot2dot1:~$ iperf -s
+...
+salvus@10dot38dot3dot1:~$ iperf -c 10.38.2.1
+------------------------------------------------------------
+Client connecting to 10.38.2.1, TCP port 5001
+TCP window size: 22.9 KByte (default)
+------------------------------------------------------------
+[  3] local 10.38.3.1 port 48455 connected with 10.38.2.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.0 sec   213 MBytes   179 Mbits/sec
+
+  3. Inspect how tinc is configured on 03salvus versus 01salvus.
+
+salvus@01salvus:~$ ls -lh salvus/salvus/data/local/etc/tinc/
+lrwxrwxrwx 1 salvus salvus   27 Sep 27 09:06 hosts -> ../../../../conf/tinc_hosts
+-rw------- 1 salvus salvus 1.7K Sep 27 09:06 rsa_key.priv
+-rw-rw-r-- 1 salvus salvus   55 Sep 27 09:06 tinc.conf
+-rwx------ 1 salvus salvus   61 Sep 27 09:06 tinc-up
+
+salvus@03salvus:~$ ls -lh salvus/salvus/data/local/etc/tinc/
+total 12K
+lrwxrwxrwx 1 salvus salvus   27 Sep 28 22:51 hosts -> ../../../../conf/tinc_hosts
+-rw------- 1 salvus salvus 1.7K Sep 28 22:51 rsa_key.priv
+-rw-rw-r-- 1 salvus salvus   55 Sep 28 22:51 tinc.conf
+-rwx------ 1 salvus salvus   61 Sep 28 22:51 tinc-up
+
+   4. Try to connect to 03salvus from 02salvus:
+
+salvus@02salvus:~$ vi /home/salvus/salvus/salvus/data/local/etc/tinc/tinc.conf  # comment out others -- put only 03salvus
+salvus@02salvus:~$ more /home/salvus/salvus/salvus/data/local/etc/tinc/tinc.conf  
+Name = 02salvus
+ConnectTo = 03salvus
+#ConnectTo = combinat0
+#ConnectTo = bsd0
+salvus@02salvus:~$ sudo su  
+[sudo] password for salvus: 
+root@02salvus:/home/salvus# killall tincd
+root@02salvus:/home/salvus# /home/salvus/salvus/salvus/data/local/sbin/tincd -D -d3
+
+    THIS FAILS.  
+
+    Conclusion: Something wrong with 03salvus's config -- not the VM, but the server.  Inspect further. 
+  
+    Ahhh.  03salvus and 04salvus got new public keys.  I probably
+    never updated those in the base template vm.  So the problem is
+    that clients are not trusting the server (not the other way
+    around).  This is straightforward to fix, and really obvious.  I
+    must have been tired/stupid/rushed to not instantly realize this
+    before.
+
+  (done)   * make pub keys correct in repo on 01salvus (and github)
+  (done)   * shutdown my vm's
+     * start the base template vm.
+salvus@01salvus:~$ virsh start salvus_base
+
+     * pull repo
+
+salvus@01salvus:~$ ssh base.salv.us
+salvus@salvus-base:~$ cd salvus/; git pull
+
+test that can connect to 03 and 04
+
+root@salvus-base:/home/salvus/salvus/salvus/data/local/etc/tinc# scp hosts/salvus_base salvus@03salvus.math.washington.edu:salvus/salvus/data/local/etc/tinc/hosts/
+
+works!
+
+salvus@01salvus:~$ virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'   
+salvus@01salvus:~$ ssh localhost -p 2222
+
+
+     * apt-get update; apt-get upgrade
+re-edit /etc/grub.d/00_header
+     * reboot, reboot  -- works, works
+     * shutdown 
+
+     * (done) test on 01salvus
+     * push out new vm template to (rsync):
+
+salvus@01salvus:~$ time rsync --sparse vm/images/salvus_base.img 03salvus:vm/images/salvus_base.img
+salvus@03salvus's password:
+
+real    2m59.049s
+user    1m42.946s
+sys     0m8.365s
+
+This --sparse option does work:
+
+salvus@03salvus:~/vm/images$ du -sch *
+7.8G    salvus_base.img
+7.8G    total
+
+     * test 
+
+salvus@03salvus:~$ cd salvus/salvus/; . salvus-env; ./vm.py --ip_address=3.1
+
+WORKS!!
+
+[x] also test on 02 and 04 after rsync --sparse...
+
+works.
+
+
+[x] I also need to make the tinc.conf on all salvus nodes like this:
+
+ConnectTo = 01salvus
+ConnectTo = 03salvus
+ConnectTo = 04salvus
+ConnectTo = servedby1
+ConnectTo = combinat0
+ConnectTo = bsd0
+
+vi /home/salvus/salvus/salvus/data/local/etc/tinc/tinc.conf
+sudo su
+killall tincd && sleep 1 && nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd
+
+   - 02salvus -- done
+   - 01salvus
+   - 03salvus
+   - 04salvus
+
+[x] I need to pull in the latest repo (with new public keys) to all salvus nodes, and to combinat0, bsd0, servedby1:
+
+salvus@servedby1:~$ mv salvus salvus0
+salvus@servedby1:~$ git clone https://github.com/williamstein/salvus.git
+salvus@servedby1:~$ mv salvus0/salvus/data salvus/salvus/
+
+   [x] servedby1
+   [x] combinat0
+   [x] bsd0
+
+
+[x] I need to un-firewall 01-04salvus for servedby1
+
+
+
