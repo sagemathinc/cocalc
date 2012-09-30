@@ -555,12 +555,17 @@ class VirtualMachine(Process):
         INPUT:
         
             - ip_address -- ip_address machine gets on the VPN
-            - machine_type -- string; one of 'sage', 'web', 'cassandra'
-            - id -- optional
+            - vcpus -- number of cpus
+            - ram -- number of gigabytes of ram (an integer)
+            - vm_type -- 'kvm' (later maybe 'virtualbox'?)
+            - id -- optional, defaulta:0 (basically ignored)
+            - monitor_database -- default: None
             - name -- default: "virtual_machine"
         """
         self._ip_address = ip_address
-        self._machine_type = machine_type
+        self._vcpus = vcpus
+        self._ram = ram
+        self._vm_type = vm_type
         pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
         logfile = os.path.join(LOGS, 'vm-%s.log'%ip_address)
         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address,
