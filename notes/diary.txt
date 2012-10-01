@@ -3242,3 +3242,45 @@ then change owner.... works.
 
 
 OK, everything works.  The only thing left for later is automatically increasing the size.
+
+I'm my office at 9:54am.  Should prep for class but I want to do one more important thing:
+   - make it so the base templates are in a different subdir, and that one can
+     select the one to use.  This will make it much, much easier to 
+
+Snuck it in -- done by 10:14am.
+
+Now back to teaching prep.
+
+NEXT thing I must address -- I think caching to the cassandra db is *really* slow every once in a while.
+It should *NOT* block getting answers back!  Weird.  Anyways, _something_ is really slow every once
+and a while for no reason.  
+
+The problem was that I needed to run repair on the cassandra node on
+bsd1.  It was jacked.  Giving inconsistent results, etc.  I also
+turned off the sage servers on combinat, since they seemed slow,
+maybe, possibly due to heavy load by other users....
+
+Done teaching.  I'm going to see if I can understand this speed issue with salvus right now,
+then go skate jefferson.
+
+Plan:  [ ] I set USE_EXECUTION_CACHE to False and the problem persists.  So it is *not* caused by that!
+       [ ] put in more debugging code... I'm guessing cassandra choosing sage server is the problem...?
+
+[ ] turn off use of cassandra as much as possible in one particular tornado instance and test.
+
+
+
+      [ ] new plan
+
+In [1]: import cassandra
+In [2]: cassandra.set_nodes(['combinat4.salv.us','bsd1.salv.us','servedby1.salv.us'])
+In [3]: cassandra.get_sage_servers()
+Out[3]: 
+[(u'combinat3.salv.us', 6000),
+ (u'combinat2.salv.us', 6000),
+ (u'bsd2.salv.us', 6000),
+ (u'servedby2.salv.us', 6000)]
+
+
+OK, the speed problem is *entirely* that opening a new connection to
+cassandra is stupid and time consuming.

@@ -16,7 +16,7 @@ def set_nodes(nodes):
 
 # NOTE: There is no multi-host connection pool support at all in the cql python library as of Aug 2012:
 #      http://www.mail-archive.com/user@cassandra.apache.org/msg24312.html
-# We just use random robin here for now.
+# We just use round robin here for now.
 def get_node():
     global NODES, last_node
     if len(NODES) == 0: raise RuntimeError("there are no cassandra nodes")

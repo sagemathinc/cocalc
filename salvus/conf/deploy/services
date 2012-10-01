@@ -32,7 +32,7 @@ bsd0.salv.us {'nginx_servers':[{'ip':'bsd0.salv.us'}], 'tornado_servers':[{'ip':
 
 [sage] {'sudo':True}
 sage
-10.38.1.100
-10.38.2.1
-10.38.3.1
-10.38.4.1
+#10.38.1.100
+#10.38.2.1
+#10.38.3.1
+#10.38.4.1

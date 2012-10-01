@@ -3,6 +3,12 @@ TODO
 
 NOW: 
 
+BUGS:
+
+  [ ] import admin, deploy; reload(admin); reload(deploy); h = deploy.hosts; s=deploy.services
+      s.status('tornado','combinat1.salv.us')
+     # outputs two things but should output 1
+
 SOON:
 
 
