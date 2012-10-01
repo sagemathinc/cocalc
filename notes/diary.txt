@@ -2957,7 +2957,7 @@ git pull wstein@salvus0.salv.us:/Users/wstein/salvus/
  [x] Define format via sample config file.  Will be much like Service class.
  [x] Test/debug 
 
- [ ] Starting Sage service: test/debug as good example:
+ [x] Starting Sage service: test/debug as good example:
 
 $ cqlsh -3 servedby1.salv.us
 cqlsh> select * from salvus.sage_servers ;
@@ -2974,13 +2974,19 @@ user	0m0.116s
 sys	0m0.069s
 
 
-         - turning on the firewall kills tinc unless I ssh in via 2222 then it comes back and works. 
+   [x]      - turning on the firewall kills tinc unless I ssh in via 2222 then it comes back and works. 
 
-ufw --force reset && ufw allow 22 && ufw allow out 22 && ufw allow out 53 && ufw allow out 655 && ufw allow proto tcp from 10.38.1.5 to any port 6000 && ufw allow proto tcp from 10.38.1.7 to any port 6000 && ufw allow proto tcp from 10.38.1.1 to any port 6000 && ufw allow proto tcp from 10.38.1.11 to any port 6000 && ufw deny proto tcp to any port 1:65535 && ufw deny proto udp to any port 1:65535 && ufw default deny outgoing && ufw allow out 655 && ufw --force enable
+ufw --force reset && ufw allow 22 && ufw allow out 22 && ufw allow out 53 && ufw allow 655 && ufw allow out 655 && ufw allow proto tcp from 10.38.1.5 to any port 6000 && ufw allow proto tcp from 10.38.1.7 to any port 6000 && ufw allow proto tcp from 10.38.1.1 to any port 6000 && ufw allow proto tcp from 10.38.1.11 to any port 6000 && ufw deny proto tcp to any port 1:65535 && ufw deny proto udp to any port 1:65535 && ufw default deny outgoing && ufw --force enable
 
-         
- [ ] When starting sage process, make setting the firewall part of the process not the Service.
+ [x] when restarting a vm, the admin Service object caches an ssh session to the old machine, which fails.   need to delete from cache if it fails.
 
+ [x] not necessary -- we just background doing the setting and it is very fast. Maybe when starting sage process, make setting the firewall part of the process not the Service. ?
+
+ [ ] Dependencies.  When stopping services, should stop other services
+     first?  E.g., if we're stopping a vm, we should stop the services
+     on the vm.  This would be good for the sage services, since their
+     status is in the cassandra db, and will be wrong if they are not
+     properly stopped.
 
  [ ] Implement support for attaching persistent images to VM
 
@@ -2988,4 +2994,33 @@ ufw --force reset && ufw allow 22 && ufw allow out 22 && ufw allow out 53 && ufw
 
  [ ] Implement support for VirtualBox/Cloud/etc. to VirtualMachine Process class
  [ ] Test/debug
+
+
+----
+
+Disk benchmarking:
+
+  time dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
+
+sage.math: 64.9 MB/s
+
+sage.math over NFS: 82.5 MB/s
+
+sage.math ramdisk (tmpfs):  933 MB/s
+
+disk.math locally:  39.5 MB/s  (my home dir) 
+                    226 MB/s   in /lvm/data/home/, which has the RAID
+
+combinat locally:  73.7 MB/s
+
+04salvus: 135 MB/s
+
+kvm on 02salvus:  40.9 MB/s
+
+virtualbox on combinat: 63.4 MB/s
+
+virtualbox on bsd: absurd/inconsistent numbers -- must be cached in ram
+
+
+
 

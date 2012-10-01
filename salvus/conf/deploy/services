@@ -30,7 +30,7 @@ combinat0.salv.us {'nginx_servers':[{'ip':'combinat1.salv.us'}], 'tornado_server
 servedby1.salv.us {'nginx_servers':[{'ip':'servedby1.salv.us'}], 'tornado_servers':[{'ip':'servedby1.salv.us'}]}
 bsd0.salv.us {'nginx_servers':[{'ip':'bsd0.salv.us'}], 'tornado_servers':[{'ip':'bsd1.salv.us'}]}
 
-[sage] {'sudo':True, 'timeout':15}
+[sage] {'sudo':True}
 sage
 10.38.1.100
 10.38.2.1

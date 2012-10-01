@@ -731,9 +731,9 @@ class Hosts(object):
             self._password = getpass.getpass("%s's password: "%self._username)
         return self._password
 
-    def ssh(self, hostname, timeout=20, keepalive=None):
+    def ssh(self, hostname, timeout=20, keepalive=None, use_cache=True):
         key = (hostname, self._username)
-        if key in self._ssh:
+        if use_cache and key in self._ssh:
             return self._ssh[key]
         import paramiko
         ssh = paramiko.SSHClient()
@@ -780,8 +780,8 @@ class Hosts(object):
     def ip_addresses(self, query):
         return [socket.gethostbyname(h) for h in self[query]]
 
-    def exec_command(self, query, command, sudo=False, timeout=20):
-        return self.map(lambda hostname: self._exec_command(command, hostname, sudo=sudo, timeout=timeout),
+    def exec_command(self, query, command, sudo=False, timeout=20, wait=True):
+        return self.map(lambda hostname: self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait),
                         query=query)
 
     def __call__(self, *args, **kwds):
@@ -793,21 +793,21 @@ class Hosts(object):
             print
         return result
     
-    def _exec_command(self, command, hostname, sudo, timeout):
+    def _exec_command(self, command, hostname, sudo, timeout, wait):
         start = time.time()
         ssh = self.ssh(hostname, timeout=timeout)
         import paramiko
         try:
             chan = ssh.get_transport().open_session()
-        except paramiko.SSHException:
+        except:
             # try again in case if remote machine got rebooted or something...
-            if hostname in self._ssh:
-                del self._ssh[hostname]
-            chan = self.ssh(hostname, timeout=timeout).get_transport().open_session()
+            chan = self.ssh(hostname, timeout=timeout, use_cache=False).get_transport().open_session()
         stdin = chan.makefile('wb')
         stdout = chan.makefile('rb')
         stderr = chan.makefile_stderr('rb')
         cmd = ('sudo -S bash -c "%s"' % command.replace('"', '\\"')) if sudo  else command
+        if not wait:
+            cmd += "&"
         log.info("hostname=%s, command=    %s", hostname, cmd)
         chan.exec_command( cmd )
         if sudo and not stdin.channel.closed:
@@ -860,7 +860,7 @@ class Hosts(object):
     def ufw(self, query, commands):
         cmd = ' && '.join(['ufw --force reset'] + ['ufw ' + c for c in commands] +
                              (['ufw --force enable'] if commands else []))
-        return self(query, cmd, sudo=True, timeout=10)
+        return self(query, cmd, sudo=True, timeout=10, wait=False)
 
     def nodetool(self, query, args='', timeout=20):
         for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout).iteritems():
@@ -1101,10 +1101,10 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn, 
-            commands = (['allow %s'%p for p in [22]] + ['allow out %s'%p for p in [22,53,655]] +
-                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')] +
-                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535',
-                         'default deny outgoing'])
+            commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
+                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')]+
+                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
+                        )
         elif action == 'status':
             return
         else:
