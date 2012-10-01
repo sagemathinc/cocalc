@@ -34,9 +34,12 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk):
     t = time.time()
     img_path = os.path.join(os.environ['HOME'], 'vm', 'images')
     persistent_img_path = os.path.join(img_path, 'persistent')
+    temporary_img_path = os.path.join(img_path, 'temporary')
     if not os.path.exists(persistent_img_path):
         os.makedirs(persistent_img_path) 
-    new_img = os.path.join(img_path, ip_address + '.img')
+    if not os.path.exists(temporary_img_path):
+        os.makedirs(temporary_img_path) 
+    new_img = os.path.join(temporary_img_path, ip_address + '.img')
     base_img = os.path.join(img_path, 'salvus_base.img')
     try:
         #################################
