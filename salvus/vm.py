@@ -27,17 +27,45 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 def virsh(command, name):
     return run(['virsh', '--connect', 'qemu:///session', command, name], verbose=False).strip()
 
-def run_kvm(ip_address, hostname, vcpus, ram):
+def run_kvm(ip_address, hostname, vcpus, ram, disk):
     #################################
     # create the copy-on-write image
     #################################
     t = time.time()
-    vm_path = os.path.join(os.environ['HOME'], 'vm', 'images')
-    new_img = os.path.join(vm_path, ip_address + '.img')
-    base_img = os.path.join(vm_path, 'salvus_base.img')
+    img_path = os.path.join(os.environ['HOME'], 'vm', 'images')
+    persistent_img_path = os.path.join(img_path, 'persistent')
+    if not os.path.exists(persistent_img_path):
+        os.makedirs(persistent_img_path) 
+    new_img = os.path.join(img_path, ip_address + '.img')
+    base_img = os.path.join(img_path, 'salvus_base.img')
     try:
+        #################################
+        # create disk images
+        #################################
+        # Transient image based on our template
         sh['qemu-img', 'create', '-b', base_img, '-f', 'qcow2', new_img]
         log.info("created %s in %s seconds", new_img, time.time()-t); t = time.time()
+        # Persistent image(s)
+        persistent_images = []
+        for name, size in disk:
+            persistent_images.append((os.path.join(persistent_img_path, '%s-%s.img'%(ip_address, name)), name))
+            img = persistent_images[-1][0] 
+            if not os.path.exists(img):
+                try:
+                    tmp_path = tempfile.mkdtemp()
+                    log.info(tmp_path)
+                    os.chdir(tmp_path)
+                    run(['guestfish', '-N', 'fs:ext4:%sG'%size, 'quit'],maxtime=120) # creates test1.img
+                    # change owner of new img
+                    sh['mkdir', 'mnt']
+                    run(['guestmount', '-a', 'test1.img', '-m/dev/vda1', '--rw', 'mnt'], maxtime=120)
+                    sh['chown', 'salvus.', 'mnt']
+                    sh['fusermount', '-u', 'mnt']
+                    sh['rmdir', 'mnt']
+                    shutil.move(os.path.join(tmp_path, 'test1.img'), img)
+                finally:
+                    shutil.rmtree(tmp_path)
+            # TODO: else -- if too small, enlarge image if possible
 
         #################################
         # configure the vm's image
@@ -77,6 +105,18 @@ def run_kvm(ip_address, hostname, vcpus, ram):
                 open(host_file,'w').write("Subnet = %s/32\n%s"%(ip_address, public_key))
                 # put the tinc public key in our local db, so that the vm can connect to host.
                 shutil.copyfile(host_file, os.path.join(conf_path, 'tinc_hosts', hostname))
+
+                #### persisent disks ####
+                fstab = os.path.join(tmp_path, 'etc/fstab')
+                try:
+                    f = open(fstab,'a')
+                    for i,x in enumerate(persistent_images):
+                        f.write("\n/dev/vd%s1   /mnt/%s   ext4   defaults   0   1\n"%(chr(98+i),x[1]))
+                        mnt_point = os.path.join(tmp_path, 'mnt/%s'%x[1])
+                        os.makedirs(mnt_point)
+                finally:
+                    f.close()
+
             finally:
                 # - unmount image and remove tmp_path
                 sh['fusermount', '-u', tmp_path]
@@ -91,7 +131,9 @@ def run_kvm(ip_address, hostname, vcpus, ram):
         try:
             run(['virt-install', '--cpu', 'host', '--network', 'user,model=virtio', '--name',
                ip_address, '--vcpus', vcpus, '--ram', 1024*ram, '--import', '--disk',
-               new_img + ',device=disk,bus=virtio,format=qcow2,cache=writeback', '--noautoconsole'], maxtime=60)
+               new_img + ',device=disk,bus=virtio,format=qcow2,cache=writeback', '--noautoconsole'] + 
+               sum([['--disk', '%s,bus=virtio,cache=writeback'%x[0]] for x in persistent_images], []), 
+               maxtime=60)
 
             log.info("created new virtual machine in %s seconds -- now running", time.time()-t); t = time.time()
 
@@ -110,7 +152,7 @@ def run_kvm(ip_address, hostname, vcpus, ram):
         except: pass
         os.unlink(new_img)
 
-def run_virtualbox(ip_address, hostname, vcpus, ram):
+def run_virtualbox(ip_address, hostname, vcpus, ram, disk):
     raise NotImplementedError
 
 if __name__ == "__main__":
@@ -119,8 +161,6 @@ if __name__ == "__main__":
 
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
-    parser.add_argument("--vm_type", dest="vm_type", type=str, default="kvm",
-                        help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--ip_address", dest="ip_address", type=str, required=True,
                         help="ip address of the virtual machine on the VPN")
     parser.add_argument("--hostname", dest="hostname", type=str, default='',
@@ -135,6 +175,10 @@ if __name__ == "__main__":
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
+    parser.add_argument("--vm_type", dest="vm_type", type=str, default="kvm",
+                        help="type of virtual machine to create ('kvm', 'virtualbox')")
+    parser.add_argument("--disk", dest="disk", type=str, default="",
+                        help="persistent disks: '--disk=cassandra,64,backup,10' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, both formated ext4, and mounted as /cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.")
 
     args = parser.parse_args()
     
@@ -150,6 +194,12 @@ if __name__ == "__main__":
     assert args.ip_address.startswith('10.38.'), "ip address must belong to the class B network 10.38."
 
     args.hostname = args.hostname if args.hostname else args.ip_address.replace('.','dot')
+
+    try:
+        v = args.disk.split(',')
+        disk = [(v[2*i],int(v[2*i+1])) for i in range(len(v)//2)]
+    except (IndexError, ValueError):
+        raise RuntimeError("--disk option must be of the form 'name1,size1,name2,size2,...' with size in gigabytes")
 
     def main():
         global log
@@ -174,9 +224,9 @@ if __name__ == "__main__":
             open(args.pidfile,'w').write(str(os.getpid()))
 
         if args.vm_type == 'kvm':
-            run_kvm(args.ip_address, args.hostname, args.vcpus, args.ram)
+            run_kvm(args.ip_address, args.hostname, args.vcpus, args.ram, disk)
         elif args.vm_type == 'virtualbox':
-            run_virtualbox(args.ip_address, args.hostname, args.vcpus, args.ram)
+            run_virtualbox(args.ip_address, args.hostname, args.vcpus, args.ram, disk)
         else:
             print "Unknown vm_type '%s'"%args.vm_type
             sys.exit(1)
