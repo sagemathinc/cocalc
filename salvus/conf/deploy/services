@@ -2,8 +2,10 @@
 
 [vm]
 01salvus.salv.us {'ip_address':'1.100', 'vcpus':4, 'ram':2}
-#01salvus.salv.us {'ip_address':'1.101', 'vcpus':1, 'ram':1}
-#02salvus.salv.us {'ip_address':'2.1', 'vcpus':8, 'ram':4}
+01salvus.salv.us {'ip_address':'1.101', 'vcpus':1, 'ram':1}
+02salvus.salv.us {'ip_address':'2.1', 'vcpus':8, 'ram':4}
+03salvus.salv.us {'ip_address':'3.1', 'vcpus':2, 'ram':4}
+04salvus.salv.us {'ip_address':'4.1', 'vcpus':2, 'ram':4}
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus'} 
 combinat4.salv.us   {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
@@ -28,6 +30,9 @@ combinat0.salv.us {'nginx_servers':[{'ip':'combinat1.salv.us'}], 'tornado_server
 servedby1.salv.us {'nginx_servers':[{'ip':'servedby1.salv.us'}], 'tornado_servers':[{'ip':'servedby1.salv.us'}]}
 bsd0.salv.us {'nginx_servers':[{'ip':'bsd0.salv.us'}], 'tornado_servers':[{'ip':'bsd1.salv.us'}]}
 
-[sage] {'sudo':True}
+[sage] {'sudo':True, 'timeout':15}
 sage
-
+10.38.1.100
+10.38.2.1
+10.38.3.1
+10.38.4.1

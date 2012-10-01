@@ -51,3 +51,16 @@ bsd1.salv.us
 02salvus.salv.us
 03salvus.salv.us
 04salvus.salv.us
+
+[01salvus_vms]
+10.38.1.100
+10.38.1.101
+
+[02salvus_vms]
+10.38.2.1
+
+[03salvus_vms]
+10.38.3.1
+
+[04salvus_vms]
+10.38.4.1

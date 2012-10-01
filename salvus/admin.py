@@ -1011,7 +1011,7 @@ class Services(object):
 
         name = service.capitalize()
         db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))        
-        results = {}
+        results = []
 
         for hostname, options in v:
             if 'sudo' in options:
@@ -1027,7 +1027,7 @@ class Services(object):
                 
             cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
             
-            results[hostname] = self._hosts.python_c(hostname, cmd, sudo=sudo, timeout=timeout)
+            results.append((hostname, options, self._hosts.python_c(hostname, cmd, sudo=sudo, timeout=timeout)))
 
             if name == "Sage":
                 # TODO: put in separate function

@@ -2955,10 +2955,32 @@ it implemented.
 git pull wstein@salvus0.salv.us:/Users/wstein/salvus/
 
  [x] Define format via sample config file.  Will be much like Service class.
+ [x] Test/debug 
 
- [ ] Implement Infrastructure class, based on Service class.
+ [ ] Starting Sage service: test/debug as good example:
 
- [ ] Test/debug
+$ cqlsh -3 servedby1.salv.us
+cqlsh> select * from salvus.sage_servers ;
+
+Sage client test:
+
+blastoff:salvus wstein$ time echo "os.popen('hostname').read()" | ./sage_server.py -c --hostname 10.38.2.1 -p 6000
+PID = 2723
+sage [0]: '10dot38dot2dot1\n'
+sage [1]: 
+Exiting Sage client.
+real	0m0.329s
+user	0m0.116s
+sys	0m0.069s
+
+
+         - turning on the firewall kills tinc unless I ssh in via 2222 then it comes back and works. 
+
+ufw --force reset && ufw allow 22 && ufw allow out 22 && ufw allow out 53 && ufw allow out 655 && ufw allow proto tcp from 10.38.1.5 to any port 6000 && ufw allow proto tcp from 10.38.1.7 to any port 6000 && ufw allow proto tcp from 10.38.1.1 to any port 6000 && ufw allow proto tcp from 10.38.1.11 to any port 6000 && ufw deny proto tcp to any port 1:65535 && ufw deny proto udp to any port 1:65535 && ufw default deny outgoing && ufw allow out 655 && ufw --force enable
+
+         
+ [ ] When starting sage process, make setting the firewall part of the process not the Service.
+
 
  [ ] Implement support for attaching persistent images to VM
 
