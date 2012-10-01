@@ -25,3 +25,8 @@ bsd0.salv.us {'nginx_servers':[{'ip':'bsd0.salv.us'}], 'tornado_servers':[{'ip':
 
 [sage] {'sudo':True}
 sage
+
+[vm]
+01salvus.salv.us {'ip_address':'1.100', 'vcpus':4, 'ram':2}
+01salvus.salv.us {'ip_address':'1.101', 'vcpus':1, 'ram':1}
+02salvus.salv.us {'ip_address':'2.1', 'vcpus':8, 'ram':4}

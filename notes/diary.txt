@@ -2854,3 +2854,114 @@ salvus@servedby1:~$ mv salvus0/salvus/data salvus/salvus/
 
 
 
+---
+
+It looks like I get another 20 minutes before this Tish adventure on a boat today...
+
+What to do?
+
+[x] debug the VirtualMachine process object at a low level:
+
+In [1]: import admin
+In [2]: v = admin.VirtualMachine('2.1', vcpus=3, ram=3)
+
+[ ] have some fun:
+
+  >>> v = [admin.VirtualMachine('2.%s'%i, vcpus=2, ram=2)  for i in range(1,9)]
+  >>> [x.start() for x in v]
+
+TOP:
+
+64739 salvus    20   0 3973m 257m 6092 S   91  0.4   0:07.10 kvm                                                       64814 salvus    20   0 2412m  26m 6036 S   75  0.0   0:02.31 kvm                                                       64827 salvus    20   0 2412m  26m 6036 S   51  0.0   0:01.64 kvm                                                       64685 salvus    20   0 4045m 260m 6092 S   31  0.4   0:07.64 kvm                                                       64711 salvus    20   0 3973m 256m 6092 S   25  0.4   0:07.56 kvm                                                       64726 salvus    20   0 3757m 261m 6092 S   24  0.4   0:07.17 kvm                                                       64672 salvus    20   0 4109m 253m 6092 S   24  0.4   0:07.47 kvm                                                       64701 salvus    20   0 4050m 250m 6092 S   15  0.4   0:07.47 kvm       
+
+salvus@01salvus:~/salvus/salvus$ df -h
+Filesystem                 Size  Used Avail Use% Mounted on
+/dev/mapper/01salvus-root   55G   24G   29G  46% /
+
+
+salvus@01salvus:~$ virsh list --all
+ Id Name                 State
+----------------------------------
+  1 10.38.2.1            running
+  2 10.38.2.5            running
+  3 10.38.2.2            running
+  4 10.38.2.3            running
+  5 10.38.2.7            running
+  6 10.38.2.4            running
+  7 10.38.2.6            running
+
+salvus@01salvus:~/salvus/salvus$ free
+             total       used       free     shared    buffers     cached
+Mem:      65948776   44262736   21686040          0     254824   39749772
+
+In a VM:
+Cpu0  :  0.0%us,  0.0%sy,  0.0%ni,100.0%id,  0.0%wa,  0.0%hi,  0.0%si,  0.0%st
+Cpu1  :  0.8%us,  0.8%sy,  0.0%ni, 98.3%id,  0.0%wa,  0.0%hi,  0.0%si,  0.0%st
+Mem:   2051596k total,   282656k used,  1768940k free,    23988k buffers
+
+VPN Network seems rock solid.
+
+Interestingly, 2 iperf's at once don't slow things down much, if at all.  good.
+
+Stopping. good.
+
+Cleanup. good.
+
+TODO: make status output different, e.g., maybe it could give status for the kvm process too or something?
+      as it is, then %mem, etc., are useless....
+
+In [8]: [str(x.status()) for x in v]
+Out[8]: 
+["{'%mem': '0.0', 'pid': '4842', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}",
+ "{'%mem': '0.0', 'pid': '4847', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}",
+ "{'%mem': '0.0', 'pid': '4864', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}",
+ "{'%mem': '0.0', 'pid': '4882', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}",
+ "{'%mem': '0.0', 'pid': '4900', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8240'}",
+ "{'%mem': '0.0', 'pid': '4915', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}",
+ "{'%mem': '0.0', 'pid': '4935', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}"]
+
+Time to stop 8 vms:
+
+In [9]: time [x.stop() for x in v]
+CPU times: user 0.01 s, sys: 0.03 s, total: 0.04 s
+Wall time: 5.72 s
+
+
+4:17pm Sept 30:
+===============
+
+I need to have three files in my deploy list:
+
+  - hosts
+  - services
+  - infrastructure
+
+At some point, these could become three tables in a sqlite database
+that is distributed (with a table that holds every query that changes
+the table, and gets played eventually to all nodes).
+
+I really need some database-like thing -- with no single point of failure, etc., --
+to keep track of this configuration info, in the long run.
+
+   http://zookeeper.apache.org/   -- not so impressed.  
+
+Another option would be to use git.  Just store config info in these
+text files in a git repo, and pull/push it around as needed.  This
+might work?  It's what I'm doing now, basically.
+
+Right now I'm going to figure out the file-based infrastructure implementation and get
+it implemented. 
+
+ [x] Define format via sample config file.  Will be much like Service class.
+
+ [ ] Implement Infrastructure class, based on Service class.
+
+ [ ] Test/debug
+
+ [ ] Implement support for attaching persistent images to VM
+
+ [ ] Implement support for attaching swap to VM   (swap=#ofgigabytes)
+
+ [ ] Implement support for VirtualBox/Cloud/etc. to VirtualMachine Process class
+ [ ] Test/debug
+
