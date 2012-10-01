@@ -91,7 +91,7 @@ def run_kvm(ip_address, hostname, vcpus, ram):
         try:
             run(['virt-install', '--cpu', 'host', '--network', 'user,model=virtio', '--name',
                ip_address, '--vcpus', vcpus, '--ram', 1024*ram, '--import', '--disk',
-               new_img + ',device=disk,bus=virtio,format=qcow2', '--noautoconsole'], maxtime=60)
+               new_img + ',device=disk,bus=virtio,format=qcow2,cache=writeback', '--noautoconsole'], maxtime=60)
 
             log.info("created new virtual machine in %s seconds -- now running", time.time()-t); t = time.time()
 
