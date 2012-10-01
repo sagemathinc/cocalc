@@ -3212,3 +3212,33 @@ This article looks potentially useful:
 
 -----------------
 
+7:34pm Oct 1:
+===============
+
+I get about an hour work on salvus this morning, and that's most
+of what I get today.  Focus super hard and get the persistent image
+working?
+
+
+todo -- Bug to fix later -- status when machine is down, should reflect that instead of going boom!
+In [21]: s.status('sage','10.')
+INFO:root:python_c: cd "$HOME/salvus/salvus" && . salvus-env && python -c "import admin; print admin.Sage(id=0,**{'address': '10.38.1.100'}).status()"
+INFO:root:10.38.1.100 --> 
+
+Back to work on persistent disks:
+-------------------
+# /etc/fs
+
+/dev/vdb1 /mnt/b ext4 defaults 0 1
+/dev/vdc1 /mnt/c ext4 defaults 0 1
+
+permission issues...
+
+guestfish -N fs:ext4:1G
+
+guestmount -a test1.img -m/dev/vda1 --rw mnt
+
+then change owner.... works.
+
+
+OK, everything works.  The only thing left for later is automatically increasing the size.
