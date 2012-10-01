@@ -2952,6 +2952,8 @@ might work?  It's what I'm doing now, basically.
 Right now I'm going to figure out the file-based infrastructure implementation and get
 it implemented. 
 
+git pull wstein@salvus0.salv.us:/Users/wstein/salvus/
+
  [x] Define format via sample config file.  Will be much like Service class.
 
  [ ] Implement Infrastructure class, based on Service class.

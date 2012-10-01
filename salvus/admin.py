@@ -549,7 +549,7 @@ class Cassandra(Process):
 ##############################################
 # A Virtual Machine
 ##############################################
-class Virtualmachine(Process):
+class Vm(Process):
     def __init__(self, ip_address, vcpus=2, ram=4, vm_type='kvm', id=0, monitor_database=None, name='virtual_machine'):
         """
         INPUT:
