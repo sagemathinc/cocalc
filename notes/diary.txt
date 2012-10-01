@@ -2982,18 +2982,11 @@ ufw --force reset && ufw allow 22 && ufw allow out 22 && ufw allow out 53 && ufw
 
  [x] not necessary -- we just background doing the setting and it is very fast. Maybe when starting sage process, make setting the firewall part of the process not the Service. ?
 
- [ ] Dependencies.  When stopping services, should stop other services
+??? [ ] Dependencies.  When stopping services, should stop other services
      first?  E.g., if we're stopping a vm, we should stop the services
      on the vm.  This would be good for the sage services, since their
      status is in the cassandra db, and will be wrong if they are not
      properly stopped.
-
- [ ] Implement support for attaching persistent images to VM
-
- [ ] Implement support for attaching swap to VM   (swap=#ofgigabytes)
-
- [ ] Implement support for VirtualBox/Cloud/etc. to VirtualMachine Process class
- [ ] Test/debug
 
 
 ----
@@ -3015,12 +3008,90 @@ combinat locally:  73.7 MB/s
 
 04salvus: 135 MB/s
 
-kvm on 02salvus:  40.9 MB/s
+kvm on 02salvus with default cache option (whatever that is):  40.9 MB/s
+kvm on 02salvus with cache=writeback:  around 104MB/s
+
 
 virtualbox on combinat: 63.4 MB/s
 
 virtualbox on bsd: absurd/inconsistent numbers -- must be cached in ram
 
+---
+Another benchmark:
+
+salvus@10dot38dot2dot1:~$ wget http://sage.math.washington.edu/home/release/sage-5.4.rc0/sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
+2012-09-30 19:49:14 (49.7 MB/s) - `sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz' saved [738098205/738098205]
+salvus@10dot38dot2dot1:~$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz 
+real	0m46.797s
+user	0m18.109s
+sys	0m7.236s
+salvus@10dot38dot2dot1:~$ time sync
+real	0m0.319s
+user	0m0.000s
+sys	0m0.004s
+
+Versus native disk on 01salvus:
+salvus@01salvus:~/tmp$ wget http://sage.math.washington.edu/home/release/sage-5.4.rc0/sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
+2012-09-30 19:50:02 (82.0 MB/s) - `sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz' saved [738098205/738098205]
+salvus@01salvus:~/tmp$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz 
+real	0m22.142s
+user	0m17.841s
+sys	0m6.420s
+salvus@01salvus:~/tmp$ time sync
+real	0m22.804s
+user	0m0.000s
+sys	0m0.048s
+
+
+----> Combining with the sync time, it is almost the same...  Note that the vm in the test had very little ram. 
+Try again with a VM with lots (32gb) of RAM:
+
+salvus@10dot38dot2dot1:~$ free
+             total       used       free     shared    buffers     cached
+Mem:      32951292     438400   32512892          0      14248      43396
+-/+ buffers/cache:     380756   32570536
+Swap:            0          0          0
+salvus@10dot38dot2dot1:~$ wget http://sage.math.washington.edu/home/release/sage-5.4.rc0/sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
+100%[===============================================================================================================================================>] 738,098,205 86.4M/s   in 8.5s    
+salvus@10dot38dot2dot1:~$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz 
+real	0m32.921s
+user	0m18.241s
+sys	0m9.941s
+salvus@10dot38dot2dot1:~$ time sync
+real	0m8.841s
+user	0m0.000s
+sys	0m0.020s
+---------------
+
+Seems great.
+
+====================
+[ ] Implement support for attaching persistent images to VM
+
+   [ ] semantics
+
+I don't see I'm going to get any significant advantage by using LVM's
+directly over sparse images.  And sparse images will be way, way
+easier to manage, right?  Which is easier to manage?
+
+   - lvm volume: - always there as a separate volume
+                 - lvm supports snapshots
+                 - will be clear when starting VM what to do regarding persistent disk
+                 - trivial for host to also mount
+                 - much hard to move from one machine to another
+   - qcow2 image: - sparse
+                  - easy to move to another machine
+                  - easy to make a complete backup of it.
+
+I do not *need* to make complete backups of these for my application.
+I do need to keep (and test, etc.) the specially made incremental
+backups that Cassandra (the DB) produces.  But that is *it*.
+
+
+     ./vm.py ... --pdisk=cassandra1.img,size=64
+
+
+   [ ] create img file
 
 
 
