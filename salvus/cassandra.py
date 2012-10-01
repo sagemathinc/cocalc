@@ -31,16 +31,43 @@ def timestamp_to_time(t):
     """Convert a Cassandra timestamp to the same units as Python's time.time() returns, which is seconds since the Epoch."""
     return float(t)/1000
 
-def connect(keyspace='salvus'):
+pool = {}
+def connect(keyspace='salvus', use_cache=True):
+    if use_cache and pool.has_key(keyspace):  
+        return pool[keyspace]
     for i in range(len(NODES)):
         try:
-            return cql.connect(get_node(), keyspace=keyspace, cql_version='3.0.0')
+            node = get_node()
+            con = cql.connect(node, keyspace=keyspace, cql_version='3.0.0')
+            print "Connected to %s"%node
+            pool[keyspace] = con
+            return con
         except Exception, msg:
             print msg  # TODO -- logger
     raise RuntimeError("no cassandra nodes are up!! (selecting from %s)"%NODES)
 
-def cursor(keyspace='salvus'):
-    return connect(keyspace=keyspace).cursor()
+def cursor(keyspace='salvus', use_cache=True):
+    return connect(keyspace=keyspace, use_cache=use_cache).cursor()
+
+import signal
+def cursor_execute(query, param_dict=None, keyspace='salvus', timeout=1):
+    if param_dict is None: param_dict = {}
+    def f(*a):
+        raise KeyboardInterrupt
+    try:
+        signal.signal(signal.SIGALRM, f)
+        signal.alarm(timeout)
+        try:
+            cur = cursor(keyspace=keyspace)
+            cur.execute(query, param_dict)
+        except (KeyboardInterrupt, Exception), msg:
+            print msg
+            cur = cursor(keyspace=keyspace, use_cache=False)
+            cur.execute(query, param_dict)
+    finally: 
+        signal.signal(signal.SIGALRM, signal.SIG_IGN)
+    return cur
+       
 
 def keyspace_exists(con, keyspace):
     try:
@@ -144,26 +171,18 @@ def init_salvus_schema():
 import cPickle
 
 class StatelessExec(object):
-    def cursor(self):
-        if not hasattr(self, '_con'):
-            self._con = connect()
-        return self._con.cursor() 
-        
     def hash(self, input):
         return sha.sha(input).hexdigest()
 
     def __getitem__(self, input):
-        cursor = self.cursor()
-        cursor.execute("SELECT input, output FROM stateless_exec WHERE hash=:hash LIMIT 1", {'hash':self.hash(input)})
-        c = cursor.fetchone()
+        c = cursor_execute("SELECT input, output FROM stateless_exec WHERE hash=:hash LIMIT 1", 
+                 {'hash':self.hash(input)}).fetchone()
         if c is not None and len(c) > 0 and c[0] == input:
             return cPickle.loads(str(c[1]))
         
     def __setitem__(self, input, output):
-        cursor = self.cursor()
-        cursor.execute("UPDATE stateless_exec SET input = :input, output = :output WHERE hash = :hash",
+        cursor_execute("UPDATE stateless_exec SET input = :input, output = :output WHERE hash = :hash",
                        {'input':input, 'output':cPickle.dumps(output), 'hash':self.hash(input)})
-        
     
 
 ##########################################################################
@@ -172,9 +191,7 @@ class StatelessExec(object):
 
 from admin import SAGE_PORT
 def get_sage_servers():
-    cur = cursor()
-    cur.execute("SELECT address FROM sage_servers WHERE running='true'")
-    return [(address[0], SAGE_PORT) for address in cur]
+    return [(address[0], SAGE_PORT) for address in cursor_execute("SELECT address FROM sage_servers WHERE running='true'")]
 
 def record_that_sage_server_started(address):
     cursor().execute("UPDATE sage_servers SET running = 'true' WHERE address = :address", {'address':address})
