@@ -3082,16 +3082,133 @@ easier to manage, right?  Which is easier to manage?
    - qcow2 image: - sparse
                   - easy to move to another machine
                   - easy to make a complete backup of it.
+                  - supports 128-bit AES encryption.  This would be
+                    *perfect* to have -- then even if an image is
+                    copied/taken/etc, nothing is lost. 
+                    Obviously, this will entail typing a password
+                    when the vm is started, but that's ok, since
+                    I can automate that through admin.py.
+                  - of course, one can just encrypt an lvm filesystem.
+
+ecryptfs: https://help.ubuntu.com/12.04/serverguide/ecryptfs.html
+apt-get install ecryptfs-utils
+
+
+root@10dot38dot3dot1:/home/salvus# mount -t ecryptfs secret secret
+time dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
+root@10dot38dot3dot1:/home/salvus#  time dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
+536870912 bytes (537 MB) copied, 5.77535 s, 93.0 MB/s
+root@10dot38dot3dot1:/home/salvus/secret# time dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
+536870912 bytes (537 MB) copied, 9.3332 s, 57.5 MB/s
+real	0m9.336s
+
+*So, there is definitely a performance hit.*
+
+Backups:
 
 I do not *need* to make complete backups of these for my application.
 I do need to keep (and test, etc.) the specially made incremental
 backups that Cassandra (the DB) produces.  But that is *it*.
 
-
-     ./vm.py ... --pdisk=cassandra1.img,size=64
-
-
-   [ ] create img file
+     ./vm.py ... --disk=cassandra1.img,64,backup.img,10
 
 
+[ ] create img file, format ext4:
+      
+salvus@02salvus:~/tmp$ qemu-img create -f qcow2 ~/vm/images/10.38.2.1-cassandra1.img 64G
+Formatting '/home/salvus/vm/images/10.38.2.1-cassandra1.img', fmt=qcow2 size=68719476736 encryption=off cluster_size=65536 
+
+salvus@02salvus:~/tmp$ ls -lh ~/vm/images/10.38.2.1-cassandra1.img 
+-rw-r--r-- 1 salvus salvus 193K Sep 30 22:22 /home/salvus/vm/images/10.38.2.1-cassandra1.img
+
+# FAIL!!!
+# mkfs.ext4 -f ~/vm/images/10.38.2.1-cassandra1.img 
+# mount -t ext4 -o loop ~/vm/images/10.38.2.1-cassandra1.img  mnt
+
+Try this:
+sudo apt-get install libguestfs-tools
+FAIL.
+
+LAME: I have an idea -- put special code to do *all* the provisioning logic
+in salvus itself, and just call it in /etc/rc.local.
+
+Bad idea. 
+
+!! this works !! Try this:
+
+   sudo apt-get install guestfish
+
+No way, guestfish has exactly the functionality I want in something
+called the "Prepared Disk Images" section!
+
+  guestfish -N fs:ext4:1G quit   # this works
+
+# the above always creates test1.img in the current directory.
+
+[x] just to prove this worked, mount it
+
+  mkdir mnt
+  guestmount -a test1.img -m/dev/vda1 --rw mnt
+
+salvus@02salvus:~/tmp$ df -h mnt
+Filesystem      Size  Used Avail Use% Mounted on
+guestmount      7.9G  146M  7.4G   2% /home/salvus/tmp/mnt
+
+[ ] tell VM to mount it under /mnt/
+
+Do a test run to see how things come up:
+
+   qemu-img create -b ~/vm/images/salvus_base.img -f qcow2 root.img
+   fusermount -u mnt
+
+   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --disk test1.img,device=disk,bus=virtio,format=qcow2 --noautoconsole    
+
+virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --filesystem /home/salvus/tmp/mnt/,/mnt/foo  --noautoconsole    
+virsh -c qemu:///session qemu-monitor-command --hmp test1 'hostfwd_add ::2222-:22'   
+
+
+   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --disk test1.img --noautoconsole    
+
+virsh --connect qemu:///session undefine test1
+
+   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2,cache=writeback --disk test1.img,bus=virtio,cache=writeback --noautoconsole    
+
+# disk gets big when I do:  dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
+# but speed is fine.
+
+time qemu-img convert test1.img test2.img  # this results in disk that is small again!
+
+ virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2,cache=writeback --disk test1.img,bus=virtio,cache=writeback --disk test2.img,bus=virtio,cache=writeback --disk test3.img,bus=virtio,cache=writeback  --noautoconsole    
+
+# the devices are mounted in order as /dev/vda1 /dev/vdb1  /dev/vdc1 /dev/vdd1... in order of --disk on command line.
+
+So this should now be dead easy to finish.	
+
+
+-----------------
+
+[ ] Database Encryption plan: Replace the script "salvus/salvus/data/local/bin/start-cassandra"
+by making 
+
+       ./cassandra.py 
+
+do what start-cassandra does, but also have option to encrypt its path using ecryptfs.
+It will have to interactively ask for the passphrase.  Then make admin.py support this.
+NEVER pass the passphrase on the command line or as a saved file.
+
+This is the right level at which to implement encryption for salvus. 
+It will work on all of virtualbox/vmware/in the cloud/kvm, native hosts, etc. 
+It greatly simplifies implementing my own private cloud functionality.
+Also, the way ecryptfs works, evidently as long as you know the passphrase,
+you can read the files. Full stop.   If somebody steals in .img file or
+physical computer, nothing is compromised.  
+
+Even better -- I should be able to set things up so when the salvus
+user logs in via ssh (paramiko) to start cassandra, the encrypted img
+is mounted.  That would be nice.  
+
+This article looks potentially useful: 
+   http://nwrickert2.wordpress.com/2012/01/17/experimenting-with-ecryptfs/
+
+-----------------
 
