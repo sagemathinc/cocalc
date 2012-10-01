@@ -27,20 +27,24 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 def virsh(command, name):
     return run(['virsh', '--connect', 'qemu:///session', command, name], verbose=False).strip()
 
-def run_kvm(ip_address, hostname, vcpus, ram, disk):
+def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
     #################################
     # create the copy-on-write image
     #################################
     t = time.time()
     img_path = os.path.join(os.environ['HOME'], 'vm', 'images')
+    base_img_path = os.path.join(img_path, 'base')
+    if not os.path.exists(base_img_path):
+        os.makedirs(base_img_path) 
     persistent_img_path = os.path.join(img_path, 'persistent')
-    temporary_img_path = os.path.join(img_path, 'temporary')
     if not os.path.exists(persistent_img_path):
         os.makedirs(persistent_img_path) 
+    temporary_img_path = os.path.join(img_path, 'temporary')
     if not os.path.exists(temporary_img_path):
         os.makedirs(temporary_img_path) 
     new_img = os.path.join(temporary_img_path, ip_address + '.img')
-    base_img = os.path.join(img_path, 'salvus_base.img')
+    if not base.endswith('.img'): base += '.img'
+    base_img = os.path.join(base_img_path, base)
     try:
         #################################
         # create disk images
@@ -182,6 +186,8 @@ if __name__ == "__main__":
                         help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--disk", dest="disk", type=str, default="",
                         help="persistent disks: '--disk=cassandra,64,backup,10' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, both formated ext4, and mounted as /cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.")
+    parser.add_argument('--base', dest='base', type=str, default='salvus', 
+                        help="template image in ~/vm/images/base on which to base this machine; must *not* be running (default: salvus).")
 
     args = parser.parse_args()
     
@@ -227,9 +233,9 @@ if __name__ == "__main__":
             open(args.pidfile,'w').write(str(os.getpid()))
 
         if args.vm_type == 'kvm':
-            run_kvm(args.ip_address, args.hostname, args.vcpus, args.ram, disk)
+            run_kvm(args.ip_address, args.hostname, args.vcpus, args.ram, disk, args.base)
         elif args.vm_type == 'virtualbox':
-            run_virtualbox(args.ip_address, args.hostname, args.vcpus, args.ram, disk)
+            run_virtualbox(args.ip_address, args.hostname, args.vcpus, args.ram, disk, args.base)
         else:
             print "Unknown vm_type '%s'"%args.vm_type
             sys.exit(1)
