@@ -3363,12 +3363,38 @@ mv tmp.img salvus.img
   http://en.wikibooks.org/wiki/QEMU/Images#Exchanging_images_with_VirtualBox
 
   [ ] Convert salvus_base
+
+
   [ ] How to make a VirtualBox "differencing image".
 
 
+[ ] I seriously need to code in admin.py to answer questions: 
+     - "what would be deployed on a given node?"
+     - what is actually deployed on a given node
 
-[ ] I seriously need to code in admin.py to answer the question: "what is
-    deployed on a given node?"
+[x] add base and disk support to admin.py for Vm class.
 
-[ ] add base and disk support to admin.py for Vm class.
+[x] disk space -- allocate 512GB lvm on 0ksalvus for persistent disk.
 
+      lvcreate --name salvus_persistent --size 512G 01salvus
+      mkfs.ext4 /dev/mapper/01salvus-salvus_persistent
+
+Add to /etc/fstab:
+
+        /dev/mapper/01salvus-salvus_persistent  /home/salvus/vm/images/persistent ext4 defaults 1 1
+
+Then:
+
+       mount -a; chown salvus. /home/salvus/vm/images/persistent/; rm -rf /home/salvus/vm/images/persistent/lost+found/
+
+Then we can make a snapshot of persistent disks and back them up using rsync (or mirror) later...
+
+Do this on 02,03,04salvus now:
+
+lvcreate --name salvus_persistent --size 512G `hostname`; mkfs.ext4 /dev/mapper/`hostname`-salvus_persistent
+echo "/dev/mapper/`hostname`-salvus_persistent  /home/salvus/vm/images/persistent ext4 defaults 1 1" >> /etc/fstab
+mount -a; chown salvus. /home/salvus/vm/images/persistent/; rm -rf /home/salvus/vm/images/persistent/lost+found/
+
+DONE.
+
+  [ ] learn rsnapshot and setup nightly backups where 0ksalvus is backed up to (0k+1)salvus?
