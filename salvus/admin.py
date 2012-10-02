@@ -831,10 +831,10 @@ class Hosts(object):
     def build(self, query, pkg_name, timeout=250):
         return self(query, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
-    def python_c(self, query, cmd, timeout=30, sudo=False):
+    def python_c(self, query, cmd, timeout=30, sudo=False, wait=True):
         command = 'cd \"$HOME/salvus/salvus\" && . salvus-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
-        return self(query, command, sudo=sudo, timeout=timeout)
+        return self(query, command, sudo=sudo, timeout=timeout, wait=wait)
 
     def apt_upgrade(self, query):
         # some nodes (e.g., sage nodes) have a firewall that disables upgrading via apt,
