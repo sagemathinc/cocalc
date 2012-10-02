@@ -188,7 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("--vm_type", dest="vm_type", type=str, default="kvm",
                         help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--disk", dest="disk", type=str, default="",
-                        help="persistent disks: '--disk=cassandra,64,backup,10' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, both formated ext4, and mounted as /cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.")
+                        help="persistent disks: '--disk=cassandra:64,backup:10' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, both formated ext4, and mounted as /cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.")
     parser.add_argument('--base', dest='base', type=str, default='salvus', 
                         help="template image in ~/vm/images/base on which to base this machine; must *not* be running (default: salvus).")
 
@@ -208,10 +208,9 @@ if __name__ == "__main__":
     args.hostname = args.hostname if args.hostname else args.ip_address.replace('.','dot')
 
     try:
-        v = args.disk.split(',')
-        disk = [(v[2*i],int(v[2*i+1])) for i in range(len(v)//2)]
+        disk = [x.split(':') for x in args.disk.split(',')]
     except (IndexError, ValueError):
-        raise RuntimeError("--disk option must be of the form 'name1,size1,name2,size2,...' with size in gigabytes")
+        raise RuntimeError("--disk option must be of the form 'name1:size1,name2:size2,...', with size in gigabytes")
 
     def main():
         global log

@@ -558,7 +558,7 @@ class Vm(Process):
             - vcpus -- number of cpus
             - ram -- number of gigabytes of ram (an integer)
             - vm_type -- 'kvm' (later maybe 'virtualbox'?)
-            - disk -- string 'name1,size1,name2,size2,...' with size in gigabytes
+            - disk -- string 'name1:size1,name2:size2,...' with size in gigabytes
             - base -- string (default: 'salvus'); name of base vm image
             - id -- optional, defaulta:0 (basically ignored)
             - monitor_database -- default: None
