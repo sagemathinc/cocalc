@@ -550,7 +550,7 @@ class Cassandra(Process):
 # A Virtual Machine
 ##############################################
 class Vm(Process):
-    def __init__(self, ip_address, vcpus=2, ram=4, vm_type='kvm', id=0, monitor_database=None, name='virtual_machine'):
+    def __init__(self, ip_address, vcpus=2, ram=4, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine'):
         """
         INPUT:
         
@@ -558,6 +558,8 @@ class Vm(Process):
             - vcpus -- number of cpus
             - ram -- number of gigabytes of ram (an integer)
             - vm_type -- 'kvm' (later maybe 'virtualbox'?)
+            - disk -- string 'name1,size1,name2,size2,...' with size in gigabytes
+            - base -- string (default: 'salvus'); name of base vm image
             - id -- optional, defaulta:0 (basically ignored)
             - monitor_database -- default: None
             - name -- default: "virtual_machine"
@@ -570,7 +572,7 @@ class Vm(Process):
         logfile = os.path.join(LOGS, 'vm-%s.log'%ip_address)
         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address,
                      '--pidfile', pidfile, '--logfile', logfile,
-                     '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type]
+                     '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type, '--disk', disk, '--base', base]
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,
                          start_cmd = start_cmd,

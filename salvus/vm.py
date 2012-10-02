@@ -159,8 +159,11 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
         except: pass
         os.unlink(new_img)
 
-def run_virtualbox(ip_address, hostname, vcpus, ram, disk):
+def run_virtualbox(ip_address, hostname, vcpus, ram, disk, base):
     raise NotImplementedError
+
+
+
 
 if __name__ == "__main__":
     import argparse
