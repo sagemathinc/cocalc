@@ -3263,14 +3263,12 @@ maybe, possibly due to heavy load by other users....
 Done teaching.  I'm going to see if I can understand this speed issue with salvus right now,
 then go skate jefferson.
 
-Plan:  [ ] I set USE_EXECUTION_CACHE to False and the problem persists.  So it is *not* caused by that!
-       [ ] put in more debugging code... I'm guessing cassandra choosing sage server is the problem...?
+Plan:  [x] I set USE_EXECUTION_CACHE to False and the problem persists.  So it is *not* caused by that!
+       [x] put in more debugging code... I'm guessing cassandra choosing sage server is the problem...?
 
-[ ] turn off use of cassandra as much as possible in one particular tornado instance and test.
+[x] turn off use of cassandra as much as possible in one particular tornado instance and test.
 
-
-
-      [ ] new plan
+[x] new plan
 
 In [1]: import cassandra
 In [2]: cassandra.set_nodes(['combinat4.salv.us','bsd1.salv.us','servedby1.salv.us'])
@@ -3284,3 +3282,93 @@ Out[3]:
 
 OK, the speed problem is *entirely* that opening a new connection to
 cassandra is stupid and time consuming.
+
+I ended up working for nearly 2 hours, but now the use of cassandra is massively better.
+It automatically fails over only if there is a connection error or it takes more than 1
+second to do something.  In that case, screw that server -- try another. 
+
+Now we solidly get about 0.09 on fresh comps.
+
+Oct 1, 2012 at 8:05pm:
+======================
+
+I'm tired, but could work on salvus for an hour if I can muster the strength.
+
+Upcoming projects:
+
+   - roll out salvus running on new 4-machine private cloud, including databases
+
+   - change combinat to use kvm instead of vbox
+
+   - polish admin.py some more.
+
+   - start working on GUI and functionality now that I have a solid backend
+
+   - support virtualbox VM's in my vm.py script, so I can manage all
+     infrastructure via admin.py, instead of kvm only.
+
+I'm going to look into making vm.py work with VirtualBox.  It would be handy.
+
+I restructured the ~/vm/images path on 02salvus and in my code.  I need to update
+code and make that change on 01,03,04salvus.  Doing that now.
+
+   
+   cd salvus; git pull wstein@salvus0.salv.us:/Users/wstein/salvus/; cd ~/vm/images; mkdir base; mv salvus_base.img base/salvus.img; emacs /home/salvus/vm/qemu/salvus_base.xml
+
+DONE.
+
+I also just updated the base VM and added ecryptfs-utils.
+
+Re-shrink base image on 01salvus:
+
+Before:
+salvus@01salvus:~/vm/images/base$ du -sch salvus.img 
+8.0G	salvus.img
+8.0G	total
+salvus@01salvus:~/vm/images/base$ du -sc salvus.img 
+8359236	salvus.img
+8359236	total
+
+time qemu-img convert salvus.img tmp.img
+
+After (surprisingly, not much better):
+salvus@01salvus:~/vm/images/base$ du -sch tmp.img
+7.8G	tmp.img
+7.8G	total
+salvus@01salvus:~/vm/images/base$ du -sc tmp.img
+8098872	tmp.img
+8098872	total
+
+
+Test, then rsync out to other nodes.
+
+cp salvus.img backups/salvus-2012-10-02.img
+mv tmp.img salvus.img
+./push
+
+[x] enable passwordless login between 0k-salvus machines
+
+  ssh-keygen -b 2048
+  cd .ssh
+  cp id_rsa.pub authorized_keys
+  cd
+  rsync -axvH  .ssh/ 02salvus:.ssh/
+  rsync -axvH  .ssh/ 03salvus:.ssh/
+  rsync -axvH  .ssh/ 04salvus:.ssh/
+
+
+
+[ ] This site looks good for how to convert a qemu image to a vbox image.
+
+  http://en.wikibooks.org/wiki/QEMU/Images#Exchanging_images_with_VirtualBox
+
+  [ ] Convert salvus_base
+  [ ] How to make a VirtualBox "differencing image".
+
+
+
+[ ] I seriously need to code in admin.py to answer the question: "what is
+    deployed on a given node?"
+
+[ ] add base and disk support to admin.py for Vm class.
+
