@@ -26,23 +26,23 @@ servedby1.salv.us   # 10.38.1.11
 servedby2.salv.us   # 10.38.1.12
 
 [sage]
-combinat2.salv.us
-combinat3.salv.us
+#combinat2.salv.us
+#combinat3.salv.us
 servedby2.salv.us
 bsd2.salv.us
 
 [cassandra]
-combinat4.salv.us
+#combinat4.salv.us
 bsd1.salv.us
 servedby1.salv.us
 
 [web]
-combinat1.salv.us
+#combinat1.salv.us
 servedby1.salv.us
 bsd1.salv.us
 
 [tornado]
-combinat1.salv.us
+#combinat1.salv.us
 servedby1.salv.us
 bsd1.salv.us
 

@@ -3526,18 +3526,40 @@ DETAILS tinc:
          I think this just means changing the netmask in tinc-up to
          255.0.0.0 and that is it.
 
-try this on 
+try this on
 
    - my laptop
    - 01salvus
    - my vm template system
+
+
+emacs salvus/salvus/data/local/etc/tinc/tinc-up; sudo killall tincd; sudo salvus/salvus/data/local/sbin/tincd
+
 
 and test.
 
      [ ] remove combinat0 from hosts/ path on git repo
      [ ] change to using ip addresses everywhere (no more names)
 
+ARGH -- weirdly all the new dell machines are inaccessible over the
+network right now, so I can't do anything anyways.  i'll get up very
+early tomorrow and work on this after I am doing preping to teach.
 
-  
-  
+LET THIS BE A WARNING TO ME!  
+
+Now salvus is running on servedby, combinat (for the sage sessions --
+it isn't dead?), and bsd. But it is running!
+
+---------
+
+Oct 3, 2012:
+
+  - i just tested switching to a class A network, and it works fine.  Yes.
+  - i fixed the salvus machines and combinat -- indeed, it was ufw gone crazy!
+
+--
+
+I just got approved via wstein@uw.edu for 8 Google Compute Engine
+instances for testing.   I will mention this in my talk tomorrow,
+and start planning to set them up!
 
