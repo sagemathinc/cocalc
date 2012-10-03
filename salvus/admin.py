@@ -631,7 +631,7 @@ def tinc_conf(hostname, connect_to, external_ip=None, delete=True):
     tinc_up = os.path.join(TARGET, 'tinc-up')
     open(tinc_up,'w').write(
 """#!/bin/sh
-ifconfig $INTERFACE %s netmask 255.255.0.0
+ifconfig $INTERFACE %s netmask 255.0.0.0
 """%ip_address)
     os.chmod(tinc_up, stat.S_IRWXU)
 
@@ -656,31 +656,28 @@ Subnet = %s/32"""%(external_ip, ip_address))
     # generate keys
     sh['data/local/sbin/tincd', '-K']
         
-    print "pushing out host file to servers (for security, requires typing password a few times):"
-    for h in connect_to:
-        addr = None
-        for x in open(os.path.join(TARGET, 'hosts', h)).readlines():
-            v = x.split()
-            if v[0].lower().startswith('address'):
-                addr = v[2]
-                break
-        if addr is None:
-            raise RuntimeError, "unable to find address of host %s"%h
-        run(['scp', host_file, addr + ':' + os.path.join('salvus/salvus', TARGET, 'hosts/')], maxtime=60)
+    # print "pushing out host file to servers (for security, requires typing password a few times):"
+    # for h in connect_to:
+    #     addr = None
+    #     for x in open(os.path.join(TARGET, 'hosts', h)).readlines():
+    #         v = x.split()
+    #         if v[0].lower().startswith('address'):
+    #             addr = v[2]
+    #             break
+    #     if addr is None:
+    #         raise RuntimeError, "unable to find address of host %s"%h
+    #     run(['scp', host_file, addr + ':' + os.path.join('salvus/salvus', TARGET, 'hosts/')], maxtime=60)
 
-    print "Starting tincd"
-    tincd = os.path.abspath('data/local/sbin/tincd')
-    sh['sudo', tincd, '-k']
-    sh['sudo', tincd]
+    #print "Starting tincd"
+    #tincd = os.path.abspath('data/local/sbin/tincd')
+    #sh['sudo', tincd, '-k']
+    #sh['sudo', tincd]
 
-    print "To join the vpn automatically on startup,"
+    print "To join the vpn on startup,"
     print "add this line to /etc/rc.local:\n"
     print "  nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd"
-    print "\nWhen you git pull on some remote hosts, you may have to"
-    print "delete the host files we pushed out above first"
-    print "You might also want to git add, push, etc., the new"
-    print "host file for this machine..."
-
+    print "You must also add the hosts file to the git repo then pull on"
+    print "at least one of the ConnectTo machines to connect."
 
     
 ########################################
