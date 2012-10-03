@@ -99,7 +99,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
 
                 tinc_path = os.path.join(tmp_path, 'home/salvus/salvus/salvus/data/local/etc/tinc/')
                 open(os.path.join(tinc_path, 'tinc-up'),'w').write(
-                    "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.255.0.0"%ip_address)
+                    "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.0.0.0"%ip_address)
                 open(os.path.join(tinc_path, 'tinc.conf'),'w').write(
                     "Name = %s\nConnectTo = %s"%(hostname, socket.gethostname()))
                 rsa_key_priv = os.path.join(tinc_path, 'rsa_key.priv')
@@ -199,16 +199,18 @@ if __name__ == "__main__":
     if args.pidfile:
         args.pidfile = os.path.abspath(args.pidfile)
     if args.ip_address.count('.') == 0:
-        args.ip_address = '10.38.1.' + args.ip_address
+        args.ip_address = '10.1.1.' + args.ip_address
     elif args.ip_address.count('.') == 1:
-        args.ip_address = '10.38.' + args.ip_address
+        args.ip_address = '10.1.' + args.ip_address
+    elif args.ip_address.count('.') == 2:
+        args.ip_address = '10.' + args.ip_address
 
-    assert args.ip_address.startswith('10.38.'), "ip address must belong to the class B network 10.38."
+    assert args.ip_address.startswith('10.'), "ip address must belong to the class A network 10."
 
     args.hostname = args.hostname if args.hostname else args.ip_address.replace('.','dot')
 
     try:
-        disk = [x.split(':') for x in args.disk.split(',')]
+        disk = [x.split(':') for x in args.disk.split(',')] if args.disk else []
     except (IndexError, ValueError):
         raise RuntimeError("--disk option must be of the form 'name1:size1,name2:size2,...', with size in gigabytes")
 
