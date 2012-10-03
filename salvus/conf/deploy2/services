@@ -1,4 +1,35 @@
 # services
 
 [vm]
-01salvus.salv.us  {'machines':['10.38.2.%s'%i for i in range(1,4)]}
+10.1.1.1     {'ip_address':'1.1.2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+10.1.1.1     {'ip_address':'1.1.3', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+
+[cassandra] {'timeout':30, 'cluster_name':'salvus'} 
+10.1.1.2     {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
+10.2.1.2     {'seed':True, 'topology':'DC0:RAC0', 'initial_token':56713727820156410577229101238628035242}
+10.3.1.1     {'seed':True, 'topology':'DC0:RAC0', 'initial_token':113427455640312821154458202477256070484}
+
+[nginx]
+10.1.1.1
+10.2.1.1
+10.3.1.1
+
+[tornado]
+10.1.1.1
+10.2.1.1
+10.3.1.1
+
+[stunnel] {'sudo':True}
+10.1.1.1
+10.2.1.1
+10.3.1.1
+
+[haproxy] {'sudo':True}
+10.1.1.1 {'nginx_servers':[{'ip':'10.1.1.1'}], 'tornado_servers':[{'ip':'10.1.1.1'}]}
+10.2.1.1 {'nginx_servers':[{'ip':'10.2.1.1'}], 'tornado_servers':[{'ip':'10.2.1.1'}]}
+10.3.1.1 {'nginx_servers':[{'ip':'10.3.1.1'}], 'tornado_servers':[{'ip':'10.3.1.1'}]}
+
+[sage] {'sudo':True}
+10.1.1.3
+10.2.1.3
+10.3.2.1
