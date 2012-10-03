@@ -1,6 +1,46 @@
 # sites
 
-[01salvus]
-10.38.2.1
-10.38.2.2
-10.38.2.3
+# 10.1 = padelford server room
+# 10.1.1 = 01salvus
+# 10.1.2 = 02salvus
+# 10.1.3 = 03salvus
+# 10.1.4 = 04salvus
+# 10.2 = my office
+# 10.2.1.1 = bsd.math.washington.edu
+# 10.2.1.2 = bsd vm -- cassandra
+# 10.2.1.3 = bsd vm
+# 10.2.1.4 = bsd vm
+# 10.2.1.5 = bsd vm
+# 10.3 = servedby
+# 10.3.1.1 = "servedby1"
+# 10.3.2.1 = "servedby2"
+# 10.4 = tower data center
+# 10.5 = AWS (?)
+
+[laptop]
+salvus0.salv.us   # 10.38.1.1
+
+[office]
+bsd0.salv.us     # 10.38.1.4
+bsd1.salv.us     # 10.38.1.5
+bsd2.salv.us     # 10.38.1.6
+
+[servedby]
+servedby1.salv.us   # 10.38.1.11
+servedby2.salv.us   # 10.38.1.12
+
+[sage]
+servedby2.salv.us
+bsd2.salv.us
+
+[cassandra]
+bsd1.salv.us
+servedby1.salv.us
+
+[web]
+servedby1.salv.us
+bsd1.salv.us
+
+[tornado]
+servedby1.salv.us
+bsd1.salv.us

@@ -783,8 +783,12 @@ class Hosts(object):
         return [socket.gethostbyname(h) for h in self[query]]
 
     def exec_command(self, query, command, sudo=False, timeout=20, wait=True):
-        return self.map(lambda hostname: self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait),
-                        query=query)
+        def f(hostname):
+            try:
+                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait)
+            except Exception, msg:
+                return {'stdout':None, 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
+        return self.map(f, query=query)
 
     def __call__(self, *args, **kwds):
         result = self.exec_command(*args, **kwds)
@@ -808,16 +812,16 @@ class Hosts(object):
         stdout = chan.makefile('rb')
         stderr = chan.makefile_stderr('rb')
         cmd = ('sudo -S bash -c "%s"' % command.replace('"', '\\"')) if sudo  else command
-        if not wait:
-            cmd += "&"
-        log.info("hostname=%s, command=    %s", hostname, cmd)
-        chan.exec_command( cmd )
+        log.info("hostname=%s, command='%s'", hostname, cmd)
+        chan.exec_command(cmd)
         if sudo and not stdin.channel.closed:
             try:
                 print "sending sudo password..."
                 stdin.write('%s\n' % self.password()); stdin.flush()
             except:
                 pass                 # could have closed in the meantime if password cached
+        if not wait:
+            return {'stdout':None, 'stderr':None, 'exit_status':None, 'note':"wait=False: '%s'"%cmd}
         while not stdout.channel.closed:
             time.sleep(0.05)
             if time.time() - start >= timeout:
@@ -851,7 +855,7 @@ class Hosts(object):
     def apt_install(self, query, pkg):
         # EXAMPLE:   hosts.apt_install('cassandra', 'openjdk-7-jre')
         try:
-            return self(query, 'ufw --force disable && apt-get -y install %s'%pkg, sudo=True, timeout=120)
+            return self(query, 'ufw --force disable && apt-get -y --force-yes install %s'%pkg, sudo=True, timeout=120)
         finally:
             self(query,'ufw --force enable', sudo=True, timeout=120)
         
@@ -864,8 +868,8 @@ class Hosts(object):
                              (['ufw --force enable'] if commands else []))
         return self(query, cmd, sudo=True, timeout=10, wait=False)
 
-    def nodetool(self, query, args='', timeout=20):
-        for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout).iteritems():
+    def nodetool(self, args='', query='cassandra', wait=False, timeout=120):
+        for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait).iteritems():
             print k
             print v['stdout']
 
