@@ -3615,6 +3615,57 @@ I'm going to give a talk tomorrow on Salvus.  My goals in giving this talk are:
   * get useful feedback, and maybe key help
 
   
+Working on setting up vpn and kvm for other hosts.  
+
+I've change the tinc names to match hostnames.  This means I need to
+update salvus on all tinc vpn servers, which are:
+
+   '01salvus', '02salvus', '03salvus', '04salvus', 'geom', 'combinat', '
+
+and also salvus_base, which I will want to push out.  So:
+
+ # on 01salvus (say), but could do this on any 0ksalvus or geom or combinat:
+
+    cd salvus; git pull
+    virsh start salvus_base
+    ssh base.salv.us
+    cd salvus/salvus/
+    git pull
+    sudo shutdown -h now
+
+# launch pushing out new vm:
+(This should be in the git repo!)
+
+salvus@01salvus:~$ more vm/images/base/push
+#!/usr/bin/env python
+
+import os
+
+BASE = 'vm/images/base/'
+
+for hostname in ['%02dsalvus.math.washington.edu'%k for k in [1,2,3,4]] + \
+                ['%s.math.washington.edu'%h for h in ['geom','combinat']]:
+    cmd = "rsync --sparse -uaxvH %s %s:vm/images/base/ &"%(BASE, hostname)
+    print cmd
+    os.system(cmd)
+
+---
+
+Setup to use 01salvus as base git repo:
+
+  cd salvus; git remote rm origin; git remote add origin 01salvus.math.washington.edu:salvus/; git pull origin master
+  
+
+# on 01salvus:
+
+   cd salvus; git pull
+   ssh 01salvus "cd salvus; git pull origin master"
+   ssh 02salvus "cd salvus; git pull origin master"
+   ssh 03salvus "cd salvus; git pull origin master"
+   ssh 04salvus "cd salvus; git pull origin master"
+   ssh geom.math.washington.edu "cd salvus; git pull origin master"
+   ssh combinat.math.washington.edu "cd salvus; git pull origin master"
+
 
 
 

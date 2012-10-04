@@ -112,16 +112,17 @@ def is_running(pid):
 # Misc misc network stuff
 ##########################################################################
 
-def local_ip_address():
+def local_ip_address(dest='8.8.8.8'):
     """
     Return the ip address of the local network interface that is used
-    to communicate with the internet.
+    to communicate with the given destination address.
+    The default dest is 8.8.8.8, which is google's DNS.
     """
     # See http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
     # Obviously, this requires internet access.
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8",80))
+    s.connect((dest,80))
     return s.getsockname()[0]
 
 
