@@ -1,12 +1,5 @@
 # services
 
-[vm]
-#01salvus.salv.us {'ip_address':'1.100', 'vcpus':4, 'ram':2}
-#01salvus.salv.us {'ip_address':'1.101', 'vcpus':1, 'ram':1}
-#02salvus.salv.us {'ip_address':'2.1', 'vcpus':8, 'ram':4}
-#03salvus.salv.us {'ip_address':'3.1', 'vcpus':2, 'ram':4}
-#04salvus.salv.us {'ip_address':'4.1', 'vcpus':2, 'ram':4, 'disk':'test1:1,test2:2'}
-
 [cassandra] {'timeout':30, 'cluster_name':'salvus'} 
 combinat4.salv.us   {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 bsd1.salv.us        {'seed':True, 'topology':'DC0:RAC0', 'initial_token':56713727820156410577229101238628035242}
@@ -14,25 +7,18 @@ servedby1.salv.us   {'seed':True, 'topology':'DC0:RAC0', 'initial_token':1134274
 
 [nginx]
 web
-#combinat0.salv.us
-bsd0.salv.us
+bsd.salv.us
 
 [tornado]
 tornado
 
 [stunnel] {'sudo':True}
-#combinat0.salv.us
 servedby1.salv.us
-bsd0.salv.us
+bsd.salv.us
 
 [haproxy] {'sudo':True}
-#combinat0.salv.us {'nginx_servers':[{'ip':'combinat1.salv.us'}], 'tornado_servers':[{'ip':'combinat1.salv.us'}]}
 servedby1.salv.us {'nginx_servers':[{'ip':'servedby1.salv.us'}], 'tornado_servers':[{'ip':'servedby1.salv.us'}]}
-bsd0.salv.us {'nginx_servers':[{'ip':'bsd0.salv.us'}], 'tornado_servers':[{'ip':'bsd1.salv.us'}]}
+bsd.salv.us {'nginx_servers':[{'ip':'bsd.salv.us'}], 'tornado_servers':[{'ip':'bsd1.salv.us'}]}
 
 [sage] {'sudo':True}
 sage
-#10.38.1.100
-#10.38.2.1
-#10.38.3.1
-#10.38.4.1
