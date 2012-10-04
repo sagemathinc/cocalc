@@ -59,13 +59,14 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
         # Persistent image(s)
         persistent_images = []
         for name, size in disk:
+            if name == 'test1':
+                # TODO: a temporary constraint due to not using guestfish below more carefully
+                raise RuntimeError("persistent disk image can't be called test1")
             persistent_images.append((os.path.join(persistent_img_path, '%s-%s.img'%(ip_address, name)), name))
-            img = persistent_images[-1][0] 
+            img = persistent_images[-1][0]
             if not os.path.exists(img):
+                os.chdir(persistent_img_path)
                 try:
-                    tmp_path = tempfile.mkdtemp()
-                    log.info(tmp_path)
-                    os.chdir(tmp_path)
                     run(['guestfish', '-N', 'fs:ext4:%sG'%size, 'quit'],maxtime=120) # creates test1.img
                     # change owner of new img
                     sh['mkdir', 'mnt']
@@ -73,10 +74,14 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
                     sh['chown', 'salvus.', 'mnt']
                     sh['fusermount', '-u', 'mnt']
                     sh['rmdir', 'mnt']
-                    shutil.move(os.path.join(tmp_path, 'test1.img'), img)
+                    # move to have correct name
+                    shutil.move('test1.img', img)
                 finally:
-                    shutil.rmtree(tmp_path)
-            # TODO: else -- if too small, enlarge image if possible
+                    if os.path.exists('test1.img'):
+                        os.unlink('test1.img')
+            else:
+                pass
+                # TODO: else -- if too small, enlarge image if possible
 
         #################################
         # configure the vm's image
