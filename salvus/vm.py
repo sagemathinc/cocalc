@@ -86,7 +86,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
                 #### hostname ####
                 hostname_file = os.path.join(tmp_path,'etc/hostname')
                 if not os.path.exists(hostname_file):
-                    raise RuntimeError("missing /etc/hostname in the VM image-- the guestmount command is not working; run with verbose directly, check for permission issues, etc.")
+                    raise RuntimeError("missing /etc/hostname in the VM image; probably the guestmount command is not working, and the fix is probably to type 'sudo chmod a+r /boot/vmlinuz-*'")
                     
                 os.unlink(hostname_file)
                 open(hostname_file,'w').write(hostname)

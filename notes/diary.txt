@@ -3563,3 +3563,58 @@ I just got approved via wstein@uw.edu for 8 Google Compute Engine
 instances for testing.   I will mention this in my talk tomorrow,
 and start planning to set them up!
 
+
+I'm going to try to make it so I can run vm's on geom just as easily as 0ksalvus. 
+
+Packages (and important fix):
+
+   sudo apt-get install python-software-properties; sudo add-apt-repository ppa:ubuntu-virt/kvm-network-hang; sudo apt-get update; sudo apt-get install qemu-kvm  guestfish guestmount virtinst; sudo apt-get remove unattended-upgrades; sudo apt-get autoremove
+
+Base image:
+
+   Copy/paste over ssh public key from 01salvus to authorized keys on salvus@geom
+
+   salvus@geom: mkdir vm; mkdir vm/images/; mkdir vm/images/base
+
+# Remove old .libvirt on geom and replace by one from 01salvus, and symlink to 
+
+   salvus@geom: rm -rf ~/.libvirt; cd vm; ln -s ~/.libvirt/qemu .; scp -r 01salvus:.libvirt ~/
+
+   salvus@01salvus:~/vm/images/base$ rsync --sparse -axvH ./ geom.math.washington.edu:vm/images/base/
+
+# Making it so virsh works
+
+   echo 'export VIRSH_DEFAULT_CONNECT_URI="qemu:///session"' >> ~/.bashrc; source ~/.bashrc
+   virsh list --all
+
+# Fix permissions so that guestmount works (run this *and* put in /etc/rc.local)
+
+   sudo chmod a+r /boot/vmlinuz-* # used by guestmount  
+ 
+
+Build salvus:
+ 
+   git clone https://github.com/williamstein/salvus.git
+   cd salvus/salvus
+   . salvus-env
+   ./build.py --build_all
+
+Setup vpn:
+
+   admin.tinc_conf('geom0',['combinat0','bsd0','01salvus','02salvus','03salvus','04salvus','servedby1'])
+
+
+Oct 3, 2012
+===========
+
+I'm going to give a talk tomorrow on Salvus.  My goals in giving this talk are:
+
+  * clarify for myself what I've done and where I'm going with this project
+  * clarify for myself what hardware and organizations are involved
+  * clarify for myself what is left to do
+  * get useful feedback, and maybe key help
+
+  
+
+
+
