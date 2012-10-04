@@ -3590,6 +3590,8 @@ Base image:
 # Fix permissions so that guestmount works (run this *and* put in /etc/rc.local)
 
    sudo chmod a+r /boot/vmlinuz-* # used by guestmount  
+
+Add salvus to the kvm, libvirt and fuse groups in etc/group
  
 
 Build salvus:
@@ -3607,14 +3609,6 @@ Setup vpn:
 Oct 3, 2012
 ===========
 
-I'm going to give a talk tomorrow on Salvus.  My goals in giving this talk are:
-
-  * clarify for myself what I've done and where I'm going with this project
-  * clarify for myself what hardware and organizations are involved
-  * clarify for myself what is left to do
-  * get useful feedback, and maybe key help
-
-  
 Working on setting up vpn and kvm for other hosts.  
 
 I've change the tinc names to match hostnames.  This means I need to
@@ -3670,3 +3664,102 @@ Setup to use 01salvus as base git repo:
 OK, the above is now automated.  W00t!
 
 Need a script to *restart* tinc.
+
+---
+
+Trying to get rid of last virtualbox vm on combinat.
+
+This is: combinat4.salv.us = 10.38.1.10
+
+I'm first just trying to copy off the cassandra-0 directory, which is actually quite small 
+
+Making a test machine on geom:
+
+  salvus@geom:~/salvus/salvus$ ./vm.py --ip_address=10.37.1.10 --disk=cassandra:64
+
+However, strangely the persistent disk on there is *not* sparse.  WEIRD.  So I'll
+try on 01salvus.
+
+Actually, this is just something I didn't implement correctly!
+
+I'll see if I can figure this out really quickly.
+
+I think I fixed this problem -- it was due to moving a sparse img file
+across filesystems using Python.  At least that was why there was a
+problem on salvus.
+
+
+NEXT, after I completely finish preping my talk, or at least want to work on salvus again,
+I want to:
+
+   - lay out my new deployment
+   - implement features I need to make it work (especially using
+     cassandra on persistent disk nodes where one gets /mnt/cassandra to start with)
+   - start up a whole new thing just on 0ksalvus
+   - test
+   - stop old one
+   - expand new one to encompass old one
+   - turn off combinat4 
+   - uninstall virtualbox on combinat
+   - test that kvm works on combinat
+
+
+===   
+
+I'm going to give a talk tomorrow on Salvus.  My goals in giving this talk are:
+
+  * clarify for myself what I've done and where I'm going with this project
+  * clarify for myself what hardware and organizations are involved
+  * clarify for myself what is left to do
+  * get useful feedback, and maybe key help
+
+Outline of talk.
+
+
+Title slide
+
+
+Project goals
+
+  * project to make Sage (and other math software) very robustly
+    available over the internet to a large number of users.
+
+  * generate revenue to support core sage development
+
+
+
+Dedicated resources:
+ 
+  * 4 3Ghz 16-core 64GB RAM, 1TB disk, 1U servers in Padelford basement
+  * 1 8-core 32GB RAM machine in my office
+  * 3 3Ghz 16-core 64GB RAM, 6TB disk, 1U servers currently being shiped to the UW tower
+  * 2 servers at servedby.net (a cloud host)
+  * Google Compute Engine: "quota of 8 instances, 8 CPUs, 8 ephemeral IP addresses, 8 persistent disks, and 100GB of persistent disk space."
+Current monthly fixed cost: $60/month (for UW tower hosting)
+
+
+Technology stack:
+
+  * Virtualization:  libvirt + kvm
+  * VPN: tinc
+  * Database: cassandra
+  * SSL: stunnel   -- https://salv.us
+  * Proxy: haproxy
+  * Static HTTP: nginx
+  * Dynamic HTTP: tornado
+  * Math compute: sage
+  * Messages: Google protobuf2 (and JSON)
+  * Management: Paramiko + much new code
+
+
+Client/server communication:
+
+  * SockJS -- websocket connection between browser and tornado, when
+    supported; otherwise, falls back to other long-polling approaches
+
+  * TCP + SSL -- standard UNIX Socket connection for non-browser
+    clients, e.g, command line.
+
+  * HTTP -- old-fashioned POST for simple HTTP clients
+
+   
