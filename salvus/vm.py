@@ -43,6 +43,10 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
     if not os.path.exists(temporary_img_path):
         os.makedirs(temporary_img_path) 
     new_img = os.path.join(temporary_img_path, ip_address + '.img')
+
+    if os.path.exists(new_img):
+        raise RuntimeError("the image '%s' already exists; maybe the virtual machine is already running?"%new_img)
+
     if not base.endswith('.img'): base += '.img'
     base_img = os.path.join(base_img_path, base)
     try:
