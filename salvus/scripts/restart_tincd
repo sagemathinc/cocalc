@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+sudo killall tincd
+sudo `pwd`/../data/local/sbin/tincd

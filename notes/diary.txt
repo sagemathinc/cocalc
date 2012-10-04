@@ -3667,5 +3667,6 @@ Setup to use 01salvus as base git repo:
    ssh combinat.math.washington.edu "cd salvus; git pull origin master"
 
 
+OK, the above is now automated.  W00t!
 
-
+Need a script to *restart* tinc.
