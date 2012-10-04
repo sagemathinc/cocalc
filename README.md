@@ -74,22 +74,22 @@ Diagram
    Client    Client    Client   Client   Client  Client
      /|\
       |
-   https1.1 (websocket)
+   https1.1 (websocket, etc.)
       |
-      |
-     \|/ https://salv.us
+      |   https://salv.us
+     \|/ 
  HAProxy Load Balancers                      
  /|\       /|\      /|\      /|\
   |         |        |        |                                                
   |https1.1 |        |        |                                     
  \|/       \|/      \|/      \|/                                      
-Tornado  Tornado  Tornado  Tornado    <--------------------------->   Cassandra   Cassandra    Cassandra
-           /|\      /|\                                                  /|\
-            |        |        ------------------------------------------> |
-   ---------|        |        |                                          \|/
-   |                 |-----------------------------------------------> Log Processes     
+Tornado  Tornado  Tornado  Tornado    <--------------------------->   Cassandra   Cassandra    Cassandra ...
+           /|\      /|\                                                 /|\
+            |        |        -------------------------------------------|
+   ---------|        |        |                                         
+   |                 |        |
    |                          |
   \|/                        \|/
- SageServer   SageServer  SageServer   SageServer
+ SageServer   SageServer  SageServer   SageServer ...
 
 </pre>

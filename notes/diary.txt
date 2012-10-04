@@ -3719,27 +3719,124 @@ Outline of talk.
 Title slide
 
 
-Project goals
+  Salvus - Adj. meaning well, unharmed, sound; alive; safe, saved
+ 
+  Pictures
+
+
+Project goals:
 
   * project to make Sage (and other math software) very robustly
     available over the internet to a large number of users.
 
-  * generate revenue to support core sage development
+  * generate revenue to support core sage development: working with UW
+    C4C on license agreement, payment system, etc., they get 20% of
+    revenue and the other 80% goes in the sage foundation account
 
+  * if successful, spin off as a separate company in a few years.
 
+Similar Projects:
 
-Dedicated resources:
+  Programming, but no math:
+     * http://c9.io -- "Your code anywhere, anytime... Write, run, and debug your code with our powerful and flexible cloud IDE."
+     * https://www.appsoma.com/ -- "Code & run in the cloud"
+     * http://www.heroku.com/ -- "cloud application platform"
+
+  Math, but no programming or scalable computation:
+     * http://www.wolframalpha.com/
+
+  Sage:
+     * http://sagenb.org -- online notebooks
+     * http://aleph.sagemath.org -- single embeddable sage snippet
+
+  Cloud hosting -- can do everything, but expensive and complicated...
+     * http://aws.amazon.com/ -- Amazon Web Services
+     * http://www.linode.com/ -- Deploy and Manage Linux Virtual Servers in the Linode Cloud.
+
+Emails:
+
+On Wed, Sep 26, 2012 at 9:54 AM, Chris Seberino <cseberino@gmail.com> wrote:
+> I have a Xen Ubuntu Linux 1 Gb RAM virtual machine  from a provider called
+> Linode.
+>
+
+Linode charges $39.95/month for your 1GB machine.  For a 4GB machine,
+which would be more likely to work well, you would have to pay
+$159.95/month.
+
+My plan with http://salv.us/ -- which I'm working hard on right now --
+is to buy a bunch of hardware (mostly done), host it at UW, write much
+better more efficient software to make Sage ("highly") available
+through it, and provide enough guaranteed resources for a class like
+you have... for *substantially* less than $159.95/month, since the
+monthly hosting and network fees I have to pay at UW are super-cheap.
+
+Stay tuned...
+
+ -- William
+
+Longterm Programmng Goals (Features):
+
+  * A very simple starter page where you can type a calculation in a
+    box (no login required) with tab completion and interact support.
+    If you login, then you can easily browse/search/share all past
+    computations you've ever done.  Support for mobile browsers from
+    the start.  This is all you will often need.
+
+  * Users can have many projects.  A project is defined by a git
+    repository, which salvus stores.  Many users can share the same
+    project.  It can be linked to github (or google code, or
+    bitbucket, etc.)  Thus a project provides a directory tree of
+    files, and there is a revision history.
+
+  * A command line -- alternative way to browse a project, and will
+    be like the bash command line.   Can type "sage" to run Sage here. 
+
+  * Editing documents -- Salvus will also provide browser-based
+    editing of several file types, starting with .sws files (for
+    compatibility with sage), but also supporting many other file
+    types, and ways of working with documents and data.  Multiple
+    users can simultaneously edit a document; changes are broadcast
+    and updated on all clients.  Also, editors for .py files, .pyx
+    files, csv files, presentations, etc.  Special support for the
+    Sage library itself as a project.
+
+  * Publishing -- this is like Heroku or Google App Engine; it will
+    support making a persistent Sage-based application available to
+    many users, either with a specific URL, or embedded in another
+    web page (like with aleph.sagemath.org widgets).  Show example
+    on Rob Beezer's website.   Paying users can allocate dedicated
+    hosting resources for their app.
+
+  * Graphics -- the entire approach to 2d and 3d graphics in the Sage
+    notebook is terrible and will have to be re-done right using some
+    combination of SVG, HTML5 Canvas and WebGL.  The eventual goal is
+    no Java applets and no static png images.
+
+  * Chat/cross-user messaging -- useful for teaching, online classes,
+    tutorials, etc.
+
+However... my entire approach to Salvus is the exact opposite of the
+monolithic single-point-of-failure Sage notebook:
+
+  * Taking my time and doing things right (and have thrown away huge
+    amounts of code I wrote this summer).  With the sage notebook, I
+    wrote something that *looks* and feels a lot like the current
+    version in a sleep-deprived month.  
+
+  * Architecture is very service-based.  Numerous independent
+    components running on dozens of machines communicating securely
+    via messages over a VPN.
+
+  * Design goal -- absolutely no single points of failure anywhere in
+    the design of salvus.  
+
+(Note: The demo at http://salv.us is very unimpressive, because all the
+real work is behind the scenes.)
+
+Salvus Technology stack:
  
-  * 4 3Ghz 16-core 64GB RAM, 1TB disk, 1U servers in Padelford basement
-  * 1 8-core 32GB RAM machine in my office
-  * 3 3Ghz 16-core 64GB RAM, 6TB disk, 1U servers currently being shiped to the UW tower
-  * 2 servers at servedby.net (a cloud host)
-  * Google Compute Engine: "quota of 8 instances, 8 CPUs, 8 ephemeral IP addresses, 8 persistent disks, and 100GB of persistent disk space."
-Current monthly fixed cost: $60/month (for UW tower hosting)
-
-
-Technology stack:
-
+  * Physical Hardware and Remote VM's
   * Virtualization:  libvirt + kvm
   * VPN: tinc
   * Database: cassandra
@@ -3747,19 +3844,209 @@ Technology stack:
   * Proxy: haproxy
   * Static HTTP: nginx
   * Dynamic HTTP: tornado
-  * Math compute: sage
+  * Math/compute: forking tcp-based Sage server
   * Messages: Google protobuf2 (and JSON)
   * Management: Paramiko + much new code
-
 
 Client/server communication:
 
   * SockJS -- websocket connection between browser and tornado, when
     supported; otherwise, falls back to other long-polling approaches
-
   * TCP + SSL -- standard UNIX Socket connection for non-browser
     clients, e.g, command line.
-
   * HTTP -- old-fashioned POST for simple HTTP clients
+
+
+Diagram (make it using mindmap):
+
+   Client    Client    Client   Client   Client  Client
+     /|\
+      |
+   https1.1 (websocket, etc.)
+      |
+      |   https://salv.us
+     \|/ 
+ HAProxy Load Balancers                      
+ /|\       /|\      /|\      /|\
+  |         |        |        |                                                
+  |https1.1 |        |        |                                     
+ \|/       \|/      \|/      \|/                                      
+Tornado  Tornado  Tornado  Tornado    <--------------------------->   Cassandra   Cassandra    Cassandra ...
+           /|\      /|\                                                 /|\
+            |        |        -------------------------------------------|
+   ---------|        |        |                                         
+   |                 |        |
+   |                          |
+  \|/                        \|/
+ SageServer   SageServer  SageServer   SageServer ...
+
+   
+Discussion of each component -- rest of talk.
+
+ 
+
+Physical Hardware and Remote VM's:
+----------------------------------- 
+  * 4 3Ghz 16-core 64GB RAM, 1TB disk, 1U servers in Padelford basement
+  * 1 8-core 32GB RAM machine in my office
+  * 3 3Ghz 16-core 64GB RAM, 6TB disk, 1U servers currently being shiped to the UW tower
+  * 2 servers at servedby.net (a cloud host)
+  * Google Compute Engine: "8 single CPU instances with 100GB of persistent disk space"
+
+Current monthly fixed cost: $60/month (for UW tower hosting)
+
+This should be enough to support several thousand paying customers
+(and many free customers), which will bring in enough money to expand.
+
+Pricing will likely be around $10/month per user for the first tier of
+non-free account, which competes very well with linnode + sagenb
+($100/month?).   
+
+Goal by end of March 2013: Have 1,500 worldwide paying users at
+$10/month, which is what the above hardware should easily be able to
+support, done right. That's also more than my entire full-time salary.
+
+Virtualization:  libvirt + kvm:
+-------------------------------
+
+  * Virtualization is absolutely essential due to allowing users to
+    remotely execute arbitrary code (ok, with sagenb.org nothing is
+    virtualizaed, but that is just a ticking bomb, which keeps going
+    off!)  
+
+  * Public clouds: many companies now rent virtual machines.
+ 
+  * Private clouds: startup many virtual machines based on a template
+    with certain parameters, start services running on them.  When the
+    machine shuts down, it leaves no trace (except persistent sparse
+    disk images).
+
+  * The *only* persistent data in all of Salvus is in the distributed
+    database.  Plan is that this sits in a disk partition that is
+    encrypted using the Linux ecryptfs filesystem and a passphrase
+    that I type in (exactly once from my management interface) when
+    starting the database.
+
+  * Demo showing spinning up some VM's vm.py
+
+  * Demo showing spinning up 5 vm's on multiple machines using
+    services file.
+    
+  * OpenStack, CloudStack, OpenNebula, etc. -- war of the private
+    cloud software distributions.  I spent quite a bit of time
+    investigating all this, and its snake oil right now, at least for
+    what I'm doing -- basically a lot of companies and people are
+    making noise about implementing something open source kind of like
+    what Amazon and VMware already did years ago, but with all the
+    real work being doing by libvirt.  (This will likely be useful for
+    something in a year or two, but now it is worse than useless.)
+    The real work is libvirt, kvm (or xen).  I think Redhat put a ton
+    of serious money/development into supporting the creation of high
+    quality virtualization support -- KVM -- that is built into the
+    Linux kernel now.  This is what I'm using directly... in the end,
+    to do everything I want nicely, I wrote a few hundred lines of
+    code (vm.py) and learned about how to get around subtle bugs.
+
+
+VPN: tinc
+-----------
+
+  * http://www.tinc-vpn.org/
+
+  * I'm NOT using http://openvpn.net/, even though it is enormously
+    popular...  because all traffic goes through a master VPN server,
+    which is a single point of failure.
+
+  * tinc is "a Virtual Private Network (VPN) daemon that uses
+    tunnelling and encryption to create a secure private network
+    between hosts on the Internet."  
+
+    Key features:
+         - Every public facing machine on the vpn also acts as a
+           server, so clients (virtual machines, public cloud
+           instances) can connect as long as *any* public-facing
+           maching is up.   
+         - It's P2P -- not all traffic has to go through one 
+           master node, which could be very inefficient. 
+         - All traffic is encrypted.
+         - Easy/sensible; oo add a machine to the VPN, you just
+           generate a public and private key, then add the public key
+           to at least one public facing machine.
+         - A small C program that builds in seconds, and has been
+           under development since 1998.
+      
+  * by using a VPN, I can easily combine cloud computers, my own
+    computers, etc., and don't have to worry about ip addresses
+    changing.  Also, I don't have to worry about securing
+    communication between the different services or vm's in salvus.
+    For a long time, I was worrying about things such as implementing
+    SSL + TCP communication between the Tornado web server and backend
+    Sage process; I threw all that code away, and instead just use a
+    VPN and have a nice clean class A address space as a bonus.
+ 
+Database: Cassandra
+====================
+
+The database is the only persistent component of Salvus.  It stores
+everybody's data -- it's the memory of what the system is.  It's thus
+an absolutely crucial design decision.
+
+  * PostgreSQL is very nice, as is MySQL and even SQLite.  I really
+    wanted to use all three, and tried very, very hard to do so (and
+    wrote a lot of code that I threw away).  Then I started thinking
+    seriously about the amount of data I will have to manage with the
+    number of users I plan to have in the long run.  And I read books
+    about how to scale website using mysql.  What they do is very
+    difficult and ugly, e.g., sharding -- a bunch of different
+    databases based on usernames.  (I also read a lot about
+    SQLalchemy, used PostgreSQL in a big research project, etc.)
+
+  * Then the Padelford server room blew up for the n-th time, and I
+    firmly decided on no SPOF's as an *Axiom*.  From this perspective,
+    relational databases like PostgreSQL become even more difficult to
+    use. You have to have a master database, at least one other slave
+    databases replicating it, and some sort of automatic failover that
+    is activated when your software decides the master is not working
+    (which is not an easy thing to decide!).
+
+      "I'd like to welcome the github ops/dbas to the club of people
+      who've learned the hard way that automated database failover
+      usually causes more downtime than it prevents."
+
+      http://news.ycombinator.com/item?id=4524340
+
+    Basically, it's not easy.  I want easy!
+
+  * One of the motivations for the recent wave of "NoSQL databases" is
+    creation of databases that have no single point of failure.  They
+    scale up by just adding more small machines, and one can configure
+    how redundant they are.  I had learned a lot about MongoDB (a
+    noSQL database) a few years ago, and after getting LMFDB.org to
+    use it a lot (and using it for my own database work), I think it
+    sucks.... for me at least. 
+
+      "Does everyone hate MongoDB?"
+      http://news.ycombinator.com/item?id=4570790
+
+    I read about and tried out every noSQL database I could find.  (I
+    even wrote one: http://code.google.com/p/nosqlite/) For my
+    particular use case, by far the best one is Apache Cassandra
+    (cassandra.apache.org), which is an open source database with
+    copyright owned by Apache, and also commercial support from a
+    company.  It is written in Java, which I'm no fan of, but still I
+    really like Cassandra.  Unlike many options, Cassandra is pretty
+    heavily used by serious companies.  E.g, Netflix makes enormous
+    use of Cassandra, as does Disney.  Cassandra was originally
+    written by Facebook, who open sourced it, hence it gained a lot of
+    traction in the open source world (unlike say Google's internal
+    databases, which they did not open source -- now I understand what
+    Craig Citro was talking about last year...).
+
+  * Cassandra was in fact the only database that satisfied my
+    constraints (mature, distributed, scalable, support for multiple
+    data centers); there wasn't any competition.  I've been using it
+    for a while now, and I'm impressed.  I started with version 1.1
+    using CQL3, which looks like a restricted subset of SQL, with NO
+    JOINS or relations at all between tables!
 
    
