@@ -3841,11 +3841,10 @@ Salvus Technology stack:
   * VPN: tinc
   * Database: cassandra
   * SSL: stunnel   -- https://salv.us
-  * Proxy: haproxy
+  * Load balancing: haproxy
   * Static HTTP: nginx
   * Dynamic HTTP: tornado
   * Math/compute: forking tcp-based Sage server
-  * Messages: Google protobuf2 (and JSON)
   * Management: Paramiko + much new code
 
 Client/server communication:
@@ -3927,11 +3926,6 @@ Virtualization:  libvirt + kvm:
     that I type in (exactly once from my management interface) when
     starting the database.
 
-  * Demo showing spinning up some VM's vm.py
-
-  * Demo showing spinning up 5 vm's on multiple machines using
-    services file.
-    
   * OpenStack, CloudStack, OpenNebula, etc. -- war of the private
     cloud software distributions.  I spent quite a bit of time
     investigating all this, and its snake oil right now, at least for
@@ -4050,3 +4044,139 @@ an absolutely crucial design decision.
     JOINS or relations at all between tables!
 
    
+SSL: stunnel   -- https://salv.us
+=================================
+
+  * One of the main motivations for rewriting the sage notebook "back
+    in the day" to use twisted was to support SSL, i.e., encrypted
+    communcation between the user's browser and sagenb.org.  This
+    worked, but we never properly signed the cert, so users got a
+    terrifying warning when they visited sagenb.org, and it was deamed
+    easier to just remove the security than deal with the cert stuff.
+
+  * It turns out that one can easily make *any* webapp using SSL
+    encryption without having to touch the code that defines that
+    website -- just use the program stunnel!
+
+  * Getting a properly signed SSL certificate setup isn't impossible.
+    (I even bought my cert for $12.99 by some trick... though UW actually
+     offers free sigs if you're patient.)
+
+  * https://salv.us works and doesn't give a security warning on any
+    devices I've tested it on.
+ 
+  * This component is a no-brainer. 
+
+  * With salvus we run a couple of stunnel's and put them all in DNS, so
+    the browser chooses one.  When an stunnel fails, the browser will just
+    load a different one.   No SPOF.
+
+Load balancing: haproxy
+=======================
+
+The stunnel process directs all requests to another program called
+haproxy (which can be running on a different computer or the same
+computer).  Haproxy is now the canonical open source load balancer
+program.  Haproxy in monitors a bunch of web servers (for salvus, that
+means nginx servers and tornado servers), makes sure they are working,
+and balancing incoming connections between them.  The static content
+requests go to nginx.  The dynamic websocket connections go to tornado
+servers.
+
+Static HTTP: nginx
+==================
+
+nginx seems to be the canonical choice for serving a huge number of
+static webpages efficiently.  It was easy to setup and use.  It's
+lightweight and easy to build from source.    
+
+nginx is single threaded.  This is absolutely key to its success in
+serving huge numbers of requests per second.  It's far more efficient
+than the old apache approach, which would spawn a thread or process
+per request.
+
+
+Dynamic HTTP: tornado
+=====================
+
+Tornado is basically a clean self-contained nicely coded webserver
+written in Python that works a lot like twisted (i.e., it is
+asynchronous), but is much simpler and more targeted.  It was written
+by some company that Facebook bought, and facebook then open sourced
+it.  It's pretty much the only solution I could find for serving
+websocket connections using a Python webserver -- I couldn't see a way
+to do websockets with the WSGI servers, which most python webservers
+are (e.g., flask).
+
+Ipython also uses tornado.
+
+Tornado does well in benchmarks.  It is *single threaded*!
+
+One can read all the documenation for tornado in a few hours, and you
+really know all you need to know, except what you'll learn from the
+excellent source code.
+
+One concern I have is that right now the way Tornado talks to
+cassandra is not asynchronous -- I may have to write a better
+driver. Database queries are typically super fast though, by the
+nature of cassandra slow queries simply aren't allowed by the
+language.
+
+
+
+Math/compute: forking tcp-based Sage server
+============================================
+
+I wrote from scratch a TCP server that starts up as a Sage process
+with various things pre-imported such as graphics, Maxima, etc.,
+listens on a socket (running as root), accepts a connection, forks,
+lowers privileges, executes blocks of sage code, and streams results
+back over the connection.  
+
+The design is much different than with the SAge notebook, where one
+process watches another.  Here, as code executes, the running process
+itself sends messages whenever it wants containing whatever it wants.
+The tornado server receives these messages and routes them on (either
+directly to a connected client, or to another tornado server to which
+a client is connected).
+
+All communication uses Google Protobuf2 binary format for speed and
+clarity.  protobuf2 is a brilliant way of *defining* a message
+protocol.  And it is very, very efficient and well supported.
+
+Management: Paramiko + much new code
+====================================
+
+First I tried to do management by writing a Tornado-based management
+web application that had a database backend.  This got painful and
+ugly quickly, but looked cool and powerful.
+
+I then wrote a big Python program to do component administration
+(starting and stopping the many programs listed above), using mainly
+Python Subprocess module, and only got it working on a single machine. 
+
+Then -- just as with private clouds, I found that there are tons (and
+tons!) of programs out there for managing installing and running
+software on a bunch of machine.  I found one called Ansible that I
+kind of liked at first, but found it to be too immature and not so
+widely used.  There were some other solutions, but they seemed like
+massive overkill.  I spent quite a bit of time investigating them. 
+But for every actual application, there is a bunch of subtle logic
+that just has to be figured out and coded, and I had a lot of that down
+from my code mentioned above.
+
+I took some of the good design ideas from Ansible, and the really,
+really good underlying library Ansible uses -- Paramiko, which is a
+nearly complete re-implementation of ssh in Python.  Regarding
+Paramiko, it is very good code and it has excellent documentation.
+The documentation is a bit odd, because it visibly looks ugly,
+unorganized and bad, at first glance.  But when I actually started
+*using* it to get work done, it is incredibly good.
+
+So I adopted some of the code mentioned above, and have something that
+really works now.  This is actually where *most* of the code I've
+written and kept has gone.  
+
+-------
+
+Next time I talk, I'll give demos...
