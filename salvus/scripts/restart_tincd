@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-sudo killall tincd
-sudo `pwd`/../data/local/sbin/tincd
+sudo killall tincd; sudo $HOME/salvus/salvus/data/local/sbin/tincd
