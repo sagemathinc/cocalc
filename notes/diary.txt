@@ -3891,8 +3891,12 @@ Physical Hardware and Remote VM's:
   * 3 3Ghz 16-core 64GB RAM, 6TB disk, 1U servers currently being shiped to the UW tower
   * 2 servers at servedby.net (a cloud host)
   * Google Compute Engine: "8 single CPU instances with 100GB of persistent disk space"
+  * Google App Engine: I received $60,000 via a research grant program -- not sure how to use it yet!
 
 Current monthly fixed cost: $60/month (for UW tower hosting)
+
+Amazon (in multiple ways) also told me they would give me free
+credits, but didn't deliver.  They are big and confused/confusing.
 
 This should be enough to support several thousand paying customers
 (and many free customers), which will bring in enough money to expand.
@@ -4036,7 +4040,7 @@ an absolutely crucial design decision.
     databases, which they did not open source -- now I understand what
     Craig Citro was talking about last year...).
 
-  * Cassandra was in fact the only database that satisfied my
+  * Cassandra seems to be the only database that satisfied my
     constraints (mature, distributed, scalable, support for multiple
     data centers); there wasn't any competition.  I've been using it
     for a while now, and I'm impressed.  I started with version 1.1
@@ -4121,7 +4125,6 @@ cassandra is not asynchronous -- I may have to write a better
 driver. Database queries are typically super fast though, by the
 nature of cassandra slow queries simply aren't allowed by the
 language.
-
 
 
 Math/compute: forking tcp-based Sage server

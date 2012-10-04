@@ -47,6 +47,676 @@
 
 
 <div class="slide">
+<h1>Project Goals</h1>
+<ul>
+<li>Make Sage (and other math software) very robustly
+    available over the internet to a large number of users</li>
+<li>Generate substantial revenue to support core sage development: working with UW
+    C4C on license agreement, payment system, etc., they get 20% of
+    revenue and the other 80% goes in the sage foundation account</li>
+<li>If successful, will spin off as a separate company in a few years.</li>
+<li>If successful, will hire elite developers to work fulltime on the
+    core research-level mathematical algorithms in Sage.</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+<div class="slide">
+<h1>Related Projects</h1>
+<ul>
+<li>Programming, but no math
+<ul>
+<li> http://c9.io -- <font size=2>"Your code anywhere, anytime... Write, run, and debug your code with our powerful and flexible cloud IDE."</font></li>
+<li> http://www.heroku.com/ -- "cloud application platform"</li>
+<li> https://www.appsoma.com/ -- "Code & run in the cloud"</li>
+</ul></li>
+<li>Math, but no programming or scalable computation
+<ul>
+<li>http://www.wolframalpha.com/</li>
+</ul></li>
+<li>Sage/Ipython
+<ul>
+<li>http://sagenb.org -- online notebooks</li>
+<li>http://aleph.sagemath.org -- single embeddable sage snippet</li>
+<li>http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html -- ipython notebook</li>
+</ul></li>
+
+<li>Cloud hosting -- can do everything, but expensive and complicated...
+<ul>
+<li>http://aws.amazon.com/ -- Amazon Web Services</li>
+<li>http://www.linode.com/ -- <font size=2>"Deploy and Manage Linux Virtual Servers in the Linode Cloud."</font></li>
+</ul>
+</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+<div class="slide">
+<h1>sage-support mailing list a few days ago</h1>
+<font size=+3>
+<pre>
+On Wed, Sep 26, 2012 at 9:54 AM, Chris Seberino <cseberino@gmail.com> wrote:
+> I have a Xen Ubuntu Linux 1 Gb RAM virtual machine  from a provider 
+> called Linode.
+>
+
+<a href="http://linode.com">Linode</a> charges $39.95/month for your 1GB machine.  For a 4GB machine,
+which would be more likely to work well, you would have to pay
+$159.95/month.
+
+My plan with http://salv.us/ -- which I'm working hard on right now --
+is to buy a bunch of hardware (mostly done), host it at UW, write much
+better more efficient software to make Sage ("highly") available
+through it, and provide enough guaranteed resources for a class like
+you have... for *substantially* less than $159.95/month, since the
+monthly hosting and network fees I have to pay at UW are super-cheap.
+
+Stay tuned...
+
+ -- William
+</pre></font>
+<div class="handout">
+</div>
+</div>
+
+
+
+<div class="slide">
+<h1>Longterm Programing Goals (part 1)</h1>
+<ul>
+<li> A very simple starter page where you can type a calculation in a
+    box (no login required) with tab completion and interact support.
+    If you login, then you can easily browse/search/share all past
+    computations you've ever done.  Support for mobile browsers from
+    the start.  This is all you will often need.</li>
+
+<li> Users can have many projects.  A project is defined by a git
+    repository, which salvus stores.  Many users can share the same
+    project.  It can be linked to github (or google code, or
+    bitbucket, etc.)  Thus a project provides a directory tree of
+    files, and there is a revision history.</li>
+
+<li> A command line -- alternative way to browse a project, and will
+    be like the bash command line.   Can type "sage" to run Sage here. </li>
+
+</ul>
+</div>
+
+<div class="slide">
+<h1>Longterm Programing Goals (part 2)</h1>
+<ul>
+
+
+<li> Editing documents -- Salvus will also provide browser-based
+    editing of several file types, starting with .sws files (for
+    compatibility with sage), but also supporting many other file
+    types, and ways of working with documents and data.  Multiple
+    users can simultaneously edit a document; changes are broadcast
+    and updated on all clients.  Also, editors for .py files, .pyx
+    files, csv files, presentations, etc.  Special support for the
+    Sage library itself as a project.</li>
+
+<li> Publishing -- this is like Heroku or Google App Engine; it will
+    support making a persistent Sage-based application available to
+    many users, either with a specific URL, or embedded in another web
+    page (like with aleph.sagemath.org widgets).  Rob Beezer's
+    website.  Paying users can allocate dedicated hosting resources
+    for their app.</li>
+
+<li> Chat/cross-user messaging -- useful for teaching, online classes,
+    tutorials, etc.</li>
+
+<!-- <li> Graphics -- the entire approach to 2d and 3d graphics in the Sage
+    notebook is terrible and will have to be re-done right using some
+    combination of SVG, HTML5 Canvas and WebGL.  The eventual goal is
+    no Java applets and no static png images.</li>-->
+
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+<div class="slide">
+<h1>Approach to Salvus</h1>
+My entire approach to Salvus is the <b>exact opposite</b> of the
+monolithic single-point-of-failure Sage notebook:
+<ul>
+  <li> Taking my time and doing things right (and have thrown away huge
+    amounts of code I wrote this summer).  With the sage notebook, I
+    wrote something that <i>looks</i> and feels a lot like the current
+    version in a sleep-deprived month.  </li>
+
+  <li> Architecture is very service-based.  Numerous independent
+    components running on dozens of machines communicating securely
+    via messages over a VPN.</li>
+
+  <li> Design goal -- absolutely no single points of failure anywhere in
+    the design of salvus.  </li>
+
+  <li> Concise -- researched existing solutions  to make new code
+     shorter and clearer, instead of just implementing everything from
+     scratch.</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+<div class="slide">
+<h1>The Salvus Stack</h1>
+<ul>
+
+  <li> Private physical hardware, virtualization ( libvirt + kvm), public clouds</li>
+  <li> VPN: tinc</li>
+  <li> Database: cassandra</li>
+ <li> SSL: stunnel   -- https://salv.us</li>
+  <li> Load balancing: haproxy</li>
+  <li> Static HTTP: nginx</li>
+  <li> Dynamic HTTP: tornado</li>
+  <li> Math/compute: forking tcp-based Sage server</li>
+  <li> Management: Paramiko + much new code</li>
+
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+<div class="slide">
+<h1>Client/server communication</h1>
+<ul>
+  <li> SockJS -- websocket connection between browser and tornado, when
+    supported; otherwise, falls back to other long-polling approaches</li>
+  <li> TCP + SSL -- standard UNIX Socket connection for non-browser
+    clients, e.g, command line.</li>
+  <li> HTTP -- old-fashioned POST for simple HTTP clients</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+<div class="slide">
+<h1>Diagram</h1>
+<font size=+2>
+<pre>
+
+
+
+   Client    Client    Client   Client   Client  Client
+     /|\
+      |
+   https1.1 (websocket, etc.)
+      |
+      |   https://salv.us
+     \|/ 
+ HAProxy Load Balancers                      
+ /|\       /|\      /|\      /|\
+  |         |        |        |                                                
+  |https1.1 |        |        |                                     
+ \|/       \|/      \|/      \|/                                      
+Tornado  Tornado  Tornado  Tornado    <--------------------------->   Cassandra   ...
+           /|\      /|\                                                 /|\
+            |        |        -------------------------------------------|
+   ---------|        |        |                                         
+   |                 |        |
+   |                          |
+  \|/                        \|/
+ SageServer   SageServer  SageServer   SageServer ...
+</pre>
+</font>
+<div class="handout">
+</div>
+</div>
+
+
+
+<div class="slide">
+<h1>Physical Hardware and Remote VM's</h1>
+<ul>
+  <li> 4 3Ghz 16-core 64GB RAM, 1TB disk, 1U servers in Padelford basement</li>
+  <li>  1 8-core 32GB RAM machine in my office  </li>
+  <li>  3 3Ghz 16-core 64GB RAM, 6TB disk, 1U servers currently being shiped to the UW tower </li>
+  <li>  2 servers at servedby.net (a cloud hosting provider started by a recent UW undergrad)  </li>
+  <li>  Google Compute Engine: "8 single CPU instances with 100GB of persistent disk space"  </li>
+  <li>  Google App Engine: I received $60,000 via a research grant program -- not sure how to use it yet! </li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+<div class="slide">
+<h1>Fixed monthly costs</h1>
+<ul>
+<li>Current monthly fixed cost for hardware above: $60/month (for UW tower hosting)</li>
+
+<li>Amazon (in multiple ways) also told me they would give me free
+credits, but didn't deliver.  So far, too big, confused and confusing.</li>
+
+<li>This should be enough resources to support several thousand paying customers
+(and many free customers). Do the math.</li>
+
+<li>Google and Servedby resources are free right now, because they want my longterm business</li>
+
+</ul>
+<div class="handout">
+</div>
+</div>
+
+<div class="slide">
+<h1>Revenue Model</h1>
+
+I've written 100% of the new code in Salvus. It is not open source, though
+all the third party components it builds on are.  I will
+open source some key pieces of it over time, since they will also be
+useful for research mathematics applications.
+
+<ul>
+<li> Competitive advantage: better software and hardware resources
+than other players.  Better understanding of end user needs in this
+space, because of Sage.</li>
+
+<li>Pricing will likely be around $10/month per user for the first tier of
+non-free account, which competes with linnode + sagenb ($150/month?). </li>
+
+<li>Goal by end of March 2013: Have 1,500 paying users at
+$10/month, which is what the above hardware should be able to
+support, done right.  $1500*10/month = $15,000/month</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Other Longterm Revenue</h1>
+<ul>
+<li> Purchase higher levels of dedicated resources, e.g., 30 students in a class.</li>
+
+<li> Site licenses with service level and special features for an entire university
+or company.</li>
+
+<li> Software license for the complete Salvus implementation, so a
+company with strong security restrictions can deploy their own
+internal server.</li>
+
+<li> Pay more for access to commercial software via Salvus (e.g., Mathematica, Maple,
+Matlab, Magma).</li>
+
+</ul>
+</div>
+
+<div class="slide">
+<h1>Virtualization:  libvirt + kvm</h1>
+<ul>
+<li>Virtualization is absolutely essential due to allowing users to
+    remotely execute arbitrary code (ok, with sagenb.org nothing is
+    virtualized, but that is just a ticking bomb, which keeps exploding
+    in my face!!)  </li>
+<li>Public clouds: many companies (famously Amazon.com) now rent virtual machines to anybody</li>
+<li>Private clouds: on your own hardware, start up many virtual machines based on a template
+    with certain parameters, start services running on them.  When the
+    machine shuts down, it leaves no trace (except persistent sparse
+    disk images).</li>
+<li> The <i>only</i> persistent data in all of Salvus is in the distributed
+    database.  This will sit in a disk partition that is
+    encrypted using the Linux ecryptfs filesystem and a passphrase
+    that I type in (exactly once from my management interface) when
+    launching the database. </li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+<div class="slide">
+<h1>Private Cloud Distributions</h1>
+<ul>
+<li>OpenStack, CloudStack, OpenNebula, Ganeti, etc. -- war of the private
+    cloud software distributions. </li>
+<li> I spent quite a bit of time
+    investigating all this, and its snake oil right now, at least for
+    what I'm doing -- basically a lot of companies and people are
+    making noise about implementing something open source kind of like
+    what Amazon and VMware already did years ago, but with all the
+    real work being doing by libvirt.  (This will likely be useful for
+    something in a year or two, and now if you <a href="http://www.ubuntu.com/cloud/solutions">pay companies money</a>, 
+but now it is worse than useless...)
+</li>
+<li>    The real work is done by libvirt, kvm (or xen).  Evidently, Redhat put a ton
+    of serious money/development into supporting the creation of high
+    quality virtualization support -- KVM -- that is built into the
+    Linux kernel now.  This is what I'm using directly... in the end,
+    to do everything I want nicely, I wrote a few hundred lines of
+    code (vm.py) and learned about how to get around bugs.
+</li>
+
+</ul>
+</div>
+
+
+<div class="slide">
+<h1>VPN: Motivation</h1>
+<ul>
+   <li> VPN = Virtual Private Network, in public, using encryption</li>
+
+  <li>By using a VPN, Salvus can easily combine cloud computers, my own
+    computers, etc., and don't have to worry about ip addresses
+    changing. 
+</li>
+<li> We don't have to worry about securing
+    communication between the different services or vm's in salvus.
+</li>
+<li>  For a long time, I was worrying about things such as implementing
+    SSL + TCP communication between the Tornado web server and backend
+    Sage process; I threw all that code away, and instead just use a
+    VPN and have a nice clean class A address space as a bonus.
+</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>VPN I chose: tinc</h1>
+<ul>
+
+<li>I'm NOT using http://openvpn.net/, even though it is enormously
+    popular...  because all traffic goes through a master VPN server,
+    a single point of failure!</li>
+
+<li> <a href="http://www.tinc-vpn.org/ ">tinc</a> is "a Virtual Private Network (VPN) daemon that uses
+    tunnelling and encryption to create a secure private network
+    between hosts on the Internet."  Key features:
+<ul>
+         <li> Public-facing machines on the VPN also acts as
+           servers, so clients can connect to VPN as long as at least one public-facing
+           machine is up.   </li>
+         <li> It's P2P -- traffic does not all go through one 
+           master node, which could be very inefficient. </li>
+         <li> All traffic is encrypted.</li>
+         <li> Easy/sensible; to add a machine to the VPN, you just
+           generate a public and private key, then add the public key
+           to at least one public facing machine.</li>
+         <li> Small C program that builds in seconds.</li>
+</ul>
+</li>
+</ul></div>
+      
+
+
+
+<div class="slide">
+<h1>Database: the memory of Salvus</h1>
+The database is the <i>only persistent component</i> of Salvus.  It stores
+everybody's data -- it's the memory of what the system is.   It's thus
+an absolutely crucial component of the design.
+
+<ul>
+<li>PostgreSQL is very nice, as is MySQL and even SQLite.  I really
+    wanted to use one of them, and tried very, very hard to do so (and
+    wrote a lot of code that I threw away).  Then I started thinking
+    seriously about the amount of data I will have to manage with the
+    number of users I plan to have in the long run.  And I read books
+    about how to scale website using mysql.  What they do is very
+    difficult and ugly, e.g., sharding -- a bunch of different
+    databases based on usernames.  (I also read a lot about
+    SQLalchemy, used PostgreSQL a lot, etc.)</li>
+<li>Then the Padelford server room blew up for the n-th time, and I
+    firmly decided on no SPOF's as an <i>Axiom</i>. 
+</ul>
+</div>
+
+<div class="slide">
+<h1>Database: noSQL</h1>
+<ul>
+<li> NO SPOFS!:  
+    Relational databases like PostgreSQL become even more difficult to
+    use with this constraint. You have to have a master database, at least one other slave
+    databases replicating it, and some sort of automatic failover that
+    is activated when your software decides the master is not working
+    (which is not an easy thing to decide!).</li>
+<ul>
+<li>      "I'd like to welcome the github ops/dbas to the club of people
+      who've learned the hard way that automated database failover
+      usually causes more downtime than it prevents." http://news.ycombinator.com/item?id=4524340</li>
+
+<li>    Basically, it's not easy.  I want easy!</li>
+</ul>
+</li>
+
+<li>One of the motivations for the recent wave of "NoSQL databases" is
+    creation of databases that have no single point of failure.  They
+    scale up by just adding more small machines, and one can configure
+    how redundant they are.  I had learned a lot about MongoDB (a
+    noSQL database) a few years ago, and after getting LMFDB.org to
+    use it a lot (and using it for my own database work), I think it
+    sucks.... for me at least. 
+
+      <a href="http://news.ycombinator.com/item?id=4570790">"Does everyone hate MongoDB?"</a>
+      </li>
+
+</ul>
+</div>
+
+<div class="slide">
+<h1>Database: Apache Cassandra</h1>
+<ul>
+<li>NoSQL: I read about and tried out every noSQL database I could
+    find.  (I even wrote one: http://code.google.com/p/nosqlite/) For
+    my particular use case, by far the best one is Apache Cassandra
+    (cassandra.apache.org).
+<li> Cassandra is an open source database with
+    copyright owned by Apache, and also commercial support from a
+    company.  It is written in Java, which I'm no fan of, but still I
+    really like Cassandra.  Unlike many options, Cassandra is pretty
+    heavily used by serious companies.  E.g, Netflix makes enormous
+    use of Cassandra, as does Disney.  Cassandra was originally
+    written by
+    Facebook, <a href="http://developers.facebook.com/blog/post/301/">who
+    open sourced it</a>, and it gained traction in the open source
+    world.</li>
+<li>Cassandra seems to be the only database that satisfied my
+    constraints (mature, distributed, scalable, support for multiple
+    data centers). I've been using it
+    for a while now, and I'm impressed.  I started with version 1.1
+    using CQL3, which looks like a restricted subset of SQL, with NO
+    JOINS or relations at all between tables!</li>
+</ul>
+</div>
+
+
+<div class="slide">
+<h1>SSL: stunnel</h1>
+<ul>
+<li>One of the main motivations for rewriting the sage notebook "back
+    in the day" to use twisted was to support SSL, i.e., encrypted
+    communcation between the user's browser and sagenb.org.  This
+    worked, but we never properly signed the cert, so users got a
+    terrifying warning when they visited sagenb.org, and it was deamed
+    easier to just remove the security than deal with the cert stuff.</li>
+<li>Can easily make <i>any</i> webapp using SSL
+    encryption without having to touch the code that defines that
+    website -- just use the program stunnel!</li>
+<li>Getting a properly signed SSL certificate setup isn't impossible.
+    (I even bought my cert for $12.99 by some trick... though UW actually
+     offers free sigs.)</li>
+<!--<li><a href="https://salv.us">https://salv.us</a> works and doesn't give a security warning</li>-->
+<li>With salvus we run a couple of stunnel's and put them all in DNS, so
+    the browser chooses one.  When an stunnel fails, the browser will just
+    load a different one.   No SPOF.</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+<div class="slide">
+<h1>Load balancing: haproxy</h1>
+The stunnel process directs all requests to another program called
+haproxy (which can be running on a different computer or the same
+computer). 
+<ul>
+<li>Haproxy is pretty much the canonical open source load balancer
+program.</li>
+<li>Haproxy in monitors a bunch of web servers (for salvus, that
+means nginx servers and tornado servers), makes sure they are working,
+and balancing incoming connections between them.</li>
+<li>Sstatic content
+requests go to nginx.  </li>
+<li>Synamic websocket connections go to tornado
+servers.</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+<div class="slide">
+<h1>Static HTTP: nginx</h1>
+<ul>
+<li>nginx seems to be the canonical choice for serving a huge number of
+static webpages efficiently.  It was easy to setup and use.  It's
+lightweight and easy to build from source.</li>
+<li>nginx is single threaded (but fixed number of multiple server
+processes).  This is absolutely key to its success in serving huge
+numbers of requests per second.  It's far more efficient than the old
+apache approach, which would spawn a thread or process per
+request.</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+<div class="slide">
+<h1>Dynamic HTTP: Tornado</h1>
+
+
+
+<ul>
+<li>http://www.tornadoweb.org/ -- an open source version of the scalable, non-blocking web server</li>
+<li>Tornado is basically a clean self-contained nicely coded webserver
+written in Python that works a lot like twisted (i.e., it is
+asynchronous), but is much simpler and more targeted. </li>
+<li> "While Tornado is similar to existing Web-frameworks in Python (Django, Google's webapp, web.py), it focuses on speed and handling large amounts of simultaneous traffic."</li>
+<li>Very complete and self-contained and self-consistent, e.g.,  has its own template system built in</li>
+<li>It was written by some company called <a href="http://friendfeed.com/">Friendfeed</a> founded by a bunch
+of ex-Googlers that Facebook bought; Facebook then open sourced it.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>More about Tornado</h1>
+<ul>
+<li><a href="http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html">Ipython's notebook</a> also uses Tornado</li>
+<li> Tornado does well in benchmarks.</li>
+<li> Tornado is event driven.  This is a basic axiom in the design of Salvus.</li>
+<li>One can read all the documenation for tornado in a few hours, and you
+really know all you need to know, except what you'll learn from the
+excellent source code.</li>
+<li>One concern I have is that right now the way Tornado talks to
+cassandra is not asynchronous -- I may have to write a better
+driver. Database queries are typically super fast though, by the
+nature of cassandra slow queries simply aren't allowed by the
+language.</li>
+</ul>
+</div>
+</div>
+
+<div class="slide">
+<h1>Math/compute: forking tcp-based Sage server</h1>
+<ul>
+<li>I wrote from scratch a TCP server that starts up as a Sage process
+with various things pre-imported such as graphics, Maxima, etc.,
+listens on a socket (running as root), accepts a connection, forks,
+lowers privileges, executes blocks of sage code, and streams results
+back over the connection.  
+</li>
+<li>The design is much different than with the Sage notebook, where one
+process watches another.  Here, as code executes, the running process
+itself sends messages whenever it wants containing whatever it wants.
+The tornado server receives these messages and routes them on (either
+directly to a connected client, or to another tornado server to which
+a client is connected).</li>
+<li>All communication uses Google Protobuf2 binary format for speed and
+clarity.  protobuf2 is a brilliant way of *defining* a message
+protocol.  And it is very, very efficient and well supported.</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+<div class="slide">
+<h1>Service Management: approaches</h1>
+<ul>
+<li>First I tried to do management by writing a Tornado-based management
+web application that had a database backend.  This got painful and
+ugly quickly, but looked cool and powerful.</li>
+<li>I then wrote a big Python program to do component administration
+(starting and stopping the many programs listed above), using mainly
+Python Subprocess module, and only got it working on a single machine.</li>
+<li>Then -- just as with private clouds, I found that there are tons (and
+tons!) of programs out there for managing installing and running
+software on a bunch of machine.  I found one called Ansible that I
+kind of liked at first, but found it to be too immature and not so
+widely used.  There were some other solutions, but they seemed like
+massive overkill.  I spent quite a bit of time investigating them. 
+But for every actual application, there is a bunch of subtle logic
+that just has to be figured out and coded, and I had a lot of that down
+from my code mentioned above.</li>
+</ul>
+</div>
+<div class="slide">
+<h1>Service Management: Paramiko</h1>
+<ul>
+<li>I took some of the good design ideas from Ansible, and the really,
+really good underlying library Ansible uses -- Paramiko, which is a
+nearly complete re-implementation of ssh in Python.  Regarding
+Paramiko, it is very good code and it has excellent documentation.
+The documentation is a bit odd, because it visibly looks ugly,
+unorganized and bad, at first glance.  But when I actually started
+*using* it to get work done, it is incredibly good.</li>
+<li>So I adopted some of the code mentioned above, and have something
+that I like now (which is only 776 lines of Python code total right
+now!).  This is actually where <i>most</i> of the code I've written and
+kept has gone. </li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+
+
+<div class="slide">
+<h1>Summary: Salvus Architectural Axioms</h1>
+<ul>
+<li>NO SPOFS: Absolutely no single points of failure</li>
+<li>EVENT DRIVEN: Everything must be event driven; absolutely no
+polling is allowed anywhere</li>
+<li>SERVICES: Scalable robust independent symmetric services; avoid monolithic design
+as much as possible</li>
+<li>CONCISE: Research existing tools and approaches extensively to
+minimize amount of new code</li>
+<li>LOW FIXED COST: For the first year, the monthly fixed costs must minimal</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Next Talk</h1>
+
+<br><br><br><br><br><br><br><br>
+<center>
+<b>Demos showing how these components actually work...</b>
+</center>
+
+<div class="handout">
+</div>
+</div>
+
+
+</div></body></html>
+
+<!--
+<div class="slide">
 <h1>[slide title]</h1>
 <ul>
 <li>[point one]</li>
@@ -60,8 +730,4 @@
 </div>
 </div>
 
-
-</div>
-
-</body>
-</html>
+--!>

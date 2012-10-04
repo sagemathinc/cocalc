@@ -152,6 +152,8 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
             # - run until vm terminates or we receive term signal, undefined, destroy
             ##########################################################################
             while virsh('domstate', ip_address) == 'running':
+                 # TODO: this is polling, which violates an axiom.  We absolutely
+                 # must rewrite this to be event driven!!!
                 time.sleep(1)
         finally:
             # clean up
