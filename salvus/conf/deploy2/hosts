@@ -1,43 +1,47 @@
-# sites
+# hosts
 
-[padelford0]  # 10.1
+# the format is just like an /etc/hosts file, except that lines in
+#  square brackets refer to groups of hosts
+
+[padelford]  # 10.1
 10.1.1.1 01salvus   # 64gb ram; 16 cores; 1tb disk
-10.1.1.2 01salvus2  {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+10.1.1.2 01salvus2 01salvus-cassandra # cassandra vm
+10.1.1.3 01salvus3 01salvus-sage1 # sage vm
 
 10.1.2.1 02salvus   # 64gb ram; 16 cores; 1tb disk
-10.1.2.2 02salvus2  {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+10.1.2.2 02salvus2  # cassandra vm
 
 10.1.3.1 03salvus   # 64gb ram; 16 cores; 1tb disk
-10.1.3.2 04salvus2  {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+10.1.3.2 03salvus2  # cassandra vm
 
 10.1.4.1 04salvus   # 64gb ram; 16 cores; 1tb disk
-10.1.4.2 04salvus2  {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+10.1.4.2 04salvus2  # cassandra vm
 
 10.1.5.1 combinat   # 192gb ram; 64 cores; 99gb disk
-10.1.5.2 combinat2  {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+10.1.5.2 combinat2  # cassandra vm
 
 10.1.6.1 geom       # 128GB ram; 24 cores; 120GB disk
-10.1.6.2 geom2      {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+10.1.6.2 geom2      # cassandra vm
 
 [office]  # 10.2
 10.2.1.1 bsd        # 32GB ram; 8 cores; about 500GB disk
-10.2.1.2 bsd2       # specs?  -- cassandra
-10.2.1.3 bsd3       # specs?  -- cassandra
-10.2.1.4 bsd4       # specs?  -- cassandra
-10.2.1.5 bsd5       # specs?  -- cassandra
-10.2.1.6 bsd6       # specs?  -- sage
+10.2.1.2 bsd2       # specs?  -- cassandra; vbox that is manually managed
+10.2.1.3 bsd3       # specs?  -- cassandra; vbox that is manually managed
+10.2.1.4 bsd4       # specs?  -- cassandra; vbox that is manually managed
+10.2.1.5 bsd5       # specs?  -- cassandra; vbox that is manually managed
+10.2.1.6 bsd6       # specs?  -- sage; vbox that is manually managed
 
 [servedby] # 10.3
-10.3.1.1 servedby1  # little disk; intel
-10.3.2.1 servedby2  # 64GB disk; amd
+10.3.1.1 servedby1  # little disk; intel; vmware cloud service that is manually managed
+10.3.2.1 servedby2  # 64GB disk; amd; vmware cloud service that is manually managed
 
 [tower]  # 10.4
 #10.4.5.1 05salvus  # 64gb ram; 16 cores; 6tb disk 
-#10.4.5.2 05salvus2 {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}  
+#10.4.5.2 05salvus2 # cassandra vm
 #10.4.6.1 06salvus  # 64gb ram; 16 cores; 6tb disk 
-#10.4.6.2 06salvus2 {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}  
+#10.4.6.2 06salvus2 # cassandra vm
 #10.4.7.1 07salvus  # 64gb ram; 16 cores; 6tb disk 
-#10.4.7.2 07salvus2 {'vcpus':4, 'ram':8, 'disk':'cassandra:64'}  
+#10.4.7.2 07salvus2 # cassandra vm
 
 [google] # 10.5
 #10.5.1.1  google1
@@ -50,5 +54,5 @@
 #10.5.1.8  google8
 
 [laptop] # 10.100
-10.100.1.1  laptop
+10.100.1.1  laptop salvus0
 

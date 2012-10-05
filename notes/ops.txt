@@ -1,0 +1,11 @@
+Ideas related to delay operations
+
+Daily operations:
+[ ] run nodetool repair a lot
+[ ] watch cassandra disk space
+[ ] snapshot cassandra db regularly
+[ ] make offsite incremental backups of cassandra
+
+Monitoring:
+
+

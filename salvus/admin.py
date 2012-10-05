@@ -692,7 +692,7 @@ Subnet = %s/32"""%(external_ip, ip_address))
 #   hostname1  # repeats allowed, comments allowed
 ########################################
 
-def parse_groupfile(filename):
+def parse_groupfile(filename, options_dict=False):
     groups = {None:[]}
     group = None
     group_opts = []
@@ -706,14 +706,15 @@ def parse_groupfile(filename):
                 name = line
             else:
                 name = line[:i]
-                opts = eval(line[i+1:])
+                opts = eval(line[i+1:]) if options_dict else line[i+1:].strip()
             if name.startswith('['):  # host group
                 group = name.strip(' []')
                 group_opts = opts
                 groups[group] = []
                 ordered_group_names.append(group)
             else:
-                opts.update(group_opts)
+                if options_dict:
+                    opts.update(group_opts)
                 groups[group].append((name, opts))
     return groups, ordered_group_names
 

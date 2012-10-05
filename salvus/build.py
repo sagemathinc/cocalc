@@ -38,6 +38,7 @@ PYTHON_PACKAGES = [
     'sockjs-tornado',     # websocket support
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
+    'cql',                # interface to Cassandra
     ]
 
 if not os.path.exists(BUILD):

@@ -4183,3 +4183,44 @@ written and kept has gone.
 -------
 
 Next time I talk, I'll give demos...
+
+Oct 5, 2012:
+------------
+
+  I now want to make it so the sage notebook is usable through
+  salv.us, but made highly scalable and available! -- why not?
+
+  Here's the overall plan:  
+
+    * create a new kind of service designed much like the existing
+      sage_server.py (maybe as part of it)
+    * it is a forking server that runs as root on a "secure vm"
+    * service:
+        - create a new connection
+        - required timeout parameter -- kill self if nothing happens for t seconds
+        - send a collection of .sws files
+        - it drops privilegs and starts running as a sage notebook (as
+          admin say) with no authentication or login required with
+          that collection as sws files; this serves on some port on
+          that machine.  the port number is sent back as a message.
+        - when a worksheet is saved or is created, it creates and
+          sends (over the tcp connection -- via protobuf), the new sws
+          file.
+        - when connection closed, it destroys all traces of self.
+    * once that service exists, I can:
+        - have user accounts in salv.us
+        - have a link to connect to *their* sage notebook server.
+        - have tornado proxy all connections between that server and
+          the authenticated user.
+        - modify sage notebook server html look and to have a link
+          back to salvus.
+        - store user .sws's in cassandra.
+
+Things to do right now:
+
+  [ ] implement that hosts thing:
+
+      [ ] make it so the hostname -- if given -- can be used elsewhere.
+
+
+
