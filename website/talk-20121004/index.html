@@ -43,6 +43,7 @@
 <h2>Distributed Scalable Online Mathematical Software</h2>
 <h3>William Stein</h3>
 <h4>University of Washington</h4>
+<h4><a href="http://youtu.be/O-CDGXMh6rQ">Screencast of talk</a></h4>
 </div>
 
 
@@ -52,8 +53,8 @@
 <li>Make Sage (and other math software) very robustly
     available over the internet to a large number of users</li>
 <li>Generate substantial revenue to support core sage development: working with UW
-    C4C on license agreement, payment system, etc., they get 20% of
-    revenue and the other 80% goes in the sage foundation account</li>
+    <a href="http://depts.washington.edu/uwc4c/about-c4c/">C4C</a> on license agreement, payment system, etc. They get 20% of
+    revenue and the other 80% goes in the Sage Foundation account.</li>
 <li>If successful, will spin off as a separate company in a few years.</li>
 <li>If successful, will hire elite developers to work fulltime on the
     core research-level mathematical algorithms in Sage.</li>
@@ -67,9 +68,9 @@
 <ul>
 <li>Programming, but no math
 <ul>
-<li> http://c9.io -- <font size=2>"Your code anywhere, anytime... Write, run, and debug your code with our powerful and flexible cloud IDE."</font></li>
-<li> http://www.heroku.com/ -- "cloud application platform"</li>
-<li> https://www.appsoma.com/ -- "Code & run in the cloud"</li>
+<li> <a href="http://c9.io">http://c9.io</a> -- <font size=2>"Your code anywhere, anytime... Write, run, and debug your code with our powerful and flexible cloud IDE."</font></li>
+<li> <a href="http://www.heroku.com/">http://www.heroku.com/</a> -- "cloud application platform"</li>
+<li> <a href="https://www.appsoma.com/">https://www.appsoma.com/</a> -- "Code & run in the cloud"</li>
 </ul></li>
 <li>Math, but no programming or scalable computation
 <ul>
@@ -77,15 +78,15 @@
 </ul></li>
 <li>Sage/Ipython
 <ul>
-<li>http://sagenb.org -- online notebooks</li>
-<li>http://aleph.sagemath.org -- single embeddable sage snippet</li>
-<li>http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html -- ipython notebook</li>
+<li><a href="http://sagenb.org">http://sagenb.org</a> -- online notebooks</li>
+<li><a href="http://aleph.sagemath.org">http://aleph.sagemath.org</a> -- single embeddable sage snippet</li>
+<li><a href="http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html">ipython notebook</a></li>
 </ul></li>
 
-<li>Cloud hosting -- can do everything, but expensive and complicated...
+<li><b>Cloud hosting:</b> can do everything, but expensive and complicated...
 <ul>
-<li>http://aws.amazon.com/ -- Amazon Web Services</li>
-<li>http://www.linode.com/ -- <font size=2>"Deploy and Manage Linux Virtual Servers in the Linode Cloud."</font></li>
+<li><a href="http://aws.amazon.com/">http://aws.amazon.com/</a> -- Amazon Web Services</li>
+<li><a href="http://www.linode.com/">http://www.linode.com/</a> -- <font size=3>"Deploy and Manage Linux Virtual Servers in the Linode Cloud."</font></li>
 </ul>
 </li>
 </ul>
@@ -107,7 +108,7 @@ On Wed, Sep 26, 2012 at 9:54 AM, Chris Seberino <cseberino@gmail.com> wrote:
 which would be more likely to work well, you would have to pay
 $159.95/month.
 
-My plan with http://salv.us/ -- which I'm working hard on right now --
+My plan with <a href="http://salv.us/">http://salv.us/</a> -- which I'm working hard on right now --
 is to buy a bunch of hardware (mostly done), host it at UW, write much
 better more efficient software to make Sage ("highly") available
 through it, and provide enough guaranteed resources for a class like
@@ -127,20 +128,20 @@ Stay tuned...
 <div class="slide">
 <h1>Longterm Programing Goals (part 1)</h1>
 <ul>
-<li> A very simple starter page where you can type a calculation in a
+<li><b>Simple starter page:</b> where you can type Sage code in a
     box (no login required) with tab completion and interact support.
     If you login, then you can easily browse/search/share all past
     computations you've ever done.  Support for mobile browsers from
-    the start.  This is all you will often need.</li>
+    the start. </li>
 
-<li> Users can have many projects.  A project is defined by a git
+<li> <b>Projects:</b>  A project is defined by a git
     repository, which salvus stores.  Many users can share the same
-    project.  It can be linked to github (or google code, or
+    project.  It can be linked to <a href="http://github.com">github</a> (or google code, or
     bitbucket, etc.)  Thus a project provides a directory tree of
     files, and there is a revision history.</li>
 
-<li> A command line -- alternative way to browse a project, and will
-    be like the bash command line.   Can type "sage" to run Sage here. </li>
+<li> <b>A command line:</b> alternative way to browse a project, and will
+    be like the bash command line.   Can type "sage" to run Sage here, and "git" to run git, providing the full power of git. </li>
 
 </ul>
 </div>
@@ -150,23 +151,21 @@ Stay tuned...
 <ul>
 
 
-<li> Editing documents -- Salvus will also provide browser-based
+<li> <b>Editing documents:</b> Salvus will also provide browser-based
     editing of several file types, starting with .sws files (for
     compatibility with sage), but also supporting many other file
     types, and ways of working with documents and data.  Multiple
     users can simultaneously edit a document; changes are broadcast
     and updated on all clients.  Also, editors for .py files, .pyx
     files, csv files, presentations, etc.  Special support for the
-    Sage library itself as a project.</li>
+    Sage library as a project.</li>
 
-<li> Publishing -- this is like Heroku or Google App Engine; it will
+<li> <b>Publishing:</b> this is like Heroku or Google App Engine; it will
     support making a persistent Sage-based application available to
     many users, either with a specific URL, or embedded in another web
-    page (like with aleph.sagemath.org widgets).  Rob Beezer's
-    website.  Paying users can allocate dedicated hosting resources
-    for their app.</li>
+    page, like with <a href="http://aleph.sagemath.org">aleph.sagemath.org</a>, ee <a href="http://buzzard.ups.edu/">Rob Beezer's page</a>.  Paying users can allocate dedicated hosting resources.</li>
 
-<li> Chat/cross-user messaging -- useful for teaching, online classes,
+<li> <b>Chat/cross-user messaging:</b> useful for teaching, online classes,
     tutorials, etc.</li>
 
 <!-- <li> Graphics -- the entire approach to 2d and 3d graphics in the Sage
@@ -185,19 +184,18 @@ Stay tuned...
 My entire approach to Salvus is the <b>exact opposite</b> of the
 monolithic single-point-of-failure Sage notebook:
 <ul>
-  <li> Taking my time and doing things right (and have thrown away huge
-    amounts of code I wrote this summer).  With the sage notebook, I
+  <li> <b>Take my time and do things right:</b> With the sage notebook, I
     wrote something that <i>looks</i> and feels a lot like the current
     version in a sleep-deprived month.  </li>
 
-  <li> Architecture is very service-based.  Numerous independent
+  <li> <b>Service-based architecture:</b>  Numerous independent
     components running on dozens of machines communicating securely
     via messages over a VPN.</li>
 
-  <li> Design goal -- absolutely no single points of failure anywhere in
+  <li> <b>NO SPOF!</b> absolutely no <b>s</b>ingle <b>p</b>oints <b>o</b>f <b>f</b>ailure anywhere in
     the design of salvus.  </li>
 
-  <li> Concise -- researched existing solutions  to make new code
+  <li> <b>Concise:</b> research existing solutions  to make new code
      shorter and clearer, instead of just implementing everything from
      scratch.</li>
 </ul>
@@ -209,15 +207,15 @@ monolithic single-point-of-failure Sage notebook:
 <h1>The Salvus Stack</h1>
 <ul>
 
-  <li> Private physical hardware, virtualization ( libvirt + kvm), public clouds</li>
-  <li> VPN: tinc</li>
-  <li> Database: cassandra</li>
- <li> SSL: stunnel   -- https://salv.us</li>
-  <li> Load balancing: haproxy</li>
-  <li> Static HTTP: nginx</li>
-  <li> Dynamic HTTP: tornado</li>
-  <li> Math/compute: forking tcp-based Sage server</li>
-  <li> Management: Paramiko + much new code</li>
+  <li> <b>Infrastructure:</b> hardware, virtualization ( libvirt + kvm), public clouds</li>
+  <li> <b>VPN:</b> tinc</li>
+  <li> <b>Database:</b> Apache Cassandra</li>
+ <li> <b>SSL:</b> stunnel</li>
+  <li> <b>Load balancing:</b> HAproxy</li>
+  <li> <b>Static HTTP:</b> Nginx</li>
+  <li> <b>Dynamic HTTP:</b> Tornado</li>
+  <li> <b>Math/compute:</b> forking tcp-based Sage server</li>
+  <li> <b>Management:</b> Paramiko + much new code</li>
 
 </ul>
 <div class="handout">
@@ -228,11 +226,11 @@ monolithic single-point-of-failure Sage notebook:
 <div class="slide">
 <h1>Client/server communication</h1>
 <ul>
-  <li> SockJS -- websocket connection between browser and tornado, when
+  <li> <b><a href="https://github.com/sockjs/sockjs-client">SockJS:</a></b> websocket connection between browser and tornado, when
     supported; otherwise, falls back to other long-polling approaches</li>
-  <li> TCP + SSL -- standard UNIX Socket connection for non-browser
+  <li> <b>TCP + SSL:</b> standard UNIX Socket connection for non-browser
     clients, e.g, command line.</li>
-  <li> HTTP -- old-fashioned POST for simple HTTP clients</li>
+  <li> <b>HTTP:</b> old-fashioned POST for simple HTTP clients</li>
 </ul>
 <div class="handout">
 </div>
@@ -240,7 +238,7 @@ monolithic single-point-of-failure Sage notebook:
 
 
 <div class="slide">
-<h1>Diagram</h1>
+<h1>Architecture Diagram</h1>
 <font size=+2>
 <pre>
 
@@ -248,23 +246,23 @@ monolithic single-point-of-failure Sage notebook:
 
    Client    Client    Client   Client   Client  Client
      /|\
+      |     (websocket, etc.)
+   Stunnels ... (https://salv.us)
+      |     
       |
-   https1.1 (websocket, etc.)
-      |
-      |   https://salv.us
      \|/ 
- HAProxy Load Balancers                      
+ HAProxy Load Balancers  ... 
  /|\       /|\      /|\      /|\
   |         |        |        |                                                
   |https1.1 |        |        |                                     
  \|/       \|/      \|/      \|/                                      
-Tornado  Tornado  Tornado  Tornado    <--------------------------->   Cassandra   ...
-           /|\      /|\                                                 /|\
-            |        |        -------------------------------------------|
+Tornado  Tornado  Tornado  Tornado    <------------------>   Cassandra   ...
+           /|\      /|\                                         /|\
+            |        |        -----------------------------------|
    ---------|        |        |                                         
    |                 |        |
    |                          |
-  \|/                        \|/
+  \|/               \|/      \|/
  SageServer   SageServer  SageServer   SageServer ...
 </pre>
 </font>
@@ -276,11 +274,13 @@ Tornado  Tornado  Tornado  Tornado    <--------------------------->   Cassandra 
 
 <div class="slide">
 <h1>Physical Hardware and Remote VM's</h1>
+<img src="../01-04salvus.png" height=80>
+
 <ul>
   <li> 4 3Ghz 16-core 64GB RAM, 1TB disk, 1U servers in Padelford basement</li>
-  <li>  1 8-core 32GB RAM machine in my office  </li>
-  <li>  3 3Ghz 16-core 64GB RAM, 6TB disk, 1U servers currently being shiped to the UW tower </li>
-  <li>  2 servers at servedby.net (a cloud hosting provider started by a recent UW undergrad)  </li>
+  <li>  1 8-core 32GB RAM machine in my office running OS X  </li>
+  <li>  3 3Ghz 16-core 64GB RAM, 6TB disk, 1U servers at UW tower </li>
+  <li>  2 servers at servedby.net (a cloud hosting started by UW undergrad)  </li>
   <li>  Google Compute Engine: "8 single CPU instances with 100GB of persistent disk space"  </li>
   <li>  Google App Engine: I received $60,000 via a research grant program -- not sure how to use it yet! </li>
 </ul>
@@ -316,14 +316,14 @@ open source some key pieces of it over time, since they will also be
 useful for research mathematics applications.
 
 <ul>
-<li> Competitive advantage: better software and hardware resources
+<li> <b>Competitive advantage:</b> better software and hardware resources
 than other players.  Better understanding of end user needs in this
 space, because of Sage.</li>
 
-<li>Pricing will likely be around $10/month per user for the first tier of
+<li> <b>Pricing:</b> probably around $10/month per user for the first tier of
 non-free account, which competes with linnode + sagenb ($150/month?). </li>
 
-<li>Goal by end of March 2013: Have 1,500 paying users at
+<li><b>Goal for March 2013:</b> Have 1,500 paying users at
 $10/month, which is what the above hardware should be able to
 support, done right.  $1500*10/month = $15,000/month</li>
 </ul>
@@ -332,16 +332,16 @@ support, done right.  $1500*10/month = $15,000/month</li>
 <div class="slide">
 <h1>Other Longterm Revenue</h1>
 <ul>
-<li> Purchase higher levels of dedicated resources, e.g., 30 students in a class.</li>
+<li> Purchase <b>higher levels</b> of dedicated resources, e.g., 30 students in a class.</li>
 
-<li> Site licenses with service level and special features for an entire university
+<li> <b>Site licenses</b> with service level and special features for an entire university
 or company.</li>
 
-<li> Software license for the complete Salvus implementation, so a
+<li> <b>Software license</b> for the complete Salvus implementation, so a
 company with strong security restrictions can deploy their own
 internal server.</li>
 
-<li> Pay more for access to commercial software via Salvus (e.g., Mathematica, Maple,
+<li> Pay more for access to <b>commercial software</b> via Salvus (e.g., Mathematica, Maple,
 Matlab, Magma).</li>
 
 </ul>
@@ -350,16 +350,16 @@ Matlab, Magma).</li>
 <div class="slide">
 <h1>Virtualization:  libvirt + kvm</h1>
 <ul>
-<li>Virtualization is absolutely essential due to allowing users to
+<li><b>Virtualization:</b> absolutely essential due to allowing users to
     remotely execute arbitrary code (ok, with sagenb.org nothing is
     virtualized, but that is just a ticking bomb, which keeps exploding
     in my face!!)  </li>
-<li>Public clouds: many companies (famously Amazon.com) now rent virtual machines to anybody</li>
-<li>Private clouds: on your own hardware, start up many virtual machines based on a template
+<li><b>Public clouds:</b> many companies (famously Amazon.com) now rent virtual machines to anybody</li>
+<li><b>Private clouds:</b> on your own hardware, start up many virtual machines based on a template
     with certain parameters, start services running on them.  When the
     machine shuts down, it leaves no trace (except persistent sparse
     disk images).</li>
-<li> The <i>only</i> persistent data in all of Salvus is in the distributed
+<li> <b>The <i>only</i> persistent data:</b> in all of Salvus is in the distributed
     database.  This will sit in a disk partition that is
     encrypted using the Linux ecryptfs filesystem and a passphrase
     that I type in (exactly once from my management interface) when
@@ -372,7 +372,7 @@ Matlab, Magma).</li>
 <div class="slide">
 <h1>Private Cloud Distributions</h1>
 <ul>
-<li>OpenStack, CloudStack, OpenNebula, Ganeti, etc. -- war of the private
+<li><b>OpenStack, CloudStack, OpenNebula, Ganeti, etc.</b> -- war of the private
     cloud software distributions. </li>
 <li> I spent quite a bit of time
     investigating all this, and its snake oil right now, at least for
@@ -419,7 +419,7 @@ but now it is worse than useless...)
 <h1>VPN I chose: tinc</h1>
 <ul>
 
-<li>I'm NOT using http://openvpn.net/, even though it is enormously
+<li>I'm NOT using <a href="http://openvpn.net/">openVPN</a>, even though it is enormously
     popular...  because all traffic goes through a master VPN server,
     a single point of failure!</li>
 
@@ -451,7 +451,7 @@ everybody's data -- it's the memory of what the system is.   It's thus
 an absolutely crucial component of the design.
 
 <ul>
-<li>PostgreSQL is very nice, as is MySQL and even SQLite.  I really
+<li><b>PostgreSQL</b> is very nice, as is MySQL and even SQLite.  I really
     wanted to use one of them, and tried very, very hard to do so (and
     wrote a lot of code that I threw away).  Then I started thinking
     seriously about the amount of data I will have to manage with the
@@ -460,7 +460,7 @@ an absolutely crucial component of the design.
     difficult and ugly, e.g., sharding -- a bunch of different
     databases based on usernames.  (I also read a lot about
     SQLalchemy, used PostgreSQL a lot, etc.)</li>
-<li>Then the Padelford server room blew up for the n-th time, and I
+<li>Then the Padelford server room blew up for the <i>n</i>-th time, and I
     firmly decided on no SPOF's as an <i>Axiom</i>. 
 </ul>
 </div>
