@@ -1,33 +1,16 @@
 # sites
 
-[laptop]
-salvus0.salv.us   # 10.38.1.1
+# [laptop]
+10.38.1.1           salvus0
 
-[combinatvm]
-combinat4.salv.us # 10.38.1.10
+# [combinatvm]
+10.38.1.10          combinat4
 
-[office]
-bsd.salv.us     # 10.38.1.4
-bsd1.salv.us     # 10.38.1.5
-bsd2.salv.us     # 10.38.1.6
+# [office]
+10.38.1.4        bsd
+10.38.1.5        bsd1
+10.38.1.6        bsd2
 
-[servedby]
-servedby1.salv.us   # 10.38.1.11
-servedby2.salv.us   # 10.38.1.12
-
-[sage]
-servedby2.salv.us
-bsd2.salv.us
-
-[cassandra]
-combinat4.salv.us
-bsd1.salv.us
-servedby1.salv.us
-
-[web]
-servedby1.salv.us
-bsd1.salv.us
-
-[tornado]
-servedby1.salv.us
-bsd1.salv.us
+# [servedby]
+10.38.1.11       servedby1
+10.38.1.12       servedby2

@@ -40,5 +40,5 @@
 [haproxy] {'sudo':True}
 01salvus-web {'nginx_servers':[{'ip':'01salvus-web'}], 'tornado_servers':[{'ip':'01salvus-web'}]} 
 
-[sage] {'sudo':True}
+[sage]    {'sudo':True}
 01salvus-sage
