@@ -4254,6 +4254,16 @@ blastoff:tinc_hosts wstein$
 
 I have to also modify tinc-up on each host.
 
+ cd salvus/salvus; . salvus-env; git pull; emacs data/local/etc/tinc/tinc.conf; emacs data/local/etc/tinc/tinc-up ; restart_tincd
+
+#!/bin/sh                                                                                                                                     
+ifconfig $INTERFACE 10.1.1.1 netmask 255.0.0.0
+
+Also useful:
+
+ssh 02salvus.math.washington.edu -t emacs salvus/salvus/data/local/etc/tinc/tinc.conf
+
+
 ---
 
 NOTE to self -- I should provide both the sage notebook *and* ipython

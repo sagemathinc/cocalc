@@ -814,7 +814,7 @@ class Hosts(object):
         return x
     
     def map(self, callable, hostname, **kwds):
-        return dict((address, self._do_map(callable, address, **kwds)) for address in self[hostname])
+        return dict(((address, self.hostname(address)), self._do_map(callable, address, **kwds)) for address in self[hostname])
 
     def ping(self, hostname, timeout=3):
         return self.map(is_alive, hostname, timeout=timeout)
@@ -836,7 +836,7 @@ class Hosts(object):
         """
         result = self.exec_command(*args, **kwds)
         for h,v in result.iteritems():
-            print h + ':',
+            print '%s :'%(h,),
             print v['stdout'],
             print v['stderr'],
             print
@@ -1064,7 +1064,7 @@ class Services(object):
         opts = set(opts.iteritems())
         return [(h,dict(o)) for h,o in self._options[service] if h in hosts and opts.issubset(set(o.iteritems()))]
         
-    def _action(self, service, action, host, opts):
+    def _action(self, service, action, host, opts, wait):
         if service not in self._services:
             raise ValueError("unknown service '%s'"%service)
 
@@ -1088,7 +1088,7 @@ class Services(object):
                 
             cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
             
-            results.append((address, self._hosts.hostname(address), options, self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout)))
+            results.append((address, self._hosts.hostname(address), options, self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)))
 
             if name == "Sage":
                 # TODO: put in separate function
@@ -1176,23 +1176,23 @@ class Services(object):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
-    def start(self, service, host='all', **opts):
+    def start(self, service, host='all', wait=True, **opts):
         if service == 'all':
-            return self._all(lambda x: self.start(x, host=host, opts=opts), reverse=False)
-        return self._action(service, 'start', host, opts)
+            return self._all(lambda x: self.start(x, host=host, wait=wait, **opts), reverse=False)
+        return self._action(service, 'start', host, opts, wait=wait)
         
-    def stop(self, service, host='all', **opts):
+    def stop(self, service, host='all', wait=True, **opts):
         if service == 'all':
-            return self._all(lambda x: self.stop(x, host=host, opts=opts), reverse=True)
-        return self._action(service, 'stop', host, opts)
+            return self._all(lambda x: self.stop(x, host=host, wait=wait, **opts), reverse=True)
+        return self._action(service, 'stop', host, opts, wait)
 
-    def status(self, service, host='all', **opts):
+    def status(self, service, host='all', wait=True, **opts):
         if service == 'all':
-            return self._all(lambda x: self.status(x, host=host, opts=opts), reverse=False)
-        return self._action(service, 'status', host, opts)
+            return self._all(lambda x: self.status(x, host=host, wait=wait, **opts), reverse=False)
+        return self._action(service, 'status', host, opts, wait)
 
-    def restart(self, service, host='all', reverse=True, **opts):
+    def restart(self, service, host='all', wait=True, reverse=True, **opts):
         if service == 'all':
-            return self._all(lambda x: self.restart(x, host=host, reverse=reverse, opts=opts), reverse=reverse)
-        return self._action(service, 'restart', host, opts)
+            return self._all(lambda x: self.restart(x, host=host, reverse=reverse, wait=wait, **opts), reverse=reverse)
+        return self._action(service, 'restart', host, opts, wait)
 

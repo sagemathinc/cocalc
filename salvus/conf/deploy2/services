@@ -2,12 +2,12 @@
 
 [vm]
 # padelford salvus cluster vm's
-01salvus   {'hostname':'01salvus-cassandra1', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+01salvus   {'hostname':'01salvus-cassandra01', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
 01salvus   {'hostname':'01salvus-sage1', 'vcpus':4, 'ram':8}
 01salvus   {'hostname':'01salvus-web1',  'vcpus':4, 'ram':8}
-02salvus   {'hostname':'02salvus-cassandra1', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
-03salvus   {'hostname':'03salvus-cassandra1', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
-04salvus   {'hostname':'04salvus-cassandra1', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+02salvus   {'hostname':'02salvus-cassandra02', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+03salvus   {'hostname':'03salvus-cassandra03', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+04salvus   {'hostname':'04salvus-cassandra04', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
 
 # sage cluster vm's
 #combinat   {'hostname':'combinat2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
@@ -23,10 +23,10 @@
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus'} 
 # N=4; [i * (2**127 / N) for i in range(N)]
-01salvus-cassandra1    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
-02salvus-cassandra1    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':42535295865117307932921825928971026432}
-03salvus-cassandra1    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':85070591730234615865843651857942052864}
-04salvus-cassandra1    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
+01salvus-cassandra01    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
+02salvus-cassandra02    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':42535295865117307932921825928971026432}
+03salvus-cassandra03    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':85070591730234615865843651857942052864}
+04salvus-cassandra04    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
 
 [nginx]
 01salvus-web1
