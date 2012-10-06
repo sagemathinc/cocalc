@@ -579,9 +579,9 @@ class Vm(Process):
         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address,
                      '--pidfile', pidfile, '--logfile', logfile,
                      '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type, '--base', base] + \
-                     ['--disk', disk] if self._disk else [] + \
+                     (['--disk', disk] if self._disk else []) + \
                      ['--base', base] + \
-                     ['--hostname', self._hostname] if self._hostname else []
+                     (['--hostname', self._hostname] if self._hostname else [])
         
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,

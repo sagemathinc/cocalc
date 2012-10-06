@@ -87,6 +87,8 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
         # configure the vm's image
         #################################
         # - mount the image in a temp directory
+        tincname = hostname.replace('-','_')
+        vmhost_tincname = socket.gethostname().replace('-','_')
         try:
             tmp_path = tempfile.mkdtemp()
             try:
@@ -105,22 +107,21 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
                 open(hosts_file,'w').write("%s\n127.0.1.1  %s\n"%(hosts, hostname))
 
                 #### tinc vpn ####
-
                 tinc_path = os.path.join(tmp_path, 'home/salvus/salvus/salvus/data/local/etc/tinc/')
                 open(os.path.join(tinc_path, 'tinc-up'),'w').write(
                     "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.0.0.0"%ip_address)
                 open(os.path.join(tinc_path, 'tinc.conf'),'w').write(
-                    "Name = %s\nConnectTo = %s"%(hostname, socket.gethostname()))
+                    "Name = %s\nConnectTo = %s"%(tincname, vmhost_tincname))
                 rsa_key_priv = os.path.join(tinc_path, 'rsa_key.priv')
-                rsa_key_pub = os.path.join(tinc_path, 'hosts', hostname)
+                rsa_key_pub = os.path.join(tinc_path, 'hosts', tincname)
                 if os.path.exists(rsa_key_priv): os.unlink(rsa_key_priv)
                 if os.path.exists(rsa_key_pub): os.unlink(rsa_key_pub)
                 sh['tincd', '--config', tinc_path, '-K']
-                host_file = os.path.join(tinc_path, 'hosts', hostname)
+                host_file = os.path.join(tinc_path, 'hosts', tincname)
                 public_key = open(rsa_key_pub).read().strip()
                 open(host_file,'w').write("Subnet = %s/32\n%s"%(ip_address, public_key))
                 # put the tinc public key in our local db, so that the vm can connect to host.
-                shutil.copyfile(host_file, os.path.join(conf_path, 'tinc_hosts', hostname))
+                shutil.copyfile(host_file, os.path.join(conf_path, 'tinc_hosts', tincname))
 
                 #### persisent disks ####
                 fstab = os.path.join(tmp_path, 'etc/fstab')
@@ -166,7 +167,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
             virsh('destroy', ip_address)
             
     finally:
-        try: os.unlink(os.path.join(conf_path, 'tinc_hosts', hostname))
+        try: os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
         except: pass
         os.unlink(new_img)
 
