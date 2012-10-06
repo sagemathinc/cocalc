@@ -4254,5 +4254,10 @@ blastoff:tinc_hosts wstein$
 
 I have to also modify tinc-up on each host.
 
+---
+
+NOTE to self -- I should provide both the sage notebook *and* ipython
+notebook as something available via salvus.  Why not?
+
 
 

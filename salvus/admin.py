@@ -571,13 +571,16 @@ class Vm(Process):
         self._vcpus = vcpus
         self._ram = ram
         self._vm_type = vm_type
+        self._base = base
+        self._disk = disk
         pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
         logfile = os.path.join(LOGS, 'vm-%s.log'%ip_address)
 
         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address,
                      '--pidfile', pidfile, '--logfile', logfile,
-                     '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type,
-                     '--disk', disk, '--base', base] + \
+                     '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type, '--base', base] + \
+                     ['--disk', disk] if self._disk else [] + \
+                     ['--base', base] + \
                      ['--hostname', self._hostname] if self._hostname else []
         
         Process.__init__(self, id=id, name=name, port=0,
