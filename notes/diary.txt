@@ -4223,4 +4223,19 @@ Things to do right now:
       [ ] make it so the hostname -- if given -- can be used elsewhere.
 
 
+Oct 6, 2012:
+===========
+
+I have around 4-5 hours to do focused work on salvus.  I'm well rested
+and have an espresso.  Let's see what happens. 
+
+First goal: deal with the new hosts file format.  I'm going to consider
+getting rid of the groups and just putting the group info in the hostname.
+
+I just did a test and apparently having a name that resolves to
+multiple ip addresses is valid even in the /etc/hosts file.  So I'll
+simply make my hosts file a valid /etc/hosts file, which will avoid
+lots of potential confusion by other devs.
+
+
 
