@@ -740,6 +740,8 @@ def parse_hosts_file(filename):
         hostnames = v[1:]
         hn[address] = hostnames[-1]
         for h in hostnames:
+            if len(h) < 1 or len(h) > 63 or not (h.replace('-','').isalnum()):
+                raise RuntimeError("invalid hostname: must be at most 63 characters from a-z, 0-9, or -")
             if h in ip:
                 ip[h].append(address)
             else:
