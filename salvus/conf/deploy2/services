@@ -2,12 +2,26 @@
 
 [vm]
 # padelford salvus cluster vm's
-01salvus   {'hostname':'01salvus-cassandra01', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
-01salvus   {'hostname':'01salvus-sage1', 'vcpus':4, 'ram':8}
-01salvus   {'hostname':'01salvus-web1',  'vcpus':4, 'ram':8}
-02salvus   {'hostname':'02salvus-cassandra02', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
-03salvus   {'hostname':'03salvus-cassandra03', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
-04salvus   {'hostname':'04salvus-cassandra04', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+01salvus   {'hostname':'cassandra01', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+01salvus   {'hostname':'sage01', 'vcpus':4, 'ram':8}
+01salvus   {'hostname':'sage02', 'vcpus':4, 'ram':8}
+01salvus   {'hostname':'web01',  'vcpus':4, 'ram':8}
+
+02salvus   {'hostname':'cassandra02', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+02salvus   {'hostname':'sage03', 'vcpus':4, 'ram':8}
+02salvus   {'hostname':'sage04', 'vcpus':4, 'ram':8}
+02salvus   {'hostname':'web02',  'vcpus':4, 'ram':8}
+
+03salvus   {'hostname':'cassandra03', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+03salvus   {'hostname':'sage05', 'vcpus':4, 'ram':8}
+03salvus   {'hostname':'sage06', 'vcpus':4, 'ram':8}
+03salvus   {'hostname':'web03',  'vcpus':4, 'ram':8}
+
+04salvus   {'hostname':'cassandra04', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+04salvus   {'hostname':'sage07', 'vcpus':4, 'ram':8}
+04salvus   {'hostname':'sage08', 'vcpus':4, 'ram':8}
+04salvus   {'hostname':'web04',  'vcpus':4, 'ram':8}
+
 
 # sage cluster vm's
 #combinat   {'hostname':'combinat2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
@@ -21,24 +35,24 @@
 #06salvus  {'hostname':'06salvus2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
 #07salvus  {'hostname':'07salvus2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
 
-[cassandra] {'timeout':30, 'cluster_name':'salvus'} 
+[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'} 
 # N=4; [i * (2**127 / N) for i in range(N)]
-01salvus-cassandra01    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
-02salvus-cassandra02    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':42535295865117307932921825928971026432}
-03salvus-cassandra03    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':85070591730234615865843651857942052864}
-04salvus-cassandra04    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
+cassandra01    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
+cassandra02    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':42535295865117307932921825928971026432}
+cassandra03    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':85070591730234615865843651857942052864}
+cassandra04    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
 
 [nginx]
-01salvus-web1
+nginx
 
 [tornado]
-01salvus-web1
+tornado
 
 [stunnel] {'sudo':True}
 stunnel
 
 [haproxy] {'sudo':True}
-01salvus-web1 {'nginx_servers':[{'ip':'01salvus-web'}], 'tornado_servers':[{'ip':'01salvus-web'}]} 
+web01     {'nginx_servers':[{'ip':'web01'}], 'tornado_servers':[{'ip':'web01'}]} 
 
 [sage]    {'sudo':True}
-01salvus-sage1
+sage

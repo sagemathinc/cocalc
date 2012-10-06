@@ -497,7 +497,7 @@ class Sage(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, topology=None, id=0, monitor_database=None, conf_template_path=None, **kwds):
+    def __init__(self, topology=None, path=None, id=0, monitor_database=None, conf_template_path=None, **kwds):
         """
         id -- arbitrary identifier
         conf_template_path -- path that contains the initial conf files
@@ -506,12 +506,12 @@ class Cassandra(Process):
         if conf_template_path is None:
             conf_template_path = os.path.join(cassandra_install, 'conf')
         assert os.path.exists(conf_template_path)
-        
-        target_path = os.path.join(DATA, 'cassandra-%s'%id)
-        makedirs(target_path)
-        log_path = os.path.join(target_path, 'log'); makedirs(log_path)
-        lib_path = os.path.join(target_path, 'lib'); makedirs(lib_path)
-        conf_path = os.path.join(target_path, 'conf'); makedirs(conf_path)
+
+        path = os.path.join(DATA, 'cassandra-%s'%id) if path is None else path
+        makedirs(path)
+        log_path = os.path.join(path, 'log'); makedirs(log_path)
+        lib_path = os.path.join(path, 'lib'); makedirs(lib_path)
+        conf_path = os.path.join(path, 'conf'); makedirs(conf_path)
 
         if topology:
             kwds['endpoint_snitch'] = 'org.apache.cassandra.locator.PropertyFileSnitch'
@@ -1176,22 +1176,22 @@ class Services(object):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
-    def start(self, service, host='all', wait=True, **opts):
+    def start(self, service, host='all', wait=False, **opts):
         if service == 'all':
             return self._all(lambda x: self.start(x, host=host, wait=wait, **opts), reverse=False)
         return self._action(service, 'start', host, opts, wait=wait)
         
-    def stop(self, service, host='all', wait=True, **opts):
+    def stop(self, service, host='all', wait=False, **opts):
         if service == 'all':
             return self._all(lambda x: self.stop(x, host=host, wait=wait, **opts), reverse=True)
         return self._action(service, 'stop', host, opts, wait)
 
-    def status(self, service, host='all', wait=True, **opts):
+    def status(self, service, host='all', **opts):
         if service == 'all':
-            return self._all(lambda x: self.status(x, host=host, wait=wait, **opts), reverse=False)
-        return self._action(service, 'status', host, opts, wait)
+            return self._all(lambda x: self.status(x, host=host, wait=True, **opts), reverse=False)
+        return self._action(service, 'status', host, opts, wait=True)
 
-    def restart(self, service, host='all', wait=True, reverse=True, **opts):
+    def restart(self, service, host='all', wait=False, reverse=True, **opts):
         if service == 'all':
             return self._all(lambda x: self.restart(x, host=host, reverse=reverse, wait=wait, **opts), reverse=reverse)
         return self._action(service, 'restart', host, opts, wait)

@@ -42,7 +42,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
     temporary_img_path = os.path.join(img_path, 'temporary')
     if not os.path.exists(temporary_img_path):
         os.makedirs(temporary_img_path) 
-    new_img = os.path.join(temporary_img_path, ip_address + '.img')
+    new_img = os.path.join(temporary_img_path, hostname + '.img')
 
     if os.path.exists(new_img):
         raise RuntimeError("the image '%s' already exists; maybe the virtual machine is already running?"%new_img)
@@ -62,7 +62,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
             if name == 'test1':
                 # TODO: a temporary constraint due to not using guestfish below more carefully
                 raise RuntimeError("persistent disk image can't be called test1")
-            persistent_images.append((os.path.join(persistent_img_path, '%s-%s.img'%(ip_address, name)), name))
+            persistent_images.append((os.path.join(persistent_img_path, '%s-%s.img'%(hostname, name)), name))
             img = persistent_images[-1][0]
             if not os.path.exists(img):
                 os.chdir(persistent_img_path)
@@ -147,7 +147,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
         #################################
         try:
             run(['virt-install', '--cpu', 'host', '--network', 'user,model=virtio', '--name',
-               ip_address, '--vcpus', vcpus, '--ram', 1024*ram, '--import', '--disk',
+               hostname, '--vcpus', vcpus, '--ram', 1024*ram, '--import', '--disk',
                new_img + ',device=disk,bus=virtio,format=qcow2,cache=writeback', '--noautoconsole'] + 
                sum([['--disk', '%s,bus=virtio,cache=writeback'%x[0]] for x in persistent_images], []), 
                maxtime=60)
@@ -157,14 +157,14 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
             ##########################################################################
             # - run until vm terminates or we receive term signal, undefined, destroy
             ##########################################################################
-            while virsh('domstate', ip_address) == 'running':
+            while virsh('domstate', hostname) == 'running':
                  # TODO: this is polling, which violates an axiom.  We absolutely
                  # must rewrite this to be event driven!!!
                 time.sleep(1)
         finally:
             # clean up
-            virsh('undefine', ip_address)
-            virsh('destroy', ip_address)
+            virsh('undefine', hostname)
+            virsh('destroy', hostname)
             
     finally:
         try: os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
