@@ -4239,7 +4239,19 @@ lots of potential confusion by other devs.
 
 4:30-7:30: redid the hosts stuff.
 
-[ ] when starting a vm service (from admin) do the hostname --> ip_address mapping before ssh'ing.
+[x] when starting a vm service (from admin) do the hostname --> ip_address mapping before ssh'ing.
+
+[ ] to try starting vm's, i need to change the ip addresses of salvus
+cluster on vpn to match my new standard.
+
+blastoff:salvus wstein$ ssh salvus@01salvus.math.washington.edu
+salvus@01salvus:~$ emacs salvus/salvus/data/local/etc/tinc/hosts/`hostname`
+
+Wait maybe I can just change them on my laptop; git commit, then pull and restart tincd's?
+
+blastoff:~ wstein$ cd salvus/salvus/conf/tinc_hosts/
+blastoff:tinc_hosts wstein$ 
+
 
 
 
