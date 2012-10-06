@@ -692,7 +692,7 @@ Subnet = %s/32"""%(external_ip, ip_address))
 #   hostname1  # repeats allowed, comments allowed
 ########################################
 
-def parse_groupfile(filename, options_dict=False):
+def parse_groupfile(filename):
     groups = {None:[]}
     group = None
     group_opts = []
@@ -706,24 +706,67 @@ def parse_groupfile(filename, options_dict=False):
                 name = line
             else:
                 name = line[:i]
-                opts = eval(line[i+1:]) if options_dict else line[i+1:].strip()
+                opts = eval(line[i+1:])
             if name.startswith('['):  # host group
                 group = name.strip(' []')
                 group_opts = opts
                 groups[group] = []
                 ordered_group_names.append(group)
             else:
-                if options_dict:
-                    opts.update(group_opts)
+                opts.update(group_opts)
                 groups[group].append((name, opts))
     return groups, ordered_group_names
 
+def parse_hosts_file(filename):
+    ip = {}  # ip = dictionary mapping from hostname to a list of ip addresses
+    hn = {}  # hn = canonical hostnames for each ip address
+    for r in open(filename).readlines():
+        line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
+        v = line.split()
+        if len(v) == 0: continue
+        if len(v) <= 1:
+            raise ValueError("parsing hosts file -- invalid line '%s'"%r)
+        address = v[0]
+        hostnames = v[1:]
+        hn[address] = hostnames[-1]
+        for h in hostnames:
+            if h in ip:
+                ip[h].append(address)
+            else:
+                ip[h] = [address]
+    # make ip address lists canonical
+    ip = dict([(host, list(sorted(set(addresses)))) for host, addresses in ip.iteritems()])
+    return ip, hn
+
 class Hosts(object):
-    def __init__(self, filename, username=whoami):
+    """
+    Defines a set of hosts on a network and provides convenient tools
+    for running commands on them using ssh.
+    """ 
+    def __init__(self, hosts_file, username=whoami):
         self._ssh = {}
         self._username = username
         self._password = None
-        self._groups, _ = parse_groupfile(filename)
+        self._ip_addresses, self._canonical_hostnames = parse_hosts_file(hosts_file)
+        
+    def __getitem__(self, hostname):
+        """
+        Return list of dinstinct ip_address matching the given hostname.  If the hostname
+        is an ip address defined in the hosts file, return [hostname].
+        """
+        v = hostname.split()
+        if len(v) > 1:
+            return list(sorted(set(sum([self[q] for q in v], []))))
+        if hostname in self._canonical_hostnames.keys():   # it is already a known ip address
+            return [hostname]
+        if hostname == 'all': # return all ip addresses
+            return list(sorted(self._canonical_hostnames.keys()))
+        if hostname in self._ip_addresses:
+            return self._ip_addresses[hostname]
+        raise ValueError("unknown ip hostname or address '%s'"%hostname)
+
+    def hostname(self, ip):
+        return self._canonical_hostnames[ip]
 
     def password(self, retry=False):
         if self._password is None or retry:
@@ -752,43 +795,33 @@ class Hosts(object):
         self._ssh[key] = ssh
         return ssh
 
-    def __getitem__(self, query):
-        v = query.split()
-        if len(v) > 1:
-            return list(sorted(set(sum([self[q] for q in v], []))))
-        if query == 'all': # return all hosts
-            return list(sorted(set(sum([[x for x,_ in y] for y in self._groups.values()],[]))))
-        elif query in self._groups:
-            return [x for x,_ in self._groups[query]]
-        all = set(self['all'])
-        if query in all:
-            return [query]
-        return [x for x in all if x.startswith(query)]
-
-    def _do_map(self, callable, hostname, **kwds):
-        log.info('%s --> ', hostname)
-        x = callable(hostname, **kwds)
+    def _do_map(self, callable, address, **kwds):
+        log.info('%s (%s):', address, self.hostname(address))
+        x = callable(address, **kwds)
         log.info(x)
         return x
     
-    def map(self, callable, query, **kwds):
-        return dict((hostname, self._do_map(callable, hostname, **kwds)) for hostname in self[query])
+    def map(self, callable, hostname, **kwds):
+        return dict((address, self._do_map(callable, address, **kwds)) for address in self[hostname])
 
-    def ping(self, query, timeout=3):
-        return self.map(is_alive, query, timeout=timeout)
+    def ping(self, hostname, timeout=3):
+        return self.map(is_alive, hostname, timeout=timeout)
 
-    def ip_addresses(self, query):
-        return [socket.gethostbyname(h) for h in self[query]]
+    def ip_addresses(self, hostname):
+        return [socket.gethostbyname(h) for h in self[hostname]]
 
-    def exec_command(self, query, command, sudo=False, timeout=20, wait=True):
+    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True):
         def f(hostname):
             try:
                 return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait)
             except Exception, msg:
                 return {'stdout':None, 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
-        return self.map(f, query=query)
+        return self.map(f, hostname=hostname)
 
     def __call__(self, *args, **kwds):
+        """
+        >>> self(hostname, command)
+        """
         result = self.exec_command(*args, **kwds)
         for h,v in result.iteritems():
             print h + ':',
@@ -826,66 +859,66 @@ class Hosts(object):
                 raise RuntimeError("on %s@%s command '%s' timed out"%(self._username, hostname, command))
         return {'stdout':stdout.read(), 'stderr':stderr.read(), 'exit_status':chan.recv_exit_status()}
 
-    def public_ssh_keys(self, query, timeout=5):
-        return '\n'.join([x['stdout'] for x in self.exec_command(query, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
+    def public_ssh_keys(self, hostname, timeout=5):
+        return '\n'.join([x['stdout'] for x in self.exec_command(hostname, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
 
-    def git_pull(self, query, repo=GIT_REPO, timeout=30):
-        return self(query, 'cd salvus && git pull %s'%repo, timeout=timeout)
+    def git_pull(self, hostname, repo=GIT_REPO, timeout=30):
+        return self(hostname, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
-    def build(self, query, pkg_name, timeout=250):
-        return self(query, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
+    def build(self, hostname, pkg_name, timeout=250):
+        return self(hostname, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
-    def python_c(self, query, cmd, timeout=30, sudo=False, wait=True):
+    def python_c(self, hostname, cmd, timeout=30, sudo=False, wait=True):
         command = 'cd \"$HOME/salvus/salvus\" && . salvus-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
-        return self(query, command, sudo=sudo, timeout=timeout, wait=wait)
+        return self(hostname, command, sudo=sudo, timeout=timeout, wait=wait)
 
-    def apt_upgrade(self, query):
+    def apt_upgrade(self, hostname):
         # some nodes (e.g., sage nodes) have a firewall that disables upgrading via apt,
         # so we temporarily disable it.
         try:
-            return self(query,'ufw --force disable && apt-get update && apt-get -y upgrade', sudo=True, timeout=120)
+            return self(hostname,'ufw --force disable && apt-get update && apt-get -y upgrade', sudo=True, timeout=120)
             # very important to re-enable the firewall, no matter what!
         finally:
-            self(query,'ufw --force enable', sudo=True, timeout=120)
+            self(hostname,'ufw --force enable', sudo=True, timeout=120)
         
 
-    def apt_install(self, query, pkg):
+    def apt_install(self, hostname, pkg):
         # EXAMPLE:   hosts.apt_install('cassandra', 'openjdk-7-jre')
         try:
-            return self(query, 'ufw --force disable && apt-get -y --force-yes install %s'%pkg, sudo=True, timeout=120)
+            return self(hostname, 'ufw --force disable && apt-get -y --force-yes install %s'%pkg, sudo=True, timeout=120)
         finally:
-            self(query,'ufw --force enable', sudo=True, timeout=120)
+            self(hostname,'ufw --force enable', sudo=True, timeout=120)
         
 
-    def reboot(self, query):
-        return self(query, 'reboot -h now', sudo=True, timeout=5)
+    def reboot(self, hostname):
+        return self(hostname, 'reboot -h now', sudo=True, timeout=5)
 
-    def ufw(self, query, commands):
+    def ufw(self, hostname, commands):
         cmd = ' && '.join(['ufw --force reset'] + ['ufw ' + c for c in commands] +
                              (['ufw --force enable'] if commands else []))
-        return self(query, cmd, sudo=True, timeout=10, wait=False)
+        return self(hostname, cmd, sudo=True, timeout=10, wait=False)
 
-    def nodetool(self, args='', query='cassandra', wait=False, timeout=120):
-        for k, v in self(query, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait).iteritems():
+    def nodetool(self, args='', hostname='cassandra', wait=False, timeout=120):
+        for k, v in self(hostname, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait).iteritems():
             print k
             print v['stdout']
 
     #########################################################
     # SFTP support
     #########################################################    
-    def put(self, query, local_filename, remote_filename=None, timeout=5):
+    def put(self, hostname, local_filename, remote_filename=None, timeout=5):
         if remote_filename is None:
             remote_filename = local_filename
-        for hostname in self[query]:
+        for hostname in self[hostname]:
             sftp = self.ssh(hostname, timeout=timeout).open_sftp()
             log.info('put: %s --> %s:%s', local_filename, hostname, remote_filename)
             sftp.put(local_filename, remote_filename)
 
-    def putdir(self, query, local_path, remote_containing_path='.', timeout=5):
+    def putdir(self, hostname, local_path, remote_containing_path='.', timeout=5):
         # recursively copy over the local_path directory tree so that it is contained
         # in remote_containing_path on the target
-        for hostname in self[query]:
+        for hostname in self[hostname]:
             sftp = self.ssh(hostname, timeout=timeout).open_sftp()
             self._mkdir(sftp, remote_containing_path)
             for dirpath, dirnames, filenames in os.walk(local_path):
@@ -905,9 +938,9 @@ class Hosts(object):
         sftp.get(remote_filename, local_filename)
         # If I want to implement recursive get of directory: http://stackoverflow.com/questions/6674862/recursive-directory-download-with-paramiko
 
-    def rmdir(self, query, path, timeout=10):
+    def rmdir(self, hostname, path, timeout=10):
         # this is a very dangerous function!
-        self(query, 'rm -rf "%s"'%path, timeout=timeout)
+        self(hostname, 'rm -rf "%s"'%path, timeout=timeout)
 
     def _mkdir(self, sftp, path, mode=0o40700):
         try:
@@ -918,14 +951,14 @@ class Hosts(object):
                 raise IOError("remote '%s' (on %s) exists and is not a path"%(path, hostname))
         
 
-    def mkdir(self, query, path, timeout=10, mode=0o40700):  # default mode is restrictive=user only, on general principle.
-        for hostname in self[query]:
+    def mkdir(self, hostname, path, timeout=10, mode=0o40700):  # default mode is restrictive=user only, on general principle.
+        for hostname in self[hostname]:
             ssh = self.ssh(hostname, timeout=timeout)
             sftp = ssh.open_sftp()
             self._mkdir(sftp, path, mode)
 
-    def unlink(self, query, filename, timeout=10):
-        for hostname in self[query]:
+    def unlink(self, hostname, filename, timeout=10):
+        for hostname in self[hostname]:
             ssh = self.ssh(hostname, timeout=timeout)
             sftp = ssh.open_sftp()
             try:
@@ -949,11 +982,11 @@ class Services(object):
         # this is the canonical list of options, expanded out by service and host.
         def hostopts(service, query='all', copy=True):
             """Return list of pairs (hostname, options) defined in the services file, where
-            the hostname matches the given query/group"""
+            the hostname matches the given hostname/group"""
             restrict = set(self._hosts[query])
             return sum([[(h, dict(opts) if copy else opts) for h in self._hosts[query] if h in restrict]
                                for query, opts in self._services[service]], [])
-    
+        
         self._options = dict([(service, hostopts(service)) for service in self._ordered_service_names])
 
         ##########################################
@@ -999,19 +1032,19 @@ class Services(object):
             o['address'] = socket.gethostbyname(hostname)
             
 
-    def _hostopts(self, service, query):
+    def _hostopts(self, service, hostname):
         """
         Return copy of pairs (hostname, options_dict) for the given
-        service, restricted by the given query.
+        service, restricted by the given hostname.
         """
-        hosts = set(self._hosts[query])
+        hosts = set(self._hosts[hostname])
         return [(h,dict(o)) for h,o in self._options[service] if h in hosts]
         
-    def _action(self, service, action, query):
+    def _action(self, service, action, hostname):
         if service not in self._services:
             raise ValueError("unknown service '%s'"%service)
 
-        v = self._hostopts(service, query)
+        v = self._hostopts(service, hostname)
 
         name = service.capitalize()
         db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))        
@@ -1056,9 +1089,9 @@ class Services(object):
                     
         return results
 
-    def stunnel_key_files(self, query, action):
+    def stunnel_key_files(self, hostname, action):
         target = os.path.join(BASE, SECRETS)
-        for hostname in self._hosts[query]:
+        for hostname in self._hosts[hostname]:
             if hostname == 'localhost': continue
             if action == 'stop':
                 self._hosts.rmdir(hostname, os.path.join(target, 'salv.us'))
@@ -1068,10 +1101,10 @@ class Services(object):
         # avoid race condition where file is there but not there.
         time.sleep(.5)
 
-    def tornado_secrets(self, query, action):
+    def tornado_secrets(self, hostname, action):
         target = os.path.join(BASE, SECRETS)
         files = ['tornado.conf', 'server.crt', 'server.key']
-        for hostname in self._hosts[query]:
+        for hostname in self._hosts[hostname]:
             if hostname == 'localhost': continue
             if action == 'stop':
                 for name in files:
@@ -1083,7 +1116,7 @@ class Services(object):
         # avoid race condition where file is there but not there.
         time.sleep(.5)
 
-    def cassandra_firewall(self, query, action):
+    def cassandra_firewall(self, hostname, action):
         if action == "restart":
             action = 'start'
         if action == "stop":
@@ -1091,51 +1124,51 @@ class Services(object):
         elif action == "start":
             # TODO: when we get bigger and only cassandra runs on cassandra nodes, remove all but 22 below!
             commands = (['allow %s'%p for p in [22,80,443,655,TORNADO_PORT,TORNADO_TCP_PORT,HAPROXY_PORT,NGINX_PORT]] +
-                        ['allow from %s'%ip for ip in self._hosts.ip_addresses('cassandra tornado salvus0')] +
+                        ['allow from %s'%ip for ip in self._hosts['cassandra tornado laptop']] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535'])
         elif action == 'status':
             return
         else:
             raise ValueError("unknown action '%s'"%action)
-        return self._hosts.ufw(query, commands)
+        return self._hosts.ufw(hostname, commands)
 
-    def sage_firewall(self, query, action):
+    def sage_firewall(self, hostname, action):
         if action == "restart":
             action = 'start'
         if action == "stop":
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn, 
             commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
-                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts.ip_addresses('tornado salvus0')]+
+                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['tornado laptop']]+
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
                         )
         elif action == 'status':
             return
         else:
             raise ValueError("unknown action '%s'"%action)
-        return self._hosts.ufw(query, commands)
+        return self._hosts.ufw(hostname, commands)
 
     def _all(self, callable, reverse=False):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
-    def start(self, service, query='all'):
+    def start(self, service, hostname='all'):
         if service == 'all':
-            return self._all(lambda x: self.start(x, query=query), reverse=False)
-        return self._action(service, 'start', query)
+            return self._all(lambda x: self.start(x, hostname=hostname), reverse=False)
+        return self._action(service, 'start', hostname)
         
-    def stop(self, service, query='all'):
+    def stop(self, service, hostname='all'):
         if service == 'all':
-            return self._all(lambda x: self.stop(x, query=query), reverse=True)
-        return self._action(service, 'stop', query)
+            return self._all(lambda x: self.stop(x, hostname=hostname), reverse=True)
+        return self._action(service, 'stop', hostname)
 
-    def status(self, service, query='all'):
+    def status(self, service, hostname='all'):
         if service == 'all':
-            return self._all(lambda x: self.status(x, query=query), reverse=False)
-        return self._action(service, 'status', query)
+            return self._all(lambda x: self.status(x, hostname=hostname), reverse=False)
+        return self._action(service, 'status', hostname)
 
-    def restart(self, service, query='all', reverse=True):
+    def restart(self, service, hostname='all', reverse=True):
         if service == 'all':
-            return self._all(lambda x: self.restart(x, query=query, reverse=reverse), reverse=reverse)
-        return self._action(service, 'restart', query)
+            return self._all(lambda x: self.restart(x, hostname=hostname, reverse=reverse), reverse=reverse)
+        return self._action(service, 'restart', hostname)
 

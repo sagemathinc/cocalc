@@ -23,22 +23,22 @@
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus'} 
 # N=4; [i * (2**127 / N) for i in range(N)]
-01salvus-cassandra     {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
-02salvus-cassandra     {'seed':True, 'topology':'DC0:RAC0', 'initial_token':42535295865117307932921825928971026432}
-03salvus-cassandra     {'seed':True, 'topology':'DC0:RAC0', 'initial_token':85070591730234615865843651857942052864}
-04salvus-cassandra     {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
+01salvus-cassandra1    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
+02salvus-cassandra1    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':42535295865117307932921825928971026432}
+03salvus-cassandra1    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':85070591730234615865843651857942052864}
+04salvus-cassandra1    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
 
 [nginx]
-01salvus-web
+01salvus-web1
 
 [tornado]
-01salvus-web
+01salvus-web1
 
 [stunnel] {'sudo':True}
-01salvus-stunnel
+stunnel
 
 [haproxy] {'sudo':True}
-01salvus-web {'nginx_servers':[{'ip':'01salvus-web'}], 'tornado_servers':[{'ip':'01salvus-web'}]} 
+01salvus-web1 {'nginx_servers':[{'ip':'01salvus-web'}], 'tornado_servers':[{'ip':'01salvus-web'}]} 
 
 [sage]    {'sudo':True}
-01salvus-sage
+01salvus-sage1
