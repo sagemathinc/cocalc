@@ -550,11 +550,13 @@ class Cassandra(Process):
 # A Virtual Machine
 ##############################################
 class Vm(Process):
-    def __init__(self, ip_address, vcpus=2, ram=4, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine'):
+    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine'):
         """
         INPUT:
         
             - ip_address -- ip_address machine gets on the VPN
+            - hostname -- hostname to set on the machine itself (if
+              not given, sets to something based on the ip address)
             - vcpus -- number of cpus
             - ram -- number of gigabytes of ram (an integer)
             - vm_type -- 'kvm' (later maybe 'virtualbox'?)
@@ -565,14 +567,19 @@ class Vm(Process):
             - name -- default: "virtual_machine"
         """
         self._ip_address = ip_address
+        self._hostname = hostname
         self._vcpus = vcpus
         self._ram = ram
         self._vm_type = vm_type
         pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
         logfile = os.path.join(LOGS, 'vm-%s.log'%ip_address)
+
         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address,
                      '--pidfile', pidfile, '--logfile', logfile,
-                     '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type, '--disk', disk, '--base', base]
+                     '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type,
+                     '--disk', disk, '--base', base] + \
+                     ['--hostname', self._hostname] if self._hostname else []
+        
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,
                          start_cmd = start_cmd,

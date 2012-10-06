@@ -3,9 +3,9 @@
 
 import admin
 
-hosts = admin.Hosts('conf/deploy2/hosts')
+hosts = admin.Hosts('conf/deploy2/hosts', username='salvus')
 
-services = admin.Services('conf/deploy2/')
+services = admin.Services('conf/deploy2/', username='salvus')
 
 
 

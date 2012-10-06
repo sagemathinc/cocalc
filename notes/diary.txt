@@ -4252,6 +4252,7 @@ Wait maybe I can just change them on my laptop; git commit, then pull and restar
 blastoff:~ wstein$ cd salvus/salvus/conf/tinc_hosts/
 blastoff:tinc_hosts wstein$ 
 
+I have to also modify tinc-up on each host.
 
 
 
