@@ -4237,5 +4237,9 @@ multiple ip addresses is valid even in the /etc/hosts file.  So I'll
 simply make my hosts file a valid /etc/hosts file, which will avoid
 lots of potential confusion by other devs.
 
+4:30-7:30: redid the hosts stuff.
+
+[ ] when starting a vm service (from admin) do the hostname --> ip_address mapping before ssh'ing.
+
 
 

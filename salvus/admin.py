@@ -999,12 +999,11 @@ class Services(object):
         # determine global topology file; ip_address=data_center:rack
         topology = '\n'.join(['%s=%s'%(socket.gethostbyname(h), o.get('topology', 'DC0:RAC0'))
                                                               for h, o in v] + ['default=DC0:RAC0'])
-        for hostname, o in v:
+        for address, o in v:
             o['seeds'] = seeds
             o['topology'] = topology
-            addr = socket.gethostbyname(hostname)
-            o['listen_address'] = addr
-            o['rpc_address'] = addr     
+            o['listen_address'] = address
+            o['rpc_address'] = address
             if 'seed' in o: del o['seed']
 
         # HAPROXY options
@@ -1019,38 +1018,51 @@ class Services(object):
                 o['tornado_servers'] = tornado_servers
 
         # TORNADO options
-        for hostname, o in self._options['tornado']:
-            # very important: set to listen only on our VPN!
-            o['address'] = socket.gethostbyname(hostname)
+        for address, o in self._options['tornado']:
+            # very important: set to listen only on our VPN. 
+            o['address'] = address
         
         # SAGE options
-        for hostname, o in self._options['sage']:
+        for address, o in self._options['sage']:
             # very, very important: set to listen only on our VPN!  There is an attack where a local user
             # can bind to a more specific address and same port on a machine, and intercept all trafic.
             # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
             # By binding on a specific ip address, we prevent this.
-            o['address'] = socket.gethostbyname(hostname)
+            o['address'] = address
             
+        # VM options
+        for address, o in self._options['vm']:
+            # very, very important: set to listen only on our VPN!  There is an attack where a local user
+            # can bind to a more specific address and same port on a machine, and intercept all trafic.
+            # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
+            # By binding on a specific ip address, we prevent this.
+            if 'ip_address' not in o:
+                addresses = self._hosts[o['hostname']]
+                if len(addresses) != 1:
+                    raise RuntimeError("Error configuring a VM: hostname %s doesn't uniquely determine one ip address"%o['hostname'])
+                o['ip_address'] = addresses[0]
+        
 
-    def _hostopts(self, service, hostname):
+    def _hostopts(self, service, hostname, opts):
         """
         Return copy of pairs (hostname, options_dict) for the given
         service, restricted by the given hostname.
         """
         hosts = set(self._hosts[hostname])
-        return [(h,dict(o)) for h,o in self._options[service] if h in hosts]
+        opts = set(opts.iteritems())
+        return [(h,dict(o)) for h,o in self._options[service] if h in hosts and opts.issubset(set(o.iteritems()))]
         
-    def _action(self, service, action, hostname):
+    def _action(self, service, action, host, opts):
         if service not in self._services:
             raise ValueError("unknown service '%s'"%service)
 
-        v = self._hostopts(service, hostname)
+        v = self._hostopts(service, host, opts)
 
         name = service.capitalize()
         db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))        
         results = []
 
-        for hostname, options in v:
+        for address, options in v:
             if 'sudo' in options:
                 sudo = True
                 del options['sudo']
@@ -1064,28 +1076,28 @@ class Services(object):
                 
             cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
             
-            results.append((hostname, options, self._hosts.python_c(hostname, cmd, sudo=sudo, timeout=timeout)))
+            results.append((address, self._hosts.hostname(address), options, self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout)))
 
             if name == "Sage":
                 # TODO: put in separate function
-                self.sage_firewall(hostname, action)
+                self.sage_firewall(address, action)
                 import cassandra
                 try:
                     if action in ['start', 'restart']:
-                        cassandra.record_that_sage_server_started(hostname)
+                        cassandra.record_that_sage_server_started(address)
                     elif action == 'stop':
-                        cassandra.record_that_sage_server_stopped(hostname)
+                        cassandra.record_that_sage_server_stopped(address)
                 except Exception, msg:
                     print msg
 
             elif name == "Cassandra":
-                self.cassandra_firewall(hostname, action)
+                self.cassandra_firewall(address, action)
 
             elif name == "Stunnel":
-                self.stunnel_key_files(hostname, action)
+                self.stunnel_key_files(address, action)
 
             elif name == "Tornado":
-                self.tornado_secrets(hostname, action)
+                self.tornado_secrets(address, action)
                     
         return results
 
@@ -1152,23 +1164,23 @@ class Services(object):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
-    def start(self, service, hostname='all'):
+    def start(self, service, host='all', **opts):
         if service == 'all':
-            return self._all(lambda x: self.start(x, hostname=hostname), reverse=False)
-        return self._action(service, 'start', hostname)
+            return self._all(lambda x: self.start(x, host=host, opts=opts), reverse=False)
+        return self._action(service, 'start', host, opts)
         
-    def stop(self, service, hostname='all'):
+    def stop(self, service, host='all', **opts):
         if service == 'all':
-            return self._all(lambda x: self.stop(x, hostname=hostname), reverse=True)
-        return self._action(service, 'stop', hostname)
+            return self._all(lambda x: self.stop(x, host=host, opts=opts), reverse=True)
+        return self._action(service, 'stop', host, opts)
 
-    def status(self, service, hostname='all'):
+    def status(self, service, host='all', **opts):
         if service == 'all':
-            return self._all(lambda x: self.status(x, hostname=hostname), reverse=False)
-        return self._action(service, 'status', hostname)
+            return self._all(lambda x: self.status(x, host=host, opts=opts), reverse=False)
+        return self._action(service, 'status', host, opts)
 
-    def restart(self, service, hostname='all', reverse=True):
+    def restart(self, service, host='all', reverse=True, **opts):
         if service == 'all':
-            return self._all(lambda x: self.restart(x, hostname=hostname, reverse=reverse), reverse=reverse)
-        return self._action(service, 'restart', hostname)
+            return self._all(lambda x: self.restart(x, host=host, reverse=reverse, opts=opts), reverse=reverse)
+        return self._action(service, 'restart', host, opts)
 
