@@ -592,11 +592,24 @@ class Vm(Process):
 # tinc VPN management
 ########################################
 
-def is_alive(hostname, timeout=1):
-    return subprocess.Popen(['ping', '-t', str(timeout), '-c', '1', hostname],
+def ping(hostname, count=3, timeout=2):
+    """
+    Try to ping hostname count times, timing out if we do not
+    finishing after timeout seconds.
+    
+    Return False if the ping fails.  If the ping succeeds, return
+    (min, average, max) ping times in milliseconds.
+    """
+    p = subprocess.Popen(['ping', '-t', str(timeout), '-c', str(count), hostname],
                             stdin=subprocess.PIPE, stdout = subprocess.PIPE,
-                            stderr=subprocess.PIPE).wait() == 0
-
+                            stderr=subprocess.PIPE)
+    if p.wait() == 0:
+        r = p.stdout.read()
+        i = r.rfind('=')
+        v = [float(t) for t in r[i+1:].strip().split()[0].split('/')]
+        return v[0], v[1], v[2]
+    else:
+        return False # fail
 
 def tinc_conf(hostname, connect_to, external_ip=None, delete=True):
     """
@@ -813,22 +826,34 @@ class Hosts(object):
         log.info(x)
         return x
     
-    def map(self, callable, hostname, **kwds):
-        return dict(((address, self.hostname(address)), self._do_map(callable, address, **kwds)) for address in self[hostname])
+    def map(self, callable, hostname, parallel=True, **kwds):
+        # needed before parallel
+        self.password()
+        def f(address, **kwds):
+            return ((address, self.hostname(address)), self._do_map(callable, address, **kwds))
+        if parallel:
+            return misc.thread_map(f, [((address,), kwds) for address in self[hostname]])
+        else:
+            return [f(address, **kwds) for address in self[hostname]]
 
-    def ping(self, hostname, timeout=3):
-        return self.map(is_alive, hostname, timeout=timeout)
+    def ping(self, hostname, timeout=3, count=1, parallel=True):
+        """
+        Return list of pairs ((ip, hostname), ping_time) of those that succeed at pinging
+        and a list of pairs ((ip, hostname), False) for those that do not.
+        """
+        v = self.map(ping, hostname, timeout=timeout, count=count, parallel=parallel)
+        return [x for x in v if x[1] is not False], [x for x in v if x[1] is False]
 
     def ip_addresses(self, hostname):
         return [socket.gethostbyname(h) for h in self[hostname]]
 
-    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True):
+    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True):
         def f(hostname):
             try:
                 return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait)
             except Exception, msg:
                 return {'stdout':None, 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
-        return self.map(f, hostname=hostname)
+        return dict(self.map(f, hostname=hostname, parallel=parallel))
 
     def __call__(self, *args, **kwds):
         """
@@ -977,7 +1002,7 @@ class Hosts(object):
                 sftp.remove(filename)
             except:
                 pass # file doesn't exist
-                    
+
 class Services(object):
     def __init__(self, path, username=whoami):
         self._path = path
@@ -1063,55 +1088,64 @@ class Services(object):
         hosts = set(self._hosts[hostname])
         opts = set(opts.iteritems())
         return [(h,dict(o)) for h,o in self._options[service] if h in hosts and opts.issubset(set(o.iteritems()))]
+
+    def _do_action(self, name, action, address, options, db_string, wait):
+
+        if 'sudo' in options:
+            sudo = True
+            del options['sudo']
+        else:
+            sudo = False
+        if 'timeout' in options:
+            timeout = options['timeout']
+            del options['timeout']
+        else:
+            timeout = 30
+
+        cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
+
+        ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
+
+        if name == "Sage":
+            # TODO: put in separate function
+            self.sage_firewall(address, action)
+            import cassandra
+            try:
+                if action in ['start', 'restart']:
+                    cassandra.record_that_sage_server_started(address)
+                elif action == 'stop':
+                    cassandra.record_that_sage_server_stopped(address)
+            except Exception, msg:
+                print msg
+
+        elif name == "Cassandra":
+            self.cassandra_firewall(address, action)
+
+        elif name == "Stunnel":
+            self.stunnel_key_files(address, action)
+
+        elif name == "Tornado":
+            self.tornado_secrets(address, action)
+
+        return (address, self._hosts.hostname(address), options, ret)
         
-    def _action(self, service, action, host, opts, wait):
+    def _action(self, service, action, host, opts, wait, parallel):
         if service not in self._services:
             raise ValueError("unknown service '%s'"%service)
 
-        v = self._hostopts(service, host, opts)
 
         name = service.capitalize()
         db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))        
-        results = []
+        v = self._hostopts(service, host, opts)
 
-        for address, options in v:
-            if 'sudo' in options:
-                sudo = True
-                del options['sudo']
-            else:
-                sudo = False
-            if 'timeout' in options:
-                timeout = options['timeout']
-                del options['timeout']
-            else:
-                timeout = 30
-                
-            cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
-            
-            results.append((address, self._hosts.hostname(address), options, self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)))
+        self._hosts.password()  # can't get password in thread
 
-            if name == "Sage":
-                # TODO: put in separate function
-                self.sage_firewall(address, action)
-                import cassandra
-                try:
-                    if action in ['start', 'restart']:
-                        cassandra.record_that_sage_server_started(address)
-                    elif action == 'stop':
-                        cassandra.record_that_sage_server_stopped(address)
-                except Exception, msg:
-                    print msg
-
-            elif name == "Cassandra":
-                self.cassandra_firewall(address, action)
-
-            elif name == "Stunnel":
-                self.stunnel_key_files(address, action)
-
-            elif name == "Tornado":
-                self.tornado_secrets(address, action)
-                    
-        return results
+        w = [((name, action, address, options, db_string, wait),{}) for address, options in v]
+        
+        if parallel:
+            return misc.thread_map(self._do_action, w)
+        else:
+            return [self._do_action(*args, **kwds) for args, kwds in w]
 
     def stunnel_key_files(self, hostname, action):
         target = os.path.join(BASE, SECRETS)
@@ -1176,23 +1210,23 @@ class Services(object):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
-    def start(self, service, host='all', wait=False, **opts):
+    def start(self, service, host='all', wait=False, parallel=True, **opts):
         if service == 'all':
             return self._all(lambda x: self.start(x, host=host, wait=wait, **opts), reverse=False)
-        return self._action(service, 'start', host, opts, wait=wait)
+        return self._action(service, 'start', host, opts, wait=wait, parallel=parallel)
         
-    def stop(self, service, host='all', wait=False, **opts):
+    def stop(self, service, host='all', wait=False, parallel=True, **opts):
         if service == 'all':
             return self._all(lambda x: self.stop(x, host=host, wait=wait, **opts), reverse=True)
-        return self._action(service, 'stop', host, opts, wait)
+        return self._action(service, 'stop', host, opts, wait, parallel=parallel)
 
-    def status(self, service, host='all', **opts):
+    def status(self, service, host='all', parallel=True, **opts):
         if service == 'all':
             return self._all(lambda x: self.status(x, host=host, wait=True, **opts), reverse=False)
-        return self._action(service, 'status', host, opts, wait=True)
+        return self._action(service, 'status', host, opts, wait=True, parallel=parallel)
 
-    def restart(self, service, host='all', wait=False, reverse=True, **opts):
+    def restart(self, service, host='all', wait=False, reverse=True, parallel=True, **opts):
         if service == 'all':
             return self._all(lambda x: self.restart(x, host=host, reverse=reverse, wait=wait, **opts), reverse=reverse)
-        return self._action(service, 'restart', host, opts, wait)
+        return self._action(service, 'restart', host, opts, wait, parallel=parallel)
 

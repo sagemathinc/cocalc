@@ -4270,4 +4270,40 @@ NOTE to self -- I should provide both the sage notebook *and* ipython
 notebook as something available via salvus.  Why not?
 
 
+Oct 7, 2012:
+============
+
+I get about 2 hours or so this morning to work on salvus.  The goal
+should just be to get the components of deploy2 to actually work.
+
+I sure would like to make this fast using threads:
+
+ import admin, deploy2; reload(admin); reload(deploy2); h = deploy2.hosts; s=deploy2.services
+ s.status('vm')
+
+Right now it takes quite a while, since there are so many vm's.  I've
+been meaning to make this optimization for a while.  Let's give it a
+shot.
+
+ time len(s.status('vm'))
+ # 16
+ CPU times: user 0.14 s, sys: 0.04 s, total: 0.19 s
+ Wall time: 14.54 s
+
+....
+
+and it worked!  Now after connections made:
+
+time len(s.status('vm'))
+CPU times: user 0.08 s, sys: 0.04 s, total: 0.12 s
+Wall time: 0.25 s
+Out[10]: 16
+
+Versus (after connections made):
+
+time len(s.status('vm',parallel=False))
+CPU times: user 0.13 s, sys: 0.04 s, total: 0.17 s
+Wall time: 2.81 s
+Out[11]: 16
+
 

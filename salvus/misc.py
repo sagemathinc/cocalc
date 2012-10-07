@@ -169,3 +169,37 @@ class call_until_succeed(object):
                     delay = min(2*delay, self._maxdelay)
                     
         return g
+
+
+##########################################################################
+# Parallel computing
+##########################################################################
+
+def thread_map(callable, inputs):
+    """
+    Computing [callable(*args, **kwds) for (args,kwds) in inputs] in parallel using
+    len(inputs) separate threads.
+
+    If an exception is raised by any thread, a RuntimeError exception
+    is instead raised.
+    """
+    from threading import Thread
+    class F(Thread):
+        def __init__(self, x):
+            self._x = x
+            Thread.__init__(self)
+            self.start()
+        def run(self):
+            try:
+                self.result = callable(*self._x[0], **self._x[1])
+                self.fail = False
+            except Exception, msg:
+                self.result = msg
+                self.fail = True
+    results = [F(x) for x in inputs]
+    for f in results: f.join()
+    e = [f.result for f in results if f.fail]
+    if e: raise RuntimeError(e)
+    return [f.result for f in results]
+                    
+

@@ -1,5 +1,5 @@
 
-# import admin, deploy2; reload(admin); reload(deploy2); h = deploy2.hosts; s=deploy2.services
+# import admin, deploy2; reload(admin); reload(deploy2); s=deploy2.services; h = s._hosts
 
 import admin
 
