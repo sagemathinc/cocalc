@@ -1,4 +1,6 @@
 # services
+[vm]
+
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus'} 
 combinat4   {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}

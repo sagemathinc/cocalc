@@ -1033,9 +1033,9 @@ class Services(object):
         # CASSANDRA options
         v = self._options['cassandra']
         # determine the seeds
-        seeds = ','.join([socket.gethostbyname(h) for h, o in v if o.get('seed',False)])
+        seeds = ','.join([h for h, o in v if o.get('seed',False)])
         # determine global topology file; ip_address=data_center:rack
-        topology = '\n'.join(['%s=%s'%(socket.gethostbyname(h), o.get('topology', 'DC0:RAC0'))
+        topology = '\n'.join(['%s=%s'%(h, o.get('topology', 'DC0:RAC0'))
                                                               for h, o in v] + ['default=DC0:RAC0'])
         for address, o in v:
             o['seeds'] = seeds
@@ -1045,9 +1045,9 @@ class Services(object):
             if 'seed' in o: del o['seed']
 
         # HAPROXY options
-        nginx_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',NGINX_PORT), 'maxconn':10000}
+        nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
                          for h, o in self._options['nginx']]
-        tornado_servers = [{'ip':socket.gethostbyname(h),'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
+        tornado_servers = [{'ip':h,'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
                            for h, o in self._options['tornado']]
         for _, o in self._options['haproxy']:
             if 'nginx_servers' not in o:
@@ -1087,8 +1087,8 @@ class Services(object):
         service, restricted by the given hostname.
         """
         hosts = set(self._hosts[hostname])
-        opts = set(opts.iteritems())
-        return [(h,dict(o)) for h,o in self._options[service] if h in hosts and opts.issubset(set(o.iteritems()))]
+        opts1 = set(opts.iteritems())
+        return [(h,dict(o)) for h,o in self._options[service] if h in hosts and opts1.issubset(set([(x,y) for x, y in o.iteritems() if x in opts]))]
 
     def _do_action(self, name, action, address, options, db_string, wait):
 
@@ -1221,7 +1221,7 @@ class Services(object):
             return self._all(lambda x: self.stop(x, host=host, wait=wait, **opts), reverse=True)
         return self._action(service, 'stop', host, opts, wait, parallel=parallel)
 
-    def status(self, service, host='all', parallel=True, **opts):
+    def status(self, service, host='all', wait=True, parallel=True, **opts):
         if service == 'all':
             return self._all(lambda x: self.status(x, host=host, wait=True, **opts), reverse=False)
         return self._action(service, 'status', host, opts, wait=True, parallel=parallel)

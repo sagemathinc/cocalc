@@ -4307,3 +4307,23 @@ Wall time: 2.81 s
 Out[11]: 16
 
 
+
+---
+
+Fixing some tincs:
+
+Name = bsd
+ConnectTo = 01salvus
+ConnectTo = 02salvus
+ConnectTo = 03salvus
+ConnectTo = 04salvus
+ConnectTo = servedby1
+ConnectTo = combinat
+ConnectTo = bsd
+ConnectTo = geom
+Device = /dev/tap0
+
+
+Done.  
+
+I just fixed an issue with stunnel control too.

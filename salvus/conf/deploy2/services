@@ -42,17 +42,17 @@ cassandra02    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':425352958651
 cassandra03    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':85070591730234615865843651857942052864}
 cassandra04    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
 
+[stunnel] {'sudo':True}
+edge
+
+[haproxy] {'sudo':True}
+edge
+
 [nginx]
 nginx
 
 [tornado]
 tornado
-
-[stunnel] {'sudo':True}
-stunnel
-
-[haproxy] {'sudo':True}
-web01     {'nginx_servers':[{'ip':'web01'}], 'tornado_servers':[{'ip':'web01'}]} 
 
 [sage]    {'sudo':True}
 sage
