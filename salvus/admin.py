@@ -360,9 +360,6 @@ class Nginx(Process):
 ####################
 class Stunnel(Process):
     def __init__(self, id=0, accept_port=443, connect_port=HAPROXY_PORT, monitor_database=None):
-        pem = os.path.join(SECRETS, 'salv.us/nopassphrase.pem')
-        if not os.path.exists(pem):
-            raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
         logfile = os.path.join(LOGS,'stunnel-%s.log'%id)
         base = abspath()
         pidfile = os.path.join(base, PIDS,'stunnel-%s.pid'%id) # abspath of pidfile required by stunnel
@@ -377,6 +374,10 @@ class Stunnel(Process):
                          start_cmd  = [os.path.join(base, DATA, 'local/bin', 'stunnel'), self._stunnel_conf])
 
     def _pre_start(self):
+        pem = os.path.join(SECRETS, 'salv.us/nopassphrase.pem')
+        if not os.path.exists(pem):
+            raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
+
         stunnel = 'stunnel.conf'
         conf = Template(open(os.path.join(CONF, stunnel)).read())
         conf = conf.substitute(logfile=self._logfile, pidfile=self._pidfile,
@@ -1104,6 +1105,15 @@ class Services(object):
 
         cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
 
+        if name == "Cassandra":
+            self.cassandra_firewall(address, action)
+
+        elif name == "Stunnel":
+            self.stunnel_key_files(address, action)
+
+        elif name == "Tornado":
+            self.tornado_secrets(address, action)
+
         ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
 
         if name == "Sage":
@@ -1117,15 +1127,6 @@ class Services(object):
                     cassandra.record_that_sage_server_stopped(address)
             except Exception, msg:
                 print msg
-
-        elif name == "Cassandra":
-            self.cassandra_firewall(address, action)
-
-        elif name == "Stunnel":
-            self.stunnel_key_files(address, action)
-
-        elif name == "Tornado":
-            self.tornado_secrets(address, action)
 
         return (address, self._hosts.hostname(address), options, ret)
         
