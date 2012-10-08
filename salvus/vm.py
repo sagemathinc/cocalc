@@ -160,7 +160,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 cmd.extend(['--graphics', 'vnc,port=%s'%vnc])
 
             for x in persistent_images:
-                cmd.extend(['--disk', '%s,bus=virtio,cache=writeback'%x])
+                cmd.extend(['--disk', '%s,bus=virtio,cache=writeback'%x[0]])
 
             run(cmd, maxtime=120)
 
