@@ -30,9 +30,13 @@
 10.1.4.5 padelford kvm sage sage08
 
 
-#10.1.5.1 padelford kvm-host combinat   # 192gb ram; 64 cores; 99gb disk
+10.1.5.1 padelford kvm-host combinat   # 192gb ram; 64 cores; 99gb disk
+10.1.5.2 padelford kvm sage sage09
+10.1.5.3 padelford kvm sage sage11
+10.1.5.4 padelford kvm sage sage12
 
-#10.1.6.1 padelford kvm-host geom       # 128GB ram; 24 cores; 120GB disk
+10.1.6.1 padelford kvm-host geom       # 128GB ram; 24 cores; 120GB disk
+10.1.6.2 padelford kvm sage sage10
 
 
 # DC0:RAC1 padelford data center -- 10.2

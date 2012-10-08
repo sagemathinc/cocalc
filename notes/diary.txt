@@ -4356,22 +4356,26 @@ all guests.   Or do it in a sensible rolling way...
 Oct 8:
 ========
 
-s.stop('cassandra', wait=True, parallel=True)
-s.stop('vm'), wait=True, parallel=True)
+s.stop('cassandra', parallel=True)
+s.status('cassandra', parallel=True)
+s.stop('vm', parallel=True)
 
 # quit the session -- due to cassandra connection being broken temporarily!!
 
-s.start('vm'), wait=True, parallel=True)
+s.start('vm', parallel=True)
 
 import time
-while h.ping('all')[1]: time.sleep(1)
+while True:
+    v = h.ping('all')[1]
+    if not v: break
+    print "Waiting for ", v
 
 
 s.start('cassandra', wait=True, parallel=True)
 
 s.start('all', wait=True, parallel=True)
 
-['sage','nginx', 'haproxy','cassandra', 'tornado']]
+[s.start(x, parallel=False, wait=True) for x in 'sage','nginx', 'haproxy','cassandra', 'tornado']
 
 TODO:
   [ ] any timeouts in code that use signals won't work in parallel! -- so find better way to do timeouts...
@@ -4400,4 +4404,8 @@ With virt-install, it would be:  "--graphics vnc,port=8121"
 
 ---
 
-Enable vnc support throughout.
+Enable vnc support throughout.   Done and easy and done right :-)
+
+---
+
+DONE Add some vm's on geom/combinat

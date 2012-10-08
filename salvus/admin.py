@@ -1235,3 +1235,9 @@ class Services(object):
             return self._all(lambda x: self.restart(x, host=host, reverse=reverse, wait=wait, **opts), reverse=reverse)
         return self._action(service, 'restart', host, opts, wait, parallel=parallel)
 
+    def wait_until_up(self, host='all'):
+        while True:
+            v = self._hosts.ping(host)[1]
+            if not v: return
+            log.info("Waiting for %s"%(v,))
+
