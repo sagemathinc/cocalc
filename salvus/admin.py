@@ -841,7 +841,7 @@ class Hosts(object):
         else:
             return [f(address, **kwds) for address in self[hostname]]
 
-    def ping(self, hostname, timeout=3, count=1, parallel=True):
+    def ping(self, hostname='all', timeout=3, count=3, parallel=True):
         """
         Return list of pairs ((ip, hostname), ping_time) of those that succeed at pinging
         and a list of pairs ((ip, hostname), False) for those that do not.
@@ -1215,22 +1215,22 @@ class Services(object):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
                 
-    def start(self, service, host='all', wait=False, parallel=True, **opts):
+    def start(self, service, host='all', wait=True, parallel=False, **opts):
         if service == 'all':
             return self._all(lambda x: self.start(x, host=host, wait=wait, **opts), reverse=False)
         return self._action(service, 'start', host, opts, wait=wait, parallel=parallel)
         
-    def stop(self, service, host='all', wait=False, parallel=True, **opts):
+    def stop(self, service, host='all', wait=True, parallel=False, **opts):
         if service == 'all':
             return self._all(lambda x: self.stop(x, host=host, wait=wait, **opts), reverse=True)
         return self._action(service, 'stop', host, opts, wait, parallel=parallel)
 
-    def status(self, service, host='all', wait=True, parallel=True, **opts):
+    def status(self, service, host='all', wait=True, parallel=False, **opts):
         if service == 'all':
             return self._all(lambda x: self.status(x, host=host, wait=True, **opts), reverse=False)
         return self._action(service, 'status', host, opts, wait=True, parallel=parallel)
 
-    def restart(self, service, host='all', wait=False, reverse=True, parallel=True, **opts):
+    def restart(self, service, host='all', wait=True, reverse=True, parallel=False, **opts):
         if service == 'all':
             return self._all(lambda x: self.restart(x, host=host, reverse=reverse, wait=wait, **opts), reverse=reverse)
         return self._action(service, 'restart', host, opts, wait, parallel=parallel)
