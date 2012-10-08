@@ -27,7 +27,7 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 def virsh(command, name):
     return run(['virsh', '--connect', 'qemu:///session', command, name], verbose=False).strip()
 
-def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
+def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
     #################################
     # create the copy-on-write image
     #################################
@@ -146,11 +146,23 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
         # create and start the vm itself
         #################################
         try:
-            run(['virt-install', '--cpu', 'host', '--network', 'user,model=virtio', '--name',
-               hostname, '--vcpus', vcpus, '--ram', 1024*ram, '--import', '--disk',
-               new_img + ',device=disk,bus=virtio,format=qcow2,cache=writeback', '--noautoconsole'] + 
-               sum([['--disk', '%s,bus=virtio,cache=writeback'%x[0]] for x in persistent_images], []), 
-               maxtime=60)
+            cmd = ['virt-install', 
+                   '--cpu', 'host', 
+                   '--network', 'user,model=virtio', 
+                   '--name', hostname,
+                   '--vcpus', vcpus, 
+                   '--ram', 1024*ram,
+                   '--import', 
+                   '--disk', (new_img + ',device=disk,bus=virtio,format=qcow2,cache=writeback'), 
+                   '--noautoconsole']
+
+            if vnc: 
+                cmd.extend(['--graphics', 'vnc,port=%s'%vnc])
+
+            for x in persistent_images:
+                cmd.extend(['--disk', '%s,bus=virtio,cache=writeback'%x])
+
+            run(cmd, maxtime=120)
 
             log.info("created new virtual machine in %s seconds -- now running", time.time()-t); t = time.time()
 
@@ -171,10 +183,8 @@ def run_kvm(ip_address, hostname, vcpus, ram, disk, base):
         except: pass
         os.unlink(new_img)
 
-def run_virtualbox(ip_address, hostname, vcpus, ram, disk, base):
+def run_virtualbox(ip_address, hostname, vcpus, ram, vnc, disk, base):
     raise NotImplementedError
-
-
 
 
 if __name__ == "__main__":
@@ -191,6 +201,8 @@ if __name__ == "__main__":
                         help="number of virtual cpus")
     parser.add_argument("--ram", dest="ram", type=int, default=4,
                         help="Gigabytes of ram")
+    parser.add_argument("--vnc", dest="vnc", type=int, default=0,
+                        help="VNC console port (default: 0 -- no VNC)")
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
                         help="store pid in this file")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
@@ -249,9 +261,9 @@ if __name__ == "__main__":
             open(args.pidfile,'w').write(str(os.getpid()))
 
         if args.vm_type == 'kvm':
-            run_kvm(args.ip_address, args.hostname, args.vcpus, args.ram, disk, args.base)
+            run_kvm(args.ip_address, args.hostname, args.vcpus, args.ram, args.vnc, disk, args.base)
         elif args.vm_type == 'virtualbox':
-            run_virtualbox(args.ip_address, args.hostname, args.vcpus, args.ram, disk, args.base)
+            run_virtualbox(args.ip_address, args.hostname, args.vcpus, args.ram, args.vnc, disk, args.base)
         else:
             print "Unknown vm_type '%s'"%args.vm_type
             sys.exit(1)
