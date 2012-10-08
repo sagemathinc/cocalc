@@ -551,7 +551,7 @@ class Cassandra(Process):
 # A Virtual Machine
 ##############################################
 class Vm(Process):
-    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine'):
+    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine'):
         """
         INPUT:
         
@@ -560,6 +560,7 @@ class Vm(Process):
               not given, sets to something based on the ip address)
             - vcpus -- number of cpus
             - ram -- number of gigabytes of ram (an integer)
+            - vnc -- port of vnc console (default: 0 for no vnc)
             - vm_type -- 'kvm' (later maybe 'virtualbox'?)
             - disk -- string 'name1:size1,name2:size2,...' with size in gigabytes
             - base -- string (default: 'salvus'); name of base vm image
@@ -571,6 +572,7 @@ class Vm(Process):
         self._hostname = hostname
         self._vcpus = vcpus
         self._ram = ram
+        self._vnc = vnc
         self._vm_type = vm_type
         self._base = base
         self._disk = disk
@@ -579,7 +581,9 @@ class Vm(Process):
 
         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address,
                      '--pidfile', pidfile, '--logfile', logfile,
-                     '--vcpus', vcpus, '--ram', ram, '--vm_type', vm_type, '--base', base] + \
+                     '--vcpus', vcpus, '--ram', ram,
+                     '--vnc', vnc, 
+                     '--vm_type', vm_type, '--base', base] + \
                      (['--disk', disk] if self._disk else []) + \
                      ['--base', base] + \
                      (['--hostname', self._hostname] if self._hostname else [])

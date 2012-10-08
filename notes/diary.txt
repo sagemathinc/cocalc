@@ -4327,3 +4327,77 @@ Device = /dev/tap0
 Done.  
 
 I just fixed an issue with stunnel control too.
+
+
+---
+
+The kvm deployment is not rock solid.
+
+
+"Connected to 10.1.2.2
+Internal application error"
+
+Proper shutdown:
+
+    import admin, deploy2; reload(admin); reload(deploy2); s=deploy2.services; h = s._hosts
+    s.stop('cassandra', wait=True, parallel=False)
+
+    s.status('cassandra', wait=True, parallel=False)
+
+    s.stop('vm')
+    s.status('vm')
+
+WORKFLOW/OPS: It seems critical that I come up with a good way to do upgrades, staging, etc., 
+
+In particular, I need to be able to regularly update the base image without having to restart
+all guests.   Or do it in a sensible rolling way...
+
+
+Oct 8:
+========
+
+s.stop('cassandra', wait=True, parallel=True)
+s.stop('vm'), wait=True, parallel=True)
+
+# quit the session -- due to cassandra connection being broken temporarily!!
+
+s.start('vm'), wait=True, parallel=True)
+
+import time
+while h.ping('all')[1]: time.sleep(1)
+
+
+s.start('cassandra', wait=True, parallel=True)
+
+s.start('all', wait=True, parallel=True)
+
+['sage','nginx', 'haproxy','cassandra', 'tornado']]
+
+TODO:
+  [ ] any timeouts in code that use signals won't work in parallel! -- so find better way to do timeouts...
+  [ ] add swap to base machine
+  [ ] start running kvm's on geom and combinat
+
+---
+
+So, the web03 vm just "crashed" again.  What is causing this?
+Must find out!
+
+
+
+virsh -c qemu:///session qemu-monitor-command --hmp web03 'hostfwd_add ::2222-:22'
+ssh localhost -p 2222
+
+... nothing, so only a console could help to debug this...
+
+It could be a firewall issue.
+It could be lack of swap.
+It could be config on 03salvus and 02salvus?
+
+Question, can I attach a console somehow.
+
+With virt-install, it would be:  "--graphics vnc,port=8121"
+
+---
+
+Enable vnc support throughout.
