@@ -1122,15 +1122,16 @@ class Services(object):
 
         if name == "Sage":
             # TODO: put in separate function
+            log.info("Starting Sage firewall")
             self.sage_firewall(address, action)
+            log.info("Recording Sage server in Cassandra")
             import cassandra
-            try:
-                if action in ['start', 'restart']:
-                    cassandra.record_that_sage_server_started(address)
-                elif action == 'stop':
-                    cassandra.record_that_sage_server_stopped(address)
-            except Exception, msg:
-                print msg
+            if action in ['start', 'restart']:
+                log.info("Recording Sage server START in Cassandra")
+                cassandra.record_that_sage_server_started(address)
+            elif action == 'stop':
+                log.info("Recording Sage server STOP in Cassandra")
+                cassandra.record_that_sage_server_stopped(address)
 
         return (address, self._hosts.hostname(address), options, ret)
         
@@ -1241,3 +1242,30 @@ class Services(object):
             if not v: return
             log.info("Waiting for %s"%(v,))
 
+    def start_system(self):
+        log.info(" ** Waiting for kvm hosts")
+        self.wait_until_up('kvm-host')
+        log.info(" ** Starting virtual machines")
+        self.start('vm', parallel=True, wait=False)
+        log.info(" ** Waiting for VM's to all finish starting")
+        self.wait_until_up('all')
+        log.info(" ** Starting cassandra databases.")
+        self.start('cassandra', wait=True, parallel=True)
+        for service in ['haproxy','nginx','tornado']:
+            log.info(" ** Starting %s", service)
+            self.start(service, parallel=True, wait=False)
+        log.info(" ** Starting sage")
+        self.start('sage', parallel=False, wait=False)
+
+    def stop_system(self):
+        self.stop('cassandra', parallel=True, wait=True)
+        self.stop('vm', parallel=True)
+        while True:
+            time.sleep(1)
+            # TODO: this is horrible
+            v = [X[1] for X in self.status('vm',parallel=True) if 'cputime' in X[3].items()[0][1]['stdout']]
+            if v: 
+                print "Waiting to terminate: %s"%(', '.join(v))
+            else:
+                break
+        print "All vm's successfully terminated"

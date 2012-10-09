@@ -25,16 +25,11 @@
 combinat   {'hostname':'sage09', 'vcpus':4, 'ram':8, 'vnc':9000}
 combinat   {'hostname':'sage11', 'vcpus':4, 'ram':8, 'vnc':9001}
 combinat   {'hostname':'sage12', 'vcpus':4, 'ram':8, 'vnc':9002}
-
 geom       {'hostname':'sage10', 'vcpus':4, 'ram':8, 'vnc':9000}
-
-
-# sage cluster vm's
-#combinat   {'hostname':'combinat2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
-#geom       {'hostname':'geom2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
 
 # bsd vm's (manually managed for now!)
 # ...
+
 
 # uw tower salvus cluster vm's
 #05salvus  {'hostname':'05salvus2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}

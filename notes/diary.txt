@@ -4409,3 +4409,171 @@ Enable vnc support throughout.   Done and easy and done right :-)
 ---
 
 DONE Add some vm's on geom/combinat
+
+
+Oct 8 at 7:09pm.
+================
+
+The network on web04 machines failed.
+
+ ssh -L 9003:localhost:9003  salvus@04salvus
+
+
+Now trying to update/upgrade and reboot 04salvus, etc.   Maybe I didn't do that before properly...?
+
+/etc/grub.d/00_header
+
+---
+
+I reconfigured things, including upgrading, and *still* have the problem with the network...
+i.e., web03's network crashed.  :-(  That should not happen.
+
+I will try iperf back and forth between web03 10.1.3.3 and web04 10.1.4.3 to see what happens.
+
+
+salvus@web04:~$ iperf -p 7000 -s
+
+Woah, web03 died before I could even try it!
+
+I will try restarting web03, *not* starting any services/firewalls running on it, then use iperf:
+
+Then try again with.
+
+web03:~$ iperf -c -p 7000 10.1.4.3
+
+First test:
+ 175 Mbits/sec
+
+
+I just tried using a kvm on geom and easily crashed it.  I will stop
+using geom/combinat in salvus for now, since they need to be rebooted
+after installing the kvm fix.?
+
+I'm really stumped....  Running lots of iperf's yielded no problems
+at all with web03 or web04.
+
+Hmmmm.
+
+The problem has returned again now with web04. The next obvious thing
+to do is to change vm.py to not use virtio networking and see
+if the problem vanishes completely.  That will at least prove that
+virtio networking is stil broken (despite the patches).
+
+    user,model=e1000
+
+But first, I want to ensure that I am really running the patched kvm
+stuff.  Hmm...
+
+root@04salvus:/etc/apt# dpkg -l |grep virt
+
+is same as on 01salvus.
+
+Looking at
+
+   https://bugs.launchpad.net/ubuntu/+source/qemu-kvm/+bug/997978
+
+it says that a better fix is committed to "proposed", which one enables by adding this
+to /etc/apt/sources.list:
+
+    deb http://archive.ubuntu.com/ubuntu/ precise-proposed restricted main multiverse universe
+
+I'm trying this now on 03salvus and 04salvus....
+
+... and it seems to have worked -- no crashes all night long. 
+
+I'm going to push the changes to 01salvus, 02salvus, geom, and combinat right now,
+reboot 01salvus, 02salvus, and restart salvus. 
+
+It seems that geom and combinat now work too (at least iperf passes).
+
+
+--------------
+
+
+TODO someday: upgrade to ubuntu 12.10...   http://releases.ubuntu.com/12.10/
+
+Time to think more about SACNAS.  My plan:
+
+  1. Setup a sagenb on each salvus machine customized to allow trivial
+     account creation, and call them 01salvus.sagenb.org,
+     02salvus.sagenb.org, etc.  Use them.
+
+  2. Create content in shared worksheets.  Make sure students download
+     their worksheets at the end instead of depending on the servers
+     staying.
+
+  3. If I have time left, try to implement a scalable worksheet server
+     and salvus accounts and *use it* this Wednesday.  
+
+Plan for 1:
+  [ ] Make a sagenb process class in admin.py.
+  [ ] Make a deploy directory with hosts and services:
+# hosts
+10.1.1.1 padelford kvm-host 01salvus
+10.1.1.2 padelford kvm sagenb1
+
+10.1.2.1 padelford kvm-host 02salvus 
+10.1.2.2 padelford kvm sagenb2
+
+10.1.3.1 padelford kvm-host 03salvus 
+10.1.3.2 padelford kvm sagenb3
+
+10.1.4.1 padelford kvm-host 04salvus 
+10.1.4.2 padelford kvm sagenb4
+
+# services
+[vm]
+01salvus   {'hostname':'sagenb1', 'vcpus':16, 'ram':24, 'vnc':9100, 'disk':'sagenb:64'}
+02salvus   {'hostname':'sagenb2', 'vcpus':16, 'ram':24, 'vnc':9100, 'disk':'sagenb:64'}
+03salvus   {'hostname':'sagenb3', 'vcpus':16, 'ram':24, 'vnc':9100, 'disk':'sagenb:64'}
+04salvus   {'hostname':'sagenb4', 'vcpus':16, 'ram':24, 'vnc':9100, 'disk':'sagenb:64'}
+
+
+  [ ] Edit dns to make salvus1.sagenb.org, salvus2.sagenb.org, etc.
+
+  [ ] setup apache proxy on each host.
+
+---> I just can't do it.  It is so ugly.
+
+####################
+# Sage Notebook Server
+####################
+
+class Sagenb(Process):
+    def __init__(self, address, path, port, monitor_database=None, debug=True, id=0):
+        self._address = address  # to listen on
+        self._path = path
+        self._port = port
+        pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'sage-%s.log'%id)
+        Process.__init__(self, id, name='sage', port=port,
+                         pidfile    = pidfile,
+                         logfile = logfile, monitor_database=monitor_database, 
+                         start_cmd  = ['sage', '--python', 'sage_server.py',
+                                       '-p', port, '--address', address,
+                                       '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
+                         start_using_system = True,  # since daemon mode currently broken
+                         service = ('sage', port))
+
+
+    def port(self):
+        return self._port
+        
+
+
+Plan for 3 (version 1):
+
+  [ ] User account table.
+  [ ] User account creation page. 
+  [ ] Table that contains columns:
+          user_id   complete_tarball_of_a_sagenb
+  [ ] Extend sage_server.py to accept a message that is:
+           "Create file with given name and contents in current directory."
+  [ ] Write a little bit of code that does this:
+         "Start a sage notebook server using this tarball on this port."
+  [ ] Modify tornado server so that when an authenticated user visits 
+           http://salv.us/sagenb
+      they get their sagenb. 
+
+There is no way I can do this in time in a way that I will like.
+ 
