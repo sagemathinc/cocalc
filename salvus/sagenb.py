@@ -45,6 +45,11 @@ def create_user(basename):
         name = basename + str(i)
     return name
 
+def system(cmd):
+    log.info(cmd)
+    if os.system(cmd):
+       raise RuntimeError
+
 def serve(path, port, address, timeout):
     log.info("served")
 
@@ -56,21 +61,21 @@ def serve(path, port, address, timeout):
     try:
         user = create_user('user')
         try:
-            # make 'server' user own path
+            # make 'server' user owns path
             run(['chown', '-R', server + '.', path])
             
             # make it so server can ssh without a password to be user
-            os.system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%server)
-            os.system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%user)
+            system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%server)
+            system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%user)
             #run(['su', server, '-c', '"ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'])  # generate ssh key for server
             #run(['su', user, '-c', '"ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'])  # generate ssh key for user
             shutil.copyfile(os.path.join('/home', server, '.ssh/id_rsa.pub'),
                             os.path.join('/home', user, '.ssh/authorized_keys'))
             run(['chown', user+'.', os.path.join('/home', user, '.ssh/authorized_keys')])
-            os.system('su %s -c "ssh -o \'StrictHostKeyChecking no\' %s@localhost ls"'%(server, user))
-            
+            system('su %s -c "ssh -o \'StrictHostKeyChecking no\' %s@localhost ls"'%(server, user))
+
             # launch sage notebook server
-            os.system('su %s -c "sage --notebook directory=%s port=%s interface=%s accounts=True open_viewer=False timeout=%s server_pool=[\'%s@localhost\']"'%(server, path, port, address, timeout, user))
+            system('''su %s -c "sage -c 'notebook(directory=\\"%s\\", port=%s, interface=\\"%s\\", accounts=True, open_viewer=False, timeout=%s, server_pool=[\\"%s@localhost\\"])'"'''%(server, os.path.join(path, 'notebook'), port, address, timeout, user))
             
         finally:
             run(['deluser', '--remove-all-files', user])
