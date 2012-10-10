@@ -670,12 +670,12 @@ ifconfig $INTERFACE %s netmask 255.0.0.0
 Subnet = %s/32"""%(external_ip, ip_address))
 
     # generate keys
-    sh['data/local/sbin/tincd', '-K']
+    print sh['data/local/sbin/tincd', '-K']
 
     # add file to git and checkin, then push to official repo
-    sh['git', 'add', os.path.join('conf/tinc_hosts', hostname)]
-    sh['git', 'commit', '-a', '-m', 'tinc config for %s'%hostname]
-    sh['git', 'push', 'https://github.com/williamstein/salvus.git']
+    print sh['git', 'add', os.path.join('conf/tinc_hosts', hostname)]
+    print sh['git', 'commit', '-a', '-m', 'tinc config for %s'%hostname]
+    print sh['git', 'push', 'https://github.com/williamstein/salvus.git']
         
     print "To join the vpn on startup,"
     print "add this line to /etc/rc.local:\n"
