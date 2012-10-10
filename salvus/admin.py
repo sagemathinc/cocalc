@@ -991,9 +991,10 @@ class Services(object):
         self._username = username
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
 
-        import cassandra
-        self._cassandra = self._hosts['cassandra']
-        cassandra.set_nodes(self._cassandra)
+        if 'cassandra' in self._hosts['all']:
+            import cassandra
+            self._cassandra = self._hosts['cassandra']
+            cassandra.set_nodes(self._cassandra)
 
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
@@ -1012,55 +1013,64 @@ class Services(object):
         # Programatically fill in extra options to the list 
         ##########################################
         # CASSANDRA options
-        v = self._options['cassandra']
-        # determine the seeds
-        seeds = ','.join([h for h, o in v if o.get('seed',False)])
-        # determine global topology file; ip_address=data_center:rack
-        topology = '\n'.join(['%s=%s'%(h, o.get('topology', 'DC0:RAC0'))
-                                                              for h, o in v] + ['default=DC0:RAC0'])
-        for address, o in v:
-            o['seeds'] = seeds
-            o['topology'] = topology
-            o['listen_address'] = address
-            o['rpc_address'] = address
-            if 'seed' in o: del o['seed']
+        if 'cassandra' in self._options:
+            v = self._options['cassandra']
+            # determine the seeds
+            seeds = ','.join([h for h, o in v if o.get('seed',False)])
+            # determine global topology file; ip_address=data_center:rack
+            topology = '\n'.join(['%s=%s'%(h, o.get('topology', 'DC0:RAC0'))
+                                                                  for h, o in v] + ['default=DC0:RAC0'])
+            for address, o in v:
+                o['seeds'] = seeds
+                o['topology'] = topology
+                o['listen_address'] = address
+                o['rpc_address'] = address
+                if 'seed' in o: del o['seed']
 
         # HAPROXY options
-        nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
-                         for h, o in self._options['nginx']]
-        tornado_servers = [{'ip':h,'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
-                           for h, o in self._options['tornado']]
-        for _, o in self._options['haproxy']:
-            if 'nginx_servers' not in o:
-                o['nginx_servers'] = nginx_servers
-            if 'tornado_servers' not in o:
-                o['tornado_servers'] = tornado_servers
+        if 'haproxy' in self._options:
+            nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
+                             for h, o in self._options['nginx']]
+            tornado_servers = [{'ip':h,'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
+                               for h, o in self._options['tornado']]
+            for _, o in self._options['haproxy']:
+                if 'nginx_servers' not in o:
+                    o['nginx_servers'] = nginx_servers
+                if 'tornado_servers' not in o:
+                    o['tornado_servers'] = tornado_servers
 
         # TORNADO options
-        for address, o in self._options['tornado']:
-            # very important: set to listen only on our VPN. 
-            o['address'] = address
+        if 'tornado' in self._options:
+            for address, o in self._options['tornado']:
+                # very important: set to listen only on our VPN. 
+                o['address'] = address
         
         # SAGE options
-        for address, o in self._options['sage']:
-            # very, very important: set to listen only on our VPN!  There is an attack where a local user
-            # can bind to a more specific address and same port on a machine, and intercept all trafic.
-            # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
-            # By binding on a specific ip address, we prevent this.
-            o['address'] = address
+        if 'sage' in self._options:
+            for address, o in self._options['sage']:
+                # very, very important: set to listen only on our VPN!  There is an attack where a local user
+                # can bind to a more specific address and same port on a machine, and intercept all trafic.
+                # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
+                # By binding on a specific ip address, we prevent this.
+                o['address'] = address
+
+        if 'sagenb' in self._options:
+            for address, o in self._options['sagenb']:
+                o['address'] = address
             
         # VM options
-        for address, o in self._options['vm']:
-            # very, very important: set to listen only on our VPN!  There is an attack where a local user
-            # can bind to a more specific address and same port on a machine, and intercept all trafic.
-            # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
-            # By binding on a specific ip address, we prevent this.
-            if 'ip_address' not in o:
-                addresses = self._hosts[o['hostname']]
-                if len(addresses) != 1:
-                    raise RuntimeError("Error configuring a VM: hostname %s doesn't uniquely determine one ip address"%o['hostname'])
-                o['ip_address'] = addresses[0]
-        
+        if 'vm' in self._options:
+            for address, o in self._options['vm']:
+                # very, very important: set to listen only on our VPN!  There is an attack where a local user
+                # can bind to a more specific address and same port on a machine, and intercept all trafic.
+                # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
+                # By binding on a specific ip address, we prevent this.
+                if 'ip_address' not in o:
+                    addresses = self._hosts[o['hostname']]
+                    if len(addresses) != 1:
+                        raise RuntimeError("Error configuring a VM: hostname %s doesn't uniquely determine one ip address"%o['hostname'])
+                    o['ip_address'] = addresses[0]
+
 
     def _hostopts(self, service, hostname, opts):
         """

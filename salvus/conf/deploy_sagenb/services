@@ -1,0 +1,15 @@
+# services
+
+[vm]
+# padelford salvus cluster vm's
+01salvus   {'hostname':'sagenb1', 'vcpus':8, 'ram':32, 'disk':'sagenb:64', 'vnc':9100}
+02salvus   {'hostname':'sagenb2', 'vcpus':8, 'ram':32, 'disk':'sagenb:64', 'vnc':9100}
+05salvus   {'hostname':'sagenb5', 'vcpus':8, 'ram':32, 'disk':'sagenb:64', 'vnc':9100}
+06salvus   {'hostname':'sagenb6', 'vcpus':8, 'ram':32, 'disk':'sagenb:64', 'vnc':9100}
+
+[sagenb] {'sudo':True, 'port':8080, 'path':'/mnt/sagenb/'}
+sagenb1
+sagenb2
+sagenb5
+sagenb6
+
