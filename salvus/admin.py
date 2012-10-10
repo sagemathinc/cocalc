@@ -615,30 +615,18 @@ def ping(hostname, count=3, timeout=2):
     else:
         return False # fail
 
-def tinc_conf(hostname, connect_to, external_ip=None, delete=True):
+def tinc_conf(ip_address):
     """
     Configure tinc on this machine, so it can be part of the VPN.
 
-    hostname = It *must* be the case that DNS resolves hostname.salv.us to the
-    ip address that this machine should have.  
-
-    connect_to = list of names of machines that this node should
-    try to establish a direct connection to.
-
-    external_ip = non-VPN address of this node; if None, it will
-    be automatically determined by connecting to the outside world
-
-    delete = if true (the default), deletes contents of
-    data/local/etc/tinc and remakes from scratch
+       -- ip_address -- address this machine gets on the vpn
     """
-    assert '.' not in hostname, "hostname must not contain a dot; it should be the name of this node on the VPN"
-    
     SALVUS = os.path.realpath(__file__)
     os.chdir(os.path.split(SALVUS)[0])
 
     # make sure the directories are there
     TARGET = 'data/local/etc/tinc'
-    if delete and os.path.exists(TARGET):
+    if os.path.exists(TARGET):
         print "deleting '%s'"%TARGET
         shutil.rmtree(TARGET)
         
@@ -650,9 +638,11 @@ def tinc_conf(hostname, connect_to, external_ip=None, delete=True):
     os.symlink(os.path.join('../../../../conf/tinc_hosts'),
                os.path.join(TARGET, 'hosts'))
 
-    # determine what our ip address is
-    ip_address = socket.gethostbyname(hostname + '.salv.us')
-    print "ip address = ", ip_address
+    # determine what our external ip address is
+    external_ip = misc.local_ip_address(dest='8.8.8.8')
+
+    # determine our hostname
+    hostname = socket.gethostname()
 
     # Create the tinc-up script
     tinc_up = os.path.join(TARGET, 'tinc-up')
@@ -665,45 +655,33 @@ ifconfig $INTERFACE %s netmask 255.0.0.0
     # Create tinc.conf
     tinc_conf = open(os.path.join(TARGET, 'tinc.conf'),'w')
     tinc_conf.write('Name = %s\n'%hostname)
-    for h in connect_to:
-        tinc_conf.write('ConnectTo = %s\n'%h)
+    for h in os.listdir(os.path.join(TARGET, 'hosts')):
+        if "Address" in open(os.path.join(TARGET, 'hosts', h)).read():
+            tinc_conf.write('ConnectTo = %s\n'%h)
     # on OS X, we need this, but otherwise we don't:
     if os.uname()[0] == "Darwin":
         tinc_conf.write('Device = /dev/tap0\n')
     tinc_conf.close()
 
-    # create the host/hostname file
-    if external_ip is None:
-        external_ip = misc.local_ip_address()
     host_file = os.path.join(TARGET, 'hosts', hostname)
     open(host_file,'w').write(
 """Address = %s
 Subnet = %s/32"""%(external_ip, ip_address))
 
     # generate keys
-    sh['data/local/sbin/tincd', '-K']
+    print sh['data/local/sbin/tincd', '-K']
+
+    # add file to git and checkin, then push to official repo
+    gitaddr = "git@github.com:williamstein/salvus.git"
+    print sh['git', 'pull', gitaddr]
+    print sh['git', 'add', os.path.join('conf/tinc_hosts', hostname)]
+    print sh['git', 'commit', '-a', '-m', 'tinc config for %s'%hostname]
+    print sh['git', 'push', gitaddr]
         
-    # print "pushing out host file to servers (for security, requires typing password a few times):"
-    # for h in connect_to:
-    #     addr = None
-    #     for x in open(os.path.join(TARGET, 'hosts', h)).readlines():
-    #         v = x.split()
-    #         if v[0].lower().startswith('address'):
-    #             addr = v[2]
-    #             break
-    #     if addr is None:
-    #         raise RuntimeError, "unable to find address of host %s"%h
-    #     run(['scp', host_file, addr + ':' + os.path.join('salvus/salvus', TARGET, 'hosts/')], maxtime=60)
-
-    #print "Starting tincd"
-    #tincd = os.path.abspath('data/local/sbin/tincd')
-    #sh['sudo', tincd, '-k']
-    #sh['sudo', tincd]
-
     print "To join the vpn on startup,"
     print "add this line to /etc/rc.local:\n"
     print "  nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd"
-    print "You must also add the hosts file to the git repo then pull on"
+    print "You *must* also pull the git repo on"
     print "at least one of the ConnectTo machines to connect."
 
     
