@@ -1128,7 +1128,7 @@ class Services(object):
 
 
         name = service.capitalize()
-        db_string = "" if name=='Sage' else ",monitor_database='%s'"%(','.join(self._cassandra))        
+        db_string = "" if (name=='Sage' or not hasattr(self, '_cassandra')) else ",monitor_database='%s'"%(','.join(self._cassandra))        
         v = self._hostopts(service, host, opts)
 
         self._hosts.password()  # can't get password in thread
