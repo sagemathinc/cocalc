@@ -673,10 +673,11 @@ Subnet = %s/32"""%(external_ip, ip_address))
     print sh['data/local/sbin/tincd', '-K']
 
     # add file to git and checkin, then push to official repo
-    print sh['git', 'pull', 'https://github.com/williamstein/salvus.git']
+    gitaddr = "git@github.com:williamstein/salvus.git"
+    print sh['git', 'pull', gitaddr]
     print sh['git', 'add', os.path.join('conf/tinc_hosts', hostname)]
     print sh['git', 'commit', '-a', '-m', 'tinc config for %s'%hostname]
-    print sh['git', 'push', 'https://github.com/williamstein/salvus.git']
+    print sh['git', 'push', gitaddr]
         
     print "To join the vpn on startup,"
     print "add this line to /etc/rc.local:\n"
