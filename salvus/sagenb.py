@@ -11,7 +11,7 @@ sagenb.py -- start a sage notebook server
 #                  http://www.gnu.org/licenses/
 #########################################################################################
 
-import logging, os, shutil, subprocess, sys
+import logging, os, signal, shutil, subprocess, sys, time
 
 # configure logging
 logging.basicConfig()
@@ -47,51 +47,73 @@ def create_user(basename):
 
 def system(cmd):
     log.info(cmd)
-    if os.system(cmd):
-       raise RuntimeError
+    e = os.system(cmd) 
+    if e:
+        log.info("WARNING -- nonzero exit from '%s'", cmd)
+    return e
 
-def serve(path, port, address, timeout):
+def serve(path, port, address, timeout, daemon_mode, pool_size):
     log.info("served")
 
     if not os.path.exists(path):
          os.makedirs(path)
 
-    # create two new unix users: 'server' and 'user'
-    server = create_user('server')
+    users = []; servers = []
+
     try:
-        user = create_user('user')
-        try:
-            # make 'server' user owns path
-            run(['chown', '-R', server + '.', path])
-            
+        # create new unix users: 'server' and users
+        server = create_user('server')
+        servers.append(server)
+
+        # make 'server' user own path
+        run(['chown', '-R', server + '.', path])
+        system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%server)
+
+        # make pool_size more users
+        users = []
+        while len(users) < pool_size:
+            user = create_user('user')
+            users.append(user)
             # make it so server can ssh without a password to be user
-            system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%server)
             system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%user)
-            #run(['su', server, '-c', '"ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'])  # generate ssh key for server
-            #run(['su', user, '-c', '"ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'])  # generate ssh key for user
-            shutil.copyfile(os.path.join('/home', server, '.ssh/id_rsa.pub'),
-                            os.path.join('/home', user, '.ssh/authorized_keys'))
-            run(['chown', user+'.', os.path.join('/home', user, '.ssh/authorized_keys')])
+            authorized_keys = os.path.join('/home', user, '.ssh/authorized_keys')
+            shutil.copyfile(os.path.join('/home', server, '.ssh/id_rsa.pub'), authorized_keys)
+            run(['chown', user+'.', authorized_keys])
+            run(['chmod', 'og-rwx', authorized_keys])
             system('su %s -c "ssh -o \'StrictHostKeyChecking no\' %s@localhost ls"'%(server, user))
 
-            # launch sage notebook server
-            system('''su %s -c "sage -c 'notebook(directory=\\"%s\\", port=%s, interface=\\"%s\\", accounts=True, open_viewer=False, timeout=%s, server_pool=[\\"%s@localhost\\"])'"'''%(server, os.path.join(path, 'notebook'), port, address, timeout, user))
-            
-        finally:
-            run(['deluser', '--remove-all-files', user])
+        # launch sage notebook server
+        try:
+            system('''su %s -c "sage -c 'notebook(directory=\\"%s\\", port=%s, interface=\\"%s\\", accounts=True, open_viewer=False, timeout=%s, server_pool=[%s])'%s"'''%(server, os.path.join(path, 'notebook'), port, address, timeout, ','.join(['\\"%s@localhost\\"'%user for user in users]), '&' if daemon_mode else ''))
 
-    finally:
-        # delete users
-        run(['deluser', '--remove-home',  server])
+            # wait to receive term signal, and then shutdown sagenb process
+            if daemon_mode:
+                while True:
+                    time.sleep(.1)
+
+        finally:
+            # clean up sagenb subprocess
+            pid = os.path.join(path, 'notebook.sagenb', 'twistd.pid')
+            if os.path.exists(pid):
+                p = int(open(pid).read())
+                log.info("sending kill signal(s) to process with pid %s", p)
+                os.kill(p, signal.SIGTERM)
+            else:
+                log.info("no sagenb twistd pid file '%s'", pid)
             
-def run_sagenb(path, port, address, pidfile, logfile):
+    finally:
+        # clean up users
+        for user in servers + users:
+              system('killall -u %s; deluser --remove-home %s >/dev/null 2>/dev/null'%(user, user))
+            
+def run_sagenb(path, port, address, pidfile, logfile, daemon_mode, pool_size):
     if pidfile:
         open(pidfile,'w').write(str(os.getpid()))
     if logfile:
         log.addHandler(logging.FileHandler(logfile))
     log.info("port=%s, address=%s, pidfile='%s', logfile='%s'", port, address, pidfile, logfile)
     try:
-        serve(path, port, address, timeout=3600)
+        serve(path, port, address, timeout=3600,daemon_mode=daemon_mode, pool_size=pool_size)
     finally:
         if pidfile:
             os.unlink(pidfile)
@@ -110,6 +132,9 @@ if __name__ == "__main__":
                         help="store pid in this file")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
+
+    parser.add_argument("--pool_size", dest='pool_size', type=int, default=16,
+                        help="number of users to create for the pool")
 
     parser.add_argument("--log_level", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
@@ -136,7 +161,7 @@ if __name__ == "__main__":
     pidfile = os.path.abspath(args.pidfile) if args.pidfile else ''
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
     
-    main = lambda: run_sagenb(args.path, args.port, args.address, pidfile, logfile)
+    main = lambda: run_sagenb(args.path, args.port, args.address, pidfile, logfile, args.daemon, args.pool_size)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():
