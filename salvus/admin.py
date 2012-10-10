@@ -592,6 +592,33 @@ class Vm(Process):
                          start_cmd = start_cmd,
                          monitor_database=monitor_database)
 
+
+#################################
+# Classical Sage Notebook Server
+#################################
+
+class Sagenb(Process):
+    def __init__(self, address, path, port, pool_size=16, monitor_database=None, debug=True, id=0):
+        self._address = address  # to listen on
+        self._path = path
+        self._port = port
+        pidfile = os.path.join(PIDS, 'sagenb-%s.pid'%port)
+        logfile = os.path.join(LOGS, 'sagenb-%s.log'%port)
+        Process.__init__(self, id, name='sage', port=port,
+                         pidfile = pidfile,
+                         logfile = logfile, 
+                         monitor_database = monitor_database, 
+                         start_cmd  = [PYTHON, 'sagenb.py', '--daemon', 
+                                       '--path', path, 
+                                       '--port', port, 
+                                       '--address', address,
+                                       '--pool_size', pool_size,
+                                       '--pidfile', pidfile, 
+                                       '--logfile', logfile]
+                         )
+        
+
+
 ########################################
 # tinc VPN management
 ########################################
