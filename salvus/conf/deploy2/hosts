@@ -48,8 +48,8 @@
 #10.2.1.6 office bsd6       # specs?  -- sage; vbox that is manually managed
 
 # DC1:RAC0 servedby.net data center -- 10.3
-#10.3.1.1 servedby servedby1  # little disk; intel; vmware cloud service that is manually managed
-#10.3.2.1 servedby servedby2  # 64GB disk; amd; vmware cloud service that is manually managed
+10.3.1.1 servedby servedby1  # little disk; intel; vmware cloud service that is manually managed
+10.3.2.1 servedby servedby2  # 64GB disk; amd; vmware cloud service that is manually managed
 
 # DC2:RAC0 UW tower colo data center -- 10.4
 10.4.1.1 tower kvm-host 05salvus  # 64gb ram; 16 cores; 6tb disk 
@@ -61,6 +61,8 @@
 10.4.4.1 tower kvm-host 08salvus  # 64gb ram; 16 cores; 6tb disk 
 10.4.4.2 tower kvm test4
 
+
+
 # DC3:RAC0 google compute engine data center(s) -- 10.5
 #10.5.1.1 google  google1
 #10.5.1.2 google  google2
@@ -70,6 +72,7 @@
 #10.5.1.6 google  google6
 #10.5.1.7 google  google7
 #10.5.1.8 google  google8
+
 
 # my laptop -- 10.38.1.1
 10.38.1.1 laptop salvus0

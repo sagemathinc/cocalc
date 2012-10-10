@@ -4769,3 +4769,7 @@ ssh localhost -p 2222
 
 
 import admin; admin.tinc_conf('10.4.3.1')
+
+
+
+v = h.ping('all')[0]; v.sort(lambda x, y: cmp(x[1],y[1])); v
