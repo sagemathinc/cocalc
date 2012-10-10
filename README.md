@@ -42,7 +42,7 @@ Javascript/CSS/HTML
 
 Database
 --------
-   * Cassandra
+   * Cassandra -- apache licensed
 
 Used as a separate process (no library linking)
 -----------------------------------------------
