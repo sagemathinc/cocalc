@@ -48,6 +48,9 @@ def create_user(basename):
 def serve(path, port, address, timeout):
     log.info("served")
 
+    if not os.path.exists(path):
+         os.makedirs(path)
+
     # create two new unix users: 'server' and 'user'
     server = create_user('server')
     try:
