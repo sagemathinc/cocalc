@@ -4737,9 +4737,6 @@ echo "ConnectTo = bsd" >> tinc.conf
 
 
 -- do a test of it all on 01salvus
-  2. create sagenb.py script that can safely run sagenb (starting as root and dropping priv) on my current vm's
-  3. deploy with a vm on each machine
-  4. configure apache2 on each machine
 
 
 ----
@@ -4773,3 +4770,22 @@ import admin; admin.tinc_conf('10.4.3.1')
 
 
 v = h.ping('all')[0]; v.sort(lambda x, y: cmp(x[1],y[1])); v
+
+-----------
+
+OK, the VM machine farm is working.
+
+
+
+
+------------
+
+
+  2. create sagenb.py script that can safely run sagenb (starting as root and dropping priv) on my current vm's
+
+
+
+
+  3. deploy with a vm on each machine
+
+  4. configure apache2 on each machine to proxy to sagenb.
