@@ -32,9 +32,10 @@ geom       {'hostname':'sage10', 'vcpus':4, 'ram':8, 'vnc':9000}
 
 
 # uw tower salvus cluster vm's
-#05salvus  {'hostname':'05salvus2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
-#06salvus  {'hostname':'06salvus2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
-#07salvus  {'hostname':'07salvus2', 'vcpus':4, 'ram':8, 'disk':'cassandra:64'}
+05salvus  {'hostname':'test1', 'vcpus':4, 'ram':8, 'base':'salvus1'}
+06salvus  {'hostname':'test2', 'vcpus':4, 'ram':8, 'base':'salvus1'}
+07salvus  {'hostname':'test3', 'vcpus':4, 'ram':8, 'base':'salvus1'}
+08salvus  {'hostname':'test4', 'vcpus':4, 'ram':8, 'base':'salvus1'}
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'} 
 # N=4; [i * (2**127 / N) for i in range(N)]

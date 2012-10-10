@@ -3391,9 +3391,7 @@ Then we can make a snapshot of persistent disks and back them up using rsync (or
 
 Do this on 02,03,04salvus now:
 
-lvcreate --name salvus_persistent --size 512G `hostname`; mkfs.ext4 /dev/mapper/`hostname`-salvus_persistent
-echo "/dev/mapper/`hostname`-salvus_persistent  /home/salvus/vm/images/persistent ext4 defaults 1 1" >> /etc/fstab
-mount -a; chown salvus. /home/salvus/vm/images/persistent/; rm -rf /home/salvus/vm/images/persistent/lost+found/
+mkdir -p /home/salvus/vm/images/persistent; chown salvus. /home/salvus/vm/images/persistent; lvcreate --name salvus_persistent --size 512G `hostname`; mkfs.ext4 /dev/mapper/`hostname`-salvus_persistent; echo "/dev/mapper/`hostname`-salvus_persistent  /home/salvus/vm/images/persistent ext4 defaults 1 1" >> /etc/fstab; mount -a; chown salvus. /home/salvus/vm/images/persistent/; rm -rf /home/salvus/vm/images/persistent/lost+found/
 
 DONE.
 
@@ -3596,10 +3594,7 @@ Add salvus to the kvm, libvirt and fuse groups in etc/group
 
 Build salvus:
  
-   git clone https://github.com/williamstein/salvus.git
-   cd salvus/salvus
-   . salvus-env
-   ./build.py --build_all
+   git clone https://github.com/williamstein/salvus.git; cd salvus/salvus; . salvus-env ; ./build.py --build_all
 
 Setup vpn:
 
@@ -4577,3 +4572,200 @@ Plan for 3 (version 1):
 
 There is no way I can do this in time in a way that I will like.
  
+-----------------
+
+Oct 9, 2012 at 12:28pm
+
+Setting up computers at UW tower data center.
+
+ * Ubuntu 12.04.1 LTS
+
+Subnet: 128.95.242.128/26 (& 172.25.242.128/26)
+vlan: 1763
+Mask: 255.255.255.192
+Gateway: 128.95.242.129
+IP numbers available for your use: 128.95.242.133 through 128.95.242.190
+
+(private)
+and 172.25.242.133 through 172.25.242.190
+
+(I have Broadcom Corp NetXtreme II BCM57711 10-gigabit PCIe ports...)
+
+Use 128GB for automatic LVM partitioning.
+
+128.95.242.133 05salvus 
+128.95.242.135 06salvus 
+128.95.242.137 07salvus 
+128.95.242.139 08salvus 
+
+128.95.242.134 05salvus-admin 
+128.95.242.136 06salvus-admin 
+128.95.242.138 07salvus-admin 
+128.95.242.140 08salvus-admin 
+
+[x] openssh server
+[x] virtual machine host
+
+
+# /etc/network/interfaces
+# The primary network interface
+auto eth0
+iface eth0 inet static
+address 128.95.242.135
+netmask 255.255.255.192
+gateway 128.95.242.129
+dns-nameservers 128.95.120.1 128.95.112.1 8.8.8.8 8.8.4.4
+---
+
+
+
+Then on first boot: 
+
+* Turn off memtest 
+
+* Control-E
+
+Configure iDrac6 ip, user (root), passwd; Enable IPMI over Lan -- (maybe I can eventuall;y figure out how to use it)
+
+Network:
+
+netmask 255.255.255.192
+gateway 128.95.242.129
+dns-nameservers 128.95.120.1 128.95.112.1 8.8.8.8 8.8.4.4
+
+
+Add this to /etc/apt/sources.list:
+
+      deb http://archive.ubuntu.com/ubuntu/ precise-proposed restricted main multiverse universe
+
+
+sudo su
+echo "deb http://archive.ubuntu.com/ubuntu/ precise-proposed restricted main multiverse universe" >> /etc/apt/sources.list
+apt-get update
+apt-get upgrade
+apt-get install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs23 apache2 qemu-kvm  guestfish guestmount virtinst libguestfs-tools git
+
+apt-get remove unattended-upgrades
+apt-get autoremove
+
+reboot -h now
+
+# Install salvus
+
+git clone 01salvus.math.washington.edu:salvus/; cd salvus/salvus; . salvus-env; ./build.py --build_all
+
+mkdir ~/vm; mkdir ~/vm/images; mkdir ~/vm/images/base; rsync --sparse -uaxvH 01salvus.math.washington.edu:vm/images/base/ ~/vm/images/base/
+
+# Install and configure tincd:
+
+10.4.1.1 05salvus
+10.4.2.1 06salvus
+10.4.3.1 07salvus
+10.4.4.1 08salvus
+
+# Edit /etc/rc.local
+
+sudo emacs /etc/rc.local
+   sudo chmod a+r /boot/vmlinuz-* # used by guestmount  
+   nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd
+
+
+
+
+
+
+
+echo "deb http://archive.ubuntu.com/ubuntu/ precise-proposed restricted main multiverse universe" >> /etc/apt/sources.list
+apt-get update
+apt-get -y --force-yes upgrade
+apt-get -y --force-yes install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs23 apache2 qemu-kvm  guestfish guestmount virtinst libguestfs-tools git
+
+apt-get -y --force-yes remove unattended-upgrades
+apt-get -y --force-yes autoremove
+
+reboot -h now
+
+
+ tar xvf sage-5.4.rc1.tar ; export MAKE="make -j20"; cd sage-5.4.rc1; make ptestlong
+
+DONE at 5:42pm!
+
+
+----------
+
+I'm doing the following, so that I can make *.sagenb.org servers pointing at them.
+
+128.95.242.133 SALVUSMATH.INFO  (05salvus)
+128.95.242.135 SAGEWS.ORG       (06salvus)
+128.95.242.137 SAGEWS.COM       (07salvus)
+128.95.242.139 MTHYME.COM       (08salvus)
+
+
+Steps to create salvus*.sagenb.org servers:
+
+  (done) 1. setup dns
+
+(done) -- finish vm host config on 05-08salvus:
+
+ usermod -a -G fuse,kvm,libvirtd,netdev salvus;  chmod a+wr /dev/kvm 
+
+-- setup tincd:
+
+
+cd /home/salvus/salvus/salvus/data/local/etc/
+mkdir tinc; cd tinc
+echo '#!/bin/sh' >tinc-up
+echo "ifconfig $INTERFACE 10.4.1.1 netmask 255.0.0.0" >> tinc-up
+chmod +x tinc-up
+
+echo "Name = `hostname`" > tinc.conf
+echo "ConnectTo = 01salvus" >> tinc.conf
+echo "ConnectTo = 02salvus" >> tinc.conf
+echo "ConnectTo = 03salvus" >> tinc.conf
+echo "ConnectTo = 04salvus" >> tinc.conf
+echo "ConnectTo = 05salvus" >> tinc.conf
+echo "ConnectTo = 06salvus" >> tinc.conf
+echo "ConnectTo = 07salvus" >> tinc.conf
+echo "ConnectTo = 08salvus" >> tinc.conf
+echo "ConnectTo = servedby1" >> tinc.conf
+echo "ConnectTo = geom" >> tinc.conf
+echo "ConnectTo = combinat" >> tinc.conf
+echo "ConnectTo = bsd" >> tinc.conf
+
+
+/home/salvus/salvus/salvus/data/local/sbin/tincd --config /home/salvus/salvus/salvus/data/local/etc/tinc -K
+
+
+-- do a test of it all on 01salvus
+  2. create sagenb.py script that can safely run sagenb (starting as root and dropping priv) on my current vm's
+  3. deploy with a vm on each machine
+  4. configure apache2 on each machine
+
+
+----
+
+virsh -c qemu:///session qemu-monitor-command --hmp web03 'hostfwd_add ::2222-:22'
+ssh localhost -p 2222
+
+
+-------------
+
+
+
+     export PREV=salvus
+     export NAME=salvus1
+     qemu-img create -b $PREV.img -f qcow2 $NAME.img
+
+     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk $NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'
+     
+     ssh localhost -p 2222
+     git pull https://github.com/williamstein/salvus.git
+
+     virsh --connect qemu:///session undefine $NAME
+     virsh --connect qemu:///session destroy $NAME
+
+
+
+
+import admin; admin.tinc_conf('10.4.3.1')

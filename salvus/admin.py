@@ -585,7 +585,6 @@ class Vm(Process):
                      '--vnc', vnc, 
                      '--vm_type', vm_type, '--base', base] + \
                      (['--disk', disk] if self._disk else []) + \
-                     ['--base', base] + \
                      (['--hostname', self._hostname] if self._hostname else [])
         
         Process.__init__(self, id=id, name=name, port=0,
