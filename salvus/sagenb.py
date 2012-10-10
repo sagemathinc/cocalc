@@ -33,8 +33,8 @@ def run(args):
     p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE)
     p.wait()
-    log.info('output = ', p.stdout.read())
-    log.info('err = ', p.stderr.read())
+    log.info('output = %s'%p.stdout.read())
+    log.info('err = %s'%p.stderr.read())
     return p.returncode
 
 def create_user(basename):
@@ -57,19 +57,20 @@ def serve(path, port, address, timeout):
             run(['chown', '-R', server + '.', path])
             
             # make it so server can ssh without a password to be user
-            run(['su', server, '-c', '"ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'])  # generate ssh key for server
-            run(['su', user, '-c', '"ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'])  # generate ssh key for user
+            os.system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%server)
+            os.system('su %s -c "ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'%user)
+            #run(['su', server, '-c', '"ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'])  # generate ssh key for server
+            #run(['su', user, '-c', '"ssh-keygen -b 2048 -N \'\' -f ~/.ssh/id_rsa"'])  # generate ssh key for user
             shutil.copyfile(os.path.join('/home', server, '.ssh/id_rsa.pub'),
                             os.path.join('/home', user, '.ssh/authorized_keys'))
             run(['chown', user+'.', os.path.join('/home', user, '.ssh/authorized_keys')])
-            run(['su', server, '-c', '"ssh -o \'StrictHostKeyChecking no\' %s@localhost ls"'%user]) # host key verification...
+            os.system('su %s -c "ssh -o \'StrictHostKeyChecking no\' %s@localhost ls"'%(server, user))
             
             # launch sage notebook server
-            # TODO -- pass options!!!!
-            run(['su', server, '-c', '"sage --notebook directory=%s port=%s interface=%s accounts=True open_viewer=False --timeout=%s --server_pool=[\"%s@localhost\"]"'%(path, port, address, timeout, user)])
+            os.system('su %s -c "sage --notebook directory=%s port=%s interface=%s accounts=True open_viewer=False timeout=%s server_pool=[\'%s@localhost\']"'%(server, path, port, address, timeout, user))
             
         finally:
-            run(['deluser', '--remove-all-files', 'user'])
+            run(['deluser', '--remove-all-files', user])
 
     finally:
         # delete users
@@ -92,7 +93,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create two users, and run a Sage notebook server, with code evaluated by one user and the notebook server process run as the other user.")
     
     parser.add_argument("--port", dest="port", type=int, default=8080, help="port to listen on (default: 8080)")
-    parser.add_argument("--path", dest="path", type=int, help="path in which to store sage notebook files")
+    parser.add_argument("--path", dest="path", type=str, help="path in which to store sage notebook files")
     parser.add_argument("--daemon", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
     parser.add_argument("--address", dest="address", type=str,
