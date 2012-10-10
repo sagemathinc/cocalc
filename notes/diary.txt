@@ -4643,7 +4643,7 @@ sudo su
 echo "deb http://archive.ubuntu.com/ubuntu/ precise-proposed restricted main multiverse universe" >> /etc/apt/sources.list
 apt-get update
 apt-get upgrade
-apt-get install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs23 apache2 qemu-kvm  guestfish guestmount virtinst libguestfs-tools git
+apt-get install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs23 apache2 qemu-kvm  guestfish guestmount virtinst libguestfs-tools git lynx
 
 apt-get remove unattended-upgrades
 apt-get autoremove
@@ -4747,13 +4747,13 @@ ssh localhost -p 2222
 
 -------------
 
+MAKING A NEW BASE: (needs to be put in scripts/)
 
+     export PREV=salvus1
+     export NAME=salvus2
+     qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
 
-     export PREV=salvus
-     export NAME=salvus1
-     qemu-img create -b $PREV.img -f qcow2 $NAME.img
-
-     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk $NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
      virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'
      
      ssh localhost -p 2222
@@ -4761,7 +4761,7 @@ ssh localhost -p 2222
 
      virsh --connect qemu:///session undefine $NAME
      virsh --connect qemu:///session destroy $NAME
-
+     virsh --connect qemu:///session list --all
 
 
 
@@ -4783,9 +4783,44 @@ OK, the VM machine farm is working.
 
   2. create sagenb.py script that can safely run sagenb (starting as root and dropping priv) on my current vm's
 
+(done)
 
 
-
-  3. deploy with a vm on each machine
 
   4. configure apache2 on each machine to proxy to sagenb.
+
+
+ cd /etc/apache2/mods-enabled; ln -s ../mods-available/proxy* .; ln -s ../mods-available/rewrite.load .
+
+
+<VirtualHost *>
+  RewriteEngine On
+  ServerName salvus5.sagenb.org
+  ProxyPreserveHost On
+  ProxyPass    / http://10.123.1.5:8080/
+  ProxyPassReverse / http://10.123.1.5:8080/
+  ProxyTimeout 30
+  DocumentRoot /
+        <Location />
+           DefaultType text/html
+        </Location>
+</VirtualHost>
+
+
+
+-------
+
+Create Sagenb process object:
+
+  python ./sagenb.py --daemon --pidfile=pid --logfile=log --address=10.123.1.1 --port=8080 --path=/mnt/sagenb
+
+
+--
+  3. deploy with a vm on each machine
+
+-- need to make new base salvus2.img.  done.
+
+
+# send out persistent sagenb image:
+
+ rsync --sparse -uaxvH /home/salvus/vm/images/persistent/sagenb1-sagenb.img 05salvus:vm/images/persistent/sagenb5-sagenb.img
