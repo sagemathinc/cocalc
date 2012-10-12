@@ -4921,10 +4921,29 @@ polishing and getting the details right.
 
 Plan:
 
-  - make a new .img version with the latest code.
-  - change the base image definition for the nginx vm's
-  - try restarting all of the vm machines and any services that run on them.
+[ ]  - make a new .img version with the latest code.
+[ ]   - change the base image definition for the nginx vm's
+[ ]   - try restarting all of the vm machines and any services that run on them.
 
 Then try changing config so haproxy binds to port 80 and redirects traffic.
 
 
+
+
+----
+
+     virsh list   # check that no base vm is running
+     export PREV=salvus2
+     export NAME=salvus3
+     qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+
+     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+        cd salvus; git pull https://github.com/williamstein/salvus.git
+
+     virsh --connect qemu:///session undefine $NAME
+     virsh --connect qemu:///session destroy $NAME
+     virsh --connect qemu:///session list --all
+
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py 
