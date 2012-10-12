@@ -4932,6 +4932,12 @@ Plan:
 (success)  -- restart just one and test by directly connecting to it.
   -- restart all.
 
+[s.restart('vm', hostname='web0%s'%i,wait=False) for i in [1,2,3,4]]
+s.wait_until_up('web04')
+[s.start('all', 'web0%s'%i,wait=False) for i in [1,2,3,4]]
+
+
+
 [ ]   - try restarting all of the vm machines and any services that run on them.
 
 Then try changing config so haproxy binds to port 80 and redirects traffic.

@@ -48,7 +48,7 @@ cassandra04    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595
 edge
 
 [haproxy] {'sudo':True}
-edge
+edge {'insecure_redirect_port':80, 'sitename':'salv.us'}
 
 [nginx]
 nginx
