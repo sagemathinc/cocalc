@@ -17,11 +17,12 @@
 </head>
 
 <body>
-<div data-role="page">
-<div data-role="header">
-<h1>Salvus</h1>
-</div>
+
+
+<div data-role="page" id="compute">
+<div data-role="header"><h1>Salvus</h1></div>
 <div data-role="content">
+<a href="#login">login</a>&nbsp|&nbsp;<a href="#about">about</a>&nbsp|&nbsp;<a href="#compute">compute</a><hr>
 <span id="connection_status"></span>&nbsp;&nbsp;
 <span id="run_status"></span>&nbsp;&nbsp;
 <span id="time"></span>
@@ -33,21 +34,35 @@
       <br>
       <textarea id="output" readonly="readonly"></textarea>
     </li>
-<!--    <li> Sign In<button id="google">google</button> <button id="facebook">facebook</button>  </li> -->
-
   </ul>
 </div>
 </div>
 
-<!--<div data-role="page" id="about">
-<div data-role="header">
-<h1>Salvus</h1>
-</div>
+<div data-role="page" id="about">
+<div data-role="header"><h1>Salvus</h1></div>
 <div data-role="content">
-Salvus is a collobarative way to do mathematics over the web.
+<a href="#login">login</a>&nbsp|&nbsp;<a href="#about">about</a>&nbsp|&nbsp;<a href="#compute">compute</a><hr>
+<ul>
+<li> Salvus is a project to provide mathematical software as a
+service, primarily using <a href="http://sagemath.org">Sage</a>. </li>
+<li> Salvus has a distributed and fault tolerant design.</li>
+</ul>
 
 </div>
-</div>-->
+</div>
+
+<div data-role="page" id="login">
+<div data-role="header"><h1>Salvus</h1></div>
+<div data-role="content">
+<a href="#login">login</a>&nbsp|&nbsp;<a href="#about">about</a>&nbsp|&nbsp;<a href="#compute">compute</a><hr>
+<ul>
+<li> Login is not yet implemented
+</ul>
+
+</div>
+</div>
+
+
 
 </body>
 </html>

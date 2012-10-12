@@ -4900,8 +4900,7 @@ Strange: If I go to this URL (with the /), things work fine
 
    https://localhost/about/
 
-[ ] do the same as above for the mobile site!
-
+[x] do the same as above for the mobile site!
 
 
 --
@@ -4913,3 +4912,15 @@ that somehow magically makes things work."  I think with Salvus I'm at
 the stage where I've chosen basically all the technology I need to
 choose (maybe I need more bootstrap.js), and it is now all about
 polishing and getting the details right.
+
+
+
+-----
+
+  [ ] salvus: push out this code + test.
+
+Plan:
+
+  -- 
+
+
