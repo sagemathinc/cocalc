@@ -5,8 +5,8 @@
 
 <script type="text/javascript" src="/jquery/jquery.min.js"></script>
 <script type="text/javascript" src="/jquery/jquery-ui/js/jquery-ui.min.js"></script>
-<link rel="stylesheet" href="/jquery/jquery-ui/css/base.css"> 
-<link rel="stylesheet" href="/jquery/jquery-ui/css/humanity/jquery-ui.css"> 
+<!--<link rel="stylesheet" href="/jquery/jquery-ui/css/base.css"> 
+<link rel="stylesheet" href="/jquery/jquery-ui/css/humanity/jquery-ui.css"> -->
 
 <script type="text/javascript" src="/sockjs/sockjs.min.js"></script>
 <script type="text/javascript" src="sagews/sagews.js"></script>
@@ -17,22 +17,28 @@
 <body>
 <div>
 
-<div style="border:1px black solid; padding: 5px; background:#444; color:white;">
+<div style="border:1px black solid; padding: 5px; background:#444; color:#ddd;">
 <!--Sign in: <button id="google">google</button> or <button id="facebook">facebook</button>
 <button id="sign_out">sign out</button>
 &nbsp;&nbsp;
 -->
+<a href="/sign_in/" style="color:#ddd; text-decoration:none;">Sign in</a>
+&nbsp|&nbsp; 
+<a href="/about/" style="color:#ddd; text-decoration:none;">About</a>
+&nbsp|&nbsp; 
+<a href="/" style="color:#fff; text-decoration:none;">Compute</a>
+</div>
+<div style="border:1px black solid; padding: 5px; background:#fff; color:#888;">
 <span id="connection_status"></span>
-&nbsp|&nbsp; <span id="time"></span>
+&nbsp|&nbsp; 
+<span id="time"></span>
 <span id="run_status"></span>
 </div>
 <!-- User: <span id="username">Username</span> -->
 
-<b>WARNING:</b> This is an extremely preliminary rough demo.  Please don't hesitate to email any thoughts, feedback, ideas, etc., to <a href="mailto:wstein@gmail.com">wstein@gmail.com</a>.
-
 
 <div align=center>
-<h1><span style="color:#0084aa">Salvus</span></h1>
+<h1><span style="color:#0084aa; font-size:50px">Salvus</span></h1>
 
 <textarea rows=8 cols=120 id="input"></textarea>
 <br>

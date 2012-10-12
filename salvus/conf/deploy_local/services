@@ -15,7 +15,7 @@ localhost
 localhost
 
 [haproxy] {'sudo':True}
-localhost
+localhost {'insecure_redirect_port':80, 'insecure_testing_port':8001, 'sitename':'localhost'}
 
 [sage] {'sudo':True}
 sage
