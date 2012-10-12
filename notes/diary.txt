@@ -4921,8 +4921,17 @@ polishing and getting the details right.
 
 Plan:
 
-[ ]  - make a new .img version with the latest code.
+[ ]  - make a new .img version with the latest code:
+   
+ -- snippet below
+ -- cd salvus; git pull https://github.com/williamstein/salvus.git
+ -- apt-get update; apt-get upgrade
+ -- sudo reboot # test it starts
+
 [ ]   - change the base image definition for the nginx vm's
+(success)  -- restart just one and test by directly connecting to it.
+  -- restart all.
+
 [ ]   - try restarting all of the vm machines and any services that run on them.
 
 Then try changing config so haproxy binds to port 80 and redirects traffic.
