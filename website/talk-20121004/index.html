@@ -43,7 +43,8 @@
 <h2>Distributed Scalable Online Mathematical Software</h2>
 <h3>William Stein</h3>
 <h4>University of Washington</h4>
-<h4><a href="http://youtu.be/O-CDGXMh6rQ">Screencast of talk</a></h4>
+<h4><a href="http://youtu.be/O-CDGXMh6rQ">Screencast of talk (part 1 of 2)</a></h4>
+<h4><a href="http://youtu.be/fftL-RiRCUY">Screencast of talk (part 2 of 2)</a></h4>
 </div>
 
 
@@ -203,72 +204,6 @@ monolithic single-point-of-failure Sage notebook:
 </div>
 </div>
 
-<div class="slide">
-<h1>The Salvus Stack</h1>
-<ul>
-
-  <li> <b>Infrastructure:</b> hardware, virtualization ( libvirt + kvm), public clouds</li>
-  <li> <b>VPN:</b> tinc</li>
-  <li> <b>Database:</b> Apache Cassandra</li>
- <li> <b>SSL:</b> stunnel</li>
-  <li> <b>Load balancing:</b> HAproxy</li>
-  <li> <b>Static HTTP:</b> Nginx</li>
-  <li> <b>Dynamic HTTP:</b> Tornado</li>
-  <li> <b>Math/compute:</b> forking tcp-based Sage server</li>
-  <li> <b>Management:</b> Paramiko + much new code</li>
-
-</ul>
-<div class="handout">
-</div>
-</div>
-
-
-<div class="slide">
-<h1>Client/server communication</h1>
-<ul>
-  <li> <b><a href="https://github.com/sockjs/sockjs-client">SockJS:</a></b> websocket connection between browser and tornado, when
-    supported; otherwise, falls back to other long-polling approaches</li>
-  <li> <b>TCP + SSL:</b> standard UNIX Socket connection for non-browser
-    clients, e.g, command line.</li>
-  <li> <b>HTTP:</b> old-fashioned POST for simple HTTP clients</li>
-</ul>
-<div class="handout">
-</div>
-</div>
-
-
-<div class="slide">
-<h1>Architecture Diagram</h1>
-<font size=+2>
-<pre>
-
-
-
-   Client    Client    Client   Client   Client  Client
-     /|\
-      |     (websocket, etc.)
-   Stunnels ... (https://salv.us)
-      |     
-      |
-     \|/ 
- HAProxy Load Balancers  ... 
- /|\       /|\      /|\      /|\
-  |         |        |        |                                                
-  |https1.1 |        |        |                                     
- \|/       \|/      \|/      \|/                                      
-Tornado  Tornado  Tornado  Tornado    <------------------>   Cassandra   ...
-           /|\      /|\                                         /|\
-            |        |        -----------------------------------|
-   ---------|        |        |                                         
-   |                 |        |
-   |                          |
-  \|/               \|/      \|/
- SageServer   SageServer  SageServer   SageServer ...
-</pre>
-</font>
-<div class="handout">
-</div>
-</div>
 
 
 
@@ -348,6 +283,70 @@ Matlab, Magma).</li>
 </div>
 
 <div class="slide">
+<h1>The Salvus Stack</h1>
+<ul>
+
+  <li> <b>Infrastructure:</b> private cloud (libvirt + kvm); public cloud</li>
+  <li> <b>VPN:</b> tinc</li>
+  <li> <b>Database:</b> Apache Cassandra</li>
+  <li> <b>SSL:</b> stunnel</li>
+  <li> <b>Load balancing:</b> HAproxy</li>
+  <li> <b>Static HTTP:</b> Nginx</li>
+  <li> <b>Dynamic HTTP:</b> Tornado</li>
+  <li> <b>Math/compute:</b> forking tcp-based Sage server</li>
+  <li> <b>Management:</b> Paramiko + much new code</li>
+
+</ul>
+<div class="handout">
+</div>
+</div>
+
+<div class="slide">
+<h1>Architecture Diagram</h1>
+<font size=+3>
+<pre>
+   Client    Client    Client   Client   Client  Client
+     /|\
+      |       (sockjs)
+   Stunnels ... (https://salv.us)
+      |     
+      |
+     \|/ 
+ HAProxy Load Balancers  ...  Nginx static servers ...
+ /|\       /|\      /|\      /|\
+  |         |        |        |           [tinc vpn]
+  |https1.1 |        |        |                                     
+ \|/       \|/      \|/      \|/                                      
+Tornado  Tornado  Tornado  Tornado    <------------------>   Cassandra   ...
+           /|\      /|\                                         /|\
+            |        |        -----------------------------------|
+   ---------|        |        |                                         
+   |                 |        |
+   |                 |        |
+  \|/               \|/      \|/
+ SageServer   SageServer  SageServer   SageServer ...
+</pre>
+</font>
+<div class="handout">
+</div>
+</div>
+
+<div class="slide">
+<h1>Client/server communication</h1>
+<ul>
+  <li> <b><a href="https://github.com/sockjs/sockjs-client">SockJS:</a></b> websocket connection between browser and tornado, when
+    supported; otherwise, falls back to other long-polling approaches</li>
+  <li> <b>TCP + SSL:</b> standard UNIX Socket connection for non-browser
+    clients, e.g, command line.</li>
+  <li> <b>HTTP:</b> old-fashioned POST for simple HTTP clients</li>
+</ul>
+<div class="handout">
+</div>
+</div>
+
+
+
+<div class="slide">
 <h1>Virtualization:  libvirt + kvm</h1>
 <ul>
 <li><b>Virtualization:</b> absolutely essential due to allowing users to
@@ -375,10 +374,10 @@ Matlab, Magma).</li>
 <li><b>OpenStack, CloudStack, OpenNebula, Ganeti, etc.</b> -- war of the private
     cloud software distributions. </li>
 <li> I spent quite a bit of time
-    investigating all this, and its snake oil right now, at least for
+    investigating all this, and it's not useful yet, at least for
     what I'm doing -- basically a lot of companies and people are
     making noise about implementing something open source kind of like
-    what Amazon and VMware already did years ago, but with all the
+    what Amazon and VMware already did, but with a lot of the truly hard
     real work being doing by libvirt.  (This will likely be useful for
     something in a year or two, and now if you <a href="http://www.ubuntu.com/cloud/solutions">pay companies money</a>, 
 but now it is worse than useless...)
@@ -479,7 +478,6 @@ an absolutely crucial component of the design.
       who've learned the hard way that automated database failover
       usually causes more downtime than it prevents." http://news.ycombinator.com/item?id=4524340</li>
 
-<li>    Basically, it's not easy.  I want easy!</li>
 </ul>
 </li>
 
@@ -556,12 +554,12 @@ computer).
 <ul>
 <li>Haproxy is pretty much the canonical open source load balancer
 program.</li>
-<li>Haproxy in monitors a bunch of web servers (for salvus, that
+<li>Haproxy monitors a bunch of web servers (for salvus, that
 means nginx servers and tornado servers), makes sure they are working,
-and balancing incoming connections between them.</li>
-<li>Sstatic content
+and balances incoming connections between them.</li>
+<li>Static content
 requests go to nginx.  </li>
-<li>Synamic websocket connections go to tornado
+<li>Dynamic websocket connections go to tornado
 servers.</li>
 </ul>
 <div class="handout">

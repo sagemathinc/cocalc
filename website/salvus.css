@@ -1,0 +1,29 @@
+h1 { 
+  font-family:"futura-pt-condensed","trebuchet ms";
+  font-weight:400; 
+  font-style:normal;
+  text-align:left;
+  font-size:2rem;
+  line-height:20px;
+}
+
+h2 { 
+  font-family:"futura-pt-condensed","trebuchet ms";
+  font-weight:400; 
+  font-style:normal;
+  text-align:left;
+  font-size:1.4rem;
+  line-height:20px;
+}
+
+ul { 
+  font-family:"futura-pt-condensed","trebuchet ms";
+  font-weight:400; 
+  font-style:normal;
+  text-align:left;
+  font-size:1rem;
+}
+
+a {
+   text-decoration: none;
+}

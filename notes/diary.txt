@@ -4754,15 +4754,15 @@ MAKING A NEW BASE: (needs to be put in scripts/)
      qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
 
      virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
-     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'
-     
-     ssh localhost -p 2222
-     git pull https://github.com/williamstein/salvus.git
+     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+        cd salvus; git pull https://github.com/williamstein/salvus.git
 
      virsh --connect qemu:///session undefine $NAME
      virsh --connect qemu:///session destroy $NAME
      virsh --connect qemu:///session list --all
 
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py 
 
 
 import admin; admin.tinc_conf('10.4.3.1')
@@ -4824,3 +4824,67 @@ Create Sagenb process object:
 # send out persistent sagenb image:
 
  rsync --sparse -uaxvH /home/salvus/vm/images/persistent/sagenb1-sagenb.img 05salvus:vm/images/persistent/sagenb5-sagenb.img
+
+
+5. Push out /mnt/sagenb/notebook.sagenb from sagenb1 to sagenb2, 5,6 to avoid password typing and having to copy persistent images via rsync:
+
+#   sudo rsync -axvH /mnt/sagenb/ salvus@10.123.1.5:/mnt/sagenb/
+
+sudo rsync -axvH /mnt/sagenb/ root@10.123.1.2:/mnt/sagenb/
+
+NEED TO ENABLE ROOT LOGIN on salvus-base...
+
+Fix httpd.conf's:
+
+NameVirtualHost *:80
+
+
+<VirtualHost *:80>
+  RewriteEngine On
+  ServerName salv.us
+  DocumentRoot /var/www/
+</VirtualHost>
+
+
+<VirtualHost *:80>
+  RewriteEngine On
+  ServerName salvus1.sagenb.org
+  ProxyPreserveHost On
+  ProxyPass    / http://10.123.1.1:8080/
+  ProxyPassReverse / http://10.123.1.1:8080/
+  ProxyTimeout 30
+  DocumentRoot /
+        <Location />
+           DefaultType text/html
+        </Location>
+</VirtualHost>
+
+----
+
+Oct 11, 2012:
+---------------
+5:47pm. 
+
+  [ ] get salvus working on my laptop again:
+
+import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='salvus'); h=s._hosts
+
+Fail -- I need to update the config format.
+
+Ooops... I think starting it locally just accidentally deleted key files!  Tread with care!
+
+    707             # clever idea from john a. meinel: map the error codes to errno
+--> 708             raise IOError(errno.ENOENT, text)
+    709         elif code == SFTP_PERMISSION_DENIED:
+    710             raise IOError(errno.EACCES, text)
+
+IOError: [Errno 2] No such file
+
+
+
+
+--
+
+  [ ] make https://salv.us/about have the static content (e.g., my talk, etc.), and get rid of preliminary demo
+  [ ] make https://salv.us/ have the current compute demo
+

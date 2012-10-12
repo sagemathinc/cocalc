@@ -1,2 +1,1 @@
-rsync -r --delete ./ wstein@combinat.math.washington.edu:www/salvus/
-rsync -r --delete ./ salvus@servedby1.salv.us:/var/www/
+rsync -r --delete ./ root@01salvus:/var/www/

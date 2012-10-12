@@ -608,7 +608,7 @@ class Sagenb(Process):
                          pidfile = pidfile,
                          logfile = logfile, 
                          monitor_database = monitor_database, 
-                         start_cmd  = [PYTHON, 'sagenb.py', '--daemon', 
+                         start_cmd  = [PYTHON, 'sagenb_server.py', '--daemon', 
                                        '--path', path, 
                                        '--port', port, 
                                        '--address', address,
@@ -1018,10 +1018,13 @@ class Services(object):
         self._username = username
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
 
-        if 'cassandra' in self._hosts['all']:
-            import cassandra
+        try:
             self._cassandra = self._hosts['cassandra']
+            import cassandra
             cassandra.set_nodes(self._cassandra)
+        except ValueError:
+            # no cassandra hosts
+            pass
 
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
@@ -1169,28 +1172,28 @@ class Services(object):
 
     def stunnel_key_files(self, hostname, action):
         target = os.path.join(BASE, SECRETS)
-        for hostname in self._hosts[hostname]:
-            if hostname == 'localhost': continue
+        for ip_address in self._hosts[hostname]:
+            if ip_address.startswith('127.'): continue
             if action == 'stop':
-                self._hosts.rmdir(hostname, os.path.join(target, 'salv.us'))
+                self._hosts.rmdir(ip_address, os.path.join(target, 'salv.us'))
             elif action in ['start', 'restart']:
-                self._hosts.mkdir(hostname, target)
-                self._hosts.putdir(hostname, os.path.join(SECRETS, 'salv.us'), BASE)
+                self._hosts.mkdir(ip_address, target)
+                self._hosts.putdir(ip_address, os.path.join(SECRETS, 'salv.us'), BASE)
         # avoid race condition where file is there but not there.
         time.sleep(.5)
 
     def tornado_secrets(self, hostname, action):
         target = os.path.join(BASE, SECRETS)
         files = ['tornado.conf', 'server.crt', 'server.key']
-        for hostname in self._hosts[hostname]:
-            if hostname == 'localhost': continue
+        for ip_address in self._hosts[hostname]:
+            if ip_address.startswith('127.'): continue
             if action == 'stop':
                 for name in files:
-                    self._hosts.unlink(hostname, os.path.join(target, name))
+                    self._hosts.unlink(ip_address, os.path.join(target, name))
             elif action in ['start', 'restart']:
-                self._hosts.mkdir(hostname, target)
+                self._hosts.mkdir(ip_address, target)
                 for name in files:
-                    self._hosts.put(hostname, os.path.join(SECRETS, name), os.path.join(target, name))
+                    self._hosts.put(ip_address, os.path.join(SECRETS, name), os.path.join(target, name))
         # avoid race condition where file is there but not there.
         time.sleep(.5)
 
@@ -1272,7 +1275,8 @@ class Services(object):
         self.start('sage', parallel=False, wait=False)
 
     def stop_system(self):
-        self.stop('cassandra', parallel=True, wait=True)
+        if 'cassandra' in self._services:
+            self.stop('cassandra', parallel=True, wait=True)
         self.stop('vm', parallel=True)
         while True:
             time.sleep(1)
