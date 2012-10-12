@@ -4865,7 +4865,7 @@ Oct 11, 2012:
 ---------------
 5:47pm. 
 
-  [ ] get salvus working on my laptop again:
+  [x] get salvus working on my laptop again:
 
 import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='salvus'); h=s._hosts
 
@@ -4880,11 +4880,8 @@ Ooops... I think starting it locally just accidentally deleted key files!  Tread
 
 IOError: [Errno 2] No such file
 
-
-
-
 --
 
-  [ ] make https://salv.us/about have the static content (e.g., my talk, etc.), and get rid of preliminary demo
-  [ ] make https://salv.us/ have the current compute demo
+  [x] make https://salv.us/about have the static content (e.g., my talk, etc.), and get rid of link to "preliminary demo"
 
+  [ ] make https://salv.us/ have the current compute demo, but have an about link.
