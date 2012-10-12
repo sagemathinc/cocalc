@@ -4932,9 +4932,7 @@ Plan:
 (success)  -- restart just one and test by directly connecting to it.
   -- restart all.
 
-[s.restart('vm', hostname='web0%s'%i,wait=False) for i in [1,2,3,4]]
-s.wait_until_up('web04')
-[s.start('all', 'web0%s'%i,wait=False) for i in [1,2,3,4]]
+[s.restart('vm', hostname='web0%s'%i,wait=False) for i in [1,2,3,4]]; s.wait_until_up('web04'); [s.start('all', 'web0%s'%i,wait=False) for i in [1,2,3,4]]
 
 
 
@@ -4942,7 +4940,9 @@ s.wait_until_up('web04')
 
 Then try changing config so haproxy binds to port 80 and redirects traffic.
 
+s.restart('haproxy', '02salvus')
 
+ ssh 03salvus -t "sudo apt-get -y --force-yes remove apache2; sudo apt-get  -y --force-yes autoremove"
 
 
 ----
