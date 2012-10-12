@@ -4921,6 +4921,10 @@ polishing and getting the details right.
 
 Plan:
 
-  -- 
+  - make a new .img version with the latest code.
+  - change the base image definition for the nginx vm's
+  - try restarting all of the vm machines and any services that run on them.
+
+Then try changing config so haproxy binds to port 80 and redirects traffic.
 
 
