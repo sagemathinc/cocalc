@@ -164,6 +164,36 @@ def init_salvus_schema():
         create_status_table(cursor)
         create_log_table(cursor)
         create_sage_servers_table(cursor)
+
+
+##########################################################################
+# User property class
+        
+def create_users_table(cursor):
+    cursor.execute("""
+CREATE TABLE users (
+    email_sha1 varchar,
+    property varchar,
+    value varchar,
+    PRIMARY KEY(email_sha1, property))
+""")
+
+
+class User(object):
+    def __init__(self, email_sha1):
+        self._email_sha1 = email_sha1
+
+    def __getitem__(self, property):
+        c = cursor_execute("SELECT property,value FROM users WHERE email_sha1=:e AND property=:p",
+                           {'e':self._email_sha1, 'p':property}).fetchone()
+        return c[1] if c else None
+
+    def __setitem__(self, property, value):
+        cursor_execute("UPDATE users SET value = :v WHERE email_sha1 = :e AND property = :p",
+                       {'v':value, 'e':self._email_sha1, 'p':property})
+
+    def properties(self):
+        return [str(c[0]) for c in cursor_execute("SELECT property FROM users WHERE email_sha1=:x", {'x':self._email_sha1})]
         
 
 ##########################################################################

@@ -5113,5 +5113,20 @@ Yes, the bug is fixed.  Nice.
           through the websock connection... though what about a
           persistent cookie?
 
+cqlsh:salvus> alter table users add time_limit int;
+cqlsh:salvus> update users set time_limit=10 where email_sha1='abc';
+cqlsh:salvus> select * from users;
+ email_sha1 | name | time_limit
+------------+------+------------
+        abc |  foo |         10
+
+cqlsh:salvus> update users set name='foo bar' where email_sha1='abcxyz';
+cqlsh:salvus> select * from users;
+
+---
+
+This is an excellent clear systematic formal description of CQL3:
+
+   http://cassandra.apache.org/doc/cql3/CQL.html
 
 
