@@ -11,6 +11,12 @@ NOTE: I do *NOT* want any other authentication services.  Allowing a generic
 OpenID service means that anybody could just setup their own.
 """
 
+import logging
+
+logging.basicConfig()
+log = logging.getLogger('auth')
+log.setLevel(logging.INFO)
+
 import tornado.ioloop
 import tornado.web
 import tornado.auth
@@ -33,7 +39,6 @@ class FacebookLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
     def get(self):
         my_url = ("https://%s/tornado/auth/facebook?next=%s"%(self.request.host,
                   tornado.escape.url_escape(self.get_argument("next", "/"))))
-        print my_url
         if self.get_argument("code", False):
             self.get_authenticated_user(
                 redirect_uri=my_url,
@@ -57,20 +62,19 @@ class FacebookLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
 class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleMixin):
     @tornado.web.asynchronous
     def get(self):
-        print "get google"
+        log.info("google login handler")
         if self.get_argument("openid.mode", None):
-            print "openid.mode"
+            log.info("openid.mode")
             self.get_authenticated_user(self.async_callback(self._on_auth))
-            print "called get_authenticated_user"
+            log.info("called get_authenticated_user")
             return
         self.authenticate_redirect(callback_uri="https://%s/tornado/auth/google"%self.request.host)
 
     def _on_auth(self, user):
-        print "_on_auth: %s"%user
+        log.info("_on_auth: %s"%user)
         if not user:
             raise tornado.web.HTTPError(500, "Google auth failed")
-        print "Save the user with, e.g., set_secure_cookie()"
-        # Here's what Google returns: {'locale': u'en', 'first_name': u'William', 'last_name': u'Stein', 'name': u'William Stein', 'email': u'wstein@gmail.com'}
-        self.set_secure_cookie("user", tornado.escape.json_encode(user))        
+        # Save the user with, e.g., set_secure_cookie()...
+        # Here's what Google returns: {'locale': u'en', 'first_name': u'William', 'last_name': u'Stein', 'name': u'William Stein', 'email': u'wstein@gmail.com'
+        self.set_secure_cookie("user", tornado.escape.json_encode(user))
         self.redirect("/")
-
