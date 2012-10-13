@@ -50,7 +50,12 @@ geom       {'hostname':'sage10', 'vcpus':4, 'ram':8, 'vnc':9000}
 cassandra01    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 cassandra02    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':42535295865117307932921825928971026432}
 cassandra03    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':85070591730234615865843651857942052864}
-cassandra04    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
+cassandra04    {'seed':False, 'topology':'DC0:RAC0', 'initial_token':127605887595351923798765477786913079296}
+
+cassandra05    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':21267647932558653966460912964485513216}
+cassandra06    {'seed':False, 'topology':'DC0:RAC0', 'initial_token':63802943797675961899382738893456539648}
+cassandra07    {'seed':True, 'topology':'DC0:RAC0', 'initial_token':106338239662793269832304564822427566080}
+cassandra08    {'seed':False, 'topology':'DC0:RAC0', 'initial_token':148873535527910577765226390751398592512}
 
 [stunnel] {'sudo':True}
 edge
