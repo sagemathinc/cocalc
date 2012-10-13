@@ -53,15 +53,22 @@
 
 # DC2:RAC0 UW tower colo data center -- 10.4
 10.4.1.1 tower kvm-host 05salvus  # 64gb ram; 16 cores; 6tb disk 
-10.4.1.2 tower kvm test1
+10.4.1.2 tower kvm cassandra cassandra05
+10.4.1.3 tower kvm cassandra cassandra06
+10.4.1.4 tower kvm tornado nginx web05
+10.4.1.5 tower kvm sage sage13
+10.4.1.6 tower kvm sage sage14
+
 10.4.2.1 tower kvm-host 06salvus  # 64gb ram; 16 cores; 6tb disk 
-10.4.2.2 tower kvm test2
+10.4.2.2 tower kvm cassandra cassandra07
+10.4.2.3 tower kvm cassandra cassandra08
+10.4.2.4 tower kvm tornado nginx web06
+10.4.2.5 tower kvm sage sage15
+10.4.2.6 tower kvm sage sage16
+
+
 10.4.3.1 tower kvm-host 07salvus  # 64gb ram; 16 cores; 6tb disk 
-10.4.3.2 tower kvm test3
 10.4.4.1 tower kvm-host 08salvus  # 64gb ram; 16 cores; 6tb disk 
-10.4.4.2 tower kvm test4
-
-
 
 # DC3:RAC0 google compute engine data center(s) -- 10.5
 #10.5.1.1 google  google1

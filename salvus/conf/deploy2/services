@@ -32,10 +32,18 @@ geom       {'hostname':'sage10', 'vcpus':4, 'ram':8, 'vnc':9000}
 
 
 # uw tower salvus cluster vm's
-05salvus  {'hostname':'test1', 'vcpus':12, 'ram':24, 'base':'salvus1'}
-06salvus  {'hostname':'test2', 'vcpus':4, 'ram':8, 'base':'salvus1'}
-07salvus  {'hostname':'test3', 'vcpus':4, 'ram':8, 'base':'salvus1'}
-08salvus  {'hostname':'test4', 'vcpus':4, 'ram':8, 'base':'salvus1'}
+05salvus   {'hostname':'cassandra05', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus3'}
+05salvus   {'hostname':'cassandra06', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9001, 'base':'salvus3'}
+05salvus   {'hostname':'sage13', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus3'}
+05salvus   {'hostname':'sage14', 'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus3'}
+05salvus   {'hostname':'web05',  'vcpus':4, 'ram':16, 'vnc':9004, 'base':'salvus3'}
+
+06salvus   {'hostname':'cassandra07', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus3'}
+06salvus   {'hostname':'cassandra08', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9001, 'base':'salvus3'}
+06salvus   {'hostname':'sage15', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus3'}
+06salvus   {'hostname':'sage16', 'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus3'}
+06salvus   {'hostname':'web06',  'vcpus':4, 'ram':16, 'vnc':9004, 'base':'salvus3'}
+
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'} 
 # N=4; [i * (2**127 / N) for i in range(N)]

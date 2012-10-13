@@ -4643,7 +4643,7 @@ sudo su
 echo "deb http://archive.ubuntu.com/ubuntu/ precise-proposed restricted main multiverse universe" >> /etc/apt/sources.list
 apt-get update
 apt-get upgrade
-apt-get install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs23 apache2 qemu-kvm  guestfish guestmount virtinst libguestfs-tools git lynx
+apt-get install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs23 apache2 qemu-kvm  guestfish guestmount virtinst libguestfs-tools git lynx mosh
 
 apt-get remove unattended-upgrades
 apt-get autoremove
@@ -4917,18 +4917,18 @@ polishing and getting the details right.
 
 -----
 
-  [ ] salvus: push out this code + test.
+  [x] salvus: push out this code + test.
 
 Plan:
 
-[ ]  - make a new .img version with the latest code:
+[x]  - make a new .img version with the latest code:
    
  -- snippet below
  -- cd salvus; git pull https://github.com/williamstein/salvus.git
  -- apt-get update; apt-get upgrade
  -- sudo reboot # test it starts
 
-[ ]   - change the base image definition for the nginx vm's
+[x]   - change the base image definition for the nginx vm's
 (success)  -- restart just one and test by directly connecting to it.
   -- restart all.
 
@@ -4936,7 +4936,7 @@ Plan:
 
 
 
-[ ]   - try restarting all of the vm machines and any services that run on them.
+[x]   - try restarting all of the vm machines and any services that run on them.
 
 Then try changing config so haproxy binds to port 80 and redirects traffic.
 
@@ -4962,3 +4962,49 @@ s.restart('haproxy', '02salvus')
      virsh --connect qemu:///session list --all
 
      cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py 
+------------
+
+[ ] BIG TASK: deploy more robustly -- I'm going to extend my salvus deployment to 2 more nodes in the UW tower. 
+
+   phase 1:
+    [x] add 05salvus, 06salvus to ip list for salv.us
+    [x] shutdown testn VM's and remove from hosts/services
+    [x] configure hosts file with more vm's
+    [x] configure services file with more services on 05salvus and 06salvus
+    [x] start vm's
+    [x] start web services on vm's
+    [x] test that is working
+   
+   phase 2:
+    [ ] configure 4 more cassandra nodes to tower center (for a total of 8)
+    [ ] restart and test is working.
+
+
+[ ] BIG TASK: Implement user account creation and login.
+
+   [ ] first implement standard login
+   [ ] user *must* have a valid email address
+   [ ] limited number of accounts per email address
+   [ ] blanket "terms of usage screen"
+   [ ] approval process for beta users
+
+
+[x] SERIOUS BUG: 
+
+   When creating the cassandra nodes above, I created *two* machines
+   with persistent images on the same host at the same time.  This
+   failed.  The reason is because the command I use to make the image
+   creates the same filename for both, the moves it!  Need to use 
+   a temporary subdirectory.  
+
+Two options to fix this:
+
+  (1) figure out if/how to get guestfish to directly create img with name other than test1.img
+or
+  (2) make test1.img in unique subdirectory, then move it out.
+
+According to the official manpage, "Prepared disk images are written
+to file "test1.img" in the local directory."... so option (1) isn't an
+option, evidently.  So I'll do (2).
+  
+Yes, the bug is fixed.  Nice.  
