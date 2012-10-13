@@ -5165,8 +5165,11 @@ http://haproxy.1wt.eu/download/1.5/src/devel/?C=M;O=D
 
 It just worked no problem at all.
 
+  [x] nginx: 1.3.2 --> 1.3.7
 
-  [ ] nginx: 1.3.2 --> 1.3.7
+Fast from here http://wiki.nginx.org/Install   
+Seems to have worked perfectly.
+
   [ ] stunnel: 4.53 --> 4.54
   [ ] protobuf: 2.4.1 --> 2.5.0
   [ ] sockjs: june 26 --> oct 3
@@ -5204,3 +5207,6 @@ INFO:root:hostname=127.0.0.1, command='salvus/salvus/data/local/cassandra/bin/no
 INFO:root:{'exit_status': 127, 'stderr': 'bash: salvus/salvus/data/local/cassandra/bin/nodetool: No such file or directory\n', 'stdout': ''}
 ('127.0.0.1', 'sage') :  bash: salvus/salvus/data/local/cassandra/bin/nodetool: No such file or directory
 
+[ ] VERY SOON -- implement a max number of simultaneous sage sessions
+that sage_server will allocate at once... to avoid trivial DOS.  Make
+part of startup options.  Return a message if fail.
