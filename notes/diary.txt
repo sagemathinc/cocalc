@@ -5158,8 +5158,14 @@ namely
 
 and it works fine now.  Cool.   So be careful when upgrading!
    
+  [x] haproxy: 1.5-dev11 --> 1.5-dev12
 
-  [ ] haproxy: 1.5-dev11 --> 1.5-dev12
+Download (very, very slow!) from http://haproxy.1wt.eu/#down
+http://haproxy.1wt.eu/download/1.5/src/devel/?C=M;O=D   
+
+It just worked no problem at all.
+
+
   [ ] nginx: 1.3.2 --> 1.3.7
   [ ] stunnel: 4.53 --> 4.54
   [ ] protobuf: 2.4.1 --> 2.5.0
