@@ -5116,12 +5116,63 @@ This is an excellent clear systematic formal description of CQL3:
 
 [ ] BIG TODO: version upgrades -- everything but tinc is behind!
 
-  [ ] cassandra: 1.1.2 --> 1.1.5
+For each:
+
+1. create new file in src/
+2. test build locally and running
+3. check into repo and push
+
+  [x] cassandra: 1.1.2 --> 1.1.5
+
+From http://www.datastax.com/download/community
+Get this: http://downloads.datastax.com/community/dsc.tar.gz
+but filename changes on click...
+Then:
+
+cd salvus/salvus/src;
+git rm dsc-cassandra-1.1.2.tar.bz2 
+tar jxf dsc-cassandra-1.1.5-bin.tar.gz 
+tar jcf dsc-cassandra-1.1.5.tar.bz2 dsc-cassandra-1.1.5
+rm -rf dsc-cassandra-1.1.5-bin.tar.gz dsc-cassandra-1.1.5
+# elsewhere >>>  import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts; s.stop('cassandra')
+cd ..; . salvus-env; ./build.py --build_cassandra     
+# elsewhere >>> s.start('cassandra')
+
+It did not work.  Somehow the schema got all corrupted:
+
+cqlsh:salvus> select * from sage_servers;
+ address   | column1 | value
+-----------+---------+-------
+ 127.0.0.1 | running |  \x01
+ localhost | running |  \x00
+
+Note the "column1", which should be "running". and the values should be boolean.
+
+I installed the old version of cassandra and the old data works again.
+
+I then did what the instructions at http://www.datastax.com/docs/1.1/install/upgrading#completing-upgrade say,
+namely 
+
+   nodetool repair
+   nodetool drain 
+
+and it works fine now.  Cool.   So be careful when upgrading!
+   
+
   [ ] haproxy: 1.5-dev11 --> 1.5-dev12
   [ ] nginx: 1.3.2 --> 1.3.7
   [ ] stunnel: 4.53 --> 4.54
   [ ] protobuf: 2.4.1 --> 2.5.0
   [ ] sockjs: june 26 --> oct 3
+
+Once *every upgrade* works locally:
+
+ [ ] make new base vm "salvus4"
+ [ ] from scratch rebuild of salvus code on that
+ [ ] set base in services file for every service
+ [ ] be very careful with cassandra nodes -- do "nodetool repair" and "nodetool drain" before shutting them down.
+ [ ] restart everything
+ [ ] test
 
 ---
 
@@ -5130,4 +5181,20 @@ This is an excellent clear systematic formal description of CQL3:
    s.firewall(... same options as start/stop/etc. but resets the firewall with current config ...)
 
     [ ] restart and test that it is working.
+
+
+[ ] SMALL BUG -- nodetool isn't working locally:
+
+In [20]: import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts
+
+In [21]: h.nodetool('ring', wait=True)
+wstein's password: 
+INFO:root:127.0.0.1 (sage):
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_5.6)
+INFO:paramiko.transport:Authentication (publickey) failed.
+INFO:paramiko.transport:Authentication (keyboard-interactive) successful!
+INFO:paramiko.transport:Secsh channel 1 opened.
+INFO:root:hostname=127.0.0.1, command='salvus/salvus/data/local/cassandra/bin/nodetool ring'
+INFO:root:{'exit_status': 127, 'stderr': 'bash: salvus/salvus/data/local/cassandra/bin/nodetool: No such file or directory\n', 'stdout': ''}
+('127.0.0.1', 'sage') :  bash: salvus/salvus/data/local/cassandra/bin/nodetool: No such file or directory
 
