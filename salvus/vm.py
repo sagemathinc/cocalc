@@ -59,26 +59,32 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
         # Persistent image(s)
         persistent_images = []
         for name, size in disk:
-            if name == 'test1':
-                # TODO: a temporary constraint due to not using guestfish below more carefully
-                raise RuntimeError("persistent disk image can't be called test1")
             persistent_images.append((os.path.join(persistent_img_path, '%s-%s.img'%(hostname, name)), name))
             img = persistent_images[-1][0]
             if not os.path.exists(img):
                 os.chdir(persistent_img_path)
+                temp = None
                 try:
-                    run(['guestfish', '-N', 'fs:ext4:%sG'%size, 'quit'],maxtime=120) # creates test1.img
-                    # change owner of new img
+                    # We create image using guestfish in a temporary
+                    # subdirectory to avoid filename conflicts, since
+                    # guestfish does not support specifying the output
+                    # image filename.
+                    temp = tempfile.mkdtemp(dir=persistent_img_path)
+                    os.chdir(temp)
+                    run(['guestfish', '-N', 'fs:ext4:%sG'%size, 'quit'],maxtime=120) # creates test1.img in the temp directory
+                    # Change theowner of the new img file.
                     sh['mkdir', 'mnt']
                     run(['guestmount', '-a', 'test1.img', '-m/dev/vda1', '--rw', 'mnt'], maxtime=120)
                     sh['chown', 'salvus.', 'mnt']
                     sh['fusermount', '-u', 'mnt']
                     sh['rmdir', 'mnt']
-                    # move to have correct name
+                    # Move image file to have correct name.
                     shutil.move('test1.img', img)
                 finally:
-                    if os.path.exists('test1.img'):
-                        os.unlink('test1.img')
+                    if temp is not None:
+                        shutil.rmtree(temp)
+                        if os.path.exists('test1.img'):
+                            os.unlink('test1.img')
             else:
                 pass
                 # TODO: else -- if too small, enlarge image if possible
