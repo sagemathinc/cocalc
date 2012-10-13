@@ -5044,26 +5044,8 @@ option, evidently.  So I'll do (2).
   
 Yes, the bug is fixed.  Nice.  
 
-[ ] BIG TODO: version upgrades -- everything but tinc is behind!
-
-  [ ] cassandra: 1.1.2 --> 1.1.5
-  [ ] haproxy: 1.5-dev11 --> 1.5-dev12
-  [ ] nginx: 1.3.2 --> 1.3.7
-  [ ] stunnel: 4.53 --> 4.54
-  [ ] protobuf: 2.4.1 --> 2.5.0
-  [ ] sockjs: june 26 --> oct 3
-
----
-
-[ ] SMALL TODO -- make it so I can do:
-
-   s.firewall(... same options as start/stop/etc. but resets the firewall with current config ...)
-
-    [ ] restart and test that it is working.
-
-
 ----------------------
-[ ] BIG TASK: Implement user account creation and login.
+[x] BIG TASK: Implement user account creation and login.
    
    - no fancy html yet!
    - user *must* have a valid email address
@@ -5083,7 +5065,7 @@ Yes, the bug is fixed.  Nice.
      - it does!
 
 [x] look at what it gives and think.
-[ ] write some code in cassandra.py
+[x] write some code in cassandra.py
 
   
   get_users_permissions(email_hash)  # things user with given email can do  (keyed on *hash* of email)
@@ -5094,7 +5076,7 @@ Yes, the bug is fixed.  Nice.
 
       https://github.com/mrjoes/sockjs-tornado/issues/19
 
-[ ] decide on schema for account table
+[x] decide on schema for account table
      standard:
         - user_id (counter)  -- row key
         - username          -- indexed
@@ -5103,12 +5085,12 @@ Yes, the bug is fixed.  Nice.
         - email address
         - google openid code (whatever that is)   
         - etc.
-[ ] write cassandra.py code to create account table
-[ ] write cassandra.py code to implement basic operations:
+[x] write cassandra.py code to create account table
+[x] write cassandra.py code to implement basic operations:
         - create_new_user (input user_name; returns id)
         - changer_user_property (property:value)
         - get_user_property
-[ ] account creation -- where/how?
+[x] account creation -- where/how?
         - login and creating an account *could* be handled entirely
           through the websock connection... though what about a
           persistent cookie?
@@ -5129,4 +5111,23 @@ This is an excellent clear systematic formal description of CQL3:
 
    http://cassandra.apache.org/doc/cql3/CQL.html
 
+============
+----------
+
+[ ] BIG TODO: version upgrades -- everything but tinc is behind!
+
+  [ ] cassandra: 1.1.2 --> 1.1.5
+  [ ] haproxy: 1.5-dev11 --> 1.5-dev12
+  [ ] nginx: 1.3.2 --> 1.3.7
+  [ ] stunnel: 4.53 --> 4.54
+  [ ] protobuf: 2.4.1 --> 2.5.0
+  [ ] sockjs: june 26 --> oct 3
+
+---
+
+[ ] SMALL TODO -- make it so I can do:
+
+   s.firewall(... same options as start/stop/etc. but resets the firewall with current config ...)
+
+    [ ] restart and test that it is working.
 
