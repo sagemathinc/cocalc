@@ -5170,9 +5170,31 @@ It just worked no problem at all.
 Fast from here http://wiki.nginx.org/Install   
 Seems to have worked perfectly.
 
-  [ ] stunnel: 4.53 --> 4.54
+  [x] stunnel: 4.53 --> 4.54
+
+Get it here: http://www.stunnel.org/downloads.html
+It just worked easily, with no problems.
+
   [ ] protobuf: 2.4.1 --> 2.5.0
-  [ ] sockjs: june 26 --> oct 3
+
+There's no tarball, so I did the following on 05salvus:
+
+   svn export http://protobuf.googlecode.com/svn/trunk/ protobuf-read-only
+   mv protobuf-read-only protobuf-2.5.0
+   cd protobuf-2.5.0
+   sudo apt-get install libtool automake
+   ./autogen.sh
+   cd ..
+   tar jcvf  protobuf-2.5.0.tar.bz2 protobuf-2.5.0
+   rm -rf protobuf-2.5.0
+   
+then copy back to laptop and test.
+
+Then I do:
+
+   ./build.py --build_protobuf
+
+... and the build fails on OS X.   Screw this... I'll wait for the next release.
 
 Once *every upgrade* works locally:
 
@@ -5210,3 +5232,6 @@ INFO:root:{'exit_status': 127, 'stderr': 'bash: salvus/salvus/data/local/cassand
 [ ] VERY SOON -- implement a max number of simultaneous sage sessions
 that sage_server will allocate at once... to avoid trivial DOS.  Make
 part of startup options.  Return a message if fail.
+
+[ ] maybe upgrade sockjs (?): june 26 --> oct 3
+
