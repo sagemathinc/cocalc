@@ -117,6 +117,13 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
     def on_open(self, info):
         self.connections.add(self)
         log.info("new connection from %s", self.__dict__)
+        user = self.session.handler.get_secure_cookie('user')
+        log.info("secure user cookie = %s", user)
+        self.user = tornado.escape.json_decode(user) if user is not None else None
+        if self.user is not None:
+            # send a message telling the client to display the logged in user name
+            log.info("sending object")
+            self.send_obj({'type':'logged_in', 'name':self.user['name']})
 
         def connect(address, port):
             if not port:
@@ -142,7 +149,7 @@ class BrowserSocketConnection(sockjs.tornado.SockJSConnection):
         self.send(json.dumps(obj))
 
     def stateless_execution(self, mesg):
-        log.info("stateless executing code '%s'...", mesg)
+        log.info("user %s stateless executing code '%s'...", self.user, mesg)
 
         if hasattr(self, '_stateless_execution'):
             self._stateless_execution.kill()

@@ -1,16 +1,22 @@
 $(function(){
+    $("#sign_in").show(); 
+    $("#sign_out").hide();
+    $("#username").hide();
+
     $("#execute").button();
     $("#google").button().click(function() { window.location = "/tornado/auth/google"; });
     $("#facebook").button().click(function() { window.location = "/tornado/auth/facebook"; });
-    $("#sign_out").button().click(function() { $.get("/tornado/auth/logout", function() { username(); }) });
-
-    function username() { $("#username").load("/tornado/auth/username"); }
-    username();
+    $("#sign_out").button().click(function() { 
+	$("#username").hide(); 
+	$("#sign_out").hide(); 
+	$("#sign_in").show(); 
+    });
 
     $("#connection_status").html("connecting..."); 
 
     var backend = sagews.Backend(
-	{'onopen':function(protocol) { $("#connection_status").html("connected ("+protocol+")"); },
+	{'on_login':function(name) { $("#username").show().html(name); $("#sign_in").hide(); $("#sign_out").show(); },
+         'onopen':function(protocol) { $("#connection_status").html("connected ("+protocol+")"); },
 	 'onclose':function() { $("#connection_status").html("reconnecting..."); }});
 
     function execute_code() {

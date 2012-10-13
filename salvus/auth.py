@@ -13,6 +13,8 @@ OpenID service means that anybody could just setup their own.
 
 import logging
 
+from misc import sha1
+
 logging.basicConfig()
 log = logging.getLogger('auth')
 log.setLevel(logging.INFO)
@@ -76,5 +78,7 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleMixin):
             raise tornado.web.HTTPError(500, "Google auth failed")
         # Save the user with, e.g., set_secure_cookie()...
         # Here's what Google returns: {'locale': u'en', 'first_name': u'William', 'last_name': u'Stein', 'name': u'William Stein', 'email': u'wstein@gmail.com'
-        self.set_secure_cookie("user", tornado.escape.json_encode(user))
+        cookie = {'email_sha1':sha1(user['email']), 'name':user['name']}
+        log.info("storing cookie %s", cookie)
+        self.set_secure_cookie("user", tornado.escape.json_encode(cookie))
         self.redirect("/")

@@ -25,6 +25,7 @@ sagews.Backend = function(options) {
     var opts = $.extend({
 	onopen:function(protocol) { sagews.log('open -- '+protocol); },
 	onclose:function() { sagews.log('onclose'); },
+	on_login:function(name) { sagews.log("logged in as "+name); },
 	url:window.location.protocol + "//" + window.location.host + "/tornado",
     }, options||{});
 
@@ -43,11 +44,14 @@ sagews.Backend = function(options) {
     function onmessage(e) {
 	mesg = JSON.parse(e.data);
 	sagews.log(mesg);
-	$("#time").html((sagews.walltime() - time)/1000.0 + " s");
+	//$("#time").html((sagews.walltime() - time)/1000.0 + " s");
 	if (mesg.type == types.OUTPUT) {
     	    output_callbacks[mesg.id](mesg);
     	    if(mesg.done) { delete output_callbacks[mesg.id]; }
 	}
+        if (mesg.type == "logged_in") {  /* TODO -- make it protobuf */
+            opts.on_login(mesg.name);
+	} 
     }
 
     /* Connection to tornado */

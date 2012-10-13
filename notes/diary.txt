@@ -4977,16 +4977,51 @@ s.restart('haproxy', '02salvus')
    
    phase 2:
     [ ] configure 4 more cassandra nodes to tower center (for a total of 8)
-    [ ] restart and test is working.
+
+ - reading http://www.datastax.com/docs/1.1/operations/cluster_management#adding-capacity
+ - for now I'll add 4 new nodes, hence doubling the size.
+ - run this code:
+N=8; 
+for i in range(N):
+    print  i * (2**127 / N)
+ - for now, I'm evidently not yet using the NetworkTopologyStrategy,
+   so the topology option is trivial.  I will have to switch when I
+   get serious...
+
+- start first node:
+
+   import admin; reload(admin); s = admin.Services('conf/deploy2/', username='salvus'); h = s._hosts
+   s.status('vm', hostname='cassandra05')
+   s.start('cassandra', 'cassandra05')
+
+Nothing happened.    Maybe I forgot to set a property:
+
+    http://www.datastax.com/docs/1.1/configuration/node_configuration#init-properties
+
+Nope, evidently the problem was that I had set new nodes and this node
+to be the seed.  I changed that so *only* old nodes were seeds and now
+it is "joining".... but it still failed completely again.  Hmm.
+
+I know!  It's the firewall.  Cassandra nodes have a whiteless firewall, and it's now wrong
+for the first 4.
+
+So... I will:
+
+ [x] set seeds back on.
+ [x] restart the first 4 cassandra procs (really just to fix their firewalls):
+ 
+[s.restart('cassandra', 'cassandra0%s'%i) for i in range(1, 5)]
 
 
-[ ] BIG TASK: Implement user account creation and login.
+- suddenly the node I started above has joined the cluster -- but it has an incomplete view of the data.
+- I'm trying "repair" on it... and now it is fine.
 
-   [ ] first implement standard login
-   [ ] user *must* have a valid email address
-   [ ] limited number of accounts per email address
-   [ ] blanket "terms of usage screen"
-   [ ] approval process for beta users
+ [x] then add new nodes. -- this is working perfectly.
+
+node = 'cassandra08'; s.start('vm', hostname=node); s.wait_until_up(node);  s.start('cassandra', node, wait=False)
+h.nodetool('netstats', node, wait=True)
+h.nodetool('repair', node, wait=True)
+h.nodetool('ring', node, wait=True)
 
 
 [x] SERIOUS BUG: 
@@ -5008,3 +5043,75 @@ to file "test1.img" in the local directory."... so option (1) isn't an
 option, evidently.  So I'll do (2).
   
 Yes, the bug is fixed.  Nice.  
+
+[ ] BIG TODO: version upgrades -- everything but tinc is behind!
+
+  [ ] cassandra: 1.1.2 --> 1.1.5
+  [ ] haproxy: 1.5-dev11 --> 1.5-dev12
+  [ ] nginx: 1.3.2 --> 1.3.7
+  [ ] stunnel: 4.53 --> 4.54
+  [ ] protobuf: 2.4.1 --> 2.5.0
+  [ ] sockjs: june 26 --> oct 3
+
+---
+
+[ ] SMALL TODO -- make it so I can do:
+
+   s.firewall(... same options as start/stop/etc. but resets the firewall with current config ...)
+
+    [ ] restart and test that it is working.
+
+
+----------------------
+[ ] BIG TASK: Implement user account creation and login.
+   
+   - no fancy html yet!
+   - user *must* have a valid email address
+   - limited number of accounts per email address
+   - blanket "terms of usage screen"
+   - approval process for users to do anything nontrivial.  This I've learned!
+   - One big mistake with the sage notebook is having multiple
+     accounts all linked to the same *person*.  We could get around
+     that by requiring a verified email address and considering that
+     to be canonical... and only having one account per email address.
+     But don't make it the username for spam reasons...
+   - maybe for now I should only allow login via google... since I've
+     implemented that already, and it's safer than allowing anybody.
+   - authentication should be plugable (witness the LDAP sagenb debacle)
+
+[x] test out my existing google oauth thing to see if it still works
+     - it does!
+
+[x] look at what it gives and think.
+[ ] write some code in cassandra.py
+
+  
+  get_users_permissions(email_hash)  # things user with given email can do  (keyed on *hash* of email)
+  stateless_exec(email_hash, ...)    # cursor over stateless exec by this user  (extra stuff to search by range, sorted by date)
+  
+
+** very interesting discussion about how to use sockjs with authentication **
+
+      https://github.com/mrjoes/sockjs-tornado/issues/19
+
+[ ] decide on schema for account table
+     standard:
+        - user_id (counter)  -- row key
+        - username          -- indexed
+     optional:   
+        - password_hash 
+        - email address
+        - google openid code (whatever that is)   
+        - etc.
+[ ] write cassandra.py code to create account table
+[ ] write cassandra.py code to implement basic operations:
+        - create_new_user (input user_name; returns id)
+        - changer_user_property (property:value)
+        - get_user_property
+[ ] account creation -- where/how?
+        - login and creating an account *could* be handled entirely
+          through the websock connection... though what about a
+          persistent cookie?
+
+
+
