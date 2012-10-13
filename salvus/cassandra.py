@@ -172,28 +172,28 @@ def init_salvus_schema():
 def create_users_table(cursor):
     cursor.execute("""
 CREATE TABLE users (
-    email_sha1 varchar,
+    id varchar,
     property varchar,
     value varchar,
-    PRIMARY KEY(email_sha1, property))
+    PRIMARY KEY(id, property))
 """)
 
 
 class User(object):
-    def __init__(self, email_sha1):
-        self._email_sha1 = email_sha1
+    def __init__(self, id):
+        self._id = id
 
     def __getitem__(self, property):
-        c = cursor_execute("SELECT property,value FROM users WHERE email_sha1=:e AND property=:p",
-                           {'e':self._email_sha1, 'p':property}).fetchone()
+        c = cursor_execute("SELECT property,value FROM users WHERE id=:e AND property=:p",
+                           {'e':self._id, 'p':property}).fetchone()
         return c[1] if c else None
 
     def __setitem__(self, property, value):
-        cursor_execute("UPDATE users SET value = :v WHERE email_sha1 = :e AND property = :p",
-                       {'v':value, 'e':self._email_sha1, 'p':property})
+        cursor_execute("UPDATE users SET value = :v WHERE id = :e AND property = :p",
+                       {'v':value, 'e':self._id, 'p':property})
 
     def properties(self):
-        return [str(c[0]) for c in cursor_execute("SELECT property FROM users WHERE email_sha1=:x", {'x':self._email_sha1})]
+        return [str(c[0]) for c in cursor_execute("SELECT property FROM users WHERE id=:x", {'x':self._id})]
         
 
 ##########################################################################
