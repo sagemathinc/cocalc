@@ -5235,3 +5235,57 @@ part of startup options.  Return a message if fail.
 
 [ ] maybe upgrade sockjs (?): june 26 --> oct 3
 
+-------------
+
+TIRED/Sat Oct 13 at 7:58pm...
+
+
+salvus -- It's 6:52pm and I'm laying important groundwork for writing
+the salvus client browser code.  My experiments earlier this summer
+make me concerned about javascript: 
+   (1) the resulting code is pretty big -- e.g., ipython notebook is huge
+   (2) the code can be very hard to read/follow/organize...
+
+So I'm looking into CoffeeScript.
+
+Iced CoffeeScript -- better async...	
+
+   http://maxtaco.github.com/coffee-script/
+
+Neato:
+
+coffee> foo = (a,b) -> [a*b, a+b, a/b]
+[Function]
+coffee> [x,y,z] = foo(2,3)
+[ 6, 5, 0.6666666666666666 ]
+
+Reading this article about how Dropbox just switched from Javascript to CoffeeScript a few
+weeks ago (!) https://tech.dropbox.com/?p=361
+
+Also, they mention Python is used massively by DropBox.
+
+I need to put this in my workflow: "In production, we compile and
+concatenate all of our CoffeeScript source into a single JavaScript
+file, minify it, and serve it to browsers with gzip compression."
+
+How to test javascript code:  http://pivotal.github.com/jasmine/
+
+   "Jasmine is a behavior-driven development framework for testing JavaScript code."
+
+I will *have* to get Jasmine up and running ASAP, since it's a good
+way of testing that salvus works.
+
+Debugging coffeescript in the browser... http://ryanflorence.com/2012/coffeescript-source-maps/
+
+I installed emacs coffee-mode from
+
+   https://github.com/defunkt/coffee-mode
+   https://raw.github.com/defunkt/coffee-mode/master/coffee-mode.el
+
+by putting the script in ~/.emacs-scripts/, M-x byte-compile-file,
+and adding this to my ~/.emacs file:
+   (load "coffee-mode")
+The syntax hilighting looks good.
+
+[ ] Rewrite index.js using CoffeeScript and see what it is like.
+
