@@ -5252,6 +5252,8 @@ Iced CoffeeScript -- better async...
 
    http://maxtaco.github.com/coffee-script/
 
+    npm install -g iced-coffee-script
+
 Neato:
 
 coffee> foo = (a,b) -> [a*b, a+b, a/b]
@@ -5285,7 +5287,49 @@ I installed emacs coffee-mode from
 by putting the script in ~/.emacs-scripts/, M-x byte-compile-file,
 and adding this to my ~/.emacs file:
    (load "coffee-mode")
-The syntax hilighting looks good.
+The syntax hilighting looks good.  
+
+If I wanted 4-space indent:
+   (custom-set-variables '(coffee-tab-width 4))
+
 
 [ ] Rewrite index.js using CoffeeScript and see what it is like.
+
+ First, I go to this website and paste in the code:
+
+  http://js2coffee.org/
+
+Nice, but I'm not sure about the ordering... so I reordered everything
+to be more logical.  Then:
+
+blastoff:static wstein$ cp index.js  ~/tmp
+blastoff:static wstein$ coffee -w -c `pwd`
+
+I also installed the CoffeeConsole plugin for chrome... which seems very useful!
+
+The website http://js2coffee.org/ only does 2-space indentation.  If I
+use 4, I need to fix that.
+
+Remark -- it is very cool how http://js2coffee.org/ gives
+functionality... then has a button to get more info below.
+That's the sort of thing I want with salvus.
+
+Do a local install of js2coffee:
+
+     npm install -g js2coffee
+
+To switch to 4 spaces:
+
+  1. Add to .emacs as mentioned above
+  2. Use js2coffee on the command line, as usual
+  3. Then use tab2space to convert the resulting file.
+
+I'm going to redo index.coffee...
+
+actually the steps above fail; maybe js2coffee does *not* output tabs?  Yep it doesn't.
+
+I will just try this script in python now:
+
+   filename='index.coffee'; s = open(filename).read().replace(' '*2, ' '*4); open(filename,'w').write(s)
+
 
