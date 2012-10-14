@@ -33,7 +33,7 @@ $ ->
         $("#sign_out").hide()
         $("#sign_in").show()
 
-    backend = sagews.Backend(
+    backend = salvus.Backend(
         on_login: (name) ->
             $("#username").show().html name
             $("#sign_in").hide()

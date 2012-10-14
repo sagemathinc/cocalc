@@ -5333,3 +5333,17 @@ I will just try this script in python now:
    filename='index.coffee'; s = open(filename).read().replace(' '*2, ' '*4); open(filename,'w').write(s)
 
 
+Nice page about jquery + coffeescript: http://www.coffeescriptlove.com/
+
+Very cool library for doing 2d HTML5 canvas graphics:  http://kineticjs.com/
+
+I'm going to convert my other js...
+
+Converting sagews.js --> salvus.coffee, is getting confused / not
+working automatically, mainly due to sagews.js not really being
+properly object oriented.  I'll fix this first thing in the morning...
+
+See Object Orientation here: 
+   http://css.dzone.com/articles/its-time-learn-coffeescript?utm_source=feedburner&utm_medium=feed&utm_campaign=Feed%3A+zones%2Fcss+(CSS+Zone)
+
+
