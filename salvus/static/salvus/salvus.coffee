@@ -14,7 +14,7 @@ log = (s) ->
 
 walltime = () -> (new Date()).getTime()
 
-# get the types from the server
+# Get all message types from the server
 types = null
 $.getJSON("/tornado/message/types", (data) -> types = data; return)
 

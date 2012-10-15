@@ -5356,6 +5356,7 @@ Testing starting/stopping of tornado and making sockjs connection:
 In [13]: !kill -STOP 28228
 In [14]: !kill -CONT 28228
 
-
   [ ] try to find some way to use javascript/node (?) to test my site???  even something very, very minimal. 
+
+  [ ] implement "logged_in" message type (in proto?) -- see comment in salvus.coffee
 
