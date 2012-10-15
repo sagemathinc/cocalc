@@ -52,14 +52,14 @@
 10.3.2.1 servedby servedby2  # 64GB disk; amd; vmware cloud service that is manually managed
 
 # DC2:RAC0 UW tower colo data center -- 10.4
-10.4.1.1 tower kvm-host 05salvus  # 64gb ram; 16 cores; 6tb disk 
+10.4.1.1 tower kvm-host edge 05salvus  # 64gb ram; 16 cores; 6tb disk 
 10.4.1.2 tower kvm cassandra cassandra05
 10.4.1.3 tower kvm cassandra cassandra06
 10.4.1.4 tower kvm tornado nginx web05
 10.4.1.5 tower kvm sage sage13
 10.4.1.6 tower kvm sage sage14
 
-10.4.2.1 tower kvm-host 06salvus  # 64gb ram; 16 cores; 6tb disk 
+10.4.2.1 tower kvm-host edge 06salvus  # 64gb ram; 16 cores; 6tb disk 
 10.4.2.2 tower kvm cassandra cassandra07
 10.4.2.3 tower kvm cassandra cassandra08
 10.4.2.4 tower kvm tornado nginx web06
