@@ -3,7 +3,7 @@ $ ->
         $("#output").val ""
         $("#time").html ""
         $("#run_status").html "running..."
-        backend.execute $("#input").val(), (mesg) ->
+        salvus.execute $("#input").val(), (mesg) ->
             o = $("#output")
             o.val(o.val() + mesg.output.stdout)
             if mesg.output.stderr
@@ -33,7 +33,7 @@ $ ->
         $("#sign_out").hide()
         $("#sign_in").show()
 
-    backend = salvus.Backend(
+    salvus = new Salvus(
         on_login: (name) ->
             $("#username").show().html name
             $("#sign_in").hide()
@@ -45,6 +45,7 @@ $ ->
         onclose: ->
             $("#connection_status").html "reconnecting..."
     )
+    salvus.connect()
 
     $("#connection_status").html "connecting..."
 
