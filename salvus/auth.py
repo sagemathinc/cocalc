@@ -30,7 +30,7 @@ class BaseHandler(tornado.web.RequestHandler):
 class LogoutHandler(BaseHandler):
     def get(self):
         self.clear_cookie('user')
-        self.redirect('/')
+        self.write('')
 
 class UsernameHandler(BaseHandler):
     def get(self):

@@ -1,16 +1,24 @@
-root = exports ? this
+###
+This module defines the Salvus class, which is exported in the global namespace
+when it is included.
+
+AUTHOR: William Stein
+COPYRIGHT: University of Washington, 2012.
+
+LICENSE: No open source license.
+###
 
 log = (s) ->
-    try
-        console.log(s)    # TODO: this is not cross platform.  no console object in some browsers.
+    try  # we use try because this is not cross platform.
+        console.log(s)    
 
-walltime = -> (new Date()).getTime()
+walltime = () -> (new Date()).getTime()
 
 # get the types from the server
 types = null
 $.getJSON("/tornado/message/types", (data) -> types = data; return)
 
-class root.Salvus
+class (exports ? this).Salvus
     constructor: (options) -> 
         @opts = $.extend(
             onopen: (protocol) ->
@@ -30,7 +38,8 @@ class root.Salvus
         # Connection to sockjs server
         @conn = null
         @retry_delay = 1
-        #@connect()  # start attemping to connect (TODO: maybe client should have to explicitly call this?)
+
+        @connect()  # start attemping to connect (TODO: maybe client should have to explicitly call this?)
 
     execute: (input, callback) =>
         @output_callbacks[@id] = callback
@@ -64,7 +73,6 @@ class root.Salvus
             setTimeout(@connect, @retry_delay)
             
         @conn.onopen = () =>
-            log("connected.")
             @opts.onopen(@conn.protocol)
             @retry_delay = 1
 

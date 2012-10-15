@@ -2,7 +2,23 @@
 (function() {
 
   $(function() {
-    var execute_code, salvus;
+    var execute_code, salvus, sign_in, sign_out;
+    sign_out = function() {
+      return $.getJSON("/tornado/auth/logout", function() {
+        $("#username").hide();
+        $("#sign_out").hide();
+        return $("#sign_in").show();
+      });
+    };
+    sign_in = function(username) {
+      $("#sign_in").hide();
+      $("#username").show().html(username);
+      return $("#sign_out").show();
+    };
+    $("#sign_in").button().click(function() {
+      return window.location = "/tornado/auth/google";
+    });
+    $("#sign_out").button().hide().click(sign_out);
     execute_code = function() {
       $("#output").val("");
       $("#time").html("");
@@ -12,12 +28,12 @@
         o = $("#output");
         o.val(o.val() + mesg.output.stdout);
         if (mesg.output.stderr) {
-          o.val(o.val() + "\n!!!!!!!!!!!!!!\n" + mesg.output.stderr + "\n!!!!!!!!!!!!!\n");
+          o.val(o.val() + ("\n!!!!!!!!!!!!!!\n" + mesg.output.stderr + "\n!!!!!!!!!!!!!\n"));
         }
-        return $("#run_status").html((mesg.output.done ? "" : "running..."));
+        return $("#run_status").html(mesg.output.done ? "" : "running...");
       });
     };
-    $("#execute").click(function(e) {
+    $("#execute").button().click(function(e) {
       return execute_code();
     });
     $("body").keydown(function(e) {
@@ -26,23 +42,10 @@
         return false;
       }
     });
-    $("#execute").button();
-    $("#google").button().click(function() {
-      return window.location = "/tornado/auth/google";
-    });
-    $("#facebook").button().click(function() {
-      return window.location = "/tornado/auth/facebook";
-    });
-    $("#sign_out").button().click(function() {
-      $("#username").hide();
-      $("#sign_out").hide();
-      return $("#sign_in").show();
-    });
-    salvus = new Salvus({
+    $("#connection_status").html("connecting...");
+    return salvus = new Salvus({
       on_login: function(name) {
-        $("#username").show().html(name);
-        $("#sign_in").hide();
-        return $("#sign_out").show();
+        return sign_in(name);
       },
       onopen: function(protocol) {
         return $("#connection_status").html("connected (" + protocol + ")");
@@ -51,11 +54,6 @@
         return $("#connection_status").html("reconnecting...");
       }
     });
-    salvus.connect();
-    $("#connection_status").html("connecting...");
-    $("#sign_in").show();
-    $("#sign_out").hide();
-    return $("#username").hide();
   });
 
 }).call(this);
