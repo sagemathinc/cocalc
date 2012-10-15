@@ -2,12 +2,12 @@
 (function() {
 
   $(function() {
-    var backend, execute_code;
+    var execute_code, salvus;
     execute_code = function() {
       $("#output").val("");
       $("#time").html("");
       $("#run_status").html("running...");
-      return backend.execute($("#input").val(), function(mesg) {
+      return salvus.execute($("#input").val(), function(mesg) {
         var o;
         o = $("#output");
         o.val(o.val() + mesg.output.stdout);
@@ -38,7 +38,7 @@
       $("#sign_out").hide();
       return $("#sign_in").show();
     });
-    backend = salvus.Backend({
+    salvus = new Salvus({
       on_login: function(name) {
         $("#username").show().html(name);
         $("#sign_in").hide();
@@ -51,6 +51,7 @@
         return $("#connection_status").html("reconnecting...");
       }
     });
+    salvus.connect();
     $("#connection_status").html("connecting...");
     $("#sign_in").show();
     $("#sign_out").hide();
