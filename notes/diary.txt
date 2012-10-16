@@ -5360,3 +5360,223 @@ In [14]: !kill -CONT 28228
 
   [ ] implement "logged_in" message type (in proto?) -- see comment in salvus.coffee
 
+  
+
+IDEA: for picking files -- https://www.filepicker.io/products/javascript_v1/
+
+
+  [ ] I'm tempted to try writing tornado_server.py in NodeJS just
+      because NodeJS has so much momentum, e.g., it has a CQL driver.
+
+        https://github.com/racker/node-cassandra-client
+
+Here's doing something in coffee:
+
+  $ npm install cassandra-client
+  $ coffee
+  coffee> System = require('cassandra-client').System
+  coffee> sys.describeKeyspace('salvus', (err, def) -> console.log(def) if not err)
+
+It has pooled connections!
+
+  coffee> PooledConnection = require('cassandra-client').PooledConnection
+  coffee> connection_pool = new PooledConnection({'hosts': ['localhost:9160'], 'keyspace': 'salvus'})
+
+
+  coffee> Connection = require('cassandra-client').Connection
+  coffee> con = new Connection({host:'localhost', port:9160, keyspace:'salvus'})
+  coffee> con.connect(->)    # see http://stackoverflow.com/questions/9076046/nodejs-cassandra-client-node-cassandra-client
+  coffee> con.execute('select * from sage_servers', [], (err, rows) -> console.log(rows))
+  coffee> con.execute('select input from stateless_exec', [], (err, rows) -> console.log(rows[0..5]))
+
+
+  coffee> walltime = () -> (new Date()).getTime()
+  coffee> t=walltime(); con.execute('select input from stateless_exec', [], (err, rows) -> console.log(walltime()-t))
+  coffee> 141
+
+  coffee> t=walltime(); con.execute('select input from stateless_exec', [], (err, rows) -> console.log(walltime()-t))
+  coffee> 106
+
+The Python driver seems way faster for this:
+
+  In [17]: t=time.time();  cassandra.cursor_execute('select input from stateless_exec'); (time.time()-t)*1000
+  Out[17]: 28.01799774169922
+
+(With same timings if we read one thing from the cursor.)
+
+I think I'll not worry about "switching to NodeJS" for now.
+
+
+
+Tuesday, Oct 16, 2012:
+=======================
+
+Actually, I'm going to attempt to rewrite tornado_server.py using
+NodeJS, mainly because there is a huge amount of momentum behind
+nodejs right now and because of CoffeeScript.  
+
+Things my tornado server does:
+
+  * sockjs server for browser clients
+  * connect to cassandra via CQL3  (and create schema, provide model)
+  * connect to sage servers via TCP
+  * work with protobuf messages
+  * oauth (at least with google)
+  * connect to other tornado servers to forward messages to clients
+  * provide a command line interface (as a deamon or not)
+  * coordinate execution of code
+
+Plan (what is below):
+
+  * figure out what the options are (list websites, etc.) for node.js
+    so that it can do all of the above; if any are completely missing,
+    stop.
+
+- https://github.com/joyent/node/wiki/modules
+
+  * write sample snippets of code that show how do to do each thing.
+
+  * write the actual new code. 
+
+Most depended on packages:
+
+   * https://npmjs.org/browse/depended
+   * http://toolbox.no.de/
+
+Version of nodejs in Ubuntu 12.04.1: v0.6.12; on laptop (OS X): v0.6.15; latest released: v0.8.12
+
+Writing async code: https://github.com/caolan/async
+
+Building from source
+--------------------
+
+  * motivation: " in my personal experience, using a package manager
+    like Homebrew or Aptitude is a recipe for disaster. These projects
+    are moving very quickly, and are still very young as of the time
+    of writing this."  http://joyent.com/blog/installing-node-and-npm/
+
+  * download link here: http://nodejs.org/download/
+    to: http://nodejs.org/dist/v0.8.12/node-v0.8.12.tar.gz
+    - ./configure --prefix-?; make -j30
+    - build time on 05salvus in parallel:
+         real    0m34.221s
+         user    5m52.274s
+         sys     0m29.362s
+    - build time on laptop:
+         real	2m45.748s
+ 	 user	7m39.467s
+	 sys	0m49.534s
+    - includes its dependencies :-)
+    - npm: 
+         export ??? PATH=`pwd`:$PATH # in node build
+         # move out
+         git clone git://github.com/isaacs/npm.git && cd npm && make
+
+Files for examples/demos of everything: salvus/notes/node
+
+SockJS Server
+-------------
+
+  * https://github.com/sockjs/sockjs-node 
+       -- looks rock solid.
+
+USE
+
+$ npm install sockjs
+$ npm install node-static
+
+
+CQL3
+----
+
+--> * https://github.com/simplereach/helenus
+         -- supports CQL3, had connection pool, etc.
+  * https://github.com/racker/node-cassandra-client 
+       -- does *not* support CQL3, at least as of 2 months ago -- https://github.com/racker/node-cassandra-client/issues/38
+
+
+Protobuf
+--------
+
+   * http://stackoverflow.com/questions/12225253/which-node-js-module-should-i-install-to-be-able-to-use-google-protocol-buffers
+--> * https://github.com/chrisdew/protobuf
+
+   * a thought -- perhaps I should use JSON, but use the protobuf spec to *describe*
+     my message format? 
+
+Authentication
+--------------
+
+   * This looks very good, since it supports *tons* of different sites: 
+        https://github.com/ciaranj/connect-auth
+
+   * This looks even better: http://passportjs.org/
+        - excellent documentation
+        - normalized user profile info: http://passportjs.org/guide/user-profile.html
+        - argument by passport author about why he thinks it is better than everyauth: 
+              http://stackoverflow.com/questions/3498005/user-authentication-libraries-for-node-js
+
+-->* This one might be even better yet: https://github.com/bnoguchi/everyauth
+
+    
+    
+TCP to Sage
+-----------
+
+--> * http://nodejs.org/api/net.html
+
+    * I should write this as its own stand-alone library, so I can
+      easily embed sage in any nodejs app.
+
+
+TCP to other Servers
+--------------------
+
+-->   * http://nodejs.org/api/net.html
+
+   * Or maybe use dnode: https://github.com/substack/dnode
+      "dnode is an asynchronous rpc system for node.js that lets you call remote functions."
+
+   * This could be useful: https://github.com/weixiyen/messenger.js
+      - "Messenger.js is a library that makes network communication via JSON dead simple and insanely fast!"
+      - It is written in coffeescript.
+
+
+CLI
+----------
+
+   * "optimist" -- https://github.com/substack/node-optimist
+        - and: http://docs.nodejitsu.com/articles/command-line/how-to-parse-command-line-arguments
+        - "optimist is really good because it does not require configuration at all."
+        - "Seconding optimist. One of the absolutely sweet piece of module to work with."
+        - "no config doesn't mean good if you want the free documentation, other than that I'd say optimist is sweet"
+
+   * commander -- https://github.com/visionmedia/commander.js
+        - looks very good as well 
+        - blog: http://tjholowaychuk.com/post/9103188408/commander-js-nodejs-command-line-interfaces-made-easy 
+        - "I recently changed from optimist to commander for all our internal tooling. The api feel really natural but what else would you expect from tj, he's an API god."
+   * nomnom -- https://github.com/harthur/nomnom
+        - looks good too
+
+
+Daemon
+----------
+
+       
+ --> * https://github.com/niegowski/node-daemonize2
+         - simple and exactly what I need
+
+     * https://github.com/nodejitsu/forever
+         - very complicated and does way too much
+
+
+Logging to a file
+-----------------
+
+    * https://github.com/flatiron/winston
+         - looks very good, easy, similar to python logger
+
+    * https://github.com/nomiddlename/log4js-node
+         - looks confused/harder to use/not as documented
+
+
