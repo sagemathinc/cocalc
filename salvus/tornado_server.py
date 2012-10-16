@@ -12,10 +12,6 @@ Tornado server
       
     - connections to other tornados speaking protocol buffers over a
       secure SSL encrypted TCP socket
-
-    - almost static templated content, e.g., anything that needs to be
-      translated to other languages (not javascript, but things like
-      help pages)
 """
 
 USE_EXEC_CACHE = True
