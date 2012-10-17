@@ -5480,10 +5480,11 @@ SockJS Server
   * https://github.com/sockjs/sockjs-node 
        -- looks rock solid.
 
-USE
+[x] USE
 
 $ npm install sockjs
 $ npm install node-static
+See salvus/notes/node/chat
 
 
 CQL3
@@ -5493,6 +5494,8 @@ CQL3
          -- supports CQL3, had connection pool, etc.
   * https://github.com/racker/node-cassandra-client 
        -- does *not* support CQL3, at least as of 2 months ago -- https://github.com/racker/node-cassandra-client/issues/38
+
+[ ] USE 
 
 
 Protobuf
@@ -5557,6 +5560,10 @@ CLI
         - "I recently changed from optimist to commander for all our internal tooling. The api feel really natural but what else would you expect from tj, he's an API god."
    * nomnom -- https://github.com/harthur/nomnom
         - looks good too
+
+[x] USE  -- see notes/node/cli
+
+
 
 
 Daemon
