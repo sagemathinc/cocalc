@@ -1,4 +1,4 @@
-Aug 10, 2012:
+>Aug 10, 2012:
 ------------
 
 I'm setting up VM's on my infrastructure.  Right now I have:
@@ -5580,3 +5580,11 @@ Logging to a file
          - looks confused/harder to use/not as documented
 
 
+Oct 17, 2012:
+============
+
+7:40am Very quick 1-hour session before teaching prep
+
+1. I just did http://stackoverflow.com/questions/9881528/coffee-script-path-exists-deprecated-notice-from-node-js
+   i.e., emacs /Users/wstein/local//lib/node_modules/coffee-script/lib/coffee-script/command.js
+   and change path.exists to fs.exists.
