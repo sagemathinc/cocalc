@@ -6,13 +6,14 @@ important (usually security-related) options are compiled in.
 
 The components of sagews are:
 
-    * python -- interpreter glue
+    * python -- language (used mainly for admin control and sage)
+    * nodejs -- language (for web server)
     * nginx -- static web server
     * haproxy -- proxy and load ballancer
     * tinc -- p2p vpn
     * protobuf -- google's messaging api and format 
     * cassandra -- distributed p2p database
-    * tornado -- web server
+XXX    * tornado -- web server
     * sage (which we do not build here, yet -- perhaps we should)      
 
 This supports OS X and Ubuntu 12.04 on AMD and Intel. 
@@ -92,6 +93,18 @@ def build_python():
         cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(TARGET,TARGET), path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
+def build_node():
+    log.info('building node'); start = time.time()
+    try:
+        path = extract_package('node')
+        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('make -j %s'%NCPU, path)
+        cmd('make install', path)
+        cmd('git clone git://github.com/isaacs/npm.git && cd npm && make install', path) 
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
@@ -189,6 +202,10 @@ if __name__ == "__main__":
     parser.add_argument('--build_python', dest='build_python', action='store_const', const=True, default=False,
                         help="build the python interpreter")
 
+    parser.add_argument('--build_node', dest='build_node', action='store_const', const=True, default=False,
+                        help="build node")
+
+
     parser.add_argument('--build_nginx', dest='build_nginx', action='store_const', const=True, default=False,
                         help="build the nginx web server")
 
@@ -213,6 +230,9 @@ if __name__ == "__main__":
         times = {}
         if args.build_all or args.build_tinc:
             times['tinc'] = build_tinc()
+
+        if args.build_all or args.build_node:
+            times['node'] = build_node()
 
         if args.build_all or args.build_python:
             times['python'] = build_python()

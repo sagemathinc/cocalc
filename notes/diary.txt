@@ -5447,7 +5447,7 @@ Version of nodejs in Ubuntu 12.04.1: v0.6.12; on laptop (OS X): v0.6.15; latest 
 
 Writing async code: https://github.com/caolan/async
 
-Building from source
+[x] Building from source
 --------------------
 
   * motivation: " in my personal experience, using a package manager
@@ -5480,8 +5480,6 @@ Files for examples/demos of everything: salvus/notes/node
   * https://github.com/sockjs/sockjs-node 
        -- looks rock solid.
 
-[x] USE
-
 $ npm install sockjs
 $ npm install node-static
 See salvus/notes/node/chat
@@ -5502,21 +5500,30 @@ helenus = require('helenus'); pool = new helenus.ConnectionPool(hosts:['localhos
 execute('select * from sage_servers')
 
 
-
-
-
-
-Protobuf
+[x] Protobuf: conclusion -- I'll switch back to JSON, but keep a file describing the message format. 
 --------
 
    * http://stackoverflow.com/questions/12225253/which-node-js-module-should-i-install-to-be-able-to-use-google-protocol-buffers
---> * https://github.com/chrisdew/protobuf
+   * https://github.com/chrisdew/protobuf
 
-   * a thought -- perhaps I should use JSON, but use the protobuf spec to *describe*
-     my message format? 
+----->   * a thought -- perhaps I should use JSON, but use the protobuf spec to *describe*
+     my message format?  <-----
 
-Authentication
---------------
+** USE **
+
+blastoff:proto wstein$ ln -s ~/salvus/salvus/data/local/include/google .
+blastoff:proto wstein$ export CPPFLAGS="-I`pwd`"
+blastoff:proto wstein$ npm install protobuf
+blastoff:proto wstein$ protoc --descriptor_set_out=mesg.desc --proto_path=$HOME/salvus/salvus --include_imports $HOME/salvus/salvus/mesg.proto
+blastoff:proto wstein$ node
+
+ var fs = require('fs');
+ var Schema = require('protobuf').Schema;
+var schema = new Schema(fs.readFileSync('mesg.desc'));
+
+
+[ ] Authentication
+------------------
 
    * This looks very good, since it supports *tons* of different sites: 
         https://github.com/ciaranj/connect-auth
@@ -5531,8 +5538,8 @@ Authentication
 
     
     
-TCP to Sage
------------
+[ ] TCP to Sage
+---------------
 
 --> * http://nodejs.org/api/net.html
 
@@ -5540,7 +5547,7 @@ TCP to Sage
       easily embed sage in any nodejs app.
 
 
-TCP to other Servers
+[ ] TCP to other Servers
 --------------------
 
 -->   * http://nodejs.org/api/net.html
@@ -5650,6 +5657,13 @@ the code to js first, then run it. But that is OK.
 
 [x] USE -- see daemon/soln.coffee 
     Winston works well!
+
+[ ] web framework
+===================
+
+  * https://github.com/visionmedia/express
+
+      npm install -g express@3.0
 
 
 Oct 17, 2012:
