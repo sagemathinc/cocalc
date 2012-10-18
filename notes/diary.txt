@@ -5538,27 +5538,6 @@ var schema = new Schema(fs.readFileSync('mesg.desc'));
 
     
     
-[ ] TCP to Sage
----------------
-
---> * http://nodejs.org/api/net.html
-
-    * I should write this as its own stand-alone library, so I can
-      easily embed sage in any nodejs app.
-
-
-[ ] TCP to other Servers
---------------------
-
--->   * http://nodejs.org/api/net.html
-
-   * Or maybe use dnode: https://github.com/substack/dnode
-      "dnode is an asynchronous rpc system for node.js that lets you call remote functions."
-
-   * This could be useful: https://github.com/weixiyen/messenger.js
-      - "Messenger.js is a library that makes network communication via JSON dead simple and insanely fast!"
-      - It is written in coffeescript.
-
 
 [x] CLI
 ----------
@@ -5658,12 +5637,39 @@ the code to js first, then run it. But that is OK.
 [x] USE -- see daemon/soln.coffee 
     Winston works well!
 
-[ ] web framework
+[x] web framework
 ===================
 
   * https://github.com/visionmedia/express
 
-      npm install -g express@3.0
+Made salvus/notes/node/express/hello/package.json, and app.coffee.
+Typed "npm install"
+Then run webserver with:  coffee app.coffee
+
+The page http://expressjs.com/guide.html  talks about "Express behind proxies"
+which looks *very* important -- "
+
+
+[ ] TCP to Sage
+---------------
+
+--> * http://nodejs.org/api/net.html
+
+    * I should write this as its own stand-alone library, so I can
+      easily embed sage in any nodejs app.
+
+
+[ ] TCP to other Servers
+--------------------
+
+-->   * http://nodejs.org/api/net.html
+
+   * Or maybe use dnode: https://github.com/substack/dnode
+      "dnode is an asynchronous rpc system for node.js that lets you call remote functions."
+
+   * This could be useful: https://github.com/weixiyen/messenger.js
+      - "Messenger.js is a library that makes network communication via JSON dead simple and insanely fast!"
+      - It is written in coffeescript.
 
 
 Oct 17, 2012:
