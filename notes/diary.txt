@@ -5474,7 +5474,7 @@ Building from source
 
 Files for examples/demos of everything: salvus/notes/node
 
-SockJS Server
+[x] SockJS Server
 -------------
 
   * https://github.com/sockjs/sockjs-node 
@@ -5487,7 +5487,7 @@ $ npm install node-static
 See salvus/notes/node/chat
 
 
-CQL3
+[x] CQL3
 ----
 
 --> * https://github.com/simplereach/helenus
@@ -5495,7 +5495,15 @@ CQL3
   * https://github.com/racker/node-cassandra-client 
        -- does *not* support CQL3, at least as of 2 months ago -- https://github.com/racker/node-cassandra-client/issues/38
 
-[ ] USE 
+[x] USE  -- node/cql/test3.coffee  # helenus seems to work great
+
+helenus = require('helenus'); pool = new helenus.ConnectionPool(hosts:['localhost'], keyspace: 'salvus', timeout: 3000, cqlVersion: '3.0.0'); pool.connect( (err,keyspace) -> ); execute = (cql,v=[]) -> pool.cql(cql, v, (err, results) -> console.log(results))
+
+execute('select * from sage_servers')
+
+
+
+
 
 
 Protobuf
