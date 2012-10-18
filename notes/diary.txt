@@ -4948,8 +4948,8 @@ s.restart('haproxy', '02salvus')
 ----
 
      virsh list   # check that no base vm is running
-     export PREV=salvus2
-     export NAME=salvus3
+     export PREV=salvus3
+     export NAME=salvus4-sagenb
      qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
 
      virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
@@ -5637,11 +5637,16 @@ the code to js first, then run it. But that is OK.
 [x] USE -- see daemon/soln.coffee 
     Winston works well!
 
-[x] web framework
+[x] web framework -- Express ?
 ===================
+
+  * https://github.com/mauricemach/zappa 
+   - basically express + coffeescript.
+
 
   * https://github.com/visionmedia/express
 
+Demo:
 Made salvus/notes/node/express/hello/package.json, and app.coffee.
 Typed "npm install"
 Then run webserver with:  coffee app.coffee

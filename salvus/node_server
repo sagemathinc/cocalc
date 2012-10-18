@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+coffee -o data -c node_server.coffee 
+node data/node_server.js $@
