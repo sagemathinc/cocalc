@@ -5545,7 +5545,7 @@ TCP to other Servers
       - It is written in coffeescript.
 
 
-CLI
+[x] CLI
 ----------
 
    * "optimist" -- https://github.com/substack/node-optimist
@@ -5566,7 +5566,7 @@ CLI
 
 
 
-Daemon
+[x] Daemon
 ----------
 
        
@@ -5576,15 +5576,72 @@ Daemon
      * https://github.com/nodejitsu/forever
          - very complicated and does way too much
 
+[x] USE:
 
-Logging to a file
+blastoff:daemon wstein$ npm install daemonize2
+!! Hmm, exactly the code on their site does not work!!
+blastoff:daemon wstein$ node app2.js start
+Starting sampleapp daemon...
+sampleapp daemon failed to start:  Module '/Users/wstein/salvus/notes/node/daemon/app2.js' stopped unexpected
+
+OK, really need two scripts.  That works.
+
+Try forever:
+
+blastoff:daemon wstein$ npm install forever-monitor
+
+wait... surprisingly, a little module called "init" actually does what I want?!
+
+blastoff:daemon wstein$ more in.js 
+init = require('init');
+
+init.simple({
+    pidfile : 'myprog.pid',
+    logfile : 'myprog.log',
+    command : process.argv[3],
+    run     : function () {
+        while(1) {}
+    }
+})
+
+This works perfectly... no.?
+
+I've looked at probably a dozen daemon modules!  
+
+Finally, this one looks good: 
+
+   https://npmjs.org/package/start-stop-daemon 
+
+This is AWESOME -- it built on that "forever" script, but works
+with a single process, which of course I want.   As an added bonus
+if the server crashes it is automatically restarted.
+
+** SOLUTION **
+
+  Definitely *use* start-stop-daemon.
+
+  It works. And it works with command line options.  It also gives
+  the added robustness of automatic restart.   See the file soln.coffee:
+
+----
+
+
+[x] USE -- see daemon/soln.coffee
+
+start-stop-daemon works super well, though it is crucial to compile
+the code to js first, then run it. But that is OK.
+
+[x] Logging to a file
 -----------------
 
-    * https://github.com/flatiron/winston
+-->    * https://github.com/flatiron/winston
          - looks very good, easy, similar to python logger
 
     * https://github.com/nomiddlename/log4js-node
          - looks confused/harder to use/not as documented
+
+[x] USE -- see daemon/soln.coffee 
+    Winston works well!
 
 
 Oct 17, 2012:
@@ -5595,3 +5652,5 @@ Oct 17, 2012:
 1. I just did http://stackoverflow.com/questions/9881528/coffee-script-path-exists-deprecated-notice-from-node-js
    i.e., emacs /Users/wstein/local//lib/node_modules/coffee-script/lib/coffee-script/command.js
    and change path.exists to fs.exists.
+
+7:31pm.  Now I'm going to figure out daemon in node.

@@ -8,3 +8,4 @@ logs
 *.sobj
 data/
 .#*
+node_modules
