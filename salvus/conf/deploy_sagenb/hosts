@@ -1,19 +1,14 @@
-#  import admin; reload(admin); s = admin.Services('conf/deploy_sagenb/', username='salvus'); h=s._hosts
+#import admin; reload(admin); s = admin.Services('conf/deploy_sagenb/', username='salvus'); h=s._hosts
 
 # hosts
 
 # padelford data center -- 10.1
-10.1.1.1 padelford kvm-host edge 01salvus
-10.123.1.1 padelford kvm sagenb1
-10.1.2.1 padelford kvm-host edge 02salvus
-10.123.1.2 padelford kvm sagenb2
 
 # UW tower colo data center
 
-10.4.1.1 tower kvm-host 05salvus
-10.123.1.5 tower kvm sagenb5
-10.4.2.1 tower kvm-host 06salvus
-10.123.1.6 tower kvm sagenb6
+10.4.4.1 tower kvm-host 08salvus
+10.123.1.1 tower kvm sagenb-sfa
+
 
 # my laptop -- 10.38.1.1
 10.38.1.1 laptop salvus0
