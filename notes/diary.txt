@@ -5687,3 +5687,13 @@ Oct 17, 2012:
    and change path.exists to fs.exists.
 
 7:31pm.  Now I'm going to figure out daemon in node.
+
+Went well
+
+8:30pm:  I'm going to try to add a bit more to node_server.coffee.  What remains:
+
+   [x] sockjs server
+   [ ] connection to sage (need to make sage accept json format -- lot of work!)
+   [ ] CQL cassandra database connection
+   [ ] authentication
+   [ ] handling evaluation 

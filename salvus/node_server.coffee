@@ -2,13 +2,17 @@
 # Run this by running ./node_server ...
 #
 # Dependencies:
-#    npm install commander start-stop-daemon winston
+# 
+#    npm install commander start-stop-daemon winston sockjs
+#
+# ** Be sure to add dependencies to the NODE_PACKAGES list in build.py **
 #
 ###
 
 program = require('commander')          # https://github.com/visionmedia/commander.js/
-daemon = require("start-stop-daemon")   # https://github.com/jiem/start-stop-daemon
+daemon  = require("start-stop-daemon")  # https://github.com/jiem/start-stop-daemon
 winston = require('winston')            # https://github.com/flatiron/winston
+sockjs  = require("sockjs")             # https://github.com/sockjs/sockjs-node
 
 program
     .usage('[start/stop/restart/status] [options]')
@@ -23,11 +27,26 @@ program
     .parse(process.argv)
 
 main = () ->
+
+    ###########################
+    # web server
+    ###########################
     http = require('http')
-    http.createServer((req, res) ->
-        winston.info (req.connection.remoteAddress + " accessed " + req.url)
-        res.end("node server")
-    ).listen (program.port)
+    http_server = http.createServer((req, res) ->
+        winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
+        res.end("salvus node server")
+    )
+
+    sockjs_connections = []
+    sockjs_server = sockjs.createServer()
+    sockjs_server.on("connection", (conn) ->
+        winston.info ("new sockjs connection #{conn}")
+        sockjs_connections.push(conn)
+    )
+    sockjs_server.installHandlers(http_server, {prefix:'/tornado'})
+
+    
+    http_server.listen(program.port)
 
 winston.info("Started node_server. HTTP port #{program.port}; TCP port #{program.tcp_port}")
 daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, main)
