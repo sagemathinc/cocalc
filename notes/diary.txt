@@ -5719,7 +5719,20 @@ Oct 19, 2012:
           -  node_secrets
 
 I'm going to hit this very focused now for the next two hours:
-  -->   [ ] connection to sage (need to make sage accept json format -- lot of work!)
-    * Basically I have to intrusively change everything in my stack to use JSON and get rid of protobuf.
+  
+[ ] connection to sage (need to make sage accept json format -- lot of work!)
+    * Basically I have to intrusively change everything in my stack to use JSON and get rid of protobuf.	
+
+     [x] skim through sage_server.py
+     [x] rewrite sage_server.py to use JSON  -- turned out to take < 30 minutes total!
+     [x] test client part to make sure it works
+
+     [ ] implement support for sage_server from nodejs, e.g, sage.coffee
+ 
+     [ ] delete all protobuf stuff from salvus:
+             - source code
+             - build
+             - mesg.proto, etc.
+    
    
 

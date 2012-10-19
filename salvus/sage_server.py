@@ -29,15 +29,15 @@ logging.basicConfig()
 log = logging.getLogger('sage_server')
 log.setLevel(logging.INFO)
 
-# Google protocol buffers wrapper around a connection
-import mesg_pb2
-class ConnectionPB(object):
+# JSON Message wrapper around a connection
+
+class ConnectionJSON(object):
     def __init__(self, conn):
-        assert not isinstance(conn, ConnectionPB)
+        assert not isinstance(conn, ConnectionJSON)
         self._conn = conn
 
     def send(self, m):
-        s = m.SerializeToString()
+        s = json.dumps(m)
         length_header = struct.pack(">L", len(s))
         self._conn.send(length_header + s)
 
@@ -52,50 +52,37 @@ class ConnectionPB(object):
             if len(t) == 0:
                 raise EOFError
             s += t
-        m = mesg_pb2.Message()
-        m.ParseFromString(s)
-        return m
+        return json.loads(s)
 
 class Message(object):
-    def _new(self, id, typ):
-        m = mesg_pb2.Message()
-        m.type = typ
-        if id is not None:
-            m.id = id
+    def _new(self, event, props={}):
+        m = {'event':event}
+        for key, val in props.iteritems():
+            if key != 'self':
+                m[key] = val
         return m
         
     def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=2048, id=None):
-        m = self._new(id=id, typ=mesg_pb2.Message.START_SESSION)
-        m.start_session.max_walltime = max_walltime
-        m.start_session.max_cputime = max_cputime
-        m.start_session.max_numfiles = max_numfiles
-        m.start_session.max_vmem = max_vmem
-        return m
+        return self._new('start_session', locals())
 
     def session_description(self, pid, id=None):
-        m = self._new(id=id, typ=mesg_pb2.Message.SESSION_DESCRIPTION)
-        m.session_description.pid = pid
-        return m
+        return self._new('session_description', locals())
 
     def send_signal(self, pid, signal=signal.SIGINT, id=None):
-        m = self._new(id=id, typ=mesg_pb2.Message.SEND_SIGNAL)
-        m.send_signal.pid = pid
-        m.send_signal.signal = signal
-        return m
+        return self._new('send_signal', locals())        
 
     def terminate_session(self, id=None):
-        return self._new(id=id, typ=mesg_pb2.Message.TERMINATE_SESSION)
+        return self._new('terminate_session', locals())
 
-    def execute_code(self, code, id=None):
-        m = self._new(id=id, typ=mesg_pb2.Message.EXECUTE_CODE)
-        m.execute_code.code = code
-        return m        
+    def execute_code(self, code, preparse=True, id=None):
+        return self._new('execute_code', locals())
 
     def output(self, id=None, stdout=None, stderr=None, done=None):
-        m = self._new(id=id, typ=mesg_pb2.Message.OUTPUT)
-        if stdout: m.output.stdout = stdout
-        if stderr: m.output.stderr = stderr
-        if done: m.output.done = done
+        m = self._new('output')
+        if id is not None: m['id'] = id
+        if stdout is not None: m['stdout'] = stdout
+        if stderr is not None: m['stderr'] = stderr
+        if done is not None: m['done'] = done
         return m
         
 message = Message()
@@ -105,11 +92,11 @@ whoami = os.environ['USER']
 def client1(port, hostname):
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.connect((hostname, int(port)))
-    conn = ConnectionPB(conn)
+    conn = ConnectionJSON(conn)
 
     conn.send(message.start_session())
     mesg = conn.recv()
-    pid = mesg.session_description.pid
+    pid = mesg['pid']
     print "PID = %s"%pid
     
     id = 0
@@ -121,14 +108,14 @@ def client1(port, hostname):
             conn.send(message.execute_code(code=code, id=id))
             while True:
                 mesg = conn.recv()
-                if mesg.type == mesg_pb2.Message.TERMINATE_SESSION:
+                if mesg['event'] == 'terminate_session':
                     return
-                elif mesg.type == mesg_pb2.Message.OUTPUT:
-                    if mesg.output.stdout:
-                        sys.stdout.write(mesg.output.stdout); sys.stdout.flush()
-                    if mesg.output.stderr:
-                        print '!  ' + '\n!  '.join(mesg.output.stderr.splitlines())
-                    if mesg.output.done and mesg.id >= id:
+                elif mesg['event'] == 'output':
+                    if 'stdout' in mesg:
+                        sys.stdout.write(mesg['stdout']); sys.stdout.flush()
+                    if 'stderr' in mesg:
+                        print '!  ' + '\n!  '.join(mesg['stderr'].splitlines())
+                    if 'done' in mesg and mesg['id'] >= id:
                         break
             id += 1
             
@@ -136,7 +123,7 @@ def client1(port, hostname):
             print "Sending interrupt signal"
             conn2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             conn2.connect((hostname, int(port)))
-            conn2 = ConnectionPB(conn2)
+            conn2 = ConnectionJSON(conn2)
             conn2.send(message.send_signal(pid))
             del conn2
             id += 1
@@ -232,10 +219,10 @@ def session(conn, home, cputime, nofile, vmem):
         try:
             mesg = conn.recv()
             print 'INFO:child%s: received message "%s"'%(pid, mesg)
-            if mesg.type == mesg_pb2.Message.TERMINATE_SESSION:
+            if mesg['event'] == 'terminate_session':
                 return
-            elif mesg.type == mesg_pb2.Message.EXECUTE_CODE:
-                execute(conn=conn, id=mesg.id, code=mesg.execute_code.code, preparse=mesg.execute_code.preparse)
+            elif mesg['event'] == 'execute_code':
+                execute(conn=conn, id=mesg['id'], code=mesg['code'], preparse=mesg['preparse'])
             else:
                 raise RuntimeError("invalid message '%s'"%mesg)
         except KeyboardInterrupt:
@@ -342,22 +329,21 @@ def serve(port, address, whitelist):
                 continue
 
             try:
-                conn = ConnectionPB(conn)
+                conn = ConnectionJSON(conn)
                 mesg = conn.recv()
-                if mesg.type == mesg_pb2.Message.SEND_SIGNAL:
-                    if mesg.send_signal.pid == 0:
+                if mesg['event'] == 'send_signal':
+                    if mesg['pid'] == 0:
                         log.info("invalid signal mesg (pid=0?): %s", mesg)
                         continue
-                    log.info("sending signal %s to process %s", mesg.send_signal.signal, mesg.send_signal.pid)
-                    os.kill(mesg.send_signal.pid, mesg.send_signal.signal)
+                    log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
+                    os.kill(mesg['pid'], mesg['signal'])
                     continue
 
-                if mesg.type != mesg_pb2.Message.START_SESSION:
+                if mesg['event'] != 'start_session':
                     log.info('invalid message type request')
                     continue
 
                 # start a session
-                start_session = mesg.start_session
                 home = tempfile.mkdtemp() if whoami == 'root' else None
                 pid = os.fork()
                 conn.send(message.session_description(pid))
@@ -370,11 +356,11 @@ def serve(port, address, whitelist):
                 continue
 
             if pid == 0: # child
-                session(conn, home, start_session.max_cputime,
-                        start_session.max_numfiles, start_session.max_vmem)
+                session(conn, home, mesg['max_cputime'],
+                        mesg['max_numfiles'], mesg['max_vmem'])
                 os._exit(0)
             else:
-                connections[pid] = Connection(pid, home, start_session.max_walltime)
+                connections[pid] = Connection(pid, home, mesg['max_walltime'])
                 log.info('accepted connection from %s (pid=%s)', addr, pid)
                 
     except Exception, err:
