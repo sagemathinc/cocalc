@@ -3,7 +3,7 @@
 #
 # Dependencies:
 # 
-#    npm install commander start-stop-daemon winston sockjs
+#    npm install commander start-stop-daemon winston sockjs helenus
 #
 # ** Be sure to add dependencies to the NODE_PACKAGES list in build.py **
 #
@@ -35,7 +35,11 @@ main = () ->
     http = require('http')
     http_server = http.createServer((req, res) ->
         winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
-        res.end("salvus node server")
+
+        # TESTING: see if cql connection works.
+        tm = (new Date()).getTime()
+        cassandra.cql("SELECT * FROM sage_servers", [],
+            (err, results) -> res.end("#{(new Date()).getTime() - tm}\n#{err} #{results}"))
     )
 
     ###########################
@@ -47,13 +51,17 @@ main = () ->
         winston.info ("new sockjs connection #{conn}")
         sockjs_connections.push(conn)
     )
-    sockjs_server.installHandlers(http_server, {prefix:'/tornado'})
+    sockjs_server.installHandlers(http_server, {prefix:'/node'})
 
     ###########################
     # cassandra database pool
     ###########################
-    cassandra = new helenus.ConnectionPool(hosts: program.database_nodes.split(','),
-                    keyspace: 'salvus', timeout: 3000, cqlVersion: '3.0.0')
+    cassandra = new helenus.ConnectionPool(
+         hosts: program.database_nodes.split(',')
+         keyspace:'salvus'
+         timeout: 3000
+         cqlVersion: '3.0.0'
+    )
     cassandra.on('error', (err) -> winston.error(err.name, err.message))
     cassandra.connect( (err,keyspace) -> winston.error(err) if err)
                     
