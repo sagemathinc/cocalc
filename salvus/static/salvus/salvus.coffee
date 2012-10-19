@@ -27,7 +27,7 @@ class (exports ? this).Salvus
                 log("onclose")
             on_login: (name) ->
                 log("logged in as " + name)
-            url: "#{window.location.protocol}//#{window.location.host}/tornado"
+            url: "#{window.location.protocol}//#{window.location.host}/node"
         , options or {})
 
         # State involving execution of code
