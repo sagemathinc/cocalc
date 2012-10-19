@@ -18,6 +18,7 @@ import misc
 ############################################################
 DATA   = 'data'
 CONF   = 'conf'
+PWD    = os.path.abspath('.')
 PIDS   = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS   = os.path.join(DATA, 'logs')   # preferred location for pid files
 BIN    = os.path.join(DATA, 'local', 'bin')
@@ -37,8 +38,11 @@ whoami = os.environ['USER']
 HAPROXY_PORT = 8000
 NGINX_PORT   = 8080
 SAGE_PORT    = 6000  # also used in cassandra.py.
+
 TORNADO_PORT = 5000
 TORNADO_TCP_PORT = 5001
+NODE_PORT = 5000
+NODE_TCP_PORT = 5001
 
 
 ####################
@@ -294,7 +298,7 @@ class Process(object):
         else:
             kill(pid)
         try:
-            unlink(self._pidfile)
+            if os.path.exists(self._pidfile): unlink(self._pidfile)
         except Exception, msg:
             print msg
 
@@ -469,6 +473,35 @@ class Tornado(Process):
 
     def __repr__(self):
         return "Tornado server %s on port %s"%(self.id(), self._port)
+
+####################
+# Node
+####################
+class Node(Process):
+    def __init__(self, id=0, address='', port=NODE_PORT, tcp_port=NODE_TCP_PORT,
+                 monitor_database=None, debug=False):
+        self._port = port
+        pidfile = os.path.join(PIDS, 'node-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'node-%s.log'%id)
+        extra = []
+        if debug:
+            extra.append('-g')
+        Process.__init__(self, id, name='node', port=port,
+                         pidfile = pidfile,
+                         logfile = logfile, monitor_database=monitor_database,
+                         start_cmd = [os.path.join(PWD, 'node_server'), 'start',
+                                      '--port', port,
+                                      '--tcp_port', tcp_port,
+                                      '--address', address,
+                                      '--database_nodes', monitor_database,
+                                      '--pidfile', pidfile,
+                                      '--logfile', logfile] + extra,
+                         stop_cmd   = [os.path.join(PWD, 'node_server'), 'stop'],
+                         reload_cmd = [os.path.join(PWD, 'node_server'), 'restart'])
+
+    def __repr__(self):
+        return "Node server %s on port %s"%(self.id(), self._port)
+
 
 ####################
 # Sage
@@ -1135,6 +1168,9 @@ class Services(object):
         elif name == "Tornado":
             self.tornado_secrets(address, action)
 
+        elif name == "Node":
+            self.node_secrets(address, action)
+
         ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
 
         if name == "Sage":
@@ -1196,6 +1232,9 @@ class Services(object):
                     self._hosts.put(ip_address, os.path.join(SECRETS, name), os.path.join(target, name))
         # avoid race condition where file is there but not there.
         time.sleep(.5)
+
+    def node_secrets(self, hostname, action):
+        self.tornado_secrets(hostname, action)  # TODO -- need to specialize maybe more for node ??
 
     def cassandra_firewall(self, hostname, action):
         if action == "restart":
