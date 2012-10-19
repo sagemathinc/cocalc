@@ -38,7 +38,7 @@ class NonblockingConnectionPB(object):
 
     def send(self, mesg, callback=None):
         s = mesg.SerializeToString()
-        length_header = struct.pack(">L", len(s))
+        length_header = struct.pack(">L", len(s))  # big endian 32 bits
         self._conn.write(length_header + s, callback)
 
     def recv(self, length=None, callback=None):

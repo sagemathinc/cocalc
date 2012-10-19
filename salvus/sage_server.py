@@ -37,6 +37,7 @@ class ConnectionJSON(object):
         self._conn = conn
 
     def send(self, m):
+        print 'send: "%s"'%m
         s = json.dumps(m)
         length_header = struct.pack(">L", len(s))
         self._conn.send(length_header + s)
@@ -45,14 +46,16 @@ class ConnectionJSON(object):
         n = self._conn.recv(4)
         if len(n) < 4:
             raise EOFError
-        n = struct.unpack('>L', n)[0]
+        n = struct.unpack('>L', n)[0]   # big endian 32 bits
         s = self._conn.recv(n)
         while len(s) < n:
             t = self._conn.recv(n - len(s))
             if len(t) == 0:
                 raise EOFError
             s += t
-        return json.loads(s)
+        m = json.loads(s)
+        print 'recv: "%s"'%m
+        return m
 
 class Message(object):
     def _new(self, event, props={}):
@@ -62,24 +65,24 @@ class Message(object):
                 m[key] = val
         return m
         
-    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=2048, id=None):
+    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=2048):
         return self._new('start_session', locals())
 
-    def session_description(self, pid, id=None):
+    def session_description(self, pid):
         return self._new('session_description', locals())
 
-    def send_signal(self, pid, signal=signal.SIGINT, id=None):
+    def send_signal(self, pid, signal=signal.SIGINT):
         return self._new('send_signal', locals())        
 
-    def terminate_session(self, id=None):
+    def terminate_session(self):
         return self._new('terminate_session', locals())
 
-    def execute_code(self, code, preparse=True, id=None):
+    def execute_code(self, id, code, preparse=True):
         return self._new('execute_code', locals())
 
-    def output(self, id=None, stdout=None, stderr=None, done=None):
+    def output(self, id, stdout=None, stderr=None, done=None):
         m = self._new('output')
-        if id is not None: m['id'] = id
+        m['id'] = id
         if stdout is not None: m['stdout'] = stdout
         if stderr is not None: m['stderr'] = stderr
         if done is not None: m['done'] = done
@@ -299,6 +302,7 @@ def serve(port, address, whitelist):
     check_for_connection_timeouts()
     signal.signal(signal.SIGCHLD, handle_session_term)
 
+    tm = time.time()
     log.info('pre-importing the sage library...')
     import sage.all
 
@@ -308,6 +312,7 @@ def serve(port, address, whitelist):
     exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
     
     #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
+    log.info('imported sage library in %s seconds', time.time() - tm)
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
