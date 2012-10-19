@@ -5499,6 +5499,8 @@ helenus = require('helenus'); pool = new helenus.ConnectionPool(hosts:['localhos
 
 execute('select * from sage_servers')
 
+Nice talk?   http://www.datastax.com/wp-content/uploads/2012/08/10_SimpleReach_NodeJS-Helenus.pdf
+
 
 [x] Protobuf: conclusion -- I'll switch back to JSON, but keep a file describing the message format. 
 --------
@@ -5698,4 +5700,6 @@ Went well
    [ ] authentication
    [ ] handling evaluation 
    [ ] integration with admin.py: 
-           node_secrets
+          -  node_secrets
+
+This book on coffeescript looks very, very good:  http://coffeescriptcookbook.com/

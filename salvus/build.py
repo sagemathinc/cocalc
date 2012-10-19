@@ -35,7 +35,7 @@ BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 
 NODE_PACKAGES = [
-    'commander', 'start-stop-daemon', 'winston', 'sockjs'
+    'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus'
     ]
 
 PYTHON_PACKAGES = [

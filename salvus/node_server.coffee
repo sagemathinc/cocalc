@@ -13,6 +13,7 @@ program = require('commander')          # https://github.com/visionmedia/command
 daemon  = require("start-stop-daemon")  # https://github.com/jiem/start-stop-daemon
 winston = require('winston')            # https://github.com/flatiron/winston
 sockjs  = require("sockjs")             # https://github.com/sockjs/sockjs-node
+helenus = require('helenus')            # https://github.com/simplereach/node-thrift
 
 program
     .usage('[start/stop/restart/status] [options]')
@@ -23,7 +24,7 @@ program
     .option('--address [string]', 'address of interface to bind to (default: "")', String, "")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/node_server.pid")', String, "data/pids/node_server.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/node_server.log")', String, "data/logs/node_server.log")
-    .option('--database_nodes <string,string,...>', 'list of ip addresses of all database nodes in the cluster (required)', String)
+    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '')
     .parse(process.argv)
 
 main = () ->
@@ -37,6 +38,9 @@ main = () ->
         res.end("salvus node server")
     )
 
+    ###########################
+    # sockjs websocket server
+    ###########################
     sockjs_connections = []
     sockjs_server = sockjs.createServer()
     sockjs_server.on("connection", (conn) ->
@@ -45,7 +49,15 @@ main = () ->
     )
     sockjs_server.installHandlers(http_server, {prefix:'/tornado'})
 
-    
+    ###########################
+    # cassandra database pool
+    ###########################
+    cassandra = new helenus.ConnectionPool(hosts: program.database_nodes.split(','),
+                    keyspace: 'salvus', timeout: 3000, cqlVersion: '3.0.0')
+    cassandra.on('error', (err) -> winston.error(err.name, err.message))
+    cassandra.connect( (err,keyspace) -> winston.error(err) if err)
+                    
+    # start the webserver...
     http_server.listen(program.port)
 
 winston.info("Started node_server. HTTP port #{program.port}; TCP port #{program.tcp_port}")
