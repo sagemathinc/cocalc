@@ -27,11 +27,16 @@ log = logging.getLogger('')
 log.setLevel(logging.DEBUG)   # WARNING, INFO
 
 OS     = os.uname()[0]
+PWD    = os.path.abspath('.')
 DATA   = os.path.abspath('data')
 SRC    = os.path.abspath('src')
 PATCHES= os.path.join(SRC, 'patches')
 BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
+
+NODE_PACKAGES = [
+    'commander', 'start-stop-daemon', 'winston', 'sockjs'
+    ]
 
 PYTHON_PACKAGES = [
     'ipython','readline', # a usable command line  (ipython uses readline)
@@ -189,6 +194,14 @@ def build_python_packages():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
 
+def build_node_packages():
+    log.info('building node_packages'); start = time.time()
+    try:
+        cmd('npm install %s'%(' '.join(NODE_PACKAGES)), PWD)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start        
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Build packages from source")
@@ -205,7 +218,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_node', dest='build_node', action='store_const', const=True, default=False,
                         help="build node")
 
-
     parser.add_argument('--build_nginx', dest='build_nginx', action='store_const', const=True, default=False,
                         help="build the nginx web server")
 
@@ -221,6 +233,9 @@ if __name__ == "__main__":
     parser.add_argument('--build_protobuf', dest='build_protobuf', action='store_const', const=True, default=False,
                         help="build Google's protocol buffers compiler")
 
+    parser.add_argument('--build_node_packages', dest='build_node_packages', action='store_const', const=True, default=False,
+                        help="install all nodejs packages")
+
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
                         help="install all Python packages")
 
@@ -233,6 +248,9 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_node:
             times['node'] = build_node()
+
+        if args.build_all or args.build_node_packages:
+            times['node_packages'] = build_node_packages()
 
         if args.build_all or args.build_python:
             times['python'] = build_python()
