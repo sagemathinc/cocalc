@@ -45,28 +45,29 @@ class Message
 message = new Message()            
 
 class Connection
-    constructor: (@host, @port, @recv, cb) ->
-        @conn = net.connect({port:port, host:host}, cb)
-
+    constructor: (options) ->
+        @conn = net.connect({port:options.port, host:options.host}, options.cb)
+        @recv = options.recv
         @buf = null
         @buf_target_length = -1
         @conn.on('data', (data) =>
-            # 1. read any new data into buf
+            # read any new data into buf
             if @buf == null
                 @buf = data   # first time to ever recv data, so initialize buffer
             else
                 @buf = Buffer.concat([@buf, data])   # extend buf with new data
 
             loop
-                # 2. Starting to read a new message...?
                 if @buf_target_length == -1
+                    # starting to read a new message
                     if @buf.length >= 4
                         @buf_target_length = @buf.readUInt32BE(0) + 4
                     else
                         return  # have to wait for more data
-                # 3. Read a new message from our buffer?
                 if @buf_target_length <= @buf.length
-                    @recv(@buf.slice(4, @buf_target_length))
+                    # read a new message from our buffer
+                    mesg = @buf.slice(4, @buf_target_length)
+                    @recv(mesg)
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1
                 else  # nothing to do but wait for more data
@@ -74,7 +75,8 @@ class Connection
         )
         
         @conn.on('end', -> console.log("disconnected from sage server"))
-        
+
+    # send a message
     send: (mesg) ->
         s = JSON.stringify(mesg)
         buf = new Buffer(4)
@@ -83,16 +85,19 @@ class Connection
         @conn.write(s)
 
 
-
 cb = () ->         
     conn.send(message.start_session())
-    for i in [1..10]
+    for i in [1..1]
         conn.send(message.execute_code(0,"factor(2012)"))
 
 tm = (new Date()).getTime()
-conn = new Connection('localhost', 10000,
-    (mesg) -> console.log("received message #{mesg}; #{(new Date()).getTime()-tm}"),
-    cb
+conn = new Connection(
+    {
+        host:'localhost'
+        port:10000
+        recv:(mesg) -> console.log("received message #{mesg}; #{(new Date()).getTime()-tm}")
+        cb:cb
+    }
 )
 
 

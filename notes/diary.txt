@@ -5727,12 +5727,20 @@ I'm going to hit this very focused now for the next two hours:
      [x] rewrite sage_server.py to use JSON  -- turned out to take < 30 minutes total!
      [x] test client part to make sure it works
 
-     [ ] implement support for sage_server from nodejs, e.g, sage.coffee
- 
      [ ] delete all protobuf stuff from salvus:
              - source code
              - build
              - mesg.proto, etc.
-    
    
+
+Oct 20, 2012:
+approx 5am - 10am salvus session:
+    [x] reading a lot.
+
+     [ ] implement support for sage_server from nodejs, e.g, sage.coffee
+ 
+    [ ] I should make sure and compress the JSON messages using zlib (say): 
+               http://nodejs.org/api/zlib.html#zlib_zlib
+        Because "cpu cheap/bandwidth expensive"
+
 
