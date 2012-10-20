@@ -13,7 +13,8 @@ program = require('commander')          # https://github.com/visionmedia/command
 daemon  = require("start-stop-daemon")  # https://github.com/jiem/start-stop-daemon
 winston = require('winston')            # https://github.com/flatiron/winston
 sockjs  = require("sockjs")             # https://github.com/sockjs/sockjs-node
-helenus = require('helenus')            # https://github.com/simplereach/node-thrift
+helenus = require("helenus")            # https://github.com/simplereach/node-thrift
+sage    = require("sage")               # sage server
 
 program
     .usage('[start/stop/restart/status] [options]')
@@ -64,6 +65,15 @@ main = () ->
     )
     cassandra.on('error', (err) -> winston.error(err.name, err.message))
     cassandra.connect( (err,keyspace) -> winston.error(err) if err)
+
+    sage_conn = new sage.Connection(
+        host:'localhost'
+        port:10000
+        recv:(mesg) -> console.log("sage: received message #{mesg}")
+        cb: ->
+            sage_conn.send(sage.Message.start_session())
+            sage_conn.send(sage.Message.execute_code(0,"factor(2012)"))
+    )
                     
     # start the webserver...
     http_server.listen(program.port)

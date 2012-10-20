@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-coffee -o data -c node_server.coffee 
-node data/node_server.js $@
+coffee -o node_modules -c node_server.coffee sage.coffee
+node node_modules/node_server.js $@
