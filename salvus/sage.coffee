@@ -25,7 +25,7 @@ class exports.Connection
                 if @buf_target_length <= @buf.length
                     # read a new message from our buffer
                     mesg = @buf.slice(4, @buf_target_length)
-                    @recv(mesg.toString())
+                    @recv(JSON.parse(mesg.toString()))
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1
                 else  # nothing to do but wait for more data

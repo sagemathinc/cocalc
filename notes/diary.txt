@@ -5760,10 +5760,6 @@ IDEA -- local GUI for sage using https://github.com/rogerwang/node-webkit;  http
 
 I had this code somewhere in node_server.coffee:
 
-        # TESTING: see if cql connection works.
-        tm = (new Date()).getTime()
-        cassandra.cql("SELECT * FROM sage_servers", [],
-            (err, results) -> res.end("#{(new Date()).getTime() - tm}\n#{err} #{results}"))
 
 
 
