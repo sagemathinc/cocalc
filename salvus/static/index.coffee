@@ -30,10 +30,10 @@ $ ->
         $("#run_status").html("running...")
         salvus.execute($("#input").val(), (mesg) ->
             o = $("#output")
-            o.val(o.val() + mesg.output.stdout)
-            if mesg.output.stderr
-                o.val(o.val() + "\n!!!!!!!!!!!!!!\n#{mesg.output.stderr}\n!!!!!!!!!!!!!\n") 
-            $("#run_status").html(if mesg.output.done then "" else "running..."))
+            o.val(o.val() + mesg.stdout)
+            if mesg.stderr
+                o.val(o.val() + "\n!!!!!!!!!!!!!!\n#{mesg.stderr}\n!!!!!!!!!!!!!\n") 
+            $("#run_status").html(if mesg.done then "" else "running..."))
 
     # execute when clicking the button
     $("#execute").button().click (e) -> execute_code()

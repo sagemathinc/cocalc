@@ -26,11 +26,11 @@
       return salvus.execute($("#input").val(), function(mesg) {
         var o;
         o = $("#output");
-        o.val(o.val() + mesg.output.stdout);
-        if (mesg.output.stderr) {
-          o.val(o.val() + ("\n!!!!!!!!!!!!!!\n" + mesg.output.stderr + "\n!!!!!!!!!!!!!\n"));
+        o.val(o.val() + mesg.stdout);
+        if (mesg.stderr) {
+          o.val(o.val() + ("\n!!!!!!!!!!!!!!\n" + mesg.stderr + "\n!!!!!!!!!!!!!\n"));
         }
-        return $("#run_status").html(mesg.output.done ? "" : "running...");
+        return $("#run_status").html(mesg.done ? "" : "running...");
       });
     };
     $("#execute").button().click(function(e) {

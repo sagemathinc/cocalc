@@ -1,6 +1,8 @@
 net = require('net')
 
-class Connection
+message = require("salvus_message")
+
+class exports.Connection
     constructor: (options) ->
         @conn = net.connect({port:options.port, host:options.host}, options.cb)
         @recv = options.recv
@@ -23,7 +25,7 @@ class Connection
                 if @buf_target_length <= @buf.length
                     # read a new message from our buffer
                     mesg = @buf.slice(4, @buf_target_length)
-                    @recv(mesg)
+                    @recv(mesg.toString())
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1
                 else  # nothing to do but wait for more data
@@ -40,63 +42,20 @@ class Connection
         @conn.write(buf)
         @conn.write(s)
 
-class Message
-    @start_session: (max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=2048) -> 
-        {
-            event:'start_session',
-            max_walltime:max_walltime,
-            max_cputime:max_cputime,
-            max_numfiles:max_numfiles,
-            max_vmem:max_vmem,
-        }
-        
-    @session_description: (pid) ->
-        {
-            event:'session_description',
-            pid:pid,
-        }
+    terminate_session: () ->
+        @send(message.terminate_session())
 
-    @send_signal: (pid, signal=2) -> # 2=SIGINT
-        {
-            event:'send_signal',
-            pid:pid,
-            signal:signal
-        }
-        
-    @terminate_session: ->
-        {
-            event:'terminate_session',
-        }
-        
-    @execute_code: (id, code, preparse=true) ->
-        {
-            event:'execute_code',
-            code:code,
-            preparse:preparse,
-            id:id
-        }
-        
-    @output: (id, stdout=null, stderr=null, done=null) ->
-        {
-            event:'output',
-            id:id,
-            stdout:stdout,
-            stderr:stderr,
-            done:done
-        }
 
-exports.Message = Message
-exports.Connection = Connection
-
+        
+###
 test = (n=1) ->
+    message = require("salvus_message")
     cb = () ->         
-        conn.send(Message.start_session())
+        conn.send(message.start_session())
         for i in [1..n]
-            conn.send(Message.execute_code(0,"factor(2012)"))
-
+            conn.send(message.execute_code(0,"factor(2012)"))
     tm = (new Date()).getTime()
-
-    conn = new Connection(
+    conn = new exports.Connection(
         {
             host:'localhost'
             port:10000
@@ -105,4 +64,5 @@ test = (n=1) ->
         }
     )
 
-#test(5)
+test(5)
+###

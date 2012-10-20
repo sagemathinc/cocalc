@@ -5737,10 +5737,36 @@ Oct 20, 2012:
 approx 5am - 10am salvus session:
     [x] reading a lot.
 
-     [ ] implement support for sage_server from nodejs, e.g, sage.coffee
- 
-    [ ] I should make sure and compress the JSON messages using zlib (say): 
+    [ ] someday -- later (!) maybe -- I should make sure and compress the JSON messages using zlib (say): 
                http://nodejs.org/api/zlib.html#zlib_zlib
-        Because "cpu cheap/bandwidth expensive"
+        Because "cpu cheap/bandwidth expensive"  
+        But if can't decompress in browser this may be stupid.  Also, what if sockjs already compressed?
+        Anyway, there may be hidden costs. 
 
+    [ ] implement support for sage_server from nodejs, e.g, sage.coffee
+
+      [x] separate out message code, in a way that can be used by both javascript client and server
+
+      [ ] make it so sockjs connection can actually be tested to work
+          (e.g., return answers to requests)
+
+      [ ] write code to actually handle queries!
+      
+
+
+IDEA -- local GUI for sage using https://github.com/rogerwang/node-webkit;  http://appjs.org/
+
+
+
+I had this code somewhere in node_server.coffee:
+
+        # TESTING: see if cql connection works.
+        tm = (new Date()).getTime()
+        cassandra.cql("SELECT * FROM sage_servers", [],
+            (err, results) -> res.end("#{(new Date()).getTime() - tm}\n#{err} #{results}"))
+
+
+
+    
+ 
 

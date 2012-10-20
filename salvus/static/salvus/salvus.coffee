@@ -1,11 +1,11 @@
 ###
-This module defines the Salvus class, which is exported in the global namespace
-when it is included.
-
-AUTHOR: William Stein
-COPYRIGHT: University of Washington, 2012.
-
-LICENSE: No open source license.
+# This module defines the Salvus class, which is exported in the global namespace
+# when it is included.
+#
+# AUTHOR: William Stein
+# COPYRIGHT: University of Washington, 2012.
+# 
+# LICENSE: No open source license.
 ###
 
 log = (s) ->
@@ -13,10 +13,6 @@ log = (s) ->
         console.log(s)    
 
 walltime = () -> (new Date()).getTime()
-
-# Get all message types from the server
-types = null
-$.getJSON("/tornado/message/types", (data) -> types = data; return)
 
 class (exports ? this).Salvus
     constructor: (options) -> 
@@ -44,11 +40,7 @@ class (exports ? this).Salvus
     execute: (input, callback) =>
         @output_callbacks[@id] = callback
         @time = walltime()
-        mesg =
-            type: types.EXECUTE_CODE
-            id: @id
-            execute_code:
-                code: input
+        mesg = SalvusMessage.execute_code(@id, input)
         @send(mesg)
         @id += 1
         
@@ -56,11 +48,11 @@ class (exports ? this).Salvus
         mesg = JSON.parse(e.data)
         log(mesg)
         
-        $("#time").html("#{(walltime() - @time)/1000.0} s")
-        if mesg.type is types.OUTPUT
+        $("#time").html("#{walltime() - @time} ms")
+        if mesg.event == 'output'
             @output_callbacks[mesg.id](mesg)
             delete @output_callbacks[mesg.id] if mesg.done
-        else if mesg.type is "logged_in"  # TODO -- types.?
+        else if mesg.event == 'logged_in'
             @opts.on_login(mesg.name)
 
     connect: () =>
