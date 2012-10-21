@@ -10,6 +10,9 @@ class exports.Connection
         @recv = options.recv
         @buf = null
         @buf_target_length = -1
+        
+        @conn.on('error', (err) -> winston.error(err))  # TODO ???
+        
         @conn.on('data', (data) =>
             # read any new data into buf
             if @buf == null

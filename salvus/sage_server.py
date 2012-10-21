@@ -315,8 +315,8 @@ def check_for_connection_timeouts():
                 # means process is already dead
                 connections[pid].remove_files()                
                 del connections[pid]
-    kill_timer = threading.Timer(CONNECTION_TERM_INTERVAL, check_for_connection_timeouts)
-    kill_timer.start()
+    #kill_timer = threading.Timer(CONNECTION_TERM_INTERVAL, check_for_connection_timeouts)
+    #kill_timer.start()
 
 def handle_session_term(signum, frame):
     while True:
@@ -350,7 +350,7 @@ def serve(port, address, whitelist):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)    
     s.bind((address, port))
-    s.listen(5)
+    s.listen(1024)
     pid = -1
     try:
         while True:
@@ -365,60 +365,45 @@ def serve(port, address, whitelist):
                 log.warning("connection attempt from '%s' which is not in whitelist (=%s)", addr[0], whitelist)
                 continue
 
-            try:
-                log.info('2')                
-                conn = ConnectionJSON(conn)
-                s.settimeout(2)  # 2-second timeout for connection setup/signal events
-                log.info('3')                                
-                mesg = conn.recv()
-                log.info('4')
-                s.settimeout(None)
-                log.info(mesg['event'])                
-                if mesg['event'] == 'send_signal':
-                    if mesg['pid'] == 0:
-                        log.info("invalid signal mesg (pid=0?): %s", mesg)
-                        continue
-                    log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
-                    os.kill(mesg['pid'], mesg['signal'])
-                    continue
-
-                log.info('5')
-                if mesg['event'] != 'start_session':
-                    log.info('invalid message type request')
-                    continue
-
-                log.info('6')
-                # start a session
-                print "About to make a directory"
-                home = tempfile.mkdtemp() if whoami == 'root' else None
-                print "Made directory"
-                log.info('7')
-                pid = os.fork()
-                log.info('8')
-                
-            except Exception, msg:
-                log.debug('issue somewhere: "%s"', msg)
-                traceback.print_exc()
-                if pid == 0:
-                    sys.exit(0)
+            pid = os.fork()
+            if pid: # parent
+                log.info('accepted connection from %s (pid=%s)', addr, pid)
+                # using this object causes a deadlock/hang!
+                #connections[pid] = Connection(pid, None, 1000) # TODO -- need to move params to database ?
                 continue
 
-            if pid == 0: # child
-                conn.send(message.session_description(os.getpid()))
-                session(conn, home, mesg['max_cputime'],
-                        mesg['max_numfiles'], mesg['max_vmem'])
+            # CHILD
+            conn = ConnectionJSON(conn)
+            mesg = conn.recv()
+            if mesg['event'] == 'send_signal':
+                if mesg['pid'] == 0:
+                    # TODO: should send error message back
+                    log.info("invalid signal mesg (pid=0?): %s", mesg)
+                else:
+                    log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
+                    os.kill(mesg['pid'], mesg['signal'])
                 conn.close()
                 os._exit(0)
-            else:
-                connections[pid] = Connection(pid, home, mesg['max_walltime'])
-                log.info('accepted connection from %s (pid=%s)', addr, pid)
+
+            if mesg['event'] != 'start_session':
+                log.info('invalid message type request')
+                conn.close()
+                os._exit(0)
+
+            # start a session
+            # TODO -- if root, this never gets cleaned up!
+            home = tempfile.mkdtemp() if whoami == 'root' else None
+            conn.send(message.session_description(os.getpid()))
+            session(conn, home, mesg['max_cputime'], mesg['max_numfiles'], mesg['max_vmem'])
+            conn.close()
+            os._exit(0)
                 
     except Exception, err:
         traceback.print_exc(file=sys.stdout)
         log.error("error: %s %s", type(err), str(err))
     finally:
         if pid: # parent
-            kill_timer.cancel()
+            #kill_timer.cancel()
             log.info("waiting for forked Sage servers to terminate")
             for pid, con in connections.iteritems():
                 try:
