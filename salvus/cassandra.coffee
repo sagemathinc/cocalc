@@ -14,10 +14,13 @@ class exports.Cassandra
             
     cache_put: (name, key, value, cb) ->
         winston.info("cassandra cache_put(name='#{name}', key=#{JSON.stringify(key)}, value=#{JSON.stringify(value)}, cb)")
+        # TODO: use name, value, key
+        #@conn.cql("UPDATE stateless_exec SET output = :value WHERE input = :input"
         cb?()
 
     cache_get: (name, key, cb) ->
         winston.info("cassandra cache_get(name='#{name}', key=#{JSON.stringify(key)}, cb)")
+        # TODO: use name!        
         cb(null)
         
                

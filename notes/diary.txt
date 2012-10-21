@@ -5773,7 +5773,10 @@ coming from stunnel.
 Plan for now: finish writing node_server and cleaning it up.
 
   [x] node_server -- fix streaming of output
+
   [ ] implement caching of results using Cassandra
+     (nearly done; next need to put in the actual queries for a cache, then test the code I just wrote for eval)
+
   [ ] use cassandra to choose sage servers
   [ ] deal with failure to connect to sage much more robustly
   [ ] code cleanup/refactor  
@@ -5781,3 +5784,6 @@ Plan for now: finish writing node_server and cleaning it up.
 
 
 
+
+[ ] MAJOR BUG/issue -- I've realized that sage_server.py has issues
+with many simultaneous connections, race conditions or something.

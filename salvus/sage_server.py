@@ -24,10 +24,25 @@ import json, logging, os, resource, shutil, signal, socket, struct, sys, \
 
 import parsing
 
+
 # configure logging
 logging.basicConfig()
 log = logging.getLogger('sage_server')
 log.setLevel(logging.INFO)
+
+# So can turn off Python's logger for testing:
+## class Log:
+##     def info(self, x, *args):
+##         print 'INFO:sage_server:' + x%args
+##     def debug(self, x, *args):
+##         print 'DEBUG:sage_server:' + x%args
+##     def error(self, x, *args):
+##         print 'ERROR:sage_server:' + x%args
+##     def addHandler(self,x):
+##         pass
+##     def setLevel(self, x):
+##         pass
+## log = Log()
 
 # JSON Message wrapper around a connection
 
@@ -42,19 +57,33 @@ class ConnectionJSON(object):
         length_header = struct.pack(">L", len(s))
         self._conn.send(length_header + s)
 
+    def _recv(self, n):
+        print "_recv(%s)"%n
+        for i in range(20): # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+            try:
+                print "blocking recv (i = %s), pid=%s"%(i, os.getpid())
+                r = self._conn.recv(n)
+                print "got it = '%s'"%r
+                return r
+            except socket.error as (errno, msg):
+                print "socket.error, msg=%s"%msg
+                if errno != 4:
+                    raise
+        raise EOFError
+    
     def recv(self):
-        n = self._conn.recv(4)
+        n = self._recv(4)
         if len(n) < 4:
             raise EOFError
         n = struct.unpack('>L', n)[0]   # big endian 32 bits
-        s = self._conn.recv(n)
+        s = self._recv(n)
         while len(s) < n:
-            t = self._conn.recv(n - len(s))
+            t = self._recv(n - len(s))
             if len(t) == 0:
                 raise EOFError
             s += t
         m = json.loads(s)
-        log.debug('recv:pid=%s: "%s"', os.getpid(), m)  # todo -- waste of time
+        log.debug('recv:pid=%s: "%s"', os.getpid(), m)  # todo -- remove
         return m
 
 class Message(object):
@@ -267,7 +296,7 @@ CONNECTION_TERM_INTERVAL = 5
 def check_for_connection_timeouts():
     global kill_timer
     log.debug("Checking for connection timeouts...: %s", connections)
-    
+
     for pid, C in connections.items():
         tm = C.time_remaining()
         if tm is not None and tm < 0:
@@ -328,14 +357,20 @@ def serve(port, address, whitelist):
             except socket.error, msg:
                 log.info('error accepting connection: %s', msg)
                 continue
-
+            log.info('1')
             if whitelist and addr[0] not in whitelist:
                 log.warning("connection attempt from '%s' which is not in whitelist (=%s)", addr[0], whitelist)
                 continue
 
             try:
+                log.info('2')                
                 conn = ConnectionJSON(conn)
+                s.settimeout(2)  # 2-second timeout for connection setup/signal events
+                log.info('3')                                
                 mesg = conn.recv()
+                log.info('4')
+                s.settimeout(None)
+                log.info(mesg['event'])                
                 if mesg['event'] == 'send_signal':
                     if mesg['pid'] == 0:
                         log.info("invalid signal mesg (pid=0?): %s", mesg)
@@ -344,16 +379,19 @@ def serve(port, address, whitelist):
                     os.kill(mesg['pid'], mesg['signal'])
                     continue
 
+                log.info('5')
                 if mesg['event'] != 'start_session':
                     log.info('invalid message type request')
                     continue
 
+                log.info('6')
                 # start a session
+                print "About to make a directory"
                 home = tempfile.mkdtemp() if whoami == 'root' else None
+                print "Made directory"
+                log.info('7')
                 pid = os.fork()
-                if pid:
-                    # only the child should tell the client its pid
-                    conn.send(message.session_description(pid))
+                log.info('8')
                 
             except Exception, msg:
                 log.debug('issue somewhere: "%s"', msg)
@@ -363,6 +401,7 @@ def serve(port, address, whitelist):
                 continue
 
             if pid == 0: # child
+                conn.send(message.session_description(os.getpid()))
                 session(conn, home, mesg['max_cputime'],
                         mesg['max_numfiles'], mesg['max_vmem'])
                 os._exit(0)
@@ -378,8 +417,11 @@ def serve(port, address, whitelist):
             kill_timer.cancel()
             log.info("waiting for forked Sage servers to terminate")
             for pid, con in connections.iteritems():
-                con.signal(9)
-                
+                try:
+                    con.signal(9)
+                except OSError:
+                    # process already dead
+                    pass 
             try:
                 os.wait()
             except OSError:

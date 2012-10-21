@@ -65,7 +65,10 @@ init_sockjs_server = () ->
             # handle mesg
             if mesg.event == "execute_code"
                 # stateless code execution
-                stateless_sage_exec(mesg, (output_message) ->
+                #f = stateless_sage_exec
+                #f = stateless_sage_exec_fake
+                f = stateless_sage_exec_nocache
+                f(mesg, (output_message) ->
                     winston.info("output_message = #{JSON.stringify(output_message)}")
                     conn.write(JSON.stringify(output_message))
                 )
@@ -77,7 +80,6 @@ init_sockjs_server = () ->
         
     )
     sockjs_server.installHandlers(http_server, {prefix:'/node'})
-
 
 stateless_sage_exec = (input_mesg, output_message_callback) ->
     winston.info("(node_server.coffee) stateless_sage_exec #{JSON.stringify(input_mesg)}")
@@ -98,6 +100,10 @@ stateless_sage_exec = (input_mesg, output_message_callback) ->
             cassandra.cache_put('stateless_exec', input_mesg.code, output_messages)
     )
 
+stateless_sage_exec_fake = (input_mesg, output_message_callback) ->
+    # test mode to eliminate all of the call to sage_server time/overhead
+    output_message_callback({"stdout":eval(input_mesg.code),"done":true,"event":"output","id":input_mesg.id})
+
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(node_server.coffee) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
     sage_conn = new sage.Connection(
@@ -108,13 +114,12 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
                 return
             winston.info("(node_server.coffee) sage_conn -- received message #{JSON.stringify(mesg)}")
             output_message_callback(mesg)
-            if mesg.done
-                sage_conn.terminate_session()
         cb: ->
             winston.info("(node_server.coffee) sage_conn -- sage: connected.")
             sage_conn.send(message.start_session())
             winston.info("(node_server.coffee) sage_conn -- send: #{JSON.stringify(input_mesg)}")
             sage_conn.send(input_mesg)
+            sage_conn.terminate_session()
     )
     
     
