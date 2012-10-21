@@ -51,6 +51,9 @@ class ConnectionJSON(object):
         assert not isinstance(conn, ConnectionJSON)
         self._conn = conn
 
+    def close(self):
+        self._conn.close()
+
     def send(self, m):
         log.debug('send:pid=%s: "%s"', os.getpid(), m)    # todo -- waste of time
         s = json.dumps(m)
@@ -404,6 +407,7 @@ def serve(port, address, whitelist):
                 conn.send(message.session_description(os.getpid()))
                 session(conn, home, mesg['max_cputime'],
                         mesg['max_numfiles'], mesg['max_vmem'])
+                conn.close()
                 os._exit(0)
             else:
                 connections[pid] = Connection(pid, home, mesg['max_walltime'])

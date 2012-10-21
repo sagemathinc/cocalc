@@ -110,8 +110,8 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
         host:'localhost'
         port:10000
         recv:(mesg) ->
-            if mesg.event == "session_description"
-                return
+            #if mesg.event == "session_description"
+            #    return
             winston.info("(node_server.coffee) sage_conn -- received message #{JSON.stringify(mesg)}")
             output_message_callback(mesg)
         cb: ->

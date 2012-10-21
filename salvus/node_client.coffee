@@ -19,8 +19,9 @@ client.on('data', (msg) ->
     t = walltime() - tm
     n = n + 1
     console.log("#{n}: #{Math.floor(n/t*1000)} tps, #{t} ms -- received some data #{msg}")
-    console.log("sending 2+2...")
-    client.write(JSON.stringify(message.execute_code(n,'2+2')))
+    if JSON.parse(msg).done
+        console.log("sending 2+2...")
+        client.write(JSON.stringify(message.execute_code(n,'2+2')))
 )
 
 client.on('error', (e) -> console.log("something went wrong #{e}"))
