@@ -15,13 +15,13 @@ http    = require('http')
 # salvus libraries
 sage    = require("sage")               # sage server
 message = require("salvus_message")     # salvus message protocol
+cass    = require("cassandra")
 
 # third party libraries
 program = require('commander')          # https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # https://github.com/jiem/start-stop-daemon
 winston = require('winston')            # https://github.com/flatiron/winston
 sockjs  = require("sockjs")             # https://github.com/sockjs/sockjs-node
-helenus = require("helenus")            # https://github.com/simplereach/node-thrift
 
 program
     .usage('[start/stop/restart/status] [options]')
@@ -35,16 +35,25 @@ program
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '')
     .parse(process.argv)
 
+
+# module scope variables:
+
+http_server = null
+sockjs_connections = []
+sockjs_server = null
+cassandra = null
+
+
+####
+
 init_http_server = () -> 
     http_server = http.createServer((req, res) ->
         return res.end('') if req.url == '/alive'
         winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
         res.end('node server')
     )
-    return http_server
 
-init_sockjs_server = (http_server, sage) ->
-    sockjs_connections = []
+init_sockjs_server = () ->
     sockjs_server = sockjs.createServer()
     sockjs_server.on("connection", (conn) ->
         sockjs_connections.push(conn)
@@ -68,23 +77,29 @@ init_sockjs_server = (http_server, sage) ->
         
     )
     sockjs_server.installHandlers(http_server, {prefix:'/node'})
-    return sockjs_server
 
-init_cassandra_pool = () ->     
-    cassandra = new helenus.ConnectionPool(
-         hosts: program.database_nodes.split(',')
-         keyspace:'salvus'
-         timeout: 3000
-         cqlVersion: '3.0.0'
+
+stateless_sage_exec = (input_mesg, output_message_callback) ->
+    winston.info("(node_server.coffee) stateless_sage_exec #{JSON.stringify(input_mesg)}")
+    cassandra.cache_get('stateless_exec', input_mesg.code, (output) ->
+        if output
+            winston.info("(node_server.coffee) -- using cache")        
+            for mesg in cache
+                mesg.id = input_mesg.id
+                output_message_callback(mesg)
+        else
+            output_messages = []
+            stateless_sage_exec_nocache(input_mesg, (mesg) ->
+                if mesg.event = "output"  # save to record in database 
+                    output_messages.push(mesg)
+                output_message_callback(mesg)
+            )
+            winston.info("storing in db: #{JSON.stringify(input_mesg)} --> #{JSON.stringify(output_messages)}")
+            cassandra.cache_put('stateless_exec', input_mesg.code, output_messages)
     )
-    cassandra.on('error', (err) -> winston.error(err.name, err.message))
-    cassandra.connect( (err,keyspace) -> winston.error(err) if err)
-    return cassandra
 
-stateless_sage_exec = (mesg, output_message_callback) ->
-    #output_message_callback(message.output(mesg.id, "4", "", true))
-    #return
-    winston.info("(node_server.coffee) stateless_sage_exec #{JSON.stringify(mesg)}")
+stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
+    winston.info("(node_server.coffee) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
     sage_conn = new sage.Connection(
         host:'localhost'
         port:10000
@@ -98,12 +113,11 @@ stateless_sage_exec = (mesg, output_message_callback) ->
         cb: ->
             winston.info("(node_server.coffee) sage_conn -- sage: connected.")
             sage_conn.send(message.start_session())
-            winston.info("(node_server.coffee) sage_conn -- send: #{JSON.stringify(mesg)}")
-            sage_conn.send(mesg)
+            winston.info("(node_server.coffee) sage_conn -- send: #{JSON.stringify(input_mesg)}")
+            sage_conn.send(input_mesg)
     )
     
     
-init_sage_pool = (cassandra) ->
     #
     # TODO TODO TODO
     ###
@@ -126,10 +140,10 @@ init_sage_pool = (cassandra) ->
     
     
 main = () ->
-    http_server = init_http_server()
-    cassandra = init_cassandra_pool()
-    sage_pool = init_sage_pool()
-    sockjs_server = init_sockjs_server(http_server, sage_pool)
+    # the order of init below is important
+    init_http_server()
+    cassandra = new cass.Cassandra(program.database_nodes.split(','))
+    init_sockjs_server()
     http_server.listen(program.port)
 
 winston.info("Started node_server. HTTP port #{program.port}; TCP port #{program.tcp_port}")

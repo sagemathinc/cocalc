@@ -85,7 +85,6 @@ def create_stateless_exec_table(cursor):
     # TODO: is varchar the right type -- maybe blob?
     cursor.execute("""
 CREATE TABLE stateless_exec(
-     hash varchar PRIMARY KEY,
      input varchar,
      output varchar)
 """)
@@ -205,14 +204,14 @@ class StatelessExec(object):
         return sha.sha(input).hexdigest()
 
     def __getitem__(self, input):
-        c = cursor_execute("SELECT input, output FROM stateless_exec WHERE hash=:hash LIMIT 1", 
-                 {'hash':self.hash(input)}).fetchone()
+        c = cursor_execute("SELECT output FROM stateless_exec WHERE input=:input LIMIT 1", 
+                 {'input':input}).fetchone()
         if c is not None and len(c) > 0 and c[0] == input:
             return cPickle.loads(str(c[1]))
         
     def __setitem__(self, input, output):
-        cursor_execute("UPDATE stateless_exec SET input = :input, output = :output WHERE hash = :hash",
-                       {'input':input, 'output':cPickle.dumps(output), 'hash':self.hash(input)})
+        cursor_execute("UPDATE stateless_exec SET output = :output WHERE input = :input",
+                       {'input':input, 'output':cPickle.dumps(output)})
     
 
 ##########################################################################

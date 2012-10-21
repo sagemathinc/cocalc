@@ -5772,7 +5772,7 @@ coming from stunnel.
 
 Plan for now: finish writing node_server and cleaning it up.
 
-  [x] fix streaming of output
+  [x] node_server -- fix streaming of output
   [ ] implement caching of results using Cassandra
   [ ] use cassandra to choose sage servers
   [ ] deal with failure to connect to sage much more robustly

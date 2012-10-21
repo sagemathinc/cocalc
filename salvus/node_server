@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Rebuilding all CoffeeScript modules..."
-coffee -o node_modules -c node_server.coffee sage.coffee salvus_message.coffee
+coffee -o node_modules -c node_server.coffee sage.coffee salvus_message.coffee cassandra.coffee
 
 # these can be done in the background since node server doesn't use them directly
 coffee -o static/salvus/ -c static/salvus/salvus.coffee &
