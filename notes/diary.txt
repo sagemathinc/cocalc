@@ -5763,6 +5763,21 @@ I had this code somewhere in node_server.coffee:
 
 
 
-    
- 
+Oct 20, 2012 at 7:20pm:
+=========================
+
+I ran https://www.ssllabs.com/ssltest/analyze.html?d=salv.us and
+https://salv.us gets an A! However, there are some vulnerabilities,
+coming from stunnel.
+
+Plan for now: finish writing node_server and cleaning it up.
+
+  [x] fix streaming of output
+  [ ] implement caching of results using Cassandra
+  [ ] use cassandra to choose sage servers
+  [ ] deal with failure to connect to sage much more robustly
+  [ ] code cleanup/refactor  
+       [ ] sage.coffee -- proper headers and comments
+
+
 

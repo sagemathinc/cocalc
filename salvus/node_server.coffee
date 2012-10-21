@@ -37,6 +37,7 @@ program
 
 init_http_server = () -> 
     http_server = http.createServer((req, res) ->
+        return res.end('') if req.url == '/alive'
         winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
         res.end('node server')
     )
@@ -83,21 +84,21 @@ init_cassandra_pool = () ->
 stateless_sage_exec = (mesg, output_message_callback) ->
     #output_message_callback(message.output(mesg.id, "4", "", true))
     #return
-    winston.info("stateless_sage_exec #{mesg}")
+    winston.info("(node_server.coffee) stateless_sage_exec #{JSON.stringify(mesg)}")
     sage_conn = new sage.Connection(
         host:'localhost'
         port:10000
         recv:(mesg) ->
             if mesg.event == "session_description"
                 return
-            winston.info("sage: received message #{mesg}")
+            winston.info("(node_server.coffee) sage_conn -- received message #{JSON.stringify(mesg)}")
             output_message_callback(mesg)
             if mesg.done
                 sage_conn.terminate_session()
         cb: ->
-            winston.info("sage: connected.")
+            winston.info("(node_server.coffee) sage_conn -- sage: connected.")
             sage_conn.send(message.start_session())
-            winston.info("send: #{JSON.stringify(mesg)}")
+            winston.info("(node_server.coffee) sage_conn -- send: #{JSON.stringify(mesg)}")
             sage_conn.send(mesg)
     )
     

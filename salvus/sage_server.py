@@ -37,7 +37,7 @@ class ConnectionJSON(object):
         self._conn = conn
 
     def send(self, m):
-        print 'send: "%s"'%m
+        log.debug('send:pid=%s: "%s"', os.getpid(), m)    # todo -- waste of time
         s = json.dumps(m)
         length_header = struct.pack(">L", len(s))
         self._conn.send(length_header + s)
@@ -54,7 +54,7 @@ class ConnectionJSON(object):
                 raise EOFError
             s += t
         m = json.loads(s)
-        print 'recv: "%s"'%m
+        log.debug('recv:pid=%s: "%s"', os.getpid(), m)  # todo -- waste of time
         return m
 
 class Message(object):
@@ -351,7 +351,9 @@ def serve(port, address, whitelist):
                 # start a session
                 home = tempfile.mkdtemp() if whoami == 'root' else None
                 pid = os.fork()
-                conn.send(message.session_description(pid))
+                if pid:
+                    # only the child should tell the client its pid
+                    conn.send(message.session_description(pid))
                 
             except Exception, msg:
                 log.debug('issue somewhere: "%s"', msg)

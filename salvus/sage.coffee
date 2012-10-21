@@ -1,5 +1,7 @@
 net = require('net')
 
+winston = require('winston')            # https://github.com/flatiron/winston
+
 message = require("salvus_message")
 
 class exports.Connection
@@ -18,25 +20,29 @@ class exports.Connection
             loop
                 if @buf_target_length == -1
                     # starting to read a new message
-                    if @buf.length >= 4
+                    if @buf and @buf.length >= 4
                         @buf_target_length = @buf.readUInt32BE(0) + 4
                     else
                         return  # have to wait for more data
                 if @buf_target_length <= @buf.length
                     # read a new message from our buffer
                     mesg = @buf.slice(4, @buf_target_length)
-                    @recv(JSON.parse(mesg.toString()))
+                    s = mesg.toString()
+                    winston.info("(sage.coffee) received message: #{s}")
+                    @recv(JSON.parse(s))
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1
+                    if @buf.length == 0
+                        return
                 else  # nothing to do but wait for more data
                     return
         )
-        
-        @conn.on('end', -> console.log("disconnected from sage server"))
+        @conn.on('end', -> winston.info("(sage.coffee) disconnected from sage server"))
 
     # send a message
     send: (mesg) ->
         s = JSON.stringify(mesg)
+        winston.info("(sage.coffee) send message: #{s}")
         buf = new Buffer(4)
         buf.writeInt32BE(s.length, 0)
         @conn.write(buf)
@@ -59,7 +65,7 @@ test = (n=1) ->
         {
             host:'localhost'
             port:10000
-            recv:(mesg) -> console.log("received message #{mesg}; #{(new Date()).getTime()-tm}")
+            recv:(mesg) -> winston.info("received message #{mesg}; #{(new Date()).getTime()-tm}")
             cb:cb
         }
     )
