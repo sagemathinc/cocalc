@@ -22,6 +22,7 @@ client.on('data', (msg) ->
     if n == 100
         n = 0
         tm = walltime() # start over
+    console.log(msg)
     if JSON.parse(msg).done
         console.log("sending 2+2...")
         client.write(JSON.stringify(message.execute_code(n,'2+2')))

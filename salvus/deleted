@@ -1,3 +1,31 @@
+    #
+    # TODO TODO TODO
+    ###
+        # TESTING: see if cql connection works.
+        tm = (new Date()).getTime()
+        cassandra.cql("SELECT * FROM sage_servers", [],
+            (err, results) -> res.end("#{(new Date()).getTime() - tm}\n#{err} #{results}"))
+    ###
+
+    ###
+    sage_conn = new sage.Connection(
+        host:'localhost'
+        port:10000
+        recv:(mesg) -> winston.log("sage: received message #{mesg}")
+        cb: ->
+            sage_conn.send(message.start_session())
+            sage_conn.send(message.execute_code(0,"factor(2012)"))
+    )
+    ###
+    
+                                                        
+
+    
+
+
+
+
+
 class TincConf(object):
     """
     Generate and store all the tinc configuration files needed by a

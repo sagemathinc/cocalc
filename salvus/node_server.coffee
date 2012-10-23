@@ -110,8 +110,6 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
         host:'localhost'
         port:10000
         recv:(mesg) ->
-            #if mesg.event == "session_description"
-            #    return
             winston.info("(node_server.coffee) sage_conn -- received message #{JSON.stringify(mesg)}")
             output_message_callback(mesg)
         cb: ->
@@ -122,26 +120,6 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
             sage_conn.terminate_session()
     )
     
-    
-    #
-    # TODO TODO TODO
-    ###
-        # TESTING: see if cql connection works.
-        tm = (new Date()).getTime()
-        cassandra.cql("SELECT * FROM sage_servers", [],
-            (err, results) -> res.end("#{(new Date()).getTime() - tm}\n#{err} #{results}"))
-    ###
-
-    ###
-    sage_conn = new sage.Connection(
-        host:'localhost'
-        port:10000
-        recv:(mesg) -> winston.log("sage: received message #{mesg}")
-        cb: ->
-            sage_conn.send(message.start_session())
-            sage_conn.send(message.execute_code(0,"factor(2012)"))
-    )
-    ###
     
     
 main = () ->
@@ -156,7 +134,9 @@ daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfil
 
     
     
-        
 
-    
+
+
+
+
 

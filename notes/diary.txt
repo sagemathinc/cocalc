@@ -5784,6 +5784,91 @@ Plan for now: finish writing node_server and cleaning it up.
 
 
 
-
+Oct 21 in the morning for several hours:
 [ ] MAJOR BUG/issue -- I've realized that sage_server.py has issues
 with many simultaneous connections, race conditions or something.
+
+Oct 23, 2012 at 6am
+---------------------
+I mostly fixed the race condition mentioned above, but there are issues:
+
+   [ ] an important feature -- automatic cleanup of subproces -- is gone and I have to figure out how to add it back.
+   [ ] even now it isn't perfect.
+
+As I was laying in bed last night, I started feeling that a big
+blocker for completely finishing salvus (to some milestone) at this
+point is not having a detailed todo list for the whole project.   
+
+
+Hmmm, I'm pissed about this sage_server.py hang thing.  It does
+reliably hang.  I *must* fix this and have a nice way to test that
+this continues to work.  Having the key component randomly hang is not
+cool. 
+
+Facts:
+
+  - several procs hitting the server will get it to hang reliably.
+  - log:
+     INFO:child66110: received message "{u'event': u'terminate_session'}"
+     _recv(4)
+     blocking recv (i = 0), pid=66112
+     got it = ''
+     _recv(29)
+     blocking recv (i = 0), pid=66112
+     got it = '{"event":"terminate_session"}'
+     INFO:child66112: received message "{u'event': u'terminate_session'}"
+  - when hung, control-c is ignored suddenly.
+  - when hung, there are a bunch of zombie subprocs:
+25473 s000  S+     0:00.05 bash /Users/wstein/sage/build/sage-5.2/local/bin/sage-python ./sage_server.py -p 10000
+25474 s000  S+     0:00.01 bash /Users/wstein/sage/build/sage-5.2/spkg/bin/sage -python ./sage_server.py -p 10000
+25477 s000  S+     2:08.71 python ./sage_server.py -p 10000
+66109 s000  Z+     0:00.00 (python2.7)
+66110 s000  Z+     0:00.00 (python2.7)
+66111 s000  Z+     0:00.00 (python2.7)
+66112 s000  Z+     0:00.00 (python2.7)
+66113 s000  Z+     0:00.00 (python2.7)
+66244 s010  S+     0:00.00 grep python
+blastoff:salvus wstein$ 
+
+  - one single client maybe not enough to cause a crash..
+
+  - I switched to "s.listen(0)"
+    I got it to hang again with a script that makes 10 node_clients at once.
+    This took about 5 minutes.  There are *no* zombie pythons left this time.
+
+  - I bet s.listen(0) defaults to s.listen(5) since the docs say the
+    number of connections must be >=1.  
+
+        Trying s.listen(1) now.  
+
+    I see -- when that happens there is only one client accepting at a
+    time, though of course we can have many clients.  I wonder if when
+    there is more than 1, two forking at the same time screws up some
+    important state?
+
+    With this setting I have not been able to get sage_server.py to 
+    actually crash.  Although, occassionally, I get...  
+
+           error: sage connection error: Error: write EPIPE
+
+and trying again gives:
+
+          "Error: connect ECONNRESET"
+
+    on node_server, which is not caught, and kills the node server right now.
+    I only get that when I have two distinct node servers trying to connect
+    to sage_server.py at the same time. 
+    It is very easy to get this.    
+   
+After a very long time, no sage_server.py crashes.
+
+I put back in the thread that kills stuff and the Connection object, and 
+*did* get a hang after a while.
+
+Getting rid of that (thread/Connection stuff), I think I got a hang
+after a long time when I tried to do some long-running computation.
+Argh!
+
+I got rid of any logging in addition to whatever else, and now it seems
+to be working.
+

@@ -7,11 +7,14 @@ message = require("salvus_message")
 class exports.Connection
     constructor: (options) ->
         @conn = net.connect({port:options.port, host:options.host}, options.cb)
-        @recv = options.recv
+        @recv = options.recv  # send message to client
         @buf = null
         @buf_target_length = -1
         
-        @conn.on('error', (err) -> winston.error(err))  # TODO ???
+        @conn.on('error', (err) =>
+            winston.error("sage connection error: #{err}")
+            @recv(message.terminate_session("#{err}"))
+        )
         
         @conn.on('data', (data) =>
             # read any new data into buf
@@ -42,7 +45,7 @@ class exports.Connection
         )
         @conn.on('end', -> winston.info("(sage.coffee) disconnected from sage server"))
 
-    # send a message
+    # send a message to sage_server
     send: (mesg) ->
         s = JSON.stringify(mesg)
         winston.info("(sage.coffee) send message: #{s}")

@@ -27,8 +27,10 @@ SalvusMessage.send_signal = (pid, signal=2) -> # 2=SIGINT
     pid:pid
     signal:signal
         
-SalvusMessage.terminate_session = ->
+SalvusMessage.terminate_session = (reason='') ->
     event:'terminate_session'
+    reason:reason
+    done:true
         
 SalvusMessage.execute_code = (id, code, preparse=true) ->
     event:'execute_code'

@@ -338,38 +338,41 @@ def serve(port, address, whitelist):
     log.info('pre-importing the sage library...')
     import sage.all
 
-    # Doing an integral starts embedded ECL; unfortunately, it can
+    # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future
-    # forks, so we can't do that!
-    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
-    
-    #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
+    # forks, so we can't do that!?
+
+    #exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+
+    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     log.info('imported sage library in %s seconds', time.time() - tm)
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)    
     s.bind((address, port))
-    s.listen(1024)
+    # Any option except s.listen(1) below will lead to subtle and complete
+    # crashes of this server.   I don't fully understand why.  Even
+    # removing the import of sage.all above doesn't help.
+    s.listen(120)  
     pid = -1
     try:
         while True:
-            log.info('waiting for connection')
+            #log.info('waiting for connection')
             try:
                 conn, addr = s.accept()
             except socket.error, msg:
-                log.info('error accepting connection: %s', msg)
+                #log.info('error accepting connection: %s', msg)
                 continue
-            log.info('1')
+            pid = os.fork()
+            if pid:
+                # connections[pid] = Connection(pid, None, 1000) # TODO -- need to move params to database ?
+                continue  
+
+
+            # TODO: get rid of whitelist -- use firewall instead
             if whitelist and addr[0] not in whitelist:
                 log.warning("connection attempt from '%s' which is not in whitelist (=%s)", addr[0], whitelist)
-                continue
-
-            pid = os.fork()
-            if pid: # parent
-                log.info('accepted connection from %s (pid=%s)', addr, pid)
-                # using this object causes a deadlock/hang!
-                #connections[pid] = Connection(pid, None, 1000) # TODO -- need to move params to database ?
                 continue
 
             # CHILD
