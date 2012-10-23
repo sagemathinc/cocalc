@@ -20,32 +20,17 @@ sage_server.py -- unencrypted forking TCP server that can run as root,
 
 
 import json, logging, os, resource, shutil, signal, socket, struct, sys, \
-       tempfile, threading, time, traceback
+       tempfile, time, traceback
 
 import parsing
 
 
-# configure logging
+# Configure logging
 logging.basicConfig()
 log = logging.getLogger('sage_server')
 log.setLevel(logging.INFO)
 
-# So can turn off Python's logger for testing:
-## class Log:
-##     def info(self, x, *args):
-##         print 'INFO:sage_server:' + x%args
-##     def debug(self, x, *args):
-##         print 'DEBUG:sage_server:' + x%args
-##     def error(self, x, *args):
-##         print 'ERROR:sage_server:' + x%args
-##     def addHandler(self,x):
-##         pass
-##     def setLevel(self, x):
-##         pass
-## log = Log()
-
 # JSON Message wrapper around a connection
-
 class ConnectionJSON(object):
     def __init__(self, conn):
         assert not isinstance(conn, ConnectionJSON)
@@ -291,32 +276,25 @@ class Connection(object):
     def remove_files(self):
         if self._home is not None:
             rmtree(self._home)
-            
 
-connections = {}
-
-CONNECTION_TERM_INTERVAL = 5
-def check_for_connection_timeouts():
-    global kill_timer
-    log.debug("Checking for connection timeouts...: %s", connections)
-
-    for pid, C in connections.items():
-        tm = C.time_remaining()
-        if tm is not None and tm < 0:
-            try:
-                if tm <= -3*CONNECTION_TERM_INTERVAL:
-                    connections[pid].remove_files()
-                    del connections[pid]
-                elif tm <= -2*CONNECTION_TERM_INTERVAL:
-                    C.signal(signal.SIGKILL)
-                else:
-                    C.signal(signal.SIGQUIT)
-            except OSError:
-                # means process is already dead
-                connections[pid].remove_files()                
-                del connections[pid]
-    #kill_timer = threading.Timer(CONNECTION_TERM_INTERVAL, check_for_connection_timeouts)
-    #kill_timer.start()
+    def monitor(self):
+        while True:
+            tm = self.time_remaining()
+            if tm is not None and tm < 0:
+                try:
+                    if tm <= -2*CONNECTION_TERM_INTERVAL:
+                        self.signal(signal.SIGKILL)
+                    else:
+                        self.signal(signal.SIGQUIT)
+                    self.remove_files()
+                except OSError:
+                    return # subprocess is dead
+            else:
+                try:
+                    self.kill(0)
+                except OSError: # subprocess is dead
+                    return
+            time.sleep(5)
 
 def handle_session_term(signum, frame):
     while True:
@@ -325,121 +303,85 @@ def handle_session_term(signum, frame):
         except:
             return
         if not pid: return
-        if pid in connections:
-            log.info("Cleaning up after child process %s", pid)
-            del connections[pid]
+ 
+def serve_connection(conn):
+    conn = ConnectionJSON(conn)
+    mesg = conn.recv()
+    if mesg['event'] == 'send_signal':
+        if mesg['pid'] == 0:
+            # TODO: should send error message back
+            log.info("invalid signal mesg (pid=0?): %s", mesg)
+        else:
+            log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
+            os.kill(mesg['pid'], mesg['signal'])
+        return
+
+    if mesg['event'] != 'start_session':
+        log.info('invalid message type request')
+        return
+
+    # start a session
+    pid = os.fork()
+    if pid:
+        # parent
+        C = Connection(pid, home, maxtime)
+        C.monitor()  # TODO: not yet working
+    else:
+        # child
+        # TODO -- if root, this never gets cleaned up!
+        home = tempfile.mkdtemp() if whoami == 'root' else None
+        conn.send(message.session_description(os.getpid()))
+        session(conn, home, mesg['max_cputime'], mesg['max_numfiles'], mesg['max_vmem'])
     
-def serve(port, address, whitelist):
-    global connections, kill_timer
-    check_for_connection_timeouts()
+def serve(port, address):
     signal.signal(signal.SIGCHLD, handle_session_term)
 
     tm = time.time()
     log.info('pre-importing the sage library...')
     import sage.all
-
     # Doing an integral start embedded ECL; unfortunately, it can
-    # easily get put in a broken state after fork that impacts future
-    # forks, so we can't do that!?
-
-    #exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
-
-    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
+    # easily get put in a broken state after fork that impacts future forks... ?
+    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+    #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     log.info('imported sage library in %s seconds', time.time() - tm)
     
     log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)    
     s.bind((address, port))
-    # Any option except s.listen(1) below will lead to subtle and complete
-    # crashes of this server.   I don't fully understand why.  Even
-    # removing the import of sage.all above doesn't help.
-    s.listen(120)  
-    pid = -1
+
+    s.listen(128)  
     try:
         while True:
-            #log.info('waiting for connection')
+            # do not use log.info(...) in the server loop; threads = race conditions that hang server every so often!!
             try:
                 conn, addr = s.accept()
             except socket.error, msg:
-                #log.info('error accepting connection: %s', msg)
                 continue
-            pid = os.fork()
-            if pid:
-                # connections[pid] = Connection(pid, None, 1000) # TODO -- need to move params to database ?
-                continue  
-
-
-            # TODO: get rid of whitelist -- use firewall instead
-            if whitelist and addr[0] not in whitelist:
-                log.warning("connection attempt from '%s' which is not in whitelist (=%s)", addr[0], whitelist)
-                continue
-
-            # CHILD
-            conn = ConnectionJSON(conn)
-            mesg = conn.recv()
-            if mesg['event'] == 'send_signal':
-                if mesg['pid'] == 0:
-                    # TODO: should send error message back
-                    log.info("invalid signal mesg (pid=0?): %s", mesg)
-                else:
-                    log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
-                    os.kill(mesg['pid'], mesg['signal'])
-                conn.close()
-                os._exit(0)
-
-            if mesg['event'] != 'start_session':
-                log.info('invalid message type request')
-                conn.close()
-                os._exit(0)
-
-            # start a session
-            # TODO -- if root, this never gets cleaned up!
-            home = tempfile.mkdtemp() if whoami == 'root' else None
-            conn.send(message.session_description(os.getpid()))
-            session(conn, home, mesg['max_cputime'], mesg['max_numfiles'], mesg['max_vmem'])
-            conn.close()
-            os._exit(0)
-                
+            if not os.fork(): # child
+                try: 
+                    serve_connection(conn)
+                finally:
+                    conn.close()
+                    os._exit(0)
+        # end while
     except Exception, err:
         traceback.print_exc(file=sys.stdout)
         log.error("error: %s %s", type(err), str(err))
-    finally:
-        if pid: # parent
-            #kill_timer.cancel()
-            log.info("waiting for forked Sage servers to terminate")
-            for pid, con in connections.iteritems():
-                try:
-                    con.signal(9)
-                except OSError:
-                    # process already dead
-                    pass 
-            try:
-                os.wait()
-            except OSError:
-                pass
-        
-            log.info("closing socket")
-            try:
-                s.shutdown(0)
-            except socket.error:
-                print 'issue 1'
-                pass
-            try:
-                s.close()
-            except socket.error:
-                print 'issue 2'
-                pass
 
+    finally:
+        log.info("closing socket")
+        #s.shutdown(0)
+        s.close()
             
-def run_server(port, address, pidfile, logfile, whitelist):
+def run_server(port, address, pidfile, logfile):
     if pidfile:
         open(pidfile,'w').write(str(os.getpid()))
     if logfile:
         log.addHandler(logging.FileHandler(logfile))
-    log.info("port=%s, address=%s, pidfile='%s', logfile='%s', whitelist=%s", port, address, pidfile, logfile, whitelist)
+    log.info("port=%s, address=%s, pidfile='%s', logfile='%s'", port, address, pidfile, logfile)
     try:
-        serve(port, address, whitelist)
+        serve(port, address)
     finally:
         if pidfile:
             os.unlink(pidfile)
@@ -459,9 +401,6 @@ if __name__ == "__main__":
                         help="store pid in this file")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
-    parser.add_argument("--whitelist", dest="whitelist", type=str, default='',
-                        help="comma separated list of ip addresses from which we will accept incoming connnections (empty=accept any connection)")
-
     parser.add_argument("-c", dest="client", default=False, action="store_const", const=True,
                         help="run in test client mode number 1 (command line)")
     parser.add_argument("--hostname", dest="hostname", type=str, default='', 
@@ -493,9 +432,8 @@ if __name__ == "__main__":
 
     pidfile = os.path.abspath(args.pidfile) if args.pidfile else ''
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
-    whitelist = args.whitelist.split(',') if args.whitelist else []
     
-    main = lambda: run_server(port=args.port, address=args.address, pidfile=pidfile, logfile=logfile, whitelist=whitelist)
+    main = lambda: run_server(port=args.port, address=args.address, pidfile=pidfile, logfile=logfile)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():

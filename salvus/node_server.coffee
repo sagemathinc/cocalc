@@ -114,7 +114,7 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
             output_message_callback(mesg)
         cb: ->
             winston.info("(node_server.coffee) sage_conn -- sage: connected.")
-            sage_conn.send(message.start_session())
+            sage_conn.send(message.start_session(2, 2))
             winston.info("(node_server.coffee) sage_conn -- send: #{JSON.stringify(input_mesg)}")
             sage_conn.send(input_mesg)
             sage_conn.terminate_session()
