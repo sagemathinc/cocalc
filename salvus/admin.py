@@ -401,7 +401,7 @@ class Haproxy(Process):
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers=None,   # list of ip addresses
-                 tornado_servers=None, # list of ip addresses
+                 node_servers=None, # list of ip addresses
                  monitor_database=None,  
                  conf_file='conf/haproxy.conf'):
 
@@ -413,10 +413,10 @@ class Haproxy(Process):
             nginx_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', NGINX_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(nginx_servers)]))
 
-        if tornado_servers:
-            t = Template('server tornado$n $ip:$port check maxconn $maxconn')
-            tornado_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',TORNADO_PORT), maxconn=x.get('maxconn',10000)) for
-                                                     n, x in enumerate(tornado_servers)]))
+        if node_servers:
+            t = Template('server node$n $ip:$port check maxconn $maxconn')
+            node_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',NODE_PORT), maxconn=x.get('maxconn',10000)) for
+                                                     n, x in enumerate(node_servers)]))
 
         if insecure_redirect_port:
             insecure_redirect = Template(
@@ -431,7 +431,7 @@ frontend unsecured *:$port
             accept_proxy_port=accept_proxy_port,
             insecure_testing_bind='bind *:%s'%insecure_testing_port if insecure_testing_port else '',
             nginx_servers=nginx_servers,
-            tornado_servers=tornado_servers,
+            node_servers=node_servers,
             insecure_redirect=insecure_redirect
             )
         
@@ -835,6 +835,9 @@ class Hosts(object):
     def hostname(self, ip):
         return self._canonical_hostnames[ip]
 
+    def is_valid_hostname(self, hostname):
+        return hostname in self._canonical_hostnames   # ok, since is dictionary mapping hostnames to canonical ones
+
     def password(self, retry=False):
         if self._password is None or retry:
             import getpass
@@ -1094,13 +1097,13 @@ class Services(object):
         if 'haproxy' in self._options:
             nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
                              for h, o in self._options['nginx']]
-            tornado_servers = [{'ip':h,'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
-                               for h, o in self._options['tornado']]
+            node_servers = [{'ip':h,'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
+                               for h, o in self._options['node']]
             for _, o in self._options['haproxy']:
                 if 'nginx_servers' not in o:
                     o['nginx_servers'] = nginx_servers
-                if 'tornado_servers' not in o:
-                    o['tornado_servers'] = tornado_servers
+                if 'node_servers' not in o:
+                    o['node_servers'] = node_servers
 
         # TORNADO options
         if 'tornado' in self._options:
@@ -1108,6 +1111,12 @@ class Services(object):
                 # very important: set to listen only on our VPN. 
                 o['address'] = address
         
+        # NODE options
+        if 'node' in self._options:
+            for address, o in self._options['node']:
+                # very important: set to listen only on our VPN. 
+                o['address'] = address
+
         # SAGE options
         if 'sage' in self._options:
             for address, o in self._options['sage']:
@@ -1181,10 +1190,16 @@ class Services(object):
             import cassandra
             if action in ['start', 'restart']:
                 log.info("Recording Sage server START in Cassandra")
-                cassandra.record_that_sage_server_started(address)
+                try:
+                    cassandra.record_that_sage_server_started(address)
+                except RuntimeError, msg:
+                    print msg
             elif action == 'stop':
                 log.info("Recording Sage server STOP in Cassandra")
-                cassandra.record_that_sage_server_stopped(address)
+                try:                
+                    cassandra.record_that_sage_server_stopped(address)
+                except RuntimeError, msg:
+                    print msg
 
         return (address, self._hosts.hostname(address), options, ret)
         
@@ -1234,7 +1249,9 @@ class Services(object):
         time.sleep(.5)
 
     def node_secrets(self, hostname, action):
-        self.tornado_secrets(hostname, action)  # TODO -- need to specialize maybe more for node ??
+        # TODO -- none of the relevant functionality that uses these secret files is
+        # implemented in the node server yet (it's for login/logout/internode comm)
+        self.tornado_secrets(hostname, action)
 
     def cassandra_firewall(self, hostname, action):
         if action == "restart":
@@ -1243,8 +1260,8 @@ class Services(object):
             commands = []
         elif action == "start":
             # TODO: when we get bigger and only cassandra runs on cassandra nodes, remove all but 22 below!
-            commands = (['allow %s'%p for p in [22,80,443,655,TORNADO_PORT,TORNADO_TCP_PORT,HAPROXY_PORT,NGINX_PORT]] +
-                        ['allow from %s'%ip for ip in self._hosts['cassandra tornado laptop']] +
+            commands = (['allow %s'%p for p in [22,80,443,655,NODE_PORT,NODE_TCP_PORT,HAPROXY_PORT,NGINX_PORT]] +
+                        ['allow from %s'%ip for ip in self._hosts['cassandra node laptop']] +
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535'])
         elif action == 'status':
             return
@@ -1259,7 +1276,7 @@ class Services(object):
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn, 
             commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
-                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['tornado laptop']]+
+                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['node laptop']]+
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
                         )
         elif action == 'status':
@@ -1300,14 +1317,16 @@ class Services(object):
 
     def start_system(self):
         log.info(" ** Waiting for kvm hosts")
-        self.wait_until_up('kvm-host')
+        if self._hosts.is_valid_hostname('kvm-host'):
+            self.wait_until_up('kvm-host')
         log.info(" ** Starting virtual machines")
-        self.start('vm', parallel=True, wait=False)
+        if 'vm' in self._services:
+            self.start('vm', parallel=True, wait=False)
         log.info(" ** Waiting for VM's to all finish starting")
         self.wait_until_up('all')
         log.info(" ** Starting cassandra databases.")
         self.start('cassandra', wait=True, parallel=True)
-        for service in ['haproxy','nginx','tornado']:
+        for service in ['haproxy','nginx','node']:
             log.info(" ** Starting %s", service)
             self.start(service, parallel=True, wait=False)
         log.info(" ** Starting sage")
@@ -1316,13 +1335,15 @@ class Services(object):
     def stop_system(self):
         if 'cassandra' in self._services:
             self.stop('cassandra', parallel=True, wait=True)
-        self.stop('vm', parallel=True)
+        if 'vm' in self._services:
+            self.stop('vm', parallel=True)
         while True:
             time.sleep(1)
             # TODO: this is horrible
-            v = [X[1] for X in self.status('vm',parallel=True) if 'cputime' in X[3].items()[0][1]['stdout']]
-            if v: 
-                print "Waiting to terminate: %s"%(', '.join(v))
-            else:
-                break
+            if 'vm' in self._services:
+                v = [X[1] for X in self.status('vm',parallel=True) if 'cputime' in X[3].items()[0][1]['stdout']]
+                if v: 
+                    print "Waiting to terminate: %s"%(', '.join(v))
+                else:
+                    break
         print "All vm's successfully terminated"

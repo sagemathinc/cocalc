@@ -5902,6 +5902,7 @@ automatic timeout code.
   [x] sage_server.py -- find a robust way to implement cleanup of subprocs and files
   [x] make static c4c changes for trademark stuff
   [ ] admin service for NodeServer class.
+  [ ] use CQL to get the sage servers
   [ ] deploy node-based version with changes to cluster
 
 

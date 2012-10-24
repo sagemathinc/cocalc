@@ -108,7 +108,7 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(node_server.coffee) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
     sage_conn = new sage.Connection(
         host:'localhost'
-        port:10000
+        port:6000
         recv:(mesg) ->
             winston.info("(node_server.coffee) sage_conn -- received message #{JSON.stringify(mesg)}")
             output_message_callback(mesg)
