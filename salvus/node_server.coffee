@@ -104,11 +104,10 @@ stateless_sage_exec_fake = (input_mesg, output_message_callback) ->
     # test mode to eliminate all of the call to sage_server time/overhead
     output_message_callback({"stdout":eval(input_mesg.code),"done":true,"event":"output","id":input_mesg.id})
 
-stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
-    winston.info("(node_server.coffee) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
+stateless_exec_using_server = (input_mesg, output_message_callback, host, port) -> 
     sage_conn = new sage.Connection(
-        host:'localhost'
-        port:6000
+        host:host
+        port:port
         recv:(mesg) ->
             winston.info("(node_server.coffee) sage_conn -- received message #{JSON.stringify(mesg)}")
             output_message_callback(mesg)
@@ -118,6 +117,16 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
             winston.info("(node_server.coffee) sage_conn -- send: #{JSON.stringify(input_mesg)}")
             sage_conn.send(input_mesg)
             sage_conn.terminate_session()
+    )
+
+stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
+    winston.info("(node_server.coffee) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
+    cassandra.running_sage_servers((res) ->
+        if res.length == 0
+            output_message_callback(message.terminate_session('no Sage servers'))
+            return
+        x = res[Math.floor(Math.random() * res.length)]  # random element
+        stateless_exec_using_server(input_mesg, output_message_callback, x.address, x.port)
     )
     
     
