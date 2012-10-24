@@ -8,11 +8,11 @@
 
 # [office]
 10.38.1.4        bsd
-10.38.1.5        cassandra bsd1  tornado
+10.38.1.5        cassandra bsd1  node
 10.38.1.6        bsd2
 
 # [servedby]
-10.38.1.11       cassandra servedby1 tornado
+10.38.1.11       cassandra servedby1 node
 10.38.1.12       servedby2
 
 10.38.1.1       laptop

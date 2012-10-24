@@ -11,7 +11,7 @@ servedby1   {'seed':True, 'topology':'DC0:RAC0', 'initial_token':113427455640312
 servedby1
 bsd
 
-[tornado]
+[node]
 servedby1
 bsd1
 
@@ -20,8 +20,8 @@ servedby1
 bsd
 
 [haproxy] {'sudo':True}
-servedby1 {'nginx_servers':[{'ip':'servedby1'}], 'tornado_servers':[{'ip':'servedby1'}]}
-bsd       {'nginx_servers':[{'ip':'bsd'}], 'tornado_servers':[{'ip':'bsd1'}]}
+servedby1 {'nginx_servers':[{'ip':'servedby1'}], 'node_servers':[{'ip':'servedby1'}]}
+bsd       {'nginx_servers':[{'ip':'bsd'}], 'node_servers':[{'ip':'bsd1'}]}
 
 [sage] {'sudo':True}
 servedby2

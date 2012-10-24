@@ -4949,12 +4949,13 @@ s.restart('haproxy', '02salvus')
 
      virsh list   # check that no base vm is running
      export PREV=salvus3
-     export NAME=salvus4-sagenb
+     export NAME=salvus4
      qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
 
      virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
      virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
 
+        apt-get update; apt-get upgrade; reboot
         cd salvus; git pull https://github.com/williamstein/salvus.git
 
      virsh --connect qemu:///session undefine $NAME
@@ -5905,5 +5906,40 @@ automatic timeout code.
   [x] use CQL to get the sage servers
 
   [ ] deploy node-based version with changes to cluster
+      - cassandra nodetool repair
+      - create a new base image with newest code, using 08salvus which isn't running any images
+
+Surprisingly, after apt-get upgrade'ing it the network stopped working!  So I'm skipping that step for now.
+
+Need libbz2-dev to build bz2 module in Python to build node:
+
+  sudo apt-get install libbz2-dev
+  ./build.py --build_python
+  ./build.py --build_node
+  ./build.py --build_node_packages
+
+No coffeescript.
+
+But now the network just stopped working again.  ... because I'm an idiot -- I firewalled myself by doing deploy_local!!!!
+
+      - try running deploy_local in that to test linux compat
+
+import admin; reload(admin); s = admin.Services('conf/deploy2/', username='salvus'); h = s._hosts
+
+
+      - restart whole cluster with that base image:
+
+# edit services file so vm's use new base
+import admin; reload(admin); s = admin.Services('conf/deploy2/', username='salvus'); h = s._hosts
+
+
+
+      - if total fail, revert to previous image, make image with just static changes, and go.
+      - if success, test more
+      - email C4C
+
+
+        
+
 
 
