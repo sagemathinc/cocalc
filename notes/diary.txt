@@ -4947,12 +4947,12 @@ s.restart('haproxy', '02salvus')
 
 ----
 
-     virsh list   # check that no base vm is running
+     virsh list  --all # check that no base vm is running
      export PREV=salvus3
      export NAME=salvus4
      qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
 
-     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+     virt-install -c qemu:///session --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
      virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
 
         apt-get update; apt-get upgrade; reboot
@@ -5920,6 +5920,7 @@ Need libbz2-dev to build bz2 module in Python to build node:
 
 No coffeescript.
 
+DONE:
 But now the network just stopped working again.  ... because I'm an idiot -- I firewalled myself by doing deploy_local!!!!
 
       - try running deploy_local in that to test linux compat
@@ -5932,14 +5933,19 @@ import admin; reload(admin); s = admin.Services('conf/deploy2/', username='salvu
 # edit services file so vm's use new base
 import admin; reload(admin); s = admin.Services('conf/deploy2/', username='salvus'); h = s._hosts
 
-
-
       - if total fail, revert to previous image, make image with just static changes, and go.
       - if success, test more
       - email C4C
 
 
-        
+ISSUES:
 
+  [x] mobile -- Oh crap, I totally broke that.
+  [ ] cassandra firewall -- had to disable it because it wasn't working; need to fix that.
+  [ ] need to ensure proper generation of coffeescript --> js when nginx is started - that symlink failed.
+  [ ] websocket with sockjs for mobile safari broken again.  I think
+      this happened before with tornado, and I patched the sockjs
+      tornado code.  I probably need to include the same patch in
+      sockjs for node!
 
-
+-----------
