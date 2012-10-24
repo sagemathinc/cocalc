@@ -5875,10 +5875,33 @@ to be working.
 Immediate goals:
 
   [ ] sage_server.py -- find a robust way to implement cleanup of subprocs and files
-Ideas:
-   - 
-
   [ ] make static c4c changes for trademark stuff
   [ ] deploy node-based version with changes
   [ ] polish code bigtime
-  
+
+Oct 24, 2012, morning work.  
+===========================
+
+I just ran a test of sage_server.py.  It spawn 340028 sessions
+(wrapping around the pid space a few times!), then stopped accepting
+connections.
+
+Python has a ForkingTCPServer mixin thing.  Maybe there is just something
+stupid regarding resources that I'm missing.  I'll try their class
+and see what happens.
+   http://docs.python.org/library/socketserver.html
+
+That was a total fail -- it's worse in every possible way.  Much worse.
+
+The problem could just be an OS X bug or extreme resource limit.  I
+should test on a linux vm to see what happens.  I will soon.
+
+Now I'm going to do what is needed to deploy this, which is to fix the
+automatic timeout code.
+
+  [x] sage_server.py -- find a robust way to implement cleanup of subprocs and files
+  [x] make static c4c changes for trademark stuff
+  [ ] admin service for NodeServer class.
+  [ ] deploy node-based version with changes to cluster
+
+

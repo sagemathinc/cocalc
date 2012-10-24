@@ -19,16 +19,16 @@ sage_server.py -- unencrypted forking TCP server that can run as root,
 #########################################################################################
 
 
-import json, logging, os, resource, shutil, signal, socket, struct, sys, \
+import json, os, resource, shutil, signal, socket, struct, sys, \
        tempfile, time, traceback
 
 import parsing
 
 
 # Configure logging
-logging.basicConfig()
-log = logging.getLogger('sage_server')
-log.setLevel(logging.INFO)
+#logging.basicConfig()
+#log = logging.getLogger('sage_server')
+#log.setLevel(logging.INFO)
 
 # JSON Message wrapper around a connection
 class ConnectionJSON(object):
@@ -40,21 +40,21 @@ class ConnectionJSON(object):
         self._conn.close()
 
     def send(self, m):
-        log.debug('send:pid=%s: "%s"', os.getpid(), m)    # todo -- waste of time
+        #log.debug('send:pid=%s: "%s"', os.getpid(), m)    # todo -- waste of time
         s = json.dumps(m)
         length_header = struct.pack(">L", len(s))
         self._conn.send(length_header + s)
 
     def _recv(self, n):
-        print "_recv(%s)"%n
+        #print "_recv(%s)"%n
         for i in range(20): # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
             try:
-                print "blocking recv (i = %s), pid=%s"%(i, os.getpid())
+                #print "blocking recv (i = %s), pid=%s"%(i, os.getpid())
                 r = self._conn.recv(n)
-                print "got it = '%s'"%r
+                #print "got it = '%s'"%r
                 return r
             except socket.error as (errno, msg):
-                print "socket.error, msg=%s"%msg
+                #print "socket.error, msg=%s"%msg
                 if errno != 4:
                     raise
         raise EOFError
@@ -71,7 +71,7 @@ class ConnectionJSON(object):
                 raise EOFError
             s += t
         m = json.loads(s)
-        log.debug('recv:pid=%s: "%s"', os.getpid(), m)  # todo -- remove
+        #log.debug('recv:pid=%s: "%s"', os.getpid(), m)  # todo -- remove
         return m
 
 class Message(object):
@@ -214,10 +214,10 @@ def drop_privileges(id, home):
     os.chdir(home)
 
 namespace = {}
-def session(conn, home, cputime, nofile, vmem):
+def session(conn, home, cputime, nofile, vmem, uid):
     pid = os.getpid()
     if home is not None:
-        drop_privileges(pid%5000+5000, home)
+        drop_privileges(uid, home)
 
     if cputime is not None:
         resource.setrlimit(resource.RLIMIT_CPU, (cputime,cputime))
@@ -227,10 +227,12 @@ def session(conn, home, cputime, nofile, vmem):
         if os.uname()[0] == 'Linux':
             resource.setrlimit(resource.RLIMIT_AS, (vmem*1048576L, -1L))
     else:
-        log.warning("Server not running on Linux, so there are NO memory constraints.")
+        #log.warning("Server not running on Linux, so there are NO memory constraints.")
+        pass
 
     def handle_parent_sigquit(signum, frame):
         conn.send(message.terminate_session())
+        print "** Sage process killed by external SIGQUIT signal (time limit probably exceeded) **\n\n"
         sys.exit(0)
         
     signal.signal(signal.SIGQUIT, handle_parent_sigquit)
@@ -238,7 +240,7 @@ def session(conn, home, cputime, nofile, vmem):
     while True:
         try:
             mesg = conn.recv()
-            print 'INFO:child%s: received message "%s"'%(pid, mesg)
+            #print 'INFO:child%s: received message "%s"'%(pid, mesg)
             if mesg['event'] == 'terminate_session':
                 return
             elif mesg['event'] == 'execute_code':
@@ -250,14 +252,16 @@ def session(conn, home, cputime, nofile, vmem):
 
 def rmtree(path):
     if not path.startswith('/tmp/') or path.startswith('/var/') or path.startswith('/private/'):
-        log.error("Trying to rmtree on '%s' is very suspicious! Refusing!", path)
+        #log.error("Trying to rmtree on '%s' is very suspicious! Refusing!", path)
+        pass
     else:
-        log.info("Removing '%s'", path)
+        #log.info("Removing '%s'", path)
         shutil.rmtree(path)
 
 class Connection(object):
-    def __init__(self, pid, home, maxtime):
+    def __init__(self, pid, uid, home=None, maxtime=3600):
         self._pid = pid
+        self._uid = uid
         self._home = home
         self._start_time = time.time()
         self._maxtime = maxtime
@@ -274,27 +278,43 @@ class Connection(object):
         os.kill(self._pid, sig)
 
     def remove_files(self):
-        if self._home is not None:
-            rmtree(self._home)
+        # remove any other files created in /tmp by this user, if server is running as root.
+        if whoami == 'root':
+            if self._home is not None:
+                rmtree(self._home)
+            for dirpath, dirnames, filenames in os.walk('/tmp', topdown=False):
+                for name in dirnames + filenames:
+                    path = os.path.join(dirpath, name)
+                    if os.stat(path).st_uid == self._uid:
+                        try:
+                            if os.path.isdir(path):
+                                shutil.rmtree(path)
+                            else:
+                                os.unlink(path)
+                        except Exception, msg:
+                            print "Error removing a file -- ", msg
+                            pass
 
-    def monitor(self):
-        while True:
-            tm = self.time_remaining()
-            if tm is not None and tm < 0:
-                try:
-                    if tm <= -2*CONNECTION_TERM_INTERVAL:
-                        self.signal(signal.SIGKILL)
-                    else:
-                        self.signal(signal.SIGQUIT)
-                    self.remove_files()
-                except OSError:
-                    return # subprocess is dead
-            else:
-                try:
-                    self.kill(0)
-                except OSError: # subprocess is dead
-                    return
-            time.sleep(5)
+    def monitor(self, interval=1):
+        try:
+            while True:
+                tm = self.time_remaining()
+                if tm < 0:
+                    try:
+                        if tm <= -2*interval:
+                            self.signal(signal.SIGKILL)
+                        else:
+                            self.signal(signal.SIGQUIT)
+                    except OSError:
+                        return # subprocess is dead
+                else:
+                    try:
+                        self.signal(0)
+                    except OSError: # subprocess is dead
+                        return
+                time.sleep(interval)
+        finally:
+            self.remove_files()
 
 def handle_session_term(signum, frame):
     while True:
@@ -310,52 +330,60 @@ def serve_connection(conn):
     if mesg['event'] == 'send_signal':
         if mesg['pid'] == 0:
             # TODO: should send error message back
-            log.info("invalid signal mesg (pid=0?): %s", mesg)
+            #log.info("invalid signal mesg (pid=0?): %s", mesg)
+            pass
         else:
-            log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
+            #log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
             os.kill(mesg['pid'], mesg['signal'])
         return
 
     if mesg['event'] != 'start_session':
-        log.info('invalid message type request')
+        #log.info('invalid message type request')
         return
 
     # start a session
+    home = tempfile.mkdtemp() if whoami == 'root' else None
+    uid = (os.getpid() % 5000) + 5000
     pid = os.fork()
     if pid:
         # parent
-        C = Connection(pid, home, maxtime)
-        C.monitor()  # TODO: not yet working
+        C = Connection(pid=pid, uid=uid, home=home, maxtime=mesg['max_walltime'])
+        C.monitor()
     else:
         # child
-        # TODO -- if root, this never gets cleaned up!
-        home = tempfile.mkdtemp() if whoami == 'root' else None
         conn.send(message.session_description(os.getpid()))
-        session(conn, home, mesg['max_cputime'], mesg['max_numfiles'], mesg['max_vmem'])
+        session(conn, home, mesg['max_cputime'], mesg['max_numfiles'], mesg['max_vmem'], uid)
     
 def serve(port, address):
     signal.signal(signal.SIGCHLD, handle_session_term)
 
     tm = time.time()
-    log.info('pre-importing the sage library...')
+    #log.info('pre-importing the sage library...')
     import sage.all
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?
     exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
     #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
-    log.info('imported sage library in %s seconds', time.time() - tm)
+    #log.info('imported sage library in %s seconds', time.time() - tm)
     
-    log.info('opening connection on port %s', port)
+    #log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)    
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((address, port))
 
-    s.listen(128)  
+    print 'Sage server %s:%s'%(address, port)
+    
+    t = time.time()
+    s.listen(128)
+    i = 0
     try:
         while True:
+            i += 1
+            #print i, time.time()-t, 'cps: ', int(i/(time.time()-t))
             # do not use log.info(...) in the server loop; threads = race conditions that hang server every so often!!
             try:
                 conn, addr = s.accept()
+                print "connection from", addr
             except socket.error, msg:
                 continue
             if not os.fork(): # child
@@ -367,19 +395,39 @@ def serve(port, address):
         # end while
     except Exception, err:
         traceback.print_exc(file=sys.stdout)
-        log.error("error: %s %s", type(err), str(err))
+        #log.error("error: %s %s", type(err), str(err))
 
     finally:
-        log.info("closing socket")
+        #log.info("closing socket")
         #s.shutdown(0)
         s.close()
+
+def serve2(port, address):
+    # this approach SUCKS: zombies, zombies; the socket can't be reused.
+    import sage.all
+    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+
+    import socket
+    import SocketServer
+    class Handler(SocketServer.StreamRequestHandler):
+        def handle(self):
+            serve_connection(self.request)
+            self.request.close()
+            os._exit(0)
             
+    class ForkingTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
+        pass
+    S = ForkingTCPServer((address, port), Handler)
+    S.serve_forever()
+    
+
 def run_server(port, address, pidfile, logfile):
     if pidfile:
         open(pidfile,'w').write(str(os.getpid()))
     if logfile:
-        log.addHandler(logging.FileHandler(logfile))
-    log.info("port=%s, address=%s, pidfile='%s', logfile='%s'", port, address, pidfile, logfile)
+        #log.addHandler(logging.FileHandler(logfile))
+        pass
+    #log.info("port=%s, address=%s, pidfile='%s', logfile='%s'", port, address, pidfile, logfile)
     try:
         serve(port, address)
     finally:
@@ -415,8 +463,9 @@ if __name__ == "__main__":
         sys.exit(1)
     
     if args.log_level:
-        level = getattr(logging, args.log_level.upper())
-        log.setLevel(level)
+        pass
+        #level = getattr(logging, args.log_level.upper())
+        #log.setLevel(level)
 
     if args.client:
         client1(port=args.port if args.port else int(open(args.portfile).read()), hostname=args.hostname)
