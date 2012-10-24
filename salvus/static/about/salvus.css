@@ -1,18 +1,28 @@
-h1 { 
+body {
+  margin:10px;
   font-family:"futura-pt-condensed","trebuchet ms";
-  font-weight:400; 
+}
+
+h1 { 
+  font-weight:600; 
   font-style:normal;
-  text-align:left;
-  font-size:2rem;
+  text-align:center;
+  font-size:3rem;
   line-height:20px;
 }
+
+span.h1description { 
+  font-size:1.5rem;
+  font-color:"#770000";
+}
+
 
 h2 { 
   font-family:"futura-pt-condensed","trebuchet ms";
   font-weight:400; 
   font-style:normal;
   text-align:left;
-  font-size:1.4rem;
+  font-size:1.6rem;
   line-height:20px;
 }
 
