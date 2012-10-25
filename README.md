@@ -34,7 +34,8 @@ Python
 Javascript/CSS/HTML
 -------------------
 
-   * jQuery, jQuery-ui, jQuery-mobile -- http://jquery.org/; MIT license
+   * jQuery, jQuery-ui -- http://jquery.org/; MIT license
+   * twitter bootstrap -- apache license
    * codemirror2 -- http://codemirror.net/; basically MIT license
    * jquery activity indicator -- MIT license
    * SockJS

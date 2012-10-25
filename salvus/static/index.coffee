@@ -1,4 +1,20 @@
 $ ->
+    $("#about").hide()  
+    $("a[href='#about']").click((e) ->
+        $("#demo1-item").removeClass("active")
+        $("#about-item").addClass("active")
+        $("#demo1").hide()
+        $("#about").show()
+        return false
+    )
+    $("a[href='#demo1']").click((e) ->
+        $("#demo1-item").addClass("active")
+        $("#about-item").removeClass("active")
+        $("#demo1").show()
+        $("#about").hide()
+        return false
+    )
+    
     ############################################
     # Login/logout management
     ############################################

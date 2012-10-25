@@ -5994,9 +5994,9 @@ Oct 25, 2012
           * vertex, nucleus, heart, core, hub
           * i like "hub" the best
 
-   [ ] enable twitter bootstrap in my index.html page and make sure it looks ok on mobile...
+   [x] enable twitter bootstrap in my index.html page and make sure it looks ok on mobile...
      
-   [ ] then remove jquery mobile support and mobile/ directory 
+   [x] then remove jquery mobile support and mobile/ directory 
 
    [ ] deploy with the rename node --> nodejs; support for mobile browsers again
 

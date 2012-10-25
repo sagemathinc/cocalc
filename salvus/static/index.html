@@ -1,62 +1,150 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-<head>
-<title>Salvus</title>
+  <head>
+    <meta charset="utf-8">
+    <title>Salvus: distributed scalable online mathematical software</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Salvus: distributed scalable mathematical software">
+    <meta name="author" content="William Stein">
+    <!-- Bootstrap -->
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
 
-<script type="text/javascript" src="/jquery/jquery.min.js"></script>
-<script type="text/javascript" src="/jquery/jquery-ui/js/jquery-ui.min.js"></script>
-<!--<link rel="stylesheet" href="/jquery/jquery-ui/css/base.css"> 
-<link rel="stylesheet" href="/jquery/jquery-ui/css/humanity/jquery-ui.css"> -->
+<style type="text/css">
+body { padding-top:60px; }
+@media (max-width: 979px) { body { padding-top: 0px; } }  
+</style>
 
-<script type="text/javascript" src="/sockjs/sockjs.min.js"></script>
-
-<script type="text/javascript" src="/salvus/salvus_message.js"></script>
-<script type="text/javascript" src="/salvus/salvus.js"></script>
-
-<script type="text/javascript" src="index.js"></script>
-
-<link rel="stylesheet" href="about/salvus.css" type="text/css" />
-
-</head>
-
-<body>
-<div>
-
-<div style="border:1px black solid; padding: 5px; background:#444; color:#ddd; height:1.1em;">
-
-<a href="/about/" style="color:#bbb; text-decoration:none;">About</a>
-&nbsp|&nbsp; 
-<a href="/" style="color:#fff; text-decoration:none;">Demo</a>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="#"><font color="#0084aa">Salvus&trade;</font></a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="active" id="demo1-item"><a href="#demo1">Demo</a></li>
+	      <li class="divider-vertical"></li>
+              <li id="about-item"><a href="#about">About</a></li>
+	      <li class="divider-vertical"></li>
 <!--
-&nbsp|&nbsp; 
-<span id="username"></span>
-<span><button id="sign_in">Sign in</button></span>
-<span><button id="sign_out">Sign out</button></span>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                  <li><a href="#">Action</a></li>
+                  <li><a href="#">Another action</a></li>
+                  <li><a href="#">Something else here</a></li>
+                  <li class="divider"></li>
+                  <li class="nav-header">Nav header</li>
+                  <li><a href="#">Separated link</a></li>
+                  <li><a href="#">One more separated link</a></li>
+                </ul>
+              </li>
 -->
-</div>
-<div style="border:1px black solid; padding: 5px; background:#fff; color:#888;">
-<span id="connection_status"></span>
-&nbsp|&nbsp; 
-<span id="time"></span>
-<span id="run_status"></span>
-</div>
-<!-- User: <span id="username">Username</span> -->
+            </ul>
+<!--
+            <form class="navbar-form pull-right">
+              <input class="span2" type="text" placeholder="Email">
+              <input class="span2" type="password" placeholder="Password">
+              <button type="submit" class="btn">Sign in</button>
+            </form>
+-->
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
 
 
-<div align=center>
-<h1><font color="#0084aa">Salvus&trade;</font>  
-<span class="h1description">distributed scalable online mathematical software</span> </h1>
+    <div class="container" id="demo1">
+      <div class="row">
+	<div class="span1">
+	    <a href="http://www.sagemath.org" target="_new">sage:</a>
+	</div>
+	<div class="span9">
+	  <textarea rows=6 id="input" class="span9"></textarea>
+	  <br>
+          <a id="execute" class="btn btn-primary btn-large">Execute (shift-enter) &raquo;</a>
+	  <br><br>
+          <textarea rows=8 id="output"  class="span9" readonly="readonly"></textarea>
+	</div>
+	<div class="span2">
+	  <font size=-1>
+	    <span id="connection_status"></span><br>
+	    <span id="time"></span><br>
+	    <span id="run_status"></span><br>
+	  </font>
+	  </div>
+      </div>
 
-<textarea rows=8 cols=120 id="input"></textarea>
-<br>
-<button id="execute">Execute (shift-enter)</button><br>
 
-<textarea rows=16 cols=120 id="output" readonly="readonly"></textarea>
+    </div> <!-- /container -->    
 
-</div>
+    <div class="container" id="about">
+      <h1><font color="#0084aa">Salvus&trade;</font></h1>
+<h3>Distributed scalable online mathematical software</h3>
+      <ul>
+	<li> <i>Salvus</i> provides mathematical software as a service: the main user language is Python as provided by
+	  <a href="http://sagemath.org">Sage</a>, which in turns provides access
+	  to many other programs.</li>
+	<li> <i>Salvus</i> has a distributed and fault tolerant design: it
+	  runs on hardware located in two separate data centers at
+	  the <a href="">University of Washington</a>, and on cloud hosting
+	  providers
+	  including <a href="http://www.servedby.net/">Servedby.net</a>.</li>
+	<li> Many features are planned for the first beta
+	  release of <i>Salvus</i> in January 2013: version control, simultaneous coordinated
+	  use by all students in a course, embedding in external websites,
+	  very long-running and large-memory research computations, and
+	  mobile clients.
+	</li>
+	<li> We will also provide custom installation and configuration
+	  of <i>Salvus</i> on a company's private computers; the price will
+	  be determined based on the specific needs of the company and its size.</li>
+      </ul>
 
+      <h3>Timetable</h3>
+      <ul>
+	<li> <i>Salvus</i> is currently available as an alpha quality
+	  website, which is undergoing rapid development and may be very
+	  unstable.  
+	<li> The first beta release will be in January 2013, and the first stable release is slated for March 2013.</li>
+	</li>
+      </ul>
+
+      <h3>Contact</h3>
+      <ul>
+	<li> William Stein, University of Washington, <a href="mailto:wstein@uw.edu">wstein@uw.edu</a>
+      </ul>
+
+      <h3>Other Information</h3>
+      Though <i>Salvus</i> is quickly changing, you may find the information below useful. 
+      <ul>
+	<li> <a href="talk-20121004/">Seminar and screencast about the internal architecture of <i>Salvus</i> (October 2012)</a></li>
+	<li> <a href="http://wstein.org/grants/2012-rrf/rrf.pdf"><i>Salvus</i>-related grant proposal (September 2012)</a></li>
+	<li> <a href="http://wstein.org/grants/2012-appengine/proposal.pdf">Google app engine Proposal (funded) -- May 2012 (the design has changed significantly)</a></li>
+      </ul>
+    </div>
+
+    <div class="container">
+      <footer>
 <hr>
-&copy; 2012 University of Washington. "Salvus" is a trademark of the University of Washington. All rights reserved.
-<hr>Feedback: <a href="mailto:wstein@uw.edu">wstein@uw.edu</a>
-</body>
+        <p>&copy; 2012 University of Washington. "Salvus" is a trademark of the University of Washington. All rights reserved.</p>
+      </footer>
+    </div>
+
+
+    <script src="/jquery/jquery.min.js"></script>
+    <script src="/bootstrap/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript" src="/sockjs/sockjs.min.js"></script>
+    <script type="text/javascript" src="/salvus/salvus_message.js"></script>
+    <script type="text/javascript" src="/salvus/salvus.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+
+  </body>
 </html>
