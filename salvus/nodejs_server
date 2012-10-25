@@ -3,4 +3,4 @@
 ./make_coffee
 
 echo "Running NodeJS server..."
-node node_modules/node_server.js $@
+node node_modules/nodejs_server.js $@

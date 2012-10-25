@@ -5954,17 +5954,6 @@ root@cassandra01:/home/salvus/salvus/salvus# ufw default allow outgoing
 
 TOP PRIORITIES:
 
-   [ ] come up with a viable overall plan for finishing the first beta
-       release (which I can charge for) by Dec 7.  This is 6 weeks.
-
-   [ ] websocket with sockjs for mobile safari broken again.  I think
-       this happened before with tornado, and I patched the sockjs
-       tornado code.  I probably need to include the same patch in
-       sockjs for node!
-
-   [ ] check up on test running on 10dot19dot1dot1 (on 08salvus): 
-        it ran for about 3 hours so far with no problems.
-
    [ ] need to ensure proper generation of coffeescript --> js when nginx is started (that symlink failed).
 
    [ ] test then deploy with the rename node --> nodejs (probably messed up stuff a lot)
@@ -5998,4 +5987,20 @@ TOP PRIORITIES:
        clients beyond the vpn...
        
    [ ] remove tornado completely from salvus after I've moved all functionality over
+
+--------
+Oct 25, 2012
+------------
+   [x] check up on test running on 10dot19dot1dot1 (on 08salvus): 
+        it ran for 12 hours with no problems with 21 clients, 3 servers, and not the slightest hicup.  Nice.
+        turning off that vm
+
+   [x] come up with a viable overall plan for finishing the first beta
+       release (which I can charge for) by Dec 7.  This is 6 weeks.
+
+
+   [ ] websocket with sockjs for mobile safari broken again.  I think
+       this happened before with tornado, and I patched the sockjs
+       tornado code.  I probably need to include the same patch in
+       sockjs for node!
 

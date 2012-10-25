@@ -23,7 +23,7 @@ class (exports ? this).Salvus
                 log("onclose")
             on_login: (name) ->
                 log("logged in as " + name)
-            url: "#{window.location.protocol}//#{window.location.host}/node"
+            url: "#{window.location.protocol}//#{window.location.host}/nodejs"
         , options or {})
 
         # State involving execution of code
