@@ -28,7 +28,6 @@ Dependencies
 Python
 ------
 
-   * Tornado -- http://www.tornadoweb.org/; Apache license 2.0
    * python-daemon -- http://pypi.python.org/pypi/python-daemon/; Python license, and will go into Python eventually
    * paramiko -- http://www.lag.net/paramiko/; ssh2 implementation in python
 
@@ -40,13 +39,16 @@ Javascript/CSS/HTML
    * jquery activity indicator -- MIT license
    * SockJS
 
+NodeJS
+------
+   * ?
+
 Database
 --------
    * Cassandra -- apache licensed
 
 Used as a separate process (no library linking)
 -----------------------------------------------
-
    * tinc -- VPN software -- http://www.tinc-vpn.org/; GPL v2+; 
    * Git -- http://git-scm.com/; GPL v2
    * Sage -- http://sagemath.org/; GPL v3+;  this is linked by sage_server.py, which thus must be GPL'd
@@ -59,12 +61,13 @@ ARCHITECTURE
            unified network address space with secure communication, no
            single points of failure, and fast communication between
            nodes on the same subnet.
+  * SSL -- stunnel
   * Browers -- Javascript client library that runs in web browser
   * HAProxy load balancer 
   * Cassandra database
-  * Sage server -- forking SSL socket server + Sage + JSON
-  * Tornado server -- HTTPS SockJS server; connect to sage server
-  * Nginx static HTTP server
+  * Sage server -- forking socket server running as part of SAGE
+  * Hub -- written in NodeJS; SockJS server; connects with Sage server, Cassandra DB, other hubs, and user clients
+  * Static HTTP server -- Nginx 
   * Log watchers -- lightweight process; periodically moves contents of logfiles to database
 
 
@@ -74,22 +77,23 @@ Diagram
    Client    Client    Client   Client   Client  Client
      /|\
       |
-   https1.1 (websocket, etc.)
-      |
-      |   https://salv.us
+   https://salv.us (stunnel)    sockjs
+      | 
+      |    
      \|/ 
- HAProxy Load Balancers                      
+ HAProxy Load Balancers ........                                Control       Control     (monitor and control system)
  /|\       /|\      /|\      /|\
   |         |        |        |                                                
-  |https1.1 |        |        |                                     
+  |http1.1  |        |        |                                     
+  |         |        |        |
  \|/       \|/      \|/      \|/                                      
-Tornado  Tornado  Tornado  Tornado    <--------------------------->   Cassandra   Cassandra    Cassandra ...
-           /|\      /|\                                                 /|\
-            |        |        -------------------------------------------|
-   ---------|        |        |                                         
+ Hub<----> Hub<---->Hub<---> Hub  <--------------------------->   Cassandra <--> Cassandra  <--> Cassandra ...
+           /|\      /|\      /|\                                         
+            |        |        |
+   ---------|        |        | tcp
    |                 |        |
-   |                          |
-  \|/                        \|/
+   |                 |        |
+  \|/               \|/       \|/
  SageServer   SageServer  SageServer   SageServer ...
 
 </pre>
