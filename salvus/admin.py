@@ -39,8 +39,6 @@ HAPROXY_PORT = 8000
 NGINX_PORT   = 8080
 SAGE_PORT    = 6000  # also used in cassandra.py.
 
-TORNADO_PORT = 5000
-TORNADO_TCP_PORT = 5001
 NODEJS_PORT = 5000
 NODEJS_TCP_PORT = 5001
 
@@ -467,31 +465,6 @@ frontend unsecured *:$port
         return int(contents.splitlines()[0])
 
 
-
-####################
-# Tornado
-####################
-class Tornado(Process):
-    def __init__(self, id=0, address='', port=TORNADO_PORT, tcp_port=TORNADO_TCP_PORT,
-                 monitor_database=None, debug=False):
-        self._port = port
-        pidfile = os.path.join(PIDS, 'tornado-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'tornado-%s.log'%id)
-        extra = []
-        if debug:
-            extra.append('-g')
-        Process.__init__(self, id, name='tornado', port=port,
-                         pidfile = pidfile,
-                         logfile = logfile, monitor_database=monitor_database,
-                         start_cmd = [PYTHON, 'tornado_server.py',
-                                      '-p', port, '-t', tcp_port,
-                                      '--address', address,
-                                      '--database_nodes', monitor_database,
-                                      '-d',
-                                      '--pidfile', pidfile, '--logfile', logfile] + extra)
-
-    def __repr__(self):
-        return "Tornado server %s on port %s"%(self.id(), self._port)
 
 ####################
 # Nodejs
@@ -1118,7 +1091,7 @@ class Services(object):
         if 'haproxy' in self._options:
             nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
                              for h, o in self._options['nginx']]
-            nodejs_servers = [{'ip':h,'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
+            nodejs_servers = [{'ip':h,'port':o.get('port',NODEJS_PORT), 'maxconn':10000}
                                for h, o in self._options['nodejs']]
             for _, o in self._options['haproxy']:
                 if 'nginx_servers' not in o:
@@ -1126,12 +1099,6 @@ class Services(object):
                 if 'nodejs_servers' not in o:
                     o['nodejs_servers'] = nodejs_servers
 
-        # TORNADO options
-        if 'tornado' in self._options:
-            for address, o in self._options['tornado']:
-                # very important: set to listen only on our VPN. 
-                o['address'] = address
-        
         # NODEJS options
         if 'nodejs' in self._options:
             for address, o in self._options['nodejs']:
@@ -1195,9 +1162,6 @@ class Services(object):
         elif name == "Stunnel":
             self.stunnel_key_files(address, action)
 
-        elif name == "Tornado":
-            self.tornado_secrets(address, action)
-
         elif name == "Nodejs":
             self.nodejs_secrets(address, action)
 
@@ -1254,25 +1218,23 @@ class Services(object):
         # avoid race condition where file is there but not there.
         time.sleep(.5)
 
-    def tornado_secrets(self, hostname, action):
-        target = os.path.join(BASE, SECRETS)
-        files = ['tornado.conf', 'server.crt', 'server.key']
-        for ip_address in self._hosts[hostname]:
-            if ip_address.startswith('127.'): continue
-            if action == 'stop':
-                for name in files:
-                    self._hosts.unlink(ip_address, os.path.join(target, name))
-            elif action in ['start', 'restart']:
-                self._hosts.mkdir(ip_address, target)
-                for name in files:
-                    self._hosts.put(ip_address, os.path.join(SECRETS, name), os.path.join(target, name))
-        # avoid race condition where file is there but not there.
-        time.sleep(.5)
-
     def nodejs_secrets(self, hostname, action):
-        # TODO -- none of the relevant functionality that uses these secret files is
-        # implemented in the nodejs server yet (it's for login/logout/internode comm)
-        self.tornado_secrets(hostname, action)
+        return
+        ## # TODO -- none of the relevant functionality that uses these secret files is
+        ## # implemented in the nodejs server yet (it's for login/logout/internode comm)
+        ## target = os.path.join(BASE, SECRETS)
+        ## files = ['server.crt', 'server.key']
+        ## for ip_address in self._hosts[hostname]:
+        ##     if ip_address.startswith('127.'): continue
+        ##     if action == 'stop':
+        ##         for name in files:
+        ##             self._hosts.unlink(ip_address, os.path.join(target, name))
+        ##     elif action in ['start', 'restart']:
+        ##         self._hosts.mkdir(ip_address, target)
+        ##         for name in files:
+        ##             self._hosts.put(ip_address, os.path.join(SECRETS, name), os.path.join(target, name))
+        ## # avoid race condition where file is there but not there.
+        ## time.sleep(.5)
 
     def cassandra_firewall(self, hostname, action):
         if action == "restart":
@@ -1282,9 +1244,9 @@ class Services(object):
         elif action == "start":
             # nodejs hosts can connect to CASSANDRA_CLIENT_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['nodejs control']] +
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['nodejs admin']] +
                         ['allow proto tcp from %s to any port %s'%(host, port)
-                                for host in self._hosts['cassandra control'] for port in CASSANDRA_INTERNODE_PORTS] +
+                                for host in self._hosts['cassandra admin'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
         elif action == 'status':
             return
@@ -1299,7 +1261,7 @@ class Services(object):
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn, 
             commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
-                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['nodejs control']]+
+                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['nodejs admin']]+
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
                         )
         elif action == 'status':

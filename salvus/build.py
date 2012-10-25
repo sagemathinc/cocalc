@@ -13,7 +13,6 @@ The components of sagews are:
     * tinc -- p2p vpn
     * protobuf -- google's messaging api and format 
     * cassandra -- distributed p2p database
-XXX    * tornado -- web server
     * sage (which we do not build here, yet -- perhaps we should)      
 
 This supports OS X and Ubuntu 12.04 on AMD and Intel. 
@@ -40,8 +39,6 @@ NODEJS_PACKAGES = [
 
 PYTHON_PACKAGES = [
     'ipython','readline', # a usable command line  (ipython uses readline)
-    'tornado',            # async webserver
-    'sockjs-tornado',     # websocket support
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
     'cql',                # interface to Cassandra

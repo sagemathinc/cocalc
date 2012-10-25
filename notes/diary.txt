@@ -5951,11 +5951,6 @@ Default incoming policy changed to 'allow'
 (be sure to update your rules accordingly)
 root@cassandra01:/home/salvus/salvus/salvus# ufw default allow outgoing
 
-
-TOP PRIORITIES:
-
-   [ ] test then deploy with the rename node --> nodejs (probably messed up stuff a lot)
-
    [?] thought -- wait -- there is a fundamental argument against using a
        firewall at all, which is that when a sage node gets rooted,
        then the attacker can just disable the firewall and attack
@@ -5965,26 +5960,10 @@ TOP PRIORITIES:
        That would be bad.  So we would be forced to firewall the
        nodejs servers from the sage servers.
 
-   [ ] - improve the sage firewall function in admin.py in the same way that I fixed up the cassandra firewall.
-        What we want:
-            - incoming: port 6000 from nodejs servers; port 22 from control
-            - outgoing: port 655 to tincd servers that this machine connects to, which will already be established 
+       [ ] eventually I will have to figure out how to configure tincd
+           servers so that they will not route traffic from certain
+           clients beyond the vpn...
 
-   [ ] - make "dynamic firewall" updateable, i.e., control can update
-       firewalls on all nodes that need them without having to restart
-       any services.
-
-   [ ] - *every* service should have some explicit firewalls
-       associated with it, and corr host vm should let in the minimum
-       required for those services.  Then when a sage vm gets rooted,
-       it won't be able to attack any other vm's, since they will not
-       have whitelisted it.  
-
-   [ ] eventually I will have to figure out how to configure tincd
-       servers so that they will not route traffic from certain
-       clients beyond the vpn...
-       
-   [ ] remove tornado completely from salvus after I've moved all functionality over
 
 --------
 Oct 25, 2012
@@ -6003,5 +5982,35 @@ Oct 25, 2012
      -- works fine on ipad and mobile identities of safari on desktop;
         doesn't seem to work on my old iphone, but i'll worry about that later.
 
-   [x] need to ensure proper generation of coffeescript --> js when nginx is started (that symlink failed).
+   [x] ensure proper generation of coffeescript --> js when nginx is started (that symlink failed).
+
+   [ ] Remove tornado completely from salvus
+
+   [ ] rename: nodejs_server --> something meaningful, since i'll have many node.js based servers.
+       ideas for name:
+          * middle
+          * websocket_server
+          * center
+          * vertex, nucleus, heart, core, hub
+          * i like "hub" the best
+      
+
+   [ ] deploy with the rename node --> nodejs; support for mobile browsers again
+
+   [ ] Dynamic Firewall: clarify/cleanup/refactor code:
+
+       [ ] - improve the sage firewall function in admin.py in the same way that I fixed up the cassandra firewall.
+           What we want:
+               - incoming: port 6000 from nodejs servers; port 22 from control
+               - outgoing: port 655 to tincd servers that this machine connects to, which will already be established 
+
+       [ ] - make "dynamic firewall" updateable, i.e., control can update
+             firewalls on all nodes that need them without having to restart
+             any services.
+
+       [ ] - *every* service should have some explicit firewalls
+             associated with it, and corr host vm should let in the minimum
+             required for those services.  Then when a sage vm gets rooted,
+             it won't be able to attack any other vm's, since they will not
+             have whitelisted it.  
 
