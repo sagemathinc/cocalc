@@ -5984,16 +5984,19 @@ Oct 25, 2012
 
    [x] ensure proper generation of coffeescript --> js when nginx is started (that symlink failed).
 
-   [ ] Remove tornado completely from salvus
+   [x] Remove tornado completely from salvus
 
-   [ ] rename: nodejs_server --> something meaningful, since i'll have many node.js based servers.
+   [x] rename: nodejs_server --> something meaningful, since i'll have many node.js based servers.
        ideas for name:
           * middle
           * websocket_server
           * center
           * vertex, nucleus, heart, core, hub
           * i like "hub" the best
-      
+
+   [ ] enable twitter bootstrap in my index.html page and make sure it looks ok on mobile...
+     
+   [ ] then remove jquery mobile support and mobile/ directory 
 
    [ ] deploy with the rename node --> nodejs; support for mobile browsers again
 

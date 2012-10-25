@@ -11,3 +11,4 @@ data/
 node_modules
 
 salvus/static/salvus/*.js
+salvus/static/*.js

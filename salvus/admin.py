@@ -39,8 +39,8 @@ HAPROXY_PORT = 8000
 NGINX_PORT   = 8080
 SAGE_PORT    = 6000  # also used in cassandra.py.
 
-NODEJS_PORT = 5000
-NODEJS_TCP_PORT = 5001
+HUB_PORT = 5000
+HUB_TCP_PORT = 5001
 
 CASSANDRA_CLIENT_PORT = 9160
 CASSANDRA_INTERNODE_PORTS = [7000, 7001]
@@ -418,7 +418,7 @@ class Haproxy(Process):
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers=None,   # list of ip addresses
-                 nodejs_servers=None, # list of ip addresses
+                 hub_servers=None, # list of ip addresses
                  monitor_database=None,  
                  conf_file='conf/haproxy.conf'):
 
@@ -430,10 +430,10 @@ class Haproxy(Process):
             nginx_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', NGINX_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(nginx_servers)]))
 
-        if nodejs_servers:
-            t = Template('server nodejs$n $ip:$port check maxconn $maxconn')
-            nodejs_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',NODEJS_PORT), maxconn=x.get('maxconn',10000)) for
-                                                     n, x in enumerate(nodejs_servers)]))
+        if hub_servers:
+            t = Template('server hub$n $ip:$port check maxconn $maxconn')
+            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',HUB_PORT), maxconn=x.get('maxconn',10000)) for
+                                                     n, x in enumerate(hub_servers)]))
 
         if insecure_redirect_port:
             insecure_redirect = Template(
@@ -448,7 +448,7 @@ frontend unsecured *:$port
             accept_proxy_port=accept_proxy_port,
             insecure_testing_bind='bind *:%s'%insecure_testing_port if insecure_testing_port else '',
             nginx_servers=nginx_servers,
-            nodejs_servers=nodejs_servers,
+            hub_servers=hub_servers,
             insecure_redirect=insecure_redirect
             )
         
@@ -467,32 +467,32 @@ frontend unsecured *:$port
 
 
 ####################
-# Nodejs
+# Hub
 ####################
-class Nodejs(Process):
-    def __init__(self, id=0, address='', port=NODEJS_PORT, tcp_port=NODEJS_TCP_PORT,
+class Hub(Process):
+    def __init__(self, id=0, address='', port=HUB_PORT, tcp_port=HUB_TCP_PORT,
                  monitor_database=None, debug=False):
         self._port = port
-        pidfile = os.path.join(PIDS, 'nodejs-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'nodejs-%s.log'%id)
+        pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'hub-%s.log'%id)
         extra = []
         if debug:
             extra.append('-g')
-        Process.__init__(self, id, name='nodejs', port=port,
+        Process.__init__(self, id, name='hub', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
-                         start_cmd = [os.path.join(PWD, 'nodejs_server'), 'start',
+                         start_cmd = [os.path.join(PWD, 'hub'), 'start',
                                       '--port', port,
                                       '--tcp_port', tcp_port,
                                       '--address', address,
                                       '--database_nodes', monitor_database,
                                       '--pidfile', pidfile,
                                       '--logfile', logfile] + extra,
-                         stop_cmd   = [os.path.join(PWD, 'nodejs_server'), 'stop'],
-                         reload_cmd = [os.path.join(PWD, 'nodejs_server'), 'restart'])
+                         stop_cmd   = [os.path.join(PWD, 'hub'), 'stop'],
+                         reload_cmd = [os.path.join(PWD, 'hub'), 'restart'])
 
     def __repr__(self):
-        return "Nodejs server %s on port %s"%(self.id(), self._port)
+        return "Hub server %s on port %s"%(self.id(), self._port)
 
 
 ####################
@@ -1091,17 +1091,17 @@ class Services(object):
         if 'haproxy' in self._options:
             nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
                              for h, o in self._options['nginx']]
-            nodejs_servers = [{'ip':h,'port':o.get('port',NODEJS_PORT), 'maxconn':10000}
-                               for h, o in self._options['nodejs']]
+            hub_servers = [{'ip':h,'port':o.get('port',HUB_PORT), 'maxconn':10000}
+                               for h, o in self._options['hub']]
             for _, o in self._options['haproxy']:
                 if 'nginx_servers' not in o:
                     o['nginx_servers'] = nginx_servers
-                if 'nodejs_servers' not in o:
-                    o['nodejs_servers'] = nodejs_servers
+                if 'hub_servers' not in o:
+                    o['hub_servers'] = hub_servers
 
-        # NODEJS options
-        if 'nodejs' in self._options:
-            for address, o in self._options['nodejs']:
+        # HUB options
+        if 'hub' in self._options:
+            for address, o in self._options['hub']:
                 # very important: set to listen only on our VPN. 
                 o['address'] = address
 
@@ -1162,8 +1162,8 @@ class Services(object):
         elif name == "Stunnel":
             self.stunnel_key_files(address, action)
 
-        elif name == "Nodejs":
-            self.nodejs_secrets(address, action)
+        elif name == "Hub":
+            self.hub_secrets(address, action)
 
         ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
 
@@ -1218,10 +1218,10 @@ class Services(object):
         # avoid race condition where file is there but not there.
         time.sleep(.5)
 
-    def nodejs_secrets(self, hostname, action):
+    def hub_secrets(self, hostname, action):
         return
         ## # TODO -- none of the relevant functionality that uses these secret files is
-        ## # implemented in the nodejs server yet (it's for login/logout/internode comm)
+        ## # implemented in the hub server yet (it's for login/logout/internode comm)
         ## target = os.path.join(BASE, SECRETS)
         ## files = ['server.crt', 'server.key']
         ## for ip_address in self._hosts[hostname]:
@@ -1242,9 +1242,9 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":
-            # nodejs hosts can connect to CASSANDRA_CLIENT_PORT
+            # hub hosts can connect to CASSANDRA_CLIENT_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['nodejs admin']] +
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin']] +
                         ['allow proto tcp from %s to any port %s'%(host, port)
                                 for host in self._hosts['cassandra admin'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
@@ -1261,7 +1261,7 @@ class Services(object):
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn, 
             commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
-                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['nodejs admin']]+
+                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['hub admin']]+
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
                         )
         elif action == 'status':
@@ -1311,7 +1311,7 @@ class Services(object):
         self.wait_until_up('all')
         log.info(" ** Starting cassandra databases.")
         self.start('cassandra', wait=True, parallel=True)
-        for service in ['haproxy','nginx','nodejs']:
+        for service in ['haproxy','nginx','hub']:
             log.info(" ** Starting %s", service)
             self.start(service, parallel=True, wait=False)
         log.info(" ** Starting sage")

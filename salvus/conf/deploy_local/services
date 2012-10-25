@@ -8,7 +8,7 @@ localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 [nginx]
 localhost
 
-[nodejs]
+[hub]
 localhost
 
 [stunnel] {'sudo':True}

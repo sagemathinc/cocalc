@@ -1,5 +1,5 @@
 ###
-# Run this by running ./nodejs_server ...
+# Run this by running ./hub ...
 #
 # Dependencies:
 # 
@@ -9,7 +9,7 @@
 #
 ###
 
-# nodejs builtin libraries 
+# node.js -- builtin libraries 
 http    = require('http')
 
 # salvus libraries
@@ -30,8 +30,8 @@ program
     .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
     .option('-g, --debug [bool]', 'debug mode (default: false)', Boolean, false)
     .option('--address [string]', 'address of interface to bind to (default: "")', String, "")
-    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/nodejs_server.pid")', String, "data/pids/nodejs_server.pid")
-    .option('--logfile [string]', 'write log to this file (default: "data/logs/nodejs_server.log")', String, "data/logs/nodejs_server.log")
+    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
+    .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '')
     .parse(process.argv)
 
@@ -50,7 +50,7 @@ init_http_server = () ->
     http_server = http.createServer((req, res) ->
         return res.end('') if req.url == '/alive'
         winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
-        res.end('nodejs server')
+        res.end('hub server')
     )
 
 init_sockjs_server = () ->
@@ -79,13 +79,13 @@ init_sockjs_server = () ->
         )
         
     )
-    sockjs_server.installHandlers(http_server, {prefix:'/nodejs'})
+    sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
 stateless_sage_exec = (input_mesg, output_message_callback) ->
-    winston.info("(nodejs_server.coffee) stateless_sage_exec #{JSON.stringify(input_mesg)}")
+    winston.info("(hub) stateless_sage_exec #{JSON.stringify(input_mesg)}")
     cassandra.cache_get('stateless_exec', input_mesg.code, (output) ->
         if output
-            winston.info("(nodejs_server.coffee) -- using cache")        
+            winston.info("(hub) -- using cache")        
             for mesg in cache
                 mesg.id = input_mesg.id
                 output_message_callback(mesg)
@@ -109,18 +109,18 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
         host:host
         port:port
         recv:(mesg) ->
-            winston.info("(nodejs_server.coffee) sage_conn -- received message #{JSON.stringify(mesg)}")
+            winston.info("(hub) sage_conn -- received message #{JSON.stringify(mesg)}")
             output_message_callback(mesg)
         cb: ->
-            winston.info("(nodejs_server.coffee) sage_conn -- sage: connected.")
+            winston.info("(hub) sage_conn -- sage: connected.")
             sage_conn.send(message.start_session(20, 20)) # max_walltime=max_cputime=20 seconds
-            winston.info("(nodejs_server.coffee) sage_conn -- send: #{JSON.stringify(input_mesg)}")
+            winston.info("(hub) sage_conn -- send: #{JSON.stringify(input_mesg)}")
             sage_conn.send(input_mesg)
             sage_conn.terminate_session()
     )
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
-    winston.info("(nodejs_server.coffee) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
+    winston.info("(hub) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
     cassandra.running_sage_servers((res) ->
         if res.length == 0
             output_message_callback(message.terminate_session('no Sage servers'))
@@ -138,7 +138,7 @@ main = () ->
     init_sockjs_server()
     http_server.listen(program.port)
 
-winston.info("Started nodejs_server. HTTP port #{program.port}; TCP port #{program.tcp_port}")
+winston.info("Started hub. HTTP port #{program.port}; TCP port #{program.tcp_port}")
 daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, main)
 
     

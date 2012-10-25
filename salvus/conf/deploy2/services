@@ -66,8 +66,8 @@ edge {'insecure_redirect_port':80, 'sitename':'salv.us'}
 [nginx]
 nginx
 
-[nodejs]
-nodejs
+[hub]
+hub
 
 [sage]    {'sudo':True}
 sage
