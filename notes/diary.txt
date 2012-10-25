@@ -5905,7 +5905,7 @@ automatic timeout code.
   [x] admin service for NodeServer class.
   [x] use CQL to get the sage servers
 
-  [ ] deploy node-based version with changes to cluster
+  [x] deploy node-based version with changes to cluster
       - cassandra nodetool repair
       - create a new base image with newest code, using 08salvus which isn't running any images
 
@@ -5941,11 +5941,6 @@ import admin; reload(admin); s = admin.Services('conf/deploy2/', username='salvu
 ISSUES:
 
   [x] mobile -- Oh crap, I totally broke that.
-  [ ] need to ensure proper generation of coffeescript --> js when nginx is started - that symlink failed.
-  [ ] websocket with sockjs for mobile safari broken again.  I think
-      this happened before with tornado, and I patched the sockjs
-      tornado code.  I probably need to include the same patch in
-      sockjs for node!
 
 -----------
 
@@ -5957,7 +5952,50 @@ Default incoming policy changed to 'allow'
 root@cassandra01:/home/salvus/salvus/salvus# ufw default allow outgoing
 
 
-TOP PRIORITY:
+TOP PRIORITIES:
+
+   [ ] come up with a viable overall plan for finishing the first beta
+       release (which I can charge for) by Dec 7.  This is 6 weeks.
+
+   [ ] websocket with sockjs for mobile safari broken again.  I think
+       this happened before with tornado, and I patched the sockjs
+       tornado code.  I probably need to include the same patch in
+       sockjs for node!
+
+   [ ] check up on test running on 10dot19dot1dot1 (on 08salvus): 
+        it ran for about 3 hours so far with no problems.
+
+   [ ] need to ensure proper generation of coffeescript --> js when nginx is started (that symlink failed).
 
    [ ] test then deploy with the rename node --> nodejs (probably messed up stuff a lot)
-   [ ] improve the sage firewall function in admin.py in the same way that I fixed up the cassandra firewall.
+
+   [?] thought -- wait -- there is a fundamental argument against using a
+       firewall at all, which is that when a sage node gets rooted,
+       then the attacker can just disable the firewall and attack
+       everything else.  If instead we put the sage nodes on a
+       separate tincd network, then even if rooted, they only have
+       network access to the nodejs servers on that subnet.  "only"?
+       That would be bad.  So we would be forced to firewall the
+       nodejs servers from the sage servers.
+
+   [ ] - improve the sage firewall function in admin.py in the same way that I fixed up the cassandra firewall.
+        What we want:
+            - incoming: port 6000 from nodejs servers; port 22 from control
+            - outgoing: port 655 to tincd servers that this machine connects to, which will already be established 
+
+   [ ] - make "dynamic firewall" updateable, i.e., control can update
+       firewalls on all nodes that need them without having to restart
+       any services.
+
+   [ ] - *every* service should have some explicit firewalls
+       associated with it, and corr host vm should let in the minimum
+       required for those services.  Then when a sage vm gets rooted,
+       it won't be able to attack any other vm's, since they will not
+       have whitelisted it.  
+
+   [ ] eventually I will have to figure out how to configure tincd
+       servers so that they will not route traffic from certain
+       clients beyond the vpn...
+       
+   [ ] remove tornado completely from salvus after I've moved all functionality over
+
