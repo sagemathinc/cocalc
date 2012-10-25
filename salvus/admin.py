@@ -56,7 +56,13 @@ def run(args, maxtime=10, verbose=True):
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
     takes more than maxtime seconds to run.
+
+    If args is a list of lists, run all the commands separately in the
+    list.
     """
+    if args and isinstance(args[0], list):
+        return '\n'.join([str(run(a, maxtime=maxtime,verbose=verbose)) for a in args])
+    
     args = [str(x) for x in args]
     def timeout(*a):
         raise KeyboardInterrupt("running '%s' took more than %s seconds, so killed"%(' '.join(args), maxtime))
@@ -123,6 +129,16 @@ init_data_directory()
 # Misc operating system interaction
 ########################################
 def system(args):
+    """
+    Run the command line specified by args (using os.system) and
+    return the stdout and stderr, killing the subprocess if it takes
+    more than maxtime seconds to run.  If args is a list of lists, run
+    all the commands separately in the list, returning *sum* of error
+    codes output by os.system.
+    """
+    if args and isinstance(args[0], list):
+        return sum([system(a) for a in args])
+    
     c = ' '.join([str(x) for x in args])
     log.info("running '%s' via system", c)
     return os.system(c)
@@ -355,7 +371,7 @@ class Nginx(Process):
                          monitor_database = monitor_database,
                          logfile   = os.path.join(LOGS, log),
                          pidfile    = os.path.join(PIDS, pid),
-                         start_cmd  = nginx_cmd,
+                         start_cmd  = [['make_coffee'], nginx_cmd],  # note: first do coffee-->js conversions
                          stop_cmd   = nginx_cmd + ['-s', 'stop'],
                          reload_cmd = nginx_cmd + ['-s', 'reload'])
 

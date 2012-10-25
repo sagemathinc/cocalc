@@ -5954,8 +5954,6 @@ root@cassandra01:/home/salvus/salvus/salvus# ufw default allow outgoing
 
 TOP PRIORITIES:
 
-   [ ] need to ensure proper generation of coffeescript --> js when nginx is started (that symlink failed).
-
    [ ] test then deploy with the rename node --> nodejs (probably messed up stuff a lot)
 
    [?] thought -- wait -- there is a fundamental argument against using a
@@ -5998,9 +5996,12 @@ Oct 25, 2012
    [x] come up with a viable overall plan for finishing the first beta
        release (which I can charge for) by Dec 7.  This is 6 weeks.
 
-
-   [ ] websocket with sockjs for mobile safari broken again.  I think
+   [x] websocket with sockjs for mobile safari broken again.  I think
        this happened before with tornado, and I patched the sockjs
        tornado code.  I probably need to include the same patch in
        sockjs for node!
+     -- works fine on ipad and mobile identities of safari on desktop;
+        doesn't seem to work on my old iphone, but i'll worry about that later.
+
+   [x] need to ensure proper generation of coffeescript --> js when nginx is started (that symlink failed).
 
