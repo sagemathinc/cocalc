@@ -1,1 +1,0 @@
-rsync -r --delete ./ root@01salvus:/var/www/

@@ -2,47 +2,47 @@
 
 [vm]
 # padelford salvus cluster vm's
-01salvus   {'hostname':'cassandra01', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus4'}
-01salvus   {'hostname':'sage01', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus4'}
-01salvus   {'hostname':'sage02', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
-01salvus   {'hostname':'web01',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus4'}
+01salvus   {'hostname':'cassandra01', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus5'}
+01salvus   {'hostname':'sage01', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus5'}
+01salvus   {'hostname':'sage02', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus5'}
+01salvus   {'hostname':'web01',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus5'}
 
-02salvus   {'hostname':'cassandra02', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus4'}
-02salvus   {'hostname':'sage03', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus4'}
-02salvus   {'hostname':'sage04', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
-02salvus   {'hostname':'web02',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus4'}
+02salvus   {'hostname':'cassandra02', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus5'}
+02salvus   {'hostname':'sage03', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus5'}
+02salvus   {'hostname':'sage04', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus5'}
+02salvus   {'hostname':'web02',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus5'}
 
-03salvus   {'hostname':'cassandra03', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus4'}
-03salvus   {'hostname':'sage05', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus4'}
-03salvus   {'hostname':'sage06', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
-03salvus   {'hostname':'web03',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus4'}
+03salvus   {'hostname':'cassandra03', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus5'}
+03salvus   {'hostname':'sage05', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus5'}
+03salvus   {'hostname':'sage06', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus5'}
+03salvus   {'hostname':'web03',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus5'}
 
-04salvus   {'hostname':'cassandra04', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus4'}
-04salvus   {'hostname':'sage07', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus4'}
-04salvus   {'hostname':'sage08', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
-04salvus   {'hostname':'web04',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus4'}
+04salvus   {'hostname':'cassandra04', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus5'}
+04salvus   {'hostname':'sage07', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus5'}
+04salvus   {'hostname':'sage08', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus5'}
+04salvus   {'hostname':'web04',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus5'}
 
-#combinat   {'hostname':'sage09', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus4'}
-#combinat   {'hostname':'sage11', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus4'}
-#combinat   {'hostname':'sage12', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
-#geom       {'hostname':'sage10', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus4'}
+#combinat   {'hostname':'sage09', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus5'}
+#combinat   {'hostname':'sage11', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus5'}
+#combinat   {'hostname':'sage12', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus5'}
+#geom       {'hostname':'sage10', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus5'}
 
 # bsd vm's (manually managed for now!)
 # ...
 
 
 # uw tower salvus cluster vm's
-05salvus   {'hostname':'cassandra05', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus4'}
-05salvus   {'hostname':'cassandra06', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9001, 'base':'salvus4'}
-05salvus   {'hostname':'sage13', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
-05salvus   {'hostname':'sage14', 'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus4'}
-05salvus   {'hostname':'web05',  'vcpus':4, 'ram':16, 'vnc':9004, 'base':'salvus4'}
+05salvus   {'hostname':'cassandra05', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus5'}
+05salvus   {'hostname':'cassandra06', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9001, 'base':'salvus5'}
+05salvus   {'hostname':'sage13', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus5'}
+05salvus   {'hostname':'sage14', 'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus5'}
+05salvus   {'hostname':'web05',  'vcpus':4, 'ram':16, 'vnc':9004, 'base':'salvus5'}
 
-06salvus   {'hostname':'cassandra07', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus4'}
-06salvus   {'hostname':'cassandra08', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9001, 'base':'salvus4'}
-06salvus   {'hostname':'sage15', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
-06salvus   {'hostname':'sage16', 'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus4'}
-06salvus   {'hostname':'web06',  'vcpus':4, 'ram':16, 'vnc':9004, 'base':'salvus4'}
+06salvus   {'hostname':'cassandra07', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9000, 'base':'salvus5'}
+06salvus   {'hostname':'cassandra08', 'vcpus':4, 'ram':16, 'disk':'cassandra:64', 'vnc':9001, 'base':'salvus5'}
+06salvus   {'hostname':'sage15', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus5'}
+06salvus   {'hostname':'sage16', 'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus5'}
+06salvus   {'hostname':'web06',  'vcpus':4, 'ram':16, 'vnc':9004, 'base':'salvus5'}
 
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'} 
