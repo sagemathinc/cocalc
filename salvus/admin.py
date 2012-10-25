@@ -41,9 +41,12 @@ SAGE_PORT    = 6000  # also used in cassandra.py.
 
 TORNADO_PORT = 5000
 TORNADO_TCP_PORT = 5001
-NODE_PORT = 5000
-NODE_TCP_PORT = 5001
+NODEJS_PORT = 5000
+NODEJS_TCP_PORT = 5001
 
+CASSANDRA_CLIENT_PORT = 9160
+CASSANDRA_INTERNODE_PORTS = [7000, 7001]
+CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT]
 
 ####################
 # Running a subprocess
@@ -401,7 +404,7 @@ class Haproxy(Process):
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers=None,   # list of ip addresses
-                 node_servers=None, # list of ip addresses
+                 nodejs_servers=None, # list of ip addresses
                  monitor_database=None,  
                  conf_file='conf/haproxy.conf'):
 
@@ -413,10 +416,10 @@ class Haproxy(Process):
             nginx_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', NGINX_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(nginx_servers)]))
 
-        if node_servers:
-            t = Template('server node$n $ip:$port check maxconn $maxconn')
-            node_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',NODE_PORT), maxconn=x.get('maxconn',10000)) for
-                                                     n, x in enumerate(node_servers)]))
+        if nodejs_servers:
+            t = Template('server nodejs$n $ip:$port check maxconn $maxconn')
+            nodejs_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',NODEJS_PORT), maxconn=x.get('maxconn',10000)) for
+                                                     n, x in enumerate(nodejs_servers)]))
 
         if insecure_redirect_port:
             insecure_redirect = Template(
@@ -431,7 +434,7 @@ frontend unsecured *:$port
             accept_proxy_port=accept_proxy_port,
             insecure_testing_bind='bind *:%s'%insecure_testing_port if insecure_testing_port else '',
             nginx_servers=nginx_servers,
-            node_servers=node_servers,
+            nodejs_servers=nodejs_servers,
             insecure_redirect=insecure_redirect
             )
         
@@ -475,32 +478,32 @@ class Tornado(Process):
         return "Tornado server %s on port %s"%(self.id(), self._port)
 
 ####################
-# Node
+# Nodejs
 ####################
-class Node(Process):
-    def __init__(self, id=0, address='', port=NODE_PORT, tcp_port=NODE_TCP_PORT,
+class Nodejs(Process):
+    def __init__(self, id=0, address='', port=NODEJS_PORT, tcp_port=NODEJS_TCP_PORT,
                  monitor_database=None, debug=False):
         self._port = port
-        pidfile = os.path.join(PIDS, 'node-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'node-%s.log'%id)
+        pidfile = os.path.join(PIDS, 'nodejs-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'nodejs-%s.log'%id)
         extra = []
         if debug:
             extra.append('-g')
-        Process.__init__(self, id, name='node', port=port,
+        Process.__init__(self, id, name='nodejs', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
-                         start_cmd = [os.path.join(PWD, 'node_server'), 'start',
+                         start_cmd = [os.path.join(PWD, 'nodejs_server'), 'start',
                                       '--port', port,
                                       '--tcp_port', tcp_port,
                                       '--address', address,
                                       '--database_nodes', monitor_database,
                                       '--pidfile', pidfile,
                                       '--logfile', logfile] + extra,
-                         stop_cmd   = [os.path.join(PWD, 'node_server'), 'stop'],
-                         reload_cmd = [os.path.join(PWD, 'node_server'), 'restart'])
+                         stop_cmd   = [os.path.join(PWD, 'nodejs_server'), 'stop'],
+                         reload_cmd = [os.path.join(PWD, 'nodejs_server'), 'restart'])
 
     def __repr__(self):
-        return "Node server %s on port %s"%(self.id(), self._port)
+        return "Nodejs server %s on port %s"%(self.id(), self._port)
 
 
 ####################
@@ -977,7 +980,9 @@ class Hosts(object):
         return self(hostname, 'reboot -h now', sudo=True, timeout=5)
 
     def ufw(self, hostname, commands):
-        cmd = ' && '.join(['ufw --force reset'] + ['ufw ' + c for c in commands] +
+        cmd = ' && '.join(['ufw disable'] +
+                          ['ufw default allow incoming'] + ['ufw default allow outgoing'] + ['ufw --force reset']
+                          + ['ufw ' + c for c in commands] +
                              (['ufw --force enable'] if commands else []))
         return self(hostname, cmd, sudo=True, timeout=10, wait=False)
 
@@ -1097,13 +1102,13 @@ class Services(object):
         if 'haproxy' in self._options:
             nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
                              for h, o in self._options['nginx']]
-            node_servers = [{'ip':h,'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
-                               for h, o in self._options['node']]
+            nodejs_servers = [{'ip':h,'port':o.get('port',TORNADO_PORT), 'maxconn':10000}
+                               for h, o in self._options['nodejs']]
             for _, o in self._options['haproxy']:
                 if 'nginx_servers' not in o:
                     o['nginx_servers'] = nginx_servers
-                if 'node_servers' not in o:
-                    o['node_servers'] = node_servers
+                if 'nodejs_servers' not in o:
+                    o['nodejs_servers'] = nodejs_servers
 
         # TORNADO options
         if 'tornado' in self._options:
@@ -1111,9 +1116,9 @@ class Services(object):
                 # very important: set to listen only on our VPN. 
                 o['address'] = address
         
-        # NODE options
-        if 'node' in self._options:
-            for address, o in self._options['node']:
+        # NODEJS options
+        if 'nodejs' in self._options:
+            for address, o in self._options['nodejs']:
                 # very important: set to listen only on our VPN. 
                 o['address'] = address
 
@@ -1177,8 +1182,8 @@ class Services(object):
         elif name == "Tornado":
             self.tornado_secrets(address, action)
 
-        elif name == "Node":
-            self.node_secrets(address, action)
+        elif name == "Nodejs":
+            self.nodejs_secrets(address, action)
 
         ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
 
@@ -1248,9 +1253,9 @@ class Services(object):
         # avoid race condition where file is there but not there.
         time.sleep(.5)
 
-    def node_secrets(self, hostname, action):
+    def nodejs_secrets(self, hostname, action):
         # TODO -- none of the relevant functionality that uses these secret files is
-        # implemented in the node server yet (it's for login/logout/internode comm)
+        # implemented in the nodejs server yet (it's for login/logout/internode comm)
         self.tornado_secrets(hostname, action)
 
     def cassandra_firewall(self, hostname, action):
@@ -1259,10 +1264,12 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":
-            # TODO: when we get bigger and only cassandra runs on cassandra nodes, remove all but 22 below!
-            commands = (['allow %s'%p for p in [22,80,443,655,NODE_PORT,NODE_TCP_PORT,HAPROXY_PORT,NGINX_PORT]] +
-                        ['allow from %s'%ip for ip in self._hosts['cassandra node laptop']] +
-                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535'])
+            # nodejs hosts can connect to CASSANDRA_CLIENT_PORT
+            # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['nodejs control']] +
+                        ['allow proto tcp from %s to any port %s'%(host, port)
+                                for host in self._hosts['cassandra control'] for port in CASSANDRA_INTERNODE_PORTS] +
+                        ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
         elif action == 'status':
             return
         else:
@@ -1276,7 +1283,7 @@ class Services(object):
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn, 
             commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
-                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['node laptop']]+
+                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['nodejs control']]+
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
                         )
         elif action == 'status':
@@ -1326,7 +1333,7 @@ class Services(object):
         self.wait_until_up('all')
         log.info(" ** Starting cassandra databases.")
         self.start('cassandra', wait=True, parallel=True)
-        for service in ['haproxy','nginx','node']:
+        for service in ['haproxy','nginx','nodejs']:
             log.info(" ** Starting %s", service)
             self.start(service, parallel=True, wait=False)
         log.info(" ** Starting sage")

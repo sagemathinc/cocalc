@@ -22,10 +22,10 @@
 04salvus   {'hostname':'sage08', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
 04salvus   {'hostname':'web04',  'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus4'}
 
-combinat   {'hostname':'sage09', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus4'}
-combinat   {'hostname':'sage11', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus4'}
-combinat   {'hostname':'sage12', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
-geom       {'hostname':'sage10', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus4'}
+#combinat   {'hostname':'sage09', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus4'}
+#combinat   {'hostname':'sage11', 'vcpus':4, 'ram':8, 'vnc':9001, 'base':'salvus4'}
+#combinat   {'hostname':'sage12', 'vcpus':4, 'ram':8, 'vnc':9002, 'base':'salvus4'}
+#geom       {'hostname':'sage10', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus4'}
 
 # bsd vm's (manually managed for now!)
 # ...
@@ -66,8 +66,8 @@ edge {'insecure_redirect_port':80, 'sitename':'salv.us'}
 [nginx]
 nginx
 
-[node]
-node
+[nodejs]
+nodejs
 
 [sage]    {'sudo':True}
 sage

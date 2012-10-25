@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+./make_coffee
+
+echo "Running NodeJS server..."
+node node_modules/node_server.js $@

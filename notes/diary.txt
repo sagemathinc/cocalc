@@ -5941,7 +5941,6 @@ import admin; reload(admin); s = admin.Services('conf/deploy2/', username='salvu
 ISSUES:
 
   [x] mobile -- Oh crap, I totally broke that.
-  [ ] cassandra firewall -- had to disable it because it wasn't working; need to fix that.
   [ ] need to ensure proper generation of coffeescript --> js when nginx is started - that symlink failed.
   [ ] websocket with sockjs for mobile safari broken again.  I think
       this happened before with tornado, and I patched the sockjs
@@ -5949,3 +5948,16 @@ ISSUES:
       sockjs for node!
 
 -----------
+
+  [x] cassandra firewall -- had to disable it because it wasn't working; need to fix that.
+
+root@cassandra01:/home/salvus/salvus/salvus# ufw default allow incoming
+Default incoming policy changed to 'allow'
+(be sure to update your rules accordingly)
+root@cassandra01:/home/salvus/salvus/salvus# ufw default allow outgoing
+
+
+TOP PRIORITY:
+
+   [ ] test then deploy with the rename node --> nodejs (probably messed up stuff a lot)
+   [ ] improve the sage firewall function in admin.py in the same way that I fixed up the cassandra firewall.
