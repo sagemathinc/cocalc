@@ -1,9 +1,11 @@
 message = require("salvus_message")
-
-sjsc = require("sockjs-client-ws")  #  https://github.com/steerapi/sockjs-client-node
+sjsc = require("sockjs-client-ws")
 
 #client = sjsc.create("https://localhost/node")  # doesn't work -- don't know why
+
 client = sjsc.create("http://localhost:5000/node")
+
+#client = sjsc.create("http://10.1.1.3:5000/node")
 
 walltime = -> (new Date()).getTime()
 tm = 0
