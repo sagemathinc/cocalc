@@ -6027,15 +6027,61 @@ Oct 25 at 5:52pm:
    [ ] support persistent sessions
 
 Plan:
-    [x] caching single session in db, just because I should, and it is a trivial app of cassandra
-
-    [ ] hub.coffee -- make it so clients can create persistent sessions:
 
 ./hub --port 5000 --tcp_port 5001 --address 127.0.0.1 --database_nodes 127.0.0.1 
 watch hub.coffee ./hub restart --port 5000 --tcp_port 5001 --address 127.0.0.1 --database_nodes 127.0.0.1  --log_file=data/logs/hub
 
+    [x] caching single session in db, just because I should, and it is a trivial app of cassandra
+
+    [ ] hub.coffee -- make it so clients can create persistent sessions:
+
+[ ] new cassandra tables:
+
+sage_sessions:
+   session_uuid, hub_address, user_uuid, readonly (bool)
+
+   [ ] cassandra.py -- create table and SageSessions class as below.
+   [ ] cassandra.coffee -- create class SageSessions with methods.
+        - user_sessions(user_uuid) --> [(session_uuid, hub_address, readonly), ... ]
+        - session_address(session_uuid) --> hub_address
+        - user_may_read(user_uuid, session_uuid) --> bool (true if user can read this session at least)
+        - user_may_write(user_uuid, session_uuid) --> bool (true if user can write to this session)
+        - create_session(session_uuid, hub_address, [user_uuid])
+        - add_user_to_session(session_uuid, user_uuid, readonly)
+        - remove_user_from_session(user_uuid, session_uuid, readonly)
+        - delete_session(session_uuid)
+
+sage_session_current_members:
+   session_uuid, user_uuid, user_hub_address, readonly (bool)
+
+[ ] new message type that only needs to be supported in javascript
+    (not python sage, since sage servers know nothing about session id or users):
+        {event:'new_session',
+         session_uuid:'....',
+         max_walltime...}
+    This message goes from Hub server to browser client.
+
+[ ] Enhance the start_session message type from the browser client to the hub by:
+         - confirming/shrinking max params,
+         - allocating new session connection to a sage server and saving in module-scope object
+         - saving to the sage_session table above via sage_sessions.create_session(session_uuid, hub_address, user_uuid)
+
+[ ] support persistent sessions by extending the execute_code message to take
+    an optional session_uuid.  If specified, then execution takes place in that session.
+    If not specified, then a session is made for that one single code execution. 
+
+    NOTE: When execution is taking place in a session, the session_uuid has to added
+    back into messages coming back from the sage connection.         
+
+[ ] Make a simple node client to test that the above works right, and
+    is fast.  It should be extremely fast due to not having to fork
+    and exchange a bunch of messages.
+    
+
     [ ] make a coffeescript client that can use persistent session over websocket
     [ ] make it so client can find out how much wall and cpu time remains in a given session (store in db?)
+    [ ] nice looking spinner during computations
+    [ ] ability to send SIGINT
     [ ] html: change current html so that session is persistent
     [ ] html: move input box below output and make output scroll up, exactly like a command line
     [ ] html: make output accumulate and include input

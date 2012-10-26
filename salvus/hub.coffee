@@ -52,6 +52,7 @@ init_sockjs_server = () ->
         conn.on("data", (mesg) ->
             mesg = JSON.parse(mesg)
             winston.info("conn=#{conn} received sockjs mesg: #{mesg}")
+            
             # handle mesg
             if mesg.event == "execute_code"
                 # stateless code execution
@@ -62,6 +63,7 @@ init_sockjs_server = () ->
                     winston.info("output_message = #{JSON.stringify(output_message)}")
                     conn.write(JSON.stringify(output_message))
                 )
+                
         )
         conn.on("close", ->
             winston.info("conn=#{conn} closed")
@@ -72,7 +74,12 @@ init_sockjs_server = () ->
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
 ###
-# Sage Sessions
+# Persistent Sage Sessions
+###
+
+
+###
+# Stateless Sage Sessions
 ###
 stateless_exec_cache = null
 
