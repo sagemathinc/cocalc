@@ -6027,6 +6027,8 @@ Oct 25 at 5:52pm:
    [ ] support persistent sessions
 
 Plan:
+    [x] caching single session in db, just because I should, and it is a trivial app of cassandra
+
     [ ] hub.coffee -- make it so clients can create persistent sessions:
 
 ./hub --port 5000 --tcp_port 5001 --address 127.0.0.1 --database_nodes 127.0.0.1 

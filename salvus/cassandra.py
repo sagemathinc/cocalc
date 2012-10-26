@@ -1,5 +1,5 @@
 
-import random, sha, uuid
+import json, random, sha, uuid
 import cql
 
 NODES = []
@@ -79,6 +79,17 @@ def keyspace_exists(con, keyspace):
 ######################################
 # create various tables
 ######################################        
+
+def create_key_value_table(cursor):
+    cursor.execute("""
+CREATE TABLE key_value (
+     name varchar,
+     key varchar,
+     value varchar,
+     PRIMARY KEY(name, key)
+)
+""")
+
 
 def create_stateless_exec_table(cursor):
     # TODO: add columns for date time of exec and sage version
@@ -194,6 +205,36 @@ class User(object):
     def properties(self):
         return [str(c[0]) for c in cursor_execute("SELECT property FROM users WHERE id=:x", {'x':self._id})]
         
+
+##########################################################################
+# JSON object key:value Store
+##########################################################################
+class KeyValueStore(object):
+    def __init__(self, name):
+        self._name = name
+
+    def _to_json(self, x):
+        return json.dumps(x, separators=(',',':'))
+        
+    def __getitem__(self, key):
+        c = cursor_execute("SELECT value FROM key_value WHERE name = :name AND key = :key LIMIT 1",
+                           {'name':self._name, 'key':self._to_json(key)}).fetchone()
+        return json.loads(c[0]) if c else None
+
+    def __setitem__(self, key, value):
+        if value is None:
+            del self[key]
+        cursor_execute("UPDATE key_value SET value = :value WHERE name = :name and key = :key",
+                       {'value':self._to_json(value), 'name':self._name, 'key':self._to_json(key)})
+
+    def __delitem__(self, key):
+        cursor_execute("DELETE FROM key_value WHERE name = :name AND key = :key",
+                       {'name':self._name, 'key':self._to_json(key)})
+
+    def delete_all(self):
+        cursor_execute("DELETE FROM key_value WHERE name = :name", {'name':self._name})
+         
+
 
 ##########################################################################
 

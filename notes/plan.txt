@@ -6,7 +6,9 @@ TASKS
 
 [ ] (1 day) make it actually useful
   - support persistent sessions
-  - output of 2d and 3d plots
+  - output of 2d plots
+       -  jqplot 
+  - output of 3d plots
   - introspection
 
 [ ] (2 days) Nodejs persistent features

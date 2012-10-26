@@ -55,9 +55,9 @@ init_sockjs_server = () ->
             # handle mesg
             if mesg.event == "execute_code"
                 # stateless code execution
-                #f = stateless_sage_exec
+                f = stateless_sage_exec
                 #f = stateless_sage_exec_fake
-                f = stateless_sage_exec_nocache
+                #f = stateless_sage_exec_nocache
                 f(mesg, (output_message) ->
                     winston.info("output_message = #{JSON.stringify(output_message)}")
                     conn.write(JSON.stringify(output_message))
@@ -74,27 +74,32 @@ init_sockjs_server = () ->
 ###
 # Sage Sessions
 ###
+stateless_exec_cache = null
+
+init_stateless_exec = () ->
+    stateless_exec_cache = cassandra.key_value_store('stateless_exec')
+    
 stateless_sage_exec = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec #{JSON.stringify(input_mesg)}")
-    cassandra.cache_get('stateless_exec', input_mesg.code, (output) ->
-        if output
+    stateless_exec_cache.get(input_mesg.code, (output) ->
+        if output?
             winston.info("(hub) -- using cache")        
-            for mesg in cache
+            for mesg in output
                 mesg.id = input_mesg.id
                 output_message_callback(mesg)
         else
             output_messages = []
             stateless_sage_exec_nocache(input_mesg, (mesg) ->
-                if mesg.event = "output"  # save to record in database 
+                if mesg.event == "output"
                     output_messages.push(mesg)
                 output_message_callback(mesg)
+                if mesg.done
+                    stateless_exec_cache.set(input_mesg.code, output_messages)
             )
-            winston.info("storing in db: #{JSON.stringify(input_mesg)} --> #{JSON.stringify(output_messages)}")
-            cassandra.cache_put('stateless_exec', input_mesg.code, output_messages)
     )
 
 stateless_sage_exec_fake = (input_mesg, output_message_callback) ->
-    # test mode to eliminate all of the call to sage_server time/overhead
+    # test mode to eliminate all of the calls to sage_server time/overhead
     output_message_callback({"stdout":eval(input_mesg.code),"done":true,"event":"output","id":input_mesg.id})
 
 stateless_exec_using_server = (input_mesg, output_message_callback, host, port) -> 
@@ -131,6 +136,7 @@ start_server = () ->
     init_http_server()
     cassandra = new cass.Cassandra(program.database_nodes.split(','))
     init_sockjs_server()
+    init_stateless_exec()
     http_server.listen(program.port)
     winston.info("Started hub. HTTP port #{program.port}; TCP port #{program.tcp_port}")
 
