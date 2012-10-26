@@ -5,7 +5,7 @@
 # 
 #    npm install commander start-stop-daemon winston sockjs helenus
 #
-# ** Be sure to add dependencies to the NODEJS_PACKAGES list in build.py **
+# ** Add any new dependencies to the NODEJS_PACKAGES list in build.py **
 #
 ###
 
@@ -17,34 +17,21 @@ sage    = require("sage")               # sage server
 message = require("salvus_message")     # salvus message protocol
 cass    = require("cassandra")
 
-# third party libraries
-program = require('commander')          # https://github.com/visionmedia/commander.js/
-daemon  = require("start-stop-daemon")  # https://github.com/jiem/start-stop-daemon
-winston = require('winston')            # https://github.com/flatiron/winston
-sockjs  = require("sockjs")             # https://github.com/sockjs/sockjs-node
-
-program
-    .usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
-    .option('-t, --tcp_port <n>', 'tcp port to listen on from other tornado servers (default: 5001)', parseInt, 5001)
-    .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
-    .option('-g, --debug [bool]', 'debug mode (default: false)', Boolean, false)
-    .option('--address [string]', 'address of interface to bind to (default: "")', String, "")
-    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
-    .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
-    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '')
-    .parse(process.argv)
+# third-party libraries
+program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
+daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
+winston = require('winston')            # logging -- https://github.com/flatiron/winston
+sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
 
 
 # module scope variables:
-
 http_server = null
 sockjs_connections = []
-sockjs_server = null
 cassandra = null
 
-
-####
+###
+# HTTP Server
+###
 
 init_http_server = () -> 
     http_server = http.createServer((req, res) ->
@@ -53,6 +40,9 @@ init_http_server = () ->
         res.end('hub server')
     )
 
+###
+# SockJS Server
+###
 init_sockjs_server = () ->
     sockjs_server = sockjs.createServer()
     sockjs_server.on("connection", (conn) ->
@@ -81,6 +71,9 @@ init_sockjs_server = () ->
     )
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
+###
+# Sage Sessions
+###
 stateless_sage_exec = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec #{JSON.stringify(input_mesg)}")
     cassandra.cache_get('stateless_exec', input_mesg.code, (output) ->
@@ -121,25 +114,41 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
-    cassandra.running_sage_servers((res) ->
-        if res.length == 0
+    cassandra.random_sage_server( (sage_server) ->
+        if sage_server
+            stateless_exec_using_server(input_mesg, output_message_callback, sage_server.address, sage_server.port)
+        else
             output_message_callback(message.terminate_session('no Sage servers'))
             return
-        x = res[Math.floor(Math.random() * res.length)]  # random element
-        stateless_exec_using_server(input_mesg, output_message_callback, x.address, x.port)
     )
     
     
-    
-main = () ->
+###
+# Start everything running
+###    
+start_server = () ->
     # the order of init below is important
     init_http_server()
     cassandra = new cass.Cassandra(program.database_nodes.split(','))
     init_sockjs_server()
     http_server.listen(program.port)
+    winston.info("Started hub. HTTP port #{program.port}; TCP port #{program.tcp_port}")
 
-winston.info("Started hub. HTTP port #{program.port}; TCP port #{program.tcp_port}")
-daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, main)
+###
+# Process command line arguments
+###
+program
+    .usage('[start/stop/restart/status] [options]')
+    .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
+    .option('-t, --tcp_port <n>', 'tcp port to listen on from other tornado servers (default: 5001)', parseInt, 5001)
+    .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
+    .option('--address [string]', 'address of interface to bind to (default: "")', String, "")
+    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
+    .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
+    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '')
+    .parse(process.argv)
+ 
+daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
     
     

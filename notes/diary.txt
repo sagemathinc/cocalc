@@ -6002,6 +6002,8 @@ Oct 25, 2012
    [x] deploy with the rename node --> nodejs; support for mobile browsers again; fix issues that come up
 
 
+
+SOON:
    [ ] Dynamic Firewall: clarify/cleanup/refactor code:
 
        [ ] - improve the sage firewall function in admin.py in the same way that I fixed up the cassandra firewall.
@@ -6018,4 +6020,21 @@ Oct 25, 2012
              required for those services.  Then when a sage vm gets rooted,
              it won't be able to attack any other vm's, since they will not
              have whitelisted it.  
+
+-----------
+
+Oct 25 at 5:52pm:
+   [ ] support persistent sessions
+
+Plan:
+    [ ] hub.coffee -- make it so clients can create persistent sessions:
+
+./hub --port 5000 --tcp_port 5001 --address 127.0.0.1 --database_nodes 127.0.0.1 
+watch hub.coffee ./hub restart --port 5000 --tcp_port 5001 --address 127.0.0.1 --database_nodes 127.0.0.1  --log_file=data/logs/hub
+
+    [ ] make a coffeescript client that can use persistent session over websocket
+    [ ] make it so client can find out how much wall and cpu time remains in a given session (store in db?)
+    [ ] html: change current html so that session is persistent
+    [ ] html: move input box below output and make output scroll up, exactly like a command line
+    [ ] html: make output accumulate and include input
 

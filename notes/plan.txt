@@ -4,23 +4,15 @@ charge for) by Dec 7.  This is 6 weeks.
 TASKS
 -----
 
-[ ] (2 days) Admin UI
-  - create a simple graphical web-based interface to some functionality in admin.py:
-     - hosts (ping status, etc.)
-     - services: start, stop, restart, etc. 
-     - vm load; host load
-     - results of monitoring
+[ ] (1 day) make it actually useful
+  - support persistent sessions
+  - output of 2d and 3d plots
+  - introspection
 
-[ ] (2 days) Monitoring/testing
-  - use nodejs_client.coffee to systematically test the nodejs websocket servers directly.  
-  - use python or node http get to test nginx servers and stunnel
-  - test cassandra from a python script (use cql)
-
-[ ] (2 days) Missing Nodejs server features
-  - support persistent sessions (easy?)
+[ ] (2 days) Nodejs persistent features
   - inter-nodejs communication via tcp
 
-[ ] (3 days) User account creation
+[ ] (2 days) User account creation
   - terms of usage
   - payment system
   - login via open id providers.
@@ -57,6 +49,22 @@ TASKS
   - interacts
   - json data structure (?)
   - mathjax2
+
+[ ] (2 days) Admin UI
+  - create a simple graphical web-based interface to some functionality in admin.py:
+     - hosts (ping status, etc.)
+     - services: start, stop, restart, etc. 
+     - vm load; host load
+     - results of monitoring
+
+[ ] (2 days) Monitoring/testing
+  - use nodejs_client.coffee to systematically test the nodejs websocket servers directly.  
+  - use python or node http get to test nginx servers and stunnel
+  - test cassandra from a python script (use cql)
+
+[ ] (5 days) fix misc bugs:
+   [ ] g = cython_lambda('double x, double y', 'x*x + y*y + x + y + 17*x + 3.2')
+       causes permission error since DOT_SAGE directory hasn't been changed?
 
 PHASE 2
 --------
