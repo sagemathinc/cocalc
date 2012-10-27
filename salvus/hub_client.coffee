@@ -22,8 +22,11 @@ class exports.Client
            { event: 'new_session', session_uuid: '286a470b-fbb8-4b8b-936d-968c977546bd',
              limits: { vmem: 2000, numfiles: 1000, cputime: 60, walltime: 60 } }
             
-        m = messages[messages.length-1]
-        c.send(message.execute_code(0, '2+2', m.session_uuid))
+        m = messages[messages.length-1]; c.send(message.execute_code(0, '2+2', m.session_uuid))
+
+        # test sending interrupt signal to persistent session:
+        c.send(message.execute_code(0, 'sleep(100)', m.session_uuid))
+        c.send(message.send_signal(m.session_uuid))
         
     """
     constructor: (address, port, data_cb) ->
@@ -35,6 +38,37 @@ class exports.Client
     send: (mesg) ->
         #console.log("sending... #{JSON.stringify(mesg)}")
         @client.write(JSON.stringify(mesg))
+
+###
+# Persistent connection to a particular sage session
+###
+
+class exports.PersistentSession
+    """
+    EXAMPLES
+
+        c = new (require("hub_client").PersistentSession)('localhost', 5000, (m) -> console.log(m))
+        message = require('salvus_message'); c.send(message.execute_code(0,'a=10')); c.send(message.execute_code(0,'a'))
+        c.send(message.execute_code(0, 'factor(2^997-1)'))
+        c.send(message.send_signal())        
+    """
+    constructor: (address, port, cb) ->
+        @cb = cb
+        @c = new exports.Client(address, port, (mesg) =>
+            if mesg.event == "new_session"
+                @session_uuid = mesg.session_uuid
+            else
+                @cb(mesg)
+        )
+        @c.send(message.start_session({walltime:60*5, cputime:60*5, numfiles:1000, vmem:2000}))
+        
+    send: (mesg) ->
+        mesg.session_uuid = @session_uuid
+        @c.send(mesg)
+
+
+
+
 
 
 ###

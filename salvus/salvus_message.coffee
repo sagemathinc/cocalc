@@ -29,9 +29,10 @@ SalvusMessage.session_description = (pid, limits) ->
     limits:limits
 
 # browser --> hub --> sage_server
-SalvusMessage.send_signal = (pid, signal=2) -> # 2=SIGINT
+SalvusMessage.send_signal = (session_uuid=null, pid=null, signal=2) -> # 2=SIGINT
     event:'send_signal'
-    pid:pid
+    session_uuid:session_uuid   # from browser-->hub this must be set
+    pid:pid                     # from hub-->sage_server this must be set
     signal:signal
 
 # client <----> server               

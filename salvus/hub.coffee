@@ -54,21 +54,21 @@ init_sockjs_server = () ->
         
         conn.on("data", (mesg) ->
             mesg = JSON.parse(mesg)
-            winston.info("conn=#{conn} received sockjs mesg: #{JSON.stringify(mesg)}")
+            winston.debug("conn=#{conn} received sockjs mesg: #{JSON.stringify(mesg)}")
 
             ###
             # handle message
             ###
-            # execute_code
-            if mesg.event == "execute_code"
-                if mesg.session_uuid
-                    persistent_sage_exec(mesg)
-                else
-                    stateless_sage_exec(mesg, push_to_client)
-                    
-            # create a new persistent session
-            else if mesg.event == "start_session"
-                create_persistent_sage_session(mesg, push_to_client)
+            switch mesg.event
+                when "execute_code"
+                    if mesg.session_uuid?
+                        send_to_persistent_sage_session(mesg)
+                    else
+                        stateless_sage_exec(mesg, push_to_client)
+                when "start_session"  # create a new persistent session
+                    create_persistent_sage_session(mesg, push_to_client)
+                when "send_signal"
+                    send_to_persistent_sage_session(mesg)
                 
         )
         conn.on("close", ->
@@ -88,19 +88,21 @@ create_persistent_sage_session = (mesg, push_to_client) ->
     winston.log('creating persistent sage session')
     # generate a uuid
     session_uuid = uuid.v4()
-    pid = null
     cassandra.random_sage_server( (sage_server) ->
         sage_conn = new sage.Connection(
             host:sage_server.host
             port:sage_server.port
             recv:(m) ->
-                #winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{JSON.stringify(mesg)})")
-                if m.event == 'output'  # new output from sage process
-                    m.session_uuid = session_uuid  # tag with session uuid
-                    push_to_client(m)
-                else if m.event == 'session_description'  # we successfully got a new session!
-                    pid = m.pid  # record this for later use for signals
-                    push_to_client(message.new_session(session_uuid, m.limits))
+                winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{JSON.stringify(m)})")
+                switch m.event
+                    when "output"
+                        m.session_uuid = session_uuid  # tag with session uuid
+                        push_to_client(m)
+                    when "session_description"
+                        persistent_sage_sessions[session_uuid].pid = m.pid  # record for later use for signals
+                        push_to_client(message.new_session(session_uuid, m.limits))
+                    else
+                        winston.error("(hub) persistent_sage_conn -- unhandled message event = '#{m.event}'")
             cb: ->
                 winston.info("(hub) persistent_sage_conn -- connected.")
                 # send message to server requesting parameters for this session
@@ -108,13 +110,38 @@ create_persistent_sage_session = (mesg, push_to_client) ->
         )
         # Save sage_conn object so that when the user requests evaluation of
         # code in the session with this id, we use this.
-        persistent_sage_sessions[session_uuid] = sage_conn
-        winston.info("added to persistent sessions; now = #{persistent_sage_sessions}")
+        persistent_sage_sessions[session_uuid] = {conn:sage_conn}
+        
+        winston.info("(hub) added #{session_uuid} to persistent sessions")
     )
 
-persistent_sage_exec = (mesg) ->
-    persistent_sage_sessions[mesg.session_uuid]?.send(mesg)
+send_to_persistent_sage_session = (mesg) ->
+    winston.debug("send_to_persistent_sage_session(#{JSON.stringify(mesg)})")
+
+    session_uuid = mesg.session_uuid
+    session = persistent_sage_sessions[session_uuid]
     
+    if not session?
+        winston.error("TOOD -- session #{session_uuid} does not exist")
+        return
+
+    # modify the message so that it can be interpretted by sage server
+    switch mesg.event
+        when "send_signal"
+            mesg.pid = session.pid
+
+    if mesg.event == 'send_signal'   # other control messages would go here too
+        # TODO: this function is a DOS vector, so we need to secure/limit it
+        # Also, need to ensure that user is really allowed to do this action, whatever it is.
+        conn = new sage.Connection(
+            host:session.conn.host
+            port:session.conn.port
+            cb: ->
+                conn.send(mesg)
+                conn.terminate_session()
+        )
+    else
+        session.conn.send(mesg)
 
 
 ###

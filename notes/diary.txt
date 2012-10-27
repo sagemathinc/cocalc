@@ -6086,7 +6086,14 @@ That would be useful in many places, and solve this problem nicely.
          - allocating new session connection to a sage server and saving in module-scope object
          - saving to the connected_sessions cassandra table
 
-[ ] support persistent sessions by extending the execute_code message
+Oct 27 at 7:57am
+----------------
+
+TODO:
+
+[ ] Install windows 8 enterprise for client testing.
+
+[x] support persistent sessions by extending the execute_code message
     to take an optional session_uuid.  If specified, then execution
     takes place in that session.  If not specified, then an ephemeral
     session is made for that one single code execution.
@@ -6095,14 +6102,22 @@ That would be useful in many places, and solve this problem nicely.
     session_uuid has to be added back into messages coming back from
     that sage connection.
 
-[ ] Make a simple node client to test that the above works right, and
+[x] 
+    Make a simple node client to test that the above works right, and
     is fast.  It should be extremely fast due to not having to fork
     and exchange a bunch of messages.
 
-    [ ] make a coffeescript client that can use persistent session over websocket
+    [x] make a coffeescript client that can use persistent session over websocket
+    [x] client ability to send SIGINT, SIGKILL, etc.
+
+    [ ] persistent session termination:
+            - client should get a message when persistent session terminates, e.g., from being killed, timed out, etc.
+            - remove session uuid stuff from in-memory table
+
+    [ ] enforce strong limits on stateless_sage_exec, since it has no way to send interrupts (?)
+
     [ ] make it so client can find out how much wall and cpu time remains in a given session (store in db?)
     [ ] nice looking spinner during computations
-    [ ] ability to send SIGINT
     [ ] html: change current html so that session is persistent
     [ ] html: move input box below output and make output scroll up, exactly like a command line
     [ ] html: make output accumulate and include input
@@ -6118,3 +6133,4 @@ video about cassandra: http://www.myvidster.com/video/8292247/Apache_Cassandra_n
 Doesn't work at all on my laptop, but works fine on a linux box.
 
 [ ] I just made: http://salvusmath.blogspot.com/
+

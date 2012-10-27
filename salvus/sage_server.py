@@ -328,11 +328,12 @@ def handle_session_term(signum, frame):
 def serve_connection(conn):
     conn = ConnectionJSON(conn)
     mesg = conn.recv()
+    print mesg
     if mesg['event'] == 'send_signal':
         if mesg['pid'] == 0:
-            # TODO: should send error message back
+            print "invalid signal mesg (pid=0)"
+            # TODO: send error message back (?)
             #log.info("invalid signal mesg (pid=0?): %s", mesg)
-            pass
         else:
             #log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
             os.kill(mesg['pid'], mesg['signal'])

@@ -6,7 +6,9 @@ message = require("salvus_message")
 
 class exports.Connection
     constructor: (options) ->
-        @conn = net.connect({port:options.port, host:options.host}, options.cb)
+        @host = options.host
+        @port = options.port
+        @conn = net.connect({port:@port, host:@host}, options.cb)
         @recv = options.recv  # send message to client
         @buf = null
         @buf_target_length = -1
