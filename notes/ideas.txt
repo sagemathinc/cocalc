@@ -1,0 +1,1 @@
+[ ] from scratch javascript slideshow that is *really* nice -- view source on http://talks.golang.org/2012/splash.slide#1
