@@ -6075,13 +6075,13 @@ That would be useful in many places, and solve this problem nicely.
 
 ---------
 
-[ ] new message type that *only* needs to be supported in javascript:
+[x] new message type that *only* needs to be supported in javascript:
         {event:'new_session',
          session_uuid:'....',
          max_walltime:...}
     This message goes *from* Hub server to browser client.
 
-[ ] Enhance the start_session message type from the browser client to the hub by:
+[x] Enhance the start_session message type from the browser client to the hub by:
          - confirming/shrinking max params,
          - allocating new session connection to a sage server and saving in module-scope object
          - saving to the connected_sessions cassandra table
