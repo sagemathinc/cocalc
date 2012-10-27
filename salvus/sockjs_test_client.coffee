@@ -3,12 +3,12 @@ sjsc = require("sockjs-client-ws")
 winston = require("winston")
 
 
-class exports.Client
+class exports.WebSocketClient
     """
     EXAMPLES:
 
         messages = []; message = require('salvus_message')
-        c = new (require("hub_client").Client)('localhost', 5000, (m) -> messages.push(m); console.log(m))
+        c = new (require("sockjs_test_client").Client)('localhost', 5000, (m) -> messages.push(m); console.log(m))
 
         # stateless_exec of code:
         c.send(message.execute_code(0,'2+2'))
@@ -29,11 +29,11 @@ class exports.Client
         c.send(message.send_signal(m.session_uuid))
         
     """
-    constructor: (address, port, data_cb) ->
+    constructor: (address, port, recv) ->
         @client = sjsc.create("http://#{address}:#{port}/hub")  # https is not supported
         @client.on('connection', -> winston.info("connection established"))
         @client.on('error', (e) -> winston.error("error: #{e}"))
-        @client.on('data', (mesg) -> data_cb(JSON.parse(mesg)))
+        @client.on('data', (mesg) -> recv(JSON.parse(mesg)))
         
     send: (mesg) ->
         #console.log("sending... #{JSON.stringify(mesg)}")
@@ -47,14 +47,16 @@ class exports.PersistentSession
     """
     EXAMPLES
 
-        c = new (require("hub_client").PersistentSession)('localhost', 5000, (m) -> console.log(m))
+        t = require("sockjs_test_client")
+        c = new (t.PersistentSession)('localhost', 5000, t.WebSocketClient,(m) -> console.log(m))
+        
         message = require('salvus_message'); c.send(message.execute_code(0,'a=10')); c.send(message.execute_code(0,'a'))
         c.send(message.execute_code(0, 'factor(2^997-1)'))
         c.send(message.send_signal())        
     """
-    constructor: (address, port, cb) ->
+    constructor: (address, port, Client, cb) ->
         @cb = cb
-        @c = new exports.Client(address, port, (mesg) =>
+        @c = new Client(address, port, (mesg) =>
             if mesg.event == "new_session"
                 @session_uuid = mesg.session_uuid
             else
@@ -71,6 +73,8 @@ class exports.PersistentSession
 
 
 
+
+
 ###
 # Various tests
 ###
@@ -79,7 +83,7 @@ walltime = -> (new Date()).getTime()
 
 exports.test_persistent_session_speed = (n=100, address='localhost', port=5000) ->
     # 
-    #   require("hub_client").test_persistent_session_speed(100)
+    #   require("sockjs_test_client").test_persistent_session_speed(100)
     # 
     # do n evaluations of 2+2 using a persistent connection and display the number of transactions per second
 

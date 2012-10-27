@@ -6109,6 +6109,10 @@ TODO:
 
     [x] make a coffeescript client that can use persistent session over websocket
     [x] client ability to send SIGINT, SIGKILL, etc.
+    [ ] refactor code in sockjs_test_client.coffee:
+          - move pure client code to a new coffee-script file, so can
+            be shared between testing and client code
+          - add support for non-websocket sockjs client, for better testing
 
     [ ] persistent session termination:
             - client should get a message when persistent session terminates, e.g., from being killed, timed out, etc.

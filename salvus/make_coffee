@@ -10,7 +10,7 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ###########
 # Backend server code:
 ###########
-coffee -o node_modules -c hub.coffee hub_client.coffee sage.coffee salvus_message.coffee cassandra.coffee misc.coffee
+coffee -o node_modules -c *.coffee
 
 ###########
 # Code shared between backend servers and web browser clients
