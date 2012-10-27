@@ -16,7 +16,7 @@ coffee -o node_modules -c *.coffee
 # Code shared between backend servers and web browser clients
 ###########
 # these can be generated in the background since node server doesn't use them directly.
-cp node_modules/salvus_message.js static/salvus/ &
+cp node_modules/salvus_message.js node_modules/salvus_client.js static/salvus/ &
 
 coffee -o static/salvus/ -c static/salvus/salvus.coffee &
 coffee -o static/ -c static/index.coffee &

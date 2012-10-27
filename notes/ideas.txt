@@ -8,3 +8,5 @@
      presentation, and have it compile and execute output directly
      back into the presentation itself. I believe it's similar to the
      tech running behind the play.golang.org site."
+
+ [ ] even much cooler slides: https://github.com/hakimel/reveal.js/

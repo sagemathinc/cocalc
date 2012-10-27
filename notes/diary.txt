@@ -6091,7 +6091,7 @@ Oct 27 at 7:57am
 
 TODO:
 
-[ ] Install windows 8 enterprise for client testing.
+[x] Install windows 8 enterprise for client testing. ICK.
 
 [x] support persistent sessions by extending the execute_code message
     to take an optional session_uuid.  If specified, then execution
@@ -6110,9 +6110,24 @@ TODO:
     [x] make a coffeescript client that can use persistent session over websocket
     [x] client ability to send SIGINT, SIGKILL, etc.
     [ ] refactor code in sockjs_test_client.coffee:
-          - move pure client code to a new coffee-script file, so can
-            be shared between testing and client code
-          - add support for non-websocket sockjs client, for better testing
+          [x]- move pure client code to a new coffee-script file, so can
+                be shared between testing and client code
+
+[ ] Setup a module system and optimizer to organize my client webapp
+    and easily allow for code sharing between client and server.
+
+step back -- I'm having trouble writing cleanly organized code
+for both the browser and node at the same time without getting my head
+around modules in the browser.  Namely: http://requirejs.org/
+
+ r.js -o name=require-jquery out=a.js baseUrl=.
+
+I'm not loving this requireJS at all.  It's really annoying.  Another thing seems good:
+
+   https://github.com/medikoo/modules-webmake
+
+
+          [ ] - add support for non-websocket sockjs client, for better testing
 
     [ ] persistent session termination:
             - client should get a message when persistent session terminates, e.g., from being killed, timed out, etc.

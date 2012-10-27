@@ -9,11 +9,10 @@
     <!-- Bootstrap -->
     <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
-
-<style type="text/css">
-body { padding-top:60px; }
-@media (max-width: 979px) { body { padding-top: 0px; } }  
-</style>
+    <style type="text/css">  /* workaround responsive bootstrap menu issue */
+      body { padding-top:60px; }
+      @media (max-width: 979px) { body { padding-top: 0px; } }  
+    </style>
 
   </head>
   <body>
@@ -145,6 +144,10 @@ body { padding-top:60px; }
     <script type="text/javascript" src="/salvus/salvus_message.js"></script>
     <script type="text/javascript" src="/salvus/salvus.js"></script>
     <script type="text/javascript" src="index.js"></script>
+
+    <script type="text/javascript" src="/scripts/a.js"></script>
+
+
 
   </body>
 </html>

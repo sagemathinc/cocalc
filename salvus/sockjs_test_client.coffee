@@ -39,44 +39,12 @@ class exports.WebSocketClient
         #console.log("sending... #{JSON.stringify(mesg)}")
         @client.write(JSON.stringify(mesg))
 
-###
-# Persistent connection to a particular sage session
-###
-
-class exports.PersistentSession
-    """
-    EXAMPLES
-
-        t = require("sockjs_test_client")
-        c = new (t.PersistentSession)('localhost', 5000, t.WebSocketClient,(m) -> console.log(m))
-        
-        message = require('salvus_message'); c.send(message.execute_code(0,'a=10')); c.send(message.execute_code(0,'a'))
-        c.send(message.execute_code(0, 'factor(2^997-1)'))
-        c.send(message.send_signal())        
-    """
-    constructor: (address, port, Client, cb) ->
-        @cb = cb
-        @c = new Client(address, port, (mesg) =>
-            if mesg.event == "new_session"
-                @session_uuid = mesg.session_uuid
-            else
-                @cb(mesg)
-        )
-        @c.send(message.start_session({walltime:60*5, cputime:60*5, numfiles:1000, vmem:2000}))
-        
-    send: (mesg) ->
-        mesg.session_uuid = @session_uuid
-        @c.send(mesg)
-
-
-
-
 
 
 
 
 ###
-# Various tests
+# Various tests / crap to delete?
 ###
 
 walltime = -> (new Date()).getTime()
