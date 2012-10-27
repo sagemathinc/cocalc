@@ -6062,7 +6062,16 @@ session_uuid it used as metadata.  If that session is live, when
 opening the project, we can connect back into it.
 
  [x] python wrapper class for session object
- [ ] CS wrapper class for session object
+ [x] CS wrapper class for session object
+
+---
+
+Not sure that was a good idea.  More generic would be having
+UUID:Value stores, and add ttl support to both them and KeyValueStore. 
+That would be useful in many places, and solve this problem nicely. 
+ [x] uuid:value store
+
+
 
 ---------
 

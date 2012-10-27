@@ -4,47 +4,47 @@ misc = require('misc')
 winston = require('winston')            # https://github.com/flatiron/winston
 helenus = require("helenus")            # https://github.com/simplereach/helenus
 
-class Sessions
+class UUIDValueStore
     # EXAMPLES:
-    # c = new (require("cassandra").Cassandra)(['localhost']); s = c.sessions('sage'); u = c.sessions('user')
-    # s.register(4, 'localhost', 5000, 30, (err,r) -> console.log(err))
-    # u.register(5, 'localhost', 5000, 30, (err,r) -> console.log(err))
+    # c = new (require("cassandra").Cassandra)(['localhost']); s = c.uuid_value_store('sage'); u = c.uuid_value_store('user')
+    # s.set(4, {address:'localhost', port:5000}, 30, (err,r) -> console.log(err))
+    # u.set(7, {address:'localhost', port:5000})
+    # u.get(7, (r) -> console.log(r))
     # 
-    constructor: (conn, type) ->
+    constructor: (conn, name) ->
         @conn = conn
-        @type = type
+        @name = name
         
-    register: (uuid, address, port, ttl, cb) ->
-        @conn.cql("UPDATE sessions USING TTL ? SET address = ?, port = ? WHERE type = ? AND uuid = ?",
-                 [ttl, address, port, @type, uuid], cb)
+    set: (uuid, value, ttl, cb) ->
+        @conn.cql("UPDATE uuid_value USING TTL ? SET value = ? WHERE name = ? AND uuid = ?",
+                 [ttl, JSON.stringify(value), @name, uuid], cb)
                 
     delete: (uuid, cb) ->
-        @conn.cql("DELETE FROM sessions WHERE type = ? AND uuid = ?", [@type, uuid], cb)
+        @conn.cql("DELETE FROM uuid_value WHERE name = ? AND uuid = ?", [@name, uuid], cb)
 
-    location: (uuid, cb) ->
-        @conn.cql("SELECT address, port FROM sessions WHERE type = ? and uuid = ?", [@type, uuid],
-            (err,results) -> cb(
-                if results.length==1
-                    {address:results[0].get('address').value,port:results[0].get('port').value}
-                else
-                    null
-            )
+    get: (uuid, cb) ->
+        @conn.cql("SELECT value FROM uuid_value WHERE name = ? and uuid = ?", [@name, uuid],
+            (err, results) -> cb(if results.length == 1 then JSON.parse(results[0].get('value').value) else null)
         )
+            
+    length: (cb) ->
+        @conn.cql("SELECT COUNT(*) FROM uuid_value WHERE name = ?", [@name],
+            (err, results) -> cb(results[0].get('count').value))
             
 
 class KeyValueStore
     # EXAMPLE:
     #   c = new (require("cassandra").Cassandra)(['localhost']); d = c.key_value_store('test')
-    #   d.set([1,2], [465, {abc:123, xyz:[1,2]}])
-    #   d.get([1,2], (r) -> console.log(r))
+    #   d.set([1,2], [465, {abc:123, xyz:[1,2]}], 5)   # 5 = ttl
+    #   d.get([1,2], (r) -> console.log(r))   # but call it again in > 5 seconds and get nothing...
     # 
     constructor: (conn, name) ->
         @conn = conn
         @name = name
 
-    set: (key, value, cb) ->
-        @conn.cql("UPDATE key_value SET value = ? WHERE name = ? and key = ?",
-                    [JSON.stringify(value), @name, JSON.stringify(key)], cb)
+    set: (key, value, ttl, cb) ->
+        @conn.cql("UPDATE key_value USING TTL ? SET value = ? WHERE name = ? and key = ?",
+                    [ttl, JSON.stringify(value), @name, JSON.stringify(key)], cb)
 
     # cb(cache[key])
     get: (key, cb) ->
@@ -86,9 +86,9 @@ class exports.Cassandra
         @running_sage_servers((res) -> cb(if res.length == 0 then null else misc.random_choice(res)))
 
     key_value_store: (name) -> new KeyValueStore(@conn, name)
-
-    sessions: (type) -> new Sessions(@conn, type)
-               
+    
+    uuid_value_store: (name) -> new UUIDValueStore(@conn, name)
+    
 ###
 
 c = new (require("cassandra").Cassandra)(['localhost'])

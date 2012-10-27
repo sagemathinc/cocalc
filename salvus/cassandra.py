@@ -80,14 +80,13 @@ def keyspace_exists(con, keyspace):
 # create various tables
 ######################################        
 
-def create_sessions_table(cursor):
+def create_uuid_value_table(cursor):
     cursor.execute("""
-CREATE TABLE sessions (
-     type varchar,
+CREATE TABLE uuid_value (
+     name varchar,
      uuid uuid,
-     address varchar,
-     port int,
-     PRIMARY KEY(type, uuid)
+     value varchar,
+     PRIMARY KEY(name, uuid)
 )
 """)
 
@@ -95,7 +94,7 @@ CREATE TABLE sessions (
 def create_key_value_table(cursor):
     cursor.execute("""
 CREATE TABLE key_value (
-     name uuid,
+     name varchar,
      key varchar,
      value varchar,
      PRIMARY KEY(name, key)
@@ -218,52 +217,75 @@ class User(object):
 
     def properties(self):
         return [str(c[0]) for c in cursor_execute("SELECT property FROM users WHERE id=:x", {'x':self._id})]
-        
-##########################################################################
-# sessions
-##########################################################################
-class Sessions(object):
-    def __init__(self, type):
-        self._type = type
-        
-    def register(self, uuid, address, port, ttl):   # ttl = time to live in seconds
-        cursor_execute("UPDATE sessions USING TTL :ttl SET address = :address, port = :port WHERE type = :type AND uuid = :uuid",
-                       {'address':address, 'port':port, 'type':self._type, 'uuid':uuid, 'ttl':ttl})
-
-    def delete(self, uuid):
-        cursor_execute("DELETE FROM sessions WHERE type = :type AND uuid = :uuid",
-                       {'type':self._type, 'uuid':uuid})
-
-    def location(self, uuid):
-        c = cursor_execute("SELECT address, port FROM sessions WHERE type = :type and uuid = :uuid",
-                           {'type':self._type, 'uuid':uuid}).fetchone()
-        return {'address':c[0], 'port':c[1]} if c else None
-        
 
 ##########################################################################
-# JSON object key:value Store
+def to_json(x):
+    # this format is very important for compatibility with the node client
+    return json.dumps(x, separators=(',',':'))
+        
+##########################################################################
+# uuid : JSON value   store
+##########################################################################
+class UUIDValueStore(object):
+    def __init__(self, name):
+        self._name = name
+
+    def __len__(self):
+        return cursor_execute("SELECT COUNT(*) FROM key_value WHERE name = :name", {'name':self._name}).fetchone()[0]
+
+    def __getitem__(self, uuid):
+        c = cursor_execute("SELECT value FROM uuid_value WHERE name = :name AND uuid = :uuid LIMIT 1",
+                           {'name':self._name, 'uuid':uuid}).fetchone()
+        return json.loads(c[0]) if c else None
+
+    def __setitem__(self, uuid, value):
+        if value is None:
+            del self[uuid]
+        else:
+            self.set(uuid, value)
+
+    def set(self, uuid, value, ttl=0):
+        cursor_execute("UPDATE uuid_value USING TTL :ttl SET value = :value WHERE name = :name and uuid = :uuid",
+                       {'value':to_json(value), 'name':self._name, 'uuid':uuid, 'ttl':ttl})
+
+    def __delitem__(self, uuid):
+        cursor_execute("DELETE FROM uuid_value WHERE name = :name AND uuid = :uuid", {'name':self._name, 'uuid':uuid})
+
+    def delete_all(self):
+        cursor_execute("DELETE FROM uuid_value WHERE name = :name", {'name':self._name})
+        
+
+##########################################################################
+# JSON key : JSON value  store
 ##########################################################################
 class KeyValueStore(object):
     def __init__(self, name):
         self._name = name
+
+    def __len__(self):
+        return cursor_execute("SELECT COUNT(*) FROM key_value WHERE name = :name", {'name':self._name}).fetchone()[0]
 
     def _to_json(self, x):
         return json.dumps(x, separators=(',',':'))
         
     def __getitem__(self, key):
         c = cursor_execute("SELECT value FROM key_value WHERE name = :name AND key = :key LIMIT 1",
-                           {'name':self._name, 'key':self._to_json(key)}).fetchone()
+                           {'name':self._name, 'key':to_json(key)}).fetchone()
         return json.loads(c[0]) if c else None
 
     def __setitem__(self, key, value):
         if value is None:
             del self[key]
-        cursor_execute("UPDATE key_value SET value = :value WHERE name = :name and key = :key",
-                       {'value':self._to_json(value), 'name':self._name, 'key':self._to_json(key)})
+        else:
+            self.set(key, value)
 
+    def set(self, key, value, ttl=0):
+        cursor_execute("UPDATE key_value USING TTL :ttl SET value = :value WHERE name = :name and key = :key",
+                       {'value':to_json(value), 'name':self._name, 'key':to_json(key), 'ttl':ttl})
+        
     def __delitem__(self, key):
         cursor_execute("DELETE FROM key_value WHERE name = :name AND key = :key",
-                       {'name':self._name, 'key':self._to_json(key)})
+                       {'name':self._name, 'key':to_json(key)})
 
     def delete_all(self):
         cursor_execute("DELETE FROM key_value WHERE name = :name", {'name':self._name})
