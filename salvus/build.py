@@ -34,7 +34,7 @@ BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 
 NODEJS_PACKAGES = [
-    'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus', 'sockjs-client-ws', 'coffee-script'
+    'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus', 'sockjs-client-ws', 'coffee-script', 'node-uuid'
     ]
 
 PYTHON_PACKAGES = [

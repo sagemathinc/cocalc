@@ -22,7 +22,7 @@ program = require('commander')          # command line arguments -- https://gith
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
 winston = require('winston')            # logging -- https://github.com/flatiron/winston
 sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
-
+uuid    = require('node-uuid')
 
 # module scope variables:
 http_server = null
@@ -49,20 +49,26 @@ init_sockjs_server = () ->
         sockjs_connections.push(conn)
         winston.info ("new sockjs connection #{conn}; all connections #{sockjs_connections}")
         # install event handlers on this particular connection
+
+        push_to_client = (msg) -> conn.write(JSON.stringify(msg))
+        
         conn.on("data", (mesg) ->
             mesg = JSON.parse(mesg)
-            winston.info("conn=#{conn} received sockjs mesg: #{mesg}")
-            
-            # handle mesg
+            winston.info("conn=#{conn} received sockjs mesg: #{JSON.stringify(mesg)}")
+
+            ###
+            # handle message
+            ###
+            # execute_code
             if mesg.event == "execute_code"
-                # stateless code execution
-                f = stateless_sage_exec
-                #f = stateless_sage_exec_fake
-                #f = stateless_sage_exec_nocache
-                f(mesg, (output_message) ->
-                    winston.info("output_message = #{JSON.stringify(output_message)}")
-                    conn.write(JSON.stringify(output_message))
-                )
+                if mesg.session_uuid
+                    persistent_sage_exec(mesg)
+                else
+                    stateless_sage_exec(mesg, push_to_client)
+                    
+            # create a new persistent session
+            else if mesg.event == "start_session"
+                create_persistent_sage_session(mesg, push_to_client)
                 
         )
         conn.on("close", ->
@@ -76,6 +82,39 @@ init_sockjs_server = () ->
 ###
 # Persistent Sage Sessions
 ###
+persistent_sage_sessions = {}
+
+create_persistent_sage_session = (mesg, push_to_client) ->
+    winston.log('creating persistent sage session')
+    # generate a uuid
+    session_uuid = uuid.v4()
+    pid = null
+    cassandra.random_sage_server( (sage_server) ->
+        sage_conn = new sage.Connection(
+            host:sage_server.host
+            port:sage_server.port
+            recv:(m) ->
+                winston.info("(hub) persistent_sage_conn (#{uuid})-- recv(#{JSON.stringify(mesg)})")
+                if m.event == 'output'  # new output from sage process
+                    m.session_uuid = session_uuid  # tag with session uuid
+                    push_to_client(m)
+                else if m.event == 'session_description'  # we successfully got a new session!
+                    pid = m.pid  # record this for later use for signals
+                    push_to_client(message.new_session(session_uuid, m.limits))
+            cb: ->
+                winston.info("(hub) persistent_sage_conn -- connected.")
+                # send message to server requesting parameters for this session
+                sage_conn.send(mesg)
+        )
+        # Save sage_conn object so that when the user requests evaluation of
+        # code in the session with this id, we use this.
+        persistent_sage_sessions[session_uuid] = sage_conn
+        winston.info("added to persistent sessions; now = #{persistent_sage_sessions}")
+    )
+
+persistent_sage_exec = (mesg) ->
+    persistent_sage_sessions[mesg.session_uuid].send(mesg)
+    
 
 
 ###
@@ -85,7 +124,7 @@ stateless_exec_cache = null
 
 init_stateless_exec = () ->
     stateless_exec_cache = cassandra.key_value_store('stateless_exec')
-    
+
 stateless_sage_exec = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec #{JSON.stringify(input_mesg)}")
     stateless_exec_cache.get(input_mesg.code, (output) ->
@@ -101,6 +140,7 @@ stateless_sage_exec = (input_mesg, output_message_callback) ->
                     output_messages.push(mesg)
                 output_message_callback(mesg)
                 if mesg.done
+                    winston.info("caching result")
                     stateless_exec_cache.set(input_mesg.code, output_messages)
             )
     )
@@ -118,7 +158,7 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
             output_message_callback(mesg)
         cb: ->
             winston.info("(hub) sage_conn -- sage: connected.")
-            sage_conn.send(message.start_session(20, 20)) # max_walltime=max_cputime=20 seconds
+            sage_conn.send(message.start_session({walltime:20, cputime:20, numfiles:1000, vmem:2048}))
             winston.info("(hub) sage_conn -- send: #{JSON.stringify(input_mesg)}")
             sage_conn.send(input_mesg)
             sage_conn.terminate_session()
@@ -130,8 +170,8 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
         if sage_server
             stateless_exec_using_server(input_mesg, output_message_callback, sage_server.address, sage_server.port)
         else
+            winston.error("(hub) no sage servers!")
             output_message_callback(message.terminate_session('no Sage servers'))
-            return
     )
     
     

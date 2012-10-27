@@ -82,10 +82,11 @@ class Message(object):
                 m[key] = val
         return m
         
-    def start_session(self, max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=2048):
+    def start_session(self, limits={'walltime':3600, 'cputime':3600, 'numfiles':1000, 'vmem':2048}):
+        limits = dict(limits)
         return self._new('start_session', locals())
 
-    def session_description(self, pid):
+    def session_description(self, pid, limits):
         return self._new('session_description', locals())
 
     def send_signal(self, pid, signal=signal.SIGINT):
@@ -214,15 +215,15 @@ def drop_privileges(id, home):
     os.chdir(home)
 
 namespace = {}
-def session(conn, home, cputime, nofile, vmem, uid):
+def session(conn, home, cputime, numfiles, vmem, uid):
     pid = os.getpid()
     if home is not None:
         drop_privileges(uid, home)
 
     if cputime is not None:
         resource.setrlimit(resource.RLIMIT_CPU, (cputime,cputime))
-    if nofile is not None:
-        resource.setrlimit(resource.RLIMIT_NOFILE, (nofile,nofile))
+    if numfiles is not None:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (numfiles,numfiles))
     if vmem is not None:
         if os.uname()[0] == 'Linux':
             resource.setrlimit(resource.RLIMIT_AS, (vmem*1048576L, -1L))
@@ -338,7 +339,6 @@ def serve_connection(conn):
         return
 
     if mesg['event'] != 'start_session':
-        #log.info('invalid message type request')
         return
 
     # start a session
@@ -347,18 +347,19 @@ def serve_connection(conn):
     pid = os.fork()
     if pid:
         # parent
-        C = Connection(pid=pid, uid=uid, home=home, maxtime=mesg['max_walltime'])
+        C = Connection(pid=pid, uid=uid, home=home, maxtime=mesg['limits']['walltime'])
         C.monitor()
     else:
         # child
-        conn.send(message.session_description(os.getpid()))
-        session(conn, home, mesg['max_cputime'], mesg['max_numfiles'], mesg['max_vmem'], uid)
+        limits = mesg['limits']
+        conn.send(message.session_description(os.getpid(), limits))
+        session(conn, home, cputime=limits['cputime'], numfiles=limits['numfiles'], vmem=limits['vmem'], uid=uid)
     
 def serve(port, address):
     signal.signal(signal.SIGCHLD, handle_session_term)
 
     tm = time.time()
-    #log.info('pre-importing the sage library...')
+    print "pre-importing the sage library..."
     import sage.all
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?

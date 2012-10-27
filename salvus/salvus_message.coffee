@@ -12,26 +12,21 @@
 SalvusMessage = exports? and exports or @SalvusMessage = {}
 
 # hub --> sage_server and browser --> hub
-SalvusMessage.start_session = (max_walltime=3600, max_cputime=3600, max_numfiles=1000, max_vmem=2048) -> 
+SalvusMessage.start_session = (limits={}) -> 
     event:'start_session'
-    max_walltime:max_walltime
-    max_cputime:max_cputime
-    max_numfiles:max_numfiles
-    max_vmem:max_vmem
+    limits:limits  # limits is an object {walltime:?, cputime:?, numfiles:?, vmem:?}
 
 # hub --> browser
-SalvusMessage.new_session = (uuid, max_walltime, max_cputime, max_numfiles, max_vmem) ->
+SalvusMessage.new_session = (session_uuid, limits) ->
     event:'new_session'
-    uuid:uuid
-    max_walltime:max_walltime
-    max_cputime:max_cputime
-    max_numfiles:max_numfiles
-    max_vmem:max_vmem
+    session_uuid:session_uuid
+    limits:limits
 
 # sage_server --> hub
-SalvusMessage.session_description = (pid) ->
+SalvusMessage.session_description = (pid, limits) ->
     event:'session_description'
     pid:pid
+    limits:limits
 
 # browser --> hub --> sage_server
 SalvusMessage.send_signal = (pid, signal=2) -> # 2=SIGINT
@@ -46,19 +41,21 @@ SalvusMessage.terminate_session = (reason='') ->
     done:true
 
 # browser --> hub --> sage_server
-SalvusMessage.execute_code = (id, code, preparse=true) ->
+SalvusMessage.execute_code = (id, code, session_uuid=null, preparse=true) ->
     event:'execute_code'
     id:id
     code:code
+    session_uuid:session_uuid
     preparse:preparse
         
 # sage_server --> hub_i --> hub_j --> browser
-SalvusMessage.output = (id, stdout=null, stderr=null, done=null) ->
+SalvusMessage.output = (id, stdout=null, stderr=null, done=null, session_uuid=null) ->
     event:'output'
     id:id
     stdout:stdout
     stderr:stderr
     done:done
+    session_uuid:session_uuid
 
 # hub --> browser
 SalvusMessage.logged_in = (name) ->
