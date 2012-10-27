@@ -5914,10 +5914,7 @@ Surprisingly, after apt-get upgrade'ing it the network stopped working!  So I'm 
 
 Need libbz2-dev to build bz2 module in Python to build node:
 
-  sudo apt-get install libbz2-dev
-  ./build.py --build_python
-  ./build.py --build_node
-  ./build.py --build_node_packages
+  sudo apt-get install libbz2-dev; ./build.py --build_python; ./build.py --build_nodejs; ./build.py --build_nodejs_packages
 
 No coffeescript.
 
@@ -6033,50 +6030,65 @@ watch hub.coffee ./hub restart --port 5000 --tcp_port 5001 --address 127.0.0.1 -
 
     [x] caching single session in db, just because I should, and it is a trivial app of cassandra
 
+
+Oct 26 at 5pm:
+--------------
+
     [ ] hub.coffee -- make it so clients can create persistent sessions:
 
-[ ] new cassandra tables:
+DATABASE MODEL -- new cassandra tables with ttl, so if node
+doesn't actively check in to confirm that session or user is alive,
+they vanish.
 
-sage_sessions:
-   session_uuid, hub_address, user_uuid, readonly (bool)
+hub_connections:
+   uuid, type, address, port   # with a ttl
 
-   [ ] cassandra.py -- create table and SageSessions class as below.
-   [ ] cassandra.coffee -- create class SageSessions with methods.
-        - user_sessions(user_uuid) --> [(session_uuid, hub_address, readonly), ... ]
-        - session_address(session_uuid) --> hub_address
-        - user_may_read(user_uuid, session_uuid) --> bool (true if user can read this session at least)
-        - user_may_write(user_uuid, session_uuid) --> bool (true if user can write to this session)
-        - create_session(session_uuid, hub_address, [user_uuid])
-        - add_user_to_session(session_uuid, user_uuid, readonly)
-        - remove_user_from_session(user_uuid, session_uuid, readonly)
-        - delete_session(session_uuid)
+where:
 
-sage_session_current_members:
-   session_uuid, user_uuid, user_hub_address, readonly (bool)
+    uuid = a unique id
+    type = 'sage', 'user', 'sagenb'
+         = etc... later could include a sagenb connection, an ipython notebook connection, etc.
+    address = address of a hub
+    port = port of a hub
 
-[ ] new message type that only needs to be supported in javascript
-    (not python sage, since sage servers know nothing about session id or users):
+ * Node process stores uuid's of users that it broadcasts incoming
+   messages from a session (or other users) to.  This works because a
+   session exists only as long as the node process it is connected to
+   exists.  This also avoids not-needed queries to the DB, which are
+   expensive.
+
+When we have projects, the project will also store the last
+session_uuid it used as metadata.  If that session is live, when
+opening the project, we can connect back into it.
+
+ [x] python wrapper class for session object
+ [ ] CS wrapper class for session object
+
+---------
+
+[ ] new message type that *only* needs to be supported in javascript:
         {event:'new_session',
          session_uuid:'....',
-         max_walltime...}
-    This message goes from Hub server to browser client.
+         max_walltime:...}
+    This message goes *from* Hub server to browser client.
 
 [ ] Enhance the start_session message type from the browser client to the hub by:
          - confirming/shrinking max params,
          - allocating new session connection to a sage server and saving in module-scope object
-         - saving to the sage_session table above via sage_sessions.create_session(session_uuid, hub_address, user_uuid)
+         - saving to the connected_sessions cassandra table
 
-[ ] support persistent sessions by extending the execute_code message to take
-    an optional session_uuid.  If specified, then execution takes place in that session.
-    If not specified, then a session is made for that one single code execution. 
+[ ] support persistent sessions by extending the execute_code message
+    to take an optional session_uuid.  If specified, then execution
+    takes place in that session.  If not specified, then an ephemeral
+    session is made for that one single code execution.
 
-    NOTE: When execution is taking place in a session, the session_uuid has to added
-    back into messages coming back from the sage connection.         
+    NOTE: When execution is taking place in a session, the
+    session_uuid has to be added back into messages coming back from
+    that sage connection.
 
 [ ] Make a simple node client to test that the above works right, and
     is fast.  It should be extremely fast due to not having to fork
     and exchange a bunch of messages.
-    
 
     [ ] make a coffeescript client that can use persistent session over websocket
     [ ] make it so client can find out how much wall and cpu time remains in a given session (store in db?)
@@ -6086,3 +6098,14 @@ sage_session_current_members:
     [ ] html: move input box below output and make output scroll up, exactly like a command line
     [ ] html: make output accumulate and include input
 
+
+video about cassandra: http://www.myvidster.com/video/8292247/Apache_Cassandra_noSQL_Yes_to_Scale
+
+
+[ ] Apache Benchmark -- I should make something that uses this be a standard part of admin/monitor:
+
+   ab -n 40000 -c 1 localhost:5000/
+
+Doesn't work at all on my laptop, but works fine on a linux box.
+
+[ ] I just made: http://salvusmath.blogspot.com/

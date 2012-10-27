@@ -4,6 +4,34 @@ misc = require('misc')
 winston = require('winston')            # https://github.com/flatiron/winston
 helenus = require("helenus")            # https://github.com/simplereach/helenus
 
+class Sessions
+    # EXAMPLES:
+    # c = new (require("cassandra").Cassandra)(['localhost']); s = c.sessions('sage'); u = c.sessions('user')
+    # s.register(4, 'localhost', 5000, 30, (err,r) -> console.log(err))
+    # u.register(5, 'localhost', 5000, 30, (err,r) -> console.log(err))
+    # 
+    constructor: (conn, type) ->
+        @conn = conn
+        @type = type
+        
+    register: (uuid, address, port, ttl, cb) ->
+        @conn.cql("UPDATE sessions USING TTL ? SET address = ?, port = ? WHERE type = ? AND uuid = ?",
+                 [ttl, address, port, @type, uuid], cb)
+                
+    delete: (uuid, cb) ->
+        @conn.cql("DELETE FROM sessions WHERE type = ? AND uuid = ?", [@type, uuid], cb)
+
+    location: (uuid, cb) ->
+        @conn.cql("SELECT address, port FROM sessions WHERE type = ? and uuid = ?", [@type, uuid],
+            (err,results) -> cb(
+                if results.length==1
+                    {address:results[0].get('address').value,port:results[0].get('port').value}
+                else
+                    null
+            )
+        )
+            
+
 class KeyValueStore
     # EXAMPLE:
     #   c = new (require("cassandra").Cassandra)(['localhost']); d = c.key_value_store('test')
@@ -57,7 +85,9 @@ class exports.Cassandra
     random_sage_server: (cb) ->
         @running_sage_servers((res) -> cb(if res.length == 0 then null else misc.random_choice(res)))
 
-    key_value_store: (name, cb) -> new KeyValueStore(@conn, name)
+    key_value_store: (name) -> new KeyValueStore(@conn, name)
+
+    sessions: (type) -> new Sessions(@conn, type)
                
 ###
 

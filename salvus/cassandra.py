@@ -80,10 +80,22 @@ def keyspace_exists(con, keyspace):
 # create various tables
 ######################################        
 
+def create_sessions_table(cursor):
+    cursor.execute("""
+CREATE TABLE sessions (
+     type varchar,
+     uuid uuid,
+     address varchar,
+     port int,
+     PRIMARY KEY(type, uuid)
+)
+""")
+
+
 def create_key_value_table(cursor):
     cursor.execute("""
 CREATE TABLE key_value (
-     name varchar,
+     name uuid,
      key varchar,
      value varchar,
      PRIMARY KEY(name, key)
@@ -169,6 +181,8 @@ def init_salvus_schema():
         # for when I'm rich:
         #cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 3 AND strategy_options:DC1 = 3 and strategy_options:DC2 = 3")
         cursor.execute("USE salvus")
+        create_sessions_table(cursor)
+        create_key_value_table(cursor)
         create_stateless_exec_table(cursor)
         create_services_table(cursor)
         create_status_table(cursor)
@@ -204,6 +218,26 @@ class User(object):
 
     def properties(self):
         return [str(c[0]) for c in cursor_execute("SELECT property FROM users WHERE id=:x", {'x':self._id})]
+        
+##########################################################################
+# sessions
+##########################################################################
+class Sessions(object):
+    def __init__(self, type):
+        self._type = type
+        
+    def register(self, uuid, address, port, ttl):   # ttl = time to live in seconds
+        cursor_execute("UPDATE sessions USING TTL :ttl SET address = :address, port = :port WHERE type = :type AND uuid = :uuid",
+                       {'address':address, 'port':port, 'type':self._type, 'uuid':uuid, 'ttl':ttl})
+
+    def delete(self, uuid):
+        cursor_execute("DELETE FROM sessions WHERE type = :type AND uuid = :uuid",
+                       {'type':self._type, 'uuid':uuid})
+
+    def location(self, uuid):
+        c = cursor_execute("SELECT address, port FROM sessions WHERE type = :type and uuid = :uuid",
+                           {'type':self._type, 'uuid':uuid}).fetchone()
+        return {'address':c[0], 'port':c[1]} if c else None
         
 
 ##########################################################################

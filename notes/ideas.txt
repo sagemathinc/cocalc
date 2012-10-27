@@ -1,1 +1,10 @@
 [ ] from scratch javascript slideshow that is *really* nice -- view source on http://talks.golang.org/2012/splash.slide#1
+
+    "It's a tool called Present written by Rob Pike and Andrew Gerrand from the Go team:
+     https://code.google.com/p/go/source/browse/present?repo=talk...
+     They gave a presentation about it a couple of weeks ago at the
+     Sydney golang meetup. It has an interesting feature where it runs
+     a built-in websocket server that can be used to embed code in the
+     presentation, and have it compile and execute output directly
+     back into the presentation itself. I believe it's similar to the
+     tech running behind the play.golang.org site."
