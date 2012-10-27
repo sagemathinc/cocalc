@@ -34,7 +34,7 @@ class exports.Connection
                     # read a new message from our buffer
                     mesg = @buf.slice(4, @buf_target_length)
                     s = mesg.toString()
-                    winston.info("(sage.coffee) received message: #{s}")
+                    #winston.info("(sage.coffee) received message: #{s}")
                     @recv(JSON.parse(s))
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1

@@ -33,11 +33,40 @@ class exports.Client
         @client.on('data', (mesg) -> data_cb(JSON.parse(mesg)))
         
     send: (mesg) ->
+        #console.log("sending... #{JSON.stringify(mesg)}")
         @client.write(JSON.stringify(mesg))
 
 
+###
+# Various tests
+###
 
+walltime = -> (new Date()).getTime()
 
+exports.test_persistent_session_speed = (n=100, address='localhost', port=5000) ->
+    # 
+    #   require("hub_client").test_persistent_session_speed(100)
+    # 
+    # do n evaluations of 2+2 using a persistent connection and display the number of transactions per second
+
+    session_uuid = null
+    tm = null
+    c = new exports.Client(address, port,
+        (mesg) =>
+            #console.log("received: #{JSON.stringify(mesg)}")
+            if mesg.event == 'new_session'
+                console.log('new_session')
+                tm = walltime()
+                (c.send(message.execute_code(i, '2+2', mesg.session_uuid)) for i in [1...n+1])
+            else if mesg.event == 'output' and mesg.id == n
+                t = walltime()
+                console.log("total time: #{t - tm}")
+                console.log("number per second: #{Math.floor(n*1000.0/(t - tm))}")
+    )
+
+    console.log("c = #{c}")
+    
+    c.send(message.start_session({walltime:60, cputime:60, numfiles:1000, vmem:2000}))
 
 
 #########################################################################
@@ -52,7 +81,7 @@ class exports.Client
 
 #client = sjsc.create("http://10.1.1.3:5000/node")
 
-walltime = -> (new Date()).getTime()
+
 tm = 0
 n = 0
 

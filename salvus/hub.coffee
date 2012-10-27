@@ -94,7 +94,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
             host:sage_server.host
             port:sage_server.port
             recv:(m) ->
-                winston.info("(hub) persistent_sage_conn (#{uuid})-- recv(#{JSON.stringify(mesg)})")
+                #winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{JSON.stringify(mesg)})")
                 if m.event == 'output'  # new output from sage process
                     m.session_uuid = session_uuid  # tag with session uuid
                     push_to_client(m)
@@ -113,7 +113,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
     )
 
 persistent_sage_exec = (mesg) ->
-    persistent_sage_sessions[mesg.session_uuid].send(mesg)
+    persistent_sage_sessions[mesg.session_uuid]?.send(mesg)
     
 
 
