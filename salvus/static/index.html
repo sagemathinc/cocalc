@@ -27,48 +27,37 @@
           <a class="brand" href="#"><font color="#0084aa">Salvus&trade;</font></a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li class="active" id="demo1-item"><a href="#demo1">Single Cell</a></li>
-	      <li class="divider-vertical"></li>
-              <li id="demo2-item"><a href="#demo2">Command Line</a></li>
-	      <li class="divider-vertical"></li>
-              <li id="demo3-item"><a href="#demo3">Worksheet</a></li>
-	      <li class="divider-vertical"></li>
-              <li id="about-item"><a href="#about">About</a></li>
-	      <li class="divider-vertical"></li>
 
-<!--
               <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
-                <ul class="dropdown-menu">
-                  <li><a href="#">Action</a></li>
-                  <li><a href="#">Another action</a></li>
-                  <li><a href="#">Something else here</a></li>
-                  <li class="divider"></li>
-                  <li class="nav-header">Nav header</li>
-                  <li><a href="#">Separated link</a></li>
-                  <li><a href="#">One more separated link</a></li>
-                </ul>
-              </li>
--->
+		<a href="#" class="dropdown-toggle" data-toggle="dropdown">Compute<b class="caret"></b></a>
+		<ul class="dropdown-menu">
+
+		  <li class="active" id="demo1-item"><a href="#demo1">Script</a></li>
+		  <li id="demo2-item"><a href="#demo2">Command Line</a></li>
+		  <li id="demo3-item"><a href="#demo3">Worksheet</a></li>
+		</ul>
+	      </li>
+
+              <li id="about-item"><a href="#about">About</a></li>
+
+
             </ul>
-<!--
             <form class="navbar-form pull-right">
+
               <input class="span2" type="text" placeholder="Email">
               <input class="span2" type="password" placeholder="Password">
               <button type="submit" class="btn">Sign in</button>
             </form>
--->
           </div><!--/.nav-collapse -->
         </div>
       </div>
     </div>
 
-
     <div class="container" id="demo1">
       <div class="row">
       <div class="row">
 	<div class="span6">
-	  <h3>Evaluate a Single Cell</h3><br>
+	  <h3>Script</h3><br>
 	</div>
       </div>
 
@@ -84,7 +73,7 @@
 	</div>
 	<div class="span2">
 	  <font size=-1>
-	    <span id="connection_status"></span><br>
+	    <br>
 	    <span id="time"></span><br>
 	    <span id="run_status"></span><br>
 	  </font>
@@ -95,7 +84,7 @@
     <div class="container" id="demo2">
       <div class="row">
 	<div class="span6">
-	  <h3>Command Line Session</h3><br>
+	  <h3>Command Line</h3><br>
 	</div>
       </div>
       <div class="row">
@@ -200,6 +189,7 @@
     <div class="container">
       <footer>
 <hr>
+	<span id="connection_status"></span><br>
         <p>&copy; 2012 University of Washington. "Salvus" is a trademark of the University of Washington. All rights reserved.</p>
       </footer>
     </div>

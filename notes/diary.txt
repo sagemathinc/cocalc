@@ -6210,3 +6210,14 @@ Doesn't work at all on my laptop, but works fine on a linux box.
           [ ] - at some point add support for non-websocket sockjs client, for better testing  ??
 https://github.com/sockjs/sockjs-client-node
 
+---
+
+Oct 28, 2012:
+=============
+at 11:20am:
+  [x] change styling of "about" link a little?; demos: single cell --> script, command line, worksheet
+  [ ] implement user login:
+       - check demos to make sure can do it easily
+  [ ] store state/history of command line demo in database (up to a cutoff)
+  [ ] store script(s) in database
+  [ ] browse past scripts
