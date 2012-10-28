@@ -37,8 +37,8 @@ SalvusMessage.send_signal = (session_uuid=null, pid=null, signal=2) -> # 2=SIGIN
     pid:pid                     # from hub-->sage_server this must be set
     signal:signal
 
-# client <----> server               
-SalvusMessage.terminate_session = (reason='') ->
+# client <---- server               
+SalvusMessage.terminate_session = (session_uuid=null, reason='') ->
     event:'terminate_session'
     reason:reason
     done:true

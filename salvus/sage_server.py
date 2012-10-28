@@ -329,7 +329,6 @@ def handle_session_term(signum, frame):
 def serve_connection(conn):
     conn = ConnectionJSON(conn)
     mesg = conn.recv()
-    print mesg
     if mesg['event'] == 'send_signal':
         if mesg['pid'] == 0:
             print "invalid signal mesg (pid=0)"
@@ -339,7 +338,6 @@ def serve_connection(conn):
             #log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
             os.kill(mesg['pid'], mesg['signal'])
         return
-
     if mesg['event'] != 'start_session':
         return
 

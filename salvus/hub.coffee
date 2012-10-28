@@ -86,7 +86,7 @@ init_sockjs_server = () ->
 persistent_sage_sessions = {}
 
 
-SAGE_SESSION_LIMITS = {cputime:60, walltime:60, vmem:2000, numfiles:1000, quota:128}
+SAGE_SESSION_LIMITS = {cputime:30, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (mesg, push_to_client) ->
     winston.log('creating persistent sage session')
@@ -101,7 +101,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
             recv:(m) ->
                 winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{JSON.stringify(m)})")
                 switch m.event
-                    when "output"
+                    when "output", "terminate_session"
                         m.session_uuid = session_uuid  # tag with session uuid
                         push_to_client(m)
                     when "session_description"

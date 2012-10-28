@@ -6159,19 +6159,21 @@ session = conn.new_session({walltime:60, cputime:60, numfiles:200, vmem:2000})
 
   npm install uglify-js2
 
-session.on("terminate", (mesg) -> )
-session.on("output", (mesg) -> )
 
-session.execute_code(uuid, code, preparse)
-session.send_signal(signal)
-session.terminate()
+[x] back to events
 
+
+x session.on("close", (mesg) -> )
+x session.on("output", (mesg) -> )
+x session.execute_code(uuid, code, preparse)
+x session.send_signal(signal)
+x session.terminate()
 
 
 
 -----------------
 
-    [ ] upgrade nodejs from 0.8.12 to 0.8.14
+    [x] upgrade nodejs from 0.8.12 to 0.8.14
 
     [ ] once get the above, rewrite index.coffee to use it.
 
