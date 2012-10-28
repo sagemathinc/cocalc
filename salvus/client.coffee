@@ -71,10 +71,12 @@ class exports.Connection extends EventEmitter
         @_send = opts.send
         opts.set_onmessage(@onmessage)
         opts.set_onerror(@onerror)
-        @on("close", () ->
+        @on("close", () =>
+            @is_open = false
             for uuid, session of @_sessions
                 session.emit("close")
         )
+        @is_open = true
         
     send: (mesg) => @_send(JSON.stringify(mesg))
     

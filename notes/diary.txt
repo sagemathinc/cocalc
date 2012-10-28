@@ -6126,8 +6126,6 @@ I'm not loving this requireJS at all.  It's really annoying.  Another thing seem
 
    https://github.com/medikoo/modules-webmake
 
-          [ ] - at some point add support for non-websocket sockjs client, for better testing  ??
-
     [x] STRUCTURE my code plan:
 
 I want a file called salvus.js which is output by webmake.  It will
@@ -6168,9 +6166,6 @@ x session.on("output", (mesg) -> )
 x session.execute_code(uuid, code, preparse)
 x session.send_signal(signal)
 x session.terminate()
-
-
-
 -----------------
 
     [x] upgrade nodejs from 0.8.12 to 0.8.14
@@ -6205,4 +6200,7 @@ video about cassandra: http://www.myvidster.com/video/8292247/Apache_Cassandra_n
 Doesn't work at all on my laptop, but works fine on a linux box.
 
 [ ] I just made: http://salvusmath.blogspot.com/
+
+          [ ] - at some point add support for non-websocket sockjs client, for better testing  ??
+https://github.com/sockjs/sockjs-client-node
 
