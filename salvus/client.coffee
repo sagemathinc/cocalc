@@ -1,6 +1,10 @@
 ###
 # From NodeJS (coffeescript):
-# 
+#
+
+     c = require('client_node').connect("http://localhost:5000", () -> c.on("output", (mesg) -> console.log("output: #{mesg}")))
+     c.execute_code("2+3")    
+     
      s=null; c = require('client_node').connect("http://localhost:5000", () -> s = c.new_session())
      s.on("output", (mesg) -> console.log("#{mesg.stdout}#{if mesg.stderr? then '**'+mesg.stderr else ''}"))
      c.on("close", () -> console.log("connection closed"))
@@ -64,13 +68,15 @@ class exports.Connection extends EventEmitter
     # events:
     #    - 'open' -- connection is initialized, open and ready to be used
     #    - 'close' -- connection has closed
+    #    - 'error'  -- called when an error occurs 
+    #    - 'output' -- received some output for stateless execution (not in any session)
     constructor: (opts) ->
         @_id_counter = 0
         @_sessions = {}
         @_new_sessions = {}
         @_send = opts.send
-        opts.set_onmessage(@onmessage)
-        opts.set_onerror(@onerror)
+        opts.set_onmessage(@_onmessage)
+        opts.set_onerror((data) => @emit("error", data))
         @on("close", () =>
             @is_open = false
             for uuid, session of @_sessions
@@ -80,9 +86,9 @@ class exports.Connection extends EventEmitter
         
     send: (mesg) => @_send(JSON.stringify(mesg))
     
-    onmessage: (data) =>
-        console.log("onmessage(#{data})")
+    _onmessage: (data) =>
         mesg = JSON.parse(data)
+        console.log(mesg)
         switch mesg.event
             when "new_session"
                 session = @_new_sessions[mesg.id]
@@ -90,15 +96,14 @@ class exports.Connection extends EventEmitter
                 session._init(mesg.session_uuid, mesg.limits)
                 @_sessions[mesg.session_uuid] = session
             when "output"
-                session = @_sessions[mesg.session_uuid]
-                session.emit("output", mesg)
+                if mesg.session_uuid?  # executing in a sessin
+                    @_sessions[mesg.session_uuid].emit("output", mesg)
+                else   # stateless exec
+                    @emit("output", mesg)
             when "terminate_session"
                 session = @_sessions[mesg.session_uuid]
                 session.emit("close")
         console.log("message: #{data}")
-
-    onerror: (data) =>
-        console.log("ERROR: #{data}")
 
     new_session: (limits={}) ->
         id = @_id_counter++
@@ -107,3 +112,10 @@ class exports.Connection extends EventEmitter
         @send(message.start_session(id, limits))
         return session
 
+    execute_code: (code, uuid=null, preparse=true) ->
+        if not @is_open
+            @emit("error", "trying to execute code, but connection is closed")
+            return
+        uuid = if uuid? then uuid else misc.uuid()
+        @send(message.execute_code(uuid, code, null, preparse))
+        return uuid

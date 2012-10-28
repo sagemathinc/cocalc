@@ -54,7 +54,12 @@ init_sockjs_server = () ->
         push_to_client = (msg) -> conn.write(JSON.stringify(msg))
         
         conn.on("data", (mesg) ->
-            mesg = JSON.parse(mesg)
+            try
+                mesg = JSON.parse(mesg)
+            catch error
+                winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
+                return
+                
             winston.debug("conn=#{conn} received sockjs mesg: #{JSON.stringify(mesg)}")
 
             ###

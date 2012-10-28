@@ -6170,6 +6170,8 @@ x session.terminate()
 
     [x] upgrade nodejs from 0.8.12 to 0.8.14
 
+    [x] enable execute_code for connection (not just sessions)
+
     [ ] once get the above, rewrite index.coffee to use it.
 
     [ ] TODO: limits should include a disk quota
@@ -6188,6 +6190,8 @@ x session.terminate()
     [ ] html: change current html so that session is persistent
     [ ] html: move input box below output and make output scroll up, exactly like a command line
     [ ] html: make output accumulate and include input
+
+    [ ] rename salvus_message: id --> exec_uuid
 
 
 video about cassandra: http://www.myvidster.com/video/8292247/Apache_Cassandra_noSQL_Yes_to_Scale
