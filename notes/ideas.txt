@@ -22,3 +22,14 @@
  [ ] yet another: http://www.eclipse.org/orion/  "Open Source Platform For Cloud Based Development"
 
  [ ] cross browser testing? https://browserling.com
+
+ [ ] evidently d3.js (http://d3js.org/) has some amazing visualization for graphs! 
+       http://news.ycombinator.com/item?id=4706037  
+     this kills "the graph editor" http://bl.ocks.org/1377729
+
+ [ ] 3d -- still threejs is the way to go
+    maybe http://jeromeetienne.github.com/tquery/ too?
+
+   It's amazingly interactive.  *This* (interacting with 3d scenes) is
+   exactly the sort of stuff salvus will have to do well to beat the
+   IDE competition.

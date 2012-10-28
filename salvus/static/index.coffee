@@ -14,14 +14,13 @@ $ ->
                     $(p).hide()
                     $(p+"-item").removeClass("active")
         for p in page_ids
-            $("a[href='"+p+"']").click((e) -> console.log(e.target.hash); show_page(e.target.hash); return false)
+            $("a[href='"+p+"']").click((e) -> show_page(e.target.hash); return false)
         if default_page?
             show_page(default_page)
         else
             show_page(page_ids[0])
         
-    connect_links_and_pages(["#about", "#demo1", "#demo2"], "#demo1")
-    console.log('foo')
+    connect_links_and_pages(["#about", "#demo1", "#demo2", "#demo3"], "#demo2")
 
     ############################################
     # Login/logout management
