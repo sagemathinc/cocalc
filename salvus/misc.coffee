@@ -20,3 +20,31 @@ exports.defaults = (obj1, obj2) ->
     return r
 
 exports.walltime = -> (new Date()).getTime()/1000.0
+
+exports.uuid = ->
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,
+        (c) -> 
+            r = Math.random()*16|0; v = c == if r then 'x' else (r&0x3|0x8)
+            v.toString(16)
+    )
+
+exports.uuid = ->
+    `'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+    });`
+
+exports.times_per_second = (f, max_time=5, max_loops=1000) ->
+    # return number of times per second that f() can be called
+    t = exports.walltime()
+    i = 0
+    tm = 0
+    while true
+        f()
+        tm = exports.walltime() - t
+        i += 1
+        if tm >= max_time or i >= max_loops
+            break
+    return Math.ceil(i/tm)
+    
+        
