@@ -172,6 +172,36 @@ CREATE TABLE log (
 """)
     
 
+def create_account_tables(cursor=None):
+    cursor.execute("""
+CREATE TABLE accounts (
+    account_id   uuid PRIMARY KEY,
+    username     varchar,  
+    plan         varchar,  
+    prefs        varchar,  
+)    
+""")
+    
+    cursor.execute("""
+CREATE TABLE account_events (
+    account_id   uuid PRIMARY KEY,
+    time         timestamp,
+    event        varchar,
+    value        varchar  
+)    
+""")
+
+    cursor.execute("""
+CREATE TABLE auths (
+    account_id   uuid,
+    auth         varchar,   
+    auth_id      varchar,   
+    info         varchar,
+    PRIMARY KEY(account_id, auth, auth_id)
+)
+""")
+    
+
 def init_salvus_schema():
     con = connect(keyspace=None)
     cursor = con.cursor()
@@ -187,36 +217,7 @@ def init_salvus_schema():
         create_status_table(cursor)
         create_log_table(cursor)
         create_sage_servers_table(cursor)
-
-
-##########################################################################
-# User property class
-        
-def create_users_table(cursor):
-    cursor.execute("""
-CREATE TABLE users (
-    id varchar,
-    property varchar,
-    value varchar,
-    PRIMARY KEY(id, property))
-""")
-
-
-class User(object):
-    def __init__(self, id):
-        self._id = id
-
-    def __getitem__(self, property):
-        c = cursor_execute("SELECT property,value FROM users WHERE id=:e AND property=:p",
-                           {'e':self._id, 'p':property}).fetchone()
-        return c[1] if c else None
-
-    def __setitem__(self, property, value):
-        cursor_execute("UPDATE users SET value = :v WHERE id = :e AND property = :p",
-                       {'v':value, 'e':self._id, 'p':property})
-
-    def properties(self):
-        return [str(c[0]) for c in cursor_execute("SELECT property FROM users WHERE id=:x", {'x':self._id})]
+        create_account_tables(cursor)
 
 ##########################################################################
 def to_json(x):

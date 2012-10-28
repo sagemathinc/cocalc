@@ -6219,15 +6219,34 @@ Oct 28, 2012:
 at 11:20am:
   [x] change styling of "about" link a little?; demos: single cell --> script, command line, worksheet
   [ ] implement user login:
-       - check demos to make sure can do it easily
+
+       [x] check demos to make sure can do it easily
 I just tried https://github.com/bnoguchi/everyauth a bunch and couldn't get anything to work.  Boo!
 Next, trying: http://passportjs.org/
 Yes, passport it definitely is!  It's by far the best.
 
 The example here actually works well: /Users/wstein/salvus/notes/node/github-login
 
-I'll start by supporting just github for login.
+-----
+
+Login:
+
+     [ ] implement database model for accounts:
+            [x] define user accounts schema in cassandra.py
+            [ ] wrapper object in cassandra.py
+            [ ] coffeescript wrapper object
+
+     [ ] transition hub to be an express application
+     [ ] integrate in login support as in app2.coffee
+
 
   [ ] store state/history of command line demo in database (up to a cutoff)
   [ ] store script(s) in database
   [ ] browse past scripts
+
+  [ ] add some anti-load/DOS stuff to hub.coffee, e.g., 
+           * bound on number of persistent sessions on a given server
+           * bound on simultaneous number of exec's
+
+ 
+  [ ] I should implement a database-free way to dump/backup each important cassandra db table...

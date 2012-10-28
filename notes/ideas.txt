@@ -33,3 +33,8 @@
    It's amazingly interactive.  *This* (interacting with 3d scenes) is
    exactly the sort of stuff salvus will have to do well to beat the
    IDE competition.
+
+ [ ] 3d -- this periodic table *actually* works on the ipad!!  and looks amazing
+           http://acko.net/blog/making-love-to-webkit/
+           http://news.ycombinator.com/item?id=4709005
+           https://github.com/unconed/CSS3D.js
