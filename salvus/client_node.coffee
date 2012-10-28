@@ -1,10 +1,10 @@
-client = require('client')
-
 ###
 #
 #    c = require('client_node').connect("http://localhost:5000")
 # 
 ###
+
+client = require('client')
 
 exports.connect = (url) -> new Connection(url)
 

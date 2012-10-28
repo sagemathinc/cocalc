@@ -14,6 +14,7 @@ http    = require('http')
 
 # salvus libraries
 sage    = require("sage")               # sage server
+misc    = require("misc")
 message = require("salvus_message")     # salvus message protocol
 cass    = require("cassandra")
 
@@ -84,10 +85,15 @@ init_sockjs_server = () ->
 ###
 persistent_sage_sessions = {}
 
+
+SAGE_SESSION_LIMITS = {cputime:60, walltime:60, vmem:2000, numfiles:1000, quota:128}
+
 create_persistent_sage_session = (mesg, push_to_client) ->
     winston.log('creating persistent sage session')
     # generate a uuid
     session_uuid = uuid.v4()
+    # cap limits
+    misc.min_object(mesg.limits, SAGE_SESSION_LIMITS)  # TODO
     cassandra.random_sage_server( (sage_server) ->
         sage_conn = new sage.Connection(
             host:sage_server.host
@@ -100,7 +106,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
                         push_to_client(m)
                     when "session_description"
                         persistent_sage_sessions[session_uuid].pid = m.pid  # record for later use for signals
-                        push_to_client(message.new_session(session_uuid, m.limits))
+                        push_to_client(message.new_session(mesg.id, session_uuid, m.limits))
                     else
                         winston.error("(hub) persistent_sage_conn -- unhandled message event = '#{m.event}'")
             cb: ->

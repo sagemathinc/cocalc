@@ -7,8 +7,8 @@ class Connection extends client.Connection
         conn = new SockJS("#{url}/hub")
         super(
             send: (data) -> conn.send(data)
-            set_onmessage: (cb) -> conn.onmessage = cb
-            set_onerror: (cb) -> conn.onerror = cb
+            set_onmessage: (cb) -> conn.onmessage = (evt) -> cb(evt.data)
+            set_onerror: (cb) -> conn.onerror = (evt) -> cb(evt.data)
         )
             
         

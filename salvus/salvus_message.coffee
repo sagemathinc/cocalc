@@ -12,13 +12,15 @@
 SalvusMessage = exports? and exports or @SalvusMessage = {}
 
 # hub --> sage_server and browser --> hub
-SalvusMessage.start_session = (limits={}) -> 
+SalvusMessage.start_session = (id, limits) -> 
     event:'start_session'
+    id:id
     limits:limits  # limits is an object {walltime:?, cputime:?, numfiles:?, vmem:?}
 
 # hub --> browser
-SalvusMessage.new_session = (session_uuid, limits) ->
+SalvusMessage.new_session = (id, session_uuid, limits) ->
     event:'new_session'
+    id:id
     session_uuid:session_uuid
     limits:limits
 

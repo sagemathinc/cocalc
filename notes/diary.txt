@@ -6113,7 +6113,7 @@ TODO:
           [x]- move pure client code to a new coffee-script file, so can
                 be shared between testing and client code
 
-[ ] Setup a module system and optimizer to organize my client webapp
+[x] Setup a module system and optimizer to organize my client webapp
     and easily allow for code sharing between client and server.
 
 step back -- I'm having trouble writing cleanly organized code
@@ -6128,13 +6128,13 @@ I'm not loving this requireJS at all.  It's really annoying.  Another thing seem
 
           [ ] - at some point add support for non-websocket sockjs client, for better testing  ??
 
-    [ ] STRUCTURE my code plan:
+    [x] STRUCTURE my code plan:
 
 I want a file called salvus.js which is output by webmake.  It will
 provide a namespace containing all the relevant functionality needed
 to implement the view part of the application.  
 
-    [ ] create something that represents a connection to the hub
+    [x] create something that represents a connection to the hub
 
 -----------------
 
@@ -6153,12 +6153,14 @@ session.execute_code(uuid, code, preparse)
 session.send_signal(signal)
 session.terminate()
 
-
 -----------------
 
     [ ] once get the above, rewrite index.coffee to use it.
 
     [ ] TODO: limits should include a disk quota
+        -- see sage_server.py todo that mentions quota
+
+    [ ] TODO: change salvus_message.coffee to use "defaults" function in misc.coffee
 
     [ ] persistent session termination:
             - client should get a message when persistent session terminates, e.g., from being killed, timed out, etc.

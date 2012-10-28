@@ -24,6 +24,7 @@ import json, os, resource, shutil, signal, socket, struct, sys, \
 
 import parsing
 
+LIMITS = {'cputime':60, 'walltime':60, 'vmem':2000, 'numfiles':1000, 'quota':128}
 
 # Configure logging
 #logging.basicConfig()
@@ -346,15 +347,22 @@ def serve_connection(conn):
     home = tempfile.mkdtemp() if whoami == 'root' else None
     uid = (os.getpid() % 5000) + 5000
     pid = os.fork()
+    limits = mesg.get('limits', {})
     if pid:
         # parent
-        C = Connection(pid=pid, uid=uid, home=home, maxtime=mesg['limits']['walltime'])
+        quota = limits.get('quota', LIMITS['quota'])
+        if whoami == 'root':
+            # TODO TODO on linux, set disk quota for given user
+            pass
+        C = Connection(pid=pid, uid=uid, home=home, maxtime=limits.get('walltime', LIMITS['walltime']))
         C.monitor()
     else:
         # child
-        limits = mesg['limits']
         conn.send(message.session_description(os.getpid(), limits))
-        session(conn, home, cputime=limits['cputime'], numfiles=limits['numfiles'], vmem=limits['vmem'], uid=uid)
+        session(conn, home, uid=uid,
+                cputime=limits.get('cputime', LIMITS['cputime']),
+                numfiles=limits.get('numfiles', LIMITS['numfiles']),
+                vmem=limits.get('vmem', LIMITS['vmem']))
     
 def serve(port, address):
     signal.signal(signal.SIGCHLD, handle_session_term)
