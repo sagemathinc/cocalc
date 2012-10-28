@@ -35,12 +35,7 @@ class (exports ? this).Salvus
 
     execute_code: (input, cb) =>
         @conn.execute_code(input, cb)
-        @time = mswalltime()
         
-    on_output: (mesg) =>
-        log(mesg)
-        $("#time").html("#{mswalltime() - @time} ms")  # TODO: ugly / dangerous?
-
     connect: () =>
         @conn = client_browser.connect(@opts.url, @opts.onopen)
         
@@ -56,5 +51,4 @@ class (exports ? this).Salvus
             @retry_delay = 1
         )
 
-        @conn.on("output", @on_output)
 

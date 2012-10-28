@@ -1,11 +1,16 @@
 $ ->
 
-    # Make it so clicking on the link with given id-item makes the
+    mswalltime = require("misc").mswalltime
+
+        # Make it so clicking on the link with given id-item makes the
     # element with given id visible, and all others invisible.  Also,
     # the clicked link gets the active class, and all others become
     # inactive.
+
+    active_page = null
     connect_links_and_pages = (page_ids, default_page=null) ->
         show_page = (id) ->
+            active_page = id
             for p in page_ids
                 if p == id
                     $(p).show()
@@ -45,37 +50,104 @@ $ ->
     $("#sign_out").button().hide().click(sign_out)
 
     ############################################
-    # Execute the code that is in the #input box
-    ############################################
-    execute_code = ->
-        $("#output").val("")
-        $("#time").html("")
-        $("#run_status").html("running...")
-        conn.execute_code($("#input").val(), (mesg) ->
-            o = $("#output")
-            o.val(o.val() + mesg.stdout)
-            if mesg.stderr
-                o.val(o.val() + "\n!!!!!!!!!!!!!!\n#{mesg.stderr}\n!!!!!!!!!!!!!\n") 
-            $("#run_status").html(if mesg.done then "" else "running..."))
-
-    # execute when clicking the button
-    $("#execute").button().click (e) -> execute_code()
-    
-    # execute when pressing "shift-enter"
-    $("body").keydown (e) ->
-        if e.which is 13 and e.shiftKey
-            execute_code()
-            false
-            
-    ############################################
     # connect to the dynamic Salvus server
     ############################################
     $("#connection_status").html("connecting...")
 
-    conn = new Salvus(
+    persistent_session = null
+
+    salvus = new Salvus(
         on_login: (name) -> sign_in(name)
-        onopen: (protocol) -> $("#connection_status").html("connected (#{protocol})")
+        onopen: (protocol) ->
+            $("#connection_status").html("connected (#{protocol})")
+            persistent_session = salvus.conn.new_session()
         onclose: -> $("#connection_status").html("reconnecting...")
     )
-
     
+
+    # code executation router        
+    execute_code = ->
+        switch active_page
+            when "#demo1"
+                execute_code_demo1()
+            when "#demo2"
+                execute_code_demo2()
+            when "#demo3"
+                execute_code_demo3()
+
+    interrupt_exec = ->
+                        
+
+    # execute when clicking the button
+    $("#execute").button().click(execute_code)
+    $("#execute2").button().click(execute_code)
+    # execute when pressing "shift-enter"
+    $("body").keydown (e) ->
+        switch active_page
+            when "#demo1"
+                if e.which is 13 and e.shiftKey
+                    execute_code_demo1()
+                    false
+
+            when "#demo2"
+                if e.which is 13 and not e.shiftKey
+                    execute_code_demo2()
+                    false
+                if e.which is 27
+                    interrupt_exec2()
+                    false
+            when "#demo3"
+                if e.which is 13 and e.shiftKey
+                    execute_code_demo3()
+                    false
+
+    ############################################
+    # Single Cell: Execute the code that is in the #input box
+    ############################################
+
+    execute_code_demo1 = () ->
+        $("#output").val("")
+        $("#time").html("")
+        $("#run_status").html("running...")
+        t0 = mswalltime()
+        salvus.execute_code($("#input").val(), (mesg) ->
+            $("#time").html("#{mswalltime() - t0} ms") 
+            o = $("#output")
+            o.val(o.val() + mesg.stdout)
+            if mesg.stderr
+                o.val(o.val() + "\n!!!!!!!!!!!!!!\n#{mesg.stderr}\n!!!!!!!!!!!!!\n") 
+            $("#run_status").html(if mesg.done then "" else "running..."))            
+
+    ############################################
+    # Command line REPL session
+    ############################################
+    execute_code_demo2 = () ->
+        i = $("#input2")
+        o = $("#output2")
+        if o.val() == ""
+            o.val("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")  # hackish
+        code = i.val()
+        i.val("")
+        o.val(o.val() + ">>> #{code}\n")
+        o.scrollTop(o[0].scrollHeight)
+        persistent_session.execute_code(code, (mesg) ->
+            if mesg.stdout?
+                o.val(o.val() + mesg.stdout)
+                o.scrollTop(o[0].scrollHeight)
+            if mesg.stderr?
+                o.val(o.val() + "!!!!\n" + mesg.stderr + "!!!!\n")
+                o.scrollTop(o[0].scrollHeight)
+        )
+
+    interrupt_exec2 = () ->
+        console.log('interrupt')
+        persistent_session.interrupt()
+
+    $("#interrupt2").button().click(interrupt_exec2)
+
+    ############################################
+    # Worksheet
+    ############################################
+    execute_code_demo3 = () ->
+        alert('demo3')
+

@@ -22,7 +22,7 @@ exports.defaults = (obj1, obj2) ->
 
 exports.mswalltime = -> (new Date()).getTime()
 
-exports.walltime = -> mswalltime()/1000.0 
+exports.walltime = -> exports.mswalltime()/1000.0 
 
 exports.uuid = ->
     `'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {

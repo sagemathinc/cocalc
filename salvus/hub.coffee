@@ -91,7 +91,7 @@ init_sockjs_server = () ->
 persistent_sage_sessions = {}
 
 
-SAGE_SESSION_LIMITS = {cputime:30, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
+SAGE_SESSION_LIMITS = {cputime:60, walltime:15*60, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (mesg, push_to_client) ->
     winston.log('creating persistent sage session')

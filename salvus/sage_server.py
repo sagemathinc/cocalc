@@ -370,9 +370,9 @@ def serve(port, address):
     import sage.all
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?
-    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
+    exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
     #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
-    #log.info('imported sage library in %s seconds', time.time() - tm)
+    print 'imported sage library in %s seconds'%(time.time() - tm)
     
     #log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
