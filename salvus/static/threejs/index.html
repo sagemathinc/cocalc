@@ -1,0 +1,44 @@
+<body>
+<script src="three.min.js"></script>
+<h1>3d Graphics</h1>
+<script>
+    var camera, scene, renderer;
+    var geometry, material, mesh;
+
+    init();
+    animate();
+
+    function init() {
+
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+        camera.position.z = 1500;
+
+        scene = new THREE.Scene();
+
+        geometry = new THREE.CubeGeometry( 400, 400, 400 );
+        material = new THREE.MeshBasicMaterial( { color: 0x0000aa, wireframe: false } );
+
+        mesh = new THREE.Mesh( geometry, material );
+        scene.add( mesh );
+
+        renderer = new THREE.CanvasRenderer();
+        renderer.setSize( window.innerWidth/2, window.innerHeight/2 );
+
+        document.body.appendChild( renderer.domElement );
+
+    }
+
+    function animate() {
+
+        // note: three.js includes requestAnimationFrame shim
+        requestAnimationFrame( animate );
+
+        mesh.rotation.x += 0.01;
+        mesh.rotation.y += 0.02;
+
+        renderer.render( scene, camera );
+
+    }
+
+</script>
+</body>
