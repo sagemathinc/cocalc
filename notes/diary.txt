@@ -6136,6 +6136,8 @@ to implement the view part of the application.
 
     [x] structured CoffeeScript that represents a connection to the hub and works in both browser and node
 
+    [x] Add uuid support to misc.
+
 -----------------
 
 I want the following, with same code in both node and in the browser.
@@ -6147,9 +6149,11 @@ conn.execute_code(code, preparse, (mesg) -> )
 
 session = conn.new_session({walltime:60, cputime:60, numfiles:200, vmem:2000})
 
-[ ] Support events: http://venodesigns.net/2011/04/16/emitting-custom-events-in-node-js/
+[ ] Support events: http://pragprog.com/magazines/2011-08/decouple-your-apps-with-eventdriven-coffeescript
 
-[x] Add uuid support to misc.
+  x- running into trouble with events do to lack of support in webmake.
+  x- trying browserify, which supports events: 
+         https://github.com/substack/node-browserify
 
 
 session.on("terminate", (mesg) -> )

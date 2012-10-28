@@ -11,8 +11,10 @@
 
 message = require("salvus_message")
 misc = require("misc")
+
+{EventEmitter} = require('events')
     
-class Session                
+class Session extends EventEmitter
     constructor: (conn, @requested_limits) ->
         @_conn = conn
         @start_time = misc.walltime()

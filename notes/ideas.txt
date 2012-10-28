@@ -20,3 +20,5 @@
         - "always-on VMs (soon!)."
 
  [ ] yet another: http://www.eclipse.org/orion/  "Open Source Platform For Cloud Based Development"
+
+ [ ] cross browser testing? https://browserling.com

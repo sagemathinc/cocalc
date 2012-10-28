@@ -17,7 +17,7 @@ coffee -o node_modules -c *.coffee
 ###########
 # Code shared between backend servers and web browser clients
 ###########
-webmake --name=salvus node_modules/client_browser.js static/salvus.js
+browserify -v --exports=require,connect node_modules/client_browser.js -o static/salvus.js
 
 cp node_modules/salvus_message.js node_modules/salvus_client.js static/salvus/ 
 coffee -o static/salvus/ -c static/salvus/salvus.coffee 

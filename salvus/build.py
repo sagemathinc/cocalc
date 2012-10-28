@@ -35,7 +35,7 @@ TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 
 NODEJS_PACKAGES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
-    'sockjs-client-ws', 'coffee-script', 'node-uuid', 'webmake'
+    'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify'
     ]
 
 PYTHON_PACKAGES = [
