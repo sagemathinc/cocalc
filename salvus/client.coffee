@@ -2,7 +2,7 @@
 # From NodeJS (coffeescript):
 #
 
-     c = require('client_node').connect("http://localhost:5000", () -> c.on("output", (mesg) -> console.log("output: #{mesg}")))
+     c = require('client_node').connect("http://localhost:5000", () -> c.on("output", (mesg) -> console.log("output: #{mesg.stdout}")))
      c.execute_code("2+3")    
      
      s=null; c = require('client_node').connect("http://localhost:5000", () -> s = c.new_session())
@@ -47,11 +47,16 @@ class Session extends EventEmitter
 
     walltime: () -> misc.walltime() - @start_time
 
-    execute_code: (code, uuid=null, preparse=true) ->
+    # If cb is given, it is called every time output for this particular code appears; 
+    # No matter what, you can always still listen in with the 'output' even, and note
+    # the uuid, which is returned from this function.
+    execute_code: (code, cb=null, preparse=true) ->
         if not @is_open
             @emit("error", "trying to execute code in closed session")
             return
-        uuid = if uuid? then uuid else misc.uuid()
+        uuid = misc.uuid()
+        if cb?
+            @conn.execute_callbacks[uuid] = cb
         @conn.send(message.execute_code(uuid, code, @session_uuid, preparse))
         return uuid
 
@@ -74,6 +79,7 @@ class exports.Connection extends EventEmitter
         @_id_counter = 0
         @_sessions = {}
         @_new_sessions = {}
+        @execute_callbacks = {}
         @_send = opts.send
         opts.set_onmessage(@_onmessage)
         opts.set_onerror((data) => @emit("error", data))
@@ -88,7 +94,6 @@ class exports.Connection extends EventEmitter
     
     _onmessage: (data) =>
         mesg = JSON.parse(data)
-        console.log(mesg)
         switch mesg.event
             when "new_session"
                 session = @_new_sessions[mesg.id]
@@ -96,14 +101,18 @@ class exports.Connection extends EventEmitter
                 session._init(mesg.session_uuid, mesg.limits)
                 @_sessions[mesg.session_uuid] = session
             when "output"
-                if mesg.session_uuid?  # executing in a sessin
+                cb = @execute_callbacks[mesg.id]
+                if cb?
+                    cb(mesg)
+                    delete @execute_callbacks[mesg.id] if mesg.done
+                if mesg.session_uuid?  # executing in a persistent session
                     @_sessions[mesg.session_uuid].emit("output", mesg)
                 else   # stateless exec
                     @emit("output", mesg)
+                    
             when "terminate_session"
                 session = @_sessions[mesg.session_uuid]
                 session.emit("close")
-        console.log("message: #{data}")
 
     new_session: (limits={}) ->
         id = @_id_counter++
@@ -112,10 +121,12 @@ class exports.Connection extends EventEmitter
         @send(message.start_session(id, limits))
         return session
 
-    execute_code: (code, uuid=null, preparse=true) ->
+    execute_code: (code, cb=null, preparse=true) ->
         if not @is_open
             @emit("error", "trying to execute code, but connection is closed")
             return
-        uuid = if uuid? then uuid else misc.uuid()
+        uuid = misc.uuid()
+        if cb?
+            @execute_callbacks[uuid] = cb
         @send(message.execute_code(uuid, code, null, preparse))
         return uuid

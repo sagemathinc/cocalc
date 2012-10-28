@@ -44,7 +44,7 @@ $ ->
         $("#output").val("")
         $("#time").html("")
         $("#run_status").html("running...")
-        conn.execute($("#input").val(), (mesg) ->
+        conn.execute_code($("#input").val(), (mesg) ->
             o = $("#output")
             o.val(o.val() + mesg.stdout)
             if mesg.stderr
@@ -64,9 +64,11 @@ $ ->
     # connect to the dynamic Salvus server
     ############################################
     $("#connection_status").html("connecting...")
+
     conn = new Salvus(
         on_login: (name) -> sign_in(name)
         onopen: (protocol) -> $("#connection_status").html("connected (#{protocol})")
         onclose: -> $("#connection_status").html("reconnecting...")
     )
 
+    

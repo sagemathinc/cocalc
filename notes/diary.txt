@@ -6172,7 +6172,9 @@ x session.terminate()
 
     [x] enable execute_code for connection (not just sessions)
 
-    [ ] once get the above, rewrite index.coffee to use it.
+    [x] once get the above, rewrite index.coffee to use it.
+
+    [ ] add *view* support for persistent sessions
 
     [ ] TODO: limits should include a disk quota
         -- see sage_server.py todo that mentions quota

@@ -8,11 +8,13 @@
 # LICENSE: No open source license.
 ###
 
+client_browser = require("client_browser")
+
 log = (s) ->
     try  # we use try because this is not cross platform.
-        console.log(s)    
+        #console.log(s)    
 
-walltime = () -> (new Date()).getTime()
+mswalltime = require("misc").mswalltime
 
 class (exports ? this).Salvus
     constructor: (options) -> 
@@ -23,52 +25,36 @@ class (exports ? this).Salvus
                 log("onclose")
             on_login: (name) ->
                 log("logged in as " + name)
-            url: "#{window.location.protocol}//#{window.location.host}/hub"
+            url: "#{window.location.protocol}//#{window.location.host}"
         , options or {})
 
-        # State involving execution of code
-        @id = 0   # id number associated to evaluation of particular block of code
-        @output_callbacks = {}  # callback functions to call when evaluating given code
-        @time = walltime()
-
-        # Connection to sockjs server
+        @time = null
         @conn = null
         @retry_delay = 1
+        @connect()  # start attemping to connect
 
-        @connect()  # start attemping to connect (TODO: maybe client should have to explicitly call this?)
-
-    execute: (input, callback) =>
-        @output_callbacks[@id] = callback
-        @time = walltime()
-        mesg = SalvusMessage.execute_code(@id, input)
-        @send(mesg)
-        @id += 1
+    execute_code: (input, cb) =>
+        @conn.execute_code(input, cb)
+        @time = mswalltime()
         
-    onmessage: (e) =>
-        mesg = JSON.parse(e.data)
+    on_output: (mesg) =>
         log(mesg)
-        
-        $("#time").html("#{walltime() - @time} ms")
-        if mesg.event == 'output'
-            @output_callbacks[mesg.id](mesg)
-            delete @output_callbacks[mesg.id] if mesg.done
-        else if mesg.event == 'logged_in'
-            @opts.on_login(mesg.name)
+        $("#time").html("#{mswalltime() - @time} ms")  # TODO: ugly / dangerous?
 
     connect: () =>
-        @conn = new SockJS(@opts.url)
+        @conn = client_browser.connect(@opts.url, @opts.onopen)
         
-        @conn.onclose = () =>
+        @conn.on("close", () =>
             @opts.onclose()
             @retry_delay *= 2 if @retry_delay < 2048
             log("Trying to reconnect in #{@retry_delay} milliseconds")
             setTimeout(@connect, @retry_delay)
+        )
             
-        @conn.onopen = () =>
+        @conn.on('open', () =>
             @opts.onopen(@conn.protocol)
             @retry_delay = 1
+        )
 
-        @conn.onmessage = @onmessage
+        @conn.on("output", @on_output)
 
-    send: (obj) =>
-        @conn.send(JSON.stringify(obj))

@@ -20,7 +20,9 @@ exports.defaults = (obj1, obj2) ->
             throw "TypeError: got an unexpected argument '#{prop}'"
     return r
 
-exports.walltime = -> (new Date()).getTime()/1000.0
+exports.mswalltime = -> (new Date()).getTime()
+
+exports.walltime = -> mswalltime()/1000.0 
 
 exports.uuid = ->
     `'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {

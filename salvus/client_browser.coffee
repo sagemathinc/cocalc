@@ -11,8 +11,11 @@ class Connection extends client.Connection
             set_onmessage: (cb) -> conn.onmessage = (evt) -> cb(evt.data)
             set_onerror: (cb) -> conn.onerror = (evt) -> cb(evt.data)
         )
-        conn.onopen = () => @emit("open")
-        conn.onclose = () => @emit("close")
+        conn.onopen = () =>
+            @protocol = conn.protocol
+            @emit("open")
             
+        conn.onclose = () => @emit("close")
+        
         
     
