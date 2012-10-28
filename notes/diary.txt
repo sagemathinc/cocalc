@@ -5540,6 +5540,8 @@ var schema = new Schema(fs.readFileSync('mesg.desc'));
 
 -->* This one might be even better yet: https://github.com/bnoguchi/everyauth
 
+... 
+
     
     
 
@@ -6218,6 +6220,14 @@ at 11:20am:
   [x] change styling of "about" link a little?; demos: single cell --> script, command line, worksheet
   [ ] implement user login:
        - check demos to make sure can do it easily
+I just tried https://github.com/bnoguchi/everyauth a bunch and couldn't get anything to work.  Boo!
+Next, trying: http://passportjs.org/
+Yes, passport it definitely is!  It's by far the best.
+
+The example here actually works well: /Users/wstein/salvus/notes/node/github-login
+
+I'll start by supporting just github for login.
+
   [ ] store state/history of command line demo in database (up to a cutoff)
   [ ] store script(s) in database
   [ ] browse past scripts
