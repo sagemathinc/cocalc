@@ -5,7 +5,7 @@
 #
 # From the browser console with      <script type="text/javascript" src="/salvus.js"></script>
 #
-#     c = salvus.connect("https://localhost"); s = c.new_session()
+#     c = require('client_browser').connect('https://localhost'); s = c.new_session()
 # 
 ###
 

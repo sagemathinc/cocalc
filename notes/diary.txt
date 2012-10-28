@@ -6155,6 +6155,9 @@ session = conn.new_session({walltime:60, cputime:60, numfiles:200, vmem:2000})
   x- trying browserify, which supports events: 
          https://github.com/substack/node-browserify
 
+[x] while I'm here, might as well add minifcation/uglification as an option.
+
+  npm install uglify-js2
 
 session.on("terminate", (mesg) -> )
 session.on("output", (mesg) -> )

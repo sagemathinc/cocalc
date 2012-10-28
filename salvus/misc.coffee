@@ -1,7 +1,8 @@
 ###
 # Misc. CoffeeScript functions that might are needed elsewhere.  These must *not* depend on node.
 ###
-
+#
+#
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
 
@@ -20,13 +21,6 @@ exports.defaults = (obj1, obj2) ->
     return r
 
 exports.walltime = -> (new Date()).getTime()/1000.0
-
-exports.uuid = ->
-    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,
-        (c) -> 
-            r = Math.random()*16|0; v = c == if r then 'x' else (r&0x3|0x8)
-            v.toString(16)
-    )
 
 exports.uuid = ->
     `'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
