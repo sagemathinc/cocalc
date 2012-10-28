@@ -3,7 +3,7 @@ sjsc = require("sockjs-client-ws")
 winston = require("winston")
 
 
-class exports.WebSocketClient
+class exports.Client
     """
     EXAMPLES:
 

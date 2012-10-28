@@ -6126,8 +6126,39 @@ I'm not loving this requireJS at all.  It's really annoying.  Another thing seem
 
    https://github.com/medikoo/modules-webmake
 
+          [ ] - at some point add support for non-websocket sockjs client, for better testing  ??
 
-          [ ] - add support for non-websocket sockjs client, for better testing
+    [ ] STRUCTURE my code plan:
+
+I want a file called salvus.js which is output by webmake.  It will
+provide a namespace containing all the relevant functionality needed
+to implement the view part of the application.  
+
+    [ ] create something that represents a connection to the hub
+
+-----------------
+
+I want the following, with same code in both node and in the browser.
+          
+conn = client.Connect('https://localhost')  # in browser
+conn = client_node.Connect('http://localhost:5000')  # in node
+
+conn.execute_code(code, preparse, (mesg) -> )
+
+session = conn.new_session({walltime:60, cputime:60, numfiles:200, vmem:2000})
+session.on("terminate", (mesg) -> )
+session.on("output", (mesg) -> )
+uuid = salvus.uuid()
+session.execute_code(uuid, code, preparse)
+session.send_signal(signal)
+session.terminate()
+
+
+-----------------
+
+    [ ] once get the above, rewrite index.coffee to use it.
+
+    [ ] TODO: limits should include a disk quota
 
     [ ] persistent session termination:
             - client should get a message when persistent session terminates, e.g., from being killed, timed out, etc.
