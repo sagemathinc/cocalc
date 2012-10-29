@@ -215,13 +215,18 @@ def create_plans_table(cursor):
 CREATE TABLE plans (
     plan_id      uuid PRIMARY KEY,
     name         varchar,
-    data         varchar,
-    time         timestamp
+    description  varchar,
+    created      timestamp,
+    current      boolean,
+    max_walltime int,
+    max_cputime  int,
+    max_vmem     int,
+    max_numfiles int,
+    quota        int
 )    
 """)
-    cursor.execute("""
-CREATE INDEX ON plans(name);
-    """)
+    cursor.execute("CREATE INDEX ON plans(name)")
+    cursor.execute("CREATE INDEX ON plans(current)")
     
     cursor.execute("""
 CREATE TABLE newest_plans (

@@ -6267,3 +6267,5 @@ Login:
   [ ] up arrow history for command line
   [ ] desparately need heartbeat so auto-reconnect is rock solid.  This is *horrible* as is.
   [ ] android: scroll into view for command line isn't working...?
+
+[ ] alter table plans add description varchar;

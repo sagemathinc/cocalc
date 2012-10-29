@@ -47,7 +47,7 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
 
 exports.to_json = (x) -> JSON.stringify(x)
 exports.from_json = (x) -> JSON.parse(x)
-exports.date_to_local_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
+exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
 
 exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 

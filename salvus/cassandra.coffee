@@ -1,13 +1,8 @@
- 
-misc = require('misc')    
+{to_json, from_json, to_iso, defaults} = require('misc')
 
 winston = require('winston')            # https://github.com/flatiron/winston
 helenus = require("helenus")            # https://github.com/simplereach/helenus
 uuid    = require('node-uuid')
-
-to_json = misc.to_json
-from_json = misc.from_json
-to_iso = misc.date_to_local_iso
 
 now = () -> to_iso(new Date())
 
@@ -84,35 +79,37 @@ class exports.Cassandra
             vals.push(val)
         return set.slice(0,-1)
 
-    count: (table, where_key, cb) ->
+    count: (table, where, cb) ->
         query = "SELECT COUNT(*) FROM #{table}"
         vals = []
-        if not misc.is_empty_object(where_key)
-            where = @_where(where_key, vals)
+        if not misc.is_empty_object(where)
+            where = @_where(where, vals)
             query += " WHERE #{where}"
         @query(query, vals, (error, results) -> cb(results[0].get('count').value))
 
-    update: (table, where_key, properties, ttl, cb) ->
+    update: (table, opts, cb) ->
+        opts = defaults(opts, {where:{}, set:{}, ttl:0})
         vals = []
-        set = @_set(properties, vals)
-        where = @_where(where_key, vals)
-        @query("UPDATE #{table} USING ttl #{ttl} SET #{set} WHERE #{where}", vals, cb)
+        set = @_set(opts.set, vals)
+        where = @_where(opts.where, vals)
+        @query("UPDATE #{table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, cb)
 
-    delete: (table, where_key, cb) ->
+    delete: (table, where, cb) ->
         vals = []
-        where = @_where(where_key, vals)
+        where = @_where(where, vals)
         @query("DELETE FROM #{table} WHERE #{where}", vals, cb)
 
-    select: (table, column_names, where_key, cb) ->
+    select: (table, opts, cb) ->
+        opts = defaults(opts, {columns:[], where:{}})
         vals = []
-        where = @_where(where_key, vals)
-        @query("SELECT #{column_names.join(',')} FROM #{table} WHERE #{where}", vals,
+        where = @_where(opts.where, vals)
+        @query("SELECT #{opts.columns.join(',')} FROM #{table} WHERE #{where}", vals,
             (error, results) ->
-                cb((r.get(column).value for column in column_names) for r in results)
+                cb((r.get(col).value for col in opts.columns) for r in results)
         )
 
     query: (query, vals, cb) ->
-        console.log(query, vals) # TODO - delete
+        winston.info(query, vals)
         @conn.cql(query, vals, (error, results) ->
             winston.error(error) if error  # TODO -- should emit an event instead.
             cb?(error, results))
@@ -136,13 +133,12 @@ class exports.Cassandra
     #############
     # Plans
     ############
-    create_plan: (data, cb) ->
-        id = uuid.v4(); data.timestamp = now()
-        @uuid_value_store('plans').set(id, data, 0, () -> cb?(id))
-    plan: (id, cb) ->
-        @uuid_value_store('plans').get(id, cb)
-    all_plans: (cb) ->
-        @uuid_value_store('plans').all(cb)
+    create_plan: (name, cb) ->
+        @update('plans', {where:{plan_id:uuid.v4()}, set:{name:name, created:now()}}, cb)
+    plan: (id, columns, cb) ->
+        @select('plans', {columns:columns, where:{plan_id:id}}, (r) -> cb(r[0]))
+    current_plans: (columns, cb) ->
+        @select('plans', {columns:columns, where:{current:true}}, cb)
 
     ############
     # Accounts

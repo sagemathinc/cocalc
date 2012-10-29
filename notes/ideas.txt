@@ -38,3 +38,12 @@
            http://acko.net/blog/making-love-to-webkit/
            http://news.ycombinator.com/item?id=4709005
            https://github.com/unconed/CSS3D.js
+
+ [ ] "rvl.io lets you author beautiful presentations, right in your browser" 
+        http://www.rvl.io/; http://news.ycombinator.com/item?id=4712848
+
+     - they have a very nice sign-up process! ... maybe.
+
+ [ ] online coffe script command prompt:
+       https://github.com/larryng/coffeescript-repl
+       http://larryng.github.com/coffeescript-repl/
