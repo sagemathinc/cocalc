@@ -6233,8 +6233,22 @@ Login:
 
      [ ] implement database model for accounts:
             [x] define user accounts schema in cassandra.py
-            [ ] wrapper object in cassandra.py
-            [ ] coffeescript wrapper object
+            [x] define user plans schema in cassandra.py
+            [x] wrapper objects in cassandra.py for:
+                 [x] Account
+                 [x] Accounts
+                 [x] Plans
+                 [x] Auths
+                 [ ] debug/test that it really works
+
+            [ ] cassandra.coffee wrapper objects for:
+                 [ ] Account
+                 [ ] Accounts
+                 [ ] Plans
+                 [ ] Auths
+
+            [ ] datastructure in hub that says which -- if any -- user a 
+                sockjs connection is authenticated as.
 
      [ ] transition hub to be an express application
      [ ] integrate in login support as in app2.coffee
@@ -6250,3 +6264,6 @@ Login:
 
  
   [ ] I should implement a database-free way to dump/backup each important cassandra db table...
+  [ ] up arrow history for command line
+  [ ] desparately need heartbeat so auto-reconnect is rock solid.  This is *horrible* as is.
+  [ ] android: scroll into view for command line isn't working...?

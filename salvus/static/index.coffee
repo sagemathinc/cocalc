@@ -87,19 +87,18 @@ $ ->
             when "#demo1"
                 if e.which is 13 and e.shiftKey
                     execute_code_demo1()
-                    false
-
+                    return false
             when "#demo2"
                 if e.which is 13 and not e.shiftKey
                     execute_code_demo2()
-                    false
+                    return false
                 if e.which is 27
                     interrupt_exec2()
-                    false
+                    return false
             when "#demo3"
                 if e.which is 13 and e.shiftKey
                     execute_code_demo3()
-                    false
+                    return false
 
     ############################################
     # Single Cell: Execute the code that is in the #input box

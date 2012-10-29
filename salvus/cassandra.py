@@ -1,5 +1,26 @@
+"""
+Python Data Model: interface to the Cassandra database, schema creation, wrapper objects.
 
-import json, random, sha, uuid
+IMPORTANT MAINTENANCE NOTES:
+
+    * When writing CQL SELECT statements, always do something like
+      'SELECT name, description... FROM' instead of 'SELECT * FROM'
+      since this is far more maintainable.
+
+    * The file cassandra.coffee implements a NodeJS interface to this
+      same database.  If you change anything in this file (defaults,
+      schemas, etc.), you may have to change something there too.  Be
+      careful.  In practive, the code in cassandra.coffee is what is
+      actually mainly *used* by Salvus (via the hub).
+      
+
+(c) William Stein, University of Washington, 2012
+
+      
+"""
+
+
+import json, random, sha, time as _time, uuid
 import cql
 
 NODES = []
@@ -28,8 +49,23 @@ def time_to_timestamp(t):
     return int(t*1000)
 
 def timestamp_to_time(t):
-    """Convert a Cassandra timestamp to the same units as Python's time.time() returns, which is seconds since the Epoch."""
+    """Convert a Cassandra timestamp to the same units as Python's _time.time() returns, which is seconds since the Epoch."""
     return float(t)/1000
+
+def time_to_ascii(t):
+    """Convert a Python time.time()-style value to ascii."""
+    s = _time.localtime(t)
+    return _time.strftime("%Y-%m-%d %H:%M:%S", s)
+
+def now():
+    return Time(_time.time())
+
+class Time(float):
+    def __repr__(self):
+        return time_to_ascii(self)
+    def to_cassandra(self):
+        return time_to_timestamp(self)
+
 
 pool = {}
 def connect(keyspace='salvus', use_cache=True):
@@ -171,33 +207,60 @@ CREATE TABLE log (
     PRIMARY KEY(service_id, time))
 """)
     
+def create_plans_table(cursor):
+    cursor.execute("""
+CREATE TABLE plans (
+    plan_id      uuid PRIMARY KEY,
+    name         varchar,
+    description  varchar,
+    value        varchar,
+    time         timestamp
+)""")
 
-def create_account_tables(cursor=None):
+    cursor.execute("""
+CREATE INDEX ON plans(time);
+    """)
+    
+    cursor.execute("""
+CREATE INDEX ON plans(name);
+    """)
+                   
+def create_account_tables(cursor):
     cursor.execute("""
 CREATE TABLE accounts (
-    account_id   uuid PRIMARY KEY,
-    username     varchar,  
-    plan         varchar,  
-    prefs        varchar,  
+    account_id      uuid PRIMARY KEY,
+    creation_time   timestamp,
+    username        varchar,
+    passwd_hash     varchar,
+    email           varchar,
+    plan_id         uuid,
+    plan_starttime  timestamp,
+    prefs           varchar,
 )    
 """)
     
+    cursor.execute("CREATE INDEX ON accounts(email)")
+    cursor.execute("CREATE INDEX ON accounts(creation_time)")
+    cursor.execute("CREATE INDEX ON accounts(plan_id)")
+    cursor.execute("CREATE INDEX ON accounts(username)")
+    
     cursor.execute("""
 CREATE TABLE account_events (
-    account_id   uuid PRIMARY KEY,
+    account_id   uuid,
     time         timestamp,
     event        varchar,
-    value        varchar  
+    value        varchar,
+    PRIMARY KEY(account_id, time)
 )    
 """)
 
     cursor.execute("""
 CREATE TABLE auths (
     account_id   uuid,
-    auth         varchar,   
-    auth_id      varchar,   
+    provider     varchar,   
+    login_name   varchar,   
     info         varchar,
-    PRIMARY KEY(account_id, auth, auth_id)
+    PRIMARY KEY(account_id, provider, login_name)
 )
 """)
     
@@ -218,12 +281,256 @@ def init_salvus_schema():
         create_log_table(cursor)
         create_sage_servers_table(cursor)
         create_account_tables(cursor)
+        create_plans_table(cursor)
 
-##########################################################################
+##############################
+# Conversion to and from JSON
+##############################
 def to_json(x):
     # this format is very important for compatibility with the node client
     return json.dumps(x, separators=(',',':'))
+
+def from_json(x):
+    return json.loads(x)
         
+
+##########################################################################
+# Base class for wrapper objects around database objects
+##########################################################################
+class DBObject(object):
+    def __repr__(self):
+        return '<%s: %s>'%(str(type(self)).split('.')[-1].split("'")[0], self.__dict__)
+
+        
+##########################################################################
+# Account Plans -- free, pro, etc.
+# We keep a timestamp with each, so that the definition of "free" can
+# change easily over time. 
+##########################################################################
+class Plans(DBObject):
+    """
+    The collection of all account plans.
+
+    EXAMPLES:
+
+plans = cassandra.Plans()
+free = plans.create_plan('free')
+plans.plan(free.plan_id).plan_id == free.plan_id
+free.description = "First free plan."
+free.save()
+
+free2 = plans.create_plan('free')
+free2.description = "New improved free plan."
+free2.save()
+plans.newest_plan('free').description
+    u'New improved free plan.'
+
+free2.number_of_accounts_with_this_plan()
+    0
+
+    """
+    def create_plan(self, name):
+        """
+        Create a new account plan with a given name with timestamp right
+        now and save in database. Nothing else about the plan is initialized.
+        """
+        plan = Plan(uuid.uuid4())
+        plan.name = name
+        plan.save()
+        return plan
+
+    def plan(self, plan_id):
+        """Return the plan with the given id."""
+        return Plan(plan_id)
+    
+    def newest_plan(self, name):
+        """Return newest plan in database with this name, or return None if there are none with this name."""
+        c = list(cursor_execute("SELECT time, plan_id FROM plans WHERE name = :name", {'name':name}))
+        if len(c) == 0: return None
+        c.sort()
+        return Plan(c[-1][1])
+
+class Plan(DBObject):
+    """
+    A specific account plan.
+    """
+    def __init__(self, plan_id):
+        """Constructed from the id. On creation we always query the DB for the details of this plan and fill them in."""
+        self.plan_id = plan_id
+        # query and fill in fields
+        c = cursor_execute("SELECT name, description, value, time FROM plans WHERE plan_id = :plan_id", {'plan_id':plan_id}).fetchone()
+        if c is not None:
+            self.name = c[0]
+            self.description = c[1]
+            self.value = from_json(c[2])
+            self.time = Time(c[3])
+        else:
+            self.name = self.description = self.value = ''
+            self.time = now()
+
+    def save(self):
+        # save possibly modified object to database
+        cursor_execute("UPDATE plans SET name = :name, description = :description, value = :value, time = :time WHERE plan_id = :plan_id",
+                       {'name':self.name, 'description':self.description, 'value':to_json(self.value),
+                        'time':self.time.to_cassandra(), 'plan_id':self.plan_id})
+
+    def number_of_accounts_with_this_plan(self):
+        return cursor_execute("SELECT COUNT(*) FROM accounts WHERE plan_id = :plan_id",
+                       {'plan_id':self.plan_id}).fetchone()[0]
+                       
+        
+##########################################################################
+# User Accounts 
+##########################################################################
+
+class Accounts(DBObject):
+    """
+    Collection of all user accounts.
+
+accounts = cassandra.Accounts(); a = accounts.create_account(); a.username = 'salvus'; a.save()
+  
+    """
+    def create_account(self):
+        account = Account(uuid.uuid4())
+        account.save()
+        return account
+        
+    def account_from_id(self, account_id):
+        """Return the account with given id."""
+        return Account(account_id)
+
+    def accounts_with_email_address(self, email):
+        """Return a list of all accounts that have the given email address."""
+        return [Account(account_id=e[0]) for e in cursor_execute("SELECT account_id FROM accounts WHERE email = :email", {'email':email})]
+
+    def accounts_with_auth(self, provider, login_name):
+        """Return a list of all accounts that have the given auth provider and login_name."""
+        c = cursor_execute("SELECT account_id FROM auths WHERE provider = :provider AND login_name = :login_name",
+                           {'provider':provider, 'login_name':login_name})
+        return [Account(account_id=e[0]) for e in c]
+
+    def accounts_with_username(self, username):
+        """Return a list of all accounts that have the given username."""
+        c = cursor_execute("SELECT account_id FROM accounts WHERE username = :username", {'username':username})
+        return [Account(account_id=e[0]) for e in c]
+
+    def number_of_accounts(self):
+        return cursor_execute("SELECT COUNT(*) FROM accounts").fetchone()[0]
+
+    __len__ = number_of_accounts
+
+    def ids_of_accounts_with_event_in_last_n_seconds(self, n):
+        """1 week: n = 60*60*24*7"""
+        # TODO: wrong if account_id gets repeated!!!
+        return set([x[0] for x in cursor_execute("SELECT account_id FROM account_events WHERE time >= :time",
+                                   {'time':Time(_time.time()-n)}).to_cassandra()])
+    
+
+class Account(DBObject):
+    """A specific user account."""
+    def __init__(self, account_id):
+        self.account_id = account_id
+
+        c = cursor_execute("SELECT creation_time, username, passwd_hash, email, plan_id, plan_starttime, prefs FROM accounts WHERE account_id = :account_id",
+                           {'account_id':account_id}).fetchone()
+        if c is not None:
+            self.creation_time = Time(c[0])
+            self.username = c[1]
+            self.passwd_hash = c[2]
+            self.email = c[3]
+            self.plan_id = c[4]
+            self.plan_starttime = Time(c[5])
+            self.prefs = from_json(c[6])
+        else:
+            # the defaults
+            self.creation_time = now()
+            self.username = ''
+            self.passwd_hash = ''
+            self.email = ''
+            self.plan_id = Plans().newest_plan('free').plan_id
+            self.plan_starttime = now()
+            self.prefs = {}
+
+    def events(self, max_age=None):
+        """
+        Return list of all events for this account that are at most
+        max_age seconds old, or return all events if max_age not
+        specified.
+        """
+        if max_age is None:
+            c = cursor_execute("SELECT time, event, value FROM account_events WHERE account_id = :account_id", {'account_id':self.account_id})
+        else:
+            min_time = Time(_time.time() - max_age)
+            c = cursor_execute("SELECT time, event, value FROM account_events WHERE account_id = :account_id AND time >= :min_time",
+                               {'account_id':self.account_id, 'min_time':min_time.to_cassandra()})
+        return [AccountEvent(account_id=self.account_id, time=e[0], event=e[1], value=from_json(e[2])) for e in c]
+
+    def create_event(self, event, value=''):
+        """Create a new event for this account with type "event" and given value, which is stored as a JSON object, then return the event."""
+        x = AccountEvent(self.account_id, time=now(), event=event, value=value)
+        x.save()
+        return x
+
+    def plan(self):
+        return Plan(self.plan_id)
+
+    def auths(self):
+        """Return a list of the 3rd part authentication accounts linked to this account."""
+        c = cursor_execute("SELECT provider, login_name, info FROM auths WHERE account_id = :account_id", {'account_id':self.account_id})
+        return [Auth(self.account_id, provider=x[0], login_name=x[1], info=from_json(x[2])) for x in c]
+
+    def create_auth(self, provider, login_name, info):
+        a = Auth(self.account_id, provider=provider, login_name=login_name, info=info)
+        a.save()
+        return a
+
+    def save(self):
+        # save possibly modified account to the database
+        opts = {'account_id':self.account_id, 'creation_time':time_to_timestamp(self.creation_time),
+                'username':self.username, 'passwd_hash':self.passwd_hash,
+                'email':self.email,'prefs':to_json(self.prefs),
+                'plan_id':self.plan_id, 'plan_starttime':time_to_timestamp(self.plan_starttime)}
+        cursor_execute("UPDATE accounts SET creation_time = :creation_time, username = :username, passwd_hash = :passwd_hash, email = :email, plan_id = :plan_id, plan_starttime = :plan_starttime, prefs = :prefs WHERE account_id = :account_id", opts)
+
+    def delete(self):
+        # complete deletes this account from the database -- use with care
+        cursor_execute("DELETE FROM accounts WHERE account_id = :account_id", {'account_id':self.account_id})
+    
+
+##########################################################################
+# Auth -- third party authentication data linked to an account
+##########################################################################
+class Auth(DBObject):
+    def __init__(self, account_id, provider, login_name, info):
+        self.account_id = account_id
+        self.provider = provider
+        self.login_name = login_name
+        self.info = info
+        
+    def save(self):
+        cursor_execute("UPDATE auths SET info = :info WHERE account_id = :account_id AND provider = :provider AND login_name = :login_name",
+                       {'info':to_json(self.info), 'login_name':self.login_name, 'provider':self.provider, 'account_id':self.account_id})
+
+
+##########################################################################
+# User Accounts Events:
+# a generic way of storing events (e.g., login (and from where), logout,
+# agree to terms of use, pay money, etc.) for a user.  This is meant to
+# never have anything deleted from it.
+##########################################################################
+        
+class AccountEvent(DBObject):
+    """Simple wrapper class for an event."""
+    def __init__(self, account_id=None, time=None, event=None, value=None):
+        self.account_id = account_id
+        self.time = Time(time); self.event = event; self.value = value
+                
+    def save(self):
+        cursor_execute("UPDATE account_events SET event = :event, value = :value WHERE account_id = :account_id AND time = :time",
+                       {'account_id':self.account_id, 'time':self.time.to_cassandra(), 'event':self.event, 'value':to_json(self.value)})
+                
+
+
 ##########################################################################
 # uuid : JSON value   store
 ##########################################################################
@@ -237,7 +544,7 @@ class UUIDValueStore(object):
     def __getitem__(self, uuid):
         c = cursor_execute("SELECT value FROM uuid_value WHERE name = :name AND uuid = :uuid LIMIT 1",
                            {'name':self._name, 'uuid':uuid}).fetchone()
-        return json.loads(c[0]) if c else None
+        return from_json(c[0]) if c else None
 
     def __setitem__(self, uuid, value):
         if value is None:
@@ -272,7 +579,7 @@ class KeyValueStore(object):
     def __getitem__(self, key):
         c = cursor_execute("SELECT value FROM key_value WHERE name = :name AND key = :key LIMIT 1",
                            {'name':self._name, 'key':to_json(key)}).fetchone()
-        return json.loads(c[0]) if c else None
+        return from_json(c[0]) if c else None
 
     def __setitem__(self, key, value):
         if value is None:
