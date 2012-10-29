@@ -215,18 +215,20 @@ def create_plans_table(cursor):
 CREATE TABLE plans (
     plan_id      uuid PRIMARY KEY,
     name         varchar,
-    description  varchar,
-    value        varchar,
+    data         varchar,
     time         timestamp
-)""")
-
-    cursor.execute("""
-CREATE INDEX ON plans(time);
-    """)
-    
+)    
+""")
     cursor.execute("""
 CREATE INDEX ON plans(name);
     """)
+    
+    cursor.execute("""
+CREATE TABLE newest_plans (
+    name         varchar PRIMARY KEY,
+    plan_id      uuid,
+)    
+""")
                    
 def create_account_tables(cursor):
     cursor.execute("""
@@ -319,13 +321,13 @@ class Plans(DBObject):
 plans = cassandra.Plans()
 free = plans.create_plan('free')
 plans.plan(free.plan_id).plan_id == free.plan_id
-free.description = "First free plan."
+free.data = "First free plan."
 free.save()
 
 free2 = plans.create_plan('free')
-free2.description = "New improved free plan."
+free2.data = "New improved free plan."
 free2.save()
-plans.newest_plan('free').description
+plans.newest_plan('free').data
     u'New improved free plan.'
 
 free2.number_of_accounts_with_this_plan()
@@ -340,6 +342,8 @@ free2.number_of_accounts_with_this_plan()
         plan = Plan(uuid.uuid4())
         plan.name = name
         plan.save()
+        cursor_execute("UPDATE newest_plans SET  plan_id = :plan_id WHERE name = :name",
+                       {'name':name, 'plan_id':plan.plan_id})
         return plan
 
     def plan(self, plan_id):
@@ -348,33 +352,32 @@ free2.number_of_accounts_with_this_plan()
     
     def newest_plan(self, name):
         """Return newest plan in database with this name, or return None if there are none with this name."""
-        c = list(cursor_execute("SELECT time, plan_id FROM plans WHERE name = :name", {'name':name}))
-        if len(c) == 0: return None
-        c.sort()
-        return Plan(c[-1][1])
-
+        c = cursor_execute("SELECT plan_id FROM newest_plans WHERE name = :name", {'name':name}).fetchone()
+        if c is not None:
+            return Plan(c[0])
+        
 class Plan(DBObject):
     """
     A specific account plan.
     """
-    def __init__(self, plan_id):
+    def __init__(self, plan_id, data=None):
         """Constructed from the id. On creation we always query the DB for the details of this plan and fill them in."""
         self.plan_id = plan_id
         # query and fill in fields
-        c = cursor_execute("SELECT name, description, value, time FROM plans WHERE plan_id = :plan_id", {'plan_id':plan_id}).fetchone()
+        c = cursor_execute("SELECT name, data, time FROM plans WHERE plan_id = :plan_id", {'plan_id':plan_id}).fetchone()
         if c is not None:
             self.name = c[0]
-            self.description = c[1]
-            self.value = from_json(c[2])
-            self.time = Time(c[3])
+            self.data = from_json(c[1])
+            self.time = Time(c[2])
         else:
-            self.name = self.description = self.value = ''
+            self.name = ''
+            self.data = data
             self.time = now()
 
     def save(self):
         # save possibly modified object to database
-        cursor_execute("UPDATE plans SET name = :name, description = :description, value = :value, time = :time WHERE plan_id = :plan_id",
-                       {'name':self.name, 'description':self.description, 'value':to_json(self.value),
+        cursor_execute("UPDATE plans SET name = :name, data = :data, time = :time WHERE plan_id = :plan_id",
+                       {'name':self.name, 'data':to_json(self.data),
                         'time':self.time, 'plan_id':self.plan_id})
 
     def number_of_accounts_with_this_plan(self):

@@ -1,3 +1,69 @@
+
+#######################################################
+# Accounts, plans, auth, account events, etc.
+#######################################################
+
+class Plans
+    # EXAMPLES:
+    #  c = new (require("cassandra").Cassandra)(['localhost']); plans = c.plans()
+    #  d = plans.create_plan('demo')
+    #  d.data = "a demo plan"
+    #  d.save()
+    #  d.number_of_accounts_with_this_plan(console.log)
+    #  plans.newest_plan('demo', console.log)
+    constructor: (@conn) ->
+    create_plan: (name) ->
+        p = @plan(uuid.v4())
+        p.name = name
+        p.save()
+        @conn.cql("UPDATE newest_plans SET plan_id=? WHERE name=?", [p.plan_id, name])
+        return p
+    plan: (plan_id) ->
+        return new Plan(@conn, plan_id)
+    newest_plan: (name, cb) ->  # cb(the newest plan with given name  | undefined)
+        @conn.cql("SELECT plan_id FROM newest_plans WHERE name=?", [name],
+                  (e,r) => cb(if r.length>0 then @plan(r[0].get('plan_id').value)))
+
+class Plan
+    constructor: (@conn, @plan_id, @data) ->
+    save: () -> @conn.cql("UPDATE plans SET name=?, data=?, time=? WHERE plan_id=?",
+                          [@name, JSON.stringify(@data), @time, @plan_id],
+                        (e,r) -> console.log(e); console.log(r))
+                        
+    number_of_accounts_with_this_plan: (cb) ->
+        @conn.cql("SELECT COUNT(*) FROM accounts WHERE plan_id=?",
+                  [@plan_id], (e,r) -> cb(r[0].get('count').value))
+
+class Accounts
+    constructor: (@conn) ->
+
+class Account
+    constructor: (@conn, @account_id) ->
+
+class Auth
+    constructor: (@conn, @account_id, @provider, @login_name, @info) ->
+    save: () ->
+        @conn.cql("UPDATE auths SET info=? WHERE account_id=? AND provider=? AND login_name=?",
+                  [@info, @account_id, @provider, @login_name])
+
+
+---
+             (err, results) -> cb(if results.length == 1 then from_json(results[0].get('value').value)))
+
+             (err, results) -> cb(if results.length == 1 then from_json(results[0].get('value').value)))
+
+
+        q = ""
+        vals = []
+        for key, val of props
+            q += "#{key}=?,"
+            vals.push(val)
+        q = q.slice(0,-1)
+        vals.push(account_id)
+        @conn.cql("UPDATE accounts SET #{q} WHERE account_id=?", vals, cb)
+
+---
+
     #
     # TODO TODO TODO
     ###
