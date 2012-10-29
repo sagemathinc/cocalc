@@ -88,6 +88,9 @@ def cursor(keyspace='salvus', use_cache=True):
 import signal
 def cursor_execute(query, param_dict=None, keyspace='salvus', timeout=1):
     if param_dict is None: param_dict = {}
+    for k, v in param_dict.iteritems():
+        if hasattr(v, 'to_cassandra'):
+            param_dict[k] = v.to_cassandra()
     def f(*a):
         raise KeyboardInterrupt
     try:
@@ -303,7 +306,7 @@ class DBObject(object):
 
         
 ##########################################################################
-# Account Plans -- free, pro, etc.
+# Account Plans -- free, pro, banned, etc.
 # We keep a timestamp with each, so that the definition of "free" can
 # change easily over time. 
 ##########################################################################
@@ -372,7 +375,7 @@ class Plan(DBObject):
         # save possibly modified object to database
         cursor_execute("UPDATE plans SET name = :name, description = :description, value = :value, time = :time WHERE plan_id = :plan_id",
                        {'name':self.name, 'description':self.description, 'value':to_json(self.value),
-                        'time':self.time.to_cassandra(), 'plan_id':self.plan_id})
+                        'time':self.time, 'plan_id':self.plan_id})
 
     def number_of_accounts_with_this_plan(self):
         return cursor_execute("SELECT COUNT(*) FROM accounts WHERE plan_id = :plan_id",
@@ -399,7 +402,7 @@ accounts = cassandra.Accounts(); a = accounts.create_account(); a.username = 'sa
         """Return the account with given id."""
         return Account(account_id)
 
-    def accounts_with_email_address(self, email):
+    def accounts_with_email(self, email):
         """Return a list of all accounts that have the given email address."""
         return [Account(account_id=e[0]) for e in cursor_execute("SELECT account_id FROM accounts WHERE email = :email", {'email':email})]
 
@@ -421,9 +424,8 @@ accounts = cassandra.Accounts(); a = accounts.create_account(); a.username = 'sa
 
     def ids_of_accounts_with_event_in_last_n_seconds(self, n):
         """1 week: n = 60*60*24*7"""
-        # TODO: wrong if account_id gets repeated!!!
         return set([x[0] for x in cursor_execute("SELECT account_id FROM account_events WHERE time >= :time",
-                                   {'time':Time(_time.time()-n)}).to_cassandra()])
+                                   {'time':Time(_time.time()-n)})])
     
 
 class Account(DBObject):
@@ -462,7 +464,7 @@ class Account(DBObject):
         else:
             min_time = Time(_time.time() - max_age)
             c = cursor_execute("SELECT time, event, value FROM account_events WHERE account_id = :account_id AND time >= :min_time",
-                               {'account_id':self.account_id, 'min_time':min_time.to_cassandra()})
+                               {'account_id':self.account_id, 'min_time':min_time})
         return [AccountEvent(account_id=self.account_id, time=e[0], event=e[1], value=from_json(e[2])) for e in c]
 
     def create_event(self, event, value=''):
@@ -493,7 +495,10 @@ class Account(DBObject):
         cursor_execute("UPDATE accounts SET creation_time = :creation_time, username = :username, passwd_hash = :passwd_hash, email = :email, plan_id = :plan_id, plan_starttime = :plan_starttime, prefs = :prefs WHERE account_id = :account_id", opts)
 
     def delete(self):
-        # complete deletes this account from the database -- use with care
+        # complete deletes this account from the database -- *use with care*.
+        # also deletes the corresponding events, auths, etc. linked with this account.
+        cursor_execute("DELETE FROM account_events WHERE account_id = :account_id", {'account_id':self.account_id})
+        cursor_execute("DELETE FROM auths WHERE account_id = :account_id", {'account_id':self.account_id})
         cursor_execute("DELETE FROM accounts WHERE account_id = :account_id", {'account_id':self.account_id})
     
 
@@ -527,7 +532,7 @@ class AccountEvent(DBObject):
                 
     def save(self):
         cursor_execute("UPDATE account_events SET event = :event, value = :value WHERE account_id = :account_id AND time = :time",
-                       {'account_id':self.account_id, 'time':self.time.to_cassandra(), 'event':self.event, 'value':to_json(self.value)})
+                       {'account_id':self.account_id, 'time':self.time, 'event':self.event, 'value':to_json(self.value)})
                 
 
 
