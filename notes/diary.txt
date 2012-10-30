@@ -6326,10 +6326,24 @@ This will be more maintainable, easier to read, etc.
 11:17 - 12:33am
    [x] create schema from file.
 
-12:33am - 1:00am
-   [ ] write more tests
+12:33am - 1:30am
+   [x] write more tests -- it's going well; i'm finding bugs, so i'm going to keep at it.  This is important!
+       I am finding that everything not tested is buggy... so this is good.
 
-1:00am -? 
+    There is a lot more to test with cassandra.coffee, but at least
+    the key value stuff does exercise everything else well, and now
+    works.    Testing other things is important as well.   I'll
+    use my last few minutes for some client testing.
+
+    Even the most basic test of client isn't possible now because hub.coffee is maybe broken.
+    Fix all that next chance I get.  We have direction! 
+
+
+
+
+
+
+ 1:00am -? 
    PLAN
 
 

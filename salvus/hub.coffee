@@ -99,7 +99,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
     session_uuid = uuid.v4()
     # cap limits
     misc.min_object(mesg.limits, SAGE_SESSION_LIMITS)  # TODO
-    cassandra.random_sage_server( (error, sage_server) ->
+    cassandra.random_sage_server( cb:(error, sage_server) ->
         # TODO: deal with case when there are no sage servers -- or when error is set !
         sage_conn = new sage.Connection(
             host:sage_server.host
@@ -162,11 +162,11 @@ send_to_persistent_sage_session = (mesg) ->
 stateless_exec_cache = null
 
 init_stateless_exec = () ->
-    stateless_exec_cache = cassandra.key_value_store('stateless_exec')
+    stateless_exec_cache = cassandra.key_value_store(name:'stateless_exec')
 
 stateless_sage_exec = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec #{JSON.stringify(input_mesg)}")
-    stateless_exec_cache.get(input_mesg.code, (output) ->
+    stateless_exec_cache.get(key:input_mesg.code, cb:(err, output) ->
         if output?
             winston.info("(hub) -- using cache")        
             for mesg in output
@@ -180,7 +180,7 @@ stateless_sage_exec = (input_mesg, output_message_callback) ->
                 output_message_callback(mesg)
                 if mesg.done
                     winston.info("caching result")
-                    stateless_exec_cache.set(input_mesg.code, output_messages)
+                    stateless_exec_cache.set(key:input_mesg.code, value:output_messages)
             )
     )
 
@@ -205,7 +205,7 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
-    cassandra.random_sage_server( (sage_server) ->
+    cassandra.random_sage_server( cb:(sage_server) ->
         if sage_server?
             stateless_exec_using_server(input_mesg, output_message_callback, sage_server.address, sage_server.port)
         else
@@ -220,7 +220,7 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
 start_server = () ->
     # the order of init below is important
     init_http_server()
-    cassandra = new cass.Cassandra(program.database_nodes.split(','))
+    cassandra = new cass.Salvus(hosts:program.database_nodes.split(','))
     init_sockjs_server()
     init_stateless_exec()
     http_server.listen(program.port)

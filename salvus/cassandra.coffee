@@ -71,12 +71,15 @@ class UUIDValueStore
         
     all: (opts={}) ->
         opts = defaults(opts,  cb:undefined)        
-        @cassandra.select(table:'uuid_value', ['uuid', 'value'], {name:@opts.name},
-            (results) ->
+        @cassandra.select(
+            table:'uuid_value'
+            columns:['uuid', 'value']
+            where:{name:@opts.name},
+            cb:(err, results) ->
                 obj = {}
                 for r in results
                     obj[r[0]] = from_json(r[1])
-                opts.cb(obj))
+                opts.cb(err, obj))
 
 class KeyValueStore
     #   c = new (require("cassandra").Salvus)(); d = c.key_value_store('test')
@@ -181,7 +184,7 @@ class exports.Cassandra extends EventEmitter
     delete: (opts={}) ->
         opts = defaults(opts,  table:undefined, where:{}, cb:undefined)
         vals = []
-        where = @_where(where, vals)
+        where = @_where(opts.where, vals)
         @cql("DELETE FROM #{opts.table} WHERE #{where}", vals, opts.cb)
 
     select: (opts={}) ->
@@ -199,7 +202,7 @@ class exports.Cassandra extends EventEmitter
         )
 
     cql: (query, vals, cb) ->
-        winston.info(query, vals)
+        #winston.debug(query, vals)
         @conn.cql(query, vals, (error, results) =>
             winston.error("Query '#{query}' caused a CQL error:\n#{error}") if error
             @emit('error', error) if error
