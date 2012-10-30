@@ -47,3 +47,8 @@
  [ ] online coffe script command prompt:
        https://github.com/larryng/coffeescript-repl
        http://larryng.github.com/coffeescript-repl/
+
+ [ ] wysiwyg editors for twitter bootstrap:
+        * http://jhollingworth.github.com/bootstrap-wysihtml5/
+        * http://news.ycombinator.com/item?id=4712155
+        * for a sage worksheet, this may be *IT*  https://github.com/xing/wysihtml5  (!!)

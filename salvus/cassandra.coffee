@@ -1,8 +1,11 @@
-{to_json, from_json, to_iso, defaults} = require('misc')
+
+misc    = require('misc')
+{to_json, from_json, to_iso, defaults} = misc
 
 winston = require('winston')            # https://github.com/flatiron/winston
 helenus = require("helenus")            # https://github.com/simplereach/helenus
 uuid    = require('node-uuid')
+{EventEmitter} = require('events')
 
 now = () -> to_iso(new Date())
 
@@ -51,20 +54,21 @@ class KeyValueStore
         @cassandra.select('key_value', ['key', 'value'], {name:@name},
             (results) -> cb( [from_json(r[0]), from_json(r[1])] for r in results ))
 
-class exports.Cassandra
-    constructor: (hosts) ->
+class exports.Cassandra extends EventEmitter
+    constructor: (opts={}) ->    # cb is called on connect
+        opts = defaults(opts, {hosts:['localhost'], cb:undefined, keyspace:'salvus', timeout:3000})
         @conn = new helenus.ConnectionPool(
-            hosts:hosts
-            keyspace:'salvus'
-            timeout:3000
+            hosts     :  opts.hosts
+            keyspace  :  opts.keyspace
+            timeout   :  opts.timeout
             cqlVersion: '3.0.0'
         )
-        @conn.on('error', (err) -> winston.error(err.name, err.message))
-        @conn.connect ((err, keyspace) -> winston.error(err) if err)
+        @conn.on('error', (err) =>
+            winston.error(err.name, err.message)
+            @emit('error', err)
+        )
+        @conn.connect(opts.cb) if opts.cb?
 
-    ##################################
-    # General Cassandra functionality
-    ##################################
     _where: (where_key, vals) ->
         where = "";
         for key, val of where_key
@@ -79,41 +83,45 @@ class exports.Cassandra
             vals.push(val)
         return set.slice(0,-1)
 
-    count: (table, where, cb) ->
-        query = "SELECT COUNT(*) FROM #{table}"
+    count: (opts={}) ->
+        opts = defaults(opts,  table:undefined, where:{}, cb:undefined)
+        query = "SELECT COUNT(*) FROM #{opts.table}"
         vals = []
-        if not misc.is_empty_object(where)
-            where = @_where(where, vals)
+        if not misc.is_empty_object(opts.where)
+            where = @_where(opts.where, vals)
             query += " WHERE #{where}"
-        @query(query, vals, (error, results) -> cb(results[0].get('count').value))
+        @cql(query, vals, (error, results) -> opts.cb?(error, results[0].get('count').value))
 
-    update: (table, opts, cb) ->
-        opts = defaults(opts, {where:{}, set:{}, ttl:0})
+    update: (opts={}) -> 
+        opts = defaults(opts,  table:undefined, where:{}, set:{}, ttl:0, cb:undefined)
         vals = []
         set = @_set(opts.set, vals)
         where = @_where(opts.where, vals)
-        @query("UPDATE #{table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, cb)
+        @cql("UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, opts.cb)
 
-    delete: (table, where, cb) ->
+    delete: (opts={}) ->
+        opts = defaults(opts,  table:undefined, where:{}, cb:undefined)
         vals = []
         where = @_where(where, vals)
-        @query("DELETE FROM #{table} WHERE #{where}", vals, cb)
+        @cql("DELETE FROM #{opts.table} WHERE #{where}", vals, opts.cb)
 
-    select: (table, opts, cb) ->
-        opts = defaults(opts, {columns:[], where:{}})
+    select: (opts={}) ->
+        opts = defaults(opts,  table:undefined, columns:[], where:{}, cb:undefined)
         vals = []
         where = @_where(opts.where, vals)
-        @query("SELECT #{opts.columns.join(',')} FROM #{table} WHERE #{where}", vals,
+        @cql("SELECT #{opts.columns.join(',')} FROM #{opts.table} WHERE #{where}", vals,
             (error, results) ->
-                cb((r.get(col).value for col in opts.columns) for r in results)
+                opts.cb?(error, (r.get(col).value for col in opts.columns) for r in results)
         )
 
-    query: (query, vals, cb) ->
+    cql: (query, vals, cb) ->
         winston.info(query, vals)
-        @conn.cql(query, vals, (error, results) ->
+        @conn.cql(query, vals, (error, results) =>
             winston.error(error) if error  # TODO -- should emit an event instead.
+            @emit('error', error) if error
             cb?(error, results))
 
+class exports.Salvus extends exports.Cassandra
     ######################################################################################                                
     # cb(array of all running sage servers)
     running_sage_servers: (cb) ->
@@ -152,7 +160,16 @@ class exports.Cassandra
 
 
             
-        
+exports.test = () ->
+    c = new exports.Cassandra(keyspace:'salvus', cb:(error) ->
+        console.log(error)
+        c.count(table:'accounts', cb:console.log, where:{username:'wstein'})
+    )
+
+    
+    
+
+                            
 ###
 # EXAMPLES:
 

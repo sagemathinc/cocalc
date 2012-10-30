@@ -214,45 +214,32 @@ def create_plans_table(cursor):
     cursor.execute("""
 CREATE TABLE plans (
     plan_id      uuid PRIMARY KEY,
-    name         varchar,
-    description  varchar,
-    created      timestamp,
-    current      boolean,
-    max_walltime int,
-    max_cputime  int,
-    max_vmem     int,
-    max_numfiles int,
-    quota        int
+    name         varchar,         // name of this plan
+    description  varchar,         // text describing this plan
+    current      boolean,         // whether or not this plan is currently active
+    stateless_exec_limits varchar, // JSON {walltime:seconds, cputime:seconds, vmem:MB, numfiles:int, quota:MB} 
 )    
 """)
     cursor.execute("CREATE INDEX ON plans(name)")
     cursor.execute("CREATE INDEX ON plans(current)")
-    
-    cursor.execute("""
-CREATE TABLE newest_plans (
-    name         varchar PRIMARY KEY,
-    plan_id      uuid,
-)    
-""")
                    
 def create_account_tables(cursor):
     cursor.execute("""
 CREATE TABLE accounts (
     account_id      uuid PRIMARY KEY,
-    creation_time   timestamp,
     username        varchar,
     passwd_hash     varchar,
     email           varchar,
+    email_hash      varchar,
     plan_id         uuid,
     plan_starttime  timestamp,
-    prefs           varchar,
 )    
 """)
     
-    cursor.execute("CREATE INDEX ON accounts(email)")
-    cursor.execute("CREATE INDEX ON accounts(creation_time)")
-    cursor.execute("CREATE INDEX ON accounts(plan_id)")
     cursor.execute("CREATE INDEX ON accounts(username)")
+    cursor.execute("CREATE INDEX ON accounts(email)")
+    cursor.execute("CREATE INDEX ON accounts(email_hash)")
+    cursor.execute("CREATE INDEX ON accounts(plan_id)")
     
     cursor.execute("""
 CREATE TABLE account_events (

@@ -6268,4 +6268,42 @@ Login:
   [ ] desparately need heartbeat so auto-reconnect is rock solid.  This is *horrible* as is.
   [ ] android: scroll into view for command line isn't working...?
 
+  [ ] FAIL:   https://mail.google.com/mail/u/0/?shva=1#inbox/13aadfd160c80679
+          print "effectuées "
+    
+
 [ ] alter table plans add description varchar;
+
+Oct 29, 2012:
+-------------
+
+New plan for today: 6pm - 2am (8 hours)
+
+ [ ] 2 hours (started at 5:52pm): accounts, etc., database code
+
+   [x] simplify accounts, etc. schema as much as I can -- let it grow as needed!
+   [ ] finish CS node database client code
+       [ ] create test framework ASAP:
+              - drops all tables in salvus_test keyspace
+              - creates tables
+              - does tests with them
+
+       [ ] callbacks should *always* pass error as first argument, since that is 
+           where client code will use it.
+       [ ] plans
+       [ ] accounts
+   [ ] move code back that *needs* to be in cassandra.py; delete anything else?
+   [ ] integrated ability to dump table to disk.
+       [ ] ability to get timestamp of record (can use for backups)
+
+  [ ] 2 hours: authentication and login system:
+       [ ] github
+       [ ] google
+       [ ] local
+
+  [ ] 2 hours: persist everything currently implemented
+
+  [ ] 2 hours worksheet -- try to implement something based on https://github.com/xing/wysihtml5
+  
+
+         
