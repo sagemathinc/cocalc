@@ -11,7 +11,6 @@ exports.tearDown = (cb) ->
 
 exports.test_exec = (test) ->
     test.expect(0)
-
-    
+    #    conn.execute_code('2+6', 
     test.done()
         

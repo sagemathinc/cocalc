@@ -205,7 +205,7 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
-    cassandra.random_sage_server( cb:(sage_server) ->
+    cassandra.random_sage_server( cb:(err, sage_server) ->
         if sage_server?
             stateless_exec_using_server(input_mesg, output_message_callback, sage_server.address, sage_server.port)
         else

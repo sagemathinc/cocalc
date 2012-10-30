@@ -148,17 +148,28 @@ class exports.Cassandra extends EventEmitter
             @conn.connect((err) -> )
 
     _where: (where_key, vals) ->
+        console.log("_where #{to_json(where_key)} #{to_json(vals)}")
         where = "";
         for key, val of where_key
-            where += "#{key}=? AND "
-            vals.push(val)
+            console.log(key,val)
+            if typeof(val) != 'boolean'
+                where += "#{key}=? AND "
+                vals.push(val)
+            else
+                # work around a *MAJOR* driver bug :-(
+                where += "#{key}='#{val}' AND "
+            console.log(vals)
         return where.slice(0,-4)
 
     _set: (properties, vals) ->
         set = ""; 
         for key, val of properties
-            set += "#{key}=?,"
-            vals.push(val)
+            if typeof(val) != 'boolean'            
+                set += "#{key}=?,"
+                vals.push(val)
+            else
+                # work around a *MAJOR* driver bug :-(
+                set += "#{key}='#{val}',"
         return set.slice(0,-1)
 
     close: () ->
@@ -193,6 +204,7 @@ class exports.Cassandra extends EventEmitter
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
         if opts.where?
             where = @_where(opts.where, vals)
+            console.log("after, vals = ", vals)
             query += " WHERE #{where} "
         if opts.limit?
             query += " LIMIT #{opts.limit} "
@@ -202,9 +214,9 @@ class exports.Cassandra extends EventEmitter
         )
 
     cql: (query, vals, cb) ->
-        #winston.debug(query, vals)
+        winston.debug(query, vals)
         @conn.cql(query, vals, (error, results) =>
-            winston.error("Query '#{query}' caused a CQL error:\n#{error}") if error
+            winston.error("Query cql('#{query}','#{vals}') caused a CQL error:\n#{error}") if error
             @emit('error', error) if error
             cb?(error, results))
 
@@ -220,14 +232,14 @@ class exports.Salvus extends exports.Cassandra
         
     running_sage_servers: (opts={}) ->  
         opts = defaults(opts,  cb:undefined)
-        @select(table:'sage_servers', cb:(error, results) ->
+        @select(table:'sage_servers', columns:['address'], where:{running:true}, cb:(error, results) ->
             # TODO: we hardcoded 6000 for now
-            opts.cb(error, {address:x.get('address').value, port:6000} for x in results when x.get('running').value )
+            opts.cb(error, {address:x[0], port:6000} for x in results)
         )
 
     random_sage_server: (opts={}) -> # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)
         opts = defaults(opts,  cb:undefined)        
-        @running_sage_servers((error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res)))
+        @running_sage_servers(cb:(error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res)))
 
     #############
     # Plans
