@@ -6310,9 +6310,33 @@ I have 9pm - 2am or 5 hours.
 
   9pm - 11pm
   -----------
-     [ ] setup a testing framework and write tests for cassandra.coffee
+     [x] setup a testing framework and write tests for cassandra.coffee
 
   @11pm: replan
+
+Ok, I successfully setup a very nice testing framework.
+however, it requires having code to easily create the whole db schema in node.
+It is weird having the schema defined in code in cassandra.py. 
+So I want to make a schema that is in a file, then make it
+so both cassandra.py and cassandra.coffee can make all tables
+and indexes in the schema that aren't already defined. 
+This will be more maintainable, easier to read, etc.
+
+
+11:17 - 12:33am
+   [x] create schema from file.
+
+12:33am - 1:00am
+   [ ] write more tests
+
+1:00am -? 
+   PLAN
+
+
+
+
+
+
 
 
 

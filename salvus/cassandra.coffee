@@ -2,19 +2,31 @@
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
 
+async   = require('async')
 winston = require('winston')            # https://github.com/flatiron/winston
 helenus = require("helenus")            # https://github.com/simplereach/helenus
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
+
 now = () -> to_iso(new Date())
+
 
 
 #########################################################################
 
 exports.create_schema = (conn, cb) ->
-    winston.info("creating schema")
-    conn.cql("CREATE TABLE key_value (name varchar, key varchar, value varchar, PRIMARY KEY(name, key))", [], cb)
+    t = misc.walltime()
+    blocks = require('fs').readFileSync('db_schema.cql', 'utf8').split('CREATE')
+    f = (s, cb) ->
+        if s.length > 0
+            conn.cql("CREATE "+s, [], (e,r)->console.log(e) if e; cb(null,0))
+        else
+            cb(null, 0)
+    async.mapSeries(blocks, f, (err, results) ->
+        winston.info("created schema in #{misc.walltime()-t} seconds.")
+        cb(err))
+
 
 class UUIDValueStore
     # c = new (require("cassandra").Salvus)(); s = c.uuid_value_store('sage'); u = c.uuid_value_store('user')

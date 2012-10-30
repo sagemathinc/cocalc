@@ -12,10 +12,11 @@ IMPORTANT MAINTENANCE NOTES:
       schemas, etc.), you may have to change something there too.  Be
       careful.  In practive, the code in cassandra.coffee is what is
       actually mainly *used* by Salvus (via the hub).
+
+    * The actual is defined in db_schema.cql  
       
 
 (c) William Stein, University of Washington, 2012
-
       
 """
 
@@ -115,169 +116,35 @@ def keyspace_exists(con, keyspace):
     except cql.ProgrammingError:
         return False
 
-######################################
-# create various tables
-######################################        
-
-def create_uuid_value_table(cursor):
-    cursor.execute("""
-CREATE TABLE uuid_value (
-     name varchar,
-     uuid uuid,
-     value varchar,
-     PRIMARY KEY(name, uuid)
-)
-""")
-
-
-def create_key_value_table(cursor):
-    cursor.execute("""
-CREATE TABLE key_value (
-     name varchar,
-     key varchar,
-     value varchar,
-     PRIMARY KEY(name, key)
-)
-""")
-
-
-def create_stateless_exec_table(cursor):
-    # TODO: add columns for date time of exec and sage version
-    # TODO: is varchar the right type -- maybe blob?
-    cursor.execute("""
-CREATE TABLE stateless_exec(
-     input varchar,
-     output varchar)
-""")
-
-def create_sage_servers_table(cursor):
-    """Create table that tracks Sage servers."""
-    cursor.execute("""
-CREATE TABLE sage_servers (
-    address varchar PRIMARY KEY,
-    running boolean
-)""")
-    # index so we can search for which services are currently running
-    cursor.execute("""
-CREATE INDEX ON sage_servers (running);
-    """)
-
-
-def create_services_table(cursor):
-    """Create table that tracks registered components of salvus."""
-    cursor.execute("""
-CREATE TABLE services (
-    service_id uuid PRIMARY KEY,
-    name varchar,
-    address varchar,
-    port int,
-    running boolean,
-    username varchar,
-    pid int,
-    monitor_pid int
-)""")
-
-    # index so we can search for which services are currently running
-    cursor.execute("""
-CREATE INDEX ON services (running);
-    """)
-
-    # index so we can search for all services of a given type
-    cursor.execute("""
-CREATE INDEX ON services (name);
-    """)
-
-def create_status_table(cursor):
-    """Tracking status of registered components of salvus as they run."""
-    cursor.execute("""
-CREATE TABLE status (
-    service_id uuid,
-    time timestamp,
-    pmem float,
-    pcpu float,
-    cputime float,
-    vsize int,
-    rss int,
-    PRIMARY KEY(service_id, time))""")
-
-def create_log_table(cursor):
-    cursor.execute("""
-CREATE TABLE log (
-    service_id uuid,
-    time timestamp,
-    logfile varchar,
-    message varchar,
-    PRIMARY KEY(service_id, time))
-""")
-    
-def create_plans_table(cursor):
-    cursor.execute("""
-CREATE TABLE plans (
-    plan_id      uuid PRIMARY KEY,
-    name         varchar,         // name of this plan
-    description  varchar,         // text describing this plan
-    current      boolean,         // whether or not this plan is currently active
-    stateless_exec_limits varchar, // JSON {walltime:seconds, cputime:seconds, vmem:MB, numfiles:int, quota:MB} 
-)    
-""")
-    cursor.execute("CREATE INDEX ON plans(name)")
-    cursor.execute("CREATE INDEX ON plans(current)")
-                   
-def create_account_tables(cursor):
-    cursor.execute("""
-CREATE TABLE accounts (
-    account_id      uuid PRIMARY KEY,
-    username        varchar,
-    passwd_hash     varchar,
-    email           varchar,
-    email_hash      varchar,
-    plan_id         uuid,
-    plan_starttime  timestamp,
-)    
-""")
-    
-    cursor.execute("CREATE INDEX ON accounts(username)")
-    cursor.execute("CREATE INDEX ON accounts(email)")
-    cursor.execute("CREATE INDEX ON accounts(email_hash)")
-    cursor.execute("CREATE INDEX ON accounts(plan_id)")
-    
-    cursor.execute("""
-CREATE TABLE account_events (
-    account_id   uuid,
-    event        varchar,
-    value        varchar,
-    PRIMARY KEY(account_id, time)
-)    
-""")
-
-    cursor.execute("""
-CREATE TABLE auths (
-    account_id   uuid,
-    provider     varchar,   
-    login_name   varchar,   
-    info         varchar,
-    PRIMARY KEY(account_id, provider, login_name)
-)
-""")
-    
-
-def init_salvus_schema():
+def init_salvus_schema(keyspace='salvus'):
     con = connect(keyspace=None)
     cursor = con.cursor()
-    if not keyspace_exists(con, 'salvus'):
-        cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'SimpleStrategy' and strategy_options:replication_factor=3")
+    if not keyspace_exists(con, keyspace):
+        cursor.execute("CREATE KEYSPACE %s WITH strategy_class = 'SimpleStrategy' and strategy_options:replication_factor=3"%keyspace)
         # for when I'm rich:
         #cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 3 AND strategy_options:DC1 = 3 and strategy_options:DC2 = 3")
-        cursor.execute("USE salvus")
-        create_sessions_table(cursor)
-        create_key_value_table(cursor)
-        create_stateless_exec_table(cursor)
-        create_services_table(cursor)
-        create_status_table(cursor)
-        create_log_table(cursor)
-        create_sage_servers_table(cursor)
-        create_account_tables(cursor)
-        create_plans_table(cursor)
+    cursor.execute("USE %s"%keyspace)
+    for s in open('db_schema.cql').read().split('CREATE'):
+        if s:
+            cql = "CREATE " + s
+            try:
+                cursor.execute(cql)
+            except Exception, msg:
+                if 'already existing column family' not in str(msg) and 'Index already exists' not in str(msg):
+                    print msg
+                    print cql
+
+                    
+        
+        ## create_sessions_table(cursor)
+        ## create_key_value_table(cursor)
+        ## create_stateless_exec_table(cursor)
+        ## create_services_table(cursor)
+        ## create_status_table(cursor)
+        ## create_log_table(cursor)
+        ## create_sage_servers_table(cursor)
+        ## create_account_tables(cursor)
+        ## create_plans_table(cursor)
 
 ##############################
 # Conversion to and from JSON

@@ -40,4 +40,14 @@ exports.test_key_value_store = (test) ->
         # then it is gone (after a second)
         (cb) -> setTimeout((()->kvs.get(key:1, cb:(error,value) -> test.equal(value, undefined); cb(null))),  1100)
     ],()->test.done())
+
+exports.test_uuid_value_store = (test) ->
+    test.expect(1)
+    uvs = salvus.uuid_value_store(name:'test')
+    uuid = null
+    async.series([
+        (cb) -> uuid = uvs.set(value:{a:[1,2],b:[3,4]}, cb:cb)
+        (cb) -> uvs.get(uuid:uuid, cb:(error,value) -> test.deepEqual(value, {a:[1,2],b:[3,4]}); cb(null))
+    ],()->test.done())
+        
     
