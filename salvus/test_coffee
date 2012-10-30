@@ -1,0 +1,7 @@
+make_coffee
+
+
+coffee -o node_modules/tests -c tests/*.coffee
+
+nodeunit node_modules/tests/*.js
+

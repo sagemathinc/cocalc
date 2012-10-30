@@ -6305,6 +6305,19 @@ New plan for today: 6pm - 2am (8 hours)
 
   [ ] 2 hours worksheet -- try to implement something based on https://github.com/xing/wysihtml5
   
+TOTAL FAIL.  Replan:
+I have 9pm - 2am or 5 hours.
+
+  9pm - 11pm
+  -----------
+     [ ] setup a testing framework and write tests for cassandra.coffee
+
+  @11pm: replan
+
+
+
+
+Soon:
 
 
  [ ] Fix that hardcoding of 6000 in cassandra.coffee -- should

@@ -10,7 +10,11 @@ uuid    = require('node-uuid')
 now = () -> to_iso(new Date())
 
 
+#########################################################################
 
+exports.create_schema = (conn, cb) ->
+    winston.info("creating schema")
+    conn.cql("CREATE TABLE key_value (name varchar, key varchar, value varchar, PRIMARY KEY(name, key))", [], cb)
 
 class UUIDValueStore
     # c = new (require("cassandra").Salvus)(); s = c.uuid_value_store('sage'); u = c.uuid_value_store('user')
@@ -141,6 +145,10 @@ class exports.Cassandra extends EventEmitter
             set += "#{key}=?,"
             vals.push(val)
         return set.slice(0,-1)
+
+    close: () ->
+        @conn.close()
+        @emit('close')
 
     count: (opts={}) ->
         opts = defaults(opts,  table:undefined, where:{}, cb:undefined)
