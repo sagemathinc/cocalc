@@ -99,8 +99,8 @@ create_persistent_sage_session = (mesg, push_to_client) ->
     session_uuid = uuid.v4()
     # cap limits
     misc.min_object(mesg.limits, SAGE_SESSION_LIMITS)  # TODO
-    cassandra.random_sage_server( (sage_server) ->
-        # TODO: deal with case when there are no sage servers
+    cassandra.random_sage_server( (error, sage_server) ->
+        # TODO: deal with case when there are no sage servers -- or when error is set !
         sage_conn = new sage.Connection(
             host:sage_server.host
             port:sage_server.port

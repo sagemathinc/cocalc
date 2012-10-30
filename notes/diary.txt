@@ -6306,4 +6306,9 @@ New plan for today: 6pm - 2am (8 hours)
   [ ] 2 hours worksheet -- try to implement something based on https://github.com/xing/wysihtml5
   
 
+
+ [ ] Fix that hardcoding of 6000 in cassandra.coffee -- should
+     actually make the address in the db: "hostname:port", since can't
+     have index on non-primary key tables.  Then split it after query,
+     and return {host:..., port:...}.
          

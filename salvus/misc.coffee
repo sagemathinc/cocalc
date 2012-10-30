@@ -12,6 +12,8 @@ exports.min_object = (target, upper_bounds) ->
         target[prop] = if target.hasOwnProperty(prop) then target[prop] = Math.min(target[prop], upper_bounds[prop]) else upper_bounds[prop]
 
 exports.defaults = (obj1, obj2) ->
+    if typeof(obj1) != 'object'
+        throw "TypeError: some function takes inputs as an object (but you gave it #{obj1})"
     r = {}
     for prop, val of obj2
         r[prop] = if obj1.hasOwnProperty(prop) then obj1[prop] else obj2[prop]

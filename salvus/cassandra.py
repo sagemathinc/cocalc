@@ -244,7 +244,6 @@ CREATE TABLE accounts (
     cursor.execute("""
 CREATE TABLE account_events (
     account_id   uuid,
-    time         timestamp,
     event        varchar,
     value        varchar,
     PRIMARY KEY(account_id, time)
