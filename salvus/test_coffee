@@ -3,5 +3,9 @@ make_coffee
 
 coffee -o node_modules/tests -c tests/*.coffee
 
+if [ $? -ne 0 ]; then
+   exit 1
+fi
+
 nodeunit node_modules/tests/*.js
 
