@@ -50,8 +50,10 @@ init_http_server = () ->
 init_sockjs_server = () ->
     sockjs_server = sockjs.createServer()
     sockjs_server.on("connection", (conn) ->
+        # TODO: This sockjs_connections data structure is not currently used; it also just
+        # grows without every having anything removed, so it would leak memory.   !!!
         sockjs_connections.push(conn)
-        winston.info ("new sockjs connection #{conn}; all connections #{sockjs_connections}")
+        winston.info ("new sockjs connection #{conn}")
         # install event handlers on this particular connection
 
         push_to_client = (msg) -> conn.write(to_json(msg))

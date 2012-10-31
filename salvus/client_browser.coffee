@@ -20,7 +20,7 @@ class Connection extends client.Connection
                     @_connected = false
                 else
                     console.log("Failed to create a SockJS connection; trying again.")
-                @_connect(url, ondata)
+                setTimeout((() => @_connect(url, ondata)), 1000)
                 
             @_write = (data) -> conn.send(data)
     

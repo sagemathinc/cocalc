@@ -1,42 +1,12 @@
-###
-# From NodeJS (coffeescript):
-#
-
-     c = require('client_node').connect("http://localhost:5000", () -> c.on("output", (mesg) -> console.log("output: #{mesg.stdout}")))
-     c.execute_code("2+3")    
-     
-     s=null; c = require('client_node').connect("http://localhost:5000", () -> s = c.new_session())
-     s.on("output", (mesg) -> console.log("#{mesg.stdout}#{if mesg.stderr? then '**'+mesg.stderr else ''}"))
-     c.on("close", () -> console.log("connection closed"))
-     s.on("close", () -> console.log("session closed"))
-     s.execute_code("2+3")
-     s.removeAllListeners("output")
-#
-# From the browser console with      <script type="text/javascript" src="/salvus.js"></script>
-#
-     c = require('client_browser').connect('https://localhost', function(){ s=c.new_session()} )
-     s.on("output", function(mesg) { console.log("output: #{mesg}")} )
-     c.on("close", function() { console.log("connection closed!"); })
-     s.on("close", function() { console.log("session closed"); })
-     s.execute_code("2+3")
-     
-# 
-###
+{EventEmitter} = require('events')
 
 message = require("salvus_message")
 misc    = require("misc")
 
-to_json = misc.to_json
-from_json = misc.from_json
-
-{EventEmitter} = require('events')
-    
 class Session extends EventEmitter
     # events:
-    #    - 'output' -- received some output
     #    - 'open'   -- session is initialized, open and ready to be used
     #    - 'close'  -- session's connection is closed/terminated
-    #    - 'error'  -- called when an error occurs 
     constructor: (@conn, @requested_limits) ->
         @start_time = misc.walltime()
 
@@ -88,12 +58,12 @@ class exports.Connection extends EventEmitter
         #      "connected", "error", "close"
         # and returns a function to write raw data to the socket.
 
-        @_connect(@url, (data) => @emit("message", from_json(data)))
+        @_connect(@url, (data) => @emit("message", misc.from_json(data)))
         @on("message", @handle_message)
 
         @_last_pong = misc.walltime()
         @_connected = false
-        @_ping_check_interval = 500
+        @_ping_check_interval = 10000
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->
@@ -106,7 +76,7 @@ class exports.Connection extends EventEmitter
 
     send: (mesg) ->
         try
-            @_write(to_json(mesg))
+            @_write(misc.to_json(mesg))
         catch err
             # this happens when trying to send and not connected
             #console.log(err)
