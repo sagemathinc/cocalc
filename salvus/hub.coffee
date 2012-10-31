@@ -112,7 +112,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
                         push_to_client(m)
                     when "session_description"
                         persistent_sage_sessions[session_uuid].pid = m.pid  # record for later use for signals
-                        push_to_client(message.new_session(mesg.id, session_uuid, m.limits))
+                        push_to_client(message.new_session(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
                     else
                         winston.error("(hub) persistent_sage_conn -- unhandled message event = '#{m.event}'")
             cb: ->
@@ -197,7 +197,7 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
             output_message_callback(mesg)
         cb: ->
             winston.info("(hub) sage_conn -- sage: connected.")
-            sage_conn.send(message.start_session({walltime:20, cputime:20, numfiles:1000, vmem:2048}))
+            sage_conn.send(message.start_session(limits:{walltime:20, cputime:20, numfiles:1000, vmem:2048}))
             winston.info("(hub) sage_conn -- send: #{JSON.stringify(input_mesg)}")
             sage_conn.send(input_mesg)
             sage_conn.terminate_session()
@@ -210,7 +210,7 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
             stateless_exec_using_server(input_mesg, output_message_callback, sage_server.address, sage_server.port)
         else
             winston.error("(hub) no sage servers!")
-            output_message_callback(message.terminate_session('no Sage servers'))
+            output_message_callback(message.terminate_session(reason:'no Sage servers'))
     )
     
     

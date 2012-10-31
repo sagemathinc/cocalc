@@ -15,7 +15,7 @@ class exports.Connection
         
         @conn.on('error', (err) =>
             winston.error("sage connection error: #{err}")
-            @recv(message.terminate_session("#{err}"))
+            @recv(message.terminate_session(reason:"#{err}"))
         )
         
         @conn.on('data', (data) =>
@@ -67,7 +67,7 @@ test = (n=1) ->
     cb = () ->         
         conn.send(message.start_session())
         for i in [1..n]
-            conn.send(message.execute_code(0,"factor(2012)"))
+            conn.send(message.execute_code(id:0,code:"factor(2012)"))
     tm = (new Date()).getTime()
     conn = new exports.Connection(
         {

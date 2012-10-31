@@ -7,60 +7,91 @@
 # We use functions to work with messages to ensure some level of
 # consistency, defaults, and avoid errors from typos, etc.
 # 
-### 
+###
+#
 
-SalvusMessage = exports? and exports or @SalvusMessage = {}
+defaults = require('misc').defaults
+required = defaults.required
 
 # hub --> sage_server and browser --> hub
-SalvusMessage.start_session = (id, limits) -> 
-    event:'start_session'
-    id:id
-    limits:limits  # limits is an object {walltime:?, cputime:?, numfiles:?, vmem:?}
+exports.start_session = (opts={}) ->
+    defaults(opts,
+        event  : 'start_session'
+        id     : required
+        limits : undefined
+    )
 
 # hub --> browser
-SalvusMessage.new_session = (id, session_uuid, limits) ->
-    event:'new_session'
-    id:id
-    session_uuid:session_uuid
-    limits:limits
+exports.new_session = (opts={}) ->
+    defaults(opts, 
+        event        : 'new_session'
+        id           : required
+        session_uuid : undefined
+        limits       : undefined
+    )
 
 # sage_server --> hub
-SalvusMessage.session_description = (pid, limits) ->
-    event:'session_description'
-    pid:pid
-    limits:limits
+exports.session_description = (opts={}) ->
+    defaults(opts,
+        event  : 'session_description'
+        pid    : required
+        limits : undefined
+    )
 
 # browser --> hub --> sage_server
-SalvusMessage.send_signal = (session_uuid=null, pid=null, signal=2) -> # 2=SIGINT
-    event:'send_signal'
-    session_uuid:session_uuid   # from browser-->hub this must be set
-    pid:pid                     # from hub-->sage_server this must be set
-    signal:signal
+exports.send_signal = (opts={}) ->
+    defaults(opts,
+        event        : 'send_signal'
+        session_uuid : undefined   # from browser-->hub this must be set
+        pid          : undefined   # from hub-->sage_server this must be set
+        signal       : 2           # 2 = SIGINT
+    )
 
-# client <---- server               
-SalvusMessage.terminate_session = (session_uuid=null, reason='') ->
-    event:'terminate_session'
-    reason:reason
-    done:true
+# browser <----> hub <--> sage_server
+exports.terminate_session = (opts={}) ->
+    defaults(opts,
+        event        : 'terminate_session'
+        session_uuid : undefined
+        reason       : undefined
+        done         : true
+    )
 
 # browser --> hub --> sage_server
-SalvusMessage.execute_code = (id, code, session_uuid=null, preparse=true) ->
-    event:'execute_code'
-    id:id
-    code:code
-    session_uuid:session_uuid
-    preparse:preparse
+exports.execute_code = (opts={}) ->
+    defaults(opts,
+        event        : 'execute_code'
+        id           : undefined
+        code         : required
+        session_uuid : undefined
+        preparse     : true
+    )
         
 # sage_server --> hub_i --> hub_j --> browser
-SalvusMessage.output = (id, stdout=null, stderr=null, done=null, session_uuid=null) ->
-    event:'output'
-    id:id
-    stdout:stdout
-    stderr:stderr
-    done:done
-    session_uuid:session_uuid
+exports.output = (opts={}) ->
+    defaults(opts,
+        event        : 'output'
+        id           : undefined
+        stdout       : undefined
+        stderr       : undefined
+        done         : false
+        session_uuid : undefined
+    )
 
 # hub --> browser
-SalvusMessage.logged_in = (name) ->
-    event:'logged_in'
-    name:name
+exports.logged_in = (opts={}) ->
+    defaults(opts, 
+        event : 'logged_in'
+        name : name
+    )
+
+# browser --> hub
+exports.ping = (opts={}) ->
+    defaults(opts,
+        event   : 'ping'  
+    )
+
+# hub --> browser;   sent in response to a ping
+exports.pong = (opts={}) ->
+    defaults(opts,
+        event   : 'pong'  
+    )

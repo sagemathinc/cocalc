@@ -57,16 +57,16 @@ class Session extends EventEmitter
         uuid = misc.uuid()
         if cb?
             @conn.execute_callbacks[uuid] = cb
-        @conn.send(message.execute_code(uuid, code, @session_uuid, preparse))
+        @conn.send(message.execute_code(id:uuid, code:code, session_uuid:@session_uuid, preparse:preparse))
         return uuid
 
     # default = SIGINT
     interrupt: () ->
-        @conn.send(message.send_signal(@session_uuid, null, 2))
+        @conn.send(message.send_signal(session_uuid:@session_uuid, signal:2))
         
     kill: () ->
         @emit("close")
-        @conn.send(message.send_signal(@session_uuid, null, 9))
+        @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
         
     
 class exports.Connection extends EventEmitter
@@ -118,7 +118,7 @@ class exports.Connection extends EventEmitter
         id = @_id_counter++
         session = new Session(this, limits)
         @_new_sessions[id] = session
-        @send(message.start_session(id, limits))
+        @send(message.start_session(id:id, limits:limits))
         return session
 
     execute_code: (code, cb=null, preparse=true) ->
@@ -128,5 +128,5 @@ class exports.Connection extends EventEmitter
         uuid = misc.uuid()
         if cb?
             @execute_callbacks[uuid] = cb
-        @send(message.execute_code(uuid, code, null, preparse))
+        @send(message.execute_code(id:uuid, code:code, preparse:preparse))
         return uuid

@@ -6585,8 +6585,22 @@ Things to do:
         Decision -- no, leave it as is!  Reason is that it makes it
         clear which function is the callback when reading the code.
 
+   [x] update salvus_messages.coffee to use opts pattern, and all node
+       client code.
+-->         - fixing client code now
 
-   [ ] implement client heartbeat
+   [ ] implement client heartbeat:
+          - client receives a message:
+              - "i will send a heartbeat every k seconds"
+          - in response client sets up a setInterval (every k*c seconds) that
+            checks that a heartbeat message was received.  if not,
+            close connection and reconnect.
+       [ ] create new message event: "heartbeat"
+            -- even better, create "ping" message and corresponding "pong" back. 
+            -- integrate into client
+            -- provide function to get last ping time and display in gui (at least for testing)
+ 
+
    [ ] when command line session is timed out and shift-enter to send code, it should make new session!
 
    [ ] change client*coffee to use opts

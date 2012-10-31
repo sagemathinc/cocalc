@@ -52,3 +52,8 @@
         * http://jhollingworth.github.com/bootstrap-wysihtml5/
         * http://news.ycombinator.com/item?id=4712155
         * for a sage worksheet, this may be *IT*  https://github.com/xing/wysihtml5  (!!)
+
+
+       [ ] IDEA -- I just realized I could improve "defaults" even more, and do this:
+                   interval: required(int)
+           where I pass in a type that is required... don't do this now though, since type converting and checking is a slippery and not necessarily sensible slope!

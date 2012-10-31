@@ -12,15 +12,25 @@ exports.min_object = (target, upper_bounds) ->
         target[prop] = if target.hasOwnProperty(prop) then target[prop] = Math.min(target[prop], upper_bounds[prop]) else upper_bounds[prop]
 
 exports.defaults = (obj1, obj2) ->
+    error  = () -> "(obj1=#{exports.to_json(obj1)}, obj2=#{exports.to_json(obj2)})"
     if typeof(obj1) != 'object'
-        throw "TypeError: some function takes inputs as an object (but you gave it #{obj1})"
+        throw "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
     r = {}
     for prop, val of obj2
-        r[prop] = if obj1.hasOwnProperty(prop) then obj1[prop] else obj2[prop]
+        if obj1.hasOwnProperty(prop)
+            r[prop] = obj1[prop]
+        else if obj2[prop]?  # only record not undefined properties
+            if obj2[prop] == exports.defaults.required
+                throw "misc.defaults -- TypeError: property #{prop} must be specified #{error()}"
+            else
+                r[prop] = obj2[prop]
     for prop, val of obj1
         if not obj2.hasOwnProperty(prop)
-            throw "TypeError: got an unexpected argument '#{prop}'"
+            throw "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
     return r
+
+# WARNING -- don't accidentally use this as a default:
+exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
 
 exports.mswalltime = -> (new Date()).getTime()
 
