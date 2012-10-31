@@ -1,6 +1,6 @@
 client = require('client')
 
-exports.connect = (url, cb) -> new Connection(url, cb)
+exports.connect = (url) -> new Connection(url)
 
 class Connection extends client.Connection
     _connect: (url, ondata) ->

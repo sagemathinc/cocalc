@@ -93,12 +93,16 @@ class exports.Connection extends EventEmitter
 
         @_last_pong = misc.walltime()
         @_connected = false
-        @_ping_check_interval = 5000
-        setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
+        @_ping_check_interval = 500
+        @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
+
+    close: () ->
+        clearInterval(@_ping_check_id)
+        @_conn.close()
 
     _ping_check: () ->
         if @_connected and (@_last_ping - @_last_pong > 1.1*@_ping_check_interval/1000.0)
-            @_fix_connection()
+            @_fix_connection?()
 
     send: (mesg) ->
         try
