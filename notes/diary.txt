@@ -6600,7 +6600,7 @@ Things to do:
             -- integrate into client
             -- provide function to get last ping time and display in gui (at least for testing)
 
-   [ ] there is a subtle bug/issue with the design right now, which
+TODO   [ ] there is a subtle bug/issue with the design right now, which
    will vanish in time when things are done right.  The issue is that a sage session (see the code of
    create_persistent_sage_session) is tied via a closure to the specific sockjs conection that
    made it.  However, if the user connects later or reconnects, then that connection no longer exists.
@@ -6614,8 +6614,24 @@ stupidly sometimes fallback to a non-websocket protocol. But overall
 this is much, much better.
 
 
-   [ ] write client*coffee test suite
+   [x] write client*coffee test suite
 
-   [ ] more cassandra*coffee test suite
+   [x] more cassandra*coffee test suite
 
 
+---
+
+It seemed like I got way behind and didn't get much done, but now that
+I think about it, I guess I did a lot tonight that I planned to do.  I
+solidly addressed that annoying issue with reconnecting, which will be
+a major plus in the long run.  I improved testing a lot and refactored
+and cleaned up quite a bit of code.  I wrote a blog post.    I have
+improved quite a bit at coffeescript/javascript/node.
+
+Next up -- what I've been planning to do for days!?!
+
+   [ ] account creation
+
+   [ ] storage of data
+
+I wish I did not have to sleep.
