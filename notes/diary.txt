@@ -6615,6 +6615,7 @@ this is much, much better.
 
 
    [ ] write client*coffee test suite
+
    [ ] more cassandra*coffee test suite
 
 

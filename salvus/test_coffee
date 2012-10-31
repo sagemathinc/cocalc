@@ -1,11 +1,20 @@
-make_coffee
+#!/usr/bin/env python
 
+import admin, os, sys
 
-coffee -o node_modules/tests -c tests/*.coffee
+SALVUS = os.path.realpath(__file__)
+os.chdir(os.path.split(SALVUS)[0])
 
-if [ $? -ne 0 ]; then
-   exit 1
-fi
+def run(x):
+    if os.system(x):
+        sys.exit(1)
 
-nodeunit node_modules/tests/*.js
+run('make_coffee')
+
+run('coffee -o node_modules/tests -c tests/*.coffee')
+
+if len(sys.argv) == 1:
+    run('nodeunit node_modules/tests/*.js')
+else:
+    run('nodeunit ' + ' '.join('node_modules/tests/test_%s.js'%s for s in sys.argv[1:]))
 

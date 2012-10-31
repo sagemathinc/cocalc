@@ -148,17 +148,14 @@ class exports.Cassandra extends EventEmitter
             @conn.connect((err) -> )
 
     _where: (where_key, vals) ->
-        console.log("_where #{to_json(where_key)} #{to_json(vals)}")
         where = "";
         for key, val of where_key
-            console.log(key,val)
             if typeof(val) != 'boolean'
                 where += "#{key}=? AND "
                 vals.push(val)
             else
                 # work around a *MAJOR* driver bug :-(
                 where += "#{key}='#{val}' AND "
-            console.log(vals)
         return where.slice(0,-4)
 
     _set: (properties, vals) ->
@@ -204,7 +201,6 @@ class exports.Cassandra extends EventEmitter
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
         if opts.where?
             where = @_where(opts.where, vals)
-            console.log("after, vals = ", vals)
             query += " WHERE #{where} "
         if opts.limit?
             query += " LIMIT #{opts.limit} "
@@ -214,7 +210,7 @@ class exports.Cassandra extends EventEmitter
         )
 
     cql: (query, vals, cb) ->
-        winston.debug(query, vals)
+        #winston.debug(query, vals)
         @conn.cql(query, vals, (error, results) =>
             winston.error("Query cql('#{query}','#{vals}') caused a CQL error:\n#{error}") if error
             @emit('error', error) if error
@@ -279,15 +275,6 @@ class exports.Salvus extends exports.Cassandra
 
 
 
-        
-            
-exports.test = () ->
-    c = new exports.Cassandra(keyspace:'salvus', cb:(error) ->
-        console.log(error)
-        c.count(table:'accounts', cb:console.log, where:{username:'wstein'})
-    )
-
-    
     
 
                             
