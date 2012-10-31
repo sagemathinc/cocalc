@@ -6589,22 +6589,32 @@ Things to do:
        client code.
 -->         - fixing client code now
 
-   [ ] implement client heartbeat:
+   [x] implement client heartbeat:
           - client receives a message:
               - "i will send a heartbeat every k seconds"
           - in response client sets up a setInterval (every k*c seconds) that
             checks that a heartbeat message was received.  if not,
             close connection and reconnect.
-       [ ] create new message event: "heartbeat"
+       [x] create new message event: "heartbeat"
             -- even better, create "ping" message and corresponding "pong" back. 
             -- integrate into client
             -- provide function to get last ping time and display in gui (at least for testing)
- 
 
-   [ ] when command line session is timed out and shift-enter to send code, it should make new session!
+   [ ] there is a subtle bug/issue with the design right now, which
+   will vanish in time when things are done right.  The issue is that a sage session (see the code of
+   create_persistent_sage_session) is tied via a closure to the specific sockjs conection that
+   made it.  However, if the user connects later or reconnects, then that connection no longer exists.
+   NOTE: right now in index.coffee in onopen we just make a new command line session in this case.
+   
+   [x] change client*coffee to use opts
 
-   [ ] change client*coffee to use opts
+.... took until 12:22am, but I made the connection far more robust
+against network failures.  There is still a problem where it will
+stupidly sometimes fallback to a non-websocket protocol. But overall
+this is much, much better.
+
+
    [ ] write client*coffee test suite
-   [ ] finish cassandra*coffee test suite
-   [ ] user login
+   [ ] more cassandra*coffee test suite
+
 

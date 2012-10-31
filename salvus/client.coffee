@@ -68,14 +68,15 @@ class Session extends EventEmitter
     
 class exports.Connection extends EventEmitter
     # Connection events:
-    #    - 'open' -- connection is initialized, open and ready to be used; called with sockjs protocol
-    #    - 'close' -- connection has closed
-    #    - 'error'  -- called when an error occurs 
-    #    - 'output' -- received some output for stateless execution (not in any session)
-    #    - 'ping' -- called when a pong is received back; data is the round trip ping time
-    #    - 'message' -- called when message is received
+    #    - 'connecting' -- trying to establish a connection
+    #    - 'connected'  -- succesfully established a connection; data is the protocol as a string
+    #    - 'error'      -- called when an error occurs 
+    #    - 'output'     -- received some output for stateless execution (not in any session)
+    #    - 'ping'       -- a pong is received back; data is the round trip ping time
+    #    - 'message'    -- any message is received
 
     constructor: (@url) ->
+        @emit("connecting")
         @_id_counter = 0
         @_sessions = {}
         @_new_sessions = {}
@@ -84,13 +85,27 @@ class exports.Connection extends EventEmitter
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
         # the SockJS server with that url, then creates the following event emitters:
-        #      "open", "error", "close"
+        #      "connected", "error", "close"
         # and returns a function to write raw data to the socket.
 
-        @_write = @_connect(@url, (data) => @emit("message", from_json(data)))
+        @_connect(@url, (data) => @emit("message", from_json(data)))
         @on("message", @handle_message)
 
-    send: (mesg) -> @_write(to_json(mesg))
+        @_last_pong = misc.walltime()
+        @_connected = false
+        @_ping_check_interval = 5000
+        setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
+
+    _ping_check: () ->
+        if @_connected and (@_last_ping - @_last_pong > 1.1*@_ping_check_interval/1000.0)
+            @_fix_connection()
+
+    send: (mesg) ->
+        try
+            @_write(to_json(mesg))
+        catch err
+            # this happens when trying to send and not connected
+            #console.log(err)
 
     handle_message: (mesg) ->
         switch mesg.event

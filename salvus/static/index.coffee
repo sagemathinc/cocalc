@@ -58,14 +58,19 @@ $ ->
 
     salvus = new Salvus(
         on_login: (name) -> sign_in(name)
-        onopen: (protocol) ->
-            $("#connection_status").html("connected (#{protocol})")
+        on_connected: (protocol) ->
+            $("#connection_status").html("")
+            $("#connection_protocol").html(protocol)
             persistent_session = salvus.conn.new_session()
-        onclose: -> $("#connection_status").html("reconnecting...")
+        on_connecting: ->
+            $("#connection_status").html("<font color='#a00'>connecting...</font>")
+            $("#connection_protocol").html('')
+            $("#ping_time").html('')
+        on_ping: (ping_time) ->
+            $("#ping_time").html(", ping=#{(ping_time*1000).toFixed(0)}ms")
     )
-    
 
-    # code executation router        
+    # code execution router        
     execute_code = ->
         switch active_page
             when "#demo1"

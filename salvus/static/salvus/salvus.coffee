@@ -19,12 +19,9 @@ mswalltime = require("misc").mswalltime
 class (exports ? this).Salvus
     constructor: (options) -> 
         @opts = $.extend(
-            onopen: (protocol) ->
-                log("open -- " + protocol)
-            onclose: ->
-                log("onclose")
-            on_login: (name) ->
-                log("logged in as " + name)
+            on_connected: () -> 
+            on_connecting: () ->
+            on_login: (name) -> log("logged in as " + name)
             url: "#{window.location.protocol}//#{window.location.host}"
         , options or {})
 
@@ -37,18 +34,16 @@ class (exports ? this).Salvus
         @conn.execute_code(input, cb)
         
     connect: () =>
-        @conn = client_browser.connect(@opts.url, @opts.onopen)
+        @conn = client_browser.connect(@opts.url)
+
+        @conn.on("ping", @opts.on_ping) if @opts.on_ping
         
-        @conn.on("close", () =>
-            @opts.onclose()
-            @retry_delay *= 2 if @retry_delay < 2048
-            log("Trying to reconnect in #{@retry_delay} milliseconds")
-            setTimeout(@connect, @retry_delay)
+        @conn.on("connecting", () =>
+            @opts.on_connecting()
         )
             
-        @conn.on('open', (protocol) =>
-            @opts.onopen(protocol)
-            @retry_delay = 1
+        @conn.on('connected', (protocol) =>
+            @opts.on_connected(protocol)
         )
 
 
