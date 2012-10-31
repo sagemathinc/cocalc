@@ -6363,3 +6363,234 @@ Soon:
      have index on non-primary key tables.  Then split it after query,
      and return {host:..., port:...}.
          
+--------------------------------
+
+Oct 30 at 2:08pm - until 2am
+
+   [x] evaluate google compute engine (using free trial):
+           Conclusion: ignore until salvus is making money.  Even a token presence is well over $2K/year. 
+
+
+starting at 2pm:  Google Compute Engine
+
+   ** IMPORTANT: This is under my uw.edu email, not my gmail.com email **
+
+Published rates: https://cloud.google.com/pricing/compute-engine
+
+>>> .145*24*8*30 # GCE per month for 1 core
+835.200000000000
+>>> 1.16/.145
+8.00000000000000
+>>> pph = 1.16*2*4  # price per hour from google for same as what I have in tour
+>>> pph
+9.28000000000000
+>>> pph*24*365  # price per year from google
+81292.8000000000
+>>> 80*12
+960
+>>> 64*8*.10  # price for disk per month
+51.2000000000000
+>>> 2*.145*24*365 # price per year from gce for equiv of servedby
+2540.40000000000
+>>> 80*12
+960
+
+In short, what I get for $5000/year costs $90K/year from Google.  
+
+---
+
+[x] Google Compute Engine:
+
+Goal:
+   [x] provision a machine -- done through webpage
+it looks like they have a couple of specific VM's, but one can't upload your own image.
+   [x] provision a disk -- done through webpage
+   [ ] be able to ssh in
+   [ ] build/install salvus 
+   [ ] build/install sage
+   [ ] setup tinc (?)
+
+SSH'ing:
+
+blastoff:~ wstein$ gcutil --project=uw.edu:salvus ssh test
+Go to the following link in your browser:
+
+    https://accounts.google.com/o/oauth2/auth?scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcompute+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcompute.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdevstorage.full_control+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdevstorage.read_only+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdevstorage.read_write+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdevstorage.write_only+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&response_type=code&client_id=1025389682001.apps.googleusercontent.com&access_type=offline
+
+Enter verification code: 4/bYXPuOh6N9xpIMhR8Uojkk7vJPQH.Mkq67l9oocsQuJJVnL49Cc-WrTlndQI
+Authentication successful.
+WARNING: You don't have an ssh key for Google Compute Engine. Creating one now...
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+INFO: Updated project with new ssh key. It can take several minutes for the instance to pick up the key.
+INFO: Waiting 300 seconds before attempting to connect.
+----
+
+It logged me in, but as user wstein, which is useless.  I couldn't install anything, such as g++.
+
+blastoff:~ wstein$ gcutil --project=uw.edu:salvus --ssh_user=root ssh test
+INFO: Updated project with new ssh key. It can take several minutes for the instance to pick up the key.
+INFO: Waiting 300 seconds before attempting to connect.
+
+
+[[GCE is frustrating]]
+
+blastoff:salvus wstein$  gcutil listinstances --project=uw.edu:salvus
++------+---------------+-----------------------------------------------+---------+---------------+---------------+-------+---------------+------+---------+----------------+
+| name | machine-type  |                     image                     | network |  network-ip   |  external-ip  | disks |     zone      | tags | status  | status-message |
++------+---------------+-----------------------------------------------+---------+---------------+---------------+-------+---------------+------+---------+----------------+
+| test | n1-standard-8 | projects/google/images/ubuntu-12-04-v20120912 | default | 10.240.194.87 | 108.59.95.234 | test  | us-central1-a |      | RUNNING |                |
++------+---------------+-----------------------------------------------+---------+---------------+---------------+-------+---------------+------+---------+----------------+
+
+A micro-benchmark:
+
+   python -c "import time; t=time.time(); a=sum(xrange(10**8)); print(time.time()-t)"
+
+GCE n1-standard-8: 0.623615026474
+my 3ghz salvus boxes: 0.934787034988
+my laptop 1.8Ghz: 1.12881588936
+my laptop 2.6Ghz: 1.09943389893
+bsd.math: 1.5067961216  # older version of python!
+a vm running on 3ghz salvus box: 0.94832611084
+combinat.math: 1.39991497993 
+servedby1: 1.52679586411
+servedby2: 1.40613603592
+
+sage.math (using python 2.7.3 in sage): 1.42585396767
+
+----
+
+I'm going to try again following https://developers.google.com/compute/docs/hello_world
+
+https://developers.google.com/compute/docs/hello_world
+
+# set default
+
+gcutil getproject --project=uw.edu:salvus --cache_flag_values
+gcutil addfirewall http2 --description="Incoming http allowed." --allowed="tcp:http"
+
+gcutil addinstance --machine_type=n1-standard-4 --zone=us-central1-a --disk test test
+gcutil addinstance --machine_type=n1-standard-4 --zone=us-central1-a  and
+
+
+gcutil ssh test
+   ls -lh /dev/disk/by-uuid
+
+Comparing virtual disk performance:
+
+GCE: about 150MB/sec
+root@test:/home/wstein# /sbin/hdparm -t /dev/vda1
+/dev/vda1:
+ Timing buffered disk reads: 446 MB in  3.01 seconds = 148.37 MB/sec
+
+My VM: about 535MB/sec (due to caching!)
+root@cassandra01:/home/salvus# /sbin/hdparm -t /dev/vda1 
+/dev/vda1:
+ Timing buffered disk reads: 242 MB in  0.45 seconds = 535.10 MB/sec
+
+My hardware: 142MB/sec
+root@08salvus:/home/salvus# /sbin/hdparm -t /dev/sda1 
+/dev/sda1:
+ Timing buffered disk reads: 242 MB in  1.71 seconds = 141.75 MB/sec
+
+Another test:
+
+GCE disks are better:
+root@test:/home/wstein# time dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
+512+0 records in
+512+0 records out
+536870912 bytes (537 MB) copied, 3.82017 s, 141 MB/s
+real	0m3.822s
+
+On my VM:
+
+root@cassandra01:/home/salvus# time dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
+512+0 records in
+512+0 records out
+536870912 bytes (537 MB) copied, 6.06796 s, 88.5 MB/s
+
+On my hardware:
+salvus@08salvus:~$ time dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
+512+0 records in
+512+0 records out
+536870912 bytes (537 MB) copied, 4.30397 s, 125 MB/s  
+
+---
+Network:
+
+I did an iperf test from GCE to 08salvus:
+
+root@test:/home/wstein# iperf -c 128.95.242.139
+
+varies a *lot*, but got timings: 43.2 Mbits/sec,  280 Mbits/sec, 116 Mbits/sec,  219 Mbits/sec, 248 Mbits/sec
+
+For comparison, from 01salvus to 08salvus (across campus):   475 Mbits/sec consistently
+From 07salvus to 08salvus:
+                     (using vpn) 253 Mbits/sec
+                     (not using vpn)  944 Mbits/sec, 944 Mbits/sec (hey it is gigabit eth!)
+
+From 02salvus to 01salvus:
+                     (using vpn)  259 Mbits/sec
+                     (not using vpn) 943Mbits/sec
+
+From vm on 01salvus: (not using vpn) 41.4 Mbits/sec, 87.3 Mbits/sec, 51.8 Mbits/sec, 
+                     (using vpn)  209 Mbits/sec,  216 Mbits/sec, 206 Mbits/sec
+
+
+salvus@01salvus:~$ iperf -c 128.95.242.139
+------------------------------------------------------------
+Client connecting to 128.95.242.139, TCP port 5001
+TCP window size: 23.5 KByte (default)
+------------------------------------------------------------
+[  3] local 128.95.224.230 port 57092 connected with 128.95.242.139 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.0 sec   567 MBytes   475 Mbits/sec
+
+
+-----
+
+Building Sage:
+
+blastoff:~ wstein$ gcutil addinstance --machine_type=n1-standard-8 --zone=us-central1-a --disk test test
+
+
+$ sudo su
+$ fdisk /dev/disk/by-id/google-test
+$ mkfs.ext4 /dev/disk/by-id/google-test
+$ mount /dev/disk/by-id/google-test /mnt
+$ mkdir /mnt/sage/; chown wstein sage. /mnt/sage
+$ apt-get update; apt-get install g++ gfortran m4 make dpkg-dev libssl-dev screen
+$ # change to wstein user
+$ wget http://sage.math.washington.edu/home/release/sage-5.4.rc2/sage-5.4.rc2.tar
+$ screen
+$ export MAKE="make -j8"; make ptestlong
+
+
+I wrote a blogpost about trying GCE: http://salvusmath.blogspot.com/2012/10/trying-out-google-compute-engine.html
+
+---
+
+  sudo apt-get install libncurses5-dev libssl-dev libreadline-dev git; git clone https://github.com/williamstein/salvus.git; cd salvus/salvus; . salvus-env ; ./build.py --build_all
+
+---
+
+  The only thing left is to wait for sage and salvus to build... for what it is worth.   I'll check up on that in a few hours. 
+
+5:40pm: time to regroup
+========================
+
+Things to do:
+
+   [x] cassandra.coffee -- should the cb not be part of opts?  Look at code and decide. 
+        Decision -- no, leave it as is!  Reason is that it makes it
+        clear which function is the callback when reading the code.
+
+
+   [ ] implement client heartbeat
+   [ ] when command line session is timed out and shift-enter to send code, it should make new session!
+
+   [ ] change client*coffee to use opts
+   [ ] write client*coffee test suite
+   [ ] finish cassandra*coffee test suite
+   [ ] user login
+

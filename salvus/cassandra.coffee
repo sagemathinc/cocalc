@@ -220,9 +220,11 @@ class exports.Cassandra extends EventEmitter
             @emit('error', error) if error
             cb?(error, results))
 
-    key_value_store: (opts={}) -> new KeyValueStore(@, opts)
+    key_value_store: (opts={}) -> # key_value_store(name:"the name")
+        new KeyValueStore(@, opts)
     
-    uuid_value_store: (opts={}) -> new UUIDValueStore(@, opts)
+    uuid_value_store: (opts={}) -> # uuid_value_store(name:"the name")
+        new UUIDValueStore(@, opts)
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->
