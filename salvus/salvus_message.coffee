@@ -17,7 +17,7 @@ required = defaults.required
 exports.start_session = (opts={}) ->
     defaults(opts,
         event  : 'start_session'
-        id     : required
+        id     : undefined
         limits : undefined
     )
 

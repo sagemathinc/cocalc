@@ -24,7 +24,10 @@
 ###
 
 message = require("salvus_message")
-misc = require("misc")
+misc    = require("misc")
+
+to_json = misc.to_json
+from_json = misc.from_json
 
 {EventEmitter} = require('events')
     
@@ -34,16 +37,13 @@ class Session extends EventEmitter
     #    - 'open'   -- session is initialized, open and ready to be used
     #    - 'close'  -- session's connection is closed/terminated
     #    - 'error'  -- called when an error occurs 
+    constructor: (@conn, @requested_limits) ->
+        @start_time = misc.walltime()
+
     _init: (session_uuid, limits) ->
         @session_uuid = session_uuid
         @limits = limits
-        @is_open = true
         @emit("open")
-        @on("close", () => @is_open=false)
-
-    constructor: (@conn, @requested_limits) ->
-        @is_open = false
-        @start_time = misc.walltime()
 
     walltime: () -> misc.walltime() - @start_time
 
@@ -51,9 +51,6 @@ class Session extends EventEmitter
     # No matter what, you can always still listen in with the 'output' even, and note
     # the uuid, which is returned from this function.
     execute_code: (code, cb=null, preparse=true) ->
-        if not @is_open
-            @emit("error", "trying to execute code in closed session")
-            return
         uuid = misc.uuid()
         if cb?
             @conn.execute_callbacks[uuid] = cb
@@ -70,30 +67,32 @@ class Session extends EventEmitter
         
     
 class exports.Connection extends EventEmitter
-    # events:
-    #    - 'open' -- connection is initialized, open and ready to be used
+    # Connection events:
+    #    - 'open' -- connection is initialized, open and ready to be used; called with sockjs protocol
     #    - 'close' -- connection has closed
     #    - 'error'  -- called when an error occurs 
     #    - 'output' -- received some output for stateless execution (not in any session)
-    constructor: (opts) ->
+    #    - 'ping' -- called when a pong is received back; data is the round trip ping time
+    #    - 'message' -- called when message is received
+
+    constructor: (@url) ->
         @_id_counter = 0
         @_sessions = {}
         @_new_sessions = {}
         @execute_callbacks = {}
-        @_send = opts.send
-        opts.set_onmessage(@_onmessage)
-        opts.set_onerror((data) => @emit("error", data))
-        @on("close", () =>
-            @is_open = false
-            for uuid, session of @_sessions
-                session.emit("close")
-        )
-        @is_open = true
-        
-    send: (mesg) => @_send(JSON.stringify(mesg))
-    
-    _onmessage: (data) =>
-        mesg = JSON.parse(data)
+
+        # IMPORTANT! Connection is an abstract base class.  Derived classes must
+        # implement a method called _connect that takes a URL and a callback, and connects to
+        # the SockJS server with that url, then creates the following event emitters:
+        #      "open", "error", "close"
+        # and returns a function to write raw data to the socket.
+
+        @_write = @_connect(@url, (data) => @emit("message", from_json(data)))
+        @on("message", @handle_message)
+
+    send: (mesg) -> @_write(to_json(mesg))
+
+    handle_message: (mesg) ->
         switch mesg.event
             when "new_session"
                 session = @_new_sessions[mesg.id]
@@ -109,10 +108,16 @@ class exports.Connection extends EventEmitter
                     @_sessions[mesg.session_uuid].emit("output", mesg)
                 else   # stateless exec
                     @emit("output", mesg)
-                    
             when "terminate_session"
                 session = @_sessions[mesg.session_uuid]
                 session.emit("close")
+            when "pong"
+                @_last_pong = misc.walltime()
+                @emit("ping", @_last_pong - @_last_ping)
+
+    ping: () ->
+        @_last_ping = misc.walltime()
+        @send(message.ping())
 
     new_session: (limits={}) ->
         id = @_id_counter++
@@ -122,9 +127,6 @@ class exports.Connection extends EventEmitter
         return session
 
     execute_code: (code, cb=null, preparse=true) ->
-        if not @is_open
-            @emit("error", "trying to execute code, but connection is closed")
-            return
         uuid = misc.uuid()
         if cb?
             @execute_callbacks[uuid] = cb

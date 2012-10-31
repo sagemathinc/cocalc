@@ -18,6 +18,9 @@ misc    = require("misc")
 message = require("salvus_message")     # salvus message protocol
 cass    = require("cassandra")
 
+to_json = misc.to_json
+from_json = misc.from_json
+
 # third-party libraries
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
@@ -51,16 +54,16 @@ init_sockjs_server = () ->
         winston.info ("new sockjs connection #{conn}; all connections #{sockjs_connections}")
         # install event handlers on this particular connection
 
-        push_to_client = (msg) -> conn.write(JSON.stringify(msg))
+        push_to_client = (msg) -> conn.write(to_json(msg))
         
         conn.on("data", (mesg) ->
             try
-                mesg = JSON.parse(mesg)
+                mesg = from_json(mesg)
             catch error
                 winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
                 return
                 
-            winston.debug("conn=#{conn} received sockjs mesg: #{JSON.stringify(mesg)}")
+            winston.debug("conn=#{conn} received sockjs mesg: #{to_json(mesg)}")
 
             ###
             # handle message
@@ -75,7 +78,8 @@ init_sockjs_server = () ->
                     create_persistent_sage_session(mesg, push_to_client)
                 when "send_signal"
                     send_to_persistent_sage_session(mesg)
-                
+                when "ping"
+                    push_to_client(message.pong())
         )
         conn.on("close", ->
             winston.info("conn=#{conn} closed")
@@ -105,7 +109,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
             host:sage_server.host
             port:sage_server.port
             recv:(m) ->
-                winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{JSON.stringify(m)})")
+                winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{to_json(m)})")
                 switch m.event
                     when "output", "terminate_session"
                         m.session_uuid = session_uuid  # tag with session uuid
@@ -128,7 +132,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
     )
 
 send_to_persistent_sage_session = (mesg) ->
-    winston.debug("send_to_persistent_sage_session(#{JSON.stringify(mesg)})")
+    winston.debug("send_to_persistent_sage_session(#{to_json(mesg)})")
 
     session_uuid = mesg.session_uuid
     session = persistent_sage_sessions[session_uuid]
@@ -165,7 +169,7 @@ init_stateless_exec = () ->
     stateless_exec_cache = cassandra.key_value_store(name:'stateless_exec')
 
 stateless_sage_exec = (input_mesg, output_message_callback) ->
-    winston.info("(hub) stateless_sage_exec #{JSON.stringify(input_mesg)}")
+    winston.info("(hub) stateless_sage_exec #{to_json(input_mesg)}")
     stateless_exec_cache.get(key:input_mesg.code, cb:(err, output) ->
         if output?
             winston.info("(hub) -- using cache")        
@@ -193,18 +197,18 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
         host:host
         port:port
         recv:(mesg) ->
-            winston.info("(hub) sage_conn -- received message #{JSON.stringify(mesg)}")
+            winston.info("(hub) sage_conn -- received message #{to_json(mesg)}")
             output_message_callback(mesg)
         cb: ->
             winston.info("(hub) sage_conn -- sage: connected.")
             sage_conn.send(message.start_session(limits:{walltime:20, cputime:20, numfiles:1000, vmem:2048}))
-            winston.info("(hub) sage_conn -- send: #{JSON.stringify(input_mesg)}")
+            winston.info("(hub) sage_conn -- send: #{to_json(input_mesg)}")
             sage_conn.send(input_mesg)
             sage_conn.terminate_session()
     )
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
-    winston.info("(hub) stateless_sage_exec_nocache #{JSON.stringify(input_mesg)}")
+    winston.info("(hub) stateless_sage_exec_nocache #{to_json(input_mesg)}")
     cassandra.random_sage_server( cb:(err, sage_server) ->
         if sage_server?
             stateless_exec_using_server(input_mesg, output_message_callback, sage_server.address, sage_server.port)

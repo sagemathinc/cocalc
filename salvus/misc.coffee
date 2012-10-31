@@ -57,8 +57,16 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
     
 
 
-exports.to_json = (x) -> JSON.stringify(x)
-exports.from_json = (x) -> JSON.parse(x)
+exports.to_json = (x) ->
+    JSON.stringify(x)
+    
+exports.from_json = (x) ->
+    try
+        JSON.parse(x)
+    catch err
+        console.log("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
+        throw err
+    
 exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
 
 exports.is_empty_object = (obj) -> Object.keys(obj).length == 0

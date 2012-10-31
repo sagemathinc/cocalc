@@ -46,8 +46,8 @@ class (exports ? this).Salvus
             setTimeout(@connect, @retry_delay)
         )
             
-        @conn.on('open', () =>
-            @opts.onopen(@conn.protocol)
+        @conn.on('open', (protocol) =>
+            @opts.onopen(protocol)
             @retry_delay = 1
         )
 
