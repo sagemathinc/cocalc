@@ -13,6 +13,14 @@
 defaults = require('misc').defaults
 required = defaults.required
 
+# generic error emssages
+exports.error = (opts={}) ->
+    defaults(opts,
+        event  : 'error'
+        id     : undefined
+        reason : undefined
+    )
+
 # hub --> sage_server and browser --> hub
 exports.start_session = (opts={}) ->
     defaults(opts,
@@ -87,11 +95,13 @@ exports.logged_in = (opts={}) ->
 # browser --> hub
 exports.ping = (opts={}) ->
     defaults(opts,
-        event   : 'ping'  
+        event   : 'ping'
+        id      : undefined
     )
 
 # hub --> browser;   sent in response to a ping
 exports.pong = (opts={}) ->
     defaults(opts,
-        event   : 'pong'  
+        event   : 'pong'
+        id      : undefined        
     )

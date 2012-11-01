@@ -2,6 +2,7 @@
 
 message = require("salvus_message")
 misc    = require("misc")
+defaults = misc.defaults
 
 class Session extends EventEmitter
     # events:
@@ -51,6 +52,7 @@ class exports.Connection extends EventEmitter
         @_sessions = {}
         @_new_sessions = {}
         @execute_callbacks = {}
+        @call_callbacks = {}
 
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
@@ -82,6 +84,13 @@ class exports.Connection extends EventEmitter
             #console.log(err)
 
     handle_message: (mesg) ->
+        f = @call_callbacks[mesg.id]        
+        if f?
+            if f != null
+                f(null, mesg)
+            delete @call_callbacks[mesg.id]
+            return
+            
         switch mesg.event
             when "new_session"
                 session = @_new_sessions[mesg.id]
@@ -121,3 +130,31 @@ class exports.Connection extends EventEmitter
             @execute_callbacks[uuid] = cb
         @send(message.execute_code(id:uuid, code:code, preparse:preparse))
         return uuid
+
+    call: (opts={}) ->
+        # This function:
+        #    * Modifies the message by adding an id attribute with a random uuid value
+        #    * Sends the message to the hub
+        #    * When message comes back with that id, call the callback and delete it (if cb opts.cb is defined)
+        #      The message will not be seen by @handle_message.
+        #    * If the timeout is reached before any messages come back, delete the callback and stop listening.
+        #      However, if the message later arrives it may still be handled by @handle_message.
+        opts = defaults(opts, message:defaults.required, timeout:null, cb:undefined)
+        if not opts.cb?
+            @send(opts.message)
+            return
+        id = misc.uuid()
+        opts.message.id = id
+        @call_callbacks[id] = opts.cb
+        @send(opts.message)
+        if opts.timeout?
+            setTimeout(
+                (() =>
+                    opts.cb(true, message.error(id:id, reason:"timeout after #{opts.timeout} seconds"))
+                    @call_callbacks[id] = null),
+                opts.timeout*1000
+            )
+
+        
+        
+        

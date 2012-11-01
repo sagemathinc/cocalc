@@ -66,20 +66,21 @@ CREATE INDEX ON plans(current)
                    
 CREATE TABLE accounts (
     account_id      uuid PRIMARY KEY,
-    username        varchar,
-    passwd_hash     varchar,
-    email           varchar,
-    email_hash      varchar,
+    first_name      varchar,
+    last_name       varchar,
+    password_hash   varchar,
+    password_change_wait_until  timestamp,
+    email_address   varchar,
     plan_id         uuid,
     plan_starttime  timestamp,
 );    
     
-CREATE INDEX ON accounts(username)
-CREATE INDEX ON accounts(email)
-CREATE INDEX ON accounts(email_hash)
-CREATE INDEX ON accounts(plan_id)
+CREATE INDEX ON accounts(first_name);
+CREATE INDEX ON accounts(last_name);
+CREATE INDEX ON accounts(email_address);
+CREATE INDEX ON accounts(plan_id);
     
-CREATE TABLE account_events (
+CREATE TABLE account_log (
     account_id   uuid PRIMARY KEY,
     event        varchar,
     value        varchar

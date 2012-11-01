@@ -6631,7 +6631,141 @@ improved quite a bit at coffeescript/javascript/node.
 Next up -- what I've been planning to do for days!?!
 
    [ ] account creation
-
    [ ] storage of data
-
 I wish I did not have to sleep.
+
+Oct 31, 2012:
+==============
+
+   [ ] account creation
+        
+         - message.create_account(username, email_address):
+              [ ] creates entry in accounts table in database setting
+                  account to be "not_validated", unless there are
+                  already too many accounts with a given email_address
+
+BAH -- an attacker can use the above as a way to send lots of email out!  not good.
+
+              [ ] a given ip address 
+              [ ] sends out an email to the email_address with a link in it
+              [ ] when user visits that link, database changes account to "validated"
+
+The whole reason to link an email address to an account is so that users can reset
+their password, and so messages can be sent.  It may be better to:
+
+      - user chooses an auth provider from a list, including github, google, etc.
+
+---
+
+I just went through how Dropbox does things.  They have the fastest
+and most straightforward easy-to-use not-linked account system
+*imaginable*!  I mean, seriously, it is clean and easy.  I bet they
+have some anti-DOS measures behind the scenes that are subtle, of
+course.
+
+I will implement something similar to what they do, since it is really
+massively user friendly, and they are super good at growing their user
+base.  It's what I secretly want but am scared of.   
+
+Dropbox:
+  * they do not validate the email address of users. 
+  * they require typing password to change linked email address
+  * they require knowing email address linked to an account to do a password reset
+  * at most one account per email for saneness of their database backend -- but one can just do + trick to get more...
+
+--
+
+My plan: implement account stuff exactly like them, but with the
+additional option of linking accounts to other providers, specifically
+for the purpose of sharing git repos, or any other *specific* reason
+why one would want to link like that.
+
+And, do setup 2-factor using google authenticator, like dropbox does.
+
+OK, at least I have a very solid plan!
+
+
+----
+
+OK, here we go. The steps:
+
+   [x] change accounts schema:
+          account_id, first_name, last_name, email_address, password_hash
+
+   [ ] function on client.coffee:
+          .call(message, timeout, cb):   
+       that: (1) slaps a uuid on the message
+             (2) sends the message
+             (3) waits for up to timeout in seconds for a message back tagged with that uuid,       
+                  - if get message, call cb with it:
+                           cb(null, message)
+                  - if don't get message, call cb to report an error
+                           cb(true, "timeout after 5 seconds")
+             (4) in either case in 3, the callback is then removed. 
+
+        WHY?  Because I want 100% of the client/server communication
+        to go via messages, not via AJAX, HTTP, etc., so that other
+        client apps -- e.g., pure TCP -- will be 100% doable.  Also,
+        this makes testing via client_node.coffee much easier. 
+
+   [ ] define all of the messages we need to implement everything in
+       salvus_messages.coffee to implement the entire login protocol.
+
+             # client --> hub
+             message.create_account(id, first_name, last_name, email_address, password, agreed_to_terms)
+             # client <--> hub
+             message.email_address_availability(id, email_address, available)
+             # client --> hub
+             message.sign_in(id, email_address, password, remember_me)
+             # hub --> client
+             # sent in response to either create_account or log_in
+             message.signed_in(id, account_id, first_name, last_name, email_address, plan_name)
+             # client --> hub
+             message.sign_out(id)
+             # hub --> client
+             message.signed_out(id)
+
+             # client --> hub
+             message.change_email_address(id, old_email_address, new_email_address, password)
+             # hub --> client
+             message.changed_email_address(id, old_email_address, new_email_address)
+
+             # client --> hub
+             message.change_password(id, email_address, old_password, new_password)
+             # hub --> client
+             message.changed_password(id, error, message)
+              # if error is true, that means the password was not changed; would
+                happen if password is wrong (message:'invalid password'), 
+                or request is too frequent (message:'too many password change requests')
+
+             # client --> hub
+             message.password_reset(id, email_address)
+             # hub --> client
+             message.password_reset_response(id, email_address, success)
+                success true if message sent; success false if no such email_address in the database
+
+   [ ] anti-DOS/spam measures:
+
+          [ ] hard limit account creation from a given ip address to a maximum
+              of 200 accounts per week.
+
+              - this will require using a key:value store with ttl:
+                    name = 'account_creation_attempts'
+                   
+               key:ip_address
+               value:number_of_attempts
+               ttl:1 day
+
+              - due to proxy and a class of students all creating accounts at once,
+                we only have an upper bound up to some amount of time. 
+
+              - if number of accounts from ip exceeds 10 (say), require a captcha (?)
+
+          [ ] bruteforce attack: limit change_password requests to 25 per day.
+
+                name = 'change_password_attempts'
+                    
+                key:email_address
+                value:number_of_attempts
+                ttl:1 day
+

@@ -36,12 +36,12 @@ TASKS
   - save document
   - simple editor for most file types for now
 
-[ ] (4 days) Project management UI
+[ ] (4 days) Project repo's:
   - create project
   - open project
   - organize list of projects
 
-[ ] (4 days) Sharing UI
+[ ] (4 days) App Hosting
   - publish document in a version of project to a public short hashed URL
   - embedding published live document in an external website
 

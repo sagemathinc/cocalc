@@ -81,7 +81,7 @@ init_sockjs_server = () ->
                 when "send_signal"
                     send_to_persistent_sage_session(mesg)
                 when "ping"
-                    push_to_client(message.pong())
+                    push_to_client(message.pong(id:mesg.id))
         )
         conn.on("close", ->
             winston.info("conn=#{conn} closed")
