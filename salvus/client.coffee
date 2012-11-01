@@ -1,6 +1,6 @@
 {EventEmitter} = require('events')
 
-message = require("salvus_message")
+message = require("message")
 misc    = require("misc")
 defaults = misc.defaults
 

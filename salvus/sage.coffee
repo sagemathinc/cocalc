@@ -2,7 +2,7 @@ net = require('net')
 
 winston = require('winston')            # https://github.com/flatiron/winston
 
-message = require("salvus_message")
+message = require("message")
 
 class exports.Connection
     constructor: (options) ->
@@ -63,7 +63,7 @@ class exports.Connection
         
 ###
 test = (n=1) ->
-    message = require("salvus_message")
+    message = require("message")
     cb = () ->         
         conn.send(message.start_session())
         for i in [1..n]

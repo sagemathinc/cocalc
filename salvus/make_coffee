@@ -21,6 +21,6 @@ browserify -v --exports=require,connect node_modules/client_browser.js -o static
 
 
 # this will get deleted!
-cp node_modules/salvus_message.js node_modules/salvus_client.js static/salvus/ 
+cp node_modules/message.js node_modules/salvus_client.js static/salvus/ 
 coffee -o static/salvus/ -c static/salvus/salvus.coffee 
 coffee -o static/ -c static/index.coffee 

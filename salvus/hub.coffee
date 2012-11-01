@@ -15,7 +15,7 @@ http    = require('http')
 # salvus libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
-message = require("salvus_message")     # salvus message protocol
+message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 
 to_json = misc.to_json

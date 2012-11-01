@@ -1,6 +1,6 @@
 async     = require("async")
 
-message = require("salvus_message")
+message = require("message")
 
 conn = null
 
