@@ -135,17 +135,25 @@ message(
 
 # client --> hub
 message(
+    id             : undefined
     event          : 'sign_in'
     email_address  : required
     password       : required
     remember_me    : false
 )
 
+# client --> hub
+message(
+    id             : undefined
+    event          : 'sign_in_failed'
+    email_address  : required
+    reason         : required  
+)
+
 # hub --> client; sent in response to either create_account or log_in
 message(
     event          : 'signed_in'
     id             : undefined
-    account_id     : required
     first_name     : required
     last_name      : required
     email_address  : required

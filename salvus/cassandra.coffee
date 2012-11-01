@@ -1,6 +1,19 @@
-
+#########################################################################
+# 
+# Interface to the Cassandra Database.
+#
+# *ALL* DB queries (using CQL, etc.) should be in this file, with
+# *Cassandra/CQL agnostic wrapper functions defined here.   E.g.,
+# to find out if an email address is available, define a function
+# here that does the CQL query.
+#
+# (c) William Stein, University of Washington
+#
+#########################################################################
+    
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
+required = defaults.required
 
 async   = require('async')
 winston = require('winston')            # https://github.com/flatiron/winston
@@ -240,6 +253,65 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults(opts,  cb:undefined)        
         @running_sage_servers(cb:(error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res)))
 
+
+    #####################################
+    # Account Management
+    #####################################
+    is_email_address_available: (email_address, cb) ->
+        @count(table:"accounts", where:{email_address:email_address}, cb:(error, cnt) ->
+            if error
+                cb(error)
+            else
+                cb(null, cnt==0)
+        )
+        
+    create_account: (opts={}) ->
+        opts = defaults(opts,
+            cb:undefined
+            first_name    : required
+            last_name     : required
+            email_address : required
+            password_hash : required
+        )
+            
+        account_id = uuid.v4()
+        # TODO: plan_name
+        a = {first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, password_hash:opts.password_hash, plan_name:"Free"}
+        
+        @update(
+            table :'accounts'
+            set   : a
+            where : {account_id:account_id}
+            cb    : (error, result) -> opts.cb?(error, account_id)
+        )
+
+        return account_id
+
+    get_account: (opts={}) ->
+        opts = defaults(opts,
+            cb            : required
+            email_address : undefined
+            account_id    : undefined
+        )
+        where = {}
+        if opts.account_id?
+            where.account_id = opts.account_id
+        if opts.email_address?
+            where.email_address = opts.email_address
+            
+        @select
+            table   : 'accounts'
+            where   : where 
+            columns : ['account_id', 'first_name', 'last_name', 'email_address', 'password_hash','plan_name']
+            cb      : (error, results) ->
+                console.log("db ", error, results)
+                if error or results.length != 1
+                    opts.cb(true)
+                else
+                    r = results[0]
+                    opts.cb(false, {account_id:r[0], first_name:r[1], last_name:r[2], email_address:r[3], password_hash:r[4], plan_name:r[5]})
+
+
     #############
     # Plans
     ############
@@ -259,21 +331,6 @@ class exports.Salvus extends exports.Cassandra
     current_plans: (opts={}) ->
         opts = defaults(columns:[], cb:undefined)        
         @select(table:'plans', columns:opts.columns, where:{current:true}, cb:opts.cb)
-
-    ############
-    # Accounts
-    ############
-    create_account: (opts={}) ->           # returns (not callback) the uuid of the newly created account
-        opts = defaults(opts,  cb:undefined, username:'', account_id:undefined)
-        opts.account_id = uuid.v4() if not opts.account_id?
-        @update(
-            table:'accounts'
-            set:{username:opts.username}
-            where:{account_id:opts.account_id}
-            cb:opts.cb
-        )
-        return opts.account_id
-
 
 
     

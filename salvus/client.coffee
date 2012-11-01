@@ -170,7 +170,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
-            timeout        : 10       # in seconds
+            timeout        : 10 # seconds
             cb             : required
         )
         mesg = message.create_account(
@@ -182,4 +182,43 @@ class exports.Connection extends EventEmitter
         )
         @call(message:mesg, timeout:opts.timeout, cb:opts.cb)
         
+    sign_in: (opts) ->
+        opts = defaults(opts,
+            email_address : required
+            password     : required
+            remember_me  : false
+            cb           : required
+            timeout      : 10 # seconds
+        )
+        @call(
+            message : message.sign_in(email_address:opts.email_address, password:opts.password, remember_me:opts.remember_me)
+            timeout : opts.timeout
+            cb      : opts.cb
+        )
+
+#################################################
+# Other account Management functionality shared between client and server
+#################################################
+
+check = require('validator').check
+
+exports.issues_with_create_account = (mesg) ->
+    issues = {}
+    if not mesg.agreed_to_terms
+        issues.agreed_to_terms = 'You must agree to the Salvus Terms of Service.'
+    if mesg.first_name == ''
+        issues.first_name = 'You must enter a first name.'
+    if mesg.last_name == ''
+        issues.last_name = 'You must enter a last name.'
         
+    try
+        check(mesg.email_address).isEmail()
+    catch err
+        issues.email_address = 'The email address you entered does not appear to be valid.'
+        
+    try
+        check(mesg.password).len(6,64)
+    catch err
+        issues.password = 'Password must be between 6 and 64 characters in length.'
+    return issues
+    

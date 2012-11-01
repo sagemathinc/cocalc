@@ -17,11 +17,13 @@ sage    = require("sage")               # sage server
 misc    = require("misc")
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
+client  = require("client")
 
 to_json = misc.to_json
 from_json = misc.from_json
 
 # third-party libraries
+async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
 winston = require('winston')            # logging -- https://github.com/flatiron/winston
@@ -92,6 +94,8 @@ init_sockjs_server = () ->
                 # account management
                 when "create_account"
                     create_account(mesg, push_to_client)
+                when "sign_in"
+                    sign_in(mesg, push_to_client)
         )
         conn.on("close", ->
             winston.info("conn=#{conn} closed")
@@ -106,12 +110,110 @@ init_sockjs_server = () ->
 # Account Management 
 ########################################
 
+password_hash_library = require('password-hash')
+
+password_hash = (password) ->
+    return password_hash_library.generate(password,
+        algorithm:'sha512'
+        saltLength:32
+        iterations:1
+    )
+
+password_verify = (password, password_hash) ->
+    return password_hash_library.verify(password, password_hash)
+    
+sign_in = (mesg, push_to_client) ->
+    cassandra.get_account(
+        email_address : mesg.email_address
+        cb            : (error, account) ->
+            console.log(error, account)
+            if error or not password_verify(mesg.password, account.password_hash)
+                push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
+            else
+                push_to_client(message.signed_in(
+                    id            : mesg.id
+                    first_name    : account.first_name
+                    last_name     : account.last_name
+                    email_address : mesg.email_address
+                    plan_name     : account.plan_name
+                ))
+    )
+
+# We cannot put the zxcvbn password strength checking in
+# client.coffee since it is too big (~1MB).  The client
+# will async load and use this, of course, but a broken or
+# *hacked* client might not properly verify this, so we
+# do it in the server too.  NOTE: I tested Dropbox and
+# they have a GUI to warn against week passwords, but still
+# allow them anyways!
+zxcvbn = require('../static/zxcvbn/zxcvbn')  # this require takes about 100ms!
+
 create_account = (mesg, push_to_client) ->
     id = mesg.id
-    if not mesg.agreed_to_terms
-        push_to_client(message.account_creation_failed(id:id, reason:'You must agree to the Salvus Terms of Service'))
-        return
+    account_id = null
+    async.series([
+        # run tests on generic validity of input
+        (cb) -> 
+            issues = client.issues_with_create_account(mesg)
+            console.log("issues = #{issues}")
+            password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
+            if password_strength.crack_time <= 60*24*3600  # 60 days
+                issues['password'] = "Password is weak; choose a password that is more difficult to guess."
+            if misc.len(issues) > 0
+                push_to_client(message.account_creation_failed(id:id, reason:issues))
+                cb(true)
+            else
+                cb()
+                
+        # query database to determine whether the email address is available
+        (cb) ->
+            cassandra.is_email_address_available(mesg.email_address, (error, available) ->
+                if error
+                    push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
+                    cb(true)
+                else if not available
+                    push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail is already taken"}))
+                    cb(true)
+                else
+                    cb()
+            )
+            
+        # create new account
+        (cb) ->
+            cassandra.create_account(
+                first_name:    mesg.first_name
+                last_name:     mesg.last_name
+                email_address: mesg.email_address
+                password_hash: password_hash(mesg.password)
+                cb: (error, result) ->
+                    if error
+                        push_to_client(message.account_creation_failed(
+                                 id:id, reason:{'other':"Unable to create account right now.  Please try later."})
+                        )
+                        cb(true)
+                    account_id = result
+                    cb()
+            )
+            
+        # send message back to user that they are logged in as the new user
+        (cb) ->
+            mesg = message.signed_in(
+                id: mesg.id
+                first_name: mesg.first_name
+                last_name: mesg.last_name
+                email_address: mesg.email_address
+                plan_name: 'Free'
+            )
+            push_to_client(mesg)
+            cb()
+    ])
+    
 
+        
+
+    
+    
+                            
 
 
 

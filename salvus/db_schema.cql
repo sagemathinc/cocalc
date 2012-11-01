@@ -68,10 +68,13 @@ CREATE TABLE accounts (
     account_id      uuid PRIMARY KEY,
     first_name      varchar,
     last_name       varchar,
+    email_address   varchar,
+
     password_hash   varchar,
     password_change_wait_until  timestamp,
-    email_address   varchar,
+
     plan_id         uuid,
+    plan_name       varchar,        // redundant, to avoid an extra query
     plan_starttime  timestamp,
 );    
     

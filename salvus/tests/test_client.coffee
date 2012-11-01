@@ -1,6 +1,7 @@
 async     = require("async")
 
 message = require("message")
+misc    = require("misc")
 
 conn = null
 
@@ -98,17 +99,73 @@ exports.test_session = (test) ->
 
 
 exports.test_account_management = (test) ->
-    test.expect(1)
+    test.expect(19)
+    email_address = "#{misc.uuid()}@salv.us"
+    password = "#{misc.uuid()}"
     async.series([
-        # verify that account creation requires the terms of service to be agreed to
+        # Verify that account creation requires the terms of service to be agreed to
+        # Verify that weak passwords are checked for
+        # Verify that first_name and last_name must both be nonempty.
+        # Verify that email address must be valid
         (cb) ->
             conn.create_account(
-                first_name:'Sage'
-                last_name:'Salvus'
-                email_address:'salvus@gmail.com'
-                password:'qaz'
-                agreed_to_terms:true
-                cb:(error, mesg) -> (test.eq(1,2); cb())
+                first_name    : ''
+                last_name     : ''
+                email_address : 'salvusmath-gmail.com'
+                password      : 'qazqazqazqaz'
+                agreed_to_terms : false
+                timeout       : 1
+                cb:(error, mesg) ->
+                    test.equal(error, undefined)
+                    test.equal(mesg.event,'account_creation_failed')
+                    test.equal(mesg.reason.agreed_to_terms?, true)
+                    test.equal(mesg.reason.first_name?, true)
+                    test.equal(mesg.reason.last_name?, true)
+                    test.equal(mesg.reason.email_address?, true)
+                    test.equal(mesg.reason.password?, true)
+                    cb()
+            )
+        # Create a valid account
+        (cb) ->
+            conn.create_account(
+                first_name    : 'Salvus'
+                last_name     : 'Math'
+                email_address : email_address
+                password      : password
+                agreed_to_terms: true
+                timeout       : 1
+                cb:(error, mesg) ->
+                    test.equal(error, undefined)
+                    test.equal(mesg.event, 'signed_in')
+                    test.equal(mesg.first_name, 'Salvus')
+                    test.equal(mesg.last_name, 'Math')
+                    test.equal(mesg.email_address, email_address)
+                    test.equal(mesg.plan_name, 'Free')
+                    cb()
             )
             
+        # Login to the account we just created -- first with the wrong password
+        (cb) ->
+            conn.sign_in(
+                email_address : email_address
+                password      : password + 'wrong'
+                timeout       : 1
+                cb            : (error, mesg) ->
+                    test.equal(mesg.event, "sign_in_failed")
+                    cb()
+            )
+        # Login to the account we just created -- first with the right password
+        (cb) ->
+            conn.sign_in(
+                email_address : email_address
+                password      : password
+                timeout       : 1
+                cb            : (error, mesg) ->
+                    test.equal(mesg.event, "signed_in")
+                    test.equal(mesg.first_name, "Salvus")
+                    test.equal(mesg.last_name, "Math")
+                    test.equal(mesg.email_address, email_address)
+                    test.equal(mesg.plan_name, "Free")
+                    cb()
+            )
     ], ()-> test.done())

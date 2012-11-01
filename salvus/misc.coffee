@@ -75,4 +75,4 @@ exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOStrin
 exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 
 
-        
+exports.len = (obj) -> Object.keys(obj).length
