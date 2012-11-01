@@ -6712,7 +6712,7 @@ OK, here we go. The steps:
         client apps -- e.g., pure TCP -- will be 100% doable.  Also,
         this makes testing via client_node.coffee much easier. 
 
-   [ ] define all of the messages we need to implement everything in
+   [x] define all of the messages we need to implement everything in
        salvus_messages.coffee to implement the entire login protocol.
 
              # client --> hub
@@ -6773,6 +6773,17 @@ OK, here we go. The steps:
                 value:number_of_attempts
                 ttl:1 day
 
+3:58pm
+--------------------
+
+-- I finished and tested backend account creation, except the above DOS restrictions. 
+-- Also, backend login doesn't actually set *any* backend state -- but that will be easy.
+
+Next:
+ 
+   [ ] set backend state
+   [ ] anti-DOS measures (above)
+   [ ] frontend client
 
 
 ----
