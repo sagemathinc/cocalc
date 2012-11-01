@@ -72,6 +72,7 @@ exports.execute_code = (opts={}) ->
         code         : required
         session_uuid : undefined
         preparse     : true
+        allow_cache  : true
     )
         
 # sage_server --> hub_i --> hub_j --> browser

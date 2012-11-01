@@ -1,6 +1,6 @@
 ###
 #
-#  c = require('client_node').connect("http://localhost:5000")
+#  message=require('salvus_message'); c = require('client_node').connect("http://localhost:5000")
 # 
 ###
 #

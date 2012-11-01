@@ -172,6 +172,20 @@ init_stateless_exec = () ->
 
 stateless_sage_exec = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec #{to_json(input_mesg)}")
+    exec_nocache = () -> 
+        output_messages = []
+        stateless_sage_exec_nocache(input_mesg,
+            (mesg) ->
+                if mesg.event == "output"
+                    output_messages.push(mesg)
+                output_message_callback(mesg)
+                if mesg.done and input_mesg.allow_cache
+                    winston.info("caching result")
+                    stateless_exec_cache.set(key:input_mesg.code, value:output_messages)
+        )
+    if not input_mesg.allow_cache
+        exec_nocache()
+        return
     stateless_exec_cache.get(key:input_mesg.code, cb:(err, output) ->
         if output?
             winston.info("(hub) -- using cache")        
@@ -179,15 +193,7 @@ stateless_sage_exec = (input_mesg, output_message_callback) ->
                 mesg.id = input_mesg.id
                 output_message_callback(mesg)
         else
-            output_messages = []
-            stateless_sage_exec_nocache(input_mesg, (mesg) ->
-                if mesg.event == "output"
-                    output_messages.push(mesg)
-                output_message_callback(mesg)
-                if mesg.done
-                    winston.info("caching result")
-                    stateless_exec_cache.set(key:input_mesg.code, value:output_messages)
-            )
+            exec_nocache()
     )
 
 stateless_sage_exec_fake = (input_mesg, output_message_callback) ->

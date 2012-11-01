@@ -13,7 +13,7 @@ exports.tearDown = (cb) ->
     conn.close()
 
 exports.test_conn = (test) ->
-    test.expect(5)
+    test.expect(9)
     async.series([
         (cb) ->
             uuid = conn.execute_code('2+2', (mesg) ->
@@ -27,26 +27,24 @@ exports.test_conn = (test) ->
             conn.ping()
         # test the call mechanism for doing a simple ping/pong message back and forth
         (cb) ->
-            cb();
             conn.call(
-                message:message.ping()
-                cb:((error, mesg) -> test.equal(mesg.event,'pong'); cb())
+                message : message.ping()
+                cb      : (error, mesg) -> (test.equal(mesg.event,'pong'); cb())
             )
         # test the call mechanism for doing a simple ping/pong message back and forth -- but with a timeout that is *not* triggered
         (cb) ->
-            cb();
             conn.call(
-                message:message.ping()
-                timeout:2  # 2 seconds
-                cb:((error, mesg) -> test.equal(mesg.event,'pong'); cb())
+                message : message.ping()
+                timeout : 2  # 2 seconds
+                cb      : (error, mesg) -> (test.equal(mesg.event,'pong'); cb())
             )
         # test sending a message that times out.
-        #(cb) ->
-        #    conn.call(
-        #        message:message.execute_code(code:'sleep(1)')
-        #        timeout:0.1
-        #        #cb:((error, mesg) -> console.log(error, mesg); test.equal(error,true); test.equal(mesg.event,'error'); cb())
-        #    )
+        (cb) ->
+            conn.call(
+                message : message.execute_code(code:'sleep(2)', allow_cache:false)
+                timeout : 0.1
+                cb      : (error, mesg) -> (console.log(error, mesg); test.equal(error,true); test.equal(mesg.event,'error'); cb())
+            )
     ], () -> test.done())
 
 exports.test_session = (test) ->

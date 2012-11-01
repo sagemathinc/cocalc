@@ -84,7 +84,7 @@ class exports.Connection extends EventEmitter
             #console.log(err)
 
     handle_message: (mesg) ->
-        f = @call_callbacks[mesg.id]        
+        f = @call_callbacks[mesg.id]
         if f?
             if f != null
                 f(null, mesg)
@@ -150,9 +150,10 @@ class exports.Connection extends EventEmitter
         if opts.timeout?
             setTimeout(
                 (() =>
-                    opts.cb(true, message.error(id:id, reason:"timeout after #{opts.timeout} seconds"))
-                    @call_callbacks[id] = null),
-                opts.timeout*1000
+                    if @call_callbacks[id]?
+                        opts.cb(true, message.error(id:id, reason:"timeout after #{opts.timeout} seconds"))
+                        @call_callbacks[id] = null
+                ), opts.timeout*1000
             )
 
         
