@@ -1,3 +1,4 @@
+
 ###
 # Misc. CoffeeScript functions that might are needed elsewhere.  These must *not* depend on node.
 ###
