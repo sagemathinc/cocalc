@@ -16,11 +16,13 @@ exports.test_conn = (test) ->
     test.expect(9)
     async.series([
         (cb) ->
-            uuid = conn.execute_code('2+2', (mesg) ->
-                test.equal(mesg.stdout, '4\n')
-                test.equal(mesg.done, true)
-                test.equal(mesg.event, 'output')
-                test.equal(mesg.id, uuid); cb()
+            uuid = conn.execute_code(
+                code : '2+2'
+                cb   : (mesg) ->
+                    test.equal(mesg.stdout, '4\n')
+                    test.equal(mesg.done, true)
+                    test.equal(mesg.event, 'output')
+                    test.equal(mesg.id, uuid); cb()
             )
         (cb) ->
             conn.on('ping', (tm) -> test.ok(tm<1); cb())
@@ -43,7 +45,7 @@ exports.test_conn = (test) ->
             conn.call(
                 message : message.execute_code(code:'sleep(2)', allow_cache:false)
                 timeout : 0.1
-                cb      : (error, mesg) -> (console.log(error, mesg); test.equal(error,true); test.equal(mesg.event,'error'); cb())
+                cb      : (error, mesg) -> test.equal(error,true); test.equal(mesg.event,'error'); cb()
             )
     ], () -> test.done())
 
@@ -55,8 +57,9 @@ exports.test_session = (test) ->
         # create a session that will time out after 5 seconds (just in case)
         (cb) -> s = conn.new_session(walltime:10); s.on("open", cb)
         # execute some code that will produce at least 2 output messages, and collect all messages
-        (cb) -> s.execute_code("2+2;sys.stdout.flush();sleep(.5)",
-                   (mesg) ->
+        (cb) -> s.execute_code(
+                    code: "2+2;sys.stdout.flush();sleep(.5)",
+                    cb: (mesg) ->
                         v.push(mesg)
                         if mesg.done
                             cb()
@@ -74,11 +77,16 @@ exports.test_session = (test) ->
             cb()
         # evaluate a silly expression without the Sage preparser
         (cb) ->
-            s.execute_code("2^3 + 1/3",((mesg) -> test.equal(mesg.stdout,'1\n'); cb()), false)
+            s.execute_code(
+                code:"2^3 + 1/3",
+                cb:(mesg) -> test.equal(mesg.stdout,'1\n'); cb(),
+                preparse:false
+            )
         # start a computation going, then interrupt it and do something else
         (cb) ->
-            s.execute_code('print(1);sys.stdout.flush();sleep(10)', 
-                (mesg) ->
+            s.execute_code(
+                code:'print(1);sys.stdout.flush();sleep(10)', 
+                cb: (mesg) ->
                     if not mesg.done
                         test.equal(mesg.stdout,'1\n')
                         s.interrupt()

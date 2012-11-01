@@ -4948,16 +4948,20 @@ s.restart('haproxy', '02salvus')
 ----
 
      virsh list  --all # check that no base vm is running
-     export PREV=salvus4
-     export NAME=salvus5
+     export PREV=salvus5
+     export NAME=salvus6
      qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
 
-      virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=8 --ram 4096 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+      virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
      virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
 
        sudo apt-get update; sudo apt-get upgrade; 
        sudo reboot -h now
-       cd salvus; git pull https://github.com/williamstein/salvus.git
+       cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
+       . salvus-env
+
+# for example:
+       ./build.py --build_stunnel --build_nodejs --build_nodejs_packages --build_haproxy --build_nginx --build_cassandra --build_python_packages
 
      virsh --connect qemu:///session undefine $NAME
      virsh --connect qemu:///session destroy $NAME
@@ -6773,6 +6777,16 @@ OK, here we go. The steps:
 
 ----
 
-[ ] I'm going to deploy the current version:
+Nov 1, 2012
+===========
 
+Up at about 7am, and going to work very, very hard on Salvus all day today.
+
+[x] finished execute_code cleanup.
+
+[-->] I'm going to update the deployed salvus right now, just because it
+    is good practice to be good at this, and most components are out
+    of date in the current install...
+
+[ ] new messages needed for login
    
