@@ -67,7 +67,7 @@ $ ->
             $("#connection_protocol").html('')
             $("#ping_time").html('')
         on_ping: (ping_time) ->
-            $("#ping_time").html(", ping=#{(ping_time*1000).toFixed(0)}ms")
+            $("#ping_time").html(", last ping=#{(ping_time*1000).toFixed(0)}ms")
     )
 
     # code execution router        

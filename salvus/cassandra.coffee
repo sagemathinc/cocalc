@@ -132,6 +132,7 @@ class KeyValueStore
 class exports.Cassandra extends EventEmitter
     constructor: (opts={}) ->    # cb is called on connect
         opts = defaults(opts, hosts:['localhost'], cb:undefined, keyspace:undefined, timeout:3000)
+        console.log("keyspace = #{opts.keyspace}")
         @conn = new helenus.ConnectionPool(
             hosts     :  opts.hosts
             keyspace  :  opts.keyspace

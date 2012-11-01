@@ -110,7 +110,7 @@ message(
 # client --> hub
 message(
     event          : 'create_account'
-    id             : required
+    id             : undefined
     first_name     : required
     last_name      : required
     email_address  : required
@@ -118,10 +118,17 @@ message(
     agreed_to_terms: required
 )
 
+# hub --> client
+message (
+    event          : 'account_creation_failed'
+    id             : required
+    reason         : required
+)
+
 # client <--> hub
 message(
     event          : 'email_address_availability'
-    id             : required
+    id             : undefined
     email_address  : required
     is_available   : undefined
 )
@@ -137,7 +144,7 @@ message(
 # hub --> client; sent in response to either create_account or log_in
 message(
     event          : 'signed_in'
-    id             : required
+    id             : undefined
     account_id     : required
     first_name     : required
     last_name      : required
@@ -148,19 +155,19 @@ message(
 # client --> hub
 message(
     event          : 'sign_out'
-    id             : required
+    id             : undefined
 )
 
 # hub --> client
 message(
     event          : 'signed_out'
-    id             : required
+    id             : undefined
 )
 
 # client --> hub
 message(
     event          : 'change_email_address'
-    id             : required
+    id             : undefined    
     old_email_address : required
     new_email_address : required
     password          : required
@@ -169,7 +176,7 @@ message(
 # hub --> client
 message(
     event          : 'changed_email_address'
-    id             : required
+    id             : undefined    
     old_email_address : required
     new_email_address : required
 )
@@ -177,7 +184,7 @@ message(
 # client --> hub
 message(
     event          : 'change_password'
-    id             : required
+    id             : undefined    
     old_password   : required
     new_password   : required
 )    
@@ -188,7 +195,7 @@ message(
 # or request is too frequent (message:'too many password change requests')
 message(
     event          : 'changed_password'
-    id             : required
+    id             : undefined    
     error          : undefined
     message        : undefined
 )
@@ -204,7 +211,7 @@ message(
 # success true if message sent; success false if no such email_address in the database
 message(
     event          : 'password_reset_response'
-    id             : required
+    id             : undefined    
     email_address  : required
     success        : required
 )

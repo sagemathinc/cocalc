@@ -96,3 +96,19 @@ exports.test_session = (test) ->
             )
     ],()->s.kill(); test.done())
 
+
+exports.test_account_management = (test) ->
+    test.expect(1)
+    async.series([
+        # verify that account creation requires the terms of service to be agreed to
+        (cb) ->
+            conn.create_account(
+                first_name:'Sage'
+                last_name:'Salvus'
+                email_address:'salvus@gmail.com'
+                password:'qaz'
+                agreed_to_terms:true
+                cb:(error, mesg) -> (test.eq(1,2); cb())
+            )
+            
+    ], ()-> test.done())

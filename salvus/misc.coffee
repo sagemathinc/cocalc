@@ -19,10 +19,12 @@ exports.defaults = (obj1, obj2) ->
     r = {}
     for prop, val of obj2
         if obj1.hasOwnProperty(prop)
+            if obj2[prop] == exports.defaults.required and not obj1[prop]?
+                throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
-                throw "misc.defaults -- TypeError: property #{prop} must be specified #{error()}"
+                throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
             else
                 r[prop] = obj2[prop]
     for prop, val of obj1

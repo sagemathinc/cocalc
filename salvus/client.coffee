@@ -3,6 +3,7 @@
 message = require("message")
 misc    = require("misc")
 defaults = misc.defaults
+required = defaults.required
 
 class Session extends EventEmitter
     # events:
@@ -66,7 +67,7 @@ class exports.Connection extends EventEmitter
 
         @_last_pong = misc.walltime()
         @_connected = false
-        @_ping_check_interval = 10000
+        @_ping_check_interval = 2000
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->
@@ -159,5 +160,26 @@ class exports.Connection extends EventEmitter
             )
 
         
+    #################################################
+    # Account Management
+    #################################################
+    create_account: (opts) ->
+        opts = defaults(opts,
+            first_name     : required
+            last_name      : required
+            email_address  : required
+            password       : required
+            agreed_to_terms: required
+            timeout        : 10       # in seconds
+            cb             : required
+        )
+        mesg = message.create_account(
+            first_name     : opts.first_name
+            last_name      : opts.last_name
+            email_address  : opts.email_address
+            password       : opts.password
+            agreed_to_terms: opts.agreed_to_terms
+        )
+        @call(message:mesg, timeout:opts.timeout, cb:opts.cb)
         
         

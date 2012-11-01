@@ -56,7 +56,9 @@ init_sockjs_server = () ->
         winston.info ("new sockjs connection #{conn}")
         # install event handlers on this particular connection
 
-        push_to_client = (msg) -> conn.write(to_json(msg))
+        push_to_client = (mesg) ->
+            console.log(to_json(mesg)) if mesg.event != 'pong'
+            conn.write(to_json(mesg))
         
         conn.on("data", (mesg) ->
             try
@@ -64,13 +66,15 @@ init_sockjs_server = () ->
             catch error
                 winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
                 return
-                
-            winston.debug("conn=#{conn} received sockjs mesg: #{to_json(mesg)}")
+
+            if mesg.event != 'ping'
+                winston.debug("conn=#{conn} received sockjs mesg: #{to_json(mesg)}")
 
             ###
             # handle message
             ###
             switch mesg.event
+                # session/code execution
                 when "execute_code"
                     if mesg.session_uuid?
                         send_to_persistent_sage_session(mesg)
@@ -80,8 +84,14 @@ init_sockjs_server = () ->
                     create_persistent_sage_session(mesg, push_to_client)
                 when "send_signal"
                     send_to_persistent_sage_session(mesg)
+
+                # ping/pong
                 when "ping"
                     push_to_client(message.pong(id:mesg.id))
+
+                # account management
+                when "create_account"
+                    create_account(mesg, push_to_client)
         )
         conn.on("close", ->
             winston.info("conn=#{conn} closed")
@@ -91,9 +101,31 @@ init_sockjs_server = () ->
     )
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
-###
+
+########################################
+# Account Management 
+########################################
+
+create_account = (mesg, push_to_client) ->
+    id = mesg.id
+    if not mesg.agreed_to_terms
+        push_to_client(message.account_creation_failed(id:id, reason:'You must agree to the Salvus Terms of Service'))
+        return
+
+
+
+
+
+
+
+
+
+    
+    
+
+########################################
 # Persistent Sage Sessions
-###
+########################################
 persistent_sage_sessions = {}
 
 
@@ -232,7 +264,8 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
 start_server = () ->
     # the order of init below is important
     init_http_server()
-    cassandra = new cass.Salvus(hosts:program.database_nodes.split(','))
+    winston.info("Using Cassandra keyspace #{program.keyspace}")
+    cassandra = new cass.Salvus(hosts:program.database_nodes.split(','), keyspace:program.keyspace)
     init_sockjs_server()
     init_stateless_exec()
     http_server.listen(program.port)
@@ -250,6 +283,7 @@ program
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '')
+    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "salvus")', String, 'salvus')    
     .parse(process.argv)
  
 daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
