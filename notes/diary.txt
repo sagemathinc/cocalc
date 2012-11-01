@@ -6692,7 +6692,7 @@ OK, here we go. The steps:
    [x] change accounts schema:
           account_id, first_name, last_name, email_address, password_hash
 
-   [ ] function on client.coffee:
+   [x] function on client.coffee:
           .call(message, timeout, cb):   
        that: (1) slaps a uuid on the message
              (2) sends the message

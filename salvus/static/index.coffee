@@ -25,7 +25,7 @@ $ ->
         else
             show_page(page_ids[0])
         
-    connect_links_and_pages(["#about", "#demo1", "#demo2", "#demo3"], "#demo2")
+    connect_links_and_pages(["#about", "#demo1", "#demo2", "#demo3"], "#demo1")
 
     ############################################
     # Login/logout management
@@ -114,13 +114,18 @@ $ ->
         $("#time").html("")
         $("#run_status").html("running...")
         t0 = mswalltime()
-        salvus.execute_code($("#input").val(), (mesg) ->
-            $("#time").html("#{mswalltime() - t0} ms") 
-            o = $("#output")
-            o.val(o.val() + mesg.stdout)
-            if mesg.stderr
-                o.val(o.val() + "\n!!!!!!!!!!!!!!\n#{mesg.stderr}\n!!!!!!!!!!!!!\n") 
-            $("#run_status").html(if mesg.done then "" else "running..."))            
+        salvus.execute_code(
+            code  : $("#input").val()
+            cb    : (mesg) ->
+                $("#time").html("#{mswalltime() - t0} ms") 
+                o = $("#output")
+                o.val(o.val() + mesg.stdout)
+                if mesg.stderr
+                    o.val(o.val() + "\n!!!!!!!!!!!!!!\n#{mesg.stderr}\n!!!!!!!!!!!!!\n") 
+                $("#run_status").html(if mesg.done then "" else "running...")
+            preparse: true
+            allow_cache: $("#script-cache").is(':checked')
+        )
 
     ############################################
     # Command line REPL session
@@ -134,13 +139,16 @@ $ ->
         i.val("")
         o.val(o.val() + ">>> #{code}\n")
         o.scrollTop(o[0].scrollHeight)
-        persistent_session.execute_code(code, (mesg) ->
-            if mesg.stdout?
-                o.val(o.val() + mesg.stdout)
-                o.scrollTop(o[0].scrollHeight)
-            if mesg.stderr?
-                o.val(o.val() + "!!!!\n" + mesg.stderr + "!!!!\n")
-                o.scrollTop(o[0].scrollHeight)
+        persistent_session.execute_code(
+            code : code
+            cb   :(mesg) ->
+                if mesg.stdout?
+                    o.val(o.val() + mesg.stdout)
+                    o.scrollTop(o[0].scrollHeight)
+                if mesg.stderr?
+                    o.val(o.val() + "!!!!\n" + mesg.stderr + "!!!!\n")
+                    o.scrollTop(o[0].scrollHeight)
+            preparse: true
         )
 
     interrupt_exec2 = () ->

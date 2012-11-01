@@ -21,11 +21,12 @@ class Session extends EventEmitter
     # If cb is given, it is called every time output for this particular code appears; 
     # No matter what, you can always still listen in with the 'output' even, and note
     # the uuid, which is returned from this function.
-    execute_code: (code, cb=null, preparse=true) ->
+    execute_code: (opts={}) ->
+        opts = defaults(opts, code:defaults.required, cb:null, preparse:true)
         uuid = misc.uuid()
-        if cb?
-            @conn.execute_callbacks[uuid] = cb
-        @conn.send(message.execute_code(id:uuid, code:code, session_uuid:@session_uuid, preparse:preparse))
+        if opts.cb?
+            @conn.execute_callbacks[uuid] = opts.cb
+        @conn.send(message.execute_code(id:uuid, code:opts.code, session_uuid:@session_uuid, preparse:opts.preparse))
         return uuid
 
     # default = SIGINT
@@ -124,11 +125,12 @@ class exports.Connection extends EventEmitter
         @send(message.start_session(id:id, limits:limits))
         return session
 
-    execute_code: (code, cb=null, preparse=true) ->
+    execute_code: (opts={}) ->
+        opts = defaults(opts, code:defaults.required, cb:null, preparse:true, allow_cache:true)
         uuid = misc.uuid()
-        if cb?
-            @execute_callbacks[uuid] = cb
-        @send(message.execute_code(id:uuid, code:code, preparse:preparse))
+        if opts.cb?
+            @execute_callbacks[uuid] = opts.cb
+        @send(message.execute_code(id:uuid, code:opts.code, preparse:opts.preparse, allow_cache:opts.allow_cache))
         return uuid
 
     call: (opts={}) ->

@@ -68,12 +68,11 @@
 
     <div class="container" id="demo1">
       <div class="row">
-      <div class="row">
 	<div class="span6">
 	  <h3>Script</h3><br>
 	</div>
       </div>
-
+      <div class = "row">
 	<div class="span1">
 	  <font size="+1"><a href="http://www.sagemath.org" target="_new">sage:</a></font>
 	</div>
@@ -81,6 +80,7 @@
 	  <textarea rows=8 id="input" class="span9"></textarea>
 	  <br>
           <a id="execute" class="btn btn-primary btn-large">Execute (shift-enter) &raquo;</a>
+&nbsp;&nbsp;&nbsp;<input type="checkbox" id="script-cache" checked=true> Allow Caching
 	  <br><br>
           <textarea rows=6 id="output"  class="span9" readonly="readonly"></textarea>
 	</div>
@@ -90,8 +90,9 @@
 	    <span id="time"></span><br>
 	    <span id="run_status"></span><br>
 	  </font>
-	  </div>
+	</div>
       </div>
+          
     </div> 
 
     <div class="container" id="demo2">

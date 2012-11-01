@@ -239,6 +239,10 @@ def session(conn, home, cputime, numfiles, vmem, uid):
         
     signal.signal(signal.SIGQUIT, handle_parent_sigquit)
 
+    # seed the random number generator(s)
+    import sage.all; sage.all.set_random_seed()
+    import time; import random; random.seed(time.time())
+
     while True:
         try:
             mesg = conn.recv()
@@ -363,6 +367,12 @@ def serve_connection(conn):
                 vmem=limits.get('vmem', LIMITS['vmem']))
     
 def serve(port, address):
+    #log.info('opening connection on port %s', port)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((address, port))
+    print 'Sage server %s:%s'%(address, port)
+
     signal.signal(signal.SIGCHLD, handle_session_term)
 
     tm = time.time()
@@ -374,12 +384,6 @@ def serve(port, address):
     #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
     
-    #log.info('opening connection on port %s', port)
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((address, port))
-
-    print 'Sage server %s:%s'%(address, port)
     
     t = time.time()
     s.listen(128)
