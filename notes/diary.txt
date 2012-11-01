@@ -6788,5 +6788,5 @@ Up at about 7am, and going to work very, very hard on Salvus all day today.
     is good practice to be good at this, and most components are out
     of date in the current install...
 
-[ ] new messages needed for login
+[x] new messages needed for login
    

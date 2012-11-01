@@ -14,30 +14,31 @@ defaults = require('misc').defaults
 required = defaults.required
 
 
-new_message = (obj) -> (opts={}) ->
-    if opts.event?
-        throw "ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})"
-    defaults(opts, obj)
+message = (obj) ->
+    exports[obj.event] = (opts={}) ->
+        if opts.event?
+            throw "ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})"
+        defaults(opts, obj)
 
 ############################################
 # Sage session management; executing code 
 ############################################# 
 # generic error emssages
-exports.error = new_message(
+message(
     event  : 'error'
     id     : undefined
     reason : undefined
 )
 
 # hub --> sage_server and browser --> hub
-exports.start_session = new_message(
+message(
     event  : 'start_session'
     id     : undefined
     limits : undefined
 )
 
 # hub --> browser
-exports.new_session = new_message( 
+message( 
     event        : 'new_session'
     id           : required
     session_uuid : undefined
@@ -45,14 +46,14 @@ exports.new_session = new_message(
 )
 
 # sage_server --> hub
-exports.session_description = new_message(
+message(
     event  : 'session_description'
     pid    : required
     limits : undefined
 )
 
 # browser --> hub --> sage_server
-exports.send_signal = new_message(
+message(
     event        : 'send_signal'
     session_uuid : undefined   # from browser-->hub this must be set
     pid          : undefined   # from hub-->sage_server this must be set
@@ -60,7 +61,7 @@ exports.send_signal = new_message(
 )
 
 # browser <----> hub <--> sage_server
-exports.terminate_session = new_message(
+message(
     event        : 'terminate_session'
     session_uuid : undefined
     reason       : undefined
@@ -68,7 +69,7 @@ exports.terminate_session = new_message(
 )
 
 # browser --> hub --> sage_server
-exports.execute_code = new_message(
+message(
     event        : 'execute_code'
     id           : undefined
     code         : required
@@ -78,7 +79,7 @@ exports.execute_code = new_message(
 )
         
 # sage_server --> hub_i --> hub_j --> browser
-exports.output = new_message(
+message(
     event        : 'output'
     id           : undefined
     stdout       : undefined
@@ -91,13 +92,13 @@ exports.output = new_message(
 # Ping/pong
 #############################################
 # browser --> hub
-exports.ping = new_message(
+message(
     event   : 'ping'
     id      : undefined
 )
 
 # hub --> browser;   sent in response to a ping
-exports.pong = new_message(
+message(
     event   : 'pong'
     id      : undefined        
 )
@@ -105,9 +106,9 @@ exports.pong = new_message(
 ############################################
 # Account Management
 #############################################
-#
 
-exports.create_account = new_message(
+# client --> hub
+message(
     event          : 'create_account'
     id             : required
     first_name     : required
@@ -117,37 +118,93 @@ exports.create_account = new_message(
     agreed_to_terms: required
 )
 
-###
-             # client --> hub
-             message.create_account(id, first_name, last_name, email_address, password, agreed_to_terms)
-             # client <--> hub
-             message.email_address_availability(id, email_address, available)
-             # client --> hub
-             message.sign_in(id, email_address, password, remember_me)
-             # hub --> client
-             # sent in response to either create_account or log_in
-             message.signed_in(id, account_id, first_name, last_name, email_address, plan_name)
-             # client --> hub
-             message.sign_out(id)
-             # hub --> client
-             message.signed_out(id)
+# client <--> hub
+message(
+    event          : 'email_address_availability'
+    id             : required
+    email_address  : required
+    is_available   : undefined
+)
 
-             # client --> hub
-             message.change_email_address(id, old_email_address, new_email_address, password)
-             # hub --> client
-             message.changed_email_address(id, old_email_address, new_email_address)
+# client --> hub
+message(
+    event          : 'sign_in'
+    email_address  : required
+    password       : required
+    remember_me    : false
+)
 
-             # client --> hub
-             message.change_password(id, email_address, old_password, new_password)
-             # hub --> client
-             message.changed_password(id, error, message)
-              # if error is true, that means the password was not changed; would
-                happen if password is wrong (message:'invalid password'), 
-                or request is too frequent (message:'too many password change requests')
+# hub --> client; sent in response to either create_account or log_in
+message(
+    event          : 'signed_in'
+    id             : required
+    account_id     : required
+    first_name     : required
+    last_name      : required
+    email_address  : required
+    plan_name      : required
+)
+    
+# client --> hub
+message(
+    event          : 'sign_out'
+    id             : required
+)
 
-             # client --> hub
-             message.password_reset(id, email_address)
-             # hub --> client
-             message.password_reset_response(id, email_address, success)
-                success true if message sent; success false if no such email_address in the database
-###
+# hub --> client
+message(
+    event          : 'signed_out'
+    id             : required
+)
+
+# client --> hub
+message(
+    event          : 'change_email_address'
+    id             : required
+    old_email_address : required
+    new_email_address : required
+    password          : required
+)
+
+# hub --> client
+message(
+    event          : 'changed_email_address'
+    id             : required
+    old_email_address : required
+    new_email_address : required
+)
+
+# client --> hub
+message(
+    event          : 'change_password'
+    id             : required
+    old_password   : required
+    new_password   : required
+)    
+    
+# hub --> client
+# if error is true, that means the password was not changed; would
+# happen if password is wrong (message:'invalid password'), 
+# or request is too frequent (message:'too many password change requests')
+message(
+    event          : 'changed_password'
+    id             : required
+    error          : undefined
+    message        : undefined
+)
+
+# client --> hub
+message(
+    event          : 'password_reset'
+    id             : required
+    email_address  : required
+)
+    
+# hub --> client
+# success true if message sent; success false if no such email_address in the database
+message(
+    event          : 'password_reset_response'
+    id             : required
+    email_address  : required
+    success        : required
+)
