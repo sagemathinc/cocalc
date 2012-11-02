@@ -320,7 +320,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                     account_id = result
                     cassandra.log(
                         event:'create_account'
-                        value:{account_id:account_id, first_name:mesg.first_name, last_name:last_name, email_address:email_address}
+                        value:{account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
                     )
                     cb()
             )
@@ -396,7 +396,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
     	        event:'change_password',
                 value:{account_id:account_id, client_ip_address:client_ip_address, previous_password_hash:account.password_hash}
             )
-            caassandra.change_password(
+            cassandra.change_password(
                 account_id:    account.account_id
                 password_hash: password_hash(mesg.new_password),
                 cb : (error, result) ->
@@ -468,7 +468,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
     	        event:'change_email_address',
                 value:{account_id:account_id, client_ip_address:client_ip_address, old_email_address:account.email_address}
             )
-            caassandra.change_email_address(
+            cassandra.change_email_address(
                 account_id:    account.account_id
                 email_address: mesg.new_email_address,
                 cb : (error, result) ->

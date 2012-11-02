@@ -243,8 +243,8 @@ class exports.Salvus extends exports.Cassandra
         super(opts)
         
     #####################################
-    # The System log: we log important conceptually meaningful events
-    # here.  This is something we will consult frquently.
+    # The log: we log important conceptually meaningful events
+    # here.  This is something we will actually look at.
     #####################################
     log: (opts={}) ->
         opts = defaults(opts, 
@@ -254,7 +254,7 @@ class exports.Salvus extends exports.Cassandra
             cb    : undefined
         )
         @update(
-            table :'security_log'
+            table :'central_log'
             set   : {event:opts.event, value:to_json(opts.value)}
             where : {'time':now()}
             cb    : opts.cb
@@ -271,10 +271,10 @@ class exports.Salvus extends exports.Cassandra
         # TODO -- implement restricting the range of times -- this
         # isn't trivial because I haven't implemented ranges in
         # @select yet, and I don't want to spend a lot of time on this
-        # right now.
+        # right now. maybe just write query using CQL.
         
         @select(
-            table   : 'security_log'
+            table   : 'central_log'
             where   : where
             columns : ['time', 'event', 'value']
             cb      : (error, results) ->
@@ -359,6 +359,30 @@ class exports.Salvus extends exports.Cassandra
                     opts.cb(false, {account_id:r[0], first_name:r[1], last_name:r[2], email_address:r[3], password_hash:r[4], plan_name:r[5]})
 
     change_password: (opts={}) ->
+        opts = defaults(opts,
+            account_id    : required
+            password_hash : required
+            cb            : undefined
+        )
+        @update(
+            table   : 'accounts'
+            where   : {account_id:opts.account_id}
+            set     : {password_hash: opts.password_hash}
+            cb      : opts.cb
+        )
+
+    change_email_addres: (opts={}) ->
+        opts = defaults(opts,
+            account_id    : required
+            email_address : required
+            cb            : undefined
+        )
+        @update(
+            table   : 'accounts'
+            where   : {account_id:opts.account_id}
+            set     : {email_addres:opts.email_address}
+            cb      : opts.cb
+        )
         
 
     #############

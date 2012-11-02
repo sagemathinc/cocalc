@@ -97,10 +97,12 @@ CREATE TABLE auths (
     PRIMARY KEY(account_id, provider, login_name)
 );
 
-CREATE TABLE security_log (
+
+// the central log
+CREATE TABLE central_log (
     time   timestamp PRIMARY KEY,
     event  varchar,
     value  varchar
 )
 
-CREATE INDEX ON security_log(event);
+CREATE INDEX ON central_log(event);
