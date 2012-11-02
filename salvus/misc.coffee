@@ -76,3 +76,5 @@ exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 
 
 exports.len = (obj) -> Object.keys(obj).length
+
+exports.keys = (obj) -> (key for key of obj)

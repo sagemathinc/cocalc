@@ -351,7 +351,6 @@ class exports.Salvus extends exports.Cassandra
             where   : where 
             columns : ['account_id', 'first_name', 'last_name', 'email_address', 'password_hash','plan_name']
             cb      : (error, results) ->
-                console.log("db ", error, results)
                 if error or results.length != 1
                     opts.cb(true)
                 else
@@ -371,7 +370,7 @@ class exports.Salvus extends exports.Cassandra
             cb      : opts.cb
         )
 
-    change_email_addres: (opts={}) ->
+    change_email_address: (opts={}) ->
         opts = defaults(opts,
             account_id    : required
             email_address : required
@@ -379,8 +378,8 @@ class exports.Salvus extends exports.Cassandra
         )
         @update(
             table   : 'accounts'
-            where   : {account_id:opts.account_id}
-            set     : {email_addres:opts.email_address}
+            where   : {account_id    : opts.account_id}
+            set     : {email_address : opts.email_address}
             cb      : opts.cb
         )
         

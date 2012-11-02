@@ -1,6 +1,17 @@
+###
+#
+# For manual testing:
+# 
+#    database = new (require('cassandra').Salvus)(keyspace:'test');0;
+#
+###
+
+
 cassandra = require("cassandra")
 helenus   = require("helenus")
 async     = require("async")
+
+misc      = require("misc")
 
 database = null
 
@@ -25,6 +36,111 @@ exports.tearDown = (cb) ->
         (cb) -> conn.close(); cb()
     ], cb)
 
+
+exports.test_account_management = (test) ->
+    test.expect(18)
+    account_id = null
+    account =
+        first_name : 'Salvus'
+        last_name  : 'Math'
+        email_address : 'salvusmath@gmail.com'
+        password_hash : 'sha512$e0d3590cbe964b540cf6fa2713b4bbab$1$67fddb5643ef79ea092ccff9ea41575fc2c833fe7071c74dde50e04a3fc24af65dc130a13313de558dc2d7e1ed360c1f2fd8c690a2b61a28c89f90a28dae2401'  # salvus
+        plan_name     : 'Free'
+        
+    async.series([
+        # address starts out available
+        (cb) ->
+            database.is_email_address_available(account.email_address, (error, result) ->
+                test.equal(result, true)
+                cb()
+            )
+        # we create a new account
+        (cb) ->
+            account.account_id = database.create_account(
+                first_name    : account.first_name
+                last_name     : account.last_name
+                email_address : account.email_address
+                password_hash : account.password_hash
+                cb            : (error, result) ->
+                    test.ok(not error)
+                    test.equal(result, account.account_id)
+                    cb()
+            )
+        # now the email address is no longer available
+        (cb) -> 
+            database.is_email_address_available(account.email_address, (error, result) ->
+                test.equal(result, false)
+                cb()
+            )
+        # we fetch the account by email_address and confirm correctness of what is returned
+        (cb) ->
+            database.get_account(
+                email_address : account.email_address
+                cb:(error,result) ->
+                    test.ok(not error)
+                    for k in misc.keys(account)  # test.deepEqual doesn't work right maybe becuase of uuid changes into and out of db
+                        test.equal(result[k], account[k])
+                    cb()
+            )
+        # we fetch the account by account_id
+        (cb) ->
+            database.get_account(
+                account_id : account.account_id
+                cb : (error, result) ->
+                    test.ok(not error)
+                    test.equal(result.email_address, account.email_address)
+                    cb()
+            )
+        # we attempt to fetch an account that doesn't exist, and verify that this is an error
+        (cb) ->
+            database.get_account(
+                account_id: 0
+                cb : (error, result) ->
+                    test.ok(error)
+                    cb()
+            )
+
+        # we change the password
+        (cb) ->
+            account.password_hash = 'sha512$0c6b41b54a59b57bfea7a1c697f44d41$1$da260a09ae9e5ee1e829c88eea094a9ac4b1af248705c8ff5087cfb263711374d3d9cdc70be0095cc2bb609355192ab1687210b31aba05aa249c977d15de4fc9'  # salvus2
+            database.change_password(
+                account_id    : account.account_id
+                password_hash : account.password_hash
+                cb            : (error, result) ->
+                    test.ok(not error)
+                    cb()
+            )
+
+        # confirm the password change
+        (cb) ->
+            database.get_account(
+                account_id: account.account_id
+                cb : (error, result) ->
+                    test.equal(result.password_hash, account.password_hash)
+                    cb()
+            )
+
+        # we change the email address
+        (cb) ->
+            account.email_address = 'salvusmath@uw.edu'
+            database.change_email_address(
+                account_id    : account.account_id
+                email_address : account.email_address
+                cb : (error, result) ->
+                    test.ok(not error)
+                    cb()
+            )
+
+        # confirm the email address change
+        (cb) ->
+            database.get_account(
+                account_id: account.account_id
+                cb : (error, result) ->
+                    test.equal(result.email_address, account.email_address)
+                    cb()
+            )
+
+    ], () -> test.done())
 
 exports.test_key_value_store = (test) ->
     test.expect(8)
@@ -87,9 +203,6 @@ exports.test_uuid_value_store = (test) ->
         (cb) -> uvs2.length(cb:(err,value) -> test.equal(value,1); cb(err))
     ],()->test.done())
 
-
-#exports.test_account_management = (test) ->
-#    test.expect(?)
-#    async.series([
+          
         
     

@@ -154,7 +154,8 @@ exports.test_account_management = (test) ->
                     test.equal(mesg.event, "sign_in_failed")
                     cb()
             )
-        # Login to the account we just created -- first with the right password
+            
+        # Login to the account we just created -- now with the right password
         (cb) ->
             conn.sign_in(
                 email_address : email_address
@@ -168,4 +169,5 @@ exports.test_account_management = (test) ->
                     test.equal(mesg.plan_name, "Free")
                     cb()
             )
+
     ], ()-> test.done())

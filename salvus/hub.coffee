@@ -119,7 +119,7 @@ init_sockjs_server = () ->
 
 password_hash_library = require('password-hash')
 
-password_hash = (password) ->
+exports.password_hash = password_hash = (password) ->
     return password_hash_library.generate(password,
         algorithm:'sha512'
         saltLength:32
