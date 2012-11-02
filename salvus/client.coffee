@@ -206,6 +206,35 @@ class exports.Connection extends EventEmitter
             message : message.password_reset(opts.email_address)
             cb      : opts.cb
         )
+
+    change_password: (opts) ->
+        opts = defaults(opts,
+            email_address : required
+            old_password  : required
+            new_password  : required
+            cb            : undefined
+        )
+        @call(
+            message : message.change_password(
+                email_address : opts.email_address
+                old_password  : opts.old_password
+                new_password  : opts.new_password)
+            cb : opts.cb
+        )
+
+    change_email: (opts) ->
+        opts = defaults(opts,
+            old_email_address : required
+            new_email_address : required
+            cb : undefined
+        )
+        @call(
+            message: message.change_email_address(
+                old_email_address: opts.old_email_address
+                new_email_address: opts.new_email_address
+            )
+            cb : opts.cb
+        )
                 
 
 #################################################

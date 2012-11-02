@@ -192,15 +192,33 @@ message(
 # client --> hub
 message(
     event          : 'change_password'
-    id             : undefined    
+    id             : undefined
+    email_address  : required
     old_password   : required
     new_password   : required
 )    
     
+# client --> hub
+message(
+    event             : 'change_email_address'
+    id                : undefined
+    old_email_address : required
+    new_email_address : required    
+    password          : required
+)    
+    
+# client --> hub
+message(
+    event             : 'changed_email_address'
+    id                : undefined
+    error             : required
+    message           : undefined  
+    new_email_address : required    
+)    
+
 # hub --> client
 # if error is true, that means the password was not changed; would
-# happen if password is wrong (message:'invalid password'), 
-# or request is too frequent (message:'too many password change requests')
+# happen if password is wrong (message:'invalid password').
 message(
     event          : 'changed_password'
     id             : undefined    

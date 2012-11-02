@@ -6748,9 +6748,9 @@ OK, here we go. The steps:
              message.password_reset_response(id, email_address, success)
                 success true if message sent; success false if no such email_address in the database
 
-   [ ] anti-DOS/spam measures:
+   [x] anti-DOS/spam measures:
 
-          [ ] hard limit account creation from a given ip address to a maximum
+          [x] hard limit account creation from a given ip address to a maximum
               of 200 accounts per week.
 
               - this will require using a key:value store with ttl:
@@ -6765,7 +6765,7 @@ OK, here we go. The steps:
 
               - if number of accounts from ip exceeds 10 (say), require a captcha (?)
 
-          [ ] bruteforce attack: limit change_password requests to 25 per day.
+          [x] bruteforce attack: limit change_password requests to 25 per day.
 
                 name = 'change_password_attempts'
                     
@@ -6796,8 +6796,9 @@ Next:
                    ip_address_of_password_reset_request:email_address
         done 4. put just-in-case entry in another key:value table also called "password_reset_requests" with ttl of 6 months
                    email_address:ip_address_of_password_reset_request
-            5. send email with link:
+        done 5. send email with link:
                   https://salv.us/hub/password_reset?key=uuid
+        done  6. store email password more safely
          - define password_reset url handler, which displays a form:
                    [password]
                    [retype password]
@@ -6810,13 +6811,28 @@ Next:
            and because GET shouldn't change state, but POST does. 
          - confirmation dialog
          - then redirects to https://salv.us
-   [ ] frontend client:
+   [x] implement the anti-DOS measures described above
+
+   [x] implement change password:
+       done  - define a message
+       done  - client
+       done  - hub
+
+   [x] implement change email address:
+       done  - define a message
+       done  - client
+       done  - hub
+
+   [x] rate limit both password changes and sign_in attempts: at most 1 every 5 seconds, say
+
+   [ ] implement some frontend client gui to use all this...
          [ ] login
          [ ] account creation
          [ ] password reset link upon failure to login
+
    [ ] create a ClientConnection object in hub.coffee
+
    [ ] change property of ClientConnection on successful login 
-   [ ] implement the anti-DOS measures described above
 
 
 ----

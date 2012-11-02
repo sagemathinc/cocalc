@@ -358,6 +358,8 @@ class exports.Salvus extends exports.Cassandra
                     r = results[0]
                     opts.cb(false, {account_id:r[0], first_name:r[1], last_name:r[2], email_address:r[3], password_hash:r[4], plan_name:r[5]})
 
+    change_password: (opts={}) ->
+        
 
     #############
     # Plans

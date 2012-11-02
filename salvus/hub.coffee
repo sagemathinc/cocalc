@@ -15,6 +15,7 @@ http    = require('http')
 # salvus libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
+defaults = misc.defaults; required = defaults.required
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client  = require("client")
@@ -93,11 +94,15 @@ init_sockjs_server = () ->
 
                 # account management
                 when "create_account"
-                    create_account(mesg, push_to_client)
+                    create_account(mesg, conn.remoteAddress, push_to_client)
                 when "sign_in"
-                    sign_in(mesg, push_to_client)
+                    sign_in(mesg, conn.remoteAddress, push_to_client)
                 when "password_reset"
                     password_reset(mesg, conn.remoteAddress, push_to_client)
+                when "change_password"
+                    change_password(mesg, conn.remoteAddress, push_to_client)
+                when "change_email_address"
+                    change_email_address(mesg, conn.remoteAddress, push_to_client)                
         )
         conn.on("close", ->
             winston.info("conn=#{conn} closed")
@@ -124,14 +129,14 @@ password_hash = (password) ->
 password_verify = (password, password_hash) ->
     return password_hash_library.verify(password, password_hash)
     
-sign_in = (mesg, push_to_client) ->
+sign_in = (mesg, client_ip_address, push_to_client) ->
     cassandra.get_account(
         email_address : mesg.email_address
         cb            : (error, account) ->
             if error or not password_verify(mesg.password, account.password_hash)
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
             else
-                cassandra.log(event:'signed_in', value:{account_id:account.account_id})
+                cassandra.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
                 push_to_client(message.signed_in(
                     id            : mesg.id
                     first_name    : account.first_name
@@ -210,7 +215,7 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
 
         # send an email to mesg.email_address that has a link to 
         (cb) ->
-            m = """
+            body = """
                 Somebody just requested to change the password on your Salvus account.
                 If you requested this password change, please change your password by
                 following the link below:
@@ -219,7 +224,7 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
 
                 If you don't want to change your password, ignore this message.
                 """
-            send_email(m, mesg.email_address, (error) ->
+            send_email(subject:'Salvus password reset confirmation', body:body, to:mesg.email_address, cb:(error) ->
                 if error
                     push_error("Error sending email message. Please try again later.")
                 else
@@ -230,8 +235,8 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
                     ))
                 cb()
             )
-    ])        
-            
+    ])
+
 
 # We cannot put the zxcvbn password strength checking in
 # client.coffee since it is too big (~1MB).  The client
@@ -242,7 +247,7 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
 # allow them anyways!
 zxcvbn = require('../static/zxcvbn/zxcvbn')  # this require takes about 100ms!
 
-create_account = (mesg, push_to_client) ->
+create_account = (mesg, client_ip_address, push_to_client) ->
     id = mesg.id
     account_id = null
     async.series([
@@ -258,7 +263,34 @@ create_account = (mesg, push_to_client) ->
                 cb(true)
             else
                 cb()
-                
+
+        # make sure this ip address hasn't requested more than 100
+        # accounts in the last 6 hours (just to avoid really nasty
+        # evils, but still allow for demo registration behind a wifi
+        # router -- say)
+        (cb) ->
+            ip_tracker = cassandra.key_value_store(name:'create_account_ip_tracker')
+            ip_tracker.get(
+                key : client_ip_address
+                cb  : (error, value) ->
+                    if error
+                        push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
+                        cb(true)
+                    if not value?
+                        ip_tracker.set(key: client_ip_address, value:1, ttl:6*3600)
+                        cb()
+                    else if value < 100
+                        ip_tracker.set(key: client_ip_address, value:value+1, ttl:6*3600)                    
+                        cb()  
+                    else # bad situation
+                        cassandra.log(
+                            event:'create_account'
+                            value:{ip_address:client_ip_address, reason:'too many requests'}
+                        )
+                        push_to_client(message.account_creation_failed(id:id, reason:{'other':"Too many account requests from the ip address #{client_ip_address} in the last 6 hours.  Please try again later."}))
+                        cb(true)
+            )
+
         # query database to determine whether the email address is available
         (cb) ->
             cassandra.is_email_address_available(mesg.email_address, (error, available) ->
@@ -307,8 +339,199 @@ create_account = (mesg, push_to_client) ->
     ])
     
 
+change_password = (mesg, client_ip_address, push_to_client) ->
+    account = null
+    async.series([
+        # make sure there hasn't been a password change attempt for this
+        # email address in the last 10 seconds
+        (cb) ->
+            tracker = cassandra.key_value_store(name:'change_password_tracker')
+            tracker.get(
+                key : mesg.email_address
+                cb : (error, value) ->
+                    if error
+                        cb()  # DB error, so don't bother with this
+                        return
+                    if value?  # is defined, so problem -- it's over
+                        push_to_client(message.changed_password(id:mesg.id, error:true, message:"Please wait at least 10 seconds before trying to change your password again."))
+                        cassandra.log(
+                            event : 'change_password'
+                            value : {account_id:account_id, client_ip_address:client_ip_address, message:"attack?"}
+                        )
+                        cb(true)
+                        return
+                    else
+                        # record change in tracker with ttl (don't care about confirming that this succeeded)
+                        tracker.set(
+                            key   : mesg.email_address
+                            value : client_ip_address
+                            ttl   : 10
+                        )
+                        cb()
+            )
+                            
+        # get account and validate the password
+        (cb) ->
+            cassandra.get_account(
+              email_address : mesg.email_address
+              cb : (error, account) ->
+                if error
+                    push_to_client(message.changed_password(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                    cb(true)
+                    return
+                if not password_verify(mesg.password, account.password_hash)
+                    push_to_client(message.changed_password(id:mesg.id, error:true, message:"Incorrect password"))
+                    cassandra.log(
+                        event : 'change_password'
+                        value : {account_id:account_id, client_ip_address:client_ip_address, message:"Incorrect password"}
+                    )
+                    cb(true)
+                    return
+                cb()
+            )
+            
+         # record current password hash (just in case?) and that we are changing password and set new password   
+        (cb) ->
+            cassandra.log(
+    	        event:'change_password',
+                value:{account_id:account_id, client_ip_address:client_ip_address, previous_password_hash:account.password_hash}
+            )
+            caassandra.change_password(
+                account_id:    account.account_id
+                password_hash: password_hash(mesg.new_password),
+                cb : (error, result) ->
+                    if error
+                        push_to_client(message.changed_password(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                    else
+                        push_to_client(message.changed_password(id:mesg.id, error:false)) # finally, success!
+                    cb()
+            )
+    ])            
+            
+
+change_email_address = (mesg, client_ip_address, push_to_client) ->    
+    account = null
+    async.series([
+        # make sure there hasn't been an email change attempt for this
+        # email address in the last 10 seconds
+        (cb) ->
+            tracker = cassandra.key_value_store(name:'change_email_address_tracker')
+            tracker.get(
+                key : mesg.old_email_address
+                cb : (error, value) ->
+                    if error
+                        cb()  # DB error, so don't bother with this
+                        return
+                    if value?  # is defined, so problem -- it's over
+                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Please wait at least 10 seconds before trying to change your email address again."))
+                        cassandra.log(
+                            event : 'change_email_address'
+                            value : {account_id:account_id, client_ip_address:client_ip_address, message:"attack?"}
+                        )
+                        cb(true)
+                        return
+                    else
+                        # record change in tracker with ttl (don't care about confirming that this succeeded)
+                        tracker.set(
+                            key   : mesg.email_address
+                            value : client_ip_address
+                            ttl   : 10    # seconds
+                        )
+                        cb()
+            )
+                            
+        # get account and validate the password
+        (cb) -> cassandra.get_account(
+            email_address : mesg.old_email_address
+            cb : (error, account) ->
+                if error
+                    push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                    cb(true)
+                    return
+                if not password_verify(mesg.password, account.password_hash)
+                    push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Incorrect password"))
+                    cassandra.log(
+                        event : 'change_email_address'
+                        value : {account_id:account_id, client_ip_address:client_ip_address, message:"Incorrect password"}
+                    )
+                    cb(true)
+                    return
+                cb()
+            )
+            
+        # Record current email address (just in case?) and that we are
+        # changing email address to the new one.  This will make it
+        # easy to implement a "change your email address back" feature
+        # if I need to at some point.
+        (cb) ->
+            cassandra.log(
+    	        event:'change_email_address',
+                value:{account_id:account_id, client_ip_address:client_ip_address, old_email_address:account.email_address}
+            )
+            caassandra.change_email_address(
+                account_id:    account.account_id
+                email_address: mesg.new_email_address,
+                cb : (error, result) ->
+                    if error
+                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                    else
+                        push_to_client(message.changed_email_address(id:mesg.id, error:false, new_email_address:mesg.new_email_address)) # finally, success!
+                    cb()
+            )
+    ])            
+            
+
 
     
+#########################################
+# Sending emails
+#########################################
+
+emailjs = require('emailjs')
+email_server = null
+
+# here's how I test this function:  require('hub').send_email(subject:'subject', body:'body', to:'wstein@gmail.com', cb:console.log)
+exports.send_email = send_email = (opts={}) ->
+    opts = defaults(opts,
+        subject : required
+        body    : required
+        from    : 'salvusmath@gmail.com'
+        to      : required
+        cc      : ''
+        cb      : undefined)
+
+    async.series([
+        (cb) -> 
+            if email_server == null
+                filename = 'data/secrets/salvusmath_email_password'
+                require('fs').readFile(filename, 'utf8', (error, password) ->
+                    if error
+                        winston.info("Unable to read the file '#{filename}', which is needed to send emails.")
+                        opts.cb(error)
+                    email_server  = emailjs.server.connect(
+                       user     : "salvusmath"
+                       password : password
+                       host     : "smtp.gmail.com"
+                       ssl      : true
+                    )
+                    cb()
+                )
+            else
+                cb()
+        (cb) -> 
+            email_server.send(
+               text : opts.body
+               from : opts.from
+               to   : opts.to
+               cc   : opts.cc
+               subject : opts.subject,
+            opts.cb)
+            cb()
+    ])
+
+
+    
+            
     
 
 ########################################
@@ -462,8 +685,7 @@ start_server = () ->
 ###
 # Process command line arguments
 ###
-program
-    .usage('[start/stop/restart/status] [options]')
+program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
     .option('-t, --tcp_port <n>', 'tcp port to listen on from other tornado servers (default: 5001)', parseInt, 5001)
     .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
@@ -473,8 +695,10 @@ program
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "salvus")', String, 'salvus')    
     .parse(process.argv)
- 
-daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+
+if program._name == 'hub.js'
+    # run as a server/daemon (otherwise, is being imported as a library)
+    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
     
     
