@@ -32,9 +32,9 @@ sockjs  = require("sockjs")             # websockets (+legacy support) -- https:
 uuid    = require('node-uuid')
 
 # module scope variables:
-http_server = null
+http_server        = null
 sockjs_connections = []
-cassandra = null
+database           = null
 
 ###
 # HTTP Server
@@ -130,13 +130,13 @@ password_verify = (password, password_hash) ->
     return password_hash_library.verify(password, password_hash)
     
 sign_in = (mesg, client_ip_address, push_to_client) ->
-    cassandra.get_account(
+    database.get_account(
         email_address : mesg.email_address
         cb            : (error, account) ->
             if error or not password_verify(mesg.password, account.password_hash)
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
             else
-                cassandra.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
+                database.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
                 push_to_client(message.signed_in(
                     id            : mesg.id
                     first_name    : account.first_name
@@ -162,7 +162,7 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
     
     async.series([
         (cb) ->
-            cassandra.get_account(
+            database.get_account(
                 email_address : mesg.email_address
                 cb            : (error, account) ->
                     if error # no such account
@@ -178,7 +178,7 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
         # If there has already been a password_reset request
         # from the same ip address in the last 2 minutes, deny.
         (cb) -> 
-            recent_password_reset_requests = cassandra.key_value_store(name:"recent_password_reset_requests")
+            recent_password_reset_requests = database.key_value_store(name:"recent_password_reset_requests")
             recent_password_reset_requests.get(
                 key : client_ip_address
                 cb  : (error, result) ->
@@ -197,11 +197,11 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
             
         # put a just-in-case entry in another key:value table called "password_reset_requests" with ttl of 1 month
         (cb) ->
-            cassandra.log(event:password_reset, value:{client_ip_address:client_ip_address, email_address:email_address}, ttl:60*60*24*30)
+            database.log(event:password_reset, value:{client_ip_address:client_ip_address, email_address:email_address}, ttl:60*60*24*30)
 
         # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
         (cb) ->
-            uuid = cassandra.uuid_value_store(name:"password_reset").set(
+            uuid = database.uuid_value_store(name:"password_reset").set(
                 value : mesg.email_address
                 ttl   : 60*15,
                 cb    : (error, results) ->
@@ -269,7 +269,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
         # evils, but still allow for demo registration behind a wifi
         # router -- say)
         (cb) ->
-            ip_tracker = cassandra.key_value_store(name:'create_account_ip_tracker')
+            ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
             ip_tracker.get(
                 key : client_ip_address
                 cb  : (error, value) ->
@@ -283,7 +283,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                         ip_tracker.set(key: client_ip_address, value:value+1, ttl:6*3600)                    
                         cb()  
                     else # bad situation
-                        cassandra.log(
+                        database.log(
                             event:'create_account'
                             value:{ip_address:client_ip_address, reason:'too many requests'}
                         )
@@ -293,7 +293,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
 
         # query database to determine whether the email address is available
         (cb) ->
-            cassandra.is_email_address_available(mesg.email_address, (error, available) ->
+            database.is_email_address_available(mesg.email_address, (error, available) ->
                 if error
                     push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
                     cb(true)
@@ -306,7 +306,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
             
         # create new account
         (cb) ->
-            cassandra.create_account(
+            database.create_account(
                 first_name:    mesg.first_name
                 last_name:     mesg.last_name
                 email_address: mesg.email_address
@@ -318,7 +318,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                         )
                         cb(true)
                     account_id = result
-                    cassandra.log(
+                    database.log(
                         event:'create_account'
                         value:{account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
                     )
@@ -345,7 +345,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
         # make sure there hasn't been a password change attempt for this
         # email address in the last 10 seconds
         (cb) ->
-            tracker = cassandra.key_value_store(name:'change_password_tracker')
+            tracker = database.key_value_store(name:'change_password_tracker')
             tracker.get(
                 key : mesg.email_address
                 cb : (error, value) ->
@@ -354,7 +354,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         return
                     if value?  # is defined, so problem -- it's over
                         push_to_client(message.changed_password(id:mesg.id, error:true, message:"Please wait at least 10 seconds before trying to change your password again."))
-                        cassandra.log(
+                        database.log(
                             event : 'change_password'
                             value : {account_id:account_id, client_ip_address:client_ip_address, message:"attack?"}
                         )
@@ -372,7 +372,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                             
         # get account and validate the password
         (cb) ->
-            cassandra.get_account(
+            database.get_account(
               email_address : mesg.email_address
               cb : (error, account) ->
                 if error
@@ -381,7 +381,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                     return
                 if not password_verify(mesg.password, account.password_hash)
                     push_to_client(message.changed_password(id:mesg.id, error:true, message:"Incorrect password"))
-                    cassandra.log(
+                    database.log(
                         event : 'change_password'
                         value : {account_id:account_id, client_ip_address:client_ip_address, message:"Incorrect password"}
                     )
@@ -392,11 +392,11 @@ change_password = (mesg, client_ip_address, push_to_client) ->
             
          # record current password hash (just in case?) and that we are changing password and set new password   
         (cb) ->
-            cassandra.log(
+            database.log(
     	        event:'change_password',
                 value:{account_id:account_id, client_ip_address:client_ip_address, previous_password_hash:account.password_hash}
             )
-            cassandra.change_password(
+            database.change_password(
                 account_id:    account.account_id
                 password_hash: password_hash(mesg.new_password),
                 cb : (error, result) ->
@@ -415,7 +415,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         # make sure there hasn't been an email change attempt for this
         # email address in the last 10 seconds
         (cb) ->
-            tracker = cassandra.key_value_store(name:'change_email_address_tracker')
+            tracker = database.key_value_store(name:'change_email_address_tracker')
             tracker.get(
                 key : mesg.old_email_address
                 cb : (error, value) ->
@@ -424,7 +424,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                         return
                     if value?  # is defined, so problem -- it's over
                         push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Please wait at least 10 seconds before trying to change your email address again."))
-                        cassandra.log(
+                        database.log(
                             event : 'change_email_address'
                             value : {account_id:account_id, client_ip_address:client_ip_address, message:"attack?"}
                         )
@@ -441,7 +441,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
             )
                             
         # get account and validate the password
-        (cb) -> cassandra.get_account(
+        (cb) -> database.get_account(
             email_address : mesg.old_email_address
             cb : (error, account) ->
                 if error
@@ -450,7 +450,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     return
                 if not password_verify(mesg.password, account.password_hash)
                     push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Incorrect password"))
-                    cassandra.log(
+                    database.log(
                         event : 'change_email_address'
                         value : {account_id:account_id, client_ip_address:client_ip_address, message:"Incorrect password"}
                     )
@@ -464,11 +464,11 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         # easy to implement a "change your email address back" feature
         # if I need to at some point.
         (cb) ->
-            cassandra.log(
+            database.log(
     	        event:'change_email_address',
                 value:{account_id:account_id, client_ip_address:client_ip_address, old_email_address:account.email_address}
             )
-            cassandra.change_email_address(
+            database.change_email_address(
                 account_id:    account.account_id
                 email_address: mesg.new_email_address,
                 cb : (error, result) ->
@@ -548,7 +548,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
     session_uuid = uuid.v4()
     # cap limits
     misc.min_object(mesg.limits, SAGE_SESSION_LIMITS)  # TODO
-    cassandra.random_sage_server( cb:(error, sage_server) ->
+    database.random_sage_server( cb:(error, sage_server) ->
         # TODO: deal with case when there are no sage servers -- or when error is set !
         sage_conn = new sage.Connection(
             host:sage_server.host
@@ -611,7 +611,7 @@ send_to_persistent_sage_session = (mesg) ->
 stateless_exec_cache = null
 
 init_stateless_exec = () ->
-    stateless_exec_cache = cassandra.key_value_store(name:'stateless_exec')
+    stateless_exec_cache = database.key_value_store(name:'stateless_exec')
 
 stateless_sage_exec = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec #{to_json(input_mesg)}")
@@ -660,7 +660,7 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec_nocache #{to_json(input_mesg)}")
-    cassandra.random_sage_server( cb:(err, sage_server) ->
+    database.random_sage_server( cb:(err, sage_server) ->
         if sage_server?
             stateless_exec_using_server(input_mesg, output_message_callback, sage_server.address, sage_server.port)
         else
@@ -676,7 +676,7 @@ start_server = () ->
     # the order of init below is important
     init_http_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
-    cassandra = new cass.Salvus(hosts:program.database_nodes.split(','), keyspace:program.keyspace)
+    database = new cass.Salvus(hosts:program.database_nodes.split(','), keyspace:program.keyspace)
     init_sockjs_server()
     init_stateless_exec()
     http_server.listen(program.port)

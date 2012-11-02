@@ -2,7 +2,7 @@ cassandra = require("cassandra")
 helenus   = require("helenus")
 async     = require("async")
 
-salvus = null
+database = null
 
 exports.setUp = (cb) ->
     conn = new helenus.ConnectionPool({hosts: ['localhost'], timeout: 3000, cqlVersion: '3.0.0'})
@@ -13,14 +13,14 @@ exports.setUp = (cb) ->
         (cb) -> conn.cql("USE test", [], cb)
         (cb) -> cassandra.create_schema(conn, cb)
         (cb) -> conn.cql("UPDATE sage_servers SET running='true' WHERE address='localhost'", [], cb)
-        (cb) -> salvus = new cassandra.Salvus(keyspace:'test', cb:cb)
+        (cb) -> database = new cassandra.Salvus(keyspace:'test', cb:cb)
         (cb) -> conn.close(); cb()
     ], cb)
         
 exports.tearDown = (cb) ->
     conn = null
     async.series([
-        (cb) -> salvus.close() if salvus?; cb()
+        (cb) -> database.close() if database?; cb()
         (cb) -> conn = new helenus.ConnectionPool({hosts: ['localhost'], timeout: 3000, cqlVersion: '3.0.0'}); conn.connect(cb)
         (cb) -> conn.close(); cb()
     ], cb)
@@ -28,8 +28,8 @@ exports.tearDown = (cb) ->
 
 exports.test_key_value_store = (test) ->
     test.expect(8)
-    kvs = salvus.key_value_store(name:'test')
-    kvs2 = salvus.key_value_store(name:'test2')
+    kvs = database.key_value_store(name:'test')
+    kvs2 = database.key_value_store(name:'test2')
     async.series([
         # test setting and getting a complicated object
         (cb) -> kvs.set(key:{abc:[1,2,3]}, value:{a:[1,2],b:[3,4]}, cb:cb)
@@ -58,8 +58,8 @@ exports.test_key_value_store = (test) ->
 
 exports.test_uuid_value_store = (test) ->
     test.expect(8)
-    uvs = salvus.uuid_value_store(name:'test')
-    uvs2 = salvus.uuid_value_store(name:'test2')    
+    uvs = database.uuid_value_store(name:'test')
+    uvs2 = database.uuid_value_store(name:'test2')    
     uuid = null
     async.series([
         # test setting and getting a complicated object
@@ -88,5 +88,8 @@ exports.test_uuid_value_store = (test) ->
     ],()->test.done())
 
 
+#exports.test_account_management = (test) ->
+#    test.expect(?)
+#    async.series([
         
     
