@@ -196,6 +196,18 @@ class exports.Connection extends EventEmitter
             cb      : opts.cb
         )
 
+    password_reset: (opts) ->
+        opts = defaults(opts,
+            email_address : required
+            cb            : required
+            timeout       : 10 # seconds
+        )
+        @call(
+            message : message.password_reset(opts.email_address)
+            cb      : opts.cb
+        )
+                
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

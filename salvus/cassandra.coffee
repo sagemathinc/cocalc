@@ -242,6 +242,53 @@ class exports.Salvus extends exports.Cassandra
             opts.keyspace = 'salvus' 
         super(opts)
         
+    #####################################
+    # The System log: we log important conceptually meaningful events
+    # here.  This is something we will consult frquently.
+    #####################################
+    log: (opts={}) ->
+        opts = defaults(opts, 
+            event : required    # string
+            value : required    # object (will be JSON'd)
+            ttl   : undefined
+            cb    : undefined
+        )
+        @update(
+            table :'security_log'
+            set   : {event:opts.event, value:to_json(opts.value)}
+            where : {'time':now()}
+            cb    : opts.cb
+        )
+
+    get_log: (opts={}) ->
+        opts = defaults(opts,
+            start_time : undefined
+            end_time   : undefined
+            cb         : required
+        )
+
+        where = {}
+        # TODO -- implement restricting the range of times -- this
+        # isn't trivial because I haven't implemented ranges in
+        # @select yet, and I don't want to spend a lot of time on this
+        # right now.
+        
+        @select(
+            table   : 'security_log'
+            where   : where
+            columns : ['time', 'event', 'value']
+            cb      : (error, results) ->
+                if error
+                    cb(error)
+                else
+                    cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
+        )
+            
+
+    
+    #####################################
+    # Managing network services
+    #####################################
     running_sage_servers: (opts={}) ->  
         opts = defaults(opts,  cb:undefined)
         @select(table:'sage_servers', columns:['address'], where:{running:true}, cb:(error, results) ->

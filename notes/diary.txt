@@ -6781,9 +6781,42 @@ OK, here we go. The steps:
 
 Next:
  
-   [ ] set backend state
-   [ ] anti-DOS measures (above)
-   [ ] frontend client
+   [ ] implement password reset functionality:
+        done - define a new message: client <--> hub  "password_reset(email_address)"
+        done - write function in client that sends that message
+         - write code in hub: password_reset(email_address) that
+          done  1. looks up user with that email_address
+          done  2. if doesn't exist, respond with error
+         done   3. if exists but there has been a password_reset request
+               from the same ip address in the last 2 minutes, deny.
+         done   3. if exists, generates a uuid and puts an entry in a
+               uuid:email_address table called "password_reset" with a ttl of
+               15 minutes.
+         done   3.5 while at it, put entry in recent_password_reset_requests key:value table with ttl of 2 minutes:
+                   ip_address_of_password_reset_request:email_address
+        done 4. put just-in-case entry in another key:value table also called "password_reset_requests" with ttl of 6 months
+                   email_address:ip_address_of_password_reset_request
+            5. send email with link:
+                  https://salv.us/hub/password_reset?key=uuid
+         - define password_reset url handler, which displays a form:
+                   [password]
+                   [retype password]
+           and gives no information about the account, in particular, not the email address.  
+           the form will include resubmitting the uuid.  
+         - form submits again to
+                  https://salv.us/hub/password_reset
+           but this time using POST instead of GET, so that the
+           password doesn't appear in the URL, so we can distinguish them,
+           and because GET shouldn't change state, but POST does. 
+         - confirmation dialog
+         - then redirects to https://salv.us
+   [ ] frontend client:
+         [ ] login
+         [ ] account creation
+         [ ] password reset link upon failure to login
+   [ ] create a ClientConnection object in hub.coffee
+   [ ] change property of ClientConnection on successful login 
+   [ ] implement the anti-DOS measures described above
 
 
 ----

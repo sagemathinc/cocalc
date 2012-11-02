@@ -222,4 +222,5 @@ message(
     id             : undefined    
     email_address  : required
     success        : required
+    reason         : undefined
 )

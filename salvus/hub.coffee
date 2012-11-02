@@ -55,7 +55,7 @@ init_sockjs_server = () ->
         # TODO: This sockjs_connections data structure is not currently used; it also just
         # grows without every having anything removed, so it would leak memory.   !!!
         sockjs_connections.push(conn)
-        winston.info ("new sockjs connection #{conn}")
+        winston.info ("new sockjs connection #{conn} from #{conn.remoteAddress}")
         # install event handlers on this particular connection
 
         push_to_client = (mesg) ->
@@ -96,6 +96,8 @@ init_sockjs_server = () ->
                     create_account(mesg, push_to_client)
                 when "sign_in"
                     sign_in(mesg, push_to_client)
+                when "password_reset"
+                    password_reset(mesg, conn.remoteAddress, push_to_client)
         )
         conn.on("close", ->
             winston.info("conn=#{conn} closed")
@@ -126,10 +128,10 @@ sign_in = (mesg, push_to_client) ->
     cassandra.get_account(
         email_address : mesg.email_address
         cb            : (error, account) ->
-            console.log(error, account)
             if error or not password_verify(mesg.password, account.password_hash)
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
             else
+                cassandra.log(event:'signed_in', value:{account_id:account.account_id})
                 push_to_client(message.signed_in(
                     id            : mesg.id
                     first_name    : account.first_name
@@ -138,6 +140,98 @@ sign_in = (mesg, push_to_client) ->
                     plan_name     : account.plan_name
                 ))
     )
+
+password_reset = (mesg, client_ip_address, push_to_client) ->
+
+    push_error = (reason) -> push_to_client(
+        message.password_reset_response(
+            id            : mesg.id
+            email_address : mesg.email_address
+            success       : false
+            reason        : reason)
+    )
+    
+    db_error = push_error("There was an error querying the database.  Please try again later.")
+
+    uuid     = null
+    
+    async.series([
+        (cb) ->
+            cassandra.get_account(
+                email_address : mesg.email_address
+                cb            : (error, account) ->
+                    if error # no such account
+                        push_error("No account with that e-mail address exists.")
+                        cb(true)  # nothing further to do
+                        return
+                    else
+                        cb() # continue on
+            )
+
+        # We now know that there is an account with this email address.
+
+        # If there has already been a password_reset request
+        # from the same ip address in the last 2 minutes, deny.
+        (cb) -> 
+            recent_password_reset_requests = cassandra.key_value_store(name:"recent_password_reset_requests")
+            recent_password_reset_requests.get(
+                key : client_ip_address
+                cb  : (error, result) ->
+                    if error
+                        db_error()
+                        cb(true) # done
+                        return
+                    else if result?  # it is defined -- there was a recent request
+                        push_error("Please wait a few minutes before sending another password reset request.")
+                        cb(true)
+                        return
+                    # record that there was a request from this ip
+                    recent_password_reset_requests.set(key:client_ip_address, value:mesg.email_address, ttl:60*2)  # fire and forgot -- no big loss if dropped
+                    cb()
+            )
+            
+        # put a just-in-case entry in another key:value table called "password_reset_requests" with ttl of 1 month
+        (cb) ->
+            cassandra.log(event:password_reset, value:{client_ip_address:client_ip_address, email_address:email_address}, ttl:60*60*24*30)
+
+        # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
+        (cb) ->
+            uuid = cassandra.uuid_value_store(name:"password_reset").set(
+                value : mesg.email_address
+                ttl   : 60*15,
+                cb    : (error, results) ->
+                    if error
+                        db_error()
+                        cb(true)
+                        return
+                    else
+                        cb()
+            )
+
+        # send an email to mesg.email_address that has a link to 
+        (cb) ->
+            m = """
+                Somebody just requested to change the password on your Salvus account.
+                If you requested this password change, please change your password by
+                following the link below:
+
+                     https://salv.us/hub/password_reset?key=#{uuid}
+
+                If you don't want to change your password, ignore this message.
+                """
+            send_email(m, mesg.email_address, (error) ->
+                if error
+                    push_error("Error sending email message. Please try again later.")
+                else
+                    push_to_client(message.password_reset_response(
+                        id            : mesg.id
+                        email_address : mesg.email_address
+                        success       : true
+                    ))
+                cb()
+            )
+    ])        
+            
 
 # We cannot put the zxcvbn password strength checking in
 # client.coffee since it is too big (~1MB).  The client
@@ -192,6 +286,10 @@ create_account = (mesg, push_to_client) ->
                         )
                         cb(true)
                     account_id = result
+                    cassandra.log(
+                        event:'create_account'
+                        value:{account_id:account_id, first_name:mesg.first_name, last_name:last_name, email_address:email_address}
+                    )
                     cb()
             )
             
@@ -208,18 +306,6 @@ create_account = (mesg, push_to_client) ->
             cb()
     ])
     
-
-        
-
-    
-    
-                            
-
-
-
-
-
-
 
 
     

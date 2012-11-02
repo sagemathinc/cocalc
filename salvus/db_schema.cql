@@ -96,3 +96,11 @@ CREATE TABLE auths (
     info         varchar,
     PRIMARY KEY(account_id, provider, login_name)
 );
+
+CREATE TABLE security_log (
+    time   timestamp PRIMARY KEY,
+    event  varchar,
+    value  varchar
+)
+
+CREATE INDEX ON security_log(event);
