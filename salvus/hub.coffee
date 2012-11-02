@@ -356,7 +356,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         push_to_client(message.changed_password(id:mesg.id, error:true, message:"Please wait at least 10 seconds before trying to change your password again."))
                         database.log(
                             event : 'change_password'
-                            value : {account_id:account_id, client_ip_address:client_ip_address, message:"attack?"}
+                            value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"attack?"}
                         )
                         cb(true)
                         return
@@ -383,7 +383,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                     push_to_client(message.changed_password(id:mesg.id, error:true, message:"Incorrect password"))
                     database.log(
                         event : 'change_password'
-                        value : {account_id:account_id, client_ip_address:client_ip_address, message:"Incorrect password"}
+                        value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"Incorrect password"}
                     )
                     cb(true)
                     return
@@ -426,7 +426,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                         push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Please wait at least 10 seconds before trying to change your email address again."))
                         database.log(
                             event : 'change_email_address'
-                            value : {account_id:account_id, client_ip_address:client_ip_address, message:"attack?"}
+                            value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"attack?"}
                         )
                         cb(true)
                         return
@@ -452,7 +452,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Incorrect password"))
                     database.log(
                         event : 'change_email_address'
-                        value : {account_id:account_id, client_ip_address:client_ip_address, message:"Incorrect password"}
+                        value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"Incorrect password"}
                     )
                     cb(true)
                     return
@@ -466,7 +466,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             database.log(
     	        event:'change_email_address',
-                value:{account_id:account_id, client_ip_address:client_ip_address, old_email_address:account.email_address}
+                value:{email_address:mesg.new_email_address, client_ip_address:client_ip_address, old_email_address:account.email_address}
             )
             database.change_email_address(
                 account_id:    account.account_id

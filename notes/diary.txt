@@ -6834,6 +6834,13 @@ Next:
 
    [ ] change property of ClientConnection on successful login 
 
+....
+
+I'm out of steam....
+
+There is one error detected by the test suite in changing passwords.
+Should be easy to fix when I can think again.
+
 
 ----
 
