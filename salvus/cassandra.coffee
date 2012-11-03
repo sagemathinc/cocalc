@@ -140,7 +140,16 @@ class KeyValueStore
             where:{name:@opts.name}
             cb:(error, results) -> opts.cb(error, [from_json(r[0]), from_json(r[1])] for r in results)
         )
-            
+
+# Convert individual entries in columns from cassandra formats to what we
+# want to use everywhere in Salvus. For example, uuids are converted to
+# strings instead of their own special object type, since otherwise they
+# convert to JSON incorrectly.
+
+exports.to_cassandra = to_cassandra = (obj) ->
+    if obj and obj.hasOwnProperty(obj, 'hex')
+        return obj.hex
+    return obj
 
 class exports.Cassandra extends EventEmitter
     constructor: (opts={}) ->    # cb is called on connect
@@ -220,7 +229,7 @@ class exports.Cassandra extends EventEmitter
             query += " LIMIT #{opts.limit} "
         @cql(query, vals,
             (error, results) ->
-                opts.cb?(error, (r.get(col).value for col in opts.columns) for r in results)
+                opts.cb?(error, (to_cassandra(r.get(col).value) for col in opts.columns) for r in results)
         )
 
     cql: (query, vals, cb) ->

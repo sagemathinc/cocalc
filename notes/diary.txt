@@ -6875,8 +6875,7 @@ Nov 3, 2012:
 
   [ ] test suite for login system  
 
- [ ] need to get rid of this HEX:
-      {"account_id":{"hex":"3acb0196-b9eb-48b7-884f-335f563f244d"},"client_ip_address":"127.0.0.1"}
+ [x] get rid of this HEX: {"account_id":{"hex":"3acb0196-b9eb-48b7-884f-335f563f244d"},"client_ip_address":"127.0.0.1"}
 
 
   [ ] bug report function

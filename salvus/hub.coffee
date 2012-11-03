@@ -138,6 +138,7 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
             if error or not password_verify(mesg.password, account.password_hash)
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
             else
+                console.log("*** account = #{to_json(account)}")
                 database.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
                 push_to_client(message.signed_in(
                     id            : mesg.id
