@@ -471,7 +471,7 @@ frontend unsecured *:$port
 ####################
 class Hub(Process):
     def __init__(self, id=0, address='', port=HUB_PORT, tcp_port=HUB_TCP_PORT,
-                 monitor_database=None, debug=False):
+                 monitor_database=None, keyspace='salvus', debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
         logfile = os.path.join(LOGS, 'hub-%s.log'%id)
@@ -484,6 +484,7 @@ class Hub(Process):
                          start_cmd = [os.path.join(PWD, 'hub'), 'start',
                                       '--port', port,
                                       '--tcp_port', tcp_port,
+                                      '--keyspace', keyspace,
                                       '--address', address,
                                       '--database_nodes', monitor_database,
                                       '--pidfile', pidfile,

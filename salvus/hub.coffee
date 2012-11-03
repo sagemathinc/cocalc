@@ -685,7 +685,7 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
 ###
 # Start everything running
 ###    
-start_server = () ->
+exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
@@ -705,8 +705,8 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--address [string]', 'address of interface to bind to (default: "")', String, "")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
-    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '')
-    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "salvus")', String, 'salvus')    
+    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
+    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "salvus")', String, 'test')    
     .parse(process.argv)
 
 if program._name == 'hub.js'

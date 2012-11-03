@@ -13,6 +13,8 @@ exports.tearDown = (cb) ->
     conn.on("close", cb)
     conn.close()
 
+log = console.log    
+
 exports.test_account_management = (test) ->
     test.expect(24)
     email_address = "#{misc.uuid()}@salv.us"
@@ -60,8 +62,9 @@ exports.test_account_management = (test) ->
                     cb()
             )
 
-        # Attempt to sign in to the account we just created -- first with the wrong password
+        # 
         (cb) ->
+            log("Attempt to sign in to the account we just created -- first with the wrong password")
             conn.sign_in(
                 email_address : email_address
                 password      : password + 'wrong'
@@ -100,8 +103,9 @@ exports.test_account_management = (test) ->
                     cb()
             )
 
-        # Verify that the password is really changed
+        # 
         (cb) ->
+            log "Verify that the password is really changed"
             conn.sign_in(
                 email_address : email_address
                 password      : new_password

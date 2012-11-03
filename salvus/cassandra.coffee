@@ -33,6 +33,7 @@ exports.create_schema = (conn, cb) ->
     blocks = require('fs').readFileSync('db_schema.cql', 'utf8').split('CREATE')
     f = (s, cb) ->
         if s.length > 0
+            #console.log(s)
             conn.cql("CREATE "+s, [], (e,r)->console.log(e) if e; cb(null,0))
         else
             cb(null, 0)
@@ -219,7 +220,14 @@ class exports.Cassandra extends EventEmitter
         @cql("DELETE FROM #{opts.table} WHERE #{where}", vals, opts.cb)
 
     select: (opts={}) ->
-        opts = defaults(opts,  table:undefined, columns:[], where:undefined, cb:undefined, limit:undefined)
+        opts = defaults opts,
+            table     : required    # string -- the table to query
+            columns   : required    # list -- columns to extract
+            where     : undefined   # object -- conditions to impose (only equality currently implemented); undefined = return everything
+            cb        : required    # callback(error, results)
+            objectify : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
+            limit     : undefined   # if defined, limit the number of results returned to this integer
+            
         vals = []
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
         if opts.where?
@@ -229,7 +237,11 @@ class exports.Cassandra extends EventEmitter
             query += " LIMIT #{opts.limit} "
         @cql(query, vals,
             (error, results) ->
-                opts.cb?(error, (to_cassandra(r.get(col).value) for col in opts.columns) for r in results)
+                if opts.objectify
+                    x = (misc.pairs_to_obj([col,to_cassandra(r.get(col).value)] for col in opts.columns) for r in results)
+                else
+                    x = ((to_cassandra(r.get(col).value) for col in opts.columns) for r in results)
+                opts.cb(error, x)
         )
 
     cql: (query, vals, cb) ->
@@ -359,12 +371,12 @@ class exports.Salvus extends exports.Cassandra
             table   : 'accounts'
             where   : where 
             columns : ['account_id', 'first_name', 'last_name', 'email_address', 'password_hash','plan_name']
+            objectify : true
             cb      : (error, results) ->
                 if error or results.length != 1
                     opts.cb(true)
                 else
-                    r = results[0]
-                    opts.cb(false, {account_id:r[0], first_name:r[1], last_name:r[2], email_address:r[3], password_hash:r[4], plan_name:r[5]})
+                    opts.cb(false, results[0])
 
     change_password: (opts={}) ->
         opts = defaults(opts,
@@ -393,17 +405,50 @@ class exports.Salvus extends exports.Cassandra
         )
         
 
+    #####################################
+    # User Feedback
+    #####################################
+    report_feedback = (opts={}) ->
+        opts = defaults opts,
+            account_id:  undefined
+            type:        required
+            description: required
+            data:        required
+            nps:         undefined
+            cb:          undefined
+            
+        feedback_uuid = uuid.v4()
+        time = now()
+        @update
+            table : "feedback"
+            where : {feedback_id:feedback_id, time:time}
+            set   : {type: opts.type, description: opts.description, nps:opts.nps, data:ops.data}
+            cb    : opts.cb
+
+
+    feedback_from_user = (opts={}) ->
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+            
+        @select
+            table : "feedback"
+            where : {account_id:opts.account_id}
+            columns: ['time', 'type', 'date', 'description', 'status', 'notes', 'url']
+            objectify: true
+            cb: cb.opts
+
+    
     #############
     # Plans
     ############
     create_plan: (opts={}) ->
         opts = defaults(opts,  name:undefined, cb:undefined)        
-        @update(
-            table:'plans'
-            where:{plan_id:uuid.v4()}
-            set:{name:opts.name, created:now()}
-            cb:opts.cb
-        )
+        @update
+            table : 'plans'
+            where : {plan_id:uuid.v4()}
+            set   : {name:opts.name, created:now()}
+            cb    : opts.cb
 
     plan: (opts={}) ->
         opts = defaults(opts,  id:undefined, columns:[], cb:undefined)        

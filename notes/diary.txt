@@ -6875,8 +6875,70 @@ Nov 3, 2012:
 
   [ ] test suite for login system  
 
- [x] get rid of this HEX: {"account_id":{"hex":"3acb0196-b9eb-48b7-884f-335f563f244d"},"client_ip_address":"127.0.0.1"}
+ [x] get rid of this HEX:{"account_id":{"hex":"3acb0196-b9eb-48b7-884f-335f563f244d"},"client_ip_address":"127.0.0.1"}
 
 
-  [ ] bug report function
+-->[ ] feedback function
+
+     [x] database schema entry
+
+feedback_id uuid
+time timestamp
+
+account_id uuid      // user who reported the feedback (if known)
+type    varchar      // 'bug', 'idea', 'comment'
+description varchar  // description of feedback by user
+data    varchar      // JSON object -- anything system wants to record about feedback, e.g., fields with state info (!)
+nps     float        // "how likely are you to recommend salvus to one of your friends or colleagues?" -- good time to ask
+
+status  varchar      // 'new' (user just reported it), 'issue' (opened ticket in feedback tracker), 'closed' (resolved), 'invalid'
+notes   varchar      // notes by salvus developers about this issue
+url     varchar      // pointer into feedback tracking system, if feedback is sent to a standard feedback tracker (e.g., a github issue)
+
+PRIMARY KEY(feedback_id, time)   // time so we can sort on it
+
+CREATE INDEX ON feedback(account_id);   // so we can show (via GUI) all feedback issues associated with a given user to a user
+
+---
+
+     [ ] function in cassandra
+
+report_feedback = (account_id, type, description, data, nps)
+feedback_from_user = (account_id) 
+
+     [ ] function in client
+ 
+report_feedback = (type, description, nps)
+feedback_from_me = ()
+
+     [ ] new messages
+
+1)
+event:'report_feedback'
+type: required
+description: required
+nps:required
+
+2)
+event:'feedback_reported'
+
+3) 
+event:'feedback'
+time: required
+type: required
+date: required
+description: required
+status: required
+notes: required
+url: required
+
+     [ ] function in hub
+ 
+report_feedback = (account_id, type, description, nps, data)
+
+
+---------
+
+
+
   [ ] some GUI stuff?

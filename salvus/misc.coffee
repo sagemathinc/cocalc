@@ -85,3 +85,10 @@ exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 exports.len = (obj) -> Object.keys(obj).length
 
 exports.keys = (obj) -> (key for key of obj)
+
+exports.pairs_to_obj = (v) ->
+    o = {}
+    for x in v
+        o[x[0]] = x[1]
+    return o
+        
