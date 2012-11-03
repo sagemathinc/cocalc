@@ -127,6 +127,8 @@ exports.password_hash = password_hash = (password) ->
     )
 
 password_verify = (password, password_hash) ->
+    console.log("**********************************************")
+    console.log("password_verify: #{password}, #{password_hash}")
     return password_hash_library.verify(password, password_hash)
     
 sign_in = (mesg, client_ip_address, push_to_client) ->
@@ -197,7 +199,11 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
             
         # put a just-in-case entry in another key:value table called "password_reset_requests" with ttl of 1 month
         (cb) ->
-            database.log(event:password_reset, value:{client_ip_address:client_ip_address, email_address:email_address}, ttl:60*60*24*30)
+            database.log(
+                event : password_reset
+                value : {client_ip_address:client_ip_address, email_address:email_address}
+                ttl:60*60*24*30
+            )
 
         # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
         (cb) ->
@@ -284,8 +290,8 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                         cb()  
                     else # bad situation
                         database.log(
-                            event:'create_account'
-                            value:{ip_address:client_ip_address, reason:'too many requests'}
+                            event : 'create_account'
+                            value : {ip_address:client_ip_address, reason:'too many requests'}
                         )
                         push_to_client(message.account_creation_failed(id:id, reason:{'other':"Too many account requests from the ip address #{client_ip_address} in the last 6 hours.  Please try again later."}))
                         cb(true)
@@ -319,8 +325,8 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                         cb(true)
                     account_id = result
                     database.log(
-                        event:'create_account'
-                        value:{account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
+                        event : 'create_account'
+                        value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
                     )
                     cb()
             )
@@ -374,12 +380,13 @@ change_password = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             database.get_account(
               email_address : mesg.email_address
-              cb : (error, account) ->
+              cb : (error, result) ->
                 if error
                     push_to_client(message.changed_password(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
                     cb(true)
                     return
-                if not password_verify(mesg.password, account.password_hash)
+                account = result
+                if not password_verify(mesg.old_password, account.password_hash)
                     push_to_client(message.changed_password(id:mesg.id, error:true, message:"Incorrect password"))
                     database.log(
                         event : 'change_password'
@@ -392,10 +399,15 @@ change_password = (mesg, client_ip_address, push_to_client) ->
             
          # record current password hash (just in case?) and that we are changing password and set new password   
         (cb) ->
+
             database.log(
-    	        event:'change_password',
-                value:{account_id:account_id, client_ip_address:client_ip_address, previous_password_hash:account.password_hash}
+                event : "change_password"
+                value :
+                    account_id : account.account_id
+                    client_ip_address : client_ip_address
+                    previous_password_hash : account.password_hash
             )
+            
             database.change_password(
                 account_id:    account.account_id
                 password_hash: password_hash(mesg.new_password),
@@ -698,6 +710,12 @@ program.usage('[start/stop/restart/status] [options]')
 
 if program._name == 'hub.js'
     # run as a server/daemon (otherwise, is being imported as a library)
+    process.addListener "uncaughtException", (err) ->
+        console.log("BUG ****************************************************************************")
+        console.log("Uncaught exception: " + err)
+        console.trace()
+        console.log("BUG ****************************************************************************")
+
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
     

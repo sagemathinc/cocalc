@@ -15,20 +15,26 @@ exports.min_object = (target, upper_bounds) ->
 exports.defaults = (obj1, obj2) ->
     error  = () -> "(obj1=#{exports.to_json(obj1)}, obj2=#{exports.to_json(obj2)})"
     if typeof(obj1) != 'object'
+        # We put explicit traces before the errors in this fucntion,
+        # since otherwise they can be very hard to debug.
+        console.trace()  
         throw "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
     r = {}
     for prop, val of obj2
         if obj1.hasOwnProperty(prop)
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
+                console.trace()                
                 throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
+                console.trace()
                 throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
             else
                 r[prop] = obj2[prop]
     for prop, val of obj1
         if not obj2.hasOwnProperty(prop)
+            console.trace()                            
             throw "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
     return r
 
@@ -39,6 +45,7 @@ exports.mswalltime = -> (new Date()).getTime()
 
 exports.walltime = -> exports.mswalltime()/1000.0 
 
+# We use this uuid implementation only for the browser client.  For node code, use node-uuid.
 exports.uuid = ->
     `'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);

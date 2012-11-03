@@ -6834,6 +6834,10 @@ Next:
 
    [ ] change property of ClientConnection on successful login 
 
+   [ ] integrated "report an issue" feature linked to an account. 
+       report goes to database.
+       contains any internal state information that the hub knows!!!
+
 ....
 
 I'm out of steam....
@@ -6857,3 +6861,23 @@ Up at about 7am, and going to work very, very hard on Salvus all day today.
 
 [x] new messages needed for login
    
+Nov 2, 2012:
+===========
+
+  I had only a few minutes (literally) to work on salvus -- I worked
+  on fixing a password checking issue in my code that was messing up
+  testing, and uncovered another issue with loging.  Then went to
+  teach/work on the ramp/hang out with Tish, and catch up on sleep.
+
+
+Nov 3, 2012:
+===========
+
+  [ ] test suite for login system  
+
+ [ ] need to get rid of this HEX:
+      {"account_id":{"hex":"3acb0196-b9eb-48b7-884f-335f563f244d"},"client_ip_address":"127.0.0.1"}
+
+
+  [ ] bug report function
+  [ ] some GUI stuff?

@@ -13,6 +13,107 @@ exports.tearDown = (cb) ->
     conn.on("close", cb)
     conn.close()
 
+exports.test_account_management = (test) ->
+    test.expect(24)
+    email_address = "#{misc.uuid()}@salv.us"
+    password = "#{misc.uuid()}"
+    new_password = null
+    async.series([
+        # Verify that account creation requires the terms of service to be agreed to
+        # Verify that weak passwords are checked for
+        # Verify that first_name and last_name must both be nonempty.
+        # Verify that email address must be valid
+        (cb) ->
+            conn.create_account(
+                first_name    : ''
+                last_name     : ''
+                email_address : 'salvusmath-gmail.com'
+                password      : 'qazqazqazqaz'
+                agreed_to_terms : false
+                timeout       : 1
+                cb:(error, mesg) ->
+                    test.equal(error, undefined)
+                    test.equal(mesg.event,'account_creation_failed')
+                    test.equal(mesg.reason.agreed_to_terms?, true)
+                    test.equal(mesg.reason.first_name?, true)
+                    test.equal(mesg.reason.last_name?, true)
+                    test.equal(mesg.reason.email_address?, true)
+                    test.equal(mesg.reason.password?, true)
+                    cb()
+            )
+        # Create a valid account
+        (cb) ->
+            conn.create_account(
+                first_name    : 'Salvus'
+                last_name     : 'Math'
+                email_address : email_address
+                password      : password
+                agreed_to_terms: true
+                timeout       : 1
+                cb:(error, mesg) ->
+                    test.equal(error, undefined)
+                    test.equal(mesg.event, 'signed_in')
+                    test.equal(mesg.first_name, 'Salvus')
+                    test.equal(mesg.last_name, 'Math')
+                    test.equal(mesg.email_address, email_address)
+                    test.equal(mesg.plan_name, 'Free')
+                    cb()
+            )
+
+        # Attempt to sign in to the account we just created -- first with the wrong password
+        (cb) ->
+            conn.sign_in(
+                email_address : email_address
+                password      : password + 'wrong'
+                timeout       : 1
+                cb            : (error, mesg) ->
+                    test.equal(mesg.event, "sign_in_failed")
+                    cb()
+            )
+            
+        # Sign in to the account we just created -- now with the right password
+        (cb) ->
+            conn.sign_in(
+                email_address : email_address
+                password      : password
+                timeout       : 1
+                cb            : (error, mesg) ->
+                    test.equal(mesg.event, "signed_in")
+                    test.equal(mesg.first_name, "Salvus")
+                    test.equal(mesg.last_name, "Math")
+                    test.equal(mesg.email_address, email_address)
+                    test.equal(mesg.plan_name, "Free")
+                    cb()
+            )
+
+        # Change password
+        (cb) ->
+            new_password = "#{misc.uuid()}"
+            conn.change_password(
+                email_address : email_address
+                old_password  : password
+                new_password  : new_password
+                cb            : (error, mesg) ->
+                    test.ok(not error) 
+                    test.equal(mesg.event, 'changed_password')
+                    test.equal(mesg.error, false)
+                    cb()
+            )
+
+        # Verify that the password is really changed
+        (cb) ->
+            conn.sign_in(
+                email_address : email_address
+                password      : new_password
+                timeout       : 1
+                cb            : (error, mesg) ->
+                    test.equal(mesg.event, "signed_in")
+                    test.equal(mesg.email_address, email_address)
+                    cb()
+            )
+            
+    ], () -> test.done())
+
 exports.test_conn = (test) ->
     test.expect(9)
     async.series([
@@ -97,106 +198,3 @@ exports.test_session = (test) ->
             )
     ],()->s.kill(); test.done())
 
-
-exports.test_account_management = (test) ->
-    test.expect(23)
-    email_address = "#{misc.uuid()}@salv.us"
-    password = "#{misc.uuid()}"
-    new_password = null
-    async.series([
-        # Verify that account creation requires the terms of service to be agreed to
-        # Verify that weak passwords are checked for
-        # Verify that first_name and last_name must both be nonempty.
-        # Verify that email address must be valid
-        (cb) ->
-            conn.create_account(
-                first_name    : ''
-                last_name     : ''
-                email_address : 'salvusmath-gmail.com'
-                password      : 'qazqazqazqaz'
-                agreed_to_terms : false
-                timeout       : 1
-                cb:(error, mesg) ->
-                    test.equal(error, undefined)
-                    test.equal(mesg.event,'account_creation_failed')
-                    test.equal(mesg.reason.agreed_to_terms?, true)
-                    test.equal(mesg.reason.first_name?, true)
-                    test.equal(mesg.reason.last_name?, true)
-                    test.equal(mesg.reason.email_address?, true)
-                    test.equal(mesg.reason.password?, true)
-                    cb()
-            )
-        # Create a valid account
-        (cb) ->
-            conn.create_account(
-                first_name    : 'Salvus'
-                last_name     : 'Math'
-                email_address : email_address
-                password      : password
-                agreed_to_terms: true
-                timeout       : 1
-                cb:(error, mesg) ->
-                    test.equal(error, undefined)
-                    test.equal(mesg.event, 'signed_in')
-                    test.equal(mesg.first_name, 'Salvus')
-                    test.equal(mesg.last_name, 'Math')
-                    test.equal(mesg.email_address, email_address)
-                    test.equal(mesg.plan_name, 'Free')
-                    cb()
-            )
-
-        # Attempt to sign in to the account we just created -- first with the wrong password
-        (cb) ->
-            conn.sign_in(
-                email_address : email_address
-                password      : password + 'wrong'
-                timeout       : 1
-                cb            : (error, mesg) ->
-                    test.equal(mesg.event, "sign_in_failed")
-                    cb()
-            )
-            
-        # Sign in to the account we just created -- now with the right password
-        (cb) ->
-            conn.sign_in(
-                email_address : email_address
-                password      : password
-                timeout       : 1
-                cb            : (error, mesg) ->
-                    test.equal(mesg.event, "signed_in")
-                    test.equal(mesg.first_name, "Salvus")
-                    test.equal(mesg.last_name, "Math")
-                    test.equal(mesg.email_address, email_address)
-                    test.equal(mesg.plan_name, "Free")
-                    cb()
-            )
-
-        # Change password
-        (cb) ->
-            new_password = "#{misc.uuid()}"
-            conn.change_password(
-                email_address : email_address
-                old_password  : password
-                new_password  : new_password
-                cb            : (error, mesg) ->
-                    console.log(mesg)
-                    test.ok(not error)
-                    test.equal(mesg.event, 'changed_password')
-                    test.equal(mesg.error, false)
-                    cb()
-            )
-
-        # Verify that the password is really changed
-        (cb) ->
-            conn.sign_in(
-                email_address : email_address
-                password      : new_password
-                timeout       : 1
-                cb            : (error, mesg) ->
-                    console.log(mesg)
-                    test.equal(mesg.event, "signed_in")
-                    test.equal(mesg.email_address, email_address)
-                    cb()
-            )
-            
-    ], () -> test.done())

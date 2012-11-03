@@ -198,6 +198,17 @@ message(
     new_password   : required
 )    
     
+
+# hub --> client
+# if error is true, that means the password was not changed; would
+# happen if password is wrong (message:'invalid password').
+message(
+    event          : 'changed_password'
+    id             : undefined    
+    error          : undefined
+    message        : undefined
+)
+
 # client --> hub
 message(
     event             : 'change_email_address'
@@ -215,16 +226,6 @@ message(
     message           : undefined  
     new_email_address : required    
 )    
-
-# hub --> client
-# if error is true, that means the password was not changed; would
-# happen if password is wrong (message:'invalid password').
-message(
-    event          : 'changed_password'
-    id             : undefined    
-    error          : undefined
-    message        : undefined
-)
 
 # client --> hub
 message(
