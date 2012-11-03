@@ -13,7 +13,7 @@ exports.tearDown = (cb) ->
     conn.on("close", cb)
     conn.close()
 
-log = console.log    
+log = console.log
 
 exports.test_account_management = (test) ->
     test.expect(24)
@@ -21,10 +21,6 @@ exports.test_account_management = (test) ->
     password = "#{misc.uuid()}"
     new_password = null
     async.series([
-        # Verify that account creation requires the terms of service to be agreed to
-        # Verify that weak passwords are checked for
-        # Verify that first_name and last_name must both be nonempty.
-        # Verify that email address must be valid
         (cb) ->
             conn.create_account(
                 first_name    : ''
@@ -34,17 +30,22 @@ exports.test_account_management = (test) ->
                 agreed_to_terms : false
                 timeout       : 1
                 cb:(error, mesg) ->
-                    test.equal(error, undefined)
+                    test.equal(error, null)
+                    log("Verify that account creation requires the terms of service to be agreed to")
                     test.equal(mesg.event,'account_creation_failed')
                     test.equal(mesg.reason.agreed_to_terms?, true)
+                    log("Verify that first_name and last_name must both be nonempty.")
                     test.equal(mesg.reason.first_name?, true)
                     test.equal(mesg.reason.last_name?, true)
+                    log("Verify that email address must be valid")
                     test.equal(mesg.reason.email_address?, true)
+                    log("Verify that weak passwords are checked for")
                     test.equal(mesg.reason.password?, true)
                     cb()
             )
-        # Create a valid account
+        
         (cb) ->
+            log("Create a valid account")
             conn.create_account(
                 first_name    : 'Salvus'
                 last_name     : 'Math'
@@ -74,8 +75,9 @@ exports.test_account_management = (test) ->
                     cb()
             )
             
-        # Sign in to the account we just created -- now with the right password
+        
         (cb) ->
+            log("Sign in to the account we just created -- now with the right password")
             conn.sign_in(
                 email_address : email_address
                 password      : password

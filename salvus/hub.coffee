@@ -59,10 +59,15 @@ init_sockjs_server = () ->
         winston.info ("new sockjs connection #{conn} from #{conn.remoteAddress}")
         # install event handlers on this particular connection
 
+        account_id = null
+        
         push_to_client = (mesg) ->
             console.log(to_json(mesg)) if mesg.event != 'pong'
+            if mesg.event == 'signed_in'
+                account_id = mesg.account_id
+                
             conn.write(to_json(mesg))
-        
+
         conn.on("data", (mesg) ->
             try
                 mesg = from_json(mesg)
@@ -102,7 +107,15 @@ init_sockjs_server = () ->
                 when "change_password"
                     change_password(mesg, conn.remoteAddress, push_to_client)
                 when "change_email_address"
-                    change_email_address(mesg, conn.remoteAddress, push_to_client)                
+                    change_email_address(mesg, conn.remoteAddress, push_to_client)
+
+                # user feedback
+                when "report_feedback"
+                    report_feedback(mesg, push_to_client, account_id)
+                    
+                when "get_all_feedback_from_user"
+                    get_feedback_from_user(mesg, push_to_client, account_id)
+                    
         )
         conn.on("close", ->
             winston.info("conn=#{conn} closed")
@@ -142,6 +155,7 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
                 database.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
                 push_to_client(message.signed_in(
                     id            : mesg.id
+                    account_id    : account.account_id 
                     first_name    : account.first_name
                     last_name     : account.last_name
                     email_address : mesg.email_address
@@ -336,6 +350,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             mesg = message.signed_in(
                 id: mesg.id
+                account_id: account_id
                 first_name: mesg.first_name
                 last_name: mesg.last_name
                 email_address: mesg.email_address
@@ -496,6 +511,25 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 
 
     
+########################################
+# User Feedback
+########################################
+report_feedback = (mesg, account_id, push_to_client) ->
+    database.report_feedback
+        account_id  : account_id
+        type        : mesg.type
+        description : mesg.description
+        data        : mesg.data
+        nps         : mesg.nps
+        cb          : (err, results) -> push_to_client(messages.feedback_reported(id:mesg.id, error:err))
+
+get_all_feedback_from_user = (mesg, account_id, push_to_client) ->
+    database.get_all_feedback_from_user
+        account_id  : account_id
+        cb          : (err, results) -> push_to_client(messages.all_feedback_from(id:mesg.id, data:results))
+    
+
+
 #########################################
 # Sending emails
 #########################################

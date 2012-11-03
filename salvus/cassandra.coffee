@@ -425,8 +425,7 @@ class exports.Salvus extends exports.Cassandra
             set   : {type: opts.type, description: opts.description, nps:opts.nps, data:ops.data}
             cb    : opts.cb
 
-
-    feedback_from_user = (opts={}) ->
+    get_all_feedback_from_user = (opts={}) ->
         opts = defaults opts,
             account_id : required
             cb         : undefined

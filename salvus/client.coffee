@@ -223,18 +223,41 @@ class exports.Connection extends EventEmitter
         )
 
     change_email: (opts) ->
-        opts = defaults(opts,
+        opts = defaults opts,
             old_email_address : required
             new_email_address : required
             cb : undefined
-        )
-        @call(
-            message: message.change_email_address(
+            
+        @call
+            message: message.change_email_address
                 old_email_address: opts.old_email_address
                 new_email_address: opts.new_email_address
-            )
             cb : opts.cb
-        )
+                
+    ############################################
+    # User Feedback
+    #############################################
+    report_feedback = (opts={}) ->
+        defaults opts,
+            type        : required
+            description : required
+            nps         : undefined
+            cb          : undefined
+            
+        @call
+            message: message.report_feedback
+                type        : opts.type
+                description : opts.description
+                nps         : opts.nps
+            cb: opts.cb
+    
+    feedback = (opts={}) ->
+        defaults opts,
+            cb : required
+        @call
+            message: message.get_all_feedback_from_user()
+            cb : (err, results) ->
+                cb(err, results?.data)
                 
 
 #################################################

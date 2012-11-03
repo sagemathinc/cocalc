@@ -6901,39 +6901,27 @@ CREATE INDEX ON feedback(account_id);   // so we can show (via GUI) all feedback
 
 ---
 
-     [ ] function in cassandra
+     [x] function in cassandra
 
 report_feedback = (account_id, type, description, data, nps)
 feedback_from_user = (account_id) 
 
-     [ ] function in client
+     [x] function in client
  
 report_feedback = (type, description, nps)
 feedback_from_me = ()
 
-     [ ] new messages
+     [x] new messages
 
 1)
 event:'report_feedback'
 type: required
 description: required
-nps:required
+nps:undefined
 
 2)
 event:'feedback_reported'
-
-3) 
-event:'feedback'
-time: required
-type: required
-date: required
-description: required
-status: required
-notes: required
-url: required
-
-     [ ] function in hub
- 
+     [x] function in hub
 report_feedback = (account_id, type, description, nps, data)
 
 

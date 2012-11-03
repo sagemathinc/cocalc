@@ -154,6 +154,7 @@ message(
 message(
     event          : 'signed_in'
     id             : undefined
+    account_id     : required
     first_name     : required
     last_name      : required
     email_address  : required
@@ -243,3 +244,32 @@ message(
     success        : required
     reason         : undefined
 )
+
+############################################
+# User Feedback
+#############################################
+
+message
+    event       : 'report_feedback'
+    id          : undefined
+    type        : required            # 'bug', 'idea', 'comment'
+    description : required            # text
+    nps         : undefined           # net promotor score; integer 1,2,...,9
+
+message
+    event       : 'feedback_reported'
+    error       : undefined
+    id          : required
+
+message
+    event       : 'get_all_feedback_from_user'
+    error       : undefined
+    id          : undefined
+
+message
+    event       : 'all_feedback_from_user'
+    id          : required
+    data        : required  # JSON list of objects
+    
+    
+    
