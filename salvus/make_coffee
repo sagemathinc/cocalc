@@ -17,11 +17,13 @@ coffee -o node_modules -c *.coffee
 ###########
 # Code shared between backend servers and web browser clients
 ###########
-browserify -v --exports=require,connect node_modules/client_browser.js -o static/salvus.js && uglifyjs2 static/salvus.js -o static/salvus.min.js &
+# do this in the background
+browserify -v --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
+      uglifyjs2 static/salvus.js -o static/salvus.min.js && \
+      coffee -b -o page/temp page/*.coffee && \
+      gen_page && \
+      uglifyjs2 static/index.js -o static/index.min.js &
 
-genhtml &
 
-# this will get deleted!
 cp node_modules/message.js node_modules/salvus_client.js static/salvus/ 
 coffee -o static/salvus/ -c static/salvus/salvus.coffee 
-coffee -o static/ -c static/index.coffee 

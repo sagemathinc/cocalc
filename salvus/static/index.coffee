@@ -2,7 +2,7 @@ $ ->
 
     mswalltime = require("misc").mswalltime
 
-        # Make it so clicking on the link with given id-item makes the
+    # Make it so clicking on the link with given id-item makes the
     # element with given id visible, and all others invisible.  Also,
     # the clicked link gets the active class, and all others become
     # inactive.
