@@ -6928,5 +6928,8 @@ report_feedback = (account_id, type, description, nps, data)
 ---------
 
 
+Plan now:
 
-  [ ] some GUI stuff?
+   [ ] write more test code
+
+   [ ] implement html/gui code to use new client.coffee functions
