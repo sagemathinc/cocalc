@@ -1,8 +1,8 @@
 ###
 #
 # For manual testing:
-# 
-#    database = new (require('cassandra').Salvus)(keyspace:'test');0;
+#
+#    require('./node_modules/tests/test_cassandra').setUp(); database = new (require('cassandra').Salvus)(keyspace:'test');0;
 #
 ###
 
@@ -35,6 +35,66 @@ exports.tearDown = (cb) ->
         (cb) -> conn = new helenus.ConnectionPool({hosts: ['localhost'], timeout: 3000, cqlVersion: '3.0.0'}); conn.connect(cb)
         (cb) -> conn.close(); cb()
     ], cb)
+
+
+exports.test_user_feedback = (test) ->
+    test.expect(8)
+    async.series [
+        # Submit severals user feedback forms for user with account_id=0 and 1.
+        (cb) ->
+            database.report_feedback
+                account_id  : 0
+                type        : 'bug'
+                description : 'This is my first bug report.'
+                data        : {'sage_version':'5.4', 'hostname':'sage04'}
+                nps         : 9
+                cb          : (err, results) -> test.ok(not err); cb()
+        (cb) -> 
+            database.report_feedback
+                account_id  : 0
+                type        : 'bug'
+                description : 'This is my first bug report.'
+                data        : {'sage_version':'5.5', 'hostname':'sage07'}
+                nps         : 7
+                cb          : (err, results) -> test.ok(not err); cb()
+        (cb) -> 
+            database.report_feedback
+                account_id  : 0
+                type        : 'idea'
+                description : 'Implement way more features!'
+                data        : {'sage_version':'5.4', 'hostname':'sage05'}
+                nps         : 5
+                cb          : (err, results) -> test.ok(not err); cb()
+        
+        (cb) -> 
+            database.report_feedback
+                account_id  : 1
+                type        : 'comment'
+                description : 'So far this is pretty good.'
+                data        : {'sage_version':'5.4', 'hostname':'sage01'}
+                nps         : 7
+                cb          : (err, results) -> test.ok(not err); cb()
+
+        # Get all feedback and verify consistency with what we
+        # submitted.  Also verify the automatically set time was
+        # within the last few seconds.
+        (cb) ->
+            database.get_all_feedback_from_user
+                account_id : 1
+                cb : (err, results) ->
+                    test.equal(results.length, 1, "should be one feedback form for user with id 1, but got #{results.length}")
+                    test.equal(results[0].type, 'comment')
+                    test.deepEqual(results[0].data, {'sage_version':'5.4', 'hostname':'sage01'})
+                    test.equal(results[0].description, 'So far this is pretty good.')
+                    cb()
+        
+        # Get all feedback from the last day, which will just be the
+        # three entries we submitted.
+        
+        # Get all bugs, which will be two of the above. 
+
+
+    ], () -> test.done()
 
 
 exports.test_account_management = (test) ->

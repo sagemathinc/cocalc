@@ -147,7 +147,9 @@ class KeyValueStore
 # strings instead of their own special object type, since otherwise they
 # convert to JSON incorrectly.
 
-exports.to_cassandra = to_cassandra = (obj) ->
+exports.to_cassandra = to_cassandra = (obj, json) ->
+    if json
+        obj = from_json(obj)
     if obj and obj.hasOwnProperty(obj, 'hex')
         return obj.hex
     return obj
@@ -171,9 +173,11 @@ class exports.Cassandra extends EventEmitter
         else
             @conn.connect((err) -> )
 
-    _where: (where_key, vals) ->
+    _where: (where_key, vals, json=[]) ->
         where = "";
         for key, val of where_key
+            if key in json
+                val = to_json(val)
             if typeof(val) != 'boolean'
                 where += "#{key}=? AND "
                 vals.push(val)
@@ -182,15 +186,18 @@ class exports.Cassandra extends EventEmitter
                 where += "#{key}='#{val}' AND "
         return where.slice(0,-4)
 
-    _set: (properties, vals) ->
+    _set: (properties, vals, json=[]) ->
         set = ""; 
         for key, val of properties
-            if typeof(val) != 'boolean'            
-                set += "#{key}=?,"
-                vals.push(val)
-            else
-                # work around a *MAJOR* driver bug :-(
-                set += "#{key}='#{val}',"
+            if key in json
+                val = to_json(val)
+            if val?  # only consider properties with defined values
+                if typeof(val) != 'boolean'            
+                    set += "#{key}=?,"
+                    vals.push(val)
+                else
+                    # work around a driver bug :-(
+                    set += "#{key}='#{val}',"
         return set.slice(0,-1)
 
     close: () ->
@@ -207,10 +214,16 @@ class exports.Cassandra extends EventEmitter
         @cql(query, vals, (error, results) -> opts.cb?(error, results[0].get('count').value))
 
     update: (opts={}) -> 
-        opts = defaults(opts,  table:undefined, where:{}, set:{}, ttl:0, cb:undefined)
+        opts = defaults opts,
+            table     : required
+            where     : {}
+            set       : {}
+            ttl       : 0
+            cb        : undefined
+            json      : []          # list of columns to convert to JSON
         vals = []
-        set = @_set(opts.set, vals)
-        where = @_where(opts.where, vals)
+        set = @_set(opts.set, vals, opts.json)
+        where = @_where(opts.where, vals, opts.json)
         @cql("UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, opts.cb)
 
     delete: (opts={}) ->
@@ -227,20 +240,21 @@ class exports.Cassandra extends EventEmitter
             cb        : required    # callback(error, results)
             objectify : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
             limit     : undefined   # if defined, limit the number of results returned to this integer
+            json      : []          # list of columns that should be converted from JSON format
             
         vals = []
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
         if opts.where?
-            where = @_where(opts.where, vals)
+            where = @_where(opts.where, vals, opts.json)
             query += " WHERE #{where} "
         if opts.limit?
             query += " LIMIT #{opts.limit} "
         @cql(query, vals,
             (error, results) ->
                 if opts.objectify
-                    x = (misc.pairs_to_obj([col,to_cassandra(r.get(col).value)] for col in opts.columns) for r in results)
+                    x = (misc.pairs_to_obj([col,to_cassandra(r.get(col).value, col in opts.json)] for col in opts.columns) for r in results)
                 else
-                    x = ((to_cassandra(r.get(col).value) for col in opts.columns) for r in results)
+                    x = ((to_cassandra(r.get(col).value, col in opts.json) for col in opts.columns) for r in results)
                 opts.cb(error, x)
         )
 
@@ -408,7 +422,7 @@ class exports.Salvus extends exports.Cassandra
     #####################################
     # User Feedback
     #####################################
-    report_feedback = (opts={}) ->
+    report_feedback: (opts={}) ->
         opts = defaults opts,
             account_id:  undefined
             type:        required
@@ -417,25 +431,27 @@ class exports.Salvus extends exports.Cassandra
             nps:         undefined
             cb:          undefined
             
-        feedback_uuid = uuid.v4()
+        feedback_id = uuid.v4()
         time = now()
         @update
             table : "feedback"
-            where : {feedback_id:feedback_id, time:time}
-            set   : {type: opts.type, description: opts.description, nps:opts.nps, data:ops.data}
+            where : {time:time}
+            json  : ['data']
+            set   : {account_id:opts.account_id, feedback_id:feedback_id, type: opts.type, description: opts.description, nps:opts.nps, data:opts.data}
             cb    : opts.cb
 
-    get_all_feedback_from_user = (opts={}) ->
+    get_all_feedback_from_user: (opts={}) ->
         opts = defaults opts,
             account_id : required
             cb         : undefined
             
         @select
-            table : "feedback"
-            where : {account_id:opts.account_id}
-            columns: ['time', 'type', 'date', 'description', 'status', 'notes', 'url']
-            objectify: true
-            cb: cb.opts
+            table     : "feedback"
+            where     : {account_id:opts.account_id}
+            columns   : ['time', 'type', 'data', 'description', 'status', 'notes', 'url']
+            json      : ['data']
+            objectify : true
+            cb        : opts.cb
 
     
     #############
