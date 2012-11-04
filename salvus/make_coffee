@@ -19,6 +19,7 @@ coffee -o node_modules -c *.coffee
 ###########
 browserify -v --exports=require,connect node_modules/client_browser.js -o static/salvus.js && uglifyjs2 static/salvus.js -o static/salvus.min.js &
 
+genhtml &
 
 # this will get deleted!
 cp node_modules/message.js node_modules/salvus_client.js static/salvus/ 

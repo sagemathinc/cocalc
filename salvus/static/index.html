@@ -1,202 +1,167 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Salvus: distributed scalable online mathematical software</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Salvus: distributed scalable mathematical software">
-    <meta name="author" content="William Stein">
-    <!-- Bootstrap -->
-    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
-    <style type="text/css">  /* workaround responsive bootstrap menu issue */
-      body { padding-top:60px; }
-      @media (max-width: 979px) { body { padding-top: 0px; } }  
-    </style>
+<head>
+  <meta charset="utf-8">
 
-  </head>
+  <title>Salvus: distributed scalable online mathematical software</title>
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Salvus: distributed scalable mathematical software">
+  <meta name="author" content="William Stein">
+
+  <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
+  <style type="text/css">  /* workaround responsive bootstrap menu issue */
+    body { padding-top:60px; }
+    @media (max-width: 979px) { body { padding-top: 0px; } }  
+  </style>
+
+</head>
   <body>
-    <div class="navbar navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="#"><font color="#0084aa">Salvus&trade;</font></a>
-          <div class="nav-collapse collapse">
-            <ul class="nav">
-              <li class="active" id="demo1-item"><a href="#demo1">Script</a></li>
-             <li class="divider-vertical"></li>
-              <li id="demo2-item"><a href="#demo2">Command Line</a></li>
-             <li class="divider-vertical"></li>
-<!--              <li id="demo3-item"><a href="#demo3">Worksheet</a></li>
-             <li class="divider-vertical"></li> -->
-              <li id="about-item"><a href="#about">About</a></li>
-             <li class="divider-vertical"></li>
- 
-
-<!--
+<div class="navbar navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </a>
+      <a class="brand" href="#"><font color="#0084aa">Salvus&trade;</font></a>
+      <div class="nav-collapse collapse">
+        <ul class="nav">
+          <li class="active" id="demo1-item"><a href="#demo1">Script</a></li>
+          <li class="divider-vertical"></li>
+          <li id="demo2-item"><a href="#demo2">Command Line</a></li>
+          <li class="divider-vertical"></li>
+          <li id="about-item"><a href="#about">About</a></li>
+          <li class="divider-vertical"></li>
+	  <!--
               <li class="dropdown">
 		<a href="#" class="dropdown-toggle" data-toggle="dropdown">Compute<b class="caret"></b></a>
 		<ul class="dropdown-menu">
-
 		  <li class="active" id="demo1-item"><a href="#demo1">Script</a></li>
 		  <li id="demo2-item"><a href="#demo2">Command Line</a></li>
-		  <li id="demo3-item"><a href="#demo3">Worksheet</a></li>
 		</ul>
 	      </li>
 
-              <li id="about-item"><a href="#about">About</a></li>
--->
-
-
-            </ul>
-            <form class="navbar-form pull-right">
-              <input class="span2" type="text" placeholder="Email">
-              <input class="span2" type="password" placeholder="Password">
-              <button type="submit" class="btn" id="sign_in">Sign in</button>
-	      <button type="submit" class="btn" id="sign_out">Sign out</button>
-            </form>
-          </div><!--/.nav-collapse -->
-        </div>
+          <li id="about-item"><a href="#about">About</a></li>
+	  -->
+        </ul>
+        <form class="navbar-form pull-right">
+          <input class="span2" type="text" placeholder="Email">
+          <input class="span2" type="password" placeholder="Password">
+          <button type="submit" class="btn" id="sign_in">Sign in</button>
+	  <button type="submit" class="btn" id="sign_out">Sign out</button>
+        </form>
       </div>
     </div>
-
-    <div class="container" id="demo1">
-      <div class="row">
-	<div class="span6">
-	  <h3>Create a <a href="http://sagemath.org" target="_new">Sage</a> Script</h3><br>
-	</div>
-      </div>
-      <div class = "row">
-	<div class="span1">
-	  <font size=-1>
-	    <br>
-	    <span id="time"></span><br>
-	    <span id="run_status"></span><br>
-	  </font>
-	</div>
-	<div class="span11">
-	  <textarea rows=8 id="input" class="span11"></textarea>
-	  <br>
-          <a id="execute" class="btn btn-primary btn-large">Execute (shift-enter) &raquo;</a>
-&nbsp;&nbsp;&nbsp;<input type="checkbox" id="script-cache" checked=true> Allow Caching
-	  <br><br>
-          <textarea rows=6 id="output"  class="span11" readonly="readonly"></textarea>
-	</div>
-      </div>
-          
-    </div> 
-
-    <div class="container" id="demo2">
-      <div class="row">
-	<div class="span6">
-	  <h3>Command Line</h3><br>
-	</div>
-      </div>
-      <div class="row">
-	<div class="span1">
-	</div>
-	<div class="span9">
-          <textarea rows=14 id="output2"  class="span9" readonly="readonly"></textarea>
-	</div>
-      </div>
-      <div class="row">
-	<div class="span1">
-	    <font size="+2"><a href="http://www.sagemath.org" target="_new">sage:</a></font>
-	</div>
-	<div class="span9">
-	  <textarea rows=1 id="input2" class="span9"></textarea>
-          <a id="execute2" class="btn btn-primary btn-large">Execute (enter) &raquo;</a>
-          &nbsp;          &nbsp;          &nbsp;          &nbsp;
-          <a id="interrupt2" class="btn btn-primary btn-large">Interrupt (esc) &raquo;</a>
-	  <br>
-	</div>
-	<div class="span2">
-	  <font size=-1>
-	    <span id="connection_status2"></span><br>
-	    <span id="time2"></span><br>
-	    <span id="run_status2"></span><br>
-	  </font>
-	  </div>
-      </div>
-    </div> 
-
-<!--    <div class="container" id="demo3">
-
-      <div class="row">
-	<div class="span6">
-	  <h3>Worksheet</h3><br>
-
-	</div>
-      </div>
-      <div class="row">
-	<div class="span10">
-	  <textarea rows=1 id="input3" class="span9"></textarea>
-          <a id="execute2" class="btn btn-primary btn-large">Execute (shift-enter) &raquo;</a>
-          <a id="interrupt2" class="btn btn-primary btn-large">Interrupt (control-c) &raquo;</a>
-	  <br>
-	</div>
-	<div class="span2">
-	  <font size=-1>
-	    <span id="connection_status3"></span><br>
-	    <span id="time3"></span><br>
-	    <span id="run_status3"></span><br>
-	  </font>
-	  </div>
-      </div>
-    </div> 
--->
-
-    <div class="container" id="about">
-      <h1><font color="#0084aa">Salvus&trade;</font></h1>
-<h3>Distributed scalable online mathematical software</h3>
-      <ul>
-	<li> <i>Salvus</i> provides mathematical software as a service: the main user language is Python as provided by
-	  <a href="http://sagemath.org">Sage</a>, which in turns provides access
-	  to many other programs.</li>
-	<li> <i>Salvus</i> has a distributed and fault tolerant design: it
-	  runs on hardware located in two separate data centers at
-	  the <a href="">University of Washington</a>, and on cloud hosting
-	  providers
-	  including <a href="http://www.servedby.net/">Servedby.net</a>.</li>
-	<li> Many features are planned for the first beta
-	  release of <i>Salvus</i> in January 2013: version control, simultaneous coordinated
-	  use by all students in a course, embedding in external websites,
-	  very long-running and large-memory research computations, and
-	  mobile clients.
-	</li>
-	<li> We will also provide custom installation and configuration
-	  of <i>Salvus</i> on a company's private computers; the price will
-	  be determined based on the specific needs of the company and its size.</li>
-      </ul>
-
-      <h3>Timetable</h3>
-      <ul>
-	<li> <i>Salvus</i> is currently available as an alpha quality
-	  website, which is undergoing rapid development and may be very
-	  unstable.  
-	<li> The first beta release will be in January 2013, and the first stable release is slated for March 2013.</li>
-	</li>
-      </ul>
-
-      <h3>Contact</h3>
-      <ul>
-	<li> William Stein, University of Washington, <a href="mailto:wstein@uw.edu">wstein@uw.edu</a>
-      </ul>
-
-      <h3>Other Information</h3>
-      Though <i>Salvus</i> is quickly changing, you may find the information below useful. 
-      <ul>
-        <li> <a href="http://salvusmath.blogspot.com/">The Salvus Blog</a></li>
-	<li> <a href="misc/talk-20121004/">Seminar and screencast about the internal architecture of <i>Salvus</i> (October 2012)</a></li>
-	<li> <a href="http://wstein.org/grants/2012-rrf/rrf.pdf"><i>Salvus</i>-related grant proposal (September 2012)</a></li>
-	<li> <a href="http://wstein.org/grants/2012-appengine/proposal.pdf">Google app engine Proposal (funded) -- May 2012 (the design has changed significantly)</a></li>
-      </ul>
+  </div>
+</div>
+<div class="container" id="demo1">
+  <div class="row">
+    <div class="span6">
+      <h3>Create a <a href="http://sagemath.org" target="_new">Sage</a> Script</h3><br>
     </div>
+  </div>
+  <div class = "row">
+    <div class="span1">
+      <font size=-1>
+	<br>
+	<span id="time"></span><br>
+	<span id="run_status"></span><br>
+      </font>
+    </div>
+    <div class="span11">
+      <textarea rows=8 id="input" class="span11"></textarea>
+      <br>
+      <a id="execute" class="btn btn-primary btn-large">Execute (shift-enter) &raquo;</a>
+      &nbsp;&nbsp;&nbsp;<input type="checkbox" id="script-cache" checked=true> Allow Caching
+      <br><br>
+      <textarea rows=6 id="output"  class="span11" readonly="readonly"></textarea>
+    </div>
+  </div>
+</div> 
 
+<div class="container" id="demo2">
+  <div class="row">
+    <div class="span6">
+      <h3>Command Line</h3><br>
+    </div>
+  </div>
+  <div class="row">
+    <div class="span1">
+    </div>
+    <div class="span9">
+      <textarea rows=14 id="output2"  class="span9" readonly="readonly"></textarea>
+    </div>
+  </div>
+  <div class="row">
+    <div class="span1">
+      <font size="+2"><a href="http://www.sagemath.org" target="_new">sage:</a></font>
+    </div>
+    <div class="span9">
+      <textarea rows=1 id="input2" class="span9"></textarea>
+      <a id="execute2" class="btn btn-primary btn-large">Execute (enter) &raquo;</a>
+      &nbsp;          &nbsp;          &nbsp;          &nbsp;
+      <a id="interrupt2" class="btn btn-primary btn-large">Interrupt (esc) &raquo;</a>
+      <br>
+    </div>
+    <div class="span2">
+      <font size=-1>
+	<span id="connection_status2"></span><br>
+	<span id="time2"></span><br>
+	<span id="run_status2"></span><br>
+      </font>
+    </div>
+  </div>
+</div> 
+<div class="container" id="about">
+  <h1><font color="#0084aa">Salvus&trade;</font></h1>
+  <h3>Distributed scalable online mathematical software</h3>
+  <ul>
+    <li> <i>Salvus</i> provides mathematical software as a service: the main user language is Python as provided by
+      <a href="http://sagemath.org">Sage</a>, which in turns provides access
+      to many other programs.</li>
+    <li> <i>Salvus</i> has a distributed and fault tolerant design: it
+      runs on hardware located in two separate data centers at
+      the <a href="">University of Washington</a>, and on cloud hosting
+      providers
+      including <a href="http://www.servedby.net/">Servedby.net</a>.</li>
+    <li> Many features are planned for the first beta
+      release of <i>Salvus</i> in January 2013: version control, simultaneous coordinated
+      use by all students in a course, embedding in external websites,
+      very long-running and large-memory research computations, and
+      mobile clients.
+    </li>
+    <li> We will also provide custom installation and configuration
+      of <i>Salvus</i> on a company's private computers; the price will
+      be determined based on the specific needs of the company and its size.</li>
+  </ul>
+
+  <h3>Timetable</h3>
+  <ul>
+    <li> <i>Salvus</i> is currently available as an alpha quality
+      website, which is undergoing rapid development and may be very
+      unstable.  
+    <li> The first beta release will be in January 2013, and the first stable release is slated for March 2013.</li>
+    </li>
+  </ul>
+
+  <h3>Contact</h3>
+  <ul>
+    <li> William Stein, University of Washington, <a href="mailto:wstein@uw.edu">wstein@uw.edu</a>
+  </ul>
+
+  <h3>Other Information</h3>
+  Though <i>Salvus</i> is quickly changing, you may find the information below useful. 
+  <ul>
+    <li> <a href="http://salvusmath.blogspot.com/">The Salvus Blog</a></li>
+    <li> <a href="misc/talk-20121004/">Seminar and screencast about the internal architecture of <i>Salvus</i> (October 2012)</a></li>
+    <li> <a href="http://wstein.org/grants/2012-rrf/rrf.pdf"><i>Salvus</i>-related grant proposal (September 2012)</a></li>
+    <li> <a href="http://wstein.org/grants/2012-appengine/proposal.pdf">Google app engine Proposal (funded) -- May 2012 (the design has changed significantly)</a></li>
+  </ul>
+</div>
     <div class="container">
       <footer>
 <hr>
@@ -205,14 +170,6 @@
         <p>&copy; 2012 University of Washington. "Salvus" is a trademark of the University of Washington. All rights reserved.</p>
       </footer>
     </div>
-
-
-
-
-
-
-
-
 <!-- Javascript -->
 
     <script type="text/javascript" src="/salvus.js"></script> 
@@ -225,8 +182,6 @@
     <script type="text/javascript" src="index.js"></script>
 
   <!--  <script type="text/javascript" src="/salvus.min.js"></script> -->
-
-
 
   </body>
 </html>
