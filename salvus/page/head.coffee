@@ -20,4 +20,4 @@ connect_links_and_pages = (page_ids, default_page=null) ->
     else
         show_page(page_ids[0])
     
-connect_links_and_pages(["#about", "#demo1", "#demo2", "#demo3"], "#demo1")
+connect_links_and_pages(["#about", "#demo1", "#demo2"], "#demo1")
