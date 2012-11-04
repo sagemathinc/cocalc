@@ -38,13 +38,13 @@ exports.tearDown = (cb) ->
 
 
 exports.test_user_feedback = (test) ->
-    test.expect(8)
+    test.expect(11)
     async.series [
         # Submit severals user feedback forms for user with account_id=0 and 1.
         (cb) ->
             database.report_feedback
                 account_id  : 0
-                type        : 'bug'
+                category        : 'bug'
                 description : 'This is my first bug report.'
                 data        : {'sage_version':'5.4', 'hostname':'sage04'}
                 nps         : 9
@@ -52,7 +52,7 @@ exports.test_user_feedback = (test) ->
         (cb) -> 
             database.report_feedback
                 account_id  : 0
-                type        : 'bug'
+                category        : 'bug'
                 description : 'This is my first bug report.'
                 data        : {'sage_version':'5.5', 'hostname':'sage07'}
                 nps         : 7
@@ -60,7 +60,7 @@ exports.test_user_feedback = (test) ->
         (cb) -> 
             database.report_feedback
                 account_id  : 0
-                type        : 'idea'
+                category        : 'idea'
                 description : 'Implement way more features!'
                 data        : {'sage_version':'5.4', 'hostname':'sage05'}
                 nps         : 5
@@ -69,11 +69,19 @@ exports.test_user_feedback = (test) ->
         (cb) -> 
             database.report_feedback
                 account_id  : 1
-                type        : 'comment'
+                category        : 'comment'
                 description : 'So far this is pretty good.'
                 data        : {'sage_version':'5.4', 'hostname':'sage01'}
                 nps         : 7
                 cb          : (err, results) -> test.ok(not err); cb()
+
+        (cb) ->
+            console.log("check count of inserted entries")
+            database.count
+                table:'feedback',
+                cb:(err, results) ->
+                    test.equal(results, 4)
+                    cb()
 
         # Get all feedback and verify consistency with what we
         # submitted.  Also verify the automatically set time was
@@ -82,17 +90,25 @@ exports.test_user_feedback = (test) ->
             database.get_all_feedback_from_user
                 account_id : 1
                 cb : (err, results) ->
-                    test.equal(results.length, 1, "should be one feedback form for user with id 1, but got #{results.length}")
-                    test.equal(results[0].type, 'comment')
+                    test.equal(results.length, 1, "should be 1 feedback form for user with id 1, but got #{results.length}")
+                    test.equal(results[0].category, 'comment')
                     test.deepEqual(results[0].data, {'sage_version':'5.4', 'hostname':'sage01'})
                     test.equal(results[0].description, 'So far this is pretty good.')
                     cb()
+                    
+        (cb) -> 
+            database.get_all_feedback_from_user
+                account_id : 0
+                cb : (err, results) ->
+                    test.equal(results.length, 3, "should be 3 feedback form for user with account_id 0, but got #{results.length}")
+                    cb()
         
-        # Get all feedback from the last day, which will just be the
-        # three entries we submitted.
-        
-        # Get all bugs, which will be two of the above. 
-
+        (cb) -> 
+            database.get_all_feedback_of_category
+                category : 'bug'
+                cb : (err, results) ->
+                    test.equal(results.length, 2, "should be 2 bugs, but got #{results.length}")
+                    cb()
 
     ], () -> test.done()
 

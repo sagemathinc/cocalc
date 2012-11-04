@@ -43,7 +43,7 @@ exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
 
 exports.mswalltime = -> (new Date()).getTime()
 
-exports.walltime = -> exports.mswalltime()/1000.0 
+exports.walltime = -> exports.mswalltime()/1000.0
 
 # We use this uuid implementation only for the browser client.  For node code, use node-uuid.
 exports.uuid = ->

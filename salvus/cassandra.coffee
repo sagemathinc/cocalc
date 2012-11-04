@@ -25,7 +25,6 @@ uuid    = require('node-uuid')
 now = () -> to_iso(new Date())
 
 
-
 #########################################################################
 
 exports.create_schema = (conn, cb) ->
@@ -425,7 +424,7 @@ class exports.Salvus extends exports.Cassandra
     report_feedback: (opts={}) ->
         opts = defaults opts,
             account_id:  undefined
-            type:        required
+            category:        required
             description: required
             data:        required
             nps:         undefined
@@ -435,9 +434,9 @@ class exports.Salvus extends exports.Cassandra
         time = now()
         @update
             table : "feedback"
-            where : {time:time}
+            where : {feedback_id:feedback_id}
             json  : ['data']
-            set   : {account_id:opts.account_id, feedback_id:feedback_id, type: opts.type, description: opts.description, nps:opts.nps, data:opts.data}
+            set   : {account_id:opts.account_id, time:time, category: opts.category, description: opts.description, nps:opts.nps, data:opts.data}
             cb    : opts.cb
 
     get_all_feedback_from_user: (opts={}) ->
@@ -448,7 +447,19 @@ class exports.Salvus extends exports.Cassandra
         @select
             table     : "feedback"
             where     : {account_id:opts.account_id}
-            columns   : ['time', 'type', 'data', 'description', 'status', 'notes', 'url']
+            columns   : ['time', 'category', 'data', 'description', 'status', 'notes', 'url']
+            json      : ['data']
+            objectify : true
+            cb        : opts.cb
+
+    get_all_feedback_of_category: (opts={}) ->
+        opts = defaults opts,
+            category      : required
+            cb        : undefined
+        @select
+            table     : "feedback"
+            where     : {category:opts.category}
+            columns   : ['time', 'account_id', 'data', 'description', 'status', 'notes', 'url']
             json      : ['data']
             objectify : true
             cb        : opts.cb
