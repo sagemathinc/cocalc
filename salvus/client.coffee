@@ -237,21 +237,21 @@ class exports.Connection extends EventEmitter
     ############################################
     # User Feedback
     #############################################
-    report_feedback = (opts={}) ->
+    report_feedback: (opts={}) ->
         defaults opts,
-            type        : required
+            category    : required
             description : required
             nps         : undefined
             cb          : undefined
             
         @call
             message: message.report_feedback
-                type        : opts.type
+                category    : opts.category
                 description : opts.description
                 nps         : opts.nps
             cb: opts.cb
     
-    feedback = (opts={}) ->
+    feedback: (opts={}) ->
         defaults opts,
             cb : required
         @call

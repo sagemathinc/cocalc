@@ -120,6 +120,46 @@ exports.test_account_management = (test) ->
             
     ], () -> test.done())
 
+exports.test_user_feedback = (test) ->
+    password = "#{misc.uuid()}"    
+    test.expect(1)
+    async.series([
+        (cb) ->
+            conn.create_account
+                first_name    : 'Salvus'
+                last_name     : 'Math'
+                email_address : 'salvusmath2@gmail.com'
+                password      : password
+                agreed_to_terms: true
+                timeout       : 1
+                cb            : (error, results) -> console.log(error, results); cb()
+        (cb) ->
+            conn.sign_in
+                email_address : 'salvusmath2@gmail.com'
+                password      : password
+                timeout       : 1
+                cb            : (error, results) -> console.log(error, results); cb()
+        (cb) -> 
+            conn.report_feedback
+                category : 'bug'
+                description: "there is a bug"
+                nps : 3
+                cb : (err, results) -> console.log(err, results); cb()
+        (cb) -> 
+            conn.report_feedback
+                category : 'idea'
+                description: "there is a bug"
+                nps : 3
+                cb : (err, results) -> console.log(err, results); cb()
+        (cb) ->
+            conn.feedback
+                cb: (err, results) ->
+                    console.log(error, results);
+                    test.equal(results.length, 2)
+                    cb()
+    ], () -> test.done())
+    
+
 exports.test_conn = (test) ->
     test.expect(9)
     async.series([

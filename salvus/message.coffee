@@ -252,7 +252,7 @@ message(
 message
     event       : 'report_feedback'
     id          : undefined
-    type        : required            # 'bug', 'idea', 'comment'
+    category    : required            # 'bug', 'idea', 'comment'
     description : required            # text
     nps         : undefined           # net promotor score; integer 1,2,...,9
 

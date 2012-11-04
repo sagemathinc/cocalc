@@ -515,11 +515,12 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 # User Feedback
 ########################################
 report_feedback = (mesg, account_id, push_to_client) ->
+    data = {}
     database.report_feedback
         account_id  : account_id
-        type        : mesg.type
+        category    : mesg.category
         description : mesg.description
-        data        : mesg.data
+        data        : data
         nps         : mesg.nps
         cb          : (err, results) -> push_to_client(messages.feedback_reported(id:mesg.id, error:err))
 
