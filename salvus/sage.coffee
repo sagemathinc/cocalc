@@ -2,6 +2,39 @@
 # 
 # sage.coffee -- TCP interface between NodeJS and a Sage server instance
 #
+# The TCP interface to the sage server is necessarily "weird" because
+# the Sage process that is actually running the code *is* the server
+# one talks to via TCP after starting a session.  Since Sage itself is
+# blocking when running code, and running as the user when running
+# code can't be trusted, e.g., anything in the server can be
+# arbitrarily modified, all *control* messages, e.g., sending signals,
+# cleaning up, etc. absolutely require making a separate TCP connection.
+# 
+# So:
+#
+#    1. Make a connection to the TCP server, which runs as root and
+#       forks on connection.
+# 
+#    2. Create a new session, which drops privileges to a random clean
+#       user, and continues to listen on the TCP socket when not doing
+#       computations. 
+#
+#    3. Send request-to-exec, etc., messages to the socket in (2)
+#       and get back output over (2).
+#
+#    4. To send a signal, get files, save worksheet state, etc.,
+#       make a new connection to the TCP server, and send a message
+#       in the freshly forked off process, which runs as root.
+#
+# With this architecture, the sage process that the user is
+# interacting with has ultimate control over the messages it sends and
+# receives (which is incredibly powerful and customizable), with no
+# stupid pexpect or anything else like that to get in the way.  At the
+# same time, we still have a root out-of-process control mechanism,
+# though with the overhead of establishing a new connection each time.
+# Since control messages are much less frequent, this overhead is
+# acceptable.
+#
 ############################################################################ 
 
 net     = require('net')
@@ -81,6 +114,9 @@ class exports.Connection
         @conn.write(buf)
         @conn.write(s)
 
+    # Close the connection with the server.  You probably instead want
+    # to send_signal(...) using the module-level fucntion to kill the
+    # session, in most cases.
     close: () ->
         @conn.end()
         @conn.destroy()

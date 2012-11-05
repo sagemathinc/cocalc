@@ -13,11 +13,6 @@ PORT = 6000
 sage    = require('sage')
 message = require("message")
 
-send_term_signal = (pid) ->
-    sage.send_control_message
-
-    new sage.Connection(host: HOST, port: PORT, cb: -> sage.send(message.send_signal(pid:pid, signal:3)))
-
 exports.test_2plus2 = (test) ->
     test.expect(7)
 
