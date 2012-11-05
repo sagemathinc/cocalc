@@ -7,7 +7,8 @@
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
 
-# make it so the properties of target are the same as those of upper_bound, and each is <=.
+# modifies target in place, so that the properties of target are the
+# same as those of upper_bound, and each is <=.
 exports.min_object = (target, upper_bounds) ->
     for prop, val of upper_bounds
         target[prop] = if target.hasOwnProperty(prop) then target[prop] = Math.min(target[prop], upper_bounds[prop]) else upper_bounds[prop]
@@ -15,7 +16,7 @@ exports.min_object = (target, upper_bounds) ->
 exports.defaults = (obj1, obj2) ->
     error  = () -> "(obj1=#{exports.to_json(obj1)}, obj2=#{exports.to_json(obj2)})"
     if typeof(obj1) != 'object'
-        # We put explicit traces before the errors in this fucntion,
+        # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
         console.trace()  
         throw "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
