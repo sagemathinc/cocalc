@@ -38,4 +38,78 @@ exports.test_defaults = (test) ->
             cb()
     ], () -> test.done()
 
-    
+exports.test_mswalltime = (test) ->
+    test.expect(1)
+    tm = misc.mswalltime()
+    setTimeout((() -> test.ok(misc.mswalltime() - tm >= 1000); test.done()), 1500)
+
+exports.test_walltime = (test) ->
+    test.expect(1)
+    tm = misc.walltime()
+    setTimeout((() -> test.ok(misc.walltime() - tm <= 2 and misc.walltime() - tm >= 1.3); test.done()), 1500)
+
+exports.test_uuid = (test) ->
+    test.expect(2)
+    u = misc.uuid()
+    test.ok('-' in u and u.length==36)   # not really much of a test!
+    test.ok(misc.uuid() != u)            # should be highly random
+    test.done()
+
+exports.test_times_per_second = (test) ->
+    test.expect(1)
+    test.ok(misc.times_per_second((x) -> x*x) > 100000)
+    test.done()
+
+exports.test_to_json = (test) ->
+    test.expect(1)
+    test.equal(misc.to_json(['hello', {a:5, b:37.5, xyz:'123'}]), '["hello",{"a":5,"b":37.5,"xyz":"123"}]')
+    test.done()
+
+exports.test_from_json = (test) ->
+    test.expect(1)
+    v = ['hello', {a:5, b:37.5, xyz:'123'}]
+    test.deepEqual(misc.from_json(misc.to_json(v)), v)
+    test.done()
+
+exports.test_to_iso = (test) ->
+    test.expect(4)
+    s = misc.to_iso(new Date())
+    test.ok('-' in s)
+    test.ok(':' in s)
+    test.ok('T' in s)
+    s = misc.to_iso(new Date('2012-11-04T20:16:35-0800'))
+    test.equal(s,'2012-11-04T20:16:35')
+    test.done()
+
+exports.test_is_empty_object = (test) ->
+    test.expect(4)
+    test.ok(misc.is_empty_object({}))
+    test.ok(misc.is_empty_object([]))
+    test.equal(misc.is_empty_object({a:5}), false)
+    test.equal(misc.is_empty_object({a:undefined}), false)
+    test.done()
+
+exports.test_len = (test) ->
+    test.expect(4)
+    test.equal(misc.len({}), 0)
+    test.equal(misc.len([]), 0)
+    test.equal(misc.len({a:5}), 1)
+    test.equal(misc.len({a:5, b:7, d:'hello'}), 3)
+    test.done()
+
+exports.test_keys = (test) ->
+    test.expect(3)
+    test.equal(misc.keys({a:5})[0], 'a')
+    k = misc.keys({a:5, xyz:'10'})
+    test.ok(k[0] == 'a')
+    test.ok(k[1] == 'xyz')
+    test.done()
+
+exports.test_pairs_to_obj = (test) ->
+    test.expect(1)
+    test.deepEqual(misc.pairs_to_obj([['a',5], ['xyz','10']]), {a:5, xyz:'10'})
+    test.done()
+
+                
+
+            
