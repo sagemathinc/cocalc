@@ -6933,3 +6933,7 @@ Plan now:
    [ ] write more test code
 
    [ ] implement html/gui code to use new client.coffee functions
+
+IMPORTANT TODO:
+
+   [ ] when executing code in script mode, we get no indication at all that a computation has timed out!  Horrible UI!

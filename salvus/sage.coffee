@@ -1,8 +1,33 @@
-net = require('net')
+############################################################################
+# 
+# sage.coffee -- TCP interface between NodeJS and a Sage server instance
+#
+############################################################################ 
+
+net     = require('net')
 
 winston = require('winston')            # https://github.com/flatiron/winston
 
 message = require("message")
+
+misc    = require("misc"); defaults = misc.defaults; required = defaults.required
+
+exports.send_control_message = (opts={}) ->
+    opts = defaults(opts, {host: required, port: required, mesg: required})
+    sage_control_conn = new exports.Connection
+        host : opts.host
+        port : opts.port
+        cb   : ->
+            sage_control_conn.send(opts.mesg)
+            sage_control_conn.close()
+
+exports.send_signal = (opts={}) ->
+    opts = defaults(opts, {host: required, port: required, pid:required, signal:required})
+    exports.send_control_message
+        host : opts.host
+        port : opts.port
+        mesg : message.send_signal(pid:opts.pid, signal:opts.signal)
+    
 
 class exports.Connection
     constructor: (options) ->
@@ -56,10 +81,9 @@ class exports.Connection
         @conn.write(buf)
         @conn.write(s)
 
-    terminate_session: () ->
-        @send(message.terminate_session())
-
-
+    close: () ->
+        @conn.end()
+        @conn.destroy()
         
 ###
 test = (n=1) ->

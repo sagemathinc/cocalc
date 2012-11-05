@@ -93,7 +93,7 @@ class Message(object):
     def send_signal(self, pid, signal=signal.SIGINT):
         return self._new('send_signal', locals())        
 
-    def terminate_session(self):
+    def terminate_session(self, done=True):
         return self._new('terminate_session', locals())
 
     def execute_code(self, id, code, preparse=True):

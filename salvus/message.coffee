@@ -57,7 +57,7 @@ message(
     event        : 'send_signal'
     session_uuid : undefined   # from browser-->hub this must be set
     pid          : undefined   # from hub-->sage_server this must be set
-    signal       : 2           # 2 = SIGINT
+    signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
 )
 
 # browser <----> hub <--> sage_server

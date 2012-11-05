@@ -703,10 +703,10 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
             output_message_callback(mesg)
         cb: ->
             winston.info("(hub) sage_conn -- sage: connected.")
-            sage_conn.send(message.start_session(limits:{walltime:20, cputime:20, numfiles:1000, vmem:2048}))
+            sage_conn.send(message.start_session(limits:{walltime:5, cputime:5, numfiles:1000, vmem:2048}))
             winston.info("(hub) sage_conn -- send: #{to_json(input_mesg)}")
             sage_conn.send(input_mesg)
-            sage_conn.terminate_session()
+            sage_conn.send(message.terminate_session())
     )
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
