@@ -43,8 +43,8 @@ exports.create_schema = (conn, cb) ->
 
 class UUIDValueStore
     # c = new (require("cassandra").Salvus)(); s = c.uuid_value_store('sage'); u = c.uuid_value_store('user')
-    # s.set(uuid:4, value:{address:'localhost', port:5000}, ttl:30, cb:console.log)
-    # u.set(uuid:7, value:{address:'localhost', port:5000})
+    # s.set(uuid:4, value:{host:'localhost', port:5000}, ttl:30, cb:console.log)
+    # u.set(uuid:7, value:{host:'localhost', port:5000})
     # u.get(uuid:7, cb:console.log)
     constructor: (@cassandra, opts={}) ->
         @opts = defaults(opts,  name:'default')
@@ -327,7 +327,7 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults(opts,  cb:undefined)
         @select(table:'sage_servers', columns:['address'], where:{running:true}, cb:(error, results) ->
             # TODO: we hardcoded 6000 for now
-            opts.cb(error, {address:x[0], port:6000} for x in results)
+            opts.cb(error, {host:x[0], port:6000} for x in results)
         )
 
     random_sage_server: (opts={}) -> # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)

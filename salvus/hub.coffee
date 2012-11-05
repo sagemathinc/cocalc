@@ -7,6 +7,10 @@
 #
 # ** Add any new dependencies to the NODEJS_PACKAGES list in build.py **
 #
+# For debugging, run this way:
+#
+#         make_coffee; echo "require('hub').start_server()" | coffee
+#
 ###
 
 # node.js -- builtin libraries 
@@ -611,7 +615,8 @@ create_persistent_sage_session = (mesg, push_to_client) ->
                         m.session_uuid = session_uuid  # tag with session uuid
                         push_to_client(m)
                     when "session_description"
-                        persistent_sage_sessions[session_uuid].pid = m.pid  # record for later use for signals
+                        # record this for later use for signals:
+                        persistent_sage_sessions[session_uuid].pid = m.pid  
                         push_to_client(message.new_session(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
                     else
                         winston.error("(hub) persistent_sage_conn -- unhandled message event = '#{m.event}'")
@@ -634,7 +639,7 @@ send_to_persistent_sage_session = (mesg) ->
     session = persistent_sage_sessions[session_uuid]
     
     if not session?
-        winston.error("TOOD -- session #{session_uuid} does not exist")
+        winston.error("TODO -- session #{mesg.session_uuid} does not exist")
         return
 
     # modify the message so that it can be interpretted by sage server
@@ -645,13 +650,12 @@ send_to_persistent_sage_session = (mesg) ->
     if mesg.event == 'send_signal'   # other control messages would go here too
         # TODO: this function is a DOS vector, so we need to secure/limit it
         # Also, need to ensure that user is really allowed to do this action, whatever it is.
-        conn = new sage.Connection(
-            host:session.conn.host
-            port:session.conn.port
-            cb: ->
-                conn.send(mesg)
-                conn.terminate_session()
-        )
+        console.log(session.conn.host)
+        sage.send_signal
+            host   : session.conn.host
+            port   : session.conn.port
+            pid    : mesg.pid
+            signal : mesg.signal
     else
         session.conn.send(mesg)
 
@@ -713,7 +717,7 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec_nocache #{to_json(input_mesg)}")
     database.random_sage_server( cb:(err, sage_server) ->
         if sage_server?
-            stateless_exec_using_server(input_mesg, output_message_callback, sage_server.address, sage_server.port)
+            stateless_exec_using_server(input_mesg, output_message_callback, sage_server.host, sage_server.port)
         else
             winston.error("(hub) no sage servers!")
             output_message_callback(message.terminate_session(reason:'no Sage servers'))

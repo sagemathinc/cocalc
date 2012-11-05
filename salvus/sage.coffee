@@ -64,6 +64,12 @@ exports.send_signal = (opts={}) ->
 
 class exports.Connection
     constructor: (options) ->
+        options = defaults(options,
+            host: required
+            port: required
+            recv: undefined
+            cb:   undefined
+        )
         @host = options.host
         @port = options.port
         @conn = net.connect({port:@port, host:@host}, options.cb)
@@ -73,7 +79,7 @@ class exports.Connection
         
         @conn.on('error', (err) =>
             winston.error("sage connection error: #{err}")
-            @recv(message.terminate_session(reason:"#{err}"))
+            @recv?(message.terminate_session(reason:"#{err}"))
         )
         
         @conn.on('data', (data) =>
@@ -95,7 +101,7 @@ class exports.Connection
                     mesg = @buf.slice(4, @buf_target_length)
                     s = mesg.toString()
                     #winston.info("(sage.coffee) received message: #{s}")
-                    @recv(JSON.parse(s))
+                    @recv?(JSON.parse(s))
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1
                     if @buf.length == 0
