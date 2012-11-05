@@ -269,6 +269,7 @@ message
 message
     event       : 'all_feedback_from_user'
     id          : required
+    error       : undefined
     data        : required  # JSON list of objects
     
     

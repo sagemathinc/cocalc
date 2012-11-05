@@ -31,21 +31,21 @@ exports.test_account_management = (test) ->
                 timeout       : 1
                 cb:(error, mesg) ->
                     test.equal(error, null)
-                    log("Verify that account creation requires the terms of service to be agreed to")
+                    # Verify that account creation requires the terms of service to be agreed to
                     test.equal(mesg.event,'account_creation_failed')
                     test.equal(mesg.reason.agreed_to_terms?, true)
-                    log("Verify that first_name and last_name must both be nonempty.")
+                    # Verify that first_name and last_name must both be nonempty.
                     test.equal(mesg.reason.first_name?, true)
                     test.equal(mesg.reason.last_name?, true)
-                    log("Verify that email address must be valid")
+                    # Verify that email address must be valid
                     test.equal(mesg.reason.email_address?, true)
-                    log("Verify that weak passwords are checked for")
+                    # Verify that weak passwords are checked for
                     test.equal(mesg.reason.password?, true)
                     cb()
             )
         
+        # Create a valid account
         (cb) ->
-            log("Create a valid account")
             conn.create_account(
                 first_name    : 'Salvus'
                 last_name     : 'Math'
@@ -63,9 +63,8 @@ exports.test_account_management = (test) ->
                     cb()
             )
 
-        # 
+        # Attempt to sign in to the account we just created -- first with the wrong password
         (cb) ->
-            log("Attempt to sign in to the account we just created -- first with the wrong password")
             conn.sign_in(
                 email_address : email_address
                 password      : password + 'wrong'
@@ -76,8 +75,8 @@ exports.test_account_management = (test) ->
             )
             
         
+        # "Sign in to the account we just created -- now with the right password"
         (cb) ->
-            log("Sign in to the account we just created -- now with the right password")
             conn.sign_in(
                 email_address : email_address
                 password      : password
@@ -105,9 +104,8 @@ exports.test_account_management = (test) ->
                     cb()
             )
 
-        # 
+        # Verify that the password is really changed
         (cb) ->
-            log "Verify that the password is really changed"
             conn.sign_in(
                 email_address : email_address
                 password      : new_password
@@ -121,40 +119,41 @@ exports.test_account_management = (test) ->
     ], () -> test.done())
 
 exports.test_user_feedback = (test) ->
+    email_address = "#{misc.uuid()}@salv.us"
     password = "#{misc.uuid()}"    
-    test.expect(1)
+    test.expect(2)
     async.series([
         (cb) ->
             conn.create_account
                 first_name    : 'Salvus'
                 last_name     : 'Math'
-                email_address : 'salvusmath2@gmail.com'
+                email_address : email_address
                 password      : password
                 agreed_to_terms: true
                 timeout       : 1
-                cb            : (error, results) -> console.log(error, results); cb()
+                cb            : (error, results) -> cb()
         (cb) ->
             conn.sign_in
-                email_address : 'salvusmath2@gmail.com'
+                email_address : email_address
                 password      : password
                 timeout       : 1
-                cb            : (error, results) -> console.log(error, results); cb()
+                cb            : (error, results) -> cb()
         (cb) -> 
             conn.report_feedback
                 category : 'bug'
                 description: "there is a bug"
                 nps : 3
-                cb : (err, results) -> console.log(err, results); cb()
+                cb : (err, results) -> cb()
         (cb) -> 
             conn.report_feedback
                 category : 'idea'
                 description: "there is a bug"
                 nps : 3
-                cb : (err, results) -> console.log(err, results); cb()
+                cb : (err, results) -> cb()
         (cb) ->
             conn.feedback
                 cb: (err, results) ->
-                    console.log(error, results);
+                    test.ok(not err)
                     test.equal(results.length, 2)
                     cb()
     ], () -> test.done())

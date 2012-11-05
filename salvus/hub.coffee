@@ -114,7 +114,7 @@ init_sockjs_server = () ->
                     report_feedback(mesg, push_to_client, account_id)
                     
                 when "get_all_feedback_from_user"
-                    get_feedback_from_user(mesg, push_to_client, account_id)
+                    get_all_feedback_from_user(mesg, push_to_client, account_id)
                     
         )
         conn.on("close", ->
@@ -514,20 +514,23 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 ########################################
 # User Feedback
 ########################################
-report_feedback = (mesg, account_id, push_to_client) ->
-    data = {}
+report_feedback = (mesg, push_to_client, account_id) ->
+    data = {}  # TODO -- put interesting info here
     database.report_feedback
         account_id  : account_id
         category    : mesg.category
         description : mesg.description
         data        : data
         nps         : mesg.nps
-        cb          : (err, results) -> push_to_client(messages.feedback_reported(id:mesg.id, error:err))
+        cb          : (err, results) -> push_to_client(message.feedback_reported(id:mesg.id, error:err))
 
-get_all_feedback_from_user = (mesg, account_id, push_to_client) ->
+get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
+    if account_id == null
+        push_to_client(message.all_feedback_from_user(id:mesg.id, error:true, data:to_json("User not signed in.")))
+        return
     database.get_all_feedback_from_user
         account_id  : account_id
-        cb          : (err, results) -> push_to_client(messages.all_feedback_from(id:mesg.id, data:results))
+        cb          : (err, results) -> push_to_client(message.all_feedback_from_user(id:mesg.id, data:to_json(results), error:err))
     
 
 

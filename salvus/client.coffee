@@ -254,10 +254,11 @@ class exports.Connection extends EventEmitter
     feedback: (opts={}) ->
         defaults opts,
             cb : required
+            
         @call
             message: message.get_all_feedback_from_user()
             cb : (err, results) ->
-                cb(err, results?.data)
+                opts.cb(err, misc.from_json(results?.data))
                 
 
 #################################################
