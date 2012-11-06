@@ -6937,3 +6937,35 @@ Plan now:
 IMPORTANT TODO:
 
    [ ] when executing code in script mode, we get no indication at all that a computation has timed out!  Horrible UI!
+
+Nov 5, 2012 @ 7:44pm:
+=====================
+
+
+  [ ] create account gui
+  [ ] link to terms of service
+  [ ] template terms of service page
+  [ ] login gui
+  [ ] password reset gui  
+  [ ] change email gui
+  [ ] change password gui
+  [ ] report an issue gui
+
+I started writing this code (as html/CS) and am feeling unhappy with
+how I'm obviously going to have to badly reinvent the wheel.  I'm now
+reading:
+    http://addyosmani.com/blog/building-spas-jquerys-best-friends/
+
+Backbone is popular, but http://spinejs.com/ looks very intersting,
+because it is lightweight, well documented, and very
+CoffeeScript-oriented.
+
+...
+
+That said, I'm just not sure that these MVC javascript libraries are
+what I need for Salvus, which isn't a "browsing a bunch of images" or
+whatever sort of app.  It's very much centered around highly dynamic
+interactive websocket content, chat, etc.  It's real-time.
+But the MVC idea is important.
+
+
