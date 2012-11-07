@@ -45,7 +45,7 @@
         for field in create_account_fields
             $("#create_account-#{field}").popover "destroy"
 
-    controller.on_hide_page('sign_in', destroy_create_account_tooltips)
+    controller.on("hide_page_sign_in", destroy_create_account_tooltips)
     
     $("#create_account-button").click((event) ->
         destroy_create_account_tooltips()
@@ -111,7 +111,7 @@
     
     sign_in = (mesg) ->
         alert_message(type:"info", message:"Signed in as #{mesg.first_name} #{mesg.last_name}.")
-        controller.show_page("demo1")
+        controller.switch_to_page("demo1")
     
 
 )()
