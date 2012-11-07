@@ -1,6 +1,5 @@
 (() ->
 
-
     ################################################
     # Page Switching Control
     ################################################
@@ -39,6 +38,8 @@
     destroy_create_account_tooltips = () ->
         for field in create_account_fields
             $("#create_account-#{field}").popover "destroy"
+
+    call_when_hiding_page('sign_in', destroy_create_account_tooltips)
     
     $("#create_account-button").click((event) ->
         destroy_create_account_tooltips()
@@ -49,9 +50,8 @@
             opts['agreed_to_terms'] = $("#create_account-agreed_to_terms").is(":checked") # special case
             opts.cb = (error, results) ->
                 if error
-                    # todo
+                    communications_error()
                     return
-                console.log(results)
                 if results.event == "account_creation_failed"
                     for key, val of results.reason
                         $("#create_account-#{key}").popover(
@@ -60,7 +60,6 @@
                             placement:"left"
                             template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                         ).popover("show")
-                        console.log('a')
 
         salvus.conn.create_account(opts)
     )

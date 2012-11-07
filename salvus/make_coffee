@@ -22,7 +22,7 @@ browserify -v --exports=require,connect node_modules/client_browser.js -o static
       uglifyjs2 static/salvus.js -o static/salvus.min.js && \
       coffee -b -o page/temp page/*.coffee && \
       gen_page && \
-      uglifyjs2 static/index.js -o static/index.min.js &
+      uglifyjs2 static/index.js -o static/index.min.js 
 
 
 cp node_modules/message.js node_modules/salvus_client.js static/salvus/ 
