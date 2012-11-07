@@ -6968,4 +6968,8 @@ whatever sort of app.  It's very much centered around highly dynamic
 interactive websocket content, chat, etc.  It's real-time.
 But the MVC idea is important.
 
+---
 
+I've written code today to get a feeling for how things are working,
+and I'm just going to forge ahead and write some nice CoffeeScript +
+jQuery + HTML.

@@ -19,14 +19,20 @@
 
 
     show_page("well-sign_in")
-    $("a[href='#well-create_account']").click((event) ->
-        show_page("well-create_account"))
-    $("a[href='#well-sign_in']").click((event) ->
+    
+    $("a[href='#well-create_account']").click (event) ->
+        show_page("well-create_account")
+        return false
+        
+    $("a[href='#well-sign_in']").click (event) ->
         destroy_create_account_tooltips()
-        show_page("well-sign_in"))
-    $("a[href='#well-forget_password']").click((event) ->
+        show_page("well-sign_in");
+        return false
+        
+    $("a[href='#well-forget_password']").click (event) ->
         destroy_create_account_tooltips()
-        show_page("well-forget_password"))
+        show_page("well-forget_password")
+        return false
 
 
     ################################################
