@@ -269,17 +269,18 @@ check = require('validator').check
 
 exports.issues_with_create_account = (mesg) ->
     issues = {}
+    console.log(mesg)
     if not mesg.agreed_to_terms
-        issues.agreed_to_terms = 'You must agree to the Salvus Terms of Service.'
+        issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
     if mesg.first_name == ''
-        issues.first_name = 'You must enter a first name.'
+        issues.first_name = 'Enter a first name.'
     if mesg.last_name == ''
-        issues.last_name = 'You must enter a last name.'
+        issues.last_name = 'Enter a last name.'
         
     try
         check(mesg.email_address).isEmail()
     catch err
-        issues.email_address = 'The email address you entered does not appear to be valid.'
+        issues.email_address = 'Email address does not appear to be valid.'
         
     try
         check(mesg.password).len(6,64)

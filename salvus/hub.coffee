@@ -281,8 +281,8 @@ create_account = (mesg, client_ip_address, push_to_client) ->
             issues = client.issues_with_create_account(mesg)
             console.log("issues = #{issues}")
             password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
-            if password_strength.crack_time <= 60*24*3600  # 60 days
-                issues['password'] = "Password is weak; choose a password that is more difficult to guess."
+            if password_strength.crack_time <= 10*24*3600  # 10 days
+                issues['password'] = "Choose a password that is more difficult to guess."
             if misc.len(issues) > 0
                 push_to_client(message.account_creation_failed(id:id, reason:issues))
                 cb(true)
@@ -323,7 +323,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                     push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
                     cb(true)
                 else if not available
-                    push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail is already taken"}))
+                    push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is already taken."}))
                     cb(true)
                 else
                     cb()

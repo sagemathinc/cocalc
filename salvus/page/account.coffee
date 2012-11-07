@@ -23,8 +23,10 @@
     $("a[href='#well-create_account']").click((event) ->
         show_page("well-create_account"))
     $("a[href='#well-sign_in']").click((event) ->
+        destroy_create_account_tooltips()
         show_page("well-sign_in"))
     $("a[href='#well-forget_password']").click((event) ->
+        destroy_create_account_tooltips()
         show_page("well-forget_password"))
 
 
@@ -32,29 +34,35 @@
     # Account creation
     ################################################
 
+    create_account_fields = ['first_name', 'last_name', 'email_address', 'password', 'agreed_to_terms']
+
+    destroy_create_account_tooltips = () ->
+        for field in create_account_fields
+            $("#create_account-#{field}").popover "destroy"
     
     $("#create_account-button").click((event) ->
-        salvus.conn.create_account
-            first_name      : $("#create_account-first_name").val()
-            last_name       : $("#create_account-last_name").val()
-            email_address   : $("#create_account-email_address").val()
-            password        : $("#create_account-password").val()
-            agreed_to_terms : $("#create_account-agreed_to_terms").is(":checked")
-            timeout         : 3 # seconds
-            cb              : (error, results) ->
+        destroy_create_account_tooltips()
+        
+        opts = {}
+        for field in create_account_fields
+            opts[field] = $("#create_account-#{field}").val()
+            opts['agreed_to_terms'] = $("#create_account-agreed_to_terms").is(":checked") # special case
+            opts.cb = (error, results) ->
                 if error
                     # todo
                     return
-
+                console.log(results)
                 if results.event == "account_creation_failed"
                     for key, val of results.reason
                         $("#create_account-#{key}").popover(
-                            #title:key
-                            content:val
+                            title:val
                             trigger:"manual"
                             placement:"left"
+                            template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                         ).popover("show")
-                        console.log("#create_account-#{key}", key, val)
+                        console.log('a')
+
+        salvus.conn.create_account(opts)
     )
 
 )()

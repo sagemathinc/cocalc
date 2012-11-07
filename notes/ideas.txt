@@ -57,3 +57,8 @@
        [ ] IDEA -- I just realized I could improve "defaults" even more, and do this:
                    interval: required(int)
            where I pass in a type that is required... don't do this now though, since type converting and checking is a slippery and not necessarily sensible slope!
+
+ [ ] Graphics library for web: http://bonsaijs.org/
+     "Bonsai is a JavaScript graphics library."  -- looks *very* cool!
+
+     Good discussion of alternatives: http://news.ycombinator.com/item?id=4748000
