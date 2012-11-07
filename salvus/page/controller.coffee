@@ -29,5 +29,9 @@ class Controller  extends EventEmitter
                 @_hide_page(page)
         @active_page = id
 
+    have_unsaved_changes: (id) ->
+        # TODO: obviously, just for testing.
+        return $("#output2").val() != ""
+
 
 controller = new Controller(["about", "demo1", "demo2", "sign_in"], "sign_in")

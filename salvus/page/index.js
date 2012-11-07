@@ -14,4 +14,6 @@ $(function() {
    demo1.coffee
    demo2.coffee
 
+   exit_confirmation.coffee
+
 });
