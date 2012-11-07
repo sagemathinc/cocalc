@@ -43,23 +43,29 @@
     
     $("#create_account-button").click((event) ->
         destroy_create_account_tooltips()
-        
+
         opts = {}
         for field in create_account_fields
             opts[field] = $("#create_account-#{field}").val()
             opts['agreed_to_terms'] = $("#create_account-agreed_to_terms").is(":checked") # special case
-            opts.cb = (error, results) ->
+            opts.cb = (error, mesg) ->
                 if error
-                    communications_error()
+                    alert_message(type:"error", message: "There was an error trying to create a new account ('#{error}').")
                     return
-                if results.event == "account_creation_failed"
-                    for key, val of results.reason
-                        $("#create_account-#{key}").popover(
-                            title:val
-                            trigger:"manual"
-                            placement:"left"
-                            template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
-                        ).popover("show")
+                switch mesg.event
+                    when "account_creation_failed"
+                        for key, val of mesg.reason
+                            $("#create_account-#{key}").popover(
+                                title:val
+                                trigger:"manual"
+                                placement:"left"
+                                template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
+                            ).popover("show")
+                    when "signed_in"
+                        alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
+                    else
+                        # should never ever happen
+                        alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
         salvus.conn.create_account(opts)
     )

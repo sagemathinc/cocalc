@@ -1,10 +1,36 @@
 <div class="container" id="container-alerts">
-
-  <div class="row" id="alert-communications-error">
-    <div class="alert alert-error">
-      <button type="button" class="close" data-dismiss="alert">×</button>
-      <strong>Error</strong> There was a communications error with the server.  Please try again later.
+  <div class="row">
+    <div class="offset5 span7" id="alert-messages">
+    <!-- alert messages are copied and placed here -->
     </div>
   </div>
-
 </div>
+
+<span id="alert-templates">
+
+  <div class="alert alert-error">
+    <button type="button" class="close" data-dismiss="alert">×</button>
+    <i class="icon-exclamation-sign"></i>
+    <span class="message"></span>
+  </div>
+
+  <div class="alert alert-default">
+    <button type="button" class="close" data-dismiss="alert">×</button>
+    <i class="icon-eye-open"></i>
+    <span class="message"></span>
+  </div>
+
+
+  <div class="alert alert-success">
+    <button type="button" class="close" data-dismiss="alert">×</button>
+    <i class="icon-ok"></i>
+    <span class="message"></span>
+  </div>
+
+  <div class="alert alert-info">
+    <button type="button" class="close" data-dismiss="alert">×</button>
+    <i class="icon-info-sign"></i>
+    <span class="message"></span>
+  </div>
+
+</span>
