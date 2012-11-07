@@ -3,7 +3,7 @@
 #####################################
 # 
 execute_code = ->
-    switch active_page
+    switch controller.active_page
         when "demo1"
             execute_code_demo1()
         when "demo2"
@@ -15,7 +15,7 @@ $("#execute2").button().click(execute_code)
 
 # execute when pressing "shift-enter"
 $("body").keydown (e) ->
-    switch active_page
+    switch controller.active_page
         when "demo1"
             if e.which is 13 and e.shiftKey
                 execute_code_demo1()

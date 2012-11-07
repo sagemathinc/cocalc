@@ -3,7 +3,7 @@
 # element with given id visible, and all others invisible.  Also,
 # the clicked link gets the active class, and all others become
 # inactive.
-
+###
 _call_when_hiding_page = {}
 call_when_hiding_page = (id, f) ->
     if _call_when_hiding_page.id?
@@ -46,6 +46,7 @@ connect_links_and_pages = (page_ids, default_page=null) ->
     return show_page
     
 show_page = connect_links_and_pages(["about", "demo1", "demo2", "sign_in"], "sign_in")
+###
 
 
 
