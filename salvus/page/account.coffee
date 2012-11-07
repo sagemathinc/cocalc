@@ -69,11 +69,49 @@
                             ).popover("show")
                     when "signed_in"
                         alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
+                        sign_in(mesg)
                     else
                         # should never ever happen
                         alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
         salvus.conn.create_account(opts)
     )
+
+
+    ################################################
+    # Sign in
+    ################################################
+
+
+    $("#sign_in-button").click((event) ->
+        salvus.conn.sign_in
+            email_address : $("#sign_in-email").val()
+            password      : $("#sign_in-password").val()
+            remember_me   : $("#sign_in-remember_me").is(":checked")
+            timeout       : 3
+            cb            : (error, mesg) ->
+                console.log(JSON.stringify(mesg))
+                if error
+                    alert_message(type:"error", message: "There was an error during sign in ('#{error}').")
+                    return
+                switch mesg.event
+                    when 'sign_in_failed'
+                        alert_message(type:"error", message: mesg.reason)
+                    when 'signed_in'
+                        sign_in(mesg)
+                    when 'error'
+                        alert_message(type:"error", message: mesg.reason)                        
+                    else
+                        # should never ever happen
+                        alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
+    )
+        
+
+
+    
+    sign_in = (mesg) ->
+        alert_message(type:"info", message:"Signed in as #{mesg.first_name} #{mesg.last_name}.")
+        show_page("demo1")
+    
 
 )()

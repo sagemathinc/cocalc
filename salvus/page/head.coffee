@@ -19,6 +19,7 @@ call_when_showing_page = (id, f) ->
         _call_when_showing_page[id] = [f]
 
 active_page = null
+
 connect_links_and_pages = (page_ids, default_page=null) ->
     show_page = (id) ->
         active_page = id
@@ -42,5 +43,28 @@ connect_links_and_pages = (page_ids, default_page=null) ->
         show_page(default_page)
     else
         show_page(page_ids[0])
+    return show_page
     
-connect_links_and_pages(["about", "demo1", "demo2", "sign_in"], "sign_in")
+show_page = connect_links_and_pages(["about", "demo1", "demo2", "sign_in"], "sign_in")
+
+
+
+#####################################
+# Now try to do something better (?)
+###
+defaults = require("misc").defaults
+
+class Page
+    constructor: (opts) ->
+        opts = defaults opts,
+            element : defaults:required   # the HTML element that is the "view" of the page
+            onfocus : undefined
+            onblur  : undefined
+        @element = element
+        @onfocus = onfocus
+        @onblur = onblur
+
+    focus: () -> @onfocus()
+
+    blue: () -> @onblur()
+###                     

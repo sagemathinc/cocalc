@@ -6973,3 +6973,30 @@ But the MVC idea is important.
 I've written code today to get a feeling for how things are working,
 and I'm just going to forge ahead and write some nice CoffeeScript +
 jQuery + HTML.
+
+The code I have is kind of messy now, but it works and I feel I could
+do anything, and I can refactor it to make it much cleaner.  So I'm
+going to work on refactoring and cleaning it!
+
+Another weird "surprise" is that somehow I completely broke salvus in
+IE.  The layout, etc., has gone to hell.  I have no idea why or how...
+
+---
+
+
+I will define a class called Page. 
+
+When you create a Page it:
+
+  (1) registers itself centrally somehow
+  (2) has a 
+
+.. it's just not clear what I need until I write some more code..
+
+
+Writing a jQuery plugin for salvus-pages might work well to register
+things and make it easy to display them with options?  Maybe not.
+
+  http://coffeescriptcookbook.com/chapters/jquery/plugin
+
+
