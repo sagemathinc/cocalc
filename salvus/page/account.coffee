@@ -110,8 +110,7 @@
 
     
     sign_in = (mesg) ->
-        alert_message(type:"info", message:"Signed in as #{mesg.first_name} #{mesg.last_name}.")
+        # change the navbar title from "Sign in" to "first_name last_name"
+        $("#account-item").find("a").html("#{mesg.first_name} #{mesg.last_name}")
         controller.switch_to_page("demo1")
-    
-
 )()
