@@ -1,5 +1,7 @@
 $(function() {
 
+   tracking.coffee
+
    controller.coffee
 
    alerts.coffee
