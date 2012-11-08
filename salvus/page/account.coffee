@@ -5,9 +5,10 @@
     ################################################
 
     focus =
-        'well-sign_in':'sign_in-email'
-        'well-create_account':'create_account-first-name'
-        'well-forget_password':'forget_password-email'
+        'account-sign_in'         : 'sign_in-email'
+        'account-create_account'  : 'create_account-first-name'
+        'account-forget_password' : 'forget_password-email'
+        'account-settings'        : ''
 
     show_page = (p) ->
         for page, elt of focus
@@ -18,20 +19,21 @@
                 $("##{page}").hide()
 
 
-    show_page("well-sign_in")
+    #show_page("account-sign_in")
+    show_page("account-settings")
     
-    $("a[href='#well-create_account']").click (event) ->
-        show_page("well-create_account")
+    $("a[href='#account-create_account']").click (event) ->
+        show_page("account-create_account")
         return false
         
-    $("a[href='#well-sign_in']").click (event) ->
+    $("a[href='#account-sign_in']").click (event) ->
         destroy_create_account_tooltips()
-        show_page("well-sign_in");
+        show_page("account-sign_in");
         return false
         
-    $("a[href='#well-forget_password']").click (event) ->
+    $("a[href='#account-forget_password']").click (event) ->
         destroy_create_account_tooltips()
-        show_page("well-forget_password")
+        show_page("account-forget_password")
         return false
 
 
@@ -110,7 +112,9 @@
 
     
     sign_in = (mesg) ->
+        # change the view in the account page to the settings/sign out view
+        show_page("account-settings")
         # change the navbar title from "Sign in" to "first_name last_name"
-        $("#account-item").find("a").html("#{mesg.first_name} #{mesg.last_name}")
+        $("#account-item").find("a").html("#{mesg.first_name} #{mesg.last_name} (<a href='#sign_out'>Sign out</a>)")
         controller.switch_to_page("demo1")
 )()

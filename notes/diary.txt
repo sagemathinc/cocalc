@@ -7060,7 +7060,7 @@ It's javascript so put that somewhere (?) -- tracking.coffee
   [x] Make it so "Sign in" navbar item changes to the User's Name.
 
 
-  [ ] Add a new page to account.html that is displayed by default if the 
+  [x] Add a new page to account.html that is displayed by default if the 
       user *is* logged in -- namely a big Sign out at the top, then
       tabbed groups of user settings (nothing there yet).
 

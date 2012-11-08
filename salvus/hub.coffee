@@ -281,7 +281,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
             issues = client.issues_with_create_account(mesg)
             console.log("issues = #{issues}")
             password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
-            if password_strength.crack_time <= 10*24*3600  # 10 days
+            if (password_strength.crack_time <= 10*24*3600)  # 10 days
                 issues['password'] = "Choose a password that is more difficult to guess."
             if misc.len(issues) > 0
                 push_to_client(message.account_creation_failed(id:id, reason:issues))
