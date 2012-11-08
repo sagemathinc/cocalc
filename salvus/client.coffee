@@ -249,7 +249,7 @@ class exports.Connection extends EventEmitter
                 category    : opts.category
                 description : opts.description
                 nps         : opts.nps
-            cb: opts.cb
+            cb     : opts.cb
     
     feedback: (opts={}) ->
         defaults opts,

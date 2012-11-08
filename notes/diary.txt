@@ -7063,6 +7063,8 @@ I'm going to warm up by:
 
   [x] Add a whole new page (with link from nav menu) to give feedback.
 
+  [ ] make it so feedback send button is live
+
   [ ] implement the "Sign out" link
 
   [ ] Make the "forget your password" thing actually submit back to

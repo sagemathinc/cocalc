@@ -50,4 +50,4 @@ controller.hide_page_nav("demo1")
 controller.hide_page_nav("demo2")
 
 # TODO: for testing
-#controller.switch_to_page("feedback")
+controller.switch_to_page("feedback")

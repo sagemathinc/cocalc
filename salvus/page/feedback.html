@@ -2,14 +2,14 @@
 
   <div class="row span10 well">
 
-      <select>
-	<option>Bug</option>
-	<option>Idea</option>
+      <select id="feedback-category">
+	<option value="bug">Bug</option>
+	<option value="idea">Idea</option>
       </select>
 
       <br>
 
-      <textarea rows=6 id="input" class="span10" placeholder="Describe your bug report or idea here..."></textarea>
+      <textarea rows=6 id="feedback-description" class="span10" placeholder="Describe your bug report or idea here..."></textarea>
   </div>
   
   <br><br>
@@ -22,13 +22,16 @@
 	<font size=+3><strong id="feedback-nps-slider-value">0</strong></font>
       </div>
       <div class="span4">
-	<div id="feedback-nps-slider"></div>
+	<font size=+2>
+	  <div id="feedback-nps-slider"></div>
+	</font>
       </div>
     </div>
-    <br>
+<!--    <br>
     <div class="row span5">
       <textarea rows=2 id="input" class="span9" placeholder="Why?"></textarea>
     </div>
+-->
   </div>
 
   <div class="row span3">
