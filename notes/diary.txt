@@ -7064,6 +7064,17 @@ It's javascript so put that somewhere (?) -- tracking.coffee
       user *is* logged in -- namely a big Sign out at the top, then
       tabbed groups of user settings (nothing there yet).
 
+
+Nov 8, at 6:09am:
+=================
+I just got up.
+
+I'm going to warm up by:
+
+   [x] separate the settings page into two tabs, with
+       account type and code eval wells in one tab
+       and other stuff in other
+
   
   
  

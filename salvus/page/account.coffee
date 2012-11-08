@@ -19,8 +19,8 @@
                 $("##{page}").hide()
 
 
-    #show_page("account-sign_in")
-    show_page("account-settings")
+    show_page("account-sign_in")
+    #show_page("account-settings")
     
     $("a[href='#account-create_account']").click (event) ->
         show_page("account-create_account")

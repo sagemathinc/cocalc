@@ -72,96 +72,119 @@
   
 
   <div class="row" id="account-settings">
-    <h3>Account settings</h3>
 
-    <div class="row">
-      <div class="span5 well">
-	<div class="row">
-	  <div class="row span2">Account type</div>
-	  <div class="row span3">Free (<a href="#account-settings-upgrade">upgrade</a>)</div>
-	</div>
-	<br>
-	<div class="row">
-	  <div class="row span2">Storage</div>
-	  <div class="row span3">100MB</div>
-	</div>
-	<div class="row">
-	  <div class="row span2">Session limit</div>
-	  <div class="row span3">2</div>
-	</div>
-	<div class="row">
-	  <div class="row span2">RAM limit</div>
-	  <div class="row span3">2GB/session</div>
-	</div>
-      </div>
-    </div>
+    <ul class="nav nav-tabs">
+      <li class="active"><a href="#account-info-tab" data-toggle="tab">Account info</a></li>
+      <li><a href="#account-settings-tab" data-toggle="tab">Account settings</a></li>
+    </ul>
 
-    <div class="row">
-      <div class="span5 well">
+    <div class="tab-content">
+      <div class="tab-pane active" id="account-info-tab">
+	
 	<div class="row">
-	  <div class="row span2">First name</div>
-	  <div class="row span3"><input class="span3" type="text" value="Salvus" id="account-settings-first_name"></div>
-	</div>
-	<div class="row">
-	  <div class="row span2">Last name</div>
-	  <div class="row span3"><input class="span3" type="text" value="Math" id="account-settings-last_name"></div>
-	</div>
-	  <br>
-	<div class="row">
-	  <div class="row span2">Email</div>
-	  <div class="row span3" id="account-settings-email">salvusmath@gmail.com (<a href="#change-email">change</a>)</div>
-	</div>
-	  <br>
-	<div class="row">
-	  <div class="row span2">Password</div>
-	  <div class="row span3">
-	    <a href="#change-password">Change password</a><br>
-	    <a href="#forgot-password">Forgot password</a>
+	  <div class="span10 well">
+	    <div class="row">
+	      <div class="row span3">Account type</div>
+	      <div class="row span7"><strong>Free</strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
+	    </div>
+	    <br>
+	    <div class="row">
+	      <div class="row span3">Storage</div>
+	      <div class="row span7">100MB</div>
+	    </div>
+	    <br>
+	    <div class="row">
+	      <div class="row span3">Session limit</div>
+	      <div class="row span7">2</div>
+	    </div>
+	    <br>
+	    <div class="row">
+	      <div class="row span3">Maximum session time</div>
+	      <div class="row span7">1 hour</div>
+	    </div>
+	    <br>
+	    <div class="row">
+	      <div class="row span3">RAM limit</div>
+	      <div class="row span7">2GB/session</div>
+	    </div>
 	  </div>
 	</div>
+	NOTE: The values above are placeholders and have no meaning right now.
+
       </div>
 
-      <div class="span5 offset1 well">
-	<div class="row">
-	  <div class="row span2">Evaluate Code</div>
-	  <div class="row span3"><a href="account-evaluate-code">Shift-Enter (Enter for newline)</a></div>
-	  <br><br>
-	  <div class="row span2">Default Compute Engine</div>
-	  <div class="row span3"><a href="account-default-math-software">Sage</a></div>
-	</div>
-	<br>
-      </div>
+      <div class="tab-pane" id="account-settings-tab">
 
-    </div>
-    <div class="row">
-      <div class="span5 well">
-	<div class="row span5">
-	  Email me when:
-	<br><br>
-	  <input type="checkbox" id="account-email-new-features">&nbsp;&nbsp;New features are announced<br>
-	  <input type="checkbox" id="account-email-usage-changes">&nbsp;&nbsp;Terms of usage change<br>
-	</div>
-      </div>
+	<div class="row">
+	  <div class="span5 well">
+	    <div class="row">
+	      <div class="row span2">First name</div>
+	      <div class="row span3"><input class="span3" type="text" value="Salvus" id="account-settings-first_name"></div>
+	    </div>
+	    <div class="row">
+	      <div class="row span2">Last name</div>
+	      <div class="row span3"><input class="span3" type="text" value="Math" id="account-settings-last_name"></div>
+	    </div>
+	    <br>
+	    <div class="row">
+	      <div class="row span2">Email</div>
+	      <div class="row span3" id="account-settings-email">salvusmath@gmail.com (<a href="#change-email">change</a>)</div>
+	    </div>
+	    <br>
+	    <div class="row">
+	      <div class="row span2">Password</div>
+	      <div class="row span3">
+		<a href="#change-password">Change password</a><br>
+		<a href="#forgot-password">Forgot password</a>
+	      </div>
+	    </div>
+	  </div>
 
-      <div class="span5 offset1 well">
-	<div class="row">
-	  <div class="row span2">Github</div>
-	  <div class="row span3"><a href="">Connect to Github</a></div>
+	  <div class="span5 offset1 well">
+	    <div class="row">
+	      <div class="row span2">Evaluate Code</div>
+	      <div class="row span3"><a href="account-evaluate-code">Shift-Enter (Enter for newline)</a></div>
+	      <br><br>
+	      <div class="row span2">Default Compute Engine</div>
+	      <div class="row span3"><a href="account-default-math-software">Sage</a></div>
+	    </div>
+	    <br>
+	  </div>
+
 	</div>
-	<br>
 	<div class="row">
-	  <div class="row span2">Google Drive</div>
-	  <div class="row span3"><a href="">Connect to Google Drive</a></div>
+	  <div class="span5 well">
+	    <div class="row span5">
+	      Email me when:
+	      <br><br>
+	      <input type="checkbox" checked="checked" id="account-email-new-features">&nbsp;&nbsp;New features are announced<br>
+	      <input type="checkbox" checked="checked" id="account-email-usage-changes">&nbsp;&nbsp;Terms of usage change<br>
+	    </div>
+	  </div>
+
+	  <div class="span5 offset1 well">
+	    <div class="row">
+	      <div class="row span2">Github</div>
+	      <div class="row span3"><a href="">Connect to Github</a></div>
+	    </div>
+	    <br>
+	    <div class="row">
+	      <div class="row span2">Google Drive</div>
+	      <div class="row span3"><a href="">Connect to Google Drive</a></div>
+	    </div>
+	    <br>
+	    <div class="row">
+	      <div class="row span2">Dropbox</div>
+	      <div class="row span3"><a href="">Connect to Dropbox</a></div>
+	    </div>
+	  </div>
 	</div>
-	<br>
-	<div class="row">
-	  <div class="row span2">Dropbox</div>
-	  <div class="row span3"><a href="">Connect to Dropbox</a></div>
+
+	<div class="row span4 pull-right">
+	  <button class="btn btn-primary" id="account-settings-change-settings-button">Change settings</button>
+	  <button class="btn" id="account-settings-cancel-changes-button">Cancel changes</button>
 	</div>
       </div>
-    </div>
-    
+    </div> 
   </div>
-
-</div> 
-
+</div>
