@@ -140,7 +140,7 @@ exports.password_hash = password_hash = (password) ->
     return password_hash_library.generate(password,
         algorithm:'sha512'
         saltLength:32
-        iterations:1
+        iterations:1000
     )
 
 password_verify = (password, password_hash) ->
@@ -369,7 +369,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
     async.series([
         # make sure there hasn't been a password change attempt for this
-        # email address in the last 10 seconds
+        # email address in the last 5 seconds
         (cb) ->
             tracker = database.key_value_store(name:'change_password_tracker')
             tracker.get(
@@ -379,7 +379,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         cb()  # DB error, so don't bother with this
                         return
                     if value?  # is defined, so problem -- it's over
-                        push_to_client(message.changed_password(id:mesg.id, error:true, message:"Please wait at least 10 seconds before trying to change your password again."))
+                        push_to_client(message.changed_password(id:mesg.id, error:true, message:"Please wait at least 5 seconds before trying to change your password again."))
                         database.log(
                             event : 'change_password'
                             value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"attack?"}
@@ -391,7 +391,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         tracker.set(
                             key   : mesg.email_address
                             value : client_ip_address
-                            ttl   : 10
+                            ttl   : 5
                         )
                         cb()
             )
