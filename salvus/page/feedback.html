@@ -1,24 +1,38 @@
 <div class="container" id="feedback">
-  <h1>Feedback</h1>
 
-  <div class="row">
-    <div class="span10 well offset1">
+  <div class="row span10 well">
 
       <select>
 	<option>Bug</option>
-	<option>Comment</option>
-	<option>Idea!</option>
+	<option>Idea</option>
       </select>
 
       <br>
 
-      <textarea rows=6 id="input" class="span10"></textarea>
-      <br>
-      How likely are you to recommend Salvus to a friend?
-      
-      <a href="#submit_feedback" class="btn btn-primary btn-large">Submit feedback &raquo;</a>
+      <textarea rows=6 id="input" class="span10" placeholder="Describe your bug report or idea here..."></textarea>
+  </div>
+  
+  <br><br>
+  <div class="row span10 well">
+    <div class="row">
+      <div class="span5">
+	How likely are you to recommend Salvus to a friend this week? 
+      </div>
+      <div class="span1">
+	<font size=+3><strong id="feedback-nps-slider-value">0</strong></font>
+      </div>
+      <div class="span4">
+	<div id="feedback-nps-slider"></div>
+      </div>
+    </div>
+    <br>
+    <div class="row span5">
+      <textarea rows=2 id="input" class="span9" placeholder="Why?"></textarea>
     </div>
   </div>
 
+  <div class="row span3">
+    <a href="#submit_feedback" class="btn btn-primary btn-large">Submit feedback &raquo;</a>
+  </div>
 
 </div>

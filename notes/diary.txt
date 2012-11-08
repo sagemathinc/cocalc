@@ -7061,7 +7061,7 @@ I'm going to warm up by:
        account type and code eval wells in one tab
        and other stuff in other
 
-  [ ] Add a whole new page (with link from nav menu) to give feedback.
+  [x] Add a whole new page (with link from nav menu) to give feedback.
 
   [ ] implement the "Sign out" link
 

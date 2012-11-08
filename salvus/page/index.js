@@ -11,6 +11,7 @@ $(function() {
    execute_router.coffee
 
    account.coffee    
+   feedback.coffee
    demo1.coffee
    demo2.coffee
 
