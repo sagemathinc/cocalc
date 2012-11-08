@@ -11,7 +11,10 @@
       <input class="span4" type="password" placeholder="Password"  id="sign_in-password"><br><br>
       <div class="row">
 	<div class="span2">
-          <input type="checkbox" id="sign_in-remember_me">&nbsp;&nbsp;Remember me
+	  <label class="checkbox">
+            <input type="checkbox" id="sign_in-remember_me">
+	    Remember me
+	  </label>
 	</div>
 	<div class="span2">
           <button class="btn btn-primary" type="submit" id="sign_in-button">&nbsp;&nbsp;&nbsp;Sign in&nbsp;&nbsp;&nbsp;</button>
@@ -41,7 +44,11 @@
       <input class="span4" type="text" placeholder="Last name" id="create_account-last_name"><br>
       <input class="span4" type="text" placeholder="Email" id="create_account-email_address"><br>
       <input class="span4" type="password" placeholder="Password" id="create_account-password"><br><br>
-      <input type="checkbox" id="create_account-agreed_to_terms">&nbsp;&nbsp;I agree to <a href="#link-terms" data-toggle="modal">Salvus Terms</a><br><br>
+      <label class="checkbox">
+	<input type="checkbox" id="create_account-agreed_to_terms">
+	I agree to <a href="#link-terms" data-toggle="modal">Salvus Terms</a>
+	</label>
+      <br>
       <button class="btn btn-primary span3" type="submit" id="create_account-button">Create account</button>
 
 
@@ -157,8 +164,12 @@
 	    <div class="row span5">
 	      Email me when:
 	      <br><br>
-	      <input type="checkbox" checked="checked" id="account-email-new-features">&nbsp;&nbsp;New features are announced<br>
-	      <input type="checkbox" checked="checked" id="account-email-usage-changes">&nbsp;&nbsp;Terms of usage change<br>
+	      <label class="checkbox">
+		<input type="checkbox" checked="checked" id="account-email-new-features"> New features are announced
+	      </label>
+	      <label class="checkbox">
+		<input type="checkbox" checked="checked" id="account-email-usage-changes"> Terms of usage change
+	      </label>
 	    </div>
 	  </div>
 

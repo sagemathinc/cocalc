@@ -7006,18 +7006,7 @@ Goal for Nov 7, 2012
 =====================
 
 
-  [ ] Make the "forget your password" thing actually submit back to
-      the server (just a few lines of code).  
-
-  [ ] Implement URL handler in node for resetting password (this is
-      not done).
-
-  [ ] Add a whole new page (with link from nav menu) to give feedback.
-
-  [ ] Save x amount of command line history for user on logout and
-      periodically Restore on login.
-
-  [ ] Remember me; persistent login cookie.  Evidently this is the best guide:
+"Remember me" research -- Evidently this is the best guide:
        http://fishbowl.pastiche.org/2004/01/19/persistent_login_cookie_best_practice/
       but *ignore* the Improved practices link!
 
@@ -7032,9 +7021,6 @@ last_logout-timestamp for each user on the server-side.  Any cookie
 where expire_at < now or created_at < last_logout is rejected at
 validation time.
 
-
-  [ ] the function sign_in in hub.coffee needs to have a sign in
-      attempt delay like most of the other functions.  Have the delay be 1 s, 2 s, 3s, 5s, 5s, 5s, 5s, ...
          
 
 
@@ -7071,11 +7057,27 @@ I just got up.
 
 I'm going to warm up by:
 
-   [x] separate the settings page into two tabs, with
+  [x] separate the settings page into two tabs, with
        account type and code eval wells in one tab
        and other stuff in other
 
-  
+  [ ] Add a whole new page (with link from nav menu) to give feedback.
+
+  [ ] implement the "Sign out" link
+
+  [ ] Make the "forget your password" thing actually submit back to
+      the server (just a few lines of code).  
+
+  [ ] Implement URL handler in node for resetting password (this is
+      not done).
+
+  [ ] Save x amount of command line history for user on logout and
+      periodically Restore on login.
+
+  [ ] Remember me; persistent login cookie. 
+
+  [ ] the function sign_in in hub.coffee needs to have a sign in
+      attempt delay like most of the other functions.  Have the delay be 1 s, 2 s, 3s, 5s, 5s, 5s, 5s, ...
   
  
  

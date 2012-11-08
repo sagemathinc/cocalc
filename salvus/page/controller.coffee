@@ -22,6 +22,7 @@ class Controller  extends EventEmitter
         $("##{id}-item").addClass("active")
         
     switch_to_page: (id) ->
+        @show_page_nav(id)
         for page in @page_ids
             if page == id
                 @_show_page(id)
@@ -29,9 +30,24 @@ class Controller  extends EventEmitter
                 @_hide_page(page)
         @active_page = id
 
+    # make it so the navbar entry to go to a given page is hidden
+    hide_page_nav: (id) ->
+        $("##{id}-item").hide()
+
+    # make it so the navbar entry to go to a given page is shown
+    show_page_nav: (id) ->
+        $("##{id}-item").show()
+
     have_unsaved_changes: (id) ->
         # TODO: obviously, just for testing.
         return $("#output2").val() != ""
 
 
-controller = new Controller(["about", "demo1", "demo2", "account"], "account")
+controller = new Controller(["about", "demo1", "demo2", "feedback", "account"], "account")
+
+controller.hide_page_nav("feedback")
+controller.hide_page_nav("demo1")
+controller.hide_page_nav("demo2")
+
+# TODO: for testing
+controller.switch_to_page("feedback")

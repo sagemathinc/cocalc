@@ -117,4 +117,7 @@
         # change the navbar title from "Sign in" to "first_name last_name"
         $("#account-item").find("a").html("#{mesg.first_name} #{mesg.last_name} (<a href='#sign_out'>Sign out</a>)")
         controller.switch_to_page("demo1")
+        controller.show_page_nav("feedback")
+        controller.show_page_nav("demo1")
+        controller.show_page_nav("demo2")        
 )()
