@@ -34,4 +34,4 @@ class Controller  extends EventEmitter
         return $("#output2").val() != ""
 
 
-controller = new Controller(["about", "demo1", "demo2", "sign_in"], "sign_in")
+controller = new Controller(["about", "demo1", "demo2", "account"], "account")
