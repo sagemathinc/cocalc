@@ -58,7 +58,7 @@
             opts['agreed_to_terms'] = $("#create_account-agreed_to_terms").is(":checked") # special case
             opts.cb = (error, mesg) ->
                 if error
-                    alert_message(type:"error", message: "There was an error trying to create a new account ('#{error}').")
+                    alert_message(type:"error", message: "There was an unexpected error trying to create a new account.  Please try again later.")
                     return
                 switch mesg.event
                     when "account_creation_failed"
@@ -92,9 +92,8 @@
             remember_me   : $("#sign_in-remember_me").is(":checked")
             timeout       : 3
             cb            : (error, mesg) ->
-                console.log(JSON.stringify(mesg))
                 if error
-                    alert_message(type:"error", message: "There was an error during sign in ('#{error}').")
+                    alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later.")
                     return
                 switch mesg.event
                     when 'sign_in_failed'
@@ -107,17 +106,24 @@
                         # should never ever happen
                         alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
     )
-        
-
-
     
     sign_in = (mesg) ->
         # change the view in the account page to the settings/sign out view
         show_page("account-settings")
         # change the navbar title from "Sign in" to "first_name last_name"
         $("#account-item").find("a").html("#{mesg.first_name} #{mesg.last_name} (<a href='#sign_out'>Sign out</a>)")
+        $("a[href='#sign_out']").click (event) ->
+            sign_out()
+            return false
         controller.switch_to_page("demo1")
-        controller.show_page_nav("feedback")
-        controller.show_page_nav("demo1")
-        controller.show_page_nav("demo2")        
+        controller.show_page_nav(x) for x in ["feedback", "demo1", "demo2"]
+
+    sign_out = () ->
+        # change the view in the account page to the "sign in" view
+        # change the navbar title from "Sign in" to "first_name last_name"
+        (controller.hide_page_nav(x) for x in ["feedback", "demo1", "demo2"])
+        $("#account-item").find("a").html("Sign in")
+        show_page("account-sign_in")
+        controller.switch_to_page("account")
+        
 )()

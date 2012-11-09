@@ -1,0 +1,29 @@
+Todo list until the next Salvus release
+----------------------------------------
+
+  [ ] implement the "Sign out" link
+
+  [ ] make the contents in the account settings page actually valid
+
+  [ ] sign in -- return in password field to submit
+
+  [ ] Make the "forget your password" thing actually submit back to
+      the server (just a few lines of code).  
+
+  [ ] Implement URL handler in node for resetting password (this is
+      not done).
+
+  [ ] Save x amount of command line history for user on logout and
+      periodically Restore on login.
+
+  [ ] Remember me; persistent login cookie. 
+
+  [ ] the function sign_in in hub.coffee needs to have a sign in
+      attempt delay like most of the other functions.  Have the delay be 1 s, 2 s, 3s, 5s, 5s, 5s, 5s, ...
+ 
+  [ ] tab completion
+
+  [ ] a worksheet mode
+
+--
+  [ ] remove default login creds in account.html

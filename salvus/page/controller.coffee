@@ -49,5 +49,6 @@ controller.hide_page_nav("feedback")
 controller.hide_page_nav("demo1")
 controller.hide_page_nav("demo2")
 
-# TODO: for testing
-controller.switch_to_page("feedback")
+# TODO: select a specific page/view for testing
+# controller.switch_to_page("feedback")
+#

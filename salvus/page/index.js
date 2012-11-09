@@ -1,12 +1,12 @@
 $(function() {
 
+   connect_to_hub.coffee
+
    tracking.coffee
 
    controller.coffee
 
    alerts.coffee
-
-   connect_to_hub.coffee
 
    execute_router.coffee
 

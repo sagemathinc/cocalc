@@ -7063,25 +7063,20 @@ I'm going to warm up by:
 
   [x] Add a whole new page (with link from nav menu) to give feedback.
 
-  [ ] make it so feedback send button is live
+  [x] make it so feedback send button is live
 
-  [ ] implement the "Sign out" link
-
-  [ ] Make the "forget your password" thing actually submit back to
-      the server (just a few lines of code).  
-
-  [ ] Implement URL handler in node for resetting password (this is
-      not done).
-
-  [ ] Save x amount of command line history for user on logout and
-      periodically Restore on login.
-
-  [ ] Remember me; persistent login cookie. 
-
-  [ ] the function sign_in in hub.coffee needs to have a sign in
-      attempt delay like most of the other functions.  Have the delay be 1 s, 2 s, 3s, 5s, 5s, 5s, 5s, ...
-  
- 
  
 
+---
+
+Nov 8, 2012
+-----------
+
+Now it is 4pm and I'm working as hard as I can until midnight.
+
+  * Mathematica is ahead.  Fuck.  http://www.wolfram.com/mathematica-online/
+
+  * I have *GOT* to make major progress on salvus ASAP.  This is getting scary and frustrating.  The time is now.  Now.
+
+  [x] implement the "Sign out" link
 
