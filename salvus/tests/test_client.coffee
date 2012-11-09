@@ -16,7 +16,7 @@ exports.tearDown = (cb) ->
 log = console.log
 
 exports.test_account_management = (test) ->
-    test.expect(24)
+    test.expect(22)
     email_address = "#{misc.uuid()}@salv.us"
     password = "#{misc.uuid()}"
     new_password = null
@@ -59,7 +59,6 @@ exports.test_account_management = (test) ->
                     test.equal(mesg.first_name, 'Salvus')
                     test.equal(mesg.last_name, 'Math')
                     test.equal(mesg.email_address, email_address)
-                    test.equal(mesg.plan_name, 'Free')
                     cb()
             )
 
@@ -86,7 +85,6 @@ exports.test_account_management = (test) ->
                     test.equal(mesg.first_name, "Salvus")
                     test.equal(mesg.last_name, "Math")
                     test.equal(mesg.email_address, email_address)
-                    test.equal(mesg.plan_name, "Free")
                     cb()
             )
 

@@ -24,12 +24,6 @@ message = (obj) ->
 ############################################
 # Sage session management; executing code 
 ############################################# 
-# generic error emssages
-message(
-    event  : 'error'
-    id     : undefined
-    reason : undefined
-)
 
 # hub --> sage_server and browser --> hub
 message(

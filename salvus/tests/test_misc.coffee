@@ -1,6 +1,17 @@
 misc  = require("misc")
 async = require("async")
 
+exports.test_merge = (test) ->
+    test.expect(2)
+    async.series [
+        (cb) -> test.deepEqual(misc.merge({}, {a:5}, {b:10}, {a:20, xyz:0}), {a:20, b:10, xyz:0}); cb()
+        (cb) ->
+            x = {a:5}; y = {b:10}; z = {a:20, xyz:0}
+            misc.merge(x, y, z)
+            test.deepEqual(x, {a:20, b:10, xyz:0})
+            cb()
+    ], () -> test.done()
+
 exports.test_random_choice = (test) ->
     test.expect(2)
     async.series [

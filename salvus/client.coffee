@@ -154,7 +154,7 @@ class exports.Connection extends EventEmitter
             setTimeout(
                 (() =>
                     if @call_callbacks[id]?
-                        opts.cb(true, message.error(id:id, reason:"timeout after #{opts.timeout} seconds"))
+                        opts.cb(true, message.error(id:id, error:"timeout after #{opts.timeout} seconds"))
                         @call_callbacks[id] = null
                 ), opts.timeout*1000
             )
