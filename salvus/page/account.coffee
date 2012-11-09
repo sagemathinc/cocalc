@@ -3,6 +3,19 @@
     to_json = misc.to_json
     defaults = misc.defaults
     required = defaults.required
+
+
+
+    set_account_tab_label = (signed_in, first_name, last_name) ->
+        # TODO: this is UGLY
+        if signed_in 
+            $("#account-item").find("a").html("#{first_name} #{last_name} (<a href='#sign_out'>Sign out</a>)")
+            $("a[href='#sign_out']").click((event) ->
+                sign_out()
+                return false
+            )
+        else
+            $("#account-item").find("a").html("Sign in")
     
     ################################################
     # id of account client browser thinks it is signed in as
@@ -44,6 +57,23 @@
         destroy_create_account_tooltips()
         show_page("account-forget_password")
         return false
+
+    $("#account-settings-change-settings-button").click (event) ->
+        account_settings.load_from_view()
+        account_settings.save_to_server(
+            cb : (error, mesg) ->
+                console.log(error, mesg)
+                if error
+                    alert_message(type:"error", message:error)
+                else
+                    account_settings.set_view()
+                    alert_message(type:"info", message:"Your settings have been saved by the server.")
+        )
+
+    $("#account-settings-cancel-changes-button").click (event) ->
+        account_settings.set_view()
+
+                
 
 
     ################################################
@@ -127,10 +157,7 @@
         # change the view in the account page to the settings/sign out view
         show_page("account-settings")
         # change the navbar title from "Sign in" to "first_name last_name"
-        $("#account-item").find("a").html("#{mesg.first_name} #{mesg.last_name} (<a href='#sign_out'>Sign out</a>)")
-        $("a[href='#sign_out']").click (event) ->
-            sign_out()
-            return false
+        set_account_tab_label(true, mesg.first_name, mesg.last_name)
         controller.switch_to_page("demo1")
         controller.show_page_nav(x) for x in ["feedback", "demo1", "demo2"]
 
@@ -138,10 +165,10 @@
     # Sign out
     ################################################
     sign_out = () ->
+        set_account_tab_label(false)
         # change the view in the account page to the "sign in" view
         # change the navbar title from "Sign in" to "first_name last_name"
         (controller.hide_page_nav(x) for x in ["feedback", "demo1", "demo2"])
-        $("#account-item").find("a").html("Sign in")
         show_page("account-sign_in")
         controller.switch_to_page("account")
 
@@ -200,6 +227,8 @@
                 else
                     set(element, value)
 
+            set_account_tab_label(true, @settings.first_name, @settings.last_name)
+
         # Store the properties that user can freely change to the backend database.
         # The other properties only get saved by direct api calls that require additional
         # information, e.g., password.   The setting in this object are saved; if you
@@ -210,7 +239,7 @@
                 password : undefined  # must be set, or all restricted settings are ignored by the server
                 
             if not @settings? or @settings == 'error'
-                cb("There are no account settings to save.")
+                opts.cb("There are no account settings to save.")
                 return
                 
             salvus.conn.save_account_settings

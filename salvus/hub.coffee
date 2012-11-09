@@ -116,7 +116,10 @@ init_sockjs_server = () ->
                 when "get_account_settings"
                     # TODO: confirm authentication of user at this point!!!!!
                     get_account_settings(mesg, push_to_client)
-
+                when "account_settings"
+                    # TODO: confirm authentication of user at this point!!!!!
+                    save_account_settings(mesg, push_to_client)
+                    
                 # user feedback
                 when "report_feedback"
                     report_feedback(mesg, push_to_client, account_id)
@@ -594,14 +597,18 @@ save_account_settings = (mesg, push_to_client) ->
                             else
                                 cb()
                 )
+            else
+                cb()
         (cb) ->
             settings = {}
-            for key in message.unrestricted_account_settings
+            for key of message.unrestricted_account_settings
                 settings[key] = mesg[key]
             if mesg.password?
                 settings['email'] = mesg['email']
                 
-            database.save_account_settings
+            console.log("******* #{to_json(settings)}")
+                
+            database.update_account_settings
                 account_id : mesg.account_id
                 settings   : settings
                 cb         : (error, results) ->
@@ -609,15 +616,9 @@ save_account_settings = (mesg, push_to_client) ->
                         push_to_client(message.error(id:mesg.id, error:error))
                         cb(true)
                     else
+                        push_to_client(message.account_settings_saved(id:mesg.id))
                         cb()
     ])                        
-                
-                
-            
-            
-        
-    
-    
 
     
 ########################################

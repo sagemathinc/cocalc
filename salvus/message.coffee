@@ -274,7 +274,7 @@ exports.unrestricted_account_settings =
     default_system       : required
     evaluate_key         : required
     email_new_features   : required
-    email_user_changes   : required
+    email_usage_changes   : required
     email_maintenance    : required
 
 exports.account_settings_defaults =
@@ -282,7 +282,7 @@ exports.account_settings_defaults =
     default_system     : 'sage'
     evaluate_key       : 'shift-enter'
     email_new_features : true
-    email_user_changes : true
+    email_usage_changes : true
     email_maintenance  : true    
     connect_Github     : ''
     connect_Google     : ''
@@ -303,7 +303,6 @@ message(
 message
     event : "account_settings_saved"
     id    : undefined
-    error : undefined
 
 message
     event : "error"

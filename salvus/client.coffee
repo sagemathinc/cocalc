@@ -254,8 +254,9 @@ class exports.Connection extends EventEmitter
             settings   : required
             password   : undefined
             cb         : required
+
         @call
-            message : message.account_settings(misc.merge({account_id: opts.account_id, password: opts.password}, opts.settings))
+            message : message.account_settings(misc.merge(opts.settings, {account_id: opts.account_id, password: opts.password}))
             cb      : opts.cb
                 
                 
