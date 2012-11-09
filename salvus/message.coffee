@@ -10,7 +10,8 @@
 ###
 #
 
-defaults = require('misc').defaults
+misc     = require('misc')
+defaults = misc.defaults
 required = defaults.required
 
 
@@ -160,7 +161,8 @@ message(
     email_address  : required
     plan_name      : required
 )
-    
+
+
 # client --> hub
 message(
     event          : 'sign_out'
@@ -244,6 +246,73 @@ message(
     success        : required
     reason         : undefined
 )
+
+############################################
+# Account Settings
+#############################################
+
+# client --> hub
+message(
+    event          : "get_account_settings"
+    id             : undefined
+    account_id     : required
+)
+
+# settings that require the password in the message (so user must
+# explicitly retype password to change these):
+exports.restricted_account_settings =
+    plan_name            : undefined
+    storage_limit        : undefined
+    session_limit        : undefined
+    max_session_time     : undefined
+    ram_limit            : undefined
+    email_address        : undefined
+    connect_Github       : undefined
+    connect_Google       : undefined
+    connect_Dropbox      : undefined
+
+# these can be changed without additional re-typing of the password
+# (of course, user must have somehow logged in):
+exports.unrestricted_account_settings = 
+    first_name           : required
+    last_name            : required
+    default_system       : required
+    evaluate_key         : required
+    email_new_features   : required
+    email_user_changes   : required
+    email_maintenance    : required
+
+exports.account_settings_defaults =
+    default_system     : 'sage'
+    evaluate_key       : 'shift-enter'
+    email_new_features : true
+    email_user_changes : true
+    email_maintenance  : true    
+    connect_Github     : ''
+    connect_Google     : ''
+    connect_Dropbox    : ''
+
+# client <--> hub
+message(
+    misc.merge({},
+        event                : "account_settings"
+        account_id           : required
+        id                   : undefined
+        password             : undefined   # only set when sending message from client to hub; must be set to change restricted settings
+        exports.unrestricted_account_settings,
+        exports.restricted_account_settings
+    )
+)
+
+message
+    event : "account_settings_saved"
+    id    : undefined
+    error : undefined
+
+message
+    event : "error"
+    id    : undefined
+    error : undefined
 
 ############################################
 # User Feedback

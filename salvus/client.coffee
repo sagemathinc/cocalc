@@ -233,12 +233,34 @@ class exports.Connection extends EventEmitter
                 old_email_address: opts.old_email_address
                 new_email_address: opts.new_email_address
             cb : opts.cb
+
+    # cb(false, message.account_settings), assuming this connection has logged in as that user, etc..  Otherwise, cb(error).
+    get_account_settings: (opts) ->
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+            
+        @call
+            message : message.get_account_settings(account_id: opts.account_id)
+            cb      : opts.cb
+
+    # restricted settings are only saved if the password is set; otherwise they are ignored.    
+    save_account_settings: (opts) ->
+        opts = defaults opts,
+            account_id : required
+            settings   : required
+            password   : undefined
+            cb         : required
+        @call
+            message : message.account_settings(misc.merge({account_id: opts.account_id, password: opts.password}, opts.settings))
+            cb      : opts.cb
+                
                 
     ############################################
     # User Feedback
     #############################################
     report_feedback: (opts={}) ->
-        defaults opts,
+        opts = defaults opts,
             category    : required
             description : required
             nps         : undefined
@@ -252,7 +274,7 @@ class exports.Connection extends EventEmitter
             cb     : opts.cb
     
     feedback: (opts={}) ->
-        defaults opts,
+        opts = defaults opts,
             cb : required
             
         @call

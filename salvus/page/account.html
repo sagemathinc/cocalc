@@ -80,6 +80,13 @@
 
   <div class="row hide" id="account-settings">
 
+    <div class="alert alert-error">
+      <button type="button" class="close" data-dismiss="alert">×</button>
+      <i class="icon-info-sign"></i>
+      There was an error loading your account settings from the database (<a href="#reload-account-settings">try again</a>).  
+      The information below may be out of date.
+    </div>
+
     <ul class="nav nav-tabs">
       <li class="active"><a href="#account-info-tab" data-toggle="tab">Account info</a></li>
       <li><a href="#account-settings-tab" data-toggle="tab">Account settings</a></li>
@@ -92,31 +99,30 @@
 	  <div class="span10 well">
 	    <div class="row">
 	      <div class="row span3">Account type</div>
-	      <div class="row span7"><strong>Free</strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
+	      <div class="row span7"><strong id="account-settings-plan_name"></strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span3">Storage</div>
-	      <div class="row span7">100MB</div>
+	      <div class="row span7" id="account-settings-storage"></div>
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span3">Session limit</div>
-	      <div class="row span7">2</div>
+	      <div class="row span7" id="account-settings-session_limit"></div>
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span3">Maximum session time</div>
-	      <div class="row span7">1 hour</div>
+	      <div class="row span7" id="account-settings-max_session_time"></div>
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span3">RAM limit</div>
-	      <div class="row span7">2GB/session</div>
+	      <div class="row span7" id="account-settings-ram_limit"></div>
 	    </div>
 	  </div>
 	</div>
-	NOTE: The values above are placeholders and have no meaning right now.
 
       </div>
 
@@ -135,7 +141,7 @@
 	    <br>
 	    <div class="row">
 	      <div class="row span2">Email</div>
-	      <div class="row span3" id="account-settings-email">salvusmath@gmail.com (<a href="#change-email">change</a>)</div>
+	      <div class="row span3"><span id="account-settings-email_address"></span> (<a href="#change-email_address">change</a>)</div>
 	    </div>
 	    <br>
 	    <div class="row">
@@ -150,10 +156,10 @@
 	  <div class="span5 offset1 well">
 	    <div class="row">
 	      <div class="row span2">Evaluate Code</div>
-	      <div class="row span3"><a href="account-evaluate-code">Shift-Enter (Enter for newline)</a></div>
+	      <div class="row span3"><a href="account-settings-evaluate_key"></a></div>
 	      <br><br>
-	      <div class="row span2">Default Compute Engine</div>
-	      <div class="row span3"><a href="account-default-math-software">Sage</a></div>
+	      <div class="row span2">Default Compute System</div>
+	      <div class="row span3"><a href="account-settings-default_compute_system"></a></div>
 	    </div>
 	    <br>
 	  </div>
@@ -162,13 +168,16 @@
 	<div class="row">
 	  <div class="span5 well">
 	    <div class="row span5">
-	      Email me when:
+	      Email me about:
 	      <br><br>
 	      <label class="checkbox">
-		<input type="checkbox" checked="checked" id="account-email-new-features"> New features are announced
+		<input type="checkbox" checked="checked" id="account-settings-email_maintenance"> Scheduled maintenance
 	      </label>
 	      <label class="checkbox">
-		<input type="checkbox" checked="checked" id="account-email-usage-changes"> Terms of usage change
+		<input type="checkbox" checked="checked" id="account-settings-email_new_features"> New features 
+	      </label>
+	      <label class="checkbox">
+		<input type="checkbox" checked="checked" id="account-settings-email_usage_changes"> Terms of usage changes
 	      </label>
 	    </div>
 	  </div>
@@ -176,17 +185,23 @@
 	  <div class="span5 offset1 well">
 	    <div class="row">
 	      <div class="row span2">Github</div>
-	      <div class="row span3"><a href="">Connect to Github</a></div>
+	      <div class="row span3">
+		<a id="account-settings-github" href=""></a>
+	      </div>
 	    </div>
 	    <br>
 	    <div class="row">
-	      <div class="row span2">Google Drive</div>
-	      <div class="row span3"><a href="">Connect to Google Drive</a></div>
+	      <div class="row span2">Google</div>
+	      <div class="row span3">
+		<a id="account-settings-google" href=""></a>
+	      </div>		
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span2">Dropbox</div>
-	      <div class="row span3"><a href="">Connect to Dropbox</a></div>
+	      <div class="row span3">
+		<a id="account-settings-dropbox" href=""></a>
+	      </div>
 	    </div>
 	  </div>
 	</div>

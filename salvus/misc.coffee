@@ -3,6 +3,12 @@
 # Misc. functions that are needed elsewhere.  
 #
 ##########################################################################
+#
+
+exports.merge = (dest, objs ...) ->
+    for obj in objs
+        dest[k] = v for k, v of obj
+    dest
 
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]

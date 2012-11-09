@@ -1,7 +1,7 @@
 Todo list until the next Salvus release
 ----------------------------------------
 
-  [ ] implement the "Sign out" link
+  [x] implement the "Sign out" link
 
   [ ] make the contents in the account settings page actually valid
 

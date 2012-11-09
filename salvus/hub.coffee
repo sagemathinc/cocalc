@@ -152,7 +152,9 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
     database.get_account(
         email_address : mesg.email_address
         cb            : (error, account) ->
-            if error or not password_verify(mesg.password, account.password_hash)
+            if error
+                push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"error connecting to database"))
+            else if not password_verify(mesg.password, account.password_hash)
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
             else
                 console.log("*** account = #{to_json(account)}")
@@ -513,6 +515,97 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
     ])            
             
 
+# Sends a message to the client (via push_to_client) with the account
+# settings for the account with given id.  We assume that caller code
+# has already determined that the user initiating this request has
+# the given account_id.
+get_account_settings = (mesg, push_to_client) ->
+    account_settings = null
+    async.series([
+        # 1. Get entry in the database corresponding to this account.
+        (cb) -> 
+            database.get_account
+                account_id : mesg.account_id
+                cb : (error, data) ->
+                    if error
+                        push_to_client(message.error(id:mesg.id, error:error))
+                        cb(true) # bail
+                    else
+                        # 2. Set defaults for unset keys.  We do this so that in the
+                        # long run it will always be easy to migrate the database
+                        # forward (with new columns).
+                        account_settings = defaults(data, message.account_settings_defaults)
+                        delete account_settings['password_hash']  # can't be included in message
+                        account_settings.id = mesg.id
+                        cb()
+                        
+        # 3. Get information about user plan
+        (cb) ->
+            database.get_plan
+                plan_id : account_settings['plan_id']
+                cb : (error, plan) ->
+                    if error
+                        push_to_client(message.error(id:mesg.id, error:error))
+                        cb(true) # bail out
+                    else
+                        account_settings.plan_name = plan.name
+                        account_settings.storage_limit = plan.storage_limit
+                        account_settings.session_limit = plan.session_limit
+                        account_settings.max_session_time = plan.max_session_time
+                        account_settings.ram_limit = plan.ram_limit
+                        
+                        # 4. Send result to client
+                        push_to_client(message.account_settings(account_settings))
+                        cb() # done!
+    ])
+
+# mesg is an account_settings message.  We save everything in the
+# message to the database.  The restricted settings are completely
+# ignored if mesg.password is not set and correct.
+save_account_settings = (mesg, push_to_client) ->
+    if mesg.event != 'account_settings'
+        push_to_client(message.error(id:mesg.id, error:"Wrong message type: #{mesg.event}"))
+        return
+    async.series([
+        (cb) ->
+            # if given, verify that password is correct or give an error
+            if mesg.password?
+                verify_account_password(password: mesg.password, account_id: mesg.account_id, cb:
+                    (error, result) ->
+                        if error
+                            push_to_client(message.error(id:mesg.id, error:error))
+                            cb(true)
+                        else
+                            if not result
+                                push_to_client(message.error(id:mesg.id, error:"Incorrect password"))
+                                cb(true)
+                            else
+                                cb()
+                )
+        (cb) ->
+            settings = {}
+            for key in message.unrestricted_account_settings
+                settings[key] = mesg[key]
+            if mesg.password?
+                settings['email'] = mesg['email']
+                
+            database.save_account_settings
+                account_id : mesg.account_id
+                settings   : settings
+                cb         : (error, results) ->
+                    if error
+                        push_to_client(message.error(id:mesg.id, error:error))
+                        cb(true)
+                    else
+                        cb()
+    ])                        
+                
+                
+            
+            
+        
+    
+    
 
     
 ########################################

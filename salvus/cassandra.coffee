@@ -336,6 +336,27 @@ class exports.Salvus extends exports.Cassandra
 
 
     #####################################
+    # User plans (what features they get)
+    #####################################
+    get_plan: (opts={}) ->
+        opts = defaults opts,
+            plan_id : required
+            cb      : required
+        @select
+            table  : 'plans'
+            where  : {'plan_id':opts.plan_id}
+            columns: ['plan_id', 'name', 'description', 'price', 'current', 'stateless_exec_limits',
+                      'session_limit', 'storage_limit', 'max_session_time', 'ram_limit']
+            objectify: true
+            cb : (error, results) ->
+                if error
+                    opts.cb(error)
+                else if results.length != 1
+                    opts.cb("No plan with id #{opts.plan_id}")
+                else
+                    opts.cb(false, results[0])
+
+    #####################################
     # Account Management
     #####################################
     is_email_address_available: (email_address, cb) ->
@@ -371,8 +392,8 @@ class exports.Salvus extends exports.Cassandra
     get_account: (opts={}) ->
         opts = defaults(opts,
             cb            : required
-            email_address : undefined
-            account_id    : undefined
+            email_address : undefined     # provide either email or account_id (not both) 
+            account_id    : undefined   
         )
         where = {}
         if opts.account_id?
@@ -383,13 +404,31 @@ class exports.Salvus extends exports.Cassandra
         @select
             table   : 'accounts'
             where   : where 
-            columns : ['account_id', 'first_name', 'last_name', 'email_address', 'password_hash','plan_name']
+            columns : ['account_id', 'password_hash', 'first_name', 'last_name', 'email_address',
+                       'plan_name', 'plan_starttime',
+                       'default_system', 'evaluate_key',
+                       'email_new_features', 'email_user_changes', 'email_maintenance',
+                       'connect_Github', 'connect_Google', 'connect_Dropbox']
             objectify : true
             cb      : (error, results) ->
-                if error or results.length != 1
-                    opts.cb(true)
+                if error
+                    opts.cb(error)
+                else if results.length != 1
+                    opts.cb("No account with id = #{opts.account_id}")
                 else
                     opts.cb(false, results[0])
+
+    update_account_settings: (opts={}) ->
+        opts = defaults opts,
+            account_id : required
+            settings   : required
+            cb         : required
+            
+        @update
+            table      : 'accounts'
+            where      : {'account_id':opts.account_id}
+            set        : opts.settings
+            cb         : opts.cb
 
     change_password: (opts={}) ->
         opts = defaults(opts,
@@ -404,7 +443,7 @@ class exports.Salvus extends exports.Cassandra
             cb      : opts.cb
         )
 
-    change_email_address: (opts={}) ->
+    change_email_address: (opts={}) ->  # TODO: this is redundant with update_account_settings above... -- probably won't use it
         opts = defaults(opts,
             account_id    : required
             email_address : required

@@ -54,18 +54,30 @@ CREATE TABLE log (
 );
 
 CREATE TABLE plans (
-    plan_id      uuid PRIMARY KEY,
-    name         varchar,         // name of this plan
-    description  varchar,         // text describing this plan
-    current      boolean,         // whether or not this plan is currently active
+    plan_id          uuid PRIMARY KEY,
+    current          boolean,          // whether or not this plan is currently active
+
+    name             varchar,          // name of this plan
+    description      varchar,          // text describing this plan
+
+    price            varchar,          // JSON that describes price structure
+
+    session_limit    int,   // how many simultaneous sage sessions the user can have
+    storage_limit    int,   // total file space user can use
+    max_session_time int,   // maximum time in minutes that a session can last
+    ram_limit        int,   // maximum virtual ram usage in gigabytes per session
+
     stateless_exec_limits varchar, // JSON {walltime:seconds, cputime:seconds, vmem:MB, numfiles:int, quota:MB} 
 );   
 
-CREATE INDEX ON plans(name)
 CREATE INDEX ON plans(current)
-                   
+
+// If you add columns to this table, also get_account in cassandra.coffee
+// and account_settings_defaults in message.coffee.
+
 CREATE TABLE accounts (
     account_id      uuid PRIMARY KEY,
+
     first_name      varchar,
     last_name       varchar,
     email_address   varchar,
@@ -74,8 +86,18 @@ CREATE TABLE accounts (
     password_change_wait_until  timestamp,
 
     plan_id         uuid,
-    plan_name       varchar,        // redundant, to avoid an extra query
     plan_starttime  timestamp,
+
+    default_system  varchar,   // sage, python, octave, etc.
+    evaluate_key    varchar,   // shift-enter, enter, control-enter
+
+    email_new_features boolean,
+    email_user_changes boolean,
+    email_maintenance  boolean,
+
+    connect_Github     varchar,
+    connect_Google     varchar,
+    connect_Dropbox    varchar
 );    
     
 CREATE INDEX ON accounts(first_name);

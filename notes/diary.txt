@@ -7080,3 +7080,7 @@ Now it is 4pm and I'm working as hard as I can until midnight.
 
   [x] implement the "Sign out" link
 
+  [ ] make the contents in the account settings page actually valid
+
+
+
