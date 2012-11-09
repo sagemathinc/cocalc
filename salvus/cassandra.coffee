@@ -426,7 +426,10 @@ class exports.Salvus extends exports.Cassandra
                 if error
                     opts.cb(error)
                 else if results.length != 1
-                    opts.cb("No account with id = #{opts.account_id}")
+                    if opts.account_id?
+                        opts.cb("There is no account with account_id #{opts.account_id}.")
+                    else
+                        opts.cb("There is no account with email address #{opts.email_address}.")
                 else
                     opts.cb(false, results[0])
 
@@ -538,15 +541,4 @@ class exports.Salvus extends exports.Cassandra
 
     
 
-                            
-###
-# EXAMPLES:
-
-c = new (require("cassandra").Salvus)()
-c.count('accounts',{},console.log)
-c.select(table:'accounts', columns:['username'], cb:console.log, limit:1)
-
-id=null; c.create_account((a) -> id=a)
-c.update_account(id, {username:'williamstein'}, console.log)
-
-###
+   

@@ -84,6 +84,14 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
 # convert basic structure to a JSON string
 exports.to_json = (x) ->
     JSON.stringify(x)
+
+# convert object x to a JSON string, removing any keys that have "pass" in them.
+exports.to_safe_str = (x) ->
+    obj = {}
+    for key of x
+        if key.indexOf("pass") == -1
+            obj[key] = x[key]
+    return exports.to_json(obj)
     
 # convert from a JSON string to Javascript 
 exports.from_json = (x) ->

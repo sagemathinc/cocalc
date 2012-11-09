@@ -291,7 +291,6 @@ check = require('validator').check
 
 exports.issues_with_create_account = (mesg) ->
     issues = {}
-    console.log(mesg)
     if not mesg.agreed_to_terms
         issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
     if mesg.first_name == ''

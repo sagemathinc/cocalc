@@ -25,6 +25,7 @@ cass    = require("cassandra")
 client  = require("client")
 
 to_json = misc.to_json
+to_safe_str = misc.to_safe_str
 from_json = misc.from_json
 
 # third-party libraries
@@ -66,7 +67,7 @@ init_sockjs_server = () ->
         account_id = null
         
         push_to_client = (mesg) ->
-            console.log(to_json(mesg)) if mesg.event != 'pong'
+            console.log(to_safe_str(mesg)) if mesg.event != 'pong'
             if mesg.event == 'signed_in'
                 account_id = mesg.account_id
                 
@@ -80,7 +81,7 @@ init_sockjs_server = () ->
                 return
 
             if mesg.event != 'ping'
-                winston.debug("conn=#{conn} received sockjs mesg: #{to_json(mesg)}")
+                winston.debug("conn=#{conn} received sockjs mesg: #{to_safe_str(mesg)}")
 
             ###
             # handle message
@@ -153,11 +154,11 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
         email_address : mesg.email_address
         cb            : (error, account) ->
             if error
-                push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"error connecting to database"))
+                push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
             else if not password_verify(mesg.password, account.password_hash)
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
             else
-                console.log("*** account = #{to_json(account)}")
+                console.log("*** account = #{to_safe_str(account)}")
                 database.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
                 push_to_client(message.signed_in(
                     id            : mesg.id
@@ -700,7 +701,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
             host:sage_server.host
             port:sage_server.port
             recv:(m) ->
-                winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{to_json(m)})")
+                winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{to_safe_str(m)})")
                 switch m.event
                     when "output", "terminate_session"
                         m.session_uuid = session_uuid  # tag with session uuid
@@ -724,7 +725,7 @@ create_persistent_sage_session = (mesg, push_to_client) ->
     )
 
 send_to_persistent_sage_session = (mesg) ->
-    winston.debug("send_to_persistent_sage_session(#{to_json(mesg)})")
+    winston.debug("send_to_persistent_sage_session(#{to_safe_str(mesg)})")
 
     session_uuid = mesg.session_uuid
     session = persistent_sage_sessions[session_uuid]
@@ -760,7 +761,7 @@ init_stateless_exec = () ->
     stateless_exec_cache = database.key_value_store(name:'stateless_exec')
 
 stateless_sage_exec = (input_mesg, output_message_callback) ->
-    winston.info("(hub) stateless_sage_exec #{to_json(input_mesg)}")
+    winston.info("(hub) stateless_sage_exec #{to_safe_str(input_mesg)}")
     exec_nocache = () -> 
         output_messages = []
         stateless_sage_exec_nocache(input_mesg,
@@ -794,18 +795,18 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
         host:host
         port:port
         recv:(mesg) ->
-            winston.info("(hub) sage_conn -- received message #{to_json(mesg)}")
+            winston.info("(hub) sage_conn -- received message #{to_safe_str(mesg)}")
             output_message_callback(mesg)
         cb: ->
             winston.info("(hub) sage_conn -- sage: connected.")
             sage_conn.send(message.start_session(limits:{walltime:5, cputime:5, numfiles:1000, vmem:2048}))
-            winston.info("(hub) sage_conn -- send: #{to_json(input_mesg)}")
+            winston.info("(hub) sage_conn -- send: #{to_safe_str(input_mesg)}")
             sage_conn.send(input_mesg)
             sage_conn.send(message.terminate_session())
     )
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
-    winston.info("(hub) stateless_sage_exec_nocache #{to_json(input_mesg)}")
+    winston.info("(hub) stateless_sage_exec_nocache #{to_safe_str(input_mesg)}")
     database.random_sage_server( cb:(err, sage_server) ->
         if sage_server?
             stateless_exec_using_server(input_mesg, output_message_callback, sage_server.host, sage_server.port)
