@@ -86,11 +86,12 @@ class exports.Connection extends EventEmitter
             #console.log(err)
 
     handle_message: (mesg) ->
-        f = @call_callbacks[mesg.id]
+        id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here. 
+        f = @call_callbacks[id]
         if f?
             if f != null
                 f(null, mesg)
-            delete @call_callbacks[mesg.id]
+            delete @call_callbacks[id]
             return
             
         switch mesg.event
@@ -154,7 +155,8 @@ class exports.Connection extends EventEmitter
             setTimeout(
                 (() =>
                     if @call_callbacks[id]?
-                        opts.cb(true, message.error(id:id, error:"timeout after #{opts.timeout} seconds"))
+                        error = "Timeout after #{opts.timeout} seconds"
+                        opts.cb(error, message.error(id:id, error:error))
                         @call_callbacks[id] = null
                 ), opts.timeout*1000
             )
@@ -242,6 +244,7 @@ class exports.Connection extends EventEmitter
             
         @call
             message : message.get_account_settings(account_id: opts.account_id)
+            timeout : 3
             cb      : opts.cb
 
     # restricted settings are only saved if the password is set; otherwise they are ignored.    

@@ -7,8 +7,8 @@
     <div class="span4 well">
       <h4>Sign in (or <a href="#account-create_account">create an account</a>)</h4><br>
 <!-- TODO: before release -- remove defaults! -->
-      <input class="span4" type="text" value="salvusmath@math.edu" placeholder="Email" id="sign_in-email"><br>
-      <input class="span4" type="password" value="pWBIsWrQ" placeholder="Password"  id="sign_in-password"><br><br>
+      <input class="span4" type="text" value="a@a.a" placeholder="Email" id="sign_in-email"><br>
+      <input class="span4" type="password" value="a" placeholder="Password"  id="sign_in-password"><br><br>
       <div class="row">
 	<div class="span2">
 	  <label class="checkbox">
@@ -80,7 +80,7 @@
 
   <div class="row hide" id="account-settings">
 
-    <div class="alert alert-error">
+    <div class="alert alert-error" id="account-settings-error">
       <button type="button" class="close" data-dismiss="alert">×</button>
       <i class="icon-info-sign"></i>
       There was an error loading your account settings from the database (<a href="#reload-account-settings">try again</a>).  
@@ -104,22 +104,22 @@
 	    <br>
 	    <div class="row">
 	      <div class="row span3">Storage</div>
-	      <div class="row span7" id="account-settings-storage"></div>
+	      <div class="row span7"><span  id="account-settings-storage_limit"></span> MB</div>
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span3">Session limit</div>
-	      <div class="row span7" id="account-settings-session_limit"></div>
+	      <div class="row span7"><span  id="account-settings-session_limit"></span> simultaneous sessions</div>
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span3">Maximum session time</div>
-	      <div class="row span7" id="account-settings-max_session_time"></div>
+	      <div class="row span7"><span  id="account-settings-max_session_time"></span> minutes</div>
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span3">RAM limit</div>
-	      <div class="row span7" id="account-settings-ram_limit"></div>
+	      <div class="row span7"><span  id="account-settings-ram_limit"></span> GB</div>
 	    </div>
 	  </div>
 	</div>
@@ -141,7 +141,7 @@
 	    <br>
 	    <div class="row">
 	      <div class="row span2">Email</div>
-	      <div class="row span3"><span id="account-settings-email_address"></span> (<a href="#change-email_address">change</a>)</div>
+	      <div class="row span3"><span id="account-settings-email_address">foo</span> (<a href="#change-email_address">change</a>)</div>
 	    </div>
 	    <br>
 	    <div class="row">
@@ -155,11 +155,11 @@
 
 	  <div class="span5 offset1 well">
 	    <div class="row">
-	      <div class="row span2">Evaluate Code</div>
-	      <div class="row span3"><a href="account-settings-evaluate_key"></a></div>
+	      <div class="row span2">Evaluate Key</div>
+	      <div class="row span3"><a id="account-settings-evaluate_key"></a></div>
 	      <br><br>
 	      <div class="row span2">Default Compute System</div>
-	      <div class="row span3"><a href="account-settings-default_compute_system"></a></div>
+	      <div class="row span3"><a id="account-settings-default_system"></a></div>
 	    </div>
 	    <br>
 	  </div>
@@ -186,21 +186,21 @@
 	    <div class="row">
 	      <div class="row span2">Github</div>
 	      <div class="row span3">
-		<a id="account-settings-github" href=""></a>
+		<a id="account-settings-connect_Github" href=""></a>
 	      </div>
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span2">Google</div>
 	      <div class="row span3">
-		<a id="account-settings-google" href=""></a>
+		<a id="account-settings-connect_Google" href=""></a>
 	      </div>		
 	    </div>
 	    <br>
 	    <div class="row">
 	      <div class="row span2">Dropbox</div>
 	      <div class="row span3">
-		<a id="account-settings-dropbox" href=""></a>
+		<a id="account-settings-connect_Dropbox" href=""></a>
 	      </div>
 	    </div>
 	  </div>

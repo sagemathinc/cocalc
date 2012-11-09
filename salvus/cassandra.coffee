@@ -154,10 +154,10 @@ class KeyValueStore
 # strings instead of their own special object type, since otherwise they
 # convert to JSON incorrectly.
 
-exports.to_cassandra = to_cassandra = (obj, json) ->
+exports.from_cassandra = from_cassandra = (obj, json) ->
     if json
-        obj = from_json(obj)
-    if obj and obj.hasOwnProperty(obj, 'hex')
+        return from_json(obj)
+    if obj and obj.hex?
         return obj.hex
     return obj
 
@@ -264,9 +264,9 @@ class exports.Cassandra extends EventEmitter
         @cql(query, vals,
             (error, results) ->
                 if opts.objectify
-                    x = (misc.pairs_to_obj([col,to_cassandra(r.get(col)?.value, col in opts.json)] for col in opts.columns) for r in results)
+                    x = (misc.pairs_to_obj([col,from_cassandra(r.get(col)?.value, col in opts.json)] for col in opts.columns) for r in results)
                 else
-                    x = ((to_cassandra(r.get(col)?.value, col in opts.json) for col in opts.columns) for r in results)
+                    x = ((from_cassandra(r.get(col)?.value, col in opts.json) for col in opts.columns) for r in results)
                 opts.cb(error, x)
         )
 

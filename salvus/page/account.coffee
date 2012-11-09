@@ -1,5 +1,7 @@
 (() ->
-    defaults = require("misc").defaults
+    misc = require("misc")
+    to_json = misc.to_json
+    defaults = misc.defaults
     required = defaults.required
     
     ################################################
@@ -100,7 +102,7 @@
             timeout       : 3
             cb            : (error, mesg) ->
                 if error
-                    alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later.")
+                    alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
                     return
                 switch mesg.event
                     when 'sign_in_failed'
@@ -149,9 +151,9 @@
     ################################################
     class AccountSettings
         load_from_server: (cb) ->
-            salvus.conn.get_account_settings(account_id, cb:(error, settings_mesg) =>
+            salvus.conn.get_account_settings(account_id:account_id, cb:(error, settings_mesg) =>
                 if error
-                    alert_message(type:"error", message:error)
+                    alert_message(type:"error", message:"Error loading account settings - #{error}")
                     @settings = 'error'
                     cb(error)
                     return
@@ -183,15 +185,20 @@
             if @settings == 'error'
                 $("#account-settings-error").show()
                 return
-                
-            for prop of @settings
-                $("#account-settings-error").hide()
-                value = @settings[prop]
+
+            set = (element, value) ->
+                # TODO: dumb and dangerous -- do better
+                element.val(value)
+                element.html(value)
+            
+            
+            $("#account-settings-error").hide()
+            for prop, value of @settings
                 element = $("#account-settings-#{prop}")
                 if prop.slice(0,8) == "connect_"
-                    element.val(if value then "unlink" else "Connect to #{prop.slice(8)}")
+                    set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
                 else
-                    element.val(value)
+                    set(element, value)
 
         # Store the properties that user can freely change to the backend database.
         # The other properties only get saved by direct api calls that require additional

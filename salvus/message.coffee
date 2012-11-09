@@ -254,7 +254,9 @@ message(
 # settings that require the password in the message (so user must
 # explicitly retype password to change these):
 exports.restricted_account_settings =
+    plan_id              : undefined
     plan_name            : undefined
+    plan_starttime       : undefined
     storage_limit        : undefined
     session_limit        : undefined
     max_session_time     : undefined
@@ -276,6 +278,7 @@ exports.unrestricted_account_settings =
     email_maintenance    : required
 
 exports.account_settings_defaults =
+    plan_id            : 0  # the free trial plan
     default_system     : 'sage'
     evaluate_key       : 'shift-enter'
     email_new_features : true

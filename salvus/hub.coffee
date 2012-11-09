@@ -9,7 +9,7 @@
 #
 # For debugging, run this way:
 #
-#         make_coffee; echo "require('hub').start_server()" | coffee
+#         make_coffee &&echo "require('hub').start_server()" | coffee
 #
 ###
 
@@ -113,6 +113,9 @@ init_sockjs_server = () ->
                     change_password(mesg, conn.remoteAddress, push_to_client)
                 when "change_email_address"
                     change_email_address(mesg, conn.remoteAddress, push_to_client)
+                when "get_account_settings"
+                    # TODO: confirm authentication of user at this point!!!!!
+                    get_account_settings(mesg, push_to_client)
 
                 # user feedback
                 when "report_feedback"
@@ -285,6 +288,10 @@ create_account = (mesg, client_ip_address, push_to_client) ->
             password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
             if (password_strength.crack_time <= 10*24*3600)  # 10 days
                 issues['password'] = "Choose a password that is more difficult to guess."
+
+            # TODO --for testing, allow any password choice
+            delete issues['password']  # TODO: re-enable this
+            
             if misc.len(issues) > 0
                 push_to_client(message.account_creation_failed(id:id, reason:issues))
                 cb(true)
@@ -533,8 +540,13 @@ get_account_settings = (mesg, push_to_client) ->
                         # 2. Set defaults for unset keys.  We do this so that in the
                         # long run it will always be easy to migrate the database
                         # forward (with new columns).
-                        account_settings = defaults(data, message.account_settings_defaults)
-                        delete account_settings['password_hash']  # can't be included in message
+                        delete data['password_hash']
+                        
+                        for key, val of message.account_settings_defaults
+                            if not data[key]?
+                                data[key] = val
+
+                        account_settings = data
                         account_settings.id = mesg.id
                         cb()
                         
