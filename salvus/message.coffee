@@ -159,7 +159,6 @@ message(
     first_name     : required
     last_name      : required
     email_address  : required
-    plan_name      : required
 )
 
 

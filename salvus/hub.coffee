@@ -165,7 +165,6 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
                     first_name    : account.first_name
                     last_name     : account.last_name
                     email_address : mesg.email_address
-                    plan_name     : account.plan_name
                 ))
     )
 
@@ -360,7 +359,6 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                 first_name: mesg.first_name
                 last_name: mesg.last_name
                 email_address: mesg.email_address
-                plan_name: 'Free'
             )
             push_to_client(mesg)
             cb()

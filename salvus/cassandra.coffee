@@ -38,7 +38,15 @@ exports.create_schema = (conn, cb) ->
             cb(null, 0)
     async.mapSeries(blocks, f, (err, results) ->
         winston.info("created schema in #{misc.walltime()-t} seconds.")
-        cb(err))
+        if not err
+            # create default plan 0
+            conn.cql("UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000 WHERE plan_id=0",
+                 [], (error, results) => cb(error) if error)
+            
+        cb(err)
+    )
+        
+    
 
 
 class UUIDValueStore
@@ -155,7 +163,12 @@ exports.to_cassandra = to_cassandra = (obj, json) ->
 
 class exports.Cassandra extends EventEmitter
     constructor: (opts={}) ->    # cb is called on connect
-        opts = defaults(opts, hosts:['localhost'], cb:undefined, keyspace:undefined, timeout:3000)
+        opts = defaults opts,
+            hosts    : ['localhost']
+            cb       : undefined
+            keyspace : undefined
+            timeout  : 3000
+            
         console.log("keyspace = #{opts.keyspace}")
         @conn = new helenus.ConnectionPool(
             hosts     :  opts.hosts
@@ -251,9 +264,9 @@ class exports.Cassandra extends EventEmitter
         @cql(query, vals,
             (error, results) ->
                 if opts.objectify
-                    x = (misc.pairs_to_obj([col,to_cassandra(r.get(col).value, col in opts.json)] for col in opts.columns) for r in results)
+                    x = (misc.pairs_to_obj([col,to_cassandra(r.get(col)?.value, col in opts.json)] for col in opts.columns) for r in results)
                 else
-                    x = ((to_cassandra(r.get(col).value, col in opts.json) for col in opts.columns) for r in results)
+                    x = ((to_cassandra(r.get(col)?.value, col in opts.json) for col in opts.columns) for r in results)
                 opts.cb(error, x)
         )
 
@@ -377,8 +390,7 @@ class exports.Salvus extends exports.Cassandra
         )
             
         account_id = uuid.v4()
-        # TODO: plan_name
-        a = {first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, password_hash:opts.password_hash, plan_name:"Free"}
+        a = {first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, password_hash:opts.password_hash, plan_id:0}
         
         @update(
             table :'accounts'
@@ -405,7 +417,7 @@ class exports.Salvus extends exports.Cassandra
             table   : 'accounts'
             where   : where 
             columns : ['account_id', 'password_hash', 'first_name', 'last_name', 'email_address',
-                       'plan_name', 'plan_starttime',
+                       'plan_id', 'plan_starttime',
                        'default_system', 'evaluate_key',
                        'email_new_features', 'email_user_changes', 'email_maintenance',
                        'connect_Github', 'connect_Google', 'connect_Dropbox']

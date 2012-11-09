@@ -114,14 +114,13 @@ exports.test_user_feedback = (test) ->
 
 
 exports.test_account_management = (test) ->
-    test.expect(18)
+    test.expect(17)
     account_id = null
     account =
         first_name : 'Salvus'
         last_name  : 'Math'
         email_address : 'salvusmath@gmail.com'
         password_hash : 'sha512$e0d3590cbe964b540cf6fa2713b4bbab$1$67fddb5643ef79ea092ccff9ea41575fc2c833fe7071c74dde50e04a3fc24af65dc130a13313de558dc2d7e1ed360c1f2fd8c690a2b61a28c89f90a28dae2401'  # salvus
-        plan_name     : 'Free'
         
     async.series([
         # address starts out available
