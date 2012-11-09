@@ -289,8 +289,9 @@ create_account = (mesg, client_ip_address, push_to_client) ->
             if (password_strength.crack_time <= 10*24*3600)  # 10 days
                 issues['password'] = "Choose a password that is more difficult to guess."
 
-            # TODO --for testing, allow any password choice
-            delete issues['password']  # TODO: re-enable this
+            # TODO -- only uncomment this for easy testing, allow any password choice
+            # the client test suite will then fail, which is good, so we are reminded to comment this out before release!
+            # delete issues['password'] 
             
             if misc.len(issues) > 0
                 push_to_client(message.account_creation_failed(id:id, reason:issues))

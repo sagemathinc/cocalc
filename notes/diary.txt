@@ -7084,6 +7084,11 @@ Nov 9:
   6:30am - 7:52am:
   [x] make the contents in the account settings page actually valid
 
+Look into this ASAP -- more major competition!
+
+   [ ]  http://continuum.io/blog/introducing-wakari
+        http://news.ycombinator.com/item?id=4763354
+
 
 
 
