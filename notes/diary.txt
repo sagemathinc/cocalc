@@ -7115,6 +7115,9 @@ Plan:
   [x] make evaluate key setting actually do something
   [x] make default system be respected (and meaningful) in demos
 
+
+  [x] caching for single cell needs to distinguish between whether or not code was preparsed.
+
   [ ] change email address - gui
 
   [ ] implement this function used in hub!! verify_account_password

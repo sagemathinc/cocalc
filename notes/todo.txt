@@ -5,6 +5,8 @@ Todo list until the next Salvus release
 
   [x] make the contents in the account settings page actually valid
 
+  [ ] saving settings on one client should push changes to all connected clients
+
   [ ] in demo1.coffee:
           code = system + ".eval(r'''" + code + "''')"  # TODO: this won't work when code contains ''' -- replace by a more sophisticated message to the backend server
 

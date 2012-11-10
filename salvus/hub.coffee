@@ -785,12 +785,12 @@ stateless_sage_exec = (input_mesg, output_message_callback) ->
                 output_message_callback(mesg)
                 if mesg.done and input_mesg.allow_cache
                     winston.info("caching result")
-                    stateless_exec_cache.set(key:input_mesg.code, value:output_messages)
+                    stateless_exec_cache.set(key:[input_mesg.code, input_mesg.preparse], value:output_messages)
         )
     if not input_mesg.allow_cache
         exec_nocache()
         return
-    stateless_exec_cache.get(key:input_mesg.code, cb:(err, output) ->
+    stateless_exec_cache.get(key:[input_mesg.code, input_mesg.preparse], cb:(err, output) ->
         if output?
             winston.info("(hub) -- using cache")        
             for mesg in output

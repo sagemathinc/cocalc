@@ -142,7 +142,7 @@
             email_address : $("#sign_in-email").val()
             password      : $("#sign_in-password").val()
             remember_me   : $("#sign_in-remember_me").is(":checked")
-            timeout       : 3
+            timeout       : 10
             cb            : (error, mesg) ->
                 if error
                     alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
