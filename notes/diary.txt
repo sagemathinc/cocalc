@@ -7091,7 +7091,7 @@ Nov 9 at 5:37pm.
 
 Plan:
 
-  [ ] change evaluate key: 
+  [x] change evaluate key: 
 
       options -- 
 
@@ -7099,7 +7099,7 @@ Plan:
           control-enter
           enter (shift-enter for newline)
 
-  [ ] change default compute system
+  [x] change default compute system
 
        eventually: make list of options a query to the server where
        list depends on the user (paying customers can potentially get
@@ -7111,7 +7111,9 @@ Plan:
 	  R
           Maxima
 
-  [ ] change email gui
+  [x] make evaluate key setting actually do something
+
+  [ ] change email address - gui
   [ ] Write function for setting and getting value of HTML element so account settings fully works
   [ ] implement this function used in hub!! verify_account_password
   [ ] password reset gui  

@@ -70,7 +70,7 @@
                     alert_message(type:"error", message:error)
                 else
                     account_settings.set_view()
-                    alert_message(type:"info", message:"Your settings have been saved by the server.")
+                    #alert_message(type:"info", message:"Your settings have been saved by the server.")
         )
 
     $("#account-settings-cancel-changes-button").click (event) ->
@@ -258,7 +258,10 @@
                             disable_tooltips()
                     when 'email_maintenance', 'email_new_features'
                         element.attr('checked', value)
-                    when 'evaluate_key', 'default_system'  # select
+                    when 'evaluate_key'
+                        element.val(value)
+                        execute_router.set_evaluate_key(value)
+                    when 'default_system'
                         element.val(value)
                     when 'connect_Github', 'connect_Google', 'connect_Dropbox'
                         set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
