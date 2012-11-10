@@ -23,18 +23,6 @@ execute_router = {}
 
     is_evaluate_key = is_shift_enter
 
-    execute_router.set_evaluate_key = (key) ->
-        switch key
-            when "shift-enter"
-                is_evaluate_key = is_shift_enter
-            when "control-enter"
-                is_evaluate_key = is_ctrl_enter
-            when "enter"
-                is_evaluate_key = is_enter
-            else
-                alert_message(type:"error", message:"Unknown evaluate key #{key}; using shift-enter instead.")
-                is_evaluate_key = is_shift_enter
-
     # execute when pressing "shift-enter"
     $("body").keydown (e) ->
         switch controller.active_page
@@ -49,4 +37,21 @@ execute_router = {}
                 if is_escape(e.which)
                     interrupt_exec2()
                     return false
+
+    ########################################
+    # Exported functionality
+    ########################################
+    execute_router.set_evaluate_key = (key) ->
+        switch key
+            when "shift-enter"
+                is_evaluate_key = is_shift_enter
+            when "control-enter"
+                is_evaluate_key = is_ctrl_enter
+            when "enter"
+                is_evaluate_key = is_enter
+            else
+                alert_message(type:"error", message:"Unknown evaluate key #{key}; using shift-enter instead.")
+                is_evaluate_key = is_shift_enter
+
+
 )()      

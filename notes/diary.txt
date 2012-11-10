@@ -7111,12 +7111,17 @@ Plan:
 	  R
           Maxima
 
+  [x] Write function for setting and getting value of HTML element so account settings fully works
   [x] make evaluate key setting actually do something
+  [x] make default system be respected (and meaningful) in demos
 
   [ ] change email address - gui
-  [ ] Write function for setting and getting value of HTML element so account settings fully works
+
   [ ] implement this function used in hub!! verify_account_password
+
   [ ] password reset gui  
+
   [ ] change password gui
-  [ ] add to test suite
+
+  [ ] add more tests to the test suite
 

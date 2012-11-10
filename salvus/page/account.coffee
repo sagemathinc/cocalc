@@ -65,7 +65,6 @@
         account_settings.load_from_view()
         account_settings.save_to_server(
             cb : (error, mesg) ->
-                console.log(error, mesg)
                 if error
                     alert_message(type:"error", message:error)
                 else
@@ -84,7 +83,7 @@
 
     enable_tooltips = () ->
         $("[rel=tooltip]").tooltip
-            delay: {show: 1000, hide: 100}
+            delay: {show: 1500, hide: 100}
             placement: 'right'
 
     disable_tooltips = () ->
@@ -249,12 +248,9 @@
                 switch prop
                     when 'enable_tooltips'
                         element.attr('checked', value)
-                        console.log("value = #{value}")
                         if value
-                            console.log("enabling")
                             enable_tooltips()
                         else
-                            console.log("disabling")
                             disable_tooltips()
                     when 'email_maintenance', 'email_new_features'
                         element.attr('checked', value)
@@ -263,6 +259,8 @@
                         execute_router.set_evaluate_key(value)
                     when 'default_system'
                         element.val(value)
+                        $("#demo1-system").val(value)
+                        $("#demo2-system").val(value)
                     when 'connect_Github', 'connect_Google', 'connect_Dropbox'
                         set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
                     else

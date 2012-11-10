@@ -1,33 +1,37 @@
 <div class="container hide" id="demo2">
   <div class="row">
     <div class="span6">
-      <h3>Command Line</h3><br>
+      <h3>Demo 2: Persistent session</h3><br>
     </div>
   </div>
   <div class="row">
-    <div class="span1">
-    </div>
-    <div class="span9">
+    <div class="span9 offset1">
       <textarea rows=14 id="output2"  class="span9" readonly="readonly"></textarea>
     </div>
   </div>
   <div class="row">
-    <div class="span1">
-      <font size="+2"><a href="http://www.sagemath.org" target="_new">sage:</a></font>
-    </div>
-    <div class="span9">
-      <textarea rows=1 id="input2" class="span9"></textarea>
-      <a id="execute2" class="btn btn-primary btn-large">Execute &raquo;</a>
-      &nbsp;          &nbsp;          &nbsp;          &nbsp;
-      <a id="interrupt2" class="btn btn-primary btn-large">Interrupt (esc) &raquo;</a>
-      <br>
-    </div>
-    <div class="span2">
-      <font size=-1>
-	<span id="connection_status2"></span><br>
-	<span id="time2"></span><br>
-	<span id="run_status2"></span><br>
-      </font>
+    <div class="span9 offset1">
+      <textarea rows=3 id="input2" class="span9"></textarea>
     </div>
   </div>
-</div> 
+  <div class="row">
+    <div class="span2 offset1">
+      <a id="execute2" class="btn btn-primary btn-large">Execute &raquo;</a>
+    </div>
+    <div class="span2">
+      <a id="interrupt2" class="btn btn-primary btn-large">Interrupt</a>
+    </div>
+    <div class="span3">
+      <select id="demo2-system" rel="tooltip" title="Evaluate code using this mathematical software system.">
+	<option value="sage">Sage</option>
+	<option value="gap">GAP</option>
+	<option value="maxima">Maxima</option>
+	<option value="gp">Pari/GP</option>
+	<option value="python">Python</option>
+	<option value="r">R</option>
+	<option value="singular">Singular</option>
+      </select>
+    </div>
+  </div>
+</div>
+

@@ -3,9 +3,10 @@ Todo list until the next Salvus release
 
   [x] implement the "Sign out" link
 
-  [ ] make the contents in the account settings page actually valid
+  [x] make the contents in the account settings page actually valid
 
-  [ ] sign in -- return in password field to submit
+  [ ] in demo1.coffee:
+          code = system + ".eval(r'''" + code + "''')"  # TODO: this won't work when code contains ''' -- replace by a more sophisticated message to the backend server
 
   [ ] Make the "forget your password" thing actually submit back to
       the server (just a few lines of code).  

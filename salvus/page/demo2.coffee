@@ -8,8 +8,23 @@ execute_code_demo2 = () ->
     if o.val() == ""
         o.val("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")  # hackish
     code = i.val()
+    system = $("#demo2-system").val()
+    
+    o.val(o.val() + "#{system}: " + code.replace(/\n/g, "\n#{system}: ") + '\n')
+
+    # refactor with demo1 -- not really important, since they are just demos...
+    eval_wrap = (code, system) -> 'print ' + system + ".eval(r'''" + code + "''')" 
+    switch system
+        when 'sage'
+            preparse = true
+        when 'python'
+            preparse = false
+            # nothing
+        else
+            preparse = false                
+            code = eval_wrap(code, system)
+            
     i.val("")
-    o.val(o.val() + ">>> #{code}\n")
     o.scrollTop(o[0].scrollHeight)
     persistent_session.execute_code(
         code : code
@@ -20,11 +35,10 @@ execute_code_demo2 = () ->
             if mesg.stderr?
                 o.val(o.val() + "!!!!\n" + mesg.stderr + "!!!!\n")
                 o.scrollTop(o[0].scrollHeight)
-        preparse: true
+        preparse: preparse
     )
 
 interrupt_exec2 = () ->
-    console.log('interrupt')
     persistent_session.interrupt()
 
 $("#interrupt2").button().click(interrupt_exec2)
