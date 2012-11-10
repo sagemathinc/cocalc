@@ -615,8 +615,6 @@ save_account_settings = (mesg, push_to_client) ->
             if mesg.password?
                 settings['email_address'] = mesg['email_address']
                 
-            console.log("******* #{to_json(settings)}")
-                
             database.update_account_settings
                 account_id : mesg.account_id
                 settings   : settings
