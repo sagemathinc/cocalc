@@ -274,7 +274,6 @@ exports.unrestricted_account_settings =
     default_system       : required
     evaluate_key         : required
     email_new_features   : required
-    email_usage_changes   : required
     email_maintenance    : required
 
 exports.account_settings_defaults =
@@ -282,7 +281,6 @@ exports.account_settings_defaults =
     default_system     : 'sage'
     evaluate_key       : 'shift-enter'
     email_new_features : true
-    email_usage_changes : true
     email_maintenance  : true    
     connect_Github     : ''
     connect_Google     : ''

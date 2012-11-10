@@ -58,6 +58,9 @@
         show_page("account-forget_password")
         return false
 
+    ################################################
+    # Activate buttons
+    ################################################
     $("#account-settings-change-settings-button").click (event) ->
         account_settings.load_from_view()
         account_settings.save_to_server(
@@ -75,6 +78,11 @@
 
                 
 
+    ################################################
+    # Tooltips
+    ################################################
+    
+    $("[rel=tooltip]").tooltip({delay: { show: 1000, hide: 100 }})
 
     ################################################
     # Account creation
@@ -176,6 +184,7 @@
     ################################################
     # Account settings
     ################################################
+
     class AccountSettings
         load_from_server: (cb) ->
             salvus.conn.get_account_settings(account_id:account_id, cb:(error, settings_mesg) =>
@@ -220,12 +229,19 @@
             
             
             $("#account-settings-error").hide()
+
             for prop, value of @settings
                 element = $("#account-settings-#{prop}")
-                if prop.slice(0,8) == "connect_"
-                    set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
-                else
-                    set(element, value)
+                switch prop
+                    when 'email_maintenance', 'email_new_features', 'email_usage_changes'
+                        element.attr('checked', value)
+                    when 'evaluate_key', 'default_system'  # select
+                        element.val(value)
+                    else
+                        if prop.slice(0,8) == "connect_"
+                            set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
+                        else
+                            set(element, value)
 
             set_account_tab_label(true, @settings.first_name, @settings.last_name)
 

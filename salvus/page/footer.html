@@ -9,8 +9,12 @@
     </div>
 -->
 
-    <font color="#779"><span id="connection_status"></span> <span id="connection_protocol"></span><span id="ping_time"></span></font>
+    <font color="#779">
+      <span id="connection_status" rel="tooltip" title="Tells you whether or not your computer has established a connection with the Salvus server."></span> 
+      <span id="connection_protocol" rel="tooltip" title="This is the type of persistent connection your computer has established with the Salvus server; the optimal connection type is 'websocket', but several other options are supported."></span>
+      <span id="ping_time" rel="tooltip" title="The last ping time is the most recently recorded roundtrip time to send a message to the Salvus server, then receive a message back.  Anything below 50ms should feel extremely responsive."></span>
+    </font>
     <br>
-    <p>&copy; 2012 University of Washington. "Salvus" is a trademark of the University of Washington. All rights reserved.</p>
+    <p  rel="tooltip" title="Salvus is not developed by a company; instead, it is developed mainly at the University of Washington in Seattle.">&copy; 2012 University of Washington. "Salvus" is a trademark of the University of Washington. All rights reserved.</p>
   </footer>
 </div>

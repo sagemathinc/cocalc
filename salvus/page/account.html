@@ -11,9 +11,8 @@
       <input class="span4" type="password" value="zkjnxoiaerwy89" placeholder="Password"  id="sign_in-password"><br><br>
       <div class="row">
 	<div class="span2">
-	  <label class="checkbox">
-            <input type="checkbox" id="sign_in-remember_me">
-	    Remember me
+	  <label class="checkbox" rel="tooltip" title="Let Salvus remember that you signed in, so that you might not have to sign in next time you use Salvus.">
+            <input type="checkbox" id="sign_in-remember_me">Remember me
 	  </label>
 	</div>
 	<div class="span2">
@@ -98,27 +97,27 @@
 	<div class="row">
 	  <div class="span10 well">
 	    <div class="row">
-	      <div class="row span3">Account type</div>
+	      <div class="row span3"   rel="tooltip" title="Your account type determines the limits on your Salvus account.  In addition to the free plan, other more powerful plans are available.">Account type</div>
 	      <div class="row span7"><strong id="account-settings-plan_name"></strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
 	    </div>
 	    <br>
 	    <div class="row">
-	      <div class="row span3">Storage</div>
+	      <div class="row span3"   rel="tooltip" title="Salvus limits the total space that your documents and data can occupy.">Storage</div>
 	      <div class="row span7"><span  id="account-settings-storage_limit"></span> MB</div>
 	    </div>
 	    <br>
 	    <div class="row">
-	      <div class="row span3">Session limit</div>
+	      <div class="row span3"   rel="tooltip" title="Salvus limits the maximum number of simultaneous compute sessions you can run at once, so that more people can use Salvus.">Session limit</div>
 	      <div class="row span7"><span  id="account-settings-session_limit"></span> simultaneous sessions</div>
 	    </div>
 	    <br>
 	    <div class="row">
-	      <div class="row span3">Maximum session time</div>
+	      <div class="row span3"    rel="tooltip" title="Salvus compute sessions are automatically terminated after the maximum session time is reached, so that compute resources can be shared amongst more users.">Maximum session time</div>
 	      <div class="row span7"><span  id="account-settings-max_session_time"></span> minutes</div>
 	    </div>
 	    <br>
 	    <div class="row">
-	      <div class="row span3">RAM limit</div>
+	      <div class="row span3"   rel="tooltip" title="Salvus limits the amount of RAM you can use in a compute session.">RAM limit</div>
 	      <div class="row span7"><span  id="account-settings-ram_limit"></span> GB</div>
 	    </div>
 	  </div>
@@ -155,11 +154,28 @@
 
 	  <div class="span5 offset1 well">
 	    <div class="row">
-	      <div class="row span2">Evaluate Key</div>
-	      <div class="row span3"><a id="account-settings-evaluate_key"></a></div>
+	      <div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated.">Evaluate key</div>
+	      <div class="row span3">
+		<select id="account-settings-evaluate_key">
+		  <option value="shift-enter">Shift-Enter</option>
+		  <option value="control-enter">Control-Enter</option>
+		  <option value="enter">Enter (Shift-Enter for newline)</option>
+		</select>
+	      </div>
 	      <br><br>
-	      <div class="row span2">Default Compute System</div>
-	      <div class="row span3"><a id="account-settings-default_system"></a></div>
+	      <div class="row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
+	      <div class="row span3">
+		<select id="account-settings-default_system">
+		  <option value="sage">Sage</option>
+		  <option value="gap">GAP</option>
+		  <option value="maxima">Maxima</option>
+		  <option value="octave">Octave</option>
+		  <option value="gp">Pari/GP</option>
+		  <option value="python">Python</option>
+		  <option value="r">R</option>
+		  <option value="singular">Singular</option>
+		</select>
+	      </div>
 	    </div>
 	    <br>
 	  </div>
@@ -168,37 +184,34 @@
 	<div class="row">
 	  <div class="span5 well">
 	    <div class="row span5">
-	      Email me about:
+	      <span rel="tooltip" title="You can control when Salvus sends you email.">Email me about:</span>
 	      <br><br>
-	      <label class="checkbox">
-		<input type="checkbox" checked="checked" id="account-settings-email_maintenance"> Scheduled maintenance
-	      </label>
-	      <label class="checkbox">
+	      <label class="checkbox"  rel="tooltip" title="Salvus sends email when we add new features.">
 		<input type="checkbox" checked="checked" id="account-settings-email_new_features"> New features 
 	      </label>
-	      <label class="checkbox">
-		<input type="checkbox" checked="checked" id="account-settings-email_usage_changes"> Terms of usage changes
+	      <label class="checkbox" rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">
+		<input type="checkbox" checked="checked" id="account-settings-email_maintenance"> Scheduled maintenance
 	      </label>
 	    </div>
 	  </div>
 
 	  <div class="span5 offset1 well">
 	    <div class="row">
-	      <div class="row span2">Github</div>
+	      <div class="row span2" rel="tooltip" title="You can link your Salvus account with Github, so that a project can be synchronized with a Github repository.">Github</div>
 	      <div class="row span3">
 		<a id="account-settings-connect_Github" href=""></a>
 	      </div>
 	    </div>
 	    <br>
 	    <div class="row">
-	      <div class="row span2">Google</div>
+	      <div class="row span2" rel="tooltip" title="You can link your Salvus account with Google, so that some of your Salvus files are stored in Google drive.">Google</div>
 	      <div class="row span3">
 		<a id="account-settings-connect_Google" href=""></a>
 	      </div>		
 	    </div>
 	    <br>
 	    <div class="row">
-	      <div class="row span2">Dropbox</div>
+	      <div class="row span2" rel="tooltip" title="You can link your Salvus account with Dropbox, so that selected Salvus projects are mirrored to a Dropbox folder.">Dropbox</div>
 	      <div class="row span3">
 		<a id="account-settings-connect_Dropbox" href=""></a>
 	      </div>

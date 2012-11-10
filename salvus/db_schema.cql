@@ -92,7 +92,6 @@ CREATE TABLE accounts (
     evaluate_key    varchar,   // shift-enter, enter, control-enter
 
     email_new_features boolean,
-    email_usage_changes boolean,
     email_maintenance  boolean,
 
     connect_Github     varchar,

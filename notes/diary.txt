@@ -6946,9 +6946,6 @@ Nov 5, 2012 @ 7:44pm:
   [ ] link to terms of service
   [ ] template terms of service page
   [ ] login gui
-  [ ] password reset gui  
-  [ ] change email gui
-  [ ] change password gui
   [ ] report an issue gui
 
 I started writing this code (as html/CS) and am feeling unhappy with
@@ -7086,10 +7083,38 @@ Nov 9:
 
 Look into this ASAP -- more major competition!
 
-   [ ]  http://continuum.io/blog/introducing-wakari
+   [x]  http://continuum.io/blog/introducing-wakari
         http://news.ycombinator.com/item?id=4763354
 
 
+Nov 9 at 5:37pm.
 
+Plan:
 
-   [ ] implement this function used in hub!! verify_account_password
+  [ ] change evaluate key: 
+
+      options -- 
+
+          shift-enter
+          control-enter
+          enter (shift-enter for newline)
+
+  [ ] change default compute system
+
+       eventually: make list of options a query to the server where
+       list depends on the user (paying customers can potentially get
+       more; options can change dynamically)   ??
+       for now: 
+          Sage 
+          Python
+          Octave
+	  R
+          Maxima
+
+  [ ] change email gui
+  [ ] Write function for setting and getting value of HTML element so account settings fully works
+  [ ] implement this function used in hub!! verify_account_password
+  [ ] password reset gui  
+  [ ] change password gui
+  [ ] add to test suite
+
