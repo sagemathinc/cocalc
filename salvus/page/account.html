@@ -140,7 +140,7 @@
 	    <br>
 	    <div class="row">
 	      <div class="row span2">Email</div>
-	      <div class="row span3"><span id="account-settings-email_address">foo</span> (<a href="#change-email_address">change</a>)</div>
+	      <div class="row span3"><span id="account-settings-email_address">foo</span> (<a href="#account-change_email_address" data-toggle="modal" >change</a>)</div>
 	    </div>
 	    <br>
 	    <div class="row">
@@ -231,4 +231,27 @@
       </div>
     </div> 
   </div>
+
+
+
+
 </div>
+
+
+<!-- Change email address -->
+<div class="modal hide" id="account-change_email_address" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+    <h3>Change email address</h3>
+  </div>
+  <div class="modal-body offset1">
+      <input class="span4 offset1" type="text" placeholder="New email address" id="account-change_email_new_address">
+      <br>
+      <input class="span4 offset1" type="password" placeholder="Password"  id="account-change_email_password">
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
+    <button class="btn" data-dismiss="modal">Cancel</button>
+  </div>
+</div>
+

@@ -154,6 +154,13 @@ password_verify = (password, password_hash) ->
     console.log("**********************************************")
     console.log("password_verify: #{password}, #{password_hash}")
     return password_hash_library.verify(password, password_hash)
+
+verify_account_password = (opts) ->
+    opts = defaults opts,
+        password   : required
+        account_id : required
+        cb         : required
+    opts.cb(false, true) # TODO: dangeorus place
     
 sign_in = (mesg, client_ip_address, push_to_client) ->
     database.get_account(
@@ -269,6 +276,8 @@ password_reset = (mesg, client_ip_address, push_to_client) ->
                 cb()
             )
     ])
+
+    
 
 
 # We cannot put the zxcvbn password strength checking in
@@ -604,7 +613,7 @@ save_account_settings = (mesg, push_to_client) ->
             for key of message.unrestricted_account_settings
                 settings[key] = mesg[key]
             if mesg.password?
-                settings['email'] = mesg['email']
+                settings['email_address'] = mesg['email_address']
                 
             console.log("******* #{to_json(settings)}")
                 

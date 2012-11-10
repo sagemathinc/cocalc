@@ -171,7 +171,7 @@
         show_page("account-settings")
         # change the navbar title from "Sign in" to "first_name last_name"
         set_account_tab_label(true, mesg.first_name, mesg.last_name)
-        controller.switch_to_page("demo1")
+        controller.switch_to_page("account")
         controller.show_page_nav(x) for x in ["feedback", "demo1", "demo2"]
 
     ################################################
@@ -276,11 +276,10 @@
             opts = defaults opts,
                 cb       : required
                 password : undefined  # must be set, or all restricted settings are ignored by the server
-                
+
             if not @settings? or @settings == 'error'
                 opts.cb("There are no account settings to save.")
                 return
-                
             salvus.conn.save_account_settings
                 account_id : account_id
                 settings   : @settings
@@ -289,4 +288,27 @@
 
     account_settings = new AccountSettings()
         
+    ################################################
+    # Change Email Address
+    ################################################
+    $("#account-change_email_address_button").click (event) ->
+        account_settings.settings.email_address = $("#account-change_email_new_address").val()
+        $("#account-change_email_new_address").val("")
+        password = $("#account-change_email_password").val()
+        $("#account-change_email_password").val('') # for safety
+        account_settings.save_to_server(
+            password   : password
+            cb         : (error, mesg) ->
+                if error
+                    alert_message(type:"error", message:"Error communicating with server.")
+                else if mesg.event == "error"
+                    alert_message(type:"error", message:error)                
+                else
+                    # it worked!
+                    $("#account-settings-email_address").html(account_settings.settings.email_address)
+                    
+
+        )
+
+                
 )()

@@ -7118,9 +7118,12 @@ Plan:
 
   [x] caching for single cell needs to distinguish between whether or not code was preparsed.
 
-  [ ] change email address - gui
+  [x] change email address - gui
+ 
+**  [ ] I stubbed this implement this function used in hub!! verify_account_password**
 
-  [ ] implement this function used in hub!! verify_account_password
+  [ ] remember me cookie -- (?)
+
 
   [ ] password reset gui  
 
