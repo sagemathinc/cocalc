@@ -275,13 +275,15 @@ exports.unrestricted_account_settings =
     evaluate_key         : required
     email_new_features   : required
     email_maintenance    : required
+    enable_tooltips      : required
 
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
     default_system     : 'sage'
     evaluate_key       : 'shift-enter'
     email_new_features : true
-    email_maintenance  : true    
+    email_maintenance  : true
+    enable_tooltips    : true
     connect_Github     : ''
     connect_Google     : ''
     connect_Dropbox    : ''

@@ -14,11 +14,13 @@
     </div>
     <div class="span11">
       <textarea rows=8 id="input" class="span11"></textarea>
-      <br>
       <a id="execute" class="btn btn-primary btn-large">Execute (shift-enter) &raquo;</a>
-      &nbsp;&nbsp;&nbsp;<input type="checkbox" id="script-cache" checked=true> Allow Caching
       <br><br>
       <textarea rows=6 id="output"  class="span11" readonly="readonly"></textarea>
+      <br><br>
+      <label class="checkbox">
+	<input type="checkbox" id="script-cache" checked=true rel="tooltip" title="Cache evaluation of code in the database, so that evaluating the same code in the future is instant.">Allow Caching
+      </label>
     </div>
   </div>
 </div> 

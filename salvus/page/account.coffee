@@ -81,8 +81,14 @@
     ################################################
     # Tooltips
     ################################################
-    
-    $("[rel=tooltip]").tooltip({delay: { show: 1000, hide: 100 }})
+
+    enable_tooltips = () ->
+        $("[rel=tooltip]").tooltip
+            delay: {show: 1000, hide: 100}
+            placement: 'right'
+
+    disable_tooltips = () ->
+        $("[rel=tooltip]").tooltip("destroy")
 
     ################################################
     # Account creation
@@ -208,10 +214,18 @@
 
 
         load_from_view: () ->
+            if not @settings? or @settings == "error"
+                return  # not logged in -- don't bother
+                
             for prop of @settings
-                val = $("#account-settings-#{prop}").val()
-                if prop.slice(0,8) == "connect_"
-                    val = (val == "unlink")
+                element = $("#account-settings-#{prop}")
+                switch prop
+                    when 'email_maintenance', 'email_new_features', 'enable_tooltips'
+                        val = element.is(":checked")
+                    when 'connect_Github', 'connect_Google', 'connect_Dropbox'
+                        val = (element.val() == "unlink")
+                    else
+                        val = element.val()
                 @settings[prop] = val
                 
         set_view: () ->
@@ -233,15 +247,23 @@
             for prop, value of @settings
                 element = $("#account-settings-#{prop}")
                 switch prop
-                    when 'email_maintenance', 'email_new_features', 'email_usage_changes'
+                    when 'enable_tooltips'
+                        element.attr('checked', value)
+                        console.log("value = #{value}")
+                        if value
+                            console.log("enabling")
+                            enable_tooltips()
+                        else
+                            console.log("disabling")
+                            disable_tooltips()
+                    when 'email_maintenance', 'email_new_features'
                         element.attr('checked', value)
                     when 'evaluate_key', 'default_system'  # select
                         element.val(value)
+                    when 'connect_Github', 'connect_Google', 'connect_Dropbox'
+                        set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
                     else
-                        if prop.slice(0,8) == "connect_"
-                            set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
-                        else
-                            set(element, value)
+                        set(element, value)
 
             set_account_tab_label(true, @settings.first_name, @settings.last_name)
 

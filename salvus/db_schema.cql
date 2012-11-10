@@ -96,7 +96,9 @@ CREATE TABLE accounts (
 
     connect_Github     varchar,
     connect_Google     varchar,
-    connect_Dropbox    varchar
+    connect_Dropbox    varchar,
+
+    enable_tooltips    boolean
 );    
     
 CREATE INDEX ON accounts(first_name);

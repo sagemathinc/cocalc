@@ -419,7 +419,7 @@ class exports.Salvus extends exports.Cassandra
             columns : ['account_id', 'password_hash', 'first_name', 'last_name', 'email_address',
                        'plan_id', 'plan_starttime',
                        'default_system', 'evaluate_key',
-                       'email_new_features', 'email_usage_changes', 'email_maintenance',
+                       'email_new_features', 'email_maintenance', 'enable_tooltips',
                        'connect_Github', 'connect_Google', 'connect_Dropbox']
             objectify : true
             cb      : (error, results) ->
