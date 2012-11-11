@@ -114,7 +114,7 @@ exports.test_user_feedback = (test) ->
 
 
 exports.test_account_management = (test) ->
-    test.expect(17)
+    test.expect(20)
     account_id = null
     account =
         first_name : 'Salvus'
@@ -214,6 +214,26 @@ exports.test_account_management = (test) ->
                     test.equal(result.email_address, account.email_address)
                     cb()
             )
+        # first create another account, then try to change the email to the one we change:
+        (cb) ->
+            account.account_id = database.create_account
+                first_name    : "User"
+                last_name     : "Name"
+                email_address : "salvusmath2@uw.edu"
+                password_hash : account.password_hash
+                cb            : (error, result) ->
+                    test.ok(not error)
+                    test.equal(result, account.account_id)
+                    cb()
+
+        (cb) ->
+            database.change_email_address
+                account_id    : account.account_id
+                email_address : 'salvusmath@uw.edu'
+                cb : (error, result) ->
+                    test.equal(error, 'Email address is not available.', 'Should get an error when trying to change email to already taken email.')
+                    console.log(error, result)
+                    cb()
 
     ], () -> test.done())
 

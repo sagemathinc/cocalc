@@ -453,7 +453,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                     cb(true)
                     return
                 account = result
-                if not password_verify(mesg.old_password, account.password_hash)
+                if not is_password_correct(password:mesg.old_password, password_hash:account.password_hash)
                     push_to_client(message.changed_password(id:mesg.id, error:true, message:"Incorrect password"))
                     database.log(
                         event : 'change_password'
@@ -489,7 +489,13 @@ change_password = (mesg, client_ip_address, push_to_client) ->
             
 
 change_email_address = (mesg, client_ip_address, push_to_client) ->    
+    
+    if mesg.old_email_address == mesg.new_email_address  # easy case
+        push_to_client(message.changed_email_address(id:mesg.id, error:false, new_email_address:mesg.new_email_address))
+        return
+        
     account = null
+    
     async.series([
         # make sure there hasn't been an email change attempt for this
         # email address in the last 10 seconds
@@ -520,24 +526,23 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
             )
                             
         # get account and validate the password
-        (cb) -> database.get_account(
-            email_address : mesg.old_email_address
-            cb : (error, account) ->
-                if error
-                    push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
-                    cb(true)
-                    return
-                if not password_verify(mesg.password, account.password_hash)
-                    push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Incorrect password"))
-                    database.log(
-                        event : 'change_email_address'
-                        value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"Incorrect password"}
-                    )
-                    cb(true)
-                    return
-                cb()
-            )
-            
+        (cb) ->
+            is_password_correct
+                email_address : mesg.old_email_address
+                cb : (error, password_is_correct) ->
+                    if error
+                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                        cb(true)
+                    else if not password_is_correct
+                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Incorrect password"))
+                        database.log(
+                            event : 'change_email_address'
+                            value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"Incorrect password"}
+                        )
+                        cb(true)
+                    else
+                        cb()
+
         # Record current email address (just in case?) and that we are
         # changing email address to the new one.  This will make it
         # easy to implement a "change your email address back" feature
@@ -552,7 +557,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                 email_address: mesg.new_email_address,
                 cb : (error, result) ->
                     if error
-                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:error))
                     else
                         push_to_client(message.changed_email_address(id:mesg.id, error:false, new_email_address:mesg.new_email_address)) # finally, success!
                     cb()

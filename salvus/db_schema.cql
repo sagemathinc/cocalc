@@ -99,6 +99,7 @@ CREATE TABLE accounts (
     connect_Dropbox    varchar,
 
     enable_tooltips    boolean
+
 );    
     
 CREATE INDEX ON accounts(first_name);

@@ -7133,7 +7133,10 @@ For now:
 
   [x] I stubbed this implement this function used in hub!! verify_account_password**
 
+Next up, this -- report (and make sure) of *any* errors on email change before closing modal:
+
   [ ] change email: 
+ 
         - give error on fail
         - check that new address available
 

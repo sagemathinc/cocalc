@@ -439,12 +439,33 @@ class exports.Salvus extends exports.Cassandra
             account_id : required
             settings   : required
             cb         : required
-            
-        @update
-            table      : 'accounts'
-            where      : {'account_id':opts.account_id}
-            set        : opts.settings
-            cb         : opts.cb
+
+        async.series([
+            # we treat email separately, since email must be unique,
+            # but cassandra does have a unique col feature.
+            (cb) -> 
+                if opts.settings.email_address?
+                    @change_email_address
+                        account_id    : opts.account_id
+                        email_address : opts.settings.email_address
+                        cb : (error, result) ->
+                            if error
+                                opts.cb(error)
+                                cb(true)
+                            else
+                                delete opts.settings.email_address
+                                cb()
+            # make all the non-email changes
+            (cb) -> 
+                @update
+                    table      : 'accounts'
+                    where      : {'account_id':opts.account_id}
+                    set        : opts.settings
+                    cb         : (error, result) ->
+                        opts.cb(error, result)
+                        cb()
+        ])
+ 
 
     change_password: (opts={}) ->
         opts = defaults(opts,
@@ -459,18 +480,35 @@ class exports.Salvus extends exports.Cassandra
             cb      : opts.cb
         )
 
-    change_email_address: (opts={}) ->  # TODO: this is redundant with update_account_settings above... -- probably won't use it
+    # change the email address, unless the email_address we're changing to is already taken.
+    change_email_address: (opts={}) ->
         opts = defaults(opts,
             account_id    : required
             email_address : required
             cb            : undefined
         )
-        @update(
-            table   : 'accounts'
-            where   : {account_id    : opts.account_id}
-            set     : {email_address : opts.email_address}
-            cb      : opts.cb
-        )
+        
+        # verify that email address is not already taken
+        async.series([
+            (cb) => 
+                @count
+                    table   : 'accounts'
+                    where   : {email_address : opts.email_address}
+                    cb      : (error, result) ->
+                        if result > 0
+                            opts.cb("Email address is not available.")
+                            cb(true)
+                        else
+                            cb()
+            (cb) =>
+                @update
+                    table   : 'accounts'
+                    where   : {account_id    : opts.account_id}
+                    set     : {email_address : opts.email_address}
+                    cb      : (error, result) ->
+                        opts.cb(error, result)
+                        cb()
+        ])
         
 
     #####################################
