@@ -138,37 +138,63 @@ init_sockjs_server = () ->
 
 
 ########################################
-# Account Management 
+# Passwords
 ########################################
 
 password_hash_library = require('password-hash')
+
 
 exports.password_hash = password_hash = (password) ->
     return password_hash_library.generate(password,
         algorithm:'sha512'
         saltLength:32
-        iterations:1000
+        iterations:1000   # This blocks the server for about 10 milliseconds...
     )
 
-password_verify = (password, password_hash) ->
-    console.log("**********************************************")
-    console.log("password_verify: #{password}, #{password_hash}")
-    return password_hash_library.verify(password, password_hash)
-
-verify_account_password = (opts) ->
+# Password checking.  opts.cb(false, true) if the
+# password is correct, opts.cb(true) on error (e.g., loading from
+# database), and opts.cb(false, false) if password is wrong.  You must
+# specify exactly one of password_hash, account_id, or email_address.
+# In case you specify password_hash, in addition to calling the
+# callback (if specified), this function also returns true if the
+# password is correct, and false otherwise; it can do this because
+# there is no async IO when the password_hash is specified.
+is_password_correct = (opts) ->
     opts = defaults opts,
-        password   : required
-        account_id : required
-        cb         : required
-    opts.cb(false, true) # TODO: dangeorus place
-    
+        password      : required
+        cb            : undefined
+        password_hash : undefined
+        account_id    : undefined   
+        email_address : undefined
+    if opts.password_hash?
+        r = password_hash_library.verify(opts.password, opts.password_hash)
+        opts.cb?(false, r)
+        return r
+    else if opts.account_id? or opts.email_address?
+        database.get_account
+            account_id    : opts.account_id
+            email_address : opts.email_address
+            columns       : ['password_hash']
+            cb            : (error, account) ->
+                if error
+                    opts.cb?(error)
+                else
+                    opts.cb?(false, password_hash_library.verify(opts.password, account.password_hash))
+    else
+        opts.cb?("One of password_hash, account_id, or email_address must be specified.")
+
+########################################
+# Account Management 
+########################################
+
+
 sign_in = (mesg, client_ip_address, push_to_client) ->
     database.get_account(
         email_address : mesg.email_address
         cb            : (error, account) ->
             if error
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
-            else if not password_verify(mesg.password, account.password_hash)
+            else if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
             else
                 console.log("*** account = #{to_safe_str(account)}")
@@ -594,7 +620,7 @@ save_account_settings = (mesg, push_to_client) ->
         (cb) ->
             # if given, verify that password is correct or give an error
             if mesg.password?
-                verify_account_password(password: mesg.password, account_id: mesg.account_id, cb:
+                is_password_correct(password: mesg.password, account_id: mesg.account_id, cb:
                     (error, result) ->
                         if error
                             push_to_client(message.error(id:mesg.id, error:error))

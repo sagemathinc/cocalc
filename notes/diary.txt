@@ -7120,10 +7120,24 @@ Plan:
 
   [x] change email address - gui
  
-**  [ ] I stubbed this implement this function used in hub!! verify_account_password**
+Sunday, Nov 11 at 7:18am:
+=========================
+
+I did not work at all on Salvus yesterday, due to working on the ramp all day and 
+wanting to just goof off in the evening for once.
+
+Now I will work for about 3 hours, and will work for a few hour after
+the vert ramp.
+
+For now:
+
+  [x] I stubbed this implement this function used in hub!! verify_account_password**
+
+  [ ] change email: 
+        - give error on fail
+        - check that new address available
 
   [ ] remember me cookie -- (?)
-
 
   [ ] password reset gui  
 
@@ -7131,3 +7145,5 @@ Plan:
 
   [ ] add more tests to the test suite
 
+
+--> this list of javascript libraries is awesome: http://microjs.com/# 

@@ -405,7 +405,12 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults(opts,
             cb            : required
             email_address : undefined     # provide either email or account_id (not both) 
-            account_id    : undefined   
+            account_id    : undefined
+            columns       : ['account_id', 'password_hash', 'first_name', 'last_name', 'email_address',
+                             'plan_id', 'plan_starttime',
+                             'default_system', 'evaluate_key',
+                             'email_new_features', 'email_maintenance', 'enable_tooltips',
+                             'connect_Github', 'connect_Google', 'connect_Dropbox']
         )
         where = {}
         if opts.account_id?
@@ -416,11 +421,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table   : 'accounts'
             where   : where 
-            columns : ['account_id', 'password_hash', 'first_name', 'last_name', 'email_address',
-                       'plan_id', 'plan_starttime',
-                       'default_system', 'evaluate_key',
-                       'email_new_features', 'email_maintenance', 'enable_tooltips',
-                       'connect_Github', 'connect_Google', 'connect_Dropbox']
+            columns : opts.columns
             objectify : true
             cb      : (error, results) ->
                 if error
