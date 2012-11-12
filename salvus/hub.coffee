@@ -600,9 +600,11 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
     if mesg.event != 'forgot_password'
         push_to_client(message.error(id:mesg.id, error:"incorrect message event type: #{mesg.event}"))
         return
+
     async.series([
         # POLICY 1: We limit the number of password resets that an email address can receive to at most 5 per day.
         (cb) ->
+            
             T = database.key_value_store(name:'forgot_password_policy_1')
             T.get
                 key : mesg.email_address
@@ -610,9 +612,9 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
                         cb(true)
-                    else if value?
+                    else if value?  # {first_attempt:timestamp, attempts:int}
                         if value <= 4
-                            T.set(key:mesg.email_address, value:value+1)
+                            T.set(key:mesg.email_address, value:value+1, ttl:24*3600)
                             cb()
                         else
                             push_to_client(message.forgot_password_response(id:mesg.id, error:"We limit the number of password resets that an email address can receive to at most 5 per day."))

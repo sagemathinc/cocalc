@@ -114,39 +114,14 @@ class KeyValueStore
             key   : undefined
             value : undefined
             ttl   : 0
-            # lifetime ttl; if defined, we ignore the ttl and instead
-            # use "ttl = lifetime - (age of existing key:value record)".
-            lifetime : undefined   
             cb    : undefined
 
-        # TODO: same for UUID-value store
-        async.series([
-            (cb) => 
-                if opts.lifetime?
-                    @get
-                        key       : opts.key
-                        timestamp : true
-                        cb : (error, result) ->
-                            if result?
-                                #TODO
-                                console.log('***************', opts.ttl, new Date(), result.timestamp, ((new Date()) - result.timestamp))
-                                opts.ttl = opts.lifetime - Math.floor(((new Date()) - result.timestamp)/1000.0)
-                                console.log("*************** new ttl = #{opts.ttl}")
-                            else
-                                opts.ttl = opts.lifetime
-                            cb()
-                else
-                    cb()
-            (cb) =>
-                @cassandra.update(
-                    table:'key_value'
-                    where:{name:@opts.name, key:to_json(opts.key)}
-                    set:{value:to_json(opts.value)}
-                    ttl:opts.ttl
-                    cb:opts.cb
-                )
-                cb()
-        ])
+         @cassandra.update
+            table:'key_value'
+            where:{name:@opts.name, key:to_json(opts.key)}
+            set:{value:to_json(opts.value)}
+            ttl:opts.ttl
+            cb:opts.cb
                         
     get: (opts={}) ->
         opts = defaults opts,
