@@ -306,7 +306,7 @@ exports.is_valid_email_address = (email) ->
 
 exports.is_valid_password = (password) ->
     try
-        check(password).len(6,64)
+        check(password).len(3, 64)
         return true
     catch err
         return false
@@ -323,7 +323,7 @@ exports.issues_with_create_account = (mesg) ->
     if not exports.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
     if not exports.is_valid_password(mesg.password)
-        issues.password = 'Password must be between 6 and 64 characters in length.'
+        issues.password = 'Password must be between 3 and 64 characters in length.'
         
     return issues
     

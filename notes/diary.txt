@@ -7142,9 +7142,17 @@ Next up, this -- report (and make sure) of *any* errors on email change before c
 
 
 -----|
-Monday Nov 12 goals!!!!
+
+Nov 12 
+=================
+at 6:31am:
+Verterans Day!
 
   [ ] enter to submit: login, change email, etc.
+
+--> [ ] new policy: Like dropbox, I'm going to make salvus only warn people if they choose a stupid password, but still allow it. 
+        But then salvus will nag them until they change it to be strong. 
+
 
   [ ] remember me cookie 
 

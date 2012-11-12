@@ -147,12 +147,13 @@ message(
 
 # hub --> client; sent in response to either create_account or log_in
 message(
-    event          : 'signed_in'
-    id             : undefined
-    account_id     : required
-    first_name     : required
-    last_name      : required
-    email_address  : required
+    event          : 'signed_in'   
+    id             : undefined     # message uuid
+    account_id     : required      # uuid of user's account
+    first_name     : required      # user's first name
+    last_name      : required      # user's last name
+    email_address  : required      # address they just signed in using
+    password_crack_time: required  # time to crack in days -- use in the client gui to encourage users to change their password
 )
 
 

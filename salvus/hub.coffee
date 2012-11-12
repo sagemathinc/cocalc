@@ -187,6 +187,8 @@ is_password_correct = (opts) ->
 # Account Management 
 ########################################
 
+password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_time/(3600*24.0)) # time to crack in days
+    
 
 sign_in = (mesg, client_ip_address, push_to_client) ->
     database.get_account(
@@ -197,14 +199,16 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
             else if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
             else
-                console.log("*** account = #{to_safe_str(account)}")
+                #console.log("*** account = #{to_safe_str(account)}")
                 database.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
+                
                 push_to_client(message.signed_in(
                     id            : mesg.id
                     account_id    : account.account_id 
                     first_name    : account.first_name
                     last_name     : account.last_name
                     email_address : mesg.email_address
+                    password_crack_time: password_crack_time(mesg.password)                    
                 ))
     )
 
@@ -323,9 +327,12 @@ create_account = (mesg, client_ip_address, push_to_client) ->
         (cb) -> 
             issues = client.issues_with_create_account(mesg)
             console.log("issues = #{issues}")
-            password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
-            if (password_strength.crack_time <= 10*24*3600)  # 10 days
-                issues['password'] = "Choose a password that is more difficult to guess."
+
+            # We are going to allow stupid passwords, but regularly nag the user to make them stronger.
+            # The following was the code to flat out not allow stupid passwords.
+            #password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
+            #if (password_strength.crack_time <= 10*24*3600)  # 10 days
+            #    issues['password'] = "Choose a password that is more difficult to guess."
 
             # TODO -- only uncomment this for easy testing, allow any password choice
             # the client test suite will then fail, which is good, so we are reminded to comment this out before release!
@@ -406,6 +413,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                 first_name: mesg.first_name
                 last_name: mesg.last_name
                 email_address: mesg.email_address
+                password_crack_time: password_crack_time(mesg.password)
             )
             push_to_client(mesg)
             cb()

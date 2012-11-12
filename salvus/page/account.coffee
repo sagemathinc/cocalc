@@ -166,6 +166,8 @@
     )
     
     sign_in = (mesg) ->
+        alert(mesg.password_crack_time)
+        
         # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
         account_id = mesg.account_id
         account_settings.load_from_server((error) ->
