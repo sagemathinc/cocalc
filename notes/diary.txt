@@ -7151,8 +7151,23 @@ Verterans Day!
 --> [ ] new policy: Like dropbox, I'm going to make salvus only warn people if they choose a stupid password, but still allow it. 
         But then salvus will nag them until they change it to be strong. 
 
-  [ ](5) change password gui
+  [x] (5) change password gui
   
+  [ ](5) password reset gui  
+
+  -- basic problem: how to do password reset with a consistent gui/ui look, etc.  
+     Obviously, I could just add another url handler, but that would be ugly.
+     It would be nice if I could do:
+
+          https://salv.us#forgot?forgot_key=UUID
+ 
+     and have (1) the forgot_key get set as a javascript variable (or in DOM)
+              (2) a modal dialog be displayed
+
+Is this possible?
+
+   [ ] rewrite UUID value store to be in terms of key:value store for easier maintenance.
+
   [ ] (3) refix test suite, broken by change password dialog
 
   [ ] change password -- enable automatic zxcvbn.zxcvbn 
@@ -7160,9 +7175,9 @@ Verterans Day!
   [ ](4) sign-up: enable automatic zxcvbn.zxcvbn 
           
 
-  [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
+  [ ](2) make error message on sign-in right by the password, not using alert
 
-  [ ](5) password reset gui  
+  [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
 
   [ ](5) enter to submit: login, change email, etc.
 

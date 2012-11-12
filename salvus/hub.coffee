@@ -525,7 +525,8 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                 key : mesg.old_email_address
                 cb : (error, value) ->
                     if error
-                        cb()  # DB error, so don't bother with this
+                        push_to_client(message.changed_email_address(id:mesg.id, error:error))
+                        cb(true) 
                         return
                     if value?  # is defined, so problem -- it's over
                         push_to_client(message.changed_email_address(id:mesg.id, error:'too_frequent', ttl:WAIT))
@@ -583,7 +584,83 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     else
                         push_to_client(message.changed_email_address(id:mesg.id)) # finally, success!
                     cb()
-    ])            
+    ])
+
+
+#############################################################################
+# Send an email message to the given email address with a code that
+# can be used to reset the password for a certain account.
+# 
+# Anti-use-salvus-to-spam/DOS throttling policies:
+#   * a given email address can be sent at most 5 password resets per day.
+#   * a given ip address can send at most 1 password reset request per minute
+#   * a given ip can send at most 10 per hour
+#############################################################################
+forgot_password = (mesg, client_ip_address, push_to_client) ->
+    if mesg.event != 'forgot_password'
+        push_to_client(message.error(id:mesg.id, error:"incorrect message event type: #{mesg.event}"))
+        return
+    async.series([
+        # POLICY 1: We limit the number of password resets that an email address can receive to at most 5 per day.
+        (cb) ->
+            T = database.key_value_store(name:'forgot_password_policy_1')
+            T.get
+                key : mesg.email_address
+                cb  : (error, value) ->
+                    if error
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
+                        cb(true)
+                    else if value?
+                        if value <= 4
+                            T.set(key:mesg.email_address, value:value+1)
+                            cb()
+                        else
+                            push_to_client(message.forgot_password_response(id:mesg.id, error:"We limit the number of password resets that an email address can receive to at most 5 per day."))
+                            cb(true)
+                    else
+                        T.set(key:mesg.email_address, value:1, ttl:24*3600)
+                        cb()
+        # POLICY 2: a given ip address can send at most 1 password reset request per minute
+        (cb) ->
+            T = database.key_value_store(name:'forgot_password_policy_2')
+            T.get
+                key : client_ip_address
+                cb  : (error, value) ->
+                    if error
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
+                        cb(true)
+                    else if value?
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset request."))
+                        cb(true)
+                    else
+                        T.set(key:client_ip_address, value:true, ttl:60)
+                        cb()
+
+        # POLICY 3: a given ip can send at most 10 per hour
+        (cb) ->
+            T = database.key_value_store(name:'forgot_password_policy_3')
+            T.get
+                key : client_ip_address
+                cb  : (error, value) ->
+                    if error
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
+                        cb(true)
+                    else if value?
+                        if value <= 10
+                            T.set(key:client_ip_address, value:value+1)
+                            cb()
+                        else
+                            push_to_client(message.forgot_password_response(id:mesg.id, error:"We limit the number of password resets per day.  Please try again in an hour."))
+                            cb(true)
+                    else
+                        T.set(key:mesg.email_address, value:1, ttl:3600)
+                        cb()
+
+            
+                        
+                        
+
+    ])
             
 
 # Sends a message to the client (via push_to_client) with the account

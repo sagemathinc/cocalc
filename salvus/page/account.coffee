@@ -395,4 +395,34 @@
     $("#account-forgot_password-button-cancel").click((event)->close_forgot_password())
     forgot_password.on("shown", () -> $("#account-forgot_password-email_address").focus())
 
+    $("#account-forgot_password-button-submit").click (event) ->
+        email_address = $("#account-forgot_password-email_address").val()
+        forgot_password.find(".account-error-text").hide()
+        salvus.conn.forgot_password
+            email_address : email_address
+            cb : (error, mesg) ->
+                if error
+                    $("#account-forgot_password-error").html("Error communicating with server: #{error}")
+                else
+                    if mesg.error
+                        $("#account-forgot_password-error").html(mesg.error)
+                    else
+                        # success
+                        alert_message(type:"info", message:"Salvus has sent a password reset email message to #{email_address}")
+                        close_forgot_password()
+        return false
+    
+
+    #################################################################
+    # Page you get when you click "Forgot your password" email link and main page loads
+    #################################################################
+    forgot_password_reset = $("#account-forgot_password_reset")
+    url_args = window.location.href.split("#")
+    if url_args.length == 3 and url_args[1] == "forgot"
+        forget_password_reset_key = url_args[2]
+        forgot_password_reset.modal("show")
+
+    
+    
+
 )()

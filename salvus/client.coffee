@@ -240,6 +240,16 @@ class exports.Connection extends EventEmitter
                 password          : opts.password
             cb : opts.cb
 
+    # forgot password -- send forgot password request to server
+    forgot_password: (opts) ->
+        opts = defaults opts,
+            email_address : required
+            cb            : required
+        @call
+            message: message.forgot_password
+                email_address : opts.email_address
+            cb: opts.cb
+
     # cb(false, message.account_settings), assuming this connection has logged in as that user, etc..  Otherwise, cb(error).
     get_account_settings: (opts) ->
         opts = defaults opts,

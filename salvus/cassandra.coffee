@@ -110,23 +110,65 @@ class KeyValueStore
         @opts = defaults(opts,  name:'default')
         
     set: (opts={}) ->
-        opts = defaults(opts,  key:undefined, value:undefined, ttl:0, cb:undefined)        
-        @cassandra.update(
-            table:'key_value'
-            where:{name:@opts.name, key:to_json(opts.key)}
-            set:{value:to_json(opts.value)}
-            ttl:opts.ttl
-            cb:opts.cb
-        )
+        opts = defaults opts,
+            key   : undefined
+            value : undefined
+            ttl   : 0
+            # lifetime ttl; if defined, we ignore the ttl and instead
+            # use "ttl = lifetime - (age of existing key:value record)".
+            lifetime : undefined   
+            cb    : undefined
+
+        # TODO: same for UUID-value store
+        async.series([
+            (cb) => 
+                if opts.lifetime?
+                    @get
+                        key       : opts.key
+                        timestamp : true
+                        cb : (error, result) ->
+                            if result?
+                                #TODO
+                                console.log('***************', opts.ttl, new Date(), result.timestamp, ((new Date()) - result.timestamp))
+                                opts.ttl = opts.lifetime - Math.floor(((new Date()) - result.timestamp)/1000.0)
+                                console.log("*************** new ttl = #{opts.ttl}")
+                            else
+                                opts.ttl = opts.lifetime
+                            cb()
+                else
+                    cb()
+            (cb) =>
+                @cassandra.update(
+                    table:'key_value'
+                    where:{name:@opts.name, key:to_json(opts.key)}
+                    set:{value:to_json(opts.value)}
+                    ttl:opts.ttl
+                    cb:opts.cb
+                )
+                cb()
+        ])
                         
     get: (opts={}) ->
-        opts = defaults(opts, key:undefined, cb:undefined)
-        @cassandra.select(
-            table:'key_value'
-            columns:['value']
-            where:{name:@opts.name, key:to_json(opts.key)}
-            cb:(error, results) -> opts.cb?(error, if results.length == 1 then from_json(results[0]))
-        )
+        opts = defaults opts,
+            key       : undefined
+            cb        : undefined  # cb(error, value)
+            timestamp : false      # if specified, result is {value:the_value, timestamp:the_timestamp} instead of just value.
+        if opts.timestamp
+            @cassandra.select(
+                table     : 'key_value'
+                columns   : ['value']
+                timestamp : ['value']
+                where     : {name:@opts.name, key:to_json(opts.key)}
+                cb : (error, results) ->
+                    opts.cb?(error, if results.length == 1 then {'value':from_json(results[0][0].value), 'timestamp':results[0][0].timestamp})
+            )
+        else
+            @cassandra.select(
+                table:'key_value'
+                columns:['value']
+                where:{name:@opts.name, key:to_json(opts.key)}
+                cb:(error, results) -> opts.cb?(error, if results.length == 1 then from_json(results[0][0]))
+            )
             
     delete: (opts={}) ->
         opts = defaults(opts, key:undefined, cb:undefined)
@@ -154,12 +196,20 @@ class KeyValueStore
 # strings instead of their own special object type, since otherwise they
 # convert to JSON incorrectly.
 
-exports.from_cassandra = from_cassandra = (obj, json) ->
+exports.from_cassandra = from_cassandra = (obj, json, timestamp) ->
+    if not obj?
+        return undefined
+        
+    value = obj.value
     if json
-        return from_json(obj)
-    if obj and obj.hex?
-        return obj.hex
-    return obj
+        value = from_json(value)
+    else if value and value.hex?    # uuid de-mangle
+        value = value.hex
+    if timestamp
+        console.log("obj=#{obj}, ttl = #{obj.ttl}")
+        return {timestamp:obj.timestamp, value:value}
+    else
+        return value
 
 class exports.Cassandra extends EventEmitter
     constructor: (opts={}) ->    # cb is called on connect
@@ -253,6 +303,8 @@ class exports.Cassandra extends EventEmitter
             objectify : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
             limit     : undefined   # if defined, limit the number of results returned to this integer
             json      : []          # list of columns that should be converted from JSON format
+            timestamp : []          # list of columns to retrieve in the form {value:'value of that column', timestamp:timestamp of that column}
+                                    # timestamp columns must not be part of the primary key
             
         vals = []
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
@@ -264,9 +316,9 @@ class exports.Cassandra extends EventEmitter
         @cql(query, vals,
             (error, results) ->
                 if opts.objectify
-                    x = (misc.pairs_to_obj([col,from_cassandra(r.get(col)?.value, col in opts.json)] for col in opts.columns) for r in results)
+                    x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json, col in opts.timestamp)] for col in opts.columns) for r in results)
                 else
-                    x = ((from_cassandra(r.get(col)?.value, col in opts.json) for col in opts.columns) for r in results)
+                    x = ((from_cassandra(r.get(col), col in opts.json, col in opts.timestamp) for col in opts.columns) for r in results)
                 opts.cb(error, x)
         )
 

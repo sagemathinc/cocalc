@@ -189,6 +189,18 @@ message(
     error          : undefined
 )
 
+# client --> hub: "please send a password reset email"
+message
+    event         : "forgot_password"
+    id            : undefined
+    email_address : required
+
+# hub --> client  "a password reset email was sent, or there was an error"
+message
+    event         : "forgot_password_response"
+    id            : undefined
+    error         : false
+
 # client --> hub
 message(
     event             : 'change_email_address'

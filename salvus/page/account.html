@@ -247,7 +247,6 @@
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
     <h3>Change password</h3>
     <div class="hide account-error-text" id="account-change_password-error"></div>
-    <div class="hide account-error-text" id="account-change_password-error-too_frequent"></div>
   </div>
   <div class="modal-body offset1">
     <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
@@ -263,13 +262,15 @@
 </div>
 
 
-<!-- Forgot password -->
+
+<!-- Forgot password: dialog to request email be sent (and token placed in database) -->
+
 <div class="modal hide" id="account-forgot_password" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
     <h3>Forgot your password?</h3>
     Enter your email address to reset your password.
-    <div class="hide account-error-text" id="account-forgot_password-error-too_frequent">Wait<span></span>before sending another password reset request.</div>
+    <div class="hide account-error-text" id="account-forgot_password-error"></div>
   </div>
   <div class="modal-body offset1">
     <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
@@ -280,3 +281,19 @@
     <button class="btn" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
   </div>
 </div>
+
+
+<!-- Forgot password: reset -->
+<div class="modal hide" id="account-forgot_password_reset" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+    <h3>Forgot your password?</h3>
+    <br>Enter your new password.<br><br>
+    <div class="hide account-error-text" id="account-forgot_password_reset-error"></div>
+  </div>
+  <div class="modal-body offset1">
+    <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
+    <input class="span4 offset1" type="text" placeholder="New password" id="account-forgot_password_reset-new_password">
+  </div>
+</div>
+
