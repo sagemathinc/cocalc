@@ -441,8 +441,8 @@ class exports.Salvus extends exports.Cassandra
             cb         : required
 
         async.series([
-            # we treat email separately, since email must be unique,
-            # but cassandra does have a unique col feature.
+            # We treat email separately, since email must be unique,
+            # but Cassandra does not have a unique col feature.
             (cb) => 
                 if opts.settings.email_address?
                     @change_email_address
@@ -455,6 +455,8 @@ class exports.Salvus extends exports.Cassandra
                             else
                                 delete opts.settings.email_address
                                 cb()
+                else
+                    cb()
             # make all the non-email changes
             (cb) => 
                 @update

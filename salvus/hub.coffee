@@ -625,42 +625,17 @@ save_account_settings = (mesg, push_to_client) ->
     if mesg.event != 'account_settings'
         push_to_client(message.error(id:mesg.id, error:"Wrong message type: #{mesg.event}"))
         return
-    async.series([
-        (cb) ->
-            # if given, verify that password is correct or give an error
-            if mesg.password?
-                is_password_correct(password: mesg.password, account_id: mesg.account_id, cb:
-                    (error, result) ->
-                        if error
-                            push_to_client(message.error(id:mesg.id, error:error))
-                            cb(true)
-                        else
-                            if not result
-                                push_to_client(message.error(id:mesg.id, error:"Incorrect password"))
-                                cb(true)
-                            else
-                                cb()
-                )
+    settings = {}
+    for key of message.unrestricted_account_settings
+        settings[key] = mesg[key]
+    database.update_account_settings
+        account_id : mesg.account_id
+        settings   : settings
+        cb         : (error, results) ->
+            if error
+                push_to_client(message.error(id:mesg.id, error:error))
             else
-                cb()
-        (cb) ->
-            settings = {}
-            for key of message.unrestricted_account_settings
-                settings[key] = mesg[key]
-            if mesg.password?
-                settings['email_address'] = mesg['email_address']
-                
-            database.update_account_settings
-                account_id : mesg.account_id
-                settings   : settings
-                cb         : (error, results) ->
-                    if error
-                        push_to_client(message.error(id:mesg.id, error:error))
-                        cb(true)
-                    else
-                        push_to_client(message.account_settings_saved(id:mesg.id))
-                        cb()
-    ])                        
+                push_to_client(message.account_settings_saved(id:mesg.id))
 
     
 ########################################

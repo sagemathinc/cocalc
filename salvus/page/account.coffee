@@ -62,9 +62,11 @@
     # Activate buttons
     ################################################
     $("#account-settings-change-settings-button").click (event) ->
+        console.log("change-settings-button...")
         account_settings.load_from_view()
         account_settings.save_to_server(
             cb : (error, mesg) ->
+                console.log(error,mesg)
                 if error
                     alert_message(type:"error", message:error)
                 else
