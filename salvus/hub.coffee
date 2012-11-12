@@ -431,10 +431,10 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                 key : mesg.email_address
                 cb : (error, value) ->
                     if error
-                        cb()  # DB error, so don't bother with this
+                        cb()  # DB error, so don't bother with the tracker
                         return
                     if value?  # is defined, so problem -- it's over
-                        push_to_client(message.changed_password(id:mesg.id, error:true, message:"Please wait at least 5 seconds before trying to change your password again."))
+                        push_to_client(message.changed_password(id:mesg.id, error:{'too_frequent':'Please wait at least 5 seconds before trying to change your password again.'}))
                         database.log(
                             event : 'change_password'
                             value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"attack?"}
@@ -457,22 +457,31 @@ change_password = (mesg, client_ip_address, push_to_client) ->
               email_address : mesg.email_address
               cb : (error, result) ->
                 if error
-                    push_to_client(message.changed_password(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                    push_to_client(message.changed_password(id:mesg.id, error:{other:error}))
                     cb(true)
                     return
                 account = result
                 if not is_password_correct(password:mesg.old_password, password_hash:account.password_hash)
-                    push_to_client(message.changed_password(id:mesg.id, error:true, message:"Incorrect password"))
+                    push_to_client(message.changed_password(id:mesg.id, error:{old_password:"Invalid old password."}))
                     database.log(
                         event : 'change_password'
-                        value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"Incorrect password"}
+                        value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"Invalid old password."}
                     )
                     cb(true)
                     return
                 cb()
             )
+
+        # check that new password is valid
+        (cb) ->
+            [valid, reason] = client.is_valid_password(mesg.new_password)
+            if not valid
+                push_to_client(message.changed_password(id:mesg.id, error:{new_password:reason}))
+                cb(true)
+            else
+                cb()
             
-         # record current password hash (just in case?) and that we are changing password and set new password   
+        # record current password hash (just in case?) and that we are changing password and set new password   
         (cb) ->
 
             database.log(
@@ -488,7 +497,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                 password_hash: password_hash(mesg.new_password),
                 cb : (error, result) ->
                     if error
-                        push_to_client(message.changed_password(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                        push_to_client(message.changed_password(id:mesg.id, error:{misc:error}))
                     else
                         push_to_client(message.changed_password(id:mesg.id, error:false)) # finally, success!
                     cb()

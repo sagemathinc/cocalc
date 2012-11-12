@@ -187,7 +187,6 @@ message(
     event          : 'changed_password'
     id             : undefined    
     error          : undefined
-    message        : undefined
 )
 
 # client --> hub

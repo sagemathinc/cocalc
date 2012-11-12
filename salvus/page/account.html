@@ -22,7 +22,7 @@
       <br>
       <div class="row">
 	<div class="span3 offset1">
-	  <a href="#account-forget_password">Forget your password?</a>
+	  <a href="#account-forgot_password" data-toggle="modal">Forgot your password?</a>
 	</div>
       </div>
 
@@ -52,26 +52,6 @@
       <button class="btn btn-primary span3" type="submit" id="create_account-button">Create account</button>
 
 
-      
-    </div>
-  </div> 
-
-  <div class="row hide" id="account-forget_password">
-    <div class="span5">
-      <h1><font color="#0084aa">Salvus&trade;</font></h1>
-    </div>
-    <div class="span4 well">
-      <h4>Forget your password? (or <a href="#account-sign_in">sign in</a>)</h4>
-      <br>
-      Enter your email address to reset your password.  You will receive an email from salvusmath@gmail.com.
-      <br><br>
-      
-      <input class="span4" type="text" placeholder="Email" id="forget_password-email"><br><br>
-      <div class="row">
-	<div class="offset2 span2">
-          <button class="btn btn-primary" type="submit" id="forget_password-button">Submit</button>
-	</div>
-      </div>
       
     </div>
   </div> 
@@ -139,17 +119,17 @@
 	    </div>
 	    <br>
 	    <div class="row">
+	      <div class="row span2">Password</div>
+	      <div class="row span3">
+		<a href="#account-change_password" data-toggle="modal">Change password</a><br>
+		<a href="#account-forgot_password" data-toggle="modal">Forgot password</a>
+	      </div>
+	    </div>
+	    <div class="row">
 	      <div class="row span2">Email</div>
 	      <div class="row span3"><span id="account-settings-email_address">foo</span> (<a href="#account-change_email_address" data-toggle="modal" >change</a>)</div>
 	    </div>
 	    <br>
-	    <div class="row">
-	      <div class="row span2">Password</div>
-	      <div class="row span3">
-		<a href="#change-password">Change password</a><br>
-		<a href="#forgot-password">Forgot password</a>
-	      </div>
-	    </div>
 	  </div>
 
 	  <div class="span5 offset1 well">
@@ -243,7 +223,7 @@
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
     <h3>Change email address</h3>
-    <div class="hide account-error-text" id="account-change_email_address-too_frequent">Please wait<span></span>before trying to change your email address again.</div>
+    <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
   </div>
   <div class="modal-body offset1">
     <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
@@ -259,3 +239,44 @@
   </div>
 </div>
 
+
+
+<!-- Change password -->
+<div class="modal hide" id="account-change_password" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+    <h3>Change password</h3>
+    <div class="hide account-error-text" id="account-change_password-error"></div>
+    <div class="hide account-error-text" id="account-change_password-error-too_frequent"></div>
+  </div>
+  <div class="modal-body offset1">
+    <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
+    <input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
+    <br>
+    <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
+    <input class="span4 offset1" type="password" placeholder="New password" id="account-change_password-new_password">
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
+    <button class="btn" data-dismiss="modal" id="account-change_password-button-cancel">Cancel</button>
+  </div>
+</div>
+
+
+<!-- Forgot password -->
+<div class="modal hide" id="account-forgot_password" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+    <h3>Forgot your password?</h3>
+    Enter your email address to reset your password.
+    <div class="hide account-error-text" id="account-forgot_password-error-too_frequent">Wait<span></span>before sending another password reset request.</div>
+  </div>
+  <div class="modal-body offset1">
+    <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
+    <input class="span4 offset1" type="text" placeholder="Email address" id="account-forgot_password-email_address">
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
+    <button class="btn" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
+  </div>
+</div>

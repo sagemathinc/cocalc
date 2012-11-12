@@ -7148,18 +7148,28 @@ Nov 12
 at 6:31am:
 Verterans Day!
 
-  [ ] enter to submit: login, change email, etc.
-
 --> [ ] new policy: Like dropbox, I'm going to make salvus only warn people if they choose a stupid password, but still allow it. 
         But then salvus will nag them until they change it to be strong. 
 
+  [ ](5) change password gui
+  
+  [ ] (3) refix test suite, broken by change password dialog
 
-  [ ] remember me cookie 
+  [ ] change password -- enable automatic zxcvbn.zxcvbn 
 
-  [ ] password reset gui  
+  [ ](4) sign-up: enable automatic zxcvbn.zxcvbn 
+          
 
-  [ ] change password gui
+  [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
 
-  [ ] add more tests to the test suite
+  [ ](5) password reset gui  
+
+  [ ](5) enter to submit: login, change email, etc.
+
+  [ ](7) remember me cookie 
+
+  [ ](2) should have an easy link to salvus terms in various places instead of *only* having it on account creation?
+
+  [ ](6) add more tests to the test suite
 
 

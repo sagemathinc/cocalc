@@ -29,7 +29,6 @@
     focus =
         'account-sign_in'         : 'sign_in-email'
         'account-create_account'  : 'create_account-first-name'
-        'account-forget_password' : 'forget_password-email'
         'account-settings'        : ''
 
     current_account_page = null
@@ -57,11 +56,6 @@
         show_page("account-sign_in");
         return false
         
-    $("a[href='#account-forget_password']").click (event) ->
-        destroy_create_account_tooltips()
-        show_page("account-forget_password")
-        return false
-
     ################################################
     # Activate buttons
     ################################################
@@ -75,7 +69,7 @@
                     alert_message(type:"error", message:error)
                 else
                     account_settings.set_view()
-                    #alert_message(type:"info", message:"Your settings have been saved by the server.")
+                    alert_message(type:"info", message:"You have saved your settings.")
         )
 
     $("#account-settings-cancel-changes-button").click (event) ->
@@ -166,7 +160,6 @@
     )
     
     sign_in = (mesg) ->
-        alert(mesg.password_crack_time)
         
         # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
         account_id = mesg.account_id
@@ -350,4 +343,56 @@
                     close_change_email_address()
         return false
         
+    ################################################
+    # Change password
+    ################################################
+
+    change_password = $("#account-change_password")
+
+    close_change_password = () ->
+        change_password.modal('hide').find('input').val('')
+        change_password.find(".account-error-text").hide()
+
+    change_password.find(".close").click((event) -> close_change_password())
+    $("#account-change_password-button-cancel").click((event)->close_change_password())
+    change_password.on("shown", () -> $("#account-change_password-old_password").focus())
+
+    $("#account-change_password-button-submit").click (event) ->
+        salvus.conn.change_password
+            email_address : account_settings.settings.email_address
+            old_password  : $("#account-change_password-old_password").val()
+            new_password  : $("#account-change_password-new_password").val()
+            cb : (error, mesg) ->
+                if error
+                    $("#account-change_password-error").html("Error communicating with server: #{error}")
+                else
+                    change_password.find(".account-error-text").hide()
+                    if mesg.error
+                        # display errors
+                        for key, val of mesg.error
+                            x = $("#account-change_password-error-#{key}")
+                            if x.length == 0
+                                x = $("#account-change_password-error")
+                            x.html(val)
+                            x.show()
+                    else
+                        # success
+                        alert_message(type:"info", message:"You have changed your password.")
+                        close_change_password()
+        return false
+
+    ################################################
+    # Forgot your password?
+    ################################################
+    
+    forgot_password = $("#account-forgot_password")
+
+    close_forgot_password = () ->
+        forgot_password.modal('hide').find('input').val('')
+        forgot_password.find(".account-error-text").hide()
+
+    forgot_password.find(".close").click((event) -> close_forgot_password())
+    $("#account-forgot_password-button-cancel").click((event)->close_forgot_password())
+    forgot_password.on("shown", () -> $("#account-forgot_password-email_address").focus())
+
 )()
