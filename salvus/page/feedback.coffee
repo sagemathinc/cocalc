@@ -34,5 +34,6 @@
         return false
 
     
+    controller.on "show_page_feedback", (() -> $("#feedback-description").focus())
     
 )()    

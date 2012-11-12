@@ -7138,10 +7138,13 @@ Next up, this -- report (and make sure) of *any* errors on email change before c
   [x] change email: 
         - give error on fail
         - check that new address available
+  [x] correct focus for login, change email, etc.
+
+
+-----|
+Monday Nov 12 goals!!!!
 
   [ ] enter to submit: login, change email, etc.
-
-  [ ] correct focus for login, change email, etc.
 
   [ ] remember me cookie 
 

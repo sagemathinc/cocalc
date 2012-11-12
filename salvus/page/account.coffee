@@ -32,7 +32,9 @@
         'account-forget_password' : 'forget_password-email'
         'account-settings'        : ''
 
+    current_account_page = null
     show_page = (p) ->
+        current_account_page = p
         for page, elt of focus
             if page == p
                 $("##{page}").show()
@@ -43,6 +45,8 @@
 
     show_page("account-sign_in")
     #show_page("account-settings")
+
+    controller.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
     
     $("a[href='#account-create_account']").click (event) ->
         show_page("account-create_account")
