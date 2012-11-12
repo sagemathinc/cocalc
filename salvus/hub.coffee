@@ -111,6 +111,8 @@ init_sockjs_server = () ->
                     password_reset(mesg, conn.remoteAddress, push_to_client)
                 when "change_password"
                     change_password(mesg, conn.remoteAddress, push_to_client)
+                when "forgot_password"
+                    forgot_password(mesg, conn.remoteAddress, push_to_client)
                 when "change_email_address"
                     change_email_address(mesg, conn.remoteAddress, push_to_client)
                 when "get_account_settings"
@@ -592,9 +594,9 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 # can be used to reset the password for a certain account.
 # 
 # Anti-use-salvus-to-spam/DOS throttling policies:
-#   * a given email address can be sent at most 5 password resets per day.
-#   * a given ip address can send at most 1 password reset request per minute
-#   * a given ip can send at most 10 per hour
+#   * a given email address can be sent at most 2 password resets per hour
+#   * a given ip address can send at most 3 password reset request per minute
+#   * a given ip can send at most 25 per hour
 #############################################################################
 forgot_password = (mesg, client_ip_address, push_to_client) ->
     if mesg.event != 'forgot_password'
@@ -602,65 +604,78 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         return
 
     async.series([
-        # POLICY 1: We limit the number of password resets that an email address can receive to at most 5 per day.
+        # record this password reset attempt in our database
         (cb) ->
-            
-            T = database.key_value_store(name:'forgot_password_policy_1')
-            T.get
-                key : mesg.email_address
-                cb  : (error, value) ->
+            database.update
+                table   : 'password_reset_attempts_by_ip_address'
+                set     : {email_address:mesg.email_address}
+                where   : {ip_address:client_ip_address, time:cass.now()}
+                cb      : (error, result) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true)
-                    else if value?  # {first_attempt:timestamp, attempts:int}
-                        if value <= 4
-                            T.set(key:mesg.email_address, value:value+1, ttl:24*3600)
-                            cb()
-                        else
-                            push_to_client(message.forgot_password_response(id:mesg.id, error:"We limit the number of password resets that an email address can receive to at most 5 per day."))
-                            cb(true)
+                        cb(true); return
                     else
-                        T.set(key:mesg.email_address, value:1, ttl:24*3600)
                         cb()
-        # POLICY 2: a given ip address can send at most 1 password reset request per minute
         (cb) ->
-            T = database.key_value_store(name:'forgot_password_policy_2')
-            T.get
-                key : client_ip_address
-                cb  : (error, value) ->
+            database.update
+                table   : 'password_reset_attempts_by_email_address'
+                set     : {ip_address:client_ip_address}
+                where   : {email_address:mesg.email_address, time:cass.now()}
+                cb      : (error, result) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true)
-                    else if value?
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset request."))
-                        cb(true)
+                        cb(true); return
                     else
-                        T.set(key:client_ip_address, value:true, ttl:60)
                         cb()
-
-        # POLICY 3: a given ip can send at most 10 per hour
-        (cb) ->
-            T = database.key_value_store(name:'forgot_password_policy_3')
-            T.get
-                key : client_ip_address
-                cb  : (error, value) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true)
-                    else if value?
-                        if value <= 10
-                            T.set(key:client_ip_address, value:value+1)
-                            cb()
-                        else
-                            push_to_client(message.forgot_password_response(id:mesg.id, error:"We limit the number of password resets per day.  Please try again in an hour."))
-                            cb(true)
-                    else
-                        T.set(key:mesg.email_address, value:1, ttl:3600)
-                        cb()
-
-            
                         
+        # POLICY 1: We limit the number of password resets that an email address can receive to at most 2 per hour
+        (cb) ->
+            database.count
+                table   : "password_reset_attempts_by_email_address"
+                where   : {email_address:mesg.email_address, time:{'>=':cass.milliseconds_ago(1000*3600)}}
+                cb      : (error, count) ->
+                    if error
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
+                        cb(true); return
+                    if count >= 3
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Salvus will not send more than 2 password resets to #{mesg.email_address} per hour."))
+                        cb(true)
+                        return
+                    cb()
+                    
+        # POLICY 2: a given ip address can send at most 3 password reset request per minute
+        (cb) ->
+            database.count
+                table   : "password_reset_attempts_by_ip_address"
+                where   : {ip_address:client_ip_address,  time:{'>=':cass.milliseconds_ago(1000*60)}}
+                cb      : (error, count) ->
+                    if error
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
+                        cb(true); return
+                    if count >= 4
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset request from the ip address #{client_ip_address}."))
+                        cb(true); return
+                    cb()
                         
+
+        # POLICY 3: a given ip can send at most 25 per hour
+        (cb) ->
+            database.count
+                table : "password_reset_attempts_by_ip_address"
+                where : {ip_address:client_ip_address, time:{'>=':cass.milliseconds_ago(1000*60*60)}}
+                cb    : (error, count) ->
+                    if error
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
+                        cb(true); return
+                    if count >= 26
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"There have been too many password reset requests from #{client_ip_address}.  Wait an hour before sending any more password reset requests."))
+                        cb(true); return
+                    cb()
+
+        (cb) ->
+            # TODO: here we would actually do it, but I need to test all the DB code above.
+            push_to_client(message.forgot_password_response(id:mesg.id)) 
+
 
     ])
             

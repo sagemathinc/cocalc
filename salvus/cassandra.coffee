@@ -22,7 +22,11 @@ uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
 
-now = () -> to_iso(new Date())
+# the time right now, in iso format ready to insert into the database:
+now = exports.now = () -> to_iso(new Date())
+
+# the time ms milliseconds ago, in iso format ready to insert into the database:
+exports.milliseconds_ago = (ms) -> to_iso(new Date(new Date() - ms))
 
 
 #########################################################################
@@ -213,14 +217,27 @@ class exports.Cassandra extends EventEmitter
     _where: (where_key, vals, json=[]) ->
         where = "";
         for key, val of where_key
-            if key in json
-                val = to_json(val)
-            if typeof(val) != 'boolean'
-                where += "#{key}=? AND "
-                vals.push(val)
-            else
-                # work around a *MAJOR* driver bug :-(
-                where += "#{key}='#{val}' AND "
+            equals_fallback = true
+            for op in ['>', '<', '>=', '<=', '==', '']
+                if op == '' and equals_fallback
+                    x = val
+                    op = '=='
+                else
+                    x = val[op]
+                if x?
+                    if key in json
+                        x = to_json(x)
+                    if op != ''
+                        equals_fallback = false
+                    if op == '=='
+                        op = '=' # for cassandra
+                    if typeof(val) == 'boolean'
+                        # work around a *MAJOR* driver bug :-(
+                        # TODO: check if fixed in new Helenus driver...
+                        where += "#{key} #{op} '#{x}' AND "
+                    else
+                        where += "#{key} #{op} ? AND "
+                        vals.push(x)
         return where.slice(0,-4)
 
     _set: (properties, vals, json=[]) ->

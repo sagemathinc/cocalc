@@ -149,3 +149,18 @@ CREATE INDEX ON feedback(category);
 CREATE INDEX ON feedback(status);
 CREATE INDEX ON feedback(nps);
 CREATE INDEX ON feedback(time);
+
+
+CREATE TABLE password_reset_attempts_by_ip_address (
+     ip_address   varchar,
+     time         timestamp,
+     email_address varchar,
+     PRIMARY KEY(ip_address, time)
+);
+
+CREATE TABLE password_reset_attempts_by_email_address (
+     ip_address   varchar,
+     time         timestamp,
+     email_address varchar,
+     PRIMARY KEY(email_address, time)
+);

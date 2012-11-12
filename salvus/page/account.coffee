@@ -402,10 +402,10 @@
             email_address : email_address
             cb : (error, mesg) ->
                 if error
-                    $("#account-forgot_password-error").html("Error communicating with server: #{error}")
+                    $("#account-forgot_password-error").html("Error communicating with server: #{error}").show()
                 else
                     if mesg.error
-                        $("#account-forgot_password-error").html(mesg.error)
+                        $("#account-forgot_password-error").html(mesg.error).show()
                     else
                         # success
                         alert_message(type:"info", message:"Salvus has sent a password reset email message to #{email_address}")
