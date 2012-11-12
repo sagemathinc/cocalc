@@ -243,10 +243,14 @@
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
     <h3>Change email address</h3>
+    <div class="hide account-error-text" id="account-change_email_address-too_frequent">Please wait<span></span>before trying to change your email address again.</div>
   </div>
   <div class="modal-body offset1">
-      <input class="span4 offset1" type="text" placeholder="New email address" id="account-change_email_new_address">
+    <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
+    <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
+      <input class="span4 offset1" type="text" placeholder="New email" id="account-change_email_new_address">
       <br>
+    <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
       <input class="span4 offset1" type="password" placeholder="Password"  id="account-change_email_password">
   </div>
   <div class="modal-footer">

@@ -226,14 +226,18 @@ class exports.Connection extends EventEmitter
 
     change_email: (opts) ->
         opts = defaults opts,
+            account_id        : required
             old_email_address : required
             new_email_address : required
-            cb : undefined
+            password          : required
+            cb                : undefined
             
         @call
             message: message.change_email_address
-                old_email_address: opts.old_email_address
-                new_email_address: opts.new_email_address
+                account_id        : opts.account_id
+                old_email_address : opts.old_email_address
+                new_email_address : opts.new_email_address
+                password          : opts.password
             cb : opts.cb
 
     # cb(false, message.account_settings), assuming this connection has logged in as that user, etc..  Otherwise, cb(error).
@@ -293,6 +297,21 @@ class exports.Connection extends EventEmitter
 
 check = require('validator').check
 
+exports.is_valid_email_address = (email) ->
+    try
+        check(email).isEmail()
+        return true
+    catch err
+        return false
+
+exports.is_valid_password = (password) ->
+    try
+        check(mesg.password).len(6,64)
+        return true
+    catch err
+        return false
+    
+        
 exports.issues_with_create_account = (mesg) ->
     issues = {}
     if not mesg.agreed_to_terms
@@ -301,15 +320,10 @@ exports.issues_with_create_account = (mesg) ->
         issues.first_name = 'Enter a first name.'
     if mesg.last_name == ''
         issues.last_name = 'Enter a last name.'
-        
-    try
-        check(mesg.email_address).isEmail()
-    catch err
+    if not exports.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
-        
-    try
-        check(mesg.password).len(6,64)
-    catch err
+    if not exports.is_valid_password(mesg.password)
         issues.password = 'Password must be between 6 and 64 characters in length.'
+        
     return issues
     

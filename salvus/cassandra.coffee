@@ -443,7 +443,7 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             # we treat email separately, since email must be unique,
             # but cassandra does have a unique col feature.
-            (cb) -> 
+            (cb) => 
                 if opts.settings.email_address?
                     @change_email_address
                         account_id    : opts.account_id
@@ -456,7 +456,7 @@ class exports.Salvus extends exports.Cassandra
                                 delete opts.settings.email_address
                                 cb()
             # make all the non-email changes
-            (cb) -> 
+            (cb) => 
                 @update
                     table      : 'accounts'
                     where      : {'account_id':opts.account_id}
@@ -480,7 +480,7 @@ class exports.Salvus extends exports.Cassandra
             cb      : opts.cb
         )
 
-    # change the email address, unless the email_address we're changing to is already taken.
+    # Change the email address, unless the email_address we're changing to is already taken.
     change_email_address: (opts={}) ->
         opts = defaults(opts,
             account_id    : required
@@ -496,7 +496,7 @@ class exports.Salvus extends exports.Cassandra
                     where   : {email_address : opts.email_address}
                     cb      : (error, result) ->
                         if result > 0
-                            opts.cb("Email address is not available.")
+                            opts.cb('email_already_taken')
                             cb(true)
                         else
                             cb()
@@ -506,7 +506,7 @@ class exports.Salvus extends exports.Cassandra
                     where   : {account_id    : opts.account_id}
                     set     : {email_address : opts.email_address}
                     cb      : (error, result) ->
-                        opts.cb(error, result)
+                        opts.cb(error, true)
                         cb()
         ])
         

@@ -291,24 +291,50 @@
     ################################################
     # Change Email Address
     ################################################
+
+    # When click in the cancel button on the change email address
+    # dialog, it is important to hide an error messages; also clear
+    # password.
+    $("#account-change_email_address_button").children(".close").click (event) ->
+        $("#account-change_email_address_button").children(".account-error-text").hide()
+
+    # User clicked button to change the email address, so try to
+    # change it.
     $("#account-change_email_address_button").click (event) ->
-        account_settings.settings.email_address = $("#account-change_email_new_address").val()
-        $("#account-change_email_new_address").val("")
+        new_email_address = $("#account-change_email_new_address").val()
         password = $("#account-change_email_password").val()
-        $("#account-change_email_password").val('') # for safety
-        account_settings.save_to_server(
-            password   : password
-            cb         : (error, mesg) ->
-                if error
-                    alert_message(type:"error", message:"Error communicating with server.")
-                else if mesg.event == "error"
-                    alert_message(type:"error", message:error)                
+        close = () ->
+            $("#account-change_email_address").modal('hide').find('input').val('')
+            
+        salvus.conn.change_email
+            old_email_address : account_settings.settings.email_address
+            new_email_address : new_email_address
+            password          : password
+            account_id        : account_settings.settings.account_id
+            cb                : (error, mesg) ->
+                $("#account-change_email_address").find(".account-error-text").hide()
+                if error  # exceptional condition -- some sort of server or connection error
+                    alert_message(type:"error", message:error)
+                    close() # kill modal (since this is a weird error condition)
+                    return
+                if mesg.error
+                    x = $("#account-change_email_address-#{mesg.error}")
+                    if x.length == 0
+                        # this should not happen
+                        alert_message(type:"error", message:"Email change error: #{mesg.error}")
+                        close()
+                    else
+                        x.show()
+                        if mesg.error == 'too_frequent' and mesg.ttl
+                            x.find("span").html(" #{mesg.ttl } seconds ")
+                            setTimeout((() -> x.hide()), mesg.ttl*1000)
+                            
+                        $("#account-change_email_password").val(password)
                 else
-                    # it worked!
-                    $("#account-settings-email_address").html(account_settings.settings.email_address)
-                    
-
-        )
-
-                
+                    # success
+                    $("#account-settings-email_address").html(new_email_address)
+                    account_settings.settings.email_address = new_email_address
+                    close()
+        return false
+        
 )()

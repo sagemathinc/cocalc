@@ -168,22 +168,6 @@ message(
     id             : undefined
 )
 
-# client --> hub
-message(
-    event          : 'change_email_address'
-    id             : undefined    
-    old_email_address : required
-    new_email_address : required
-    password          : required
-)
-
-# hub --> client
-message(
-    event          : 'changed_email_address'
-    id             : undefined    
-    old_email_address : required
-    new_email_address : required
-)
 
 # client --> hub
 message(
@@ -209,18 +193,18 @@ message(
 message(
     event             : 'change_email_address'
     id                : undefined
-    old_email_address : required
+    account_id        : required    
+    old_email_address : required    
     new_email_address : required    
     password          : required
 )    
     
-# client --> hub
+# hub --> client
 message(
-    event             : 'changed_email_address'
-    id                : undefined
-    error             : required
-    message           : undefined  
-    new_email_address : required    
+    event               : 'changed_email_address'
+    id                  : undefined
+    error               : false  # some other error
+    ttl                 : undefined   # if user is trying to change password too often, this is time to wait
 )    
 
 # client --> hub

@@ -491,15 +491,18 @@ change_password = (mesg, client_ip_address, push_to_client) ->
 change_email_address = (mesg, client_ip_address, push_to_client) ->    
     
     if mesg.old_email_address == mesg.new_email_address  # easy case
-        push_to_client(message.changed_email_address(id:mesg.id, error:false, new_email_address:mesg.new_email_address))
+        push_to_client(message.changed_email_address(id:mesg.id))
+        return
+
+    if not client.is_valid_email_address(mesg.new_email_address)
+        push_to_client(message.changed_email_address(id:mesg.id, error:'email_invalid'))
         return
         
-    account = null
-    
     async.series([
-        # make sure there hasn't been an email change attempt for this
-        # email address in the last 10 seconds
+        # Make sure there hasn't been an email change attempt for this
+        # email address in the last 5 seconds:
         (cb) ->
+            WAIT = 5
             tracker = database.key_value_store(name:'change_email_address_tracker')
             tracker.get(
                 key : mesg.old_email_address
@@ -508,7 +511,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                         cb()  # DB error, so don't bother with this
                         return
                     if value?  # is defined, so problem -- it's over
-                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Please wait at least 10 seconds before trying to change your email address again."))
+                        push_to_client(message.changed_email_address(id:mesg.id, error:'too_frequent', ttl:WAIT))
                         database.log(
                             event : 'change_email_address'
                             value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"attack?"}
@@ -518,50 +521,51 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     else
                         # record change in tracker with ttl (don't care about confirming that this succeeded)
                         tracker.set(
-                            key   : mesg.email_address
+                            key   : mesg.old_email_address
                             value : client_ip_address
-                            ttl   : 10    # seconds
+                            ttl   : WAIT    # seconds
                         )
                         cb()
             )
                             
-        # get account and validate the password
+        # validate the password
         (cb) ->
             is_password_correct
-                email_address : mesg.old_email_address
-                cb : (error, password_is_correct) ->
+                account_id    : mesg.account_id
+                password      : mesg.password
+                cb : (error, is_correct) ->
                     if error
-                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Internal error.  Please try again later."))
+                        push_to_client(message.changed_email_address(id:mesg.id, error:"Server error checking password."))
                         cb(true)
-                    else if not password_is_correct
-                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:"Incorrect password"))
-                        database.log(
-                            event : 'change_email_address'
-                            value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"Incorrect password"}
-                        )
+                        return
+                    else if not is_correct
+                        push_to_client(message.changed_email_address(id:mesg.id, error:"invalid_password"))
                         cb(true)
-                    else
-                        cb()
+                        return
+                    cb()
 
         # Record current email address (just in case?) and that we are
         # changing email address to the new one.  This will make it
         # easy to implement a "change your email address back" feature
         # if I need to at some point.
         (cb) ->
-            database.log(
-    	        event:'change_email_address',
-                value:{email_address:mesg.new_email_address, client_ip_address:client_ip_address, old_email_address:account.email_address}
-            )
-            database.change_email_address(
-                account_id:    account.account_id
-                email_address: mesg.new_email_address,
-                cb : (error, result) ->
+            database.log(event : 'change_email_address', value : {client_ip_address : client_ip_address, old_email_address : mesg.old_email_address, new_email_address : mesg.new_email_address})
+                    
+            #################################################
+            # TODO: At this point, we should send an email to
+            # old_email_address with a hash-code that can be used
+            # to undo the change to the email address.
+            #################################################
+
+            database.change_email_address
+                account_id    : mesg.account_id
+                email_address : mesg.new_email_address
+                cb : (error, success) ->
                     if error
-                        push_to_client(message.changed_email_address(id:mesg.id, error:true, message:error))
+                        push_to_client(message.changed_email_address(id:mesg.id, error:error))
                     else
-                        push_to_client(message.changed_email_address(id:mesg.id, error:false, new_email_address:mesg.new_email_address)) # finally, success!
+                        push_to_client(message.changed_email_address(id:mesg.id)) # finally, success!
                     cb()
-            )
     ])            
             
 

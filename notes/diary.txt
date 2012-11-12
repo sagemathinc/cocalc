@@ -7135,8 +7135,7 @@ For now:
 
 Next up, this -- report (and make sure) of *any* errors on email change before closing modal:
 
-  [ ] change email: 
- 
+  [x] change email: 
         - give error on fail
         - check that new address available
 
