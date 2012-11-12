@@ -306,7 +306,7 @@ exports.is_valid_email_address = (email) ->
 
 exports.is_valid_password = (password) ->
     try
-        check(mesg.password).len(6,64)
+        check(password).len(6,64)
         return true
     catch err
         return false

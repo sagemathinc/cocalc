@@ -17,9 +17,9 @@ class Controller  extends EventEmitter
         $("##{id}-item").removeClass("active")
 
     _show_page: (id) ->
-        @emit("show_page_#{id}", id)
         $("##{id}").show()
         $("##{id}-item").addClass("active")
+        @emit("show_page_#{id}", id)
         
     switch_to_page: (id) ->
         @show_page_nav(id)

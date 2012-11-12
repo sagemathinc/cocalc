@@ -7139,7 +7139,11 @@ Next up, this -- report (and make sure) of *any* errors on email change before c
         - give error on fail
         - check that new address available
 
-  [ ] remember me cookie -- (?)
+  [ ] enter to submit: login, change email, etc.
+
+  [ ] correct focus for login, change email, etc.
+
+  [ ] remember me cookie 
 
   [ ] password reset gui  
 
@@ -7148,4 +7152,3 @@ Next up, this -- report (and make sure) of *any* errors on email change before c
   [ ] add more tests to the test suite
 
 
---> this list of javascript libraries is awesome: http://microjs.com/# 

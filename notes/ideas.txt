@@ -62,3 +62,6 @@
      "Bonsai is a JavaScript graphics library."  -- looks *very* cool!
 
      Good discussion of alternatives: http://news.ycombinator.com/item?id=4748000
+
+ [ ]  this list of javascript libraries is awesome: http://microjs.com/# 
+

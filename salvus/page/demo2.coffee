@@ -42,3 +42,6 @@ interrupt_exec2 = () ->
     persistent_session.interrupt()
 
 $("#interrupt2").button().click(interrupt_exec2)
+
+controller.on "show_page_demo2", () ->
+    $("#input2").focus()

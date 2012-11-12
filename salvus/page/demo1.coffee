@@ -37,3 +37,9 @@ execute_code_demo1 = () ->
         preparse : preparse
         allow_cache : $("#script-cache").is(':checked')
     )
+
+
+controller.on "show_page_demo1", () ->
+    $("#input").focus()
+    
+
