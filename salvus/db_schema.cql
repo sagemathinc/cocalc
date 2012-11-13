@@ -189,4 +189,4 @@ CREATE TABLE successful_sign_ins (
      signed_out     timestamp,
      PRIMARY KEY(account_id, time)
 );
-
+       

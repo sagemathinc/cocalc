@@ -162,7 +162,7 @@ init_sockjs_server = () ->
                 when "create_account"
                     create_account(mesg, conn.remoteAddress, push_to_client)
                 when "sign_in"
-                    sign_in(mesg, conn.remoteAddress, push_to_client)
+                    sign_in(mesg, conn.remoteAddress, push_to_client, conn)
                     
                 # TODO: implement -- make no sense without connection session id
                 #when "sign_out"
@@ -264,11 +264,12 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
 #   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
 #############################################################################
-sign_in = (mesg, client_ip_address, push_to_client) ->
+sign_in = (mesg, client_ip_address, push_to_client, conn) ->
 
     sign_in_error = (error) ->
         push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
 
+    sign_in_mesg = null
     async.series([
         # POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
         (cb) ->
@@ -346,20 +347,35 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
                         sign_in_error("Invalid password for #{mesg.email_address}.")
                         cb(true); return
                     else
-                        push_to_client(message.signed_in(
+                        sign_in_mesg = message.signed_in
                             id            : mesg.id
                             account_id    : account.account_id 
                             first_name    : account.first_name
                             last_name     : account.last_name
                             email_address : mesg.email_address
-                            password_crack_time: password_crack_time(mesg.password)                    
-                        ))
+
+                        push_to_client(sign_in_mesg)
+                        
                         record_sign_in
                             ip_address    : client_ip_address
                             successful    : true
                             email_address : mesg.email_address
                             account_id    : account.account_id
                         cb()
+
+        # remember me
+        (cb) ->
+            if not mesg.remember_me
+                # don't do anything if user does not want us to remember them
+                cb(); return
+            remember_me = database.key_value_store(name:'remember_me')
+            # generate a session_id
+            session_id = uuid.v4()
+            hash_session_id = password_hash(session_id)
+            v = hash_session_id.split('$')    # format:  algorithm$salt$hash
+            cookie = [v[0],v[1],session_id].join("$")
+            remember_me[hash_session_id] = sign_in_mesg
+            conn.set_cookie(name:"session_id", value:cookie, ttl:7*24*3600, cb:() -> console.log("SET A COOKIE!"))
 
 
     ])
@@ -490,7 +506,6 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                 first_name: mesg.first_name
                 last_name: mesg.last_name
                 email_address: mesg.email_address
-                password_crack_time: password_crack_time(mesg.password)
             )
             push_to_client(mesg)
             record_sign_in

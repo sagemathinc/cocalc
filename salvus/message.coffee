@@ -153,7 +153,6 @@ message(
     first_name     : required      # user's first name
     last_name      : required      # user's last name
     email_address  : required      # address they just signed in using
-    password_crack_time: required  # time to crack in days -- use in the client gui to encourage users to change their password
 )
 
 
