@@ -107,6 +107,11 @@ init_sockjs_server = () ->
                     create_account(mesg, conn.remoteAddress, push_to_client)
                 when "sign_in"
                     sign_in(mesg, conn.remoteAddress, push_to_client)
+                    
+                # TODO: implement -- make no sense without connection session id
+                #when "sign_out"
+                    #sign_out(mesg, conn.remoteAddress, push_to_client)
+
                 when "password_reset"
                     password_reset(mesg, conn.remoteAddress, push_to_client)
                 when "change_password"
@@ -192,35 +197,140 @@ is_password_correct = (opts) ->
 ########################################
 
 password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_time/(3600*24.0)) # time to crack in days
-    
+
+#############################################################################
+# User sign in
+# 
+# Anti-DOS cracking throttling policy:
+# 
+#   * POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
+#   * POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
+#   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
+#   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
+#############################################################################
 sign_in = (mesg, client_ip_address, push_to_client) ->
-    database.get_account(
-        email_address : mesg.email_address
-        cb            : (error, account) ->
-            if error
-                push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
-            else if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
-                push_to_client(
-                    message.sign_in_failed
-                        id            : mesg.id
-                        email_address : mesg.email_address
-                        reason        : "Invalid password for #{mesg.email_address}."
-                )
-            else
-                database.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
-                
-                push_to_client(message.signed_in(
-                    id            : mesg.id
-                    account_id    : account.account_id 
-                    first_name    : account.first_name
-                    last_name     : account.last_name
-                    email_address : mesg.email_address
-                    password_crack_time: password_crack_time(mesg.password)                    
-                ))
-    )
 
-    
+    sign_in_error = (error) ->
+        push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
 
+    async.series([
+        # POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
+        (cb) ->
+            database.count
+                table: "failed_sign_ins_by_email_address"
+                where: {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
+                cb: (error, count) ->
+                    if error
+                        sign_in_error(error)
+                        cb(true); return
+                    if count > 3
+                        sign_in_error("A given email address is allowed at most 3 failed login attempts per minute.")
+                        cb(true); return
+                    cb()
+        # POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
+        (cb) ->
+            database.count
+                table: "failed_sign_ins_by_email_address"
+                where: {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
+                cb: (error, count) ->
+                    if error
+                        sign_in_error(error)
+                        cb(true); return
+                    if count > 10
+                        sign_in_error("A given email address is allowed at most 10 failed login attempts per hour.")
+                        cb(true); return
+                    cb()
+                    
+        # POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
+        (cb) ->
+            database.count
+                table: "failed_sign_ins_by_ip_address"
+                where: {ip_address:client_ip_address, time: {'>=':cass.minutes_ago(1)}}
+                cb: (error, count) ->
+                    if error
+                        sign_in_error(error)
+                        cb(true); return
+                    if count > 10
+                        sign_in_error("A given ip address is allowed at most 10 failed login attempts per minute.")
+                        cb(true); return
+                    cb()
+                        
+        # POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
+        (cb) ->
+            database.count
+                table: "failed_sign_ins_by_ip_address"
+                where: {ip_address:client_ip_address, time: {'>=':cass.hours_ago(1)}}
+                cb: (error, count) ->
+                    if error
+                        sign_in_error(error)
+                        cb(true); return
+                    if count > 25
+                        sign_in_error("A given ip address is allowed at most 25 failed login attempts per hour.")
+                        cb(true); return
+                    cb()
+
+        # get account and check credentials
+        (cb) ->
+            database.get_account
+                email_address : mesg.email_address
+                cb            : (error, account) ->
+                    if error
+                        record_sign_in
+                            ip_address    : client_ip_address
+                            successful    : false
+                            email_address : mesg.email_address
+                        sign_in_error(error)
+                        cb(true); return
+                    if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
+                        record_sign_in
+                            ip_address    : client_ip_address
+                            successful    : false
+                            email_address : mesg.email_address
+                            account_id    : account.account_id
+                        sign_in_error("Invalid password for #{mesg.email_address}.")
+                        cb(true); return
+                    else
+                        push_to_client(message.signed_in(
+                            id            : mesg.id
+                            account_id    : account.account_id 
+                            first_name    : account.first_name
+                            last_name     : account.last_name
+                            email_address : mesg.email_address
+                            password_crack_time: password_crack_time(mesg.password)                    
+                        ))
+                        record_sign_in
+                            ip_address    : client_ip_address
+                            successful    : true
+                            email_address : mesg.email_address
+                            account_id    : account.account_id
+                        cb()
+
+
+    ])
+
+
+# Record in database failed or successful login attempt.
+record_sign_in = (opts) ->
+    opts = defaults opts,
+        ip_address    : required
+        successful    : required
+        email_address : required
+        account_id    : undefined
+    if not opts.successful
+        database.update
+            table : 'failed_sign_ins_by_ip_address'
+            set   : {email_address:opts.email_address}
+            where : {time:cass.now(), ip_address:opts.ip_address}
+        database.update
+            table : 'failed_sign_ins_by_email_address'
+            set   : {ip_address:opts.ip_address}
+            where : {time:cass.now(), email_address:opts.email_address}
+    else
+        database.update
+            table : 'successful_sign_ins'
+            set   : {ip_address:opts.ip_address}
+            where : {time:cass.now(), account_id:opts.account_id}
+        
 
 # We cannot put the zxcvbn password strength checking in
 # client.coffee since it is too big (~1MB).  The client
@@ -328,6 +438,11 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                 password_crack_time: password_crack_time(mesg.password)
             )
             push_to_client(mesg)
+            record_sign_in
+                ip_address    : client_ip_address
+                successful    : true
+                email_address : mesg.email_address
+                account_id    : account_id
             cb()
     ])
     
@@ -548,7 +663,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             database.count
                 table   : "password_reset_attempts_by_email_address"
-                where   : {email_address:mesg.email_address, time:{'>=':cass.milliseconds_ago(1000*3600)}}
+                where   : {email_address:mesg.email_address, time:{'>=':cass.hours_ago(1)}}
                 cb      : (error, count) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
@@ -563,7 +678,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             database.count
                 table   : "password_reset_attempts_by_ip_address"
-                where   : {ip_address:client_ip_address,  time:{'>=':cass.milliseconds_ago(1000*60)}}
+                where   : {ip_address:client_ip_address,  time:{'>=':cass.hours_ago(1)}}
                 cb      : (error, count) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
@@ -578,7 +693,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             database.count
                 table : "password_reset_attempts_by_ip_address"
-                where : {ip_address:client_ip_address, time:{'>=':cass.milliseconds_ago(1000*60*60)}}
+                where : {ip_address:client_ip_address, time:{'>=':cass.hours_ago(1)}}
                 cb    : (error, count) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))

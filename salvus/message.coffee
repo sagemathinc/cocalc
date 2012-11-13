@@ -160,6 +160,7 @@ message(
 # client --> hub
 message(
     event          : 'sign_out'
+    account_id     : required
     id             : undefined
 )
 

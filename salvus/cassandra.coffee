@@ -28,6 +28,13 @@ now = exports.now = () -> to_iso(new Date())
 # the time ms milliseconds ago, in iso format ready to insert into the database:
 exports.milliseconds_ago = (ms) -> to_iso(new Date(new Date() - ms))
 
+exports.seconds_ago = (s) -> exports.milliseconds_ago(1000*s)
+
+exports.minutes_ago = (m) -> exports.seconds_ago(60*m)
+
+exports.hours_ago = (h) -> exports.minutes_ago(60*h)
+
+exports.days_ago = (d) -> exports.hours_ago(24*d)
 
 #########################################################################
 

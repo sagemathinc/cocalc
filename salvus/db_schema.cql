@@ -164,3 +164,29 @@ CREATE TABLE password_reset_attempts_by_email_address (
      email_address varchar,
      PRIMARY KEY(email_address, time)
 );
+
+//////////////////////////////////////////
+// sign in log
+//////////////////////////////////////////
+CREATE TABLE failed_sign_ins_by_ip_address (
+     ip_address    varchar,
+     time          timestamp,
+     email_address varchar,
+     PRIMARY KEY(ip_address, time)
+);
+
+CREATE TABLE failed_sign_ins_by_email_address (
+     email_address varchar,
+     time          timestamp,
+     ip_address    varchar,
+     PRIMARY KEY(email_address, time)
+);
+
+CREATE TABLE successful_sign_ins (  
+     account_id     uuid,
+     time           timestamp,
+     ip_address     varchar,
+     signed_out     timestamp,
+     PRIMARY KEY(account_id, time)
+);
+

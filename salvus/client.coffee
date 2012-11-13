@@ -198,6 +198,18 @@ class exports.Connection extends EventEmitter
             cb      : opts.cb
         )
 
+    sign_out: (opts) ->
+        opts = defaults(opts,
+            account_id   : required
+            cb           : undefined
+            timeout      : 10 # seconds
+        )
+        @call(
+            message : message.sign_out(account_id:opts.account_id)
+            timeout : opts.timeout
+            cb      : opts.cb
+        )
+
     change_password: (opts) ->
         opts = defaults(opts,
             email_address : required

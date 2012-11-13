@@ -7167,12 +7167,10 @@ Is this possible? YES.  easy.
   [x] (3) refix test suite, broken by change password dialog
 
 
-  [ ] ** rewrite sign_in function in hub.coffee to have an anti-DOS policy! **
+  [x] ** rewrite sign_in function in hub.coffee to have an anti-DOS policy! **
 
-  [ ] change password -- enable automatic zxcvbn.zxcvbn 
-
-  [ ](4) sign-up: enable automatic zxcvbn.zxcvbn 
-          
+  [ ] (3) sign-up: enable automatic zxcvbn.zxcvbn 
+  [ ] (3) change password -- enable automatic zxcvbn.zxcvbn 
 
   [ ](2) make error message on sign-in right by the password, not using alert
 
@@ -7188,3 +7186,6 @@ Is this possible? YES.  easy.
 
 
   [ ] delete account
+
+  [ ] implement sign out -- make no sense without connection session id
+
