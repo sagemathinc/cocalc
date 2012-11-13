@@ -7171,12 +7171,12 @@ Is this possible? YES.  easy.
 
   [x] Clicking on SalvusTM logo should give about page; other randomly polish
 
-  [ ] make it easier to close alerts
+  [x] make it easier to close alerts -- now just click on them anywhere
+
+  [x] disable connect-to box
 
   [ ] (3) sign-up: enable automatic zxcvbn.zxcvbn 
   [ ] (3) change password -- enable automatic zxcvbn.zxcvbn 
-
-  [ ](2) make error message on sign-in right by the password, not using alert
 
   [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
 
@@ -7188,6 +7188,8 @@ Is this possible? YES.  easy.
 
   [ ](6) add more tests to the test suite
 
+
+  [ ](2) make error message on sign-in right by the password, not using alert
 
   [ ] delete account
 
