@@ -329,5 +329,15 @@ message
     error       : undefined
     data        : required  # JSON list of objects
     
-    
-    
+
+######################################################################################
+# This is a message that goes
+#      hub --> client
+# In response, the client grabs "/cookies?id=...,set=...,get=..." via an AJAX call.  
+# During that call the server can get/set HTTP-only cookies.
+######################################################################################
+message
+    event       : 'cookies'
+    id          : required
+    set         : undefined  # name of a cookie to set
+    get         : undefined  # name of a cookie to get

@@ -37,7 +37,7 @@ NODEJS_PACKAGES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
-    'password-hash', 'emailjs'
+    'password-hash', 'emailjs', 'cookies'
     ]
 
 PYTHON_PACKAGES = [

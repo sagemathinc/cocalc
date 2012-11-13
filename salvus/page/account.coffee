@@ -468,6 +468,8 @@
                         close_forgot_password_reset()
                         window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
         return false
-    
+
+
+
 
 )()

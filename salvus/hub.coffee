@@ -15,6 +15,7 @@
 
 # node.js -- builtin libraries 
 http    = require('http')
+url     = require('url')
 
 # salvus libraries
 sage    = require("sage")               # sage server
@@ -36,9 +37,11 @@ winston = require('winston')            # logging -- https://github.com/flatiron
 sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
 uuid    = require('node-uuid')
 
+Cookies = require('cookies')            # https://github.com/jed/cookies
+
 # module scope variables:
 http_server        = null
-sockjs_connections = []
+sockjs_connections = {}
 database           = null
 
 ###
@@ -47,9 +50,30 @@ database           = null
 
 init_http_server = () -> 
     http_server = http.createServer((req, res) ->
-        return res.end('') if req.url == '/alive'
-        winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
-        res.end('hub server')
+
+        {query, pathname} = url.parse(req.url, true)
+        
+        if pathname != '/alive'
+            winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
+
+        switch pathname
+            when "/cookies"
+                cookies = new Cookies(req, res)
+                conn = sockjs_connections[query.id]
+                if conn?
+                    if query.get
+                        conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
+                    if query.set
+                        x = conn.cookies[query.set]
+                        delete conn.cookies[query.set]
+                        cookies.set(query.set, x.value, x.options)
+                        conn.emit("set_cookie-#{query.set}")
+                res.end('')
+            when "/alive"
+                res.end('')
+            else
+                res.end('hub server')
+                
     )
 
 ###
@@ -58,12 +82,12 @@ init_http_server = () ->
 init_sockjs_server = () ->
     sockjs_server = sockjs.createServer()
     sockjs_server.on("connection", (conn) ->
-        # TODO: This sockjs_connections data structure is not currently used; it also just
-        # grows without every having anything removed, so it would leak memory.   !!!
-        sockjs_connections.push(conn)
+        # TODO: This sockjs_connections just
+        # grows without ever having anything removed, so leaks memory.   !!!
+        sockjs_connections[conn.id] = conn
         winston.info ("new sockjs connection #{conn} from #{conn.remoteAddress}")
-        # install event handlers on this particular connection
 
+        # install event handlers on this particular connection
         account_id = null
         
         push_to_client = (mesg) ->
@@ -72,6 +96,38 @@ init_sockjs_server = () ->
                 account_id = mesg.account_id
                 
             conn.write(to_json(mesg))
+
+        #########################################################
+        # Setting and getting HTTPonly cookies via SockJS + AJAX
+        #########################################################
+        conn.cookies = {}
+        
+        conn.get_cookie = (opts) ->
+            opts = defaults opts,
+                name : required
+                cb   : required   # cb(value)
+            conn.once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
+            push_to_client(message.cookies(id:conn.id, get:opts.name))
+            
+        conn.set_cookie = (opts) -> 
+            opts = defaults opts,
+                name  : required
+                value : required     
+                ttl   : undefined    # time in seconds until cookie expires 
+                cb    : undefined    # cb() when cookie is set
+            options = {}
+            if opts.ttl?
+                options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
+            conn.once("set_cookie-#{opts.name}", ()->opts.cb())
+            conn.cookies[opts.name] = {value:opts.value, options:options}
+            push_to_client(message.cookies(id:conn.id, set:opts.name))
+
+        # Illustrating of getting and setting cookies:
+        # conn.set_cookie(name:"conn", value:"29034u8239as9c", ttl:3600, cb:(() ->
+        #    console.log("set the cookie")
+        #    conn.get_cookie(name:"conn", cb:((value) -> console.log("got cookie #{value}")))
+        # ))
+        
 
         conn.on("data", (mesg) ->
             try

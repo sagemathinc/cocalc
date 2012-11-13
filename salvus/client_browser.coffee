@@ -28,5 +28,6 @@ class Connection extends client.Connection
         console.log("connection is not working... attempting to fix.")
         @_conn.close()
         
-        
-    
+    _cookies: (mesg) ->
+        console.log("doing ajax call...")
+        $.ajax(url:"/cookies", data:{id:mesg.id, set:mesg.set, get:mesg.get})
