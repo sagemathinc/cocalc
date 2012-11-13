@@ -84,14 +84,14 @@ class ClientConnection extends EventEmitter
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
         @check_for_remember_me()
+        
         @conn.on("data", @handle_message_from_client)
-        @conn.on("close", () -> winston.info("conn=#{conn} closed"))
+        @conn.on("close", () => delete client_connections[@conn.id])
 
     check_for_remember_me: () =>
         @get_cookie
             name : 'remember_me'
             cb   : (value) =>
-                console.log("remember_me: #{value}")
                 if value?
                     x    = value.split('$')
                     hash = generate_hash(x[0], x[1], x[2], x[3])
@@ -115,7 +115,6 @@ class ClientConnection extends EventEmitter
         opts = defaults opts,
             name : required
             cb   : required   # cb(value)
-        console.log("get_cookie(#{opts.name})")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name))
         
@@ -271,7 +270,6 @@ init_sockjs_server = () ->
     
     sockjs_server.on "connection", (conn) ->
         client_connections[conn.id] = new ClientConnection(conn)
-        
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
 

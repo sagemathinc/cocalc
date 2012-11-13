@@ -7209,9 +7209,11 @@ Next up:
 
    [x] refactor the conn object in hub.coffee
 
+   [x] when user disconnects should delete the clientconnect object to avoid a leak
+
+   [ ] make it so hub verifies user is authenticated before doing stuff for them.
+
    [ ] clean up the clientconn code after refactor
- 
-   [ ] when user disconnects should delete the clientconnect object to avoid a leak
 
    [ ] make "remember me" sign-in's get recorded in the database log
    [ ] for ease of use (de-normalization), add an extra "misc" column to successful_sign_ins that 
