@@ -7192,8 +7192,11 @@ cookies *back* to some URL... AFTER we have made the sockjs
 connection.  This will work and keep cookies httponly. (http://www.codinghorror.com/blog/2008/08/protecting-your-cookies-httponly.html)
   [x] implement sign out -- make no sense without connection session id
 
-             
-  [ ](5) enter to submit: login, change email, etc.
+  [x] some sessions are very flakie, because some pexpect interfaces are.
+      Only provide the very robust interfaces and nothing else.
+
+
+Lower priority todo:
 
   [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
 
@@ -7203,12 +7206,11 @@ connection.  This will work and keep cookies httponly. (http://www.codinghorror.
 
   [ ] delete account
 
-  [ ] sessions are very flakie, because some pexpect interfaces are.
-      Only provide the very robust interfaces and nothing else.
-
   [ ] maybe salvus totally broken on ie because of use of console.log ?
 
   [ ] after remember me is done, I may want to move from key:value
       store to another table so that when user changes their password,
       then all remember_me cookies for them are invalidated.
+
+  [ ](5) enter to submit: login, change email, etc.
 

@@ -2,31 +2,47 @@ Todo list until the next Salvus release
 ----------------------------------------
 
   [x] implement the "Sign out" link
-
   [x] make the contents in the account settings page actually valid
+  [x] Make the "forget your password" thing actually submit back to
+      the server (just a few lines of code).  
+  [x] Implement URL handler in node for resetting password (this is
+      not done).
+  [x] Remember me; persistent login cookie. 
+  [x] the function sign_in in hub.coffee needs to have a sign in
+      attempt delay like most of the other functions.  Have the delay be 1 s, 2 s, 3s, 5s, 5s, 5s, 5s, ...
+ 
+
+Very high priority:
+
+  [ ] tab completion
+
+  [ ] a worksheet mode
+
+Lower priority todo:
+
+  [ ]  fix change email gui to use reason object for errors instead of hard coding them.
+
+  [ ] should have an easy link to salvus terms in various places instead of *only* having it on account creation?
+
+  [ ] make error message on sign-in right by the password, not using alert
+
+  [ ] delete account
+
+  [ ] maybe salvus totally broken on ie because of use of console.log ?
+
+  [ ] after remember me is done, I may want to move from key:value
+      store to another table so that when user changes their password,
+      then all remember_me cookies for them are invalidated.
+
+  [ ] enter to submit: login, change email, etc.
 
   [ ] saving settings on one client should push changes to all connected clients
 
   [ ] in demo1.coffee:
           code = system + ".eval(r'''" + code + "''')"  # TODO: this won't work when code contains ''' -- replace by a more sophisticated message to the backend server
 
-  [ ] Make the "forget your password" thing actually submit back to
-      the server (just a few lines of code).  
-
-  [ ] Implement URL handler in node for resetting password (this is
-      not done).
-
   [ ] Save x amount of command line history for user on logout and
       periodically Restore on login.
 
-  [ ] Remember me; persistent login cookie. 
 
-  [ ] the function sign_in in hub.coffee needs to have a sign in
-      attempt delay like most of the other functions.  Have the delay be 1 s, 2 s, 3s, 5s, 5s, 5s, 5s, ...
- 
-  [ ] tab completion
 
-  [ ] a worksheet mode
-
---
-  [ ] remove default login creds in account.html
