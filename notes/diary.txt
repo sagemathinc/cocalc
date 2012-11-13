@@ -7211,11 +7211,15 @@ Next up:
 
    [x] when user disconnects should delete the clientconnect object to avoid a leak
 
-   [ ] make it so hub verifies user is authenticated before doing stuff for them.
+   [x] make it so hub verifies user is authenticated before doing stuff for them. (done, except for demo exec stuff, which is temporary)
+
+   [ ] make "remember me" sign-in's get recorded in the database log
 
    [ ] clean up the clientconn code after refactor
 
-   [ ] make "remember me" sign-in's get recorded in the database log
+   [ ] right now persistent sessions don't work because client tries to start *it* before sign-in even happens
+       Fix: big / nontrivial / do things right.
+
    [ ] for ease of use (de-normalization), add an extra "misc" column to successful_sign_ins that 
        includes JSON:  {first_name:*, last_name:*, email_address:*, remember_me:bool}
 

@@ -80,6 +80,13 @@ init_http_server = () ->
 class ClientConnection extends EventEmitter
     constructor: (@conn) ->
         @ip_address = @conn.remoteAddress
+
+        # The variable account_id is either undefined or set to the
+        # account id of the user that this session has successfully
+        # authenticated as.  Use @account_id to decide whether or not
+        # it is safe to carry out a given action.
+        @account_id = undefined
+        
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
@@ -100,13 +107,19 @@ class ClientConnection extends EventEmitter
                         cb  : (error, mesg) =>
                             if not error and mesg?
                                 @hash_session_id = hash
+                                @signed_in(mesg.account_id)
                                 @push_to_client(mesg)
                             
     push_to_client: (mesg) =>
         winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
-        if mesg.event == 'signed_in'
-            @account_id = mesg.account_id
         @conn.write(to_json(mesg))
+
+    # Call this method when the user has successfully signed in.
+    signed_in: (account_id) =>
+        @account_id = account_id
+
+    signed_out: () =>
+        @account_id = undefined
 
     #########################################################
     # Setting and getting HTTPonly cookies via SockJS + AJAX
@@ -202,15 +215,27 @@ class ClientConnection extends EventEmitter
             @push_to_client(message.error("The Salvus server does not know how to handle the #{mesg.event} event."))
 
     mesg_execute_code: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to execute code."))
+            return
+        # TODO: this must go -- no notion of who/what/authentication, etc -- this is just a demo.
         if mesg.session_uuid?
             send_to_persistent_sage_session(mesg)
         else
             stateless_sage_exec(mesg, @push_to_client)
 
     mesg_start_session: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
+            return
+        # TODO: this must go -- no notion of who/what/authentication, etc -- this is just a demo.        
         create_persistent_sage_session(mesg, @push_to_client)
 
     mesg_send_signal: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
+            return
+        # TODO: this must go -- no notion of who/what/authentication, etc -- this is just a demo.        
         send_to_persistent_sage_session(mesg)
 
     # ping/pong
@@ -224,6 +249,11 @@ class ClientConnection extends EventEmitter
         sign_in(mesg, @push_to_client, @)
 
     mesg_sign_out: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"Not signed in."))
+            return
+            
+        @signed_out()
         @invalidate_remember_me
             cb:(error) =>
                 winston.debug("signing out: #{mesg.id}, #{error}")
@@ -248,15 +278,22 @@ class ClientConnection extends EventEmitter
         change_email_address(mesg, @ip_address, @push_to_client)
         
     mesg_get_account_settings: (mesg) =>
-        # TODO: confirm authentication of user at this point!!!!!
-        get_account_settings(mesg, @push_to_client)
+        if @account_id != mesg.account_id
+            @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
+        else
+            get_account_settings(mesg, @push_to_client)
         
     mesg_account_settings: (mesg) =>
-        # TODO: confirm authentication of user at this point!!!!!
-        save_account_settings(mesg, @push_to_client)
+        if @account_id != mesg.account_id
+            @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
+        else
+            save_account_settings(mesg, @push_to_client)
 
     mesg_report_feedback: (mesg) =>
-        report_feedback(mesg, @push_to_client, @account_id)
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send feedback."))
+        else
+            report_feedback(mesg, @push_to_client, @account_id)
             
     mesg_get_all_feedback_from_user: (mesg) =>
         get_all_feedback_from_user(mesg, @push_to_client, @account_id)
@@ -437,13 +474,16 @@ sign_in = (mesg, push_to_client, client) ->
                         sign_in_error("Invalid password for #{mesg.email_address}.")
                         cb(true); return
                     else
+                    
+                        client.signed_in(account.account_id)
+                        
                         sign_in_mesg = message.signed_in
                             id            : mesg.id
                             account_id    : account.account_id 
                             first_name    : account.first_name
                             last_name     : account.last_name
                             email_address : mesg.email_address
-
+                        
                         push_to_client(sign_in_mesg)
                         
                         record_sign_in
@@ -483,15 +523,6 @@ record_sign_in = (opts) ->
             set   : {ip_address:opts.ip_address}
             where : {time:cass.now(), account_id:opts.account_id}
         
-
-sign_out = (mesg, push_to_client, conn) ->
-    conn.invalidate_remember_me(cb:(error)->
-        console.log("signing out: #{mesg.id}, #{error}")
-        if not error
-            push_to_client(message.error(id:mesg.id, error:error))
-        else
-            push_to_client(message.signed_out(id:mesg.id))
-    )
 
 
 # We cannot put the zxcvbn password strength checking in
