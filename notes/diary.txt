@@ -7180,6 +7180,11 @@ Is this possible? YES.  easy.
 
   [x] disallow the very weakest possible passwords. 
 
+Nov 13
+------
+
+I'm just working fulltime today on salvus.
+
   [x](7) remember me cookie:
 somehow, 
     - store in cookie a uuid
@@ -7195,22 +7200,24 @@ connection.  This will work and keep cookies httponly. (http://www.codinghorror.
   [x] some sessions are very flakie, because some pexpect interfaces are.
       Only provide the very robust interfaces and nothing else.
 
+- OK, I've now got all login functionality working.  Of course, it is
+fake, since hub.coffee doesn't even check users are authenticated
+before processing messages.
 
-Lower priority todo:
 
-  [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
+Next up:
 
-  [ ](2) should have an easy link to salvus terms in various places instead of *only* having it on account creation?
+   [x] refactor the conn object in hub.coffee
 
-  [ ](2) make error message on sign-in right by the password, not using alert
+   [ ] clean up the clientconn code after refactor
+ 
+   [ ] when user disconnects should delete the clientconnect object to avoid a leak
 
-  [ ] delete account
+   [ ] make "remember me" sign-in's get recorded in the database log
+   [ ] for ease of use (de-normalization), add an extra "misc" column to successful_sign_ins that 
+       includes JSON:  {first_name:*, last_name:*, email_address:*, remember_me:bool}
 
-  [ ] maybe salvus totally broken on ie because of use of console.log ?
+   [ ] ensure that users have to be authenticated before performing
+       actions that require auth.
 
-  [ ] after remember me is done, I may want to move from key:value
-      store to another table so that when user changes their password,
-      then all remember_me cookies for them are invalidated.
-
-  [ ](5) enter to submit: login, change email, etc.
-
+   

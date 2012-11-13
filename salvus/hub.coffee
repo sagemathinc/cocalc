@@ -16,6 +16,7 @@
 # node.js -- builtin libraries 
 http    = require('http')
 url     = require('url')
+{EventEmitter} = require('events')
 
 # salvus libraries
 sage    = require("sage")               # sage server
@@ -41,8 +42,8 @@ Cookies = require('cookies')            # https://github.com/jed/cookies
 
 # module scope variables:
 http_server        = null
-sockjs_connections = {}
 database           = null
+client_connections = {}
 
 ###
 # HTTP Server
@@ -59,7 +60,7 @@ init_http_server = () ->
         switch pathname
             when "/cookies"
                 cookies = new Cookies(req, res)
-                conn = sockjs_connections[query.id]
+                conn = client_connections[query.id]
                 if conn?
                     if query.get
                         conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
@@ -76,203 +77,201 @@ init_http_server = () ->
                 
     )
 
-###
-# SockJS Server
-###
-init_sockjs_server = () ->
-    sockjs_server = sockjs.createServer()
-    sockjs_server.on("connection", (conn) ->
-        # TODO: This sockjs_connections just
-        # grows without ever having anything removed, so leaks memory.   !!!
-        sockjs_connections[conn.id] = conn
-        winston.info ("new sockjs connection #{conn} from #{conn.remoteAddress}")
+class ClientConnection extends EventEmitter
+    constructor: (@conn) ->
+        @ip_address = @conn.remoteAddress
+        @cookies = {}
+        @remember_me_db = database.key_value_store(name: 'remember_me')
 
-        # install event handlers on this particular connection
+        @check_for_remember_me()
+        @conn.on("data", @handle_message_from_client)
+        @conn.on("close", () -> winston.info("conn=#{conn} closed"))
 
-        account_id = null
-        
-        push_to_client = (mesg) ->
-            console.log(to_safe_str(mesg)) if mesg.event != 'pong'
-            if mesg.event == 'signed_in'
-                account_id = mesg.account_id
-                
-            conn.write(to_json(mesg))
-
-        #########################################################
-        # Setting and getting HTTPonly cookies via SockJS + AJAX
-        #########################################################
-        conn.cookies = {}
-        
-        conn.get_cookie = (opts) ->
-            opts = defaults opts,
-                name : required
-                cb   : required   # cb(value)
-            conn.once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-            push_to_client(message.cookies(id:conn.id, get:opts.name))
-            
-        conn.set_cookie = (opts) -> 
-            opts = defaults opts,
-                name  : required
-                value : required     
-                ttl   : undefined    # time in seconds until cookie expires 
-                cb    : undefined    # cb() when cookie is set
-            options = {}
-            if opts.ttl?
-                options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
-            conn.once("set_cookie-#{opts.name}", ()->opts.cb?())
-            conn.cookies[opts.name] = {value:opts.value, options:options}
-            push_to_client(message.cookies(id:conn.id, set:opts.name))
-
-        # Illustrating of getting and setting cookies:
-        # conn.set_cookie(name:"conn", value:"29034u8239as9c", ttl:3600, cb:(() ->
-        #    console.log("set the cookie")
-        #    conn.get_cookie(name:"conn", cb:((value) -> console.log("got cookie #{value}")))
-        # ))
-
-        remember_me_db = database.key_value_store(name: 'remember_me')
-        
-        conn.remember_me = (sign_in_mesg) ->      
-            #############################################################
-            # Remember me.  There are many ways to implement
-            # "remember me" functionality in a web app. Here's how
-            # we do it with Salvus.  We generate a random uuid,
-            # which along with salt, is stored in the user's
-            # browser as an httponly cookie.  We password hash the
-            # random uuid and store that in our database.  When
-            # the user later visits the Salvus site, their browser
-            # sends the cookie, which the server hashes to get the
-            # key for the database table, which has corresponding
-            # value the mesg needed for sign in.  We then sign the
-            # user in using that message.
-            #
-            # The reason we use a password hash is that if
-            # somebody gains access to an entry in the key:value
-            # store of the database, we want to ensure that they
-            # can't use that information to login.  The only way
-            # they could login would be by gaining access to the
-            # cookie in the user's browser.
-            #
-            # There is no point in signing the cookie since its
-            # contents are random.
-            #
-            # Regarding ttl, we use 1 week.  The database will forget
-            # the cookie automatically at the same time that the
-            # browser invalidates it.
-            #############################################################
-            session_id      = uuid.v4()
-            hash_session_id = password_hash(session_id)
-            ttl             = 7*24*3600
-            #ttl             = 3*60  # short for testing
-
-            conn.hash_session_id = hash_session_id
-            
-            remember_me_db.set
-                key   : hash_session_id 
-                value : sign_in_mesg  # TODO: we should really copy this message and get rid of id key.
-                ttl   : ttl
-                    
-            x = hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
-            conn.set_cookie
-                name  : 'remember_me'
-                value : [x[0], x[1], x[2], session_id].join('$')
-                ttl   : ttl 
-
-        conn.get_cookie
+    check_for_remember_me: () =>
+        @get_cookie
             name : 'remember_me'
-            cb : (value) ->
+            cb   : (value) =>
+                console.log("remember_me: #{value}")
                 if value?
                     x    = value.split('$')
                     hash = generate_hash(x[0], x[1], x[2], x[3])
-                    remember_me_db.get
+                    @remember_me_db.get
                         key : hash
-                        cb  : (error, mesg) ->
-                            if not error
-                                conn.hash_session_id = hash
-                                push_to_client(mesg)
+                        cb  : (error, mesg) =>
+                            if not error and mesg?
+                                @hash_session_id = hash
+                                @push_to_client(mesg)
+                            
+    push_to_client: (mesg) =>
+        winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
+        if mesg.event == 'signed_in'
+            @account_id = mesg.account_id
+        @conn.write(to_json(mesg))
 
-        conn.invalidate_remember_me = (opts) ->
-            opts = defaults opts,
-                cb : required
+    #########################################################
+    # Setting and getting HTTPonly cookies via SockJS + AJAX
+    #########################################################
+    get_cookie: (opts) ->
+        opts = defaults opts,
+            name : required
+            cb   : required   # cb(value)
+        console.log("get_cookie(#{opts.name})")
+        @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name))
+        
+    set_cookie: (opts) -> 
+        opts = defaults opts,
+            name  : required
+            value : required     
+            ttl   : undefined    # time in seconds until cookie expires 
+            cb    : undefined    # cb() when cookie is set
+        options = {}
+        if opts.ttl?
+            options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
+        @once("set_cookie-#{opts.name}", ()->opts.cb?())
+        @cookies[opts.name] = {value:opts.value, options:options}
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name))
+    
+    remember_me: (sign_in_mesg) ->      
+        #############################################################
+        # Remember me.  There are many ways to implement
+        # "remember me" functionality in a web app. Here's how
+        # we do it with Salvus.  We generate a random uuid,
+        # which along with salt, is stored in the user's
+        # browser as an httponly cookie.  We password hash the
+        # random uuid and store that in our database.  When
+        # the user later visits the Salvus site, their browser
+        # sends the cookie, which the server hashes to get the
+        # key for the database table, which has corresponding
+        # value the mesg needed for sign in.  We then sign the
+        # user in using that message.
+        #
+        # The reason we use a password hash is that if
+        # somebody gains access to an entry in the key:value
+        # store of the database, we want to ensure that they
+        # can't use that information to login.  The only way
+        # they could login would be by gaining access to the
+        # cookie in the user's browser.
+        #
+        # There is no point in signing the cookie since its
+        # contents are random.
+        #
+        # Regarding ttl, we use 1 week.  The database will forget
+        # the cookie automatically at the same time that the
+        # browser invalidates it.
+        #############################################################
+        session_id      = uuid.v4()
+        @hash_session_id = password_hash(session_id)
+        ttl             = 7*24*3600     # 7 days
+        
+        @remember_me_db.set
+            key   : @hash_session_id 
+            value : sign_in_mesg  # TODO: we should really copy this message and get rid of id key.
+            ttl   : ttl
                 
-            if conn.hash_session_id?
-                remember_me_db.delete
-                    key : conn.hash_session_id
-                    cb  : opts.cb
-            else
-                opts.cb()
+        x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
+        @set_cookie
+            name  : 'remember_me'
+            value : [x[0], x[1], x[2], session_id].join('$')
+            ttl   : ttl
+            
+    invalidate_remember_me: (opts) ->
+        opts = defaults opts,
+            cb : required
+            
+        if @hash_session_id?
+            @remember_me_db.delete
+                key : @hash_session_id
+                cb  : opts.cb
+        else
+            opts.cb()
+
+    handle_message_from_client: (data) =>
+        try
+            mesg = from_json(data)
+        catch error
+            winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
+            return
+
+        if mesg.event != 'ping'
+            winston.debug("client --> hub: #{to_safe_str(mesg)}")
+
+        handler = @["mesg_#{mesg.event}"]
+        if handler?
+            handler(mesg)
+        else
+            @push_to_client(message.error("The Salvus server does not know how to handle the #{mesg.event} event."))
+
+    mesg_execute_code: (mesg) =>
+        if mesg.session_uuid?
+            send_to_persistent_sage_session(mesg)
+        else
+            stateless_sage_exec(mesg, @push_to_client)
+
+    mesg_start_session: (mesg) =>
+        create_persistent_sage_session(mesg, @push_to_client)
+
+    mesg_send_signal: (mesg) =>
+        send_to_persistent_sage_session(mesg)
+
+    # ping/pong
+    mesg_ping: (mesg) =>
+        @push_to_client(message.pong(id:mesg.id))
+
+    mesg_create_account: (mesg) =>
+        create_account(mesg, @ip_address, @push_to_client)
+
+    mesg_sign_in: (mesg) =>
+        sign_in(mesg, @push_to_client, @)
+
+    mesg_sign_out: (mesg) =>
+        @invalidate_remember_me
+            cb:(error) =>
+                winston.debug("signing out: #{mesg.id}, #{error}")
+                if not error
+                    @push_to_client(message.error(id:mesg.id, error:error))
+                else
+                    @push_to_client(message.signed_out(id:mesg.id))
+
+    mesg_password_reset: (mesg) =>
+        password_reset(mesg, @ip_address, @push_to_client)
         
-        #################################################
-        # Incoming message router                                        
-        #################################################
-        conn.on("data", (mesg) ->
-            try
-                mesg = from_json(mesg)
-            catch error
-                winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
-                return
+    mesg_change_password: (mesg) =>
+        change_password(mesg, @ip_address, @push_to_client)
 
-            if mesg.event != 'ping'
-                winston.debug("conn=#{conn} received sockjs mesg: #{to_safe_str(mesg)}")
-
-            ###
-            # handle message
-            ###
-            switch mesg.event
-                # session/code execution
-                when "execute_code"
-                    if mesg.session_uuid?
-                        send_to_persistent_sage_session(mesg)
-                    else
-                        stateless_sage_exec(mesg, push_to_client)
-                when "start_session"  # create a new persistent session
-                    create_persistent_sage_session(mesg, push_to_client)
-                when "send_signal"
-                    send_to_persistent_sage_session(mesg)
-
-                # ping/pong
-                when "ping"
-                    push_to_client(message.pong(id:mesg.id))
-
-                # account management
-                when "create_account"
-                    create_account(mesg, conn.remoteAddress, push_to_client)
-                when "sign_in"
-                    sign_in(mesg, push_to_client, conn)
-                    
-                when "sign_out"
-                    sign_out(mesg, push_to_client, conn)
-
-                when "password_reset"
-                    password_reset(mesg, conn.remoteAddress, push_to_client)
-                when "change_password"
-                    change_password(mesg, conn.remoteAddress, push_to_client)
-                when "forgot_password"
-                    forgot_password(mesg, conn.remoteAddress, push_to_client)
-                when "reset_forgot_password"
-                    reset_forgot_password(mesg, conn.remoteAddress, push_to_client)
-                when "change_email_address"
-                    change_email_address(mesg, conn.remoteAddress, push_to_client)
-                when "get_account_settings"
-                    # TODO: confirm authentication of user at this point!!!!!
-                    get_account_settings(mesg, push_to_client)
-                when "account_settings"
-                    # TODO: confirm authentication of user at this point!!!!!
-                    save_account_settings(mesg, push_to_client)
-                    
-                # user feedback
-                when "report_feedback"
-                    report_feedback(mesg, push_to_client, account_id)
-                    
-                when "get_all_feedback_from_user"
-                    get_all_feedback_from_user(mesg, push_to_client, account_id)
-                    
-        )
-        conn.on("close", ->
-            winston.info("conn=#{conn} closed")
-            # remove from array
-        )
+    mesg_forgot_password: (mesg) =>
+        forgot_password(mesg, @ip_address, @push_to_client)
         
-    )
+    mesg_reset_forgot_password: (mesg) =>
+        reset_forgot_password(mesg, @ip_address, @push_to_client)
+        
+    mesg_change_email_address: (mesg) =>
+        change_email_address(mesg, @ip_address, @push_to_client)
+        
+    mesg_get_account_settings: (mesg) =>
+        # TODO: confirm authentication of user at this point!!!!!
+        get_account_settings(mesg, @push_to_client)
+        
+    mesg_account_settings: (mesg) =>
+        # TODO: confirm authentication of user at this point!!!!!
+        save_account_settings(mesg, @push_to_client)
+
+    mesg_report_feedback: (mesg) =>
+        report_feedback(mesg, @push_to_client, @account_id)
+            
+    mesg_get_all_feedback_from_user: (mesg) =>
+        get_all_feedback_from_user(mesg, @push_to_client, @account_id)
+    
+
+##############################
+# SockJS Server
+##############################
+init_sockjs_server = () ->
+    sockjs_server = sockjs.createServer()
+    
+    sockjs_server.on "connection", (conn) ->
+        client_connections[conn.id] = new ClientConnection(conn)
+        
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
 
@@ -356,8 +355,8 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
 #   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
 #############################################################################
-sign_in = (mesg, push_to_client, conn) ->
-    client_ip_address = conn.remoteAddress
+sign_in = (mesg, push_to_client, client) ->
+    client_ip_address = client.ip_address
 
     sign_in_error = (error) ->
         push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
@@ -459,7 +458,7 @@ sign_in = (mesg, push_to_client, conn) ->
         # remember me
         (cb) ->
             if mesg.remember_me
-                conn.remember_me(sign_in_mesg)                    
+                client.remember_me(sign_in_mesg)                    
             cb()
     ])
 
