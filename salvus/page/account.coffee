@@ -28,7 +28,7 @@
 
     focus =
         'account-sign_in'         : 'sign_in-email'
-        'account-create_account'  : 'create_account-first-name'
+        'account-create_account'  : 'create_account-first_name'
         'account-settings'        : ''
 
     current_account_page = null
@@ -134,25 +134,31 @@
 
     # Enhance HTML element to display feedback about a choice of password
     #     input   -- jQuery wrapped <input> element where password is typed
-    password_feedback = (input) ->
+    password_strength_meter = (input) ->
         display = $('<div class="progress progress-striped"><div class="bar"></div>&nbsp;<font size=-1></font></div>')
         input.after(display)
         colors = ['red', 'yellow', 'orange', 'lightgreen', 'green']
         score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
         input.bind('change keypress paste focus textInput input', () ->
             result = zxcvbn(input.val(), ['salvus', 'salv.us'])
-            display.find(".bar").css("width", "#{10*(result.score+1)}%")
+            display.find(".bar").css("width", "#{13*(result.score+1)}%")
             display.find("font").html(score[result.score])
             display.css("background-color", colors[result.score])
         )
         return input
 
+    $.fn.extend
+        password_strength_meter: (options) ->
+            settings = {}
+            settings = $.extend settings, options
+            return @each () ->
+                password_strength_meter($(this))
+
+    $(':password').password_strength_meter()
 
     ################################################
     # Sign in
     ################################################
-
-    password_feedback($("#sign_in-password"))
 
     $("#sign_in-button").click((event) ->
         salvus.conn.sign_in
@@ -373,9 +379,6 @@
     change_password.find(".close").click((event) -> close_change_password())
     $("#account-change_password-button-cancel").click((event)->close_change_password())
     change_password.on("shown", () -> $("#account-change_password-old_password").focus())
-
-    # TODO now
-    password_feedback($("#account-change_password-new_password"))
 
     $("#account-change_password-button-submit").click (event) ->
         salvus.conn.change_password
