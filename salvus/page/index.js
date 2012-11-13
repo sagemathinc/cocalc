@@ -17,4 +17,6 @@ $(function() {
 
    exit_confirmation.coffee
 
+   window.history.pushState("", "", "/") 
+
 });
