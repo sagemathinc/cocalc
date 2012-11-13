@@ -6,6 +6,7 @@ alert_message = null # exported globally
     types = ['error', 'default', 'success', 'info']
 
     $("#alert-templates").hide()
+        
     
     alert_message = (opts={}) ->
         opts = defaults opts,
@@ -23,6 +24,7 @@ alert_message = null # exported globally
             c.addClass('alert-block')
         c.find(".message").html(opts.message)
         c.prependTo("#alert-messages").show()
+        c.click(() -> $(this).remove())
 
 )()
 
