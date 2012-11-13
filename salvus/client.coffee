@@ -198,17 +198,6 @@ class exports.Connection extends EventEmitter
             cb      : opts.cb
         )
 
-    password_reset: (opts) ->
-        opts = defaults(opts,
-            email_address : required
-            cb            : required
-            timeout       : 10 # seconds
-        )
-        @call(
-            message : message.password_reset(opts.email_address)
-            cb      : opts.cb
-        )
-
     change_password: (opts) ->
         opts = defaults(opts,
             email_address : required
@@ -249,6 +238,19 @@ class exports.Connection extends EventEmitter
             message: message.forgot_password
                 email_address : opts.email_address
             cb: opts.cb
+
+    # forgot password -- send forgot password request to server
+    reset_forgot_password: (opts) ->
+        opts = defaults(opts,
+            reset_code    : required
+            new_password  : required
+            cb            : required
+            timeout       : 10 # seconds
+        )
+        @call(
+            message : message.reset_forgot_password(reset_code:opts.reset_code, new_password:opts.new_password)
+            cb      : opts.cb
+        )
 
     # cb(false, message.account_settings), assuming this connection has logged in as that user, etc..  Otherwise, cb(error).
     get_account_settings: (opts) ->

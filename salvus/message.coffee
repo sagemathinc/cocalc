@@ -201,6 +201,18 @@ message
     id            : undefined
     error         : false
 
+# client --> hub: "reset a password using this id code that was sent in a password reset email"
+message
+    event         : "reset_forgot_password"
+    id            : undefined
+    reset_code    : required
+    new_password  : required
+
+message
+    event         : "reset_forgot_password_response"
+    id            : undefined
+    error         : false
+
 # client --> hub
 message(
     event             : 'change_email_address'
@@ -219,22 +231,6 @@ message(
     ttl                 : undefined   # if user is trying to change password too often, this is time to wait
 )    
 
-# client --> hub
-message(
-    event          : 'password_reset'
-    id             : required
-    email_address  : required
-)
-    
-# hub --> client
-# success true if message sent; success false if no such email_address in the database
-message(
-    event          : 'password_reset_response'
-    id             : undefined    
-    email_address  : required
-    success        : required
-    reason         : undefined
-)
 
 ############################################
 # Account Settings

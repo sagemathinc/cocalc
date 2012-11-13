@@ -113,6 +113,8 @@ init_sockjs_server = () ->
                     change_password(mesg, conn.remoteAddress, push_to_client)
                 when "forgot_password"
                     forgot_password(mesg, conn.remoteAddress, push_to_client)
+                when "reset_forgot_password"
+                    reset_forgot_password(mesg, conn.remoteAddress, push_to_client)
                 when "change_email_address"
                     change_email_address(mesg, conn.remoteAddress, push_to_client)
                 when "get_account_settings"
@@ -191,7 +193,6 @@ is_password_correct = (opts) ->
 
 password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_time/(3600*24.0)) # time to crack in days
     
-
 sign_in = (mesg, client_ip_address, push_to_client) ->
     database.get_account(
         email_address : mesg.email_address
@@ -199,9 +200,13 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
             if error
                 push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
             else if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
-                push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:"invalid email_address/password combination"))
+                push_to_client(
+                    message.sign_in_failed
+                        id            : mesg.id
+                        email_address : mesg.email_address
+                        reason        : "Invalid password for #{mesg.email_address}."
+                )
             else
-                #console.log("*** account = #{to_safe_str(account)}")
                 database.log(event:'signed_in', value:{account_id:account.account_id, client_ip_address:client_ip_address})
                 
                 push_to_client(message.signed_in(
@@ -213,101 +218,6 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
                     password_crack_time: password_crack_time(mesg.password)                    
                 ))
     )
-
-password_reset = (mesg, client_ip_address, push_to_client) ->
-
-    push_error = (reason) -> push_to_client(
-        message.password_reset_response(
-            id            : mesg.id
-            email_address : mesg.email_address
-            success       : false
-            reason        : reason)
-    )
-    
-    db_error = push_error("There was an error querying the database.  Please try again later.")
-
-    uuid     = null
-    
-    async.series([
-        (cb) ->
-            database.get_account(
-                email_address : mesg.email_address
-                cb            : (error, account) ->
-                    if error # no such account
-                        push_error("No account with that e-mail address exists.")
-                        cb(true)  # nothing further to do
-                        return
-                    else
-                        cb() # continue on
-            )
-
-        # We now know that there is an account with this email address.
-
-        # If there has already been a password_reset request
-        # from the same ip address in the last 2 minutes, deny.
-        (cb) -> 
-            recent_password_reset_requests = database.key_value_store(name:"recent_password_reset_requests")
-            recent_password_reset_requests.get(
-                key : client_ip_address
-                cb  : (error, result) ->
-                    if error
-                        db_error()
-                        cb(true) # done
-                        return
-                    else if result?  # it is defined -- there was a recent request
-                        push_error("Please wait a few minutes before sending another password reset request.")
-                        cb(true)
-                        return
-                    # record that there was a request from this ip
-                    recent_password_reset_requests.set(key:client_ip_address, value:mesg.email_address, ttl:60*2)  # fire and forgot -- no big loss if dropped
-                    cb()
-            )
-            
-        # put a just-in-case entry in another key:value table called "password_reset_requests" with ttl of 1 month
-        (cb) ->
-            database.log(
-                event : password_reset
-                value : {client_ip_address:client_ip_address, email_address:email_address}
-                ttl:60*60*24*30
-            )
-
-        # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
-        (cb) ->
-            uuid = database.uuid_value_store(name:"password_reset").set(
-                value : mesg.email_address
-                ttl   : 60*15,
-                cb    : (error, results) ->
-                    if error
-                        db_error()
-                        cb(true)
-                        return
-                    else
-                        cb()
-            )
-
-        # send an email to mesg.email_address that has a link to 
-        (cb) ->
-            body = """
-                Somebody just requested to change the password on your Salvus account.
-                If you requested this password change, please change your password by
-                following the link below:
-
-                     https://salv.us/hub/password_reset?key=#{uuid}
-
-                If you don't want to change your password, ignore this message.
-                """
-            send_email(subject:'Salvus password reset confirmation', body:body, to:mesg.email_address, cb:(error) ->
-                if error
-                    push_error("Error sending email message. Please try again later.")
-                else
-                    push_to_client(message.password_reset_response(
-                        id            : mesg.id
-                        email_address : mesg.email_address
-                        success       : true
-                    ))
-                cb()
-            )
-    ])
 
     
 
@@ -600,9 +510,15 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 #############################################################################
 forgot_password = (mesg, client_ip_address, push_to_client) ->
     if mesg.event != 'forgot_password'
-        push_to_client(message.error(id:mesg.id, error:"incorrect message event type: #{mesg.event}"))
+        push_to_client(message.error(id:mesg.id, error:"Incorrect message event type: #{mesg.event}"))
         return
 
+    # This is an easy check to save work and also avoid empty email_address, which causes CQL trouble.
+    if not client.is_valid_email_address(mesg.email_address)
+        push_to_client(message.error(id:mesg.id, error:"Invalid email address."))
+        return
+
+    id = null
     async.series([
         # record this password reset attempt in our database
         (cb) ->
@@ -673,12 +589,115 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     cb()
 
         (cb) ->
-            # TODO: here we would actually do it, but I need to test all the DB code above.
-            push_to_client(message.forgot_password_response(id:mesg.id)) 
+            database.get_account(
+                email_address : mesg.email_address
+                cb            : (error, account) ->
+                    if error # no such account
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"No account with e-mail address #{mesg.email_address}."))
+                        cb(true); return
+                    else
+                        cb()
+            )
 
+        # We now know that there is an account with this email address.
+        # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
+        (cb) ->
+            id = database.uuid_value_store(name:"password_reset").set(
+                value : mesg.email_address
+                ttl   : 60*15,
+                cb    : (error, results) ->
+                    if error
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal Salvus error generating password reset for #{mesg.email_address}."))
+                        cb(true); return
+                    else
+                        cb()
+            )
 
+        # send an email to mesg.email_address that has a link to 
+        (cb) ->
+            body = """
+                Somebody just requested to change the password on your Salvus account.
+                If you requested this password change, please change your password by
+                following the link below:
+
+                     https://salv.us#forgot##{id}
+
+                If you don't want to change your password, ignore this message.
+                """
+                
+            send_email
+                subject : 'Salvus password reset confirmation'
+                body    : body
+                to      : mesg.email_address
+                cb      : (error) ->
+                    if error
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal Salvus error sending password reset email to #{mesg.email_address}."))
+                        cb(true)
+                    else
+                        push_to_client(message.forgot_password_response(id:mesg.id))
+                        cb()
     ])
             
+
+reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
+    if mesg.event != 'reset_forgot_password'
+        push_to_client(message.error(id:mesg.id, error:"incorrect message event type: #{mesg.event}"))
+        return
+
+    email_address = account_id = db = null
+    
+    async.series([
+        # check that request is valid
+        (cb) ->
+            db = database.uuid_value_store(name:"password_reset")
+            db.get
+                uuid : mesg.reset_code
+                cb   : (error, value) ->
+                    if error
+                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
+                        cb(true); return
+                    if not value?
+                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:"This password reset request is no longer valid."))
+                        cb(true); return
+                    email_address = value
+                    cb()
+
+        # Verify password is valid and compute its hash.
+        (cb) -> 
+            [valid, reason] = client.is_valid_password(mesg.new_password)
+            if not valid
+                push_to_client(message.reset_forgot_password_response(id:mesg.id, error:reason))
+                cb(true)
+            else
+                cb()
+                    
+        # Get the account_id.
+        (cb) ->
+            database.get_account
+                email_address : email_address
+                columns       : ['account_id']
+                cb            : (error, account) ->
+                    if error
+                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
+                        cb(true)
+                    else
+                        account_id = account.account_id
+                        cb()
+
+        # Make the change
+        (cb) ->
+            database.change_password
+                account_id: account_id
+                password_hash : password_hash(mesg.new_password)
+                cb : (error, account) ->
+                    if error
+                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
+                        cb(true)
+                    else
+                        push_to_client(message.reset_forgot_password_response(id:mesg.id)) # success
+                        db.delete(uuid: mesg.reset_code)  # only allow successful use of this reset token once
+                        cb()
+    ])
 
 # Sends a message to the client (via push_to_client) with the account
 # settings for the account with given id.  We assume that caller code

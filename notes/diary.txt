@@ -7155,7 +7155,8 @@ Verterans Day!
   
   [ ](5) password reset gui  
 
-  -- basic problem: how to do password reset with a consistent gui/ui look, etc.  
+ 
+[x] -- basic problem: how to do password reset with a consistent gui/ui look, etc.  
      Obviously, I could just add another url handler, but that would be ugly.
      It would be nice if I could do:
 
@@ -7163,10 +7164,9 @@ Verterans Day!
  
      and have (1) the forgot_key get set as a javascript variable (or in DOM)
               (2) a modal dialog be displayed
-
 Is this possible?
 
-   [ ] rewrite UUID value store to be in terms of key:value store for easier maintenance.
+  [ ] ** rewrite sign_in function in hub.coffee to have an anti-DOS policy! **
 
   [ ] (3) refix test suite, broken by change password dialog
 
@@ -7188,3 +7188,4 @@ Is this possible?
   [ ](6) add more tests to the test suite
 
 
+  [ ] delete account

@@ -201,7 +201,7 @@
                     return
 
                 if settings_mesg.event != "account_settings"
-                    alert_message(type:"error", "Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
+                    alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
                     cb("invalid message")
                     return
         
@@ -402,15 +402,11 @@
             email_address : email_address
             cb : (error, mesg) ->
                 if error
-                    $("#account-forgot_password-error").html("Error communicating with server: #{error}").show()
+                    alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
+                else if mesg.error
+                    alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
                 else
-                    if mesg.error
-                        $("#account-forgot_password-error").html(mesg.error).show()
-                    else
-                        # success
-                        alert_message(type:"info", message:"Salvus has sent a password reset email message to #{email_address}")
-                        close_forgot_password()
-        return false
+                    alert_message(type:"info", message:"Salvus sent a password reset email message to #{email_address}.")
     
 
     #################################################################
@@ -421,8 +417,33 @@
     if url_args.length == 3 and url_args[1] == "forgot"
         forget_password_reset_key = url_args[2]
         forgot_password_reset.modal("show")
-
     
+    close_forgot_password_reset = () ->
+        forgot_password_reset.modal('hide').find('input').val('')
+        forgot_password_reset.find(".account-error-text").hide()
+
+    forgot_password_reset.find(".close").click((event) -> close_forgot_password_reset())
+    $("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_password_reset())
+    forgot_password_reset.on("shown", () -> $("#account-forgot_password_reset-new_password").focus())
+
+    $("#account-forgot_password_reset-button-submit").click (event) ->
+        new_password = $("#account-forgot_password_reset-new_password").val()
+        forgot_password_reset.find(".account-error-text").hide()
+        salvus.conn.reset_forgot_password
+            reset_code   : url_args[2]
+            new_password : new_password
+            cb : (error, mesg) ->
+                if error
+                    $("#account-forgot_password_reset-error").html("Error communicating with server: #{error}").show()
+                else
+                    if mesg.error
+                        $("#account-forgot_password_reset-error").html(mesg.error).show()
+                    else
+                        # success
+                        alert_message(type:"info", message:'Your new password has been saved.')
+                        close_forgot_password_reset()
+                        window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
+        return false
     
 
 )()

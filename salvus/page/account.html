@@ -6,9 +6,8 @@
     </div>
     <div class="span4 well">
       <h4>Sign in (or <a href="#account-create_account">create an account</a>)</h4><br>
-<!-- TODO: before release -- remove defaults! -->
-      <input class="span4" type="text" value="a@a.a" placeholder="Email" id="sign_in-email"><br>
-      <input class="span4" type="password" value="zkjnxoiaerwy89" placeholder="Password"  id="sign_in-password"><br><br>
+      <input class="span4" type="text" placeholder="Email" id="sign_in-email"><br>
+      <input class="span4" type="password" placeholder="Password"  id="sign_in-password"><br><br>
       <div class="row">
 	<div class="span2">
 	  <label class="checkbox" rel="tooltip" title="Let Salvus remember that you signed in, so that you might not have to sign in next time you use Salvus.">
@@ -287,13 +286,17 @@
 <div class="modal hide" id="account-forgot_password_reset" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
-    <h3>Forgot your password?</h3>
+    <h3>Reset your password:</h3>
     <br>Enter your new password.<br><br>
     <div class="hide account-error-text" id="account-forgot_password_reset-error"></div>
   </div>
   <div class="modal-body offset1">
     <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
-    <input class="span4 offset1" type="text" placeholder="New password" id="account-forgot_password_reset-new_password">
+    <input class="span4 offset1" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>
+    <button class="btn" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
   </div>
 </div>
 

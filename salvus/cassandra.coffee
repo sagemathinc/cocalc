@@ -31,6 +31,9 @@ exports.milliseconds_ago = (ms) -> to_iso(new Date(new Date() - ms))
 
 #########################################################################
 
+DEFAULT_PLAN_ID = "13814000-1dd2-11b2-0000-fe8ebeead9df"
+
+
 exports.create_schema = (conn, cb) ->
     t = misc.walltime()
     blocks = require('fs').readFileSync('db_schema.cql', 'utf8').split('CREATE')
@@ -44,8 +47,8 @@ exports.create_schema = (conn, cb) ->
         winston.info("created schema in #{misc.walltime()-t} seconds.")
         if not err
             # create default plan 0
-            conn.cql("UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000 WHERE plan_id=0",
-                 [], (error, results) => cb(error) if error)
+            conn.cql("UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000 WHERE plan_id=?",
+                 [DEFAULT_PLAN_ID], (error, results) => cb(error) if error)
             
         cb(err)
     )
@@ -79,7 +82,7 @@ class UUIDValueStore
             table:'uuid_value'
             columns:['value']
             where:{name:@opts.name, uuid:opts.uuid}
-            cb:(error, results) -> opts.cb(error, if results.length == 1 then from_json(results[0]))
+            cb:(error, results) -> opts.cb?(error, if results.length == 1 then from_json(results[0][0]))
         )
             
     delete: (opts={}) ->
@@ -434,7 +437,7 @@ class exports.Salvus extends exports.Cassandra
         )
             
         account_id = uuid.v4()
-        a = {first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, password_hash:opts.password_hash, plan_id:0}
+        a = {first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, password_hash:opts.password_hash, plan_id:DEFAULT_PLAN_ID}
         
         @update(
             table :'accounts'
