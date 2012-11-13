@@ -1,17 +1,17 @@
-###
-# Run this by running ./hub ...
+##############################################################################
 #
-# Dependencies:
-# 
-#    npm install commander start-stop-daemon winston sockjs helenus
+# This is the Salvus HUB module.  It runs as a daemon, sitting in the
+# middle of the action, connected to potentially thousands of clients,
+# many Sage sessions, and a Cassandra database cluster.  There are
+# many HUBs running on VM's all over the installation.
 #
-# ** Add any new dependencies to the NODEJS_PACKAGES list in build.py **
+# Run this by running ./hub [options]
 #
-# For debugging, run this way:
+# For local debugging, run this way, since it gives better stack traces. 
 #
-#         make_coffee &&echo "require('hub').start_server()" | coffee
+#         make_coffee && echo "require('hub').start_server()" | coffee
 #
-###
+##############################################################################
 
 # node.js -- builtin libraries 
 http    = require('http')
@@ -30,7 +30,7 @@ to_json = misc.to_json
 to_safe_str = misc.to_safe_str
 from_json = misc.from_json
 
-# third-party libraries
+# third-party libraries: add any new nodejs dependencies to the NODEJS_PACKAGES list in build.py 
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
@@ -212,8 +212,23 @@ class ClientConnection extends EventEmitter
         if handler?
             handler(mesg)
         else
-            @push_to_client(message.error("The Salvus server does not know how to handle the #{mesg.event} event."))
+            @push_to_client(message.error(error:"Salvus server does not know how to handle the #{mesg.event} event.", id:mesg.id))
 
+    ################################################################
+    # Message handling functions:
+    # 
+    # Each function below that starts with mesg_ handles a given
+    # message type (an event).  The implementations of many of the
+    # handlers are somewhat long/involved, so the function below
+    # immediately calls another function defined elsewhere.  This will
+    # make it easier to refactor code to other modules, etc., later.
+    # This approach also clarifies what exactly about this object
+    # is used to implement the relevant functionality.
+    ################################################################
+
+    ######################################################
+    # Messages: Sage compute sessions and code execution
+    ######################################################
     mesg_execute_code: (mesg) =>
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to execute code."))
@@ -238,15 +253,20 @@ class ClientConnection extends EventEmitter
         # TODO: this must go -- no notion of who/what/authentication, etc -- this is just a demo.        
         send_to_persistent_sage_session(mesg)
 
+    ######################################################
+    # Messages: Keeping client connected
+    ######################################################
     # ping/pong
     mesg_ping: (mesg) =>
         @push_to_client(message.pong(id:mesg.id))
 
+    ######################################################
+    # Messages: Account creation, sign in, sign out
+    ######################################################
     mesg_create_account: (mesg) =>
         create_account(mesg, @ip_address, @push_to_client)
 
-    mesg_sign_in: (mesg) =>
-        sign_in(mesg, @push_to_client, @)
+    mesg_sign_in: (mesg) => sign_in(@,mesg)
 
     mesg_sign_out: (mesg) =>
         if not @account_id?
@@ -262,6 +282,9 @@ class ClientConnection extends EventEmitter
                 else
                     @push_to_client(message.signed_out(id:mesg.id))
 
+    ######################################################
+    # Messages: Password/email address management
+    ######################################################
     mesg_password_reset: (mesg) =>
         password_reset(mesg, @ip_address, @push_to_client)
         
@@ -277,6 +300,9 @@ class ClientConnection extends EventEmitter
     mesg_change_email_address: (mesg) =>
         change_email_address(mesg, @ip_address, @push_to_client)
         
+    ######################################################
+    # Messages: Account settings
+    ######################################################
     mesg_get_account_settings: (mesg) =>
         if @account_id != mesg.account_id
             @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
@@ -289,24 +315,29 @@ class ClientConnection extends EventEmitter
         else
             save_account_settings(mesg, @push_to_client)
 
+    ######################################################
+    # Messages: Client feedback
+    ######################################################
     mesg_report_feedback: (mesg) =>
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send feedback."))
         else
             report_feedback(mesg, @push_to_client, @account_id)
-            
-    mesg_get_all_feedback_from_user: (mesg) =>
-        get_all_feedback_from_user(mesg, @push_to_client, @account_id)
+
+    #TODO               
+    #mesg_get_all_feedback_from_user: (mesg) =>
+    #    get_all_feedback_from_user(mesg, @push_to_client, @account_id)
     
 
 ##############################
-# SockJS Server
+# Create the SockJS Server
 ##############################
 init_sockjs_server = () ->
     sockjs_server = sockjs.createServer()
     
     sockjs_server.on "connection", (conn) ->
         client_connections[conn.id] = new ClientConnection(conn)
+        
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
 
@@ -390,11 +421,9 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
 #   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
 #############################################################################
-sign_in = (mesg, push_to_client, client) ->
-    client_ip_address = client.ip_address
-
+sign_in = (client, mesg) =>
     sign_in_error = (error) ->
-        push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
+        client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
 
     sign_in_mesg = null
     async.series([
@@ -429,7 +458,7 @@ sign_in = (mesg, push_to_client, client) ->
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_ip_address"
-                where: {ip_address:client_ip_address, time: {'>=':cass.minutes_ago(1)}}
+                where: {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
                 cb: (error, count) ->
                     if error
                         sign_in_error(error)
@@ -443,7 +472,7 @@ sign_in = (mesg, push_to_client, client) ->
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_ip_address"
-                where: {ip_address:client_ip_address, time: {'>=':cass.hours_ago(1)}}
+                where: {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
                 cb: (error, count) ->
                     if error
                         sign_in_error(error)
@@ -460,14 +489,14 @@ sign_in = (mesg, push_to_client, client) ->
                 cb            : (error, account) ->
                     if error
                         record_sign_in
-                            ip_address    : client_ip_address
+                            ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
                         sign_in_error(error)
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
-                            ip_address    : client_ip_address
+                            ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
                             account_id    : account.account_id
@@ -484,10 +513,10 @@ sign_in = (mesg, push_to_client, client) ->
                             last_name     : account.last_name
                             email_address : mesg.email_address
                         
-                        push_to_client(sign_in_mesg)
+                        client.push_to_client(sign_in_mesg)
                         
                         record_sign_in
-                            ip_address    : client_ip_address
+                            ip_address    : client.ip_address
                             successful    : true
                             email_address : mesg.email_address
                             account_id    : account.account_id
@@ -1005,10 +1034,10 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
                         cb()
     ])
 
-# Sends a message to the client (via push_to_client) with the account
-# settings for the account with given id.  We assume that caller code
-# has already determined that the user initiating this request has
-# the given account_id.
+# This function sends a message to the client (via push_to_client)
+# with the account settings for the account with given id.  We assume
+# that caller code has already determined that the user initiating
+# this request has the given account_id.
 get_account_settings = (mesg, push_to_client) ->
     account_settings = null
     async.series([
@@ -1219,9 +1248,9 @@ send_to_persistent_sage_session = (mesg) ->
         session.conn.send(mesg)
 
 
-###
+##########################################
 # Stateless Sage Sessions
-###
+##########################################
 stateless_exec_cache = null
 
 init_stateless_exec = () ->
@@ -1283,9 +1312,9 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     )
     
     
-###
+#############################################
 # Start everything running
-###    
+#############################################
 exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
@@ -1296,9 +1325,9 @@ exports.start_server = start_server = () ->
     http_server.listen(program.port)
     winston.info("Started hub. HTTP port #{program.port}; TCP port #{program.tcp_port}")
 
-###
+#############################################
 # Process command line arguments
-###
+#############################################
 program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
     .option('-t, --tcp_port <n>', 'tcp port to listen on from other tornado servers (default: 5001)', parseInt, 5001)
