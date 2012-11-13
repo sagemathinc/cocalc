@@ -7169,6 +7169,10 @@ Is this possible? YES.  easy.
 
   [x] ** rewrite sign_in function in hub.coffee to have an anti-DOS policy! **
 
+  [x] Clicking on SalvusTM logo should give about page; other randomly polish
+
+  [ ] make it easier to close alerts
+
   [ ] (3) sign-up: enable automatic zxcvbn.zxcvbn 
   [ ] (3) change password -- enable automatic zxcvbn.zxcvbn 
 

@@ -26,7 +26,7 @@
                     alert_message(type:"error", message: "There was an error submitting feedback ('#{error}').")
                     return
                 if mesg.event == 'feedback_reported'
-                    alert_message(type:"info", message: "Salvus has recorded your #{cat}.  Thank you!")
+                    alert_message(type:"info", message: "Salvus has recorded your #{cat}, and a developer will look at it soon.  Thank you!")
                     reset_feedback_form()
                 else
                     alert_message(type:"error", message: "Feedback reported, but return message was wrong #{JSON.stringify(mesg)}")

@@ -224,7 +224,7 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
                         sign_in_error(error)
                         cb(true); return
                     if count > 3
-                        sign_in_error("A given email address is allowed at most 3 failed login attempts per minute.")
+                        sign_in_error("A given email address is allowed at most 3 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
         # POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
@@ -237,7 +237,7 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
                         sign_in_error(error)
                         cb(true); return
                     if count > 10
-                        sign_in_error("A given email address is allowed at most 10 failed login attempts per hour.")
+                        sign_in_error("A given email address is allowed at most 10 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
                     
@@ -251,7 +251,7 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
                         sign_in_error(error)
                         cb(true); return
                     if count > 10
-                        sign_in_error("A given ip address is allowed at most 10 failed login attempts per minute.")
+                        sign_in_error("A given ip address is allowed at most 10 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
                         
@@ -265,7 +265,7 @@ sign_in = (mesg, client_ip_address, push_to_client) ->
                         sign_in_error(error)
                         cb(true); return
                     if count > 25
-                        sign_in_error("A given ip address is allowed at most 25 failed login attempts per hour.")
+                        sign_in_error("A given ip address is allowed at most 25 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
 
