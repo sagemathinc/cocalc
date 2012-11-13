@@ -7176,6 +7176,7 @@ Is this possible? YES.  easy.
   [x] disable connect-to box
 
   [ ] (3) sign-up: enable automatic zxcvbn.zxcvbn 
+
   [ ] (3) change password -- enable automatic zxcvbn.zxcvbn 
 
   [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
