@@ -231,8 +231,7 @@ exports.test_account_management = (test) ->
                 account_id    : account.account_id
                 email_address : 'salvusmath@uw.edu'
                 cb : (error, result) ->
-                    test.equal(error, 'Email address is not available.', 'Should get an error when trying to change email to already taken email.')
-                    console.log(error, result)
+                    test.equal(error, 'email_already_taken', 'Should get an error when trying to change email to already taken email.')
                     cb()
 
     ], () -> test.done())
