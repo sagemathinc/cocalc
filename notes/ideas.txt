@@ -65,3 +65,6 @@
 
  [ ]  this list of javascript libraries is awesome: http://microjs.com/# 
 
+
+ [ ] support this somehow: https://code.google.com/p/skulpt/  Why not?  
+     In browser python.

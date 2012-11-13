@@ -88,6 +88,7 @@ init_sockjs_server = () ->
         winston.info ("new sockjs connection #{conn} from #{conn.remoteAddress}")
 
         # install event handlers on this particular connection
+
         account_id = null
         
         push_to_client = (mesg) ->
@@ -118,7 +119,7 @@ init_sockjs_server = () ->
             options = {}
             if opts.ttl?
                 options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
-            conn.once("set_cookie-#{opts.name}", ()->opts.cb())
+            conn.once("set_cookie-#{opts.name}", ()->opts.cb?())
             conn.cookies[opts.name] = {value:opts.value, options:options}
             push_to_client(message.cookies(id:conn.id, set:opts.name))
 
@@ -127,8 +128,82 @@ init_sockjs_server = () ->
         #    console.log("set the cookie")
         #    conn.get_cookie(name:"conn", cb:((value) -> console.log("got cookie #{value}")))
         # ))
-        
 
+        remember_me_db = database.key_value_store(name: 'remember_me')
+        
+        conn.remember_me = (sign_in_mesg) ->      
+            #############################################################
+            # Remember me.  There are many ways to implement
+            # "remember me" functionality in a web app. Here's how
+            # we do it with Salvus.  We generate a random uuid,
+            # which along with salt, is stored in the user's
+            # browser as an httponly cookie.  We password hash the
+            # random uuid and store that in our database.  When
+            # the user later visits the Salvus site, their browser
+            # sends the cookie, which the server hashes to get the
+            # key for the database table, which has corresponding
+            # value the mesg needed for sign in.  We then sign the
+            # user in using that message.
+            #
+            # The reason we use a password hash is that if
+            # somebody gains access to an entry in the key:value
+            # store of the database, we want to ensure that they
+            # can't use that information to login.  The only way
+            # they could login would be by gaining access to the
+            # cookie in the user's browser.
+            #
+            # There is no point in signing the cookie since its
+            # contents are random.
+            #
+            # Regarding ttl, we use 1 week.  The database will forget
+            # the cookie automatically at the same time that the
+            # browser invalidates it.
+            #############################################################
+            session_id      = uuid.v4()
+            hash_session_id = password_hash(session_id)
+            ttl             = 7*24*3600
+            #ttl             = 3*60  # short for testing
+
+            conn.hash_session_id = hash_session_id
+            
+            remember_me_db.set
+                key   : hash_session_id 
+                value : sign_in_mesg  # TODO: we should really copy this message and get rid of id key.
+                ttl   : ttl
+                    
+            x = hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
+            conn.set_cookie
+                name  : 'remember_me'
+                value : [x[0], x[1], x[2], session_id].join('$')
+                ttl   : ttl 
+
+        conn.get_cookie
+            name : 'remember_me'
+            cb : (value) ->
+                if value?
+                    x    = value.split('$')
+                    hash = generate_hash(x[0], x[1], x[2], x[3])
+                    remember_me_db.get
+                        key : hash
+                        cb  : (error, mesg) ->
+                            if not error
+                                conn.hash_session_id = hash
+                                push_to_client(mesg)
+
+        conn.invalidate_remember_me = (opts) ->
+            opts = defaults opts,
+                cb : required
+                
+            if conn.hash_session_id?
+                remember_me_db.delete
+                    key : conn.hash_session_id
+                    cb  : opts.cb
+            else
+                opts.cb()
+        
+        #################################################
+        # Incoming message router                                        
+        #################################################
         conn.on("data", (mesg) ->
             try
                 mesg = from_json(mesg)
@@ -162,11 +237,10 @@ init_sockjs_server = () ->
                 when "create_account"
                     create_account(mesg, conn.remoteAddress, push_to_client)
                 when "sign_in"
-                    sign_in(mesg, conn.remoteAddress, push_to_client, conn)
+                    sign_in(mesg, push_to_client, conn)
                     
-                # TODO: implement -- make no sense without connection session id
-                #when "sign_out"
-                    #sign_out(mesg, conn.remoteAddress, push_to_client)
+                when "sign_out"
+                    sign_out(mesg, push_to_client, conn)
 
                 when "password_reset"
                     password_reset(mesg, conn.remoteAddress, push_to_client)
@@ -207,13 +281,31 @@ init_sockjs_server = () ->
 ########################################
 
 password_hash_library = require('password-hash')
+crypto = require('crypto')
 
+# You can change the parameters at any time and no existing passwords
+# or cookies should break.  This will only impact newly created
+# passwords and cookies.  Old ones can be read just fine (with the old
+# parameters).
+HASH_ALGORITHM   = 'sha512'
+HASH_ITERATIONS  = 1000  
+HASH_SALT_LENGTH = 32
 
+# This function is private and burried inside the password-hash
+# library.  To avoid having to fork/modify that library, we've just
+# copied it here.  We need it for remember_me cookies.
+generate_hash = (algorithm, salt, iterations, password) ->
+    iterations = iterations || 1
+    hash = password
+    for i in [1..iterations]
+        hash = crypto.createHmac(algorithm, salt).update(hash).digest('hex')
+    return algorithm + '$' + salt + '$' + iterations + '$' + hash
+    
 exports.password_hash = password_hash = (password) ->
     return password_hash_library.generate(password,
-        algorithm:'sha512'
-        saltLength:32
-        iterations:1000   # This blocks the server for about 10 milliseconds...
+        algorithm  : HASH_ALGORITHM
+        saltLength : HASH_SALT_LENGTH
+        iterations : HASH_ITERATIONS   # This blocks the server for about 10 milliseconds...
     )
 
 # Password checking.  opts.cb(false, true) if the
@@ -264,7 +356,8 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
 #   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
 #############################################################################
-sign_in = (mesg, client_ip_address, push_to_client, conn) ->
+sign_in = (mesg, push_to_client, conn) ->
+    client_ip_address = conn.remoteAddress
 
     sign_in_error = (error) ->
         push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
@@ -365,19 +458,9 @@ sign_in = (mesg, client_ip_address, push_to_client, conn) ->
 
         # remember me
         (cb) ->
-            if not mesg.remember_me
-                # don't do anything if user does not want us to remember them
-                cb(); return
-            remember_me = database.key_value_store(name:'remember_me')
-            # generate a session_id
-            session_id = uuid.v4()
-            hash_session_id = password_hash(session_id)
-            v = hash_session_id.split('$')    # format:  algorithm$salt$hash
-            cookie = [v[0],v[1],session_id].join("$")
-            remember_me[hash_session_id] = sign_in_mesg
-            conn.set_cookie(name:"session_id", value:cookie, ttl:7*24*3600, cb:() -> console.log("SET A COOKIE!"))
-
-
+            if mesg.remember_me
+                conn.remember_me(sign_in_mesg)                    
+            cb()
     ])
 
 
@@ -403,6 +486,16 @@ record_sign_in = (opts) ->
             set   : {ip_address:opts.ip_address}
             where : {time:cass.now(), account_id:opts.account_id}
         
+
+sign_out = (mesg, push_to_client, conn) ->
+    conn.invalidate_remember_me(cb:(error)->
+        console.log("signing out: #{mesg.id}, #{error}")
+        if not error
+            push_to_client(message.error(id:mesg.id, error:error))
+        else
+            push_to_client(message.signed_out(id:mesg.id))
+    )
+
 
 # We cannot put the zxcvbn password strength checking in
 # client.coffee since it is too big (~1MB).  The client

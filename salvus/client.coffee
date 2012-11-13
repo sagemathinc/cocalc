@@ -47,6 +47,8 @@ class exports.Connection extends EventEmitter
     #    - 'output'     -- received some output for stateless execution (not in any session)
     #    - 'ping'       -- a pong is received back; data is the round trip ping time
     #    - 'message'    -- any message is received
+    #    - 'signed_in'  -- server pushes a succesful sign in to the client (e.g., due to
+    #                      'remember me' functionality); data is the signed_in message.  
 
     constructor: (@url) ->
         @emit("connecting")
@@ -118,6 +120,8 @@ class exports.Connection extends EventEmitter
             when "cookies"
                 console.log("cookies message")
                 @_cookies?(mesg)
+            when "signed_in"
+                @emit("signed_in", mesg)
 
     ping: () ->
         @_last_ping = misc.walltime()
@@ -203,12 +207,11 @@ class exports.Connection extends EventEmitter
 
     sign_out: (opts) ->
         opts = defaults(opts,
-            account_id   : required
             cb           : undefined
             timeout      : 10 # seconds
         )
         @call(
-            message : message.sign_out(account_id:opts.account_id)
+            message : message.sign_out()
             timeout : opts.timeout
             cb      : opts.cb
         )

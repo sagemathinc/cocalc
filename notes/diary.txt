@@ -7180,30 +7180,24 @@ Is this possible? YES.  easy.
 
   [x] disallow the very weakest possible passwords. 
 
-
-  [ ](7) remember me cookie:
+  [x](7) remember me cookie:
 somehow, 
-
     - store in cookie a uuid
-
     - store in database a secure_hash(uuid):value table with ttl and value=account_id
-
     - if client initially connects and has a cookie uuid such that
       secure_hash(uuid) is in table, then automatically sign them in.
     
 The solution is to send (via sockjs) an id, then use that to send the
 cookies *back* to some URL... AFTER we have made the sockjs
 connection.  This will work and keep cookies httponly. (http://www.codinghorror.com/blog/2008/08/protecting-your-cookies-httponly.html)
-             
+  [x] implement sign out -- make no sense without connection session id
 
+             
   [ ](5) enter to submit: login, change email, etc.
 
   [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
 
   [ ](2) should have an easy link to salvus terms in various places instead of *only* having it on account creation?
-
-  [ ](6) add more tests to the test suite
-
 
   [ ](2) make error message on sign-in right by the password, not using alert
 
@@ -7212,6 +7206,9 @@ connection.  This will work and keep cookies httponly. (http://www.codinghorror.
   [ ] sessions are very flakie, because some pexpect interfaces are.
       Only provide the very robust interfaces and nothing else.
 
-  [ ] implement sign out -- make no sense without connection session id
-
   [ ] maybe salvus totally broken on ie because of use of console.log ?
+
+  [ ] after remember me is done, I may want to move from key:value
+      store to another table so that when user changes their password,
+      then all remember_me cookies for them are invalidated.
+

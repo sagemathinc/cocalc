@@ -105,7 +105,7 @@ class UUIDValueStore
         @cassandra.count(table:'uuid_value', where:{name:@opts.name}, cb:opts.cb)
         
     all: (opts={}) ->
-        opts = defaults(opts,  cb:undefined)        
+        opts = defaults(opts,  cb:required)        
         @cassandra.select(
             table:'uuid_value'
             columns:['uuid', 'value']

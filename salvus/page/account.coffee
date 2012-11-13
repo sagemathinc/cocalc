@@ -184,7 +184,6 @@
     )
     
     sign_in = (mesg) ->
-        
         # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
         account_id = mesg.account_id
         account_settings.load_from_server((error) ->
@@ -199,17 +198,29 @@
         controller.switch_to_page("account")
         controller.show_page_nav(x) for x in ["feedback", "demo1", "demo2"]
 
+    # Listen for pushed sign_in events from the server.  This is one way that
+    # the sign_in function above can be activated, but not the only way.
+    salvus.conn.on("signed_in", sign_in)
+
     ################################################
-    # Sign out
+    # Explicit sign out
     ################################################
     sign_out = () ->
-        set_account_tab_label(false)
-        # change the view in the account page to the "sign in" view
-        # change the navbar title from "Sign in" to "first_name last_name"
-        (controller.hide_page_nav(x) for x in ["feedback", "demo1", "demo2"])
-        show_page("account-sign_in")
-        controller.switch_to_page("account")
-
+        # Send a message to the server that the user explicitly
+        # requested to sign out.  The server can clean up resources
+        # and invalidate the remember_me cookie for this client.
+        salvus.conn.sign_out
+            timeout : 5
+            cb      : (error) ->
+                if error
+                    alert_message(type:"error", message:error)
+                else
+                    set_account_tab_label(false)
+                    # Change the view in the account page to the "sign in" view.
+                    # Change the navbar title from "Sign in" to "first_name last_name"
+                    (controller.hide_page_nav(x) for x in ["feedback", "demo1", "demo2"])
+                    show_page("account-sign_in")
+                    controller.switch_to_page("account")
 
     ################################################
     # Account settings
