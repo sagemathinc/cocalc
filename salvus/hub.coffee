@@ -350,11 +350,10 @@ create_account = (mesg, client_ip_address, push_to_client) ->
             issues = client.issues_with_create_account(mesg)
             console.log("issues = #{issues}")
 
-            # We are going to allow stupid passwords, but regularly nag the user to make them stronger.
-            # The following was the code to flat out not allow stupid passwords.
-            #password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
-            #if (password_strength.crack_time <= 10*24*3600)  # 10 days
-            #    issues['password'] = "Choose a password that is more difficult to guess."
+            # Do not allow *really* stupid passwords.
+            password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
+            if password_strength.score < 1
+                issues['password'] = "Choose a password that isn't very weak."
 
             # TODO -- only uncomment this for easy testing, allow any password choice
             # the client test suite will then fail, which is good, so we are reminded to comment this out before release!

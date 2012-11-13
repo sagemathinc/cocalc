@@ -135,6 +135,7 @@
     # Enhance HTML element to display feedback about a choice of password
     #     input   -- jQuery wrapped <input> element where password is typed
     password_strength_meter = (input) ->
+        # TODO: move this html into account.html
         display = $('<div class="progress progress-striped"><div class="bar"></div>&nbsp;<font size=-1></font></div>')
         input.after(display)
         colors = ['red', 'yellow', 'orange', 'lightgreen', 'green']
@@ -375,7 +376,7 @@
     close_change_password = () ->
         change_password.modal('hide').find('input').val('')
         change_password.find(".account-error-text").hide()
-
+        
     change_password.find(".close").click((event) -> close_change_password())
     $("#account-change_password-button-cancel").click((event)->close_change_password())
     change_password.on("shown", () -> $("#account-change_password-old_password").focus())

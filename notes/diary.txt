@@ -7178,6 +7178,8 @@ Is this possible? YES.  easy.
   [x] (3) sign-up: enable automatic zxcvbn.zxcvbn 
   [x] (3) change password -- enable automatic zxcvbn.zxcvbn 
 
+  [ ] disallow the very weakest possible passwords. 
+
   [ ](3)  fix change email gui to use reason object for errors instead of hard coding them.
 
   [ ](5) enter to submit: login, change email, etc.
