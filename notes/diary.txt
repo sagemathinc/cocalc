@@ -7217,13 +7217,162 @@ Next up:
 
    [x] make "remember me" sign-in's get recorded in the database log
 
+   [x] for ease of use (de-normalization), add an extra "misc" column to successful_sign_ins that 
+       includes JSON:  {first_name:*, last_name:*, email_address:*, remember_me:bool}
+   [x] ensure that users have to be authenticated before performing
+       actions that require auth.
+
+
+
+----
+
+
+OK, it is now time to start working on the actual Sage-related compute functionality of Salvus.
+
    [ ] right now persistent sessions don't work because client tries to start *it* before sign-in even happens
        Fix: big / nontrivial / do things right.
 
-   [ ] for ease of use (de-normalization), add an extra "misc" column to successful_sign_ins that 
-       includes JSON:  {first_name:*, last_name:*, email_address:*, remember_me:bool}
 
-   [ ] ensure that users have to be authenticated before performing
-       actions that require auth.
+---> Let's implement the following:
+
+   - An "html5 sage session editor"
+   - A sortable list of saved sessions that user can bring back up easily, which are stored in database.
+
+This is just like the sage notebook, and will be useful.  Full
+projects with directories, etc., can be done later.  
+
+worksheet schema:
+
+CREATE TABLE worksheets (
+     worksheet_id     uuid  PRIMARY KEY,
+     title            varchar,
+     last_edited      timestamp,
+     users            varchar,       // JSON object giving user access for this worksheet: 
+                                     //    [{first_name:?, last_name:?, account_id:?, read_only:bool}, ...]
+     content          varchar,       // JSON object representing the actual contents of the worksheet
+);
+
+// We also have the following table, since the users property of worksheets can't be queried:
+
+CREATE TABLE worksheet_access (
+     account_id       uuid,
+     worksheet_id     uuid,
+     read_only        boolean,
+     PRIMARY KEY(account_id, worksheet_id)
+);
+
+---
+
+
+update worksheets set title='WS 0',users='user info',content='0+0' where worksheet_id=0;
+update worksheets set title='WS 1',users='user info',content='1+1' where worksheet_id=1;
+update worksheets set title='WS 2',users='user info',content='2+2' where worksheet_id=2;
+
+update worksheet_access set read_only='false' where account_id=0 and worksheet_id=0;
+update worksheet_access set read_only='false' where account_id=1 and worksheet_id=0;
+update worksheet_access set read_only='false' where account_id=2 and worksheet_id=0;
+update worksheet_access set read_only='false' where account_id=0 and worksheet_id=1;
+update worksheet_access set read_only='false' where account_id=0 and worksheet_id=2;
+
+To list all worksheets for a given user:
+
+    select * from worksheet_access where account_id=1;
+
+That gives the worksheet_id's;  to convert these to titles in *ONE TRANSACTION*, do this sort of thing:
+
+   cqlsh:test> select title from worksheets where worksheet_id in (0,3);
+
+This does not work because "in" only works on the first part of the primary key:
+
+   select * from worksheet_access where worksheet_id in (0,1,3);
+
+But that's ok, since that info is in the users part of the worksheet, and we can do
+
+    select title,users from worksheets where worksheet_id in (0,3);
+
+Storing snapshots of worksheet:
+
+CREATE TABLE worksheet_snapshots (
+     worksheet_id     uuid,
+     time             timestamp,
+     content          varchar,
+     PRIMARY KEY(worksheet_id, time)
+);
+
+Getting rid of old snapshots would just involve querying then doing
+delete with IN and a list of timestamps.  
+
+
+
+Questions about sage sessions:
+
+ What are the running sage sessions in a project?
+ 
+
+I want to have a full terminal emulator command line session ability.
+If I had that -- like c9.io already has -- then salv.us would instantly
+become very, very useful to people.  
+
+After searching forever, I've found this: https://github.com/chjj/tty.js/
+
+This is very cool!   Initial issue building due to me having "export MAKE"...
+It uses socket.io.
+
+This tty.js is very interesting!
+
+I need to totally understand/improve it, since it will significantly
+impact my approach/design.    I need to start by having projects and
+a very good command line session.
+
+I figured out how to get the real demo to work:
+
+   git clone git://github.com/chjj/tty.js.git
+   cd tty.js
+   npm install
+   bin/tty.js -p 8099
+
+
+NOTE: There is a potential license issue with tty.js:  https://github.com/chjj/tty.js/issues/47
+
+Looking at /Users/wstein/salvus0/tty.js/example, with some mods and it seems like I can implement
+something pretty awesome as follows:
+
+   - run a nodejs process (1) on "sage session server" computer.
+   - it connects somehow (tcp?) to hub (2)
+   - hub connects to user client (3) via sockjs
+   - define a message type that is "data from session with given id",
+     and whenever client receives that message, it calls an
+     appropriate function on all
+   - whenever there is output on (1), it goes to (2), which then pushes 
+     the output to all tuned-in clients 
+   - the clients (3) receive the message and call term.write with the
+     data as input.
+
+With this, we could have 100% full-on awesome safe remote command line
+terminal sessions, with vi/emacs/sage/whatever 100% working, and
+moreover, if multiple people (or the same person more than once)
+connects to the same session, they will see exactly the same thing on
+all screens!   Wow.  This will totally work and be awesome.
+
+Once that works, of course I'll want to provide support for graphics
+output.  Then editing .sws files, which will be a different story
+altogether.
+
+Now, let's work out how the worksheets will work :-)
+
+The bootstrap version of wysihtml5 seems nice, but isn't actively updated.
+However, the generic version is very regularly updated:
+   https://github.com/xing/wysihtml5
+WAIT, yes it is updated regularly: https://github.com/jhollingworth/bootstrap-wysihtml5
+
+This wysihtml5 has tons of events -- it's like codemirror, but for a full html document. 
+
+
+
+
+   
+   
+   
+   
 
    

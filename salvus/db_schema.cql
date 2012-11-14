@@ -194,3 +194,36 @@ CREATE TABLE successful_sign_ins (
      PRIMARY KEY(account_id, time)
 );
        
+
+
+////////////////////////////////////////////
+// Repositories
+////////////////////////////////////////////
+
+CREATE TABLE repository (
+     repository_id    uuid  PRIMARY KEY,
+     title            varchar,
+     last_edited      timestamp,
+     meta             varchar,       // JSON object with extensive non-query-able meta-info.
+     content          blob,          // A binary git bundle
+);
+
+// We also have the following table, since the users property of repositorys can't be queried:
+CREATE TABLE repository_access (
+     account_id       uuid,
+     repository_id    uuid,
+     read_only        boolean,
+     PRIMARY KEY(account_id, repository_id)
+);
+
+CREATE TABLE sage_sessions (
+     session_id       uuid PRIMARY KEY,
+     repository_id       uuid,
+     hub              varchar    // "hostname:port" -- when hub restarted, admin deletes all these records
+     sage_server      varchar    // "hostname:port" -- when sage_server restarted, admin deletes all these records
+);
+
+CREATE INDEX on sage_sessions(repository_id);
+CREATE INDEX on sage_sessions(hub);
+CREATE INDEX on sage_sessions(sage_server);
+       

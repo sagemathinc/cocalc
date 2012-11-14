@@ -67,4 +67,5 @@
 
 
  [ ] support this somehow: https://code.google.com/p/skulpt/  Why not?  
-     In browser python.
+
+     In browser python... but maybe extend it with a way to call back to a remote server for sophisticated features.
