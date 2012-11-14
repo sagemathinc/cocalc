@@ -7215,7 +7215,7 @@ Next up:
 
    [x] clean up the clientconn code after refactor
 
-   [ ] make "remember me" sign-in's get recorded in the database log
+   [x] make "remember me" sign-in's get recorded in the database log
 
    [ ] right now persistent sessions don't work because client tries to start *it* before sign-in even happens
        Fix: big / nontrivial / do things right.

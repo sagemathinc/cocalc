@@ -187,6 +187,10 @@ CREATE TABLE successful_sign_ins (
      time           timestamp,
      ip_address     varchar,
      signed_out     timestamp,
+     remember_me    boolean,       // whether this login was accomplished via a remember_me cookie.
+     email_address  varchar,       // for convenience
+     first_name     varchar,       // for convenience
+     last_name      varchar,       // for convenience
      PRIMARY KEY(account_id, time)
 );
        

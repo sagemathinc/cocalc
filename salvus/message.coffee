@@ -153,6 +153,7 @@ message(
     first_name     : required      # user's first name
     last_name      : required      # user's last name
     email_address  : required      # address they just signed in using
+    remember_me    : required      # true if sign in accomplished via remember_me cookie; otherwise, false.
 )
 
 

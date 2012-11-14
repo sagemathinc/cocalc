@@ -24,7 +24,7 @@ misc    = require("misc")
 defaults = misc.defaults; required = defaults.required
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
-client  = require("client")
+client_lib = require("client")
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -43,7 +43,9 @@ Cookies = require('cookies')            # https://github.com/jed/cookies
 # module scope variables:
 http_server        = null
 database           = null
-client_connections = {}
+
+# the connected clients
+clients            = {}
 
 ###
 # HTTP Server
@@ -60,7 +62,7 @@ init_http_server = () ->
         switch pathname
             when "/cookies"
                 cookies = new Cookies(req, res)
-                conn = client_connections[query.id]
+                conn = clients[query.id]
                 if conn?
                     if query.get
                         conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
@@ -77,7 +79,11 @@ init_http_server = () ->
                 
     )
 
-class ClientConnection extends EventEmitter
+    
+#############################################################
+# Client = a client that is connected via sockjs to the hub
+#############################################################
+class Client extends EventEmitter
     constructor: (@conn) ->
         @ip_address = @conn.remoteAddress
 
@@ -93,30 +99,43 @@ class ClientConnection extends EventEmitter
         @check_for_remember_me()
         
         @conn.on("data", @handle_message_from_client)
-        @conn.on("close", () => delete client_connections[@conn.id])
+        @conn.on("close", () => delete clients[@conn.id])
 
     check_for_remember_me: () =>
         @get_cookie
             name : 'remember_me'
             cb   : (value) =>
+                console.log("remember_me = #{value}")
                 if value?
                     x    = value.split('$')
                     hash = generate_hash(x[0], x[1], x[2], x[3])
                     @remember_me_db.get
                         key : hash
-                        cb  : (error, mesg) =>
-                            if not error and mesg?
+                        cb  : (error, signed_in_mesg) =>
+                            if not error and signed_in_mesg?
                                 @hash_session_id = hash
-                                @signed_in(mesg.account_id)
-                                @push_to_client(mesg)
+                                @signed_in(signed_in_mesg)
+                                @push_to_client(signed_in_mesg)
                             
     push_to_client: (mesg) =>
         winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
         @conn.write(to_json(mesg))
 
     # Call this method when the user has successfully signed in.
-    signed_in: (account_id) =>
-        @account_id = account_id
+    signed_in: (signed_in_mesg) =>
+
+        # Record that this connection is authenticated:
+        @account_id = signed_in_mesg.account_id
+        
+        record_sign_in
+            ip_address    : @ip_address
+            successful    : true
+            remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
+            email_address : signed_in_mesg.email_address
+            account_id    : signed_in_mesg.account_id
+            first_name    : signed_in_mesg.first_name
+            last_name     : signed_in_mesg.last_name
+        
 
     signed_out: () =>
         @account_id = undefined
@@ -144,7 +163,7 @@ class ClientConnection extends EventEmitter
         @cookies[opts.name] = {value:opts.value, options:options}
         @push_to_client(message.cookies(id:@conn.id, set:opts.name))
     
-    remember_me: (sign_in_mesg) ->      
+    remember_me: (opts) ->
         #############################################################
         # Remember me.  There are many ways to implement
         # "remember me" functionality in a web app. Here's how
@@ -172,13 +191,22 @@ class ClientConnection extends EventEmitter
         # the cookie automatically at the same time that the
         # browser invalidates it.
         #############################################################
-        session_id      = uuid.v4()
+        
+        opts = defaults opts, 
+            account_id    : required
+            first_name    : required
+            last_name     : required
+            email_address : required
+            
+        opts.remember_me = true
+        signed_in_mesg   = message.signed_in(opts)
+        session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
-        ttl             = 7*24*3600     # 7 days
+        ttl              = 7*24*3600     # 7 days
         
         @remember_me_db.set
             key   : @hash_session_id 
-            value : sign_in_mesg  # TODO: we should really copy this message and get rid of id key.
+            value : signed_in_mesg
             ttl   : ttl
                 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
@@ -263,8 +291,7 @@ class ClientConnection extends EventEmitter
     ######################################################
     # Messages: Account creation, sign in, sign out
     ######################################################
-    mesg_create_account: (mesg) =>
-        create_account(mesg, @ip_address, @push_to_client)
+    mesg_create_account: (mesg) => create_account(@, mesg)
 
     mesg_sign_in: (mesg) => sign_in(@,mesg)
 
@@ -336,7 +363,7 @@ init_sockjs_server = () ->
     sockjs_server = sockjs.createServer()
     
     sockjs_server.on "connection", (conn) ->
-        client_connections[conn.id] = new ClientConnection(conn)
+        clients[conn.id] = new Client(conn)
         
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
@@ -425,7 +452,7 @@ sign_in = (client, mesg) =>
     sign_in_error = (error) ->
         client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
 
-    sign_in_mesg = null
+    signed_in_mesg = null
     async.series([
         # POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
         (cb) ->
@@ -504,39 +531,40 @@ sign_in = (client, mesg) =>
                         cb(true); return
                     else
                     
-                        client.signed_in(account.account_id)
-                        
-                        sign_in_mesg = message.signed_in
+                        signed_in_mesg = message.signed_in
                             id            : mesg.id
                             account_id    : account.account_id 
                             first_name    : account.first_name
                             last_name     : account.last_name
                             email_address : mesg.email_address
-                        
-                        client.push_to_client(sign_in_mesg)
-                        
-                        record_sign_in
-                            ip_address    : client.ip_address
-                            successful    : true
-                            email_address : mesg.email_address
-                            account_id    : account.account_id
+                            remember_me   : false
+                            
+                        client.signed_in(signed_in_mesg)
+                        client.push_to_client(signed_in_mesg)
                         cb()
 
         # remember me
         (cb) ->
             if mesg.remember_me
-                client.remember_me(sign_in_mesg)                    
+                client.remember_me
+                    account_id : signed_in_mesg.account_id
+                    first_name : signed_in_mesg.first_name
+                    last_name  : signed_in_mesg.last_name
+                    email_address : signed_in_mesg.email_address
             cb()
     ])
 
 
-# Record in database failed or successful login attempt.
+# Record to the database a failed and/or successful login attempt.
 record_sign_in = (opts) ->
     opts = defaults opts,
         ip_address    : required
         successful    : required
         email_address : required
+        first_name    : undefined
+        last_name     : undefined
         account_id    : undefined
+        remember_me   : false
     if not opts.successful
         database.update
             table : 'failed_sign_ins_by_ip_address'
@@ -549,7 +577,7 @@ record_sign_in = (opts) ->
     else
         database.update
             table : 'successful_sign_ins'
-            set   : {ip_address:opts.ip_address}
+            set   : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
             where : {time:cass.now(), account_id:opts.account_id}
         
 
@@ -563,13 +591,13 @@ record_sign_in = (opts) ->
 # allow them anyways!
 zxcvbn = require('../static/zxcvbn/zxcvbn')  # this require takes about 100ms!
 
-create_account = (mesg, client_ip_address, push_to_client) ->
+create_account = (client, mesg) ->
     id = mesg.id
     account_id = null
     async.series([
         # run tests on generic validity of input
         (cb) -> 
-            issues = client.issues_with_create_account(mesg)
+            issues = client_lib.issues_with_create_account(mesg)
             console.log("issues = #{issues}")
 
             # Do not allow *really* stupid passwords.
@@ -582,7 +610,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
             # delete issues['password'] 
             
             if misc.len(issues) > 0
-                push_to_client(message.account_creation_failed(id:id, reason:issues))
+                client.push_to_client(message.account_creation_failed(id:id, reason:issues))
                 cb(true)
             else
                 cb()
@@ -594,23 +622,23 @@ create_account = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
             ip_tracker.get(
-                key : client_ip_address
+                key : client.ip_address
                 cb  : (error, value) ->
                     if error
-                        push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
+                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
                         cb(true)
                     if not value?
-                        ip_tracker.set(key: client_ip_address, value:1, ttl:6*3600)
+                        ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
                         cb()
                     else if value < 100
-                        ip_tracker.set(key: client_ip_address, value:value+1, ttl:6*3600)                    
+                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)                    
                         cb()  
                     else # bad situation
                         database.log(
                             event : 'create_account'
-                            value : {ip_address:client_ip_address, reason:'too many requests'}
+                            value : {ip_address:client.ip_address, reason:'too many requests'}
                         )
-                        push_to_client(message.account_creation_failed(id:id, reason:{'other':"Too many account requests from the ip address #{client_ip_address} in the last 6 hours.  Please try again later."}))
+                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Too many account requests from the ip address #{client.ip_address} in the last 6 hours.  Please try again later."}))
                         cb(true)
             )
 
@@ -618,10 +646,10 @@ create_account = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             database.is_email_address_available(mesg.email_address, (error, available) ->
                 if error
-                    push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
+                    client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
                     cb(true)
                 else if not available
-                    push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is already taken."}))
+                    client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is already taken."}))
                     cb(true)
                 else
                     cb()
@@ -636,7 +664,7 @@ create_account = (mesg, client_ip_address, push_to_client) ->
                 password_hash: password_hash(mesg.password)
                 cb: (error, result) ->
                     if error
-                        push_to_client(message.account_creation_failed(
+                        client.push_to_client(message.account_creation_failed(
                                  id:id, reason:{'other':"Unable to create account right now.  Please try later."})
                         )
                         cb(true)
@@ -650,19 +678,15 @@ create_account = (mesg, client_ip_address, push_to_client) ->
             
         # send message back to user that they are logged in as the new user
         (cb) ->
-            mesg = message.signed_in(
-                id: mesg.id
-                account_id: account_id
-                first_name: mesg.first_name
-                last_name: mesg.last_name
-                email_address: mesg.email_address
-            )
-            push_to_client(mesg)
-            record_sign_in
-                ip_address    : client_ip_address
-                successful    : true
-                email_address : mesg.email_address
+            mesg = message.signed_in
+                id            : mesg.id
                 account_id    : account_id
+                remember_me   : false
+                first_name    : mesg.first_name
+                last_name     : mesg.last_name
+                email_address : mesg.email_address
+            client.signed_in(mesg)
+            client.push_to_client(mesg)
             cb()
     ])
     
@@ -721,7 +745,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
 
         # check that new password is valid
         (cb) ->
-            [valid, reason] = client.is_valid_password(mesg.new_password)
+            [valid, reason] = client_lib.is_valid_password(mesg.new_password)
             if not valid
                 push_to_client(message.changed_password(id:mesg.id, error:{new_password:reason}))
                 cb(true)
@@ -758,7 +782,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         push_to_client(message.changed_email_address(id:mesg.id))
         return
 
-    if not client.is_valid_email_address(mesg.new_email_address)
+    if not client_lib.is_valid_email_address(mesg.new_email_address)
         push_to_client(message.changed_email_address(id:mesg.id, error:'email_invalid'))
         return
         
@@ -849,7 +873,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         return
 
     # This is an easy check to save work and also avoid empty email_address, which causes CQL trouble.
-    if not client.is_valid_email_address(mesg.email_address)
+    if not client_lib.is_valid_email_address(mesg.email_address)
         push_to_client(message.error(id:mesg.id, error:"Invalid email address."))
         return
 
@@ -999,7 +1023,7 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
 
         # Verify password is valid and compute its hash.
         (cb) -> 
-            [valid, reason] = client.is_valid_password(mesg.new_password)
+            [valid, reason] = client_lib.is_valid_password(mesg.new_password)
             if not valid
                 push_to_client(message.reset_forgot_password_response(id:mesg.id, error:reason))
                 cb(true)
