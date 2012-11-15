@@ -219,8 +219,8 @@ CREATE TABLE repository_access (
 CREATE TABLE sage_sessions (
      session_id       uuid PRIMARY KEY,
      repository_id       uuid,
-     hub              varchar    // "hostname:port" -- when hub restarted, admin deletes all these records
-     sage_server      varchar    // "hostname:port" -- when sage_server restarted, admin deletes all these records
+     hub              varchar,    // "hostname:port" -- when hub restarted, admin deletes all these records
+     sage_server      varchar     // "hostname:port" -- when sage_server restarted, admin deletes all these records
 );
 
 CREATE INDEX on sage_sessions(repository_id);
