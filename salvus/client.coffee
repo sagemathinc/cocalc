@@ -9,15 +9,20 @@ class Session extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
     #    - 'close'  -- session's connection is closed/terminated
-    constructor: (@conn, @requested_limits) ->
-        @start_time = misc.walltime()
-
-    _init: (session_uuid, limits) ->
-        @session_uuid = session_uuid
-        @limits = limits
+    constructor: (opts) ->
+        opts = defaults opts,
+            conn         : required  # a Connection instance
+            limits       : required  # object giving limits of session that we actually got
+            session_uuid : required
+            
+        @start_time   = misc.walltime()
+        @conn         = opts.conn
+        @limits       = opts.limits
+        @session_uuid = opts.session_uuid
         @emit("open")
 
-    walltime: () -> misc.walltime() - @start_time
+    walltime: () ->
+        return misc.walltime() - @start_time
 
     # If cb is given, it is called every time output for this particular code appears; 
     # No matter what, you can always still listen in with the 'output' even, and note
@@ -97,11 +102,6 @@ class exports.Connection extends EventEmitter
             return
             
         switch mesg.event
-            when "new_session"
-                session = @_new_sessions[mesg.id]
-                delete @_new_sessions[mesg.id]
-                session._init(mesg.session_uuid, mesg.limits)
-                @_sessions[mesg.session_uuid] = session
             when "output"
                 cb = @execute_callbacks[mesg.id]
                 if cb?
@@ -126,12 +126,27 @@ class exports.Connection extends EventEmitter
         @_last_ping = misc.walltime()
         @send(message.ping())
 
-    new_session: (limits={}) ->
-        id = @_id_counter++
-        session = new Session(this, limits)
-        @_new_sessions[id] = session
-        @send(message.start_session(id:id, limits:limits))
-        return session
+    new_session: (opts) ->
+        opts = defaults opts,
+            limits  : required
+            timeout : 10          # how long until give up on getting a new session
+            cb      : undefined   # cb(error, session)  if error is defined it is a string
+            
+        @call
+            message : message.start_session(limits:opts.limits)
+            timeout : opts.timeout
+            cb      : (error, reply) =>
+                if error
+                    opts.cb(error)
+                else
+                    if reply.event == 'error'
+                        opts.cb(reply.error)
+                    else if reply.event == "session_started"
+                        session = new Session(conn:@, limits:reply.limits, session_uuid:reply.session_uuid)
+                        @_sessions[reply.session_uuid] = session
+                        opts.cb(false, session)
+                    else
+                        opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")
 
     execute_code: (opts={}) ->
         opts = defaults(opts, code:defaults.required, cb:null, preparse:true, allow_cache:true)

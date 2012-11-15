@@ -7398,11 +7398,11 @@ Goals for tonight:
 
   [ ] fix bugs in test suite introduced by improving sign-in security:
 
-      [ ] bug: creating a new session then immediately sending it code
+      [x] fixed bug: creating a new session then immediately sending it code
           to eval gets immediately returned from cache with no eval
           happening.   The reason is that the whole session-creation code
           has no callbacks, like it must....  since I was just learning. 
-          So that needs to get rewritten.
+          So that needed to get rewritten.
 
 Implement these messages in client/hub/cassandra:
 

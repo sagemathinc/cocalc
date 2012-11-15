@@ -1227,7 +1227,7 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
                         # record this for later use for signals:
                         persistent_sage_sessions[session_uuid].pid = m.pid
                         persistent_sage_sessions[session_uuid].account_id = account_id
-                        push_to_client(message.new_session(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
+                        push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
                     else
                         winston.error("(hub) persistent_sage_conn -- unhandled message event = '#{m.event}'")
             cb: ->

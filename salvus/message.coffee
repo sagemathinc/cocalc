@@ -27,14 +27,14 @@ message = (obj) ->
 
 # hub --> sage_server and browser --> hub
 message(
-    event  : 'start_session'
-    id     : undefined
-    limits : undefined
+    event        : 'start_session'
+    id           : undefined
+    limits       : undefined
 )
 
 # hub --> browser
 message( 
-    event        : 'new_session'
+    event        : 'session_started'
     id           : required
     session_uuid : undefined
     limits       : undefined
