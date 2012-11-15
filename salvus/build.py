@@ -7,7 +7,7 @@ important (usually security-related) options are compiled in.
 The components of sagews are:
 
     * python -- language (used mainly for admin control and sage)
-    * nodejs -- language (for web server)
+    * node -- language (for web server)
     * nginx -- static web server
     * haproxy -- proxy and load ballancer
     * tinc -- p2p vpn
@@ -33,7 +33,7 @@ PATCHES= os.path.join(SRC, 'patches')
 BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 
-NODEJS_PACKAGES = [
+NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
@@ -102,8 +102,8 @@ def build_python():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
 
-def build_nodejs():
-    log.info('building nodejs'); start = time.time()
+def build_node():
+    log.info('building node'); start = time.time()
     try:
         path = extract_package('node')
         cmd('./configure --prefix="%s"'%TARGET, path)
@@ -194,10 +194,10 @@ def build_python_packages():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
 
-def build_nodejs_packages():
-    log.info('building nodejs_packages'); start = time.time()
+def build_node_modules():
+    log.info('building node_modules'); start = time.time()
     try:
-        cmd('npm install %s'%(' '.join(NODEJS_PACKAGES)), PWD)
+        cmd('npm install %s'%(' '.join(NODE_MODULES)), PWD)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start        
@@ -215,8 +215,8 @@ if __name__ == "__main__":
     parser.add_argument('--build_python', dest='build_python', action='store_const', const=True, default=False,
                         help="build the python interpreter")
 
-    parser.add_argument('--build_nodejs', dest='build_nodejs', action='store_const', const=True, default=False,
-                        help="build nodejs")
+    parser.add_argument('--build_node', dest='build_node', action='store_const', const=True, default=False,
+                        help="build node")
 
     parser.add_argument('--build_nginx', dest='build_nginx', action='store_const', const=True, default=False,
                         help="build the nginx web server")
@@ -233,8 +233,8 @@ if __name__ == "__main__":
     parser.add_argument('--build_protobuf', dest='build_protobuf', action='store_const', const=True, default=False,
                         help="build Google's protocol buffers compiler")
 
-    parser.add_argument('--build_nodejs_packages', dest='build_nodejs_packages', action='store_const', const=True, default=False,
-                        help="install all nodejs packages")
+    parser.add_argument('--build_node_modules', dest='build_node_modules', action='store_const', const=True, default=False,
+                        help="install all node packages")
 
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
                         help="install all Python packages")
@@ -246,11 +246,11 @@ if __name__ == "__main__":
         if args.build_all or args.build_tinc:
             times['tinc'] = build_tinc()
 
-        if args.build_all or args.build_nodejs:
-            times['nodejs'] = build_nodejs()
+        if args.build_all or args.build_node:
+            times['node'] = build_node()
 
-        if args.build_all or args.build_nodejs_packages:
-            times['nodejs_packages'] = build_nodejs_packages()
+        if args.build_all or args.build_node_modules:
+            times['node_modules'] = build_node_modules()
 
         if args.build_all or args.build_python:
             times['python'] = build_python()
