@@ -3,14 +3,11 @@
 ############################################
 $("#connection_status").html("connecting...")
 
-persistent_session = null
-
 salvus = new Salvus(
     on_login: (name) -> sign_in(name)
     on_connected: (protocol) ->
         $("#connection_status").html("")
         $("#connection_protocol").html(protocol)
-        persistent_session = salvus.conn.new_session()
     on_connecting: ->
         $("#connection_status").html("<font color='#a00'>connecting...</font>")
         $("#connection_protocol").html('')

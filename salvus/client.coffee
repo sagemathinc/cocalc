@@ -118,7 +118,6 @@ class exports.Connection extends EventEmitter
                 @_last_pong = misc.walltime()
                 @emit("ping", @_last_pong - @_last_ping)
             when "cookies"
-                console.log("cookies message")
                 @_cookies?(mesg)
             when "signed_in"
                 @emit("signed_in", mesg)

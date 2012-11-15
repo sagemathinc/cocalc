@@ -226,6 +226,18 @@ class Client extends EventEmitter
         else
             opts.cb()
 
+    ################################################################
+    # Message handling functions:
+    # 
+    # Each function below that starts with mesg_ handles a given
+    # message type (an event).  The implementations of many of the
+    # handlers are somewhat long/involved, so the function below
+    # immediately calls another function defined elsewhere.  This will
+    # make it easier to refactor code to other modules, etc., later.
+    # This approach also clarifies what exactly about this object
+    # is used to implement the relevant functionality.
+    ################################################################
+
     handle_message_from_client: (data) =>
         try
             mesg = from_json(data)
@@ -242,18 +254,6 @@ class Client extends EventEmitter
         else
             @push_to_client(message.error(error:"Salvus server does not know how to handle the #{mesg.event} event.", id:mesg.id))
 
-    ################################################################
-    # Message handling functions:
-    # 
-    # Each function below that starts with mesg_ handles a given
-    # message type (an event).  The implementations of many of the
-    # handlers are somewhat long/involved, so the function below
-    # immediately calls another function defined elsewhere.  This will
-    # make it easier to refactor code to other modules, etc., later.
-    # This approach also clarifies what exactly about this object
-    # is used to implement the relevant functionality.
-    ################################################################
-
     ######################################################
     # Messages: Sage compute sessions and code execution
     ######################################################
@@ -261,9 +261,8 @@ class Client extends EventEmitter
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to execute code."))
             return
-        # TODO: this must go -- no notion of who/what/authentication, etc -- this is just a demo.
         if mesg.session_uuid?
-            send_to_persistent_sage_session(mesg)
+            send_to_persistent_sage_session(mesg, @account_id)
         else
             stateless_sage_exec(mesg, @push_to_client)
 
@@ -271,8 +270,7 @@ class Client extends EventEmitter
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
-        # TODO: this must go -- no notion of who/what/authentication, etc -- this is just a demo.        
-        create_persistent_sage_session(mesg, @push_to_client)
+        create_persistent_sage_session(mesg, @account_id, @push_to_client)
 
     mesg_send_signal: (mesg) =>
         if not @account_id?
@@ -351,9 +349,8 @@ class Client extends EventEmitter
         else
             report_feedback(mesg, @push_to_client, @account_id)
 
-    #TODO               
-    #mesg_get_all_feedback_from_user: (mesg) =>
-    #    get_all_feedback_from_user(mesg, @push_to_client, @account_id)
+    mesg_get_all_feedback_from_user: (mesg) =>
+        get_all_feedback_from_user(mesg, @push_to_client, @account_id)
     
 
 ##############################
@@ -1209,7 +1206,7 @@ persistent_sage_sessions = {}
 
 SAGE_SESSION_LIMITS = {cputime:60, walltime:15*60, vmem:2000, numfiles:1000, quota:128}
 
-create_persistent_sage_session = (mesg, push_to_client) ->
+create_persistent_sage_session = (mesg, account_id, push_to_client) ->
     winston.log('creating persistent sage session')
     # generate a uuid
     session_uuid = uuid.v4()
@@ -1228,7 +1225,8 @@ create_persistent_sage_session = (mesg, push_to_client) ->
                         push_to_client(m)
                     when "session_description"
                         # record this for later use for signals:
-                        persistent_sage_sessions[session_uuid].pid = m.pid  
+                        persistent_sage_sessions[session_uuid].pid = m.pid
+                        persistent_sage_sessions[session_uuid].account_id = account_id
                         push_to_client(message.new_session(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
                     else
                         winston.error("(hub) persistent_sage_conn -- unhandled message event = '#{m.event}'")
@@ -1244,17 +1242,20 @@ create_persistent_sage_session = (mesg, push_to_client) ->
         winston.info("(hub) added #{session_uuid} to persistent sessions")
     )
 
-send_to_persistent_sage_session = (mesg) ->
+send_to_persistent_sage_session = (mesg, account_id) ->
     winston.debug("send_to_persistent_sage_session(#{to_safe_str(mesg)})")
 
     session_uuid = mesg.session_uuid
     session = persistent_sage_sessions[session_uuid]
+    if session.account_id != account_id
+        winston.info("(hub) attempt by account #{account_id} to execute code in session #{session_uuid} that it does not own.   This can only be the result of a bug or hack.")
+        return
     
     if not session?
         winston.error("TODO -- session #{mesg.session_uuid} does not exist")
         return
 
-    # modify the message so that it can be interpretted by sage server
+    # modify the message so that it can be interpreted by sage server
     switch mesg.event
         when "send_signal"
             mesg.pid = session.pid

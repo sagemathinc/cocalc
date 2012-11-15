@@ -354,17 +354,6 @@ message
 
 # client --> hub
 message
-    event : 'get_projects'
-    id    : required
-
-# hub --> client
-message                
-    event      : 'all_projects'
-    id         : required
-    projects   : required     # [{project_id:, title:, last_edited:, meta:}, ...]
-
-# client --> hub
-message
     event      : 'create_project'
     id         : required
 
@@ -373,6 +362,17 @@ message
     event      : 'project_created'
     id         : required
     project_id : required
+
+# client --> hub
+message
+    event      : 'get_projects'
+    id         : required
+
+# hub --> client
+message                
+    event      : 'all_projects'
+    id         : required
+    projects   : required     # [{project_id:, type: , title:, last_edited:, meta:}, ...]
 
 # client <--> hub
 message
@@ -387,65 +387,4 @@ message
     id         : required
     project_id : required
     title      : required
-
-# client --> hub
-message
-    event      : 'create_sage_session'
-    id         : required
-    project_id : required
-
-# hub --> client
-message
-    event      : 'sage_session_created'
-    id         : required
-    project_id : required
-    session_id : required
-
-# client --> hub --> sage_session
-message
-    event      : 'message_sage_session'  # send message to a Sage session
-    id         : required
-    session_id : required
-    message    : required                # the message for the Sage session
-
-
-# client --> hub
-# All files are added, directory is commited, new bundle is created, bundle is saved to database.
-message
-    event      : 'save_project'
-    id         : required
-    session_id : required
-
-# hub --> client
-message
-    event      : 'project_saved'
-    id         : required
-    session_id : required
-
-# client --> hub
-message
-    event      : 'get_directory_tree'
-    id         : required
-    project_id : required
-
-# hub --> client
-message
-    event      : 'directory_tree'
-    id         : required
-    project_id : required
-    tree       : required  # object that gives the directory tree of files in this project
-
-# client --> hub
-message
-    event      : 'git_command'
-    id         : required
-    project_id : required
-    command    : required
-
-    
-    
-    
-    
-    
-    
 

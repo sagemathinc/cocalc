@@ -2,7 +2,14 @@
 # Command line REPL session
 ############################################
 
+persistent_session = null
+
+
 execute_code_demo2 = () ->
+    
+    if persistent_session == null
+        persistent_session = salvus.conn.new_session()
+        
     i = $("#input2")
     o = $("#output2")
     if o.val() == ""

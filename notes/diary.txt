@@ -7367,12 +7367,54 @@ WAIT, yes it is updated regularly: https://github.com/jhollingworth/bootstrap-wy
 
 This wysihtml5 has tons of events -- it's like codemirror, but for a full html document. 
 
+   
+Nov 14, 2012:
+==============
+
+This is the last night to work before getting back to working on the vert ramp...
+
+Anyway, I tested the command line shell with aly and she was not so
+excited, especially because it felt pretty laggy for her -- that is of
+course an issue with command line shells -- roundtrip of keystrokes,
+etc. Latency kills!  I forgot about that in my excitement. 
+
+I'm going to focus first on getting a core notion of projects and gui
+for managing them (at a very simple level) in place.  A project is:
+
+    * uuid
+    * title (that one can change)
+    * type 
+    * metadata JSON object
+    * blob
+
+Instead of saying "project = git repo", I will make it more open
+ended.  At some point "git repo" will be one of the possibilities for
+the blob.
+
+Goals for tonight:
+
+  [x] define message format for projects
+  [x] define database schema for projects
+
+  [ ] fix bugs in test suite introduced by improving sign-in security:
+
+      [ ] bug: creating a new session then immediately sending it code
+          to eval gets immediately returned from cache with no eval
+          happening.   The reason is that the whole session-creation code
+          has no callbacks, like it must....  since I was just learning. 
+          So that needs to get rewritten.
+
+Implement these messages in client/hub/cassandra:
+
+      [ ] create_project
+      [ ] get_projects
+      [ ] set_project_title
+ 
+  [ ] Implement HTML for viewing list of projects in various ways, creating projects, changing title.
+
+  [ ] write some test code for test suite.
+
+  
 
 
 
-   
-   
-   
-   
-
-   

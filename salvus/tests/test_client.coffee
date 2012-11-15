@@ -120,7 +120,7 @@ exports.test_account_management = (test) ->
 
 exports.test_user_feedback = (test) ->
     email_address = "#{misc.uuid()}@salv.us"
-    password = "#{misc.uuid()}"    
+    password = "#{misc.uuid()}"
     test.expect(2)
     async.series([
         (cb) ->

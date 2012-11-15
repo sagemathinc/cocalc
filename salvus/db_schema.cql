@@ -62,7 +62,7 @@ CREATE TABLE plans (
 
     price            varchar,          // JSON that describes price structure
 
-    session_limit    int,   // how many simultaneous sage sessions the user can have
+    session_limit    int,   // how many simultaneous sessions the user can have
     storage_limit    int,   // total file space user can use
     max_session_time int,   // maximum time in minutes that a session can last
     ram_limit        int,   // maximum virtual ram usage in gigabytes per session
@@ -197,33 +197,40 @@ CREATE TABLE successful_sign_ins (
 
 
 ////////////////////////////////////////////
-// Repositories
+// Projects
 ////////////////////////////////////////////
 
-CREATE TABLE repository (
-     repository_id    uuid  PRIMARY KEY,
+CREATE TABLE projects (
+     project_id       uuid  PRIMARY KEY,
      title            varchar,
      last_edited      timestamp,
+     type             varchar,       // the project type, e.g., 'worksheet', 'notebook', 'git' (git repository)
      meta             varchar,       // JSON object with extensive non-query-able meta-info.
-     content          blob,          // A binary git bundle
+     content          blob,          // binary data of the project, e.g., git bundle, etc.
 );
 
-// We also have the following table, since the users property of repositorys can't be queried:
-CREATE TABLE repository_access (
+CREATE TABLE project_access (
      account_id       uuid,
-     repository_id    uuid,
-     read_only        boolean,
-     PRIMARY KEY(account_id, repository_id)
+     project_id       uuid,
+     read_only        boolean,        // true if this account has read-only access to the project.
+     PRIMARY KEY(account_id, project_id)
 );
 
-CREATE TABLE sage_sessions (
+
+
+////////////////////////////////////////////
+// Sessions -- live compute sessions
+////////////////////////////////////////////
+
+CREATE TABLE sessions (
      session_id       uuid PRIMARY KEY,
-     repository_id       uuid,
+     project_id       uuid,
      hub              varchar,    // "hostname:port" -- when hub restarted, admin deletes all these records
-     sage_server      varchar     // "hostname:port" -- when sage_server restarted, admin deletes all these records
+     server           varchar     // "hostname:port" -- server that session is running on
+                                  // there could be other metadata about the session, e.g., RAM limits, etc. 
 );
 
-CREATE INDEX on sage_sessions(repository_id);
-CREATE INDEX on sage_sessions(hub);
-CREATE INDEX on sage_sessions(sage_server);
+CREATE INDEX on sessions(project_id);
+CREATE INDEX on sessions(hub);
+CREATE INDEX on sessions(server);
        
