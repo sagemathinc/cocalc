@@ -1,9 +1,10 @@
-.project-count {
-    color: #888888;
+.your-projects-title {
+    font-size: 18pt;
+    line-height: 18pt;
 }
 
-.your-projects-title {
-    font-size: 16pt;
-    line-height: 16pt;
-    vertical-align:middle;
+.project_link {
+    background-color:#ffffff;
+    margin-top:0px;
+    margin-bottom:0px;
 }
