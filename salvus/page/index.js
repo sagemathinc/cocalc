@@ -14,6 +14,7 @@ $(function() {
    feedback.coffee
    demo1.coffee
    demo2.coffee
+   projects.coffee
 
    exit_confirmation.coffee
 
