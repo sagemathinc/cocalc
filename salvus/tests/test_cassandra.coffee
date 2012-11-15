@@ -76,11 +76,10 @@ exports.test_user_feedback = (test) ->
                 cb          : (err, results) -> test.ok(not err); cb()
 
         (cb) ->
-            console.log("check count of inserted entries")
             database.count
                 table:'feedback',
                 cb:(err, results) ->
-                    test.equal(results, 4)
+                    test.equal(results, 4, "count of inserted entries")
                     cb()
 
         # Get all feedback and verify consistency with what we

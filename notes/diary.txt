@@ -7396,7 +7396,7 @@ Goals for tonight:
   [x] define message format for projects
   [x] define database schema for projects
 
-  [ ] fix bugs in test suite introduced by improving sign-in security:
+  [x] fix all bugs in test suite introduced by improving sign-in security, refactoring code, etc.:
 
       [x] fixed bug: creating a new session then immediately sending it code
           to eval gets immediately returned from cache with no eval

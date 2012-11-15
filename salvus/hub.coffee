@@ -277,7 +277,7 @@ class Client extends EventEmitter
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
             return
         # TODO: this must go -- no notion of who/what/authentication, etc -- this is just a demo.        
-        send_to_persistent_sage_session(mesg)
+        send_to_persistent_sage_session(mesg, @account_id)
 
     ######################################################
     # Messages: Keeping client connected

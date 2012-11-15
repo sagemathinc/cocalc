@@ -13,12 +13,12 @@ exports.tearDown = (cb) ->
     conn.on("close", cb)
     conn.close()
 
-log = console.log
+# credentials of an account we create and will use for some tests.
+email_address = "#{misc.uuid()}@salv.us"
+password = "#{misc.uuid()}"
 
 exports.test_account_management = (test) ->
     test.expect(23)
-    email_address = "#{misc.uuid()}@salv.us"
-    password = "#{misc.uuid()}"
     new_password = null
     async.series([
         (cb) ->
@@ -106,6 +106,7 @@ exports.test_account_management = (test) ->
 
         # Verify that the password is really changed
         (cb) ->
+            password = new_password # for other tests to use
             conn.sign_in(
                 email_address : email_address
                 password      : new_password
@@ -160,8 +161,14 @@ exports.test_user_feedback = (test) ->
     
 
 exports.test_conn = (test) ->
-    test.expect(9)
+    test.expect(10)
     async.series([
+        (cb) ->
+            conn.sign_in
+                email_address : email_address
+                password      : password
+                timeout       : 1
+                cb            : (error, results) -> test.ok(not error); cb()
         (cb) ->
             uuid = conn.execute_code(
                 code : '2+2'
@@ -197,49 +204,72 @@ exports.test_conn = (test) ->
     ], () -> test.done())
 
 exports.test_session = (test) ->
-    test.expect(8)
-    s = null
+    test.expect(10)
+    s = undefined
     v = []
     async.series([
-        # create a session that will time out after 5 seconds (just in case)
-        (cb) -> s = conn.new_session(walltime:10); s.on("open", cb)
+        (cb) ->
+            conn.sign_in
+                email_address : email_address
+                password      : password
+                timeout       : 1
+                cb            : (error, results) -> test.ok(not error); cb()
+                
+        # create a session that will time out after 5 seconds (just in case of failure)
+        (cb) ->
+            conn.new_session
+                limits:{walltime:5, cputime:5}
+                cb: (error, session) ->
+                    if error
+                        test.ok(false)
+                        cb(true) # game over
+                    else
+                        test.ok(session)
+                        s = session
+                        s.on("open", cb)
+                        cb()
+                    
         # execute some code that will produce at least 2 output messages, and collect all messages
-        (cb) -> s.execute_code(
-                    code: "2+2;sys.stdout.flush();sleep(.5)",
-                    cb: (mesg) ->
-                        v.push(mesg)
-                        if mesg.done
-                            cb()
-                )
+        (cb) ->
+            s.execute_code
+                code: "2+2;sys.stdout.flush();sleep(.5)"
+                cb: (mesg) ->
+                    v.push(mesg)
+                    if mesg.done
+                        cb()
+                        
         # make some checks on the messages
         (cb) ->
-            test.equal(v[0].stdout, '4\n')
-            test.equal(v[0].done, false)
-            test.equal(v[1].stdout, '')
-            test.equal(v[1].done, true)
+            test.equal(v[0].stdout, '4\n', 'first output is 4')
+            test.equal(v[0].done, false, 'not done after first output')
+            test.equal(v[1].stdout, '', 'second output is empty')
+            test.equal(v[1].done, true, 'done after second output')
             cb()
-        # verify that the walltime method on the session is sane
+
         (cb) ->
-            test.ok(s.walltime() >= .5)
+            test.ok(s.walltime() >= .5, 'verify that the walltime method on the session is sane')
             cb()
-        # evaluate a silly expression without the Sage preparser
+
+        # preparser: false
         (cb) ->
-            s.execute_code(
-                code:"2^3 + 1/3",
-                cb:(mesg) -> test.equal(mesg.stdout,'1\n'); cb(),
-                preparse:false
-            )
+            s.execute_code
+                code : "2^3 + 1/3"
+                preparse : false
+                cb   : (mesg) ->
+                    test.equal(mesg.stdout,'1\n','evaluate a silly expression without the Sage preparser')
+                    cb()
+            
         # start a computation going, then interrupt it and do something else
         (cb) ->
             s.execute_code(
                 code:'print(1);sys.stdout.flush();sleep(10)', 
                 cb: (mesg) ->
                     if not mesg.done
-                        test.equal(mesg.stdout,'1\n')
+                        test.equal(mesg.stdout,'1\n', 'test that we get 1 from interrupted computation')
                         s.interrupt()
                     else
-                        test.equal(mesg.stderr.slice(0,5),'Error')
+                        test.equal(mesg.stderr?.slice(0,5),'Error', 'test that there is an error message from interrupting')
                         cb()
             )
-    ],()->s.kill(); test.done())
+    ],()->s?.kill(); test.done())
 
