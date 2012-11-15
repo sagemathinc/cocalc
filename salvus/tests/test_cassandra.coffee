@@ -2,7 +2,8 @@
 #
 # For manual testing:
 #
-#    require('./node_modules/tests/test_cassandra').setUp(); database = new (require('cassandra').Salvus)(keyspace:'test');0;
+#    require('./node_modules/tests/test_cassandra').setUp()
+#    database = new (require('cassandra').Salvus)(keyspace:'test');0;
 #
 ###
 

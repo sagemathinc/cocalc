@@ -16,9 +16,12 @@ exports.tearDown = (cb) ->
 # credentials of an account we create and will use for some tests.
 email_address = "#{misc.uuid()}@salv.us"
 password = "#{misc.uuid()}"
+# credentials of another account
+email_address2 = "#{misc.uuid()}@salv.us"
+password2 = "#{misc.uuid()}"
 
 exports.test_account_management = (test) ->
-    test.expect(23)
+    test.expect(31)
     new_password = null
     async.series([
         (cb) ->
@@ -62,6 +65,38 @@ exports.test_account_management = (test) ->
                     test.equal(mesg.email_address, email_address, "email address should be as generated")
                     cb()
             )
+
+        # Sign out (creating account auto-logs in)
+        (cb) ->
+            conn.sign_out
+                cb : (error, result) ->
+                    test.ok(not error, "should be able to sign out")
+                    cb()
+                
+        # Sign out again should be an error, since we are not signed in.
+        (cb) ->
+            conn.sign_out
+                cb : (error, result) ->
+                    test.ok(not error, "should not get comm error signing out")
+                    test.equal(result.error, "Not signed in.", "should get an error signing out when already signed out")
+                    cb()
+                
+        # Create another valid account for testing
+        (cb) ->
+            conn.create_account
+                first_name    : 'Salvus 2'
+                last_name     : 'Math 2'
+                email_address : email_address2
+                password      : password2
+                agreed_to_terms: true
+                timeout       : 1
+                cb:(error, mesg) ->
+                    test.ok(not error, "should not get connection error when creating account 2")
+                    test.equal(mesg.event, 'signed_in', "event type should be 'signed_in' for account 2")
+                    test.equal(mesg.first_name, 'Salvus 2', "first name should be 'Salvus 2'")
+                    test.equal(mesg.last_name, 'Math 2', "last name should be 'Math 2'")
+                    test.equal(mesg.email_address, email_address2, "email address should be as generated for account 2")
+                    cb()
 
         # Attempt to sign in to the account we just created -- first with the wrong password
         (cb) ->
@@ -273,3 +308,101 @@ exports.test_session = (test) ->
             )
     ],()->s?.kill(); test.done())
 
+exports.test_project_management = (test) ->
+    project_id = null
+    new_title = "Changed title"
+    NUM = 100
+    test.expect(NUM + 21)
+    async.series([
+        (cb) ->
+            conn.sign_in
+                email_address : email_address
+                password      : password
+                timeout       : 1
+                cb            : (error, results) -> test.ok(not error); cb()
+        # insert a project
+        (cb) ->
+            conn.create_project
+                title  : "A Salvus Project"
+                type   : "worksheet"
+                public : true
+                cb     : (error, result) ->
+                    test.ok(not error, "Creating project should not result in an error.")
+                    project_id = result.project_id
+                    test.equal(result.event, 'project_created', "event type should be 'project_created'")
+                    cb()
+        # verify that it was correctly inserted
+        (cb) ->
+            conn.get_projects
+                cb : (error, mesg) ->
+                    test.ok(not error, "Getting project list should not result in an error.")
+                    projects = mesg.projects
+                    test.equal(projects.length, 1, "number of projects should be 1")
+                    test.equal(projects[0].title, "A Salvus Project", "correct title for first project")
+                    test.equal(projects[0].type, "worksheet", "first project is a worksheet")
+                    test.equal(projects[0].public, true, "first project is public")
+                    test.deepEqual(projects[0].meta, {}, "first project has not meta information yet")
+                    cb()
+        # change the title
+        (cb) ->
+            conn.set_project_title
+                project_id : project_id
+                title      : new_title
+                cb         : (error, result) ->
+                    test.ok(not error, "do not get an error changing project title")
+                    test.equal(result.event, "project_title_set", "correct event after changing project title")
+                    test.equal(result.project_id, project_id, "correct project_id after changing project title")
+                    test.equal(result.title, new_title, "correct new title after changing project title in return message")
+                    cb()
+        # create NUM more projects
+        (cb) ->
+            j = 0
+            for i in [1..NUM]
+                conn.create_project
+                    title : "Salvus Project #{i}"
+                    type  : "worksheet"
+                    public : false
+                    cb : (error, result) ->
+                        test.ok(not error, "Creating project #{i} should succeed")
+                        j += 1
+                        if j==NUM
+                            cb()
+        # confirm that there are now NUM+1 projects
+        (cb) ->
+            conn.get_projects
+                cb : (error, mesg) ->
+                    test.ok(not error, "Getting project list (of length #{NUM+1} this time) should not result in an error.")
+                    projects = mesg.projects
+                    test.equal(projects.length, NUM+1, "number of projects should be #{NUM+1}")
+                    test.equal((p for p in projects when p.public).length, 1, "exactly one project should be public")
+                    cb()
+
+        # sign in as a different user
+        (cb) ->
+            conn.sign_in
+                email_address : email_address2
+                password      : password2
+                timeout       : 1
+                cb            : (error, results) -> test.ok(not error); cb()
+
+        # check that new user has no projects
+        (cb) ->
+            conn.get_projects
+                cb : (error, mesg) ->
+                    test.ok(not error, "Getting project list for new user should not be an error.")
+                    projects = mesg.projects
+                    test.equal(projects.length, 0, "number of projects should be 0")
+                    cb()
+
+        # try to change title of project of the other user
+        (cb) ->
+            conn.set_project_title
+                project_id : project_id
+                title      : "Hacked by Chinese!"
+                cb         : (error, result) ->
+                    test.ok(not error, "Setting project title should not result in comm error.")
+                    test.equal(result.event, 'error', "Setting project title of other user should be an error.")
+                    cb()
+        
+                    
+    ], ()->test.done())

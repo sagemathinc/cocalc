@@ -334,6 +334,35 @@ class exports.Connection extends EventEmitter
             cb : (err, results) ->
                 opts.cb(err, misc.from_json(results?.data))
                 
+    #################################################
+    # Project Management
+    #################################################
+    create_project: (opts) ->
+        opts = defaults opts,
+            title  : required
+            type   : required
+            public : required
+            cb     : undefined
+        @call
+            message: message.create_project(title:opts.title, type:opts.type, public:opts.public)
+            cb     : opts.cb
+
+    get_projects: (opts) ->
+        opts = defaults opts,
+            cb : required
+        @call
+            message : message.get_projects()
+            cb      : opts.cb
+
+    set_project_title: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            title      : required
+            cb         : undefined
+        @call
+            message: message.set_project_title(project_id:opts.project_id, title:opts.title)
+            cb : opts.cb
+
 
 #################################################
 # Other account Management functionality shared between client and server

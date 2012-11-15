@@ -355,7 +355,10 @@ message
 # client --> hub
 message
     event      : 'create_project'
-    id         : required
+    id         : undefined
+    title      : required
+    type       : required    # 'worksheet', ...?
+    public     : required
 
 # hub --> client
 message
@@ -366,7 +369,7 @@ message
 # client --> hub
 message
     event      : 'get_projects'
-    id         : required
+    id         : undefined
 
 # hub --> client
 message                
@@ -377,7 +380,7 @@ message
 # client <--> hub
 message
     event      : 'set_project_title'
-    id         : required
+    id         : undefined
     project_id : required
     title      : required
 

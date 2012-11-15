@@ -7406,13 +7406,14 @@ Goals for tonight:
 
 Implement these messages in client/hub/cassandra:
 
-      [ ] create_project
-      [ ] get_projects
-      [ ] set_project_title
+      [x] create_project
+      [x] get_projects
+      [x] set_project_title
  
+      [x] write some test code for test suite, and fix up / improve test suite 
+
   [ ] Implement HTML for viewing list of projects in various ways, creating projects, changing title.
 
-  [ ] write some test code for test suite.
 
   
 

@@ -202,17 +202,21 @@ CREATE TABLE successful_sign_ins (
 
 CREATE TABLE projects (
      project_id       uuid  PRIMARY KEY,
+     account_id       uuid,          // id of the owner of this project
      title            varchar,
      last_edited      timestamp,
      type             varchar,       // the project type, e.g., 'worksheet', 'notebook', 'git' (git repository)
-     meta             varchar,       // JSON object with extensive non-query-able meta-info.
+     public           boolean,       // whether or not the project is visible to everybody in the world 
      content          blob,          // binary data of the project, e.g., git bundle, etc.
+     meta             varchar,       // JSON object with extensive non-query-able meta-info.
 );
 
-CREATE TABLE project_access (
+CREATE INDEX ON projects(account_id);
+
+CREATE TABLE project_collaborators (
      account_id       uuid,
      project_id       uuid,
-     read_only        boolean,        // true if this account has read-only access to the project.
+     read_only        boolean,        // true if this collaborator only has read-only access to the project.
      PRIMARY KEY(account_id, project_id)
 );
 
@@ -227,8 +231,8 @@ CREATE TABLE sessions (
      project_id       uuid,
      hub              varchar,    // "hostname:port" -- when hub restarted, admin deletes all these records
      server           varchar     // "hostname:port" -- server that session is running on
-                                  // there could be other metadata about the session, e.g., RAM limits, etc. 
-);
+);  
+// there could be other metadata about the session, e.g., RAM limits, etc. 
 
 CREATE INDEX on sessions(project_id);
 CREATE INDEX on sessions(hub);

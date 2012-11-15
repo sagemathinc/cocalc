@@ -114,7 +114,7 @@ class exports.Connection
     # send a message to sage_server
     send: (mesg) ->
         s = JSON.stringify(mesg)
-        winston.info("(sage.coffee) send message: #{s}")
+        #winston.info("(sage.coffee) send message: #{s}")
         buf = new Buffer(4)
         buf.writeInt32BE(s.length, 0)
         @conn.write(buf)

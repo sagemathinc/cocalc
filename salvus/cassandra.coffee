@@ -52,6 +52,7 @@ exports.create_schema = (conn, cb) ->
             cb(null, 0)
     async.mapSeries(blocks, f, (err, results) ->
         winston.info("created schema in #{misc.walltime()-t} seconds.")
+        winston.info(err)
         if not err
             # create default plan 0
             conn.cql("UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000 WHERE plan_id=?",
@@ -300,7 +301,7 @@ class exports.Cassandra extends EventEmitter
         opts = defaults opts,
             table     : required    # string -- the table to query
             columns   : required    # list -- columns to extract
-            where     : undefined   # object -- conditions to impose (only equality currently implemented); undefined = return everything
+            where     : undefined   # object -- conditions to impose; undefined = return everything
             cb        : required    # callback(error, results)
             objectify : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
             limit     : undefined   # if defined, limit the number of results returned to this integer

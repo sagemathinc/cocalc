@@ -121,6 +121,12 @@ class Client extends EventEmitter
         winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
         @conn.write(to_json(mesg))
 
+    error_to_client: (opts) ->
+        opts = defaults opts,
+            id    : required
+            error : required
+        @push_to_client(message.error(id:opts.id, error:opts.error))
+
     # Call this method when the user has successfully signed in.
     signed_in: (signed_in_mesg) =>
 
@@ -352,6 +358,111 @@ class Client extends EventEmitter
     mesg_get_all_feedback_from_user: (mesg) =>
         get_all_feedback_from_user(mesg, @push_to_client, @account_id)
     
+    ######################################################
+    # Messages: Project Management
+    ######################################################
+    mesg_create_project: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
+            return
+        project_id = uuid.v4()
+        # create project in database
+        database.update
+            table : 'projects'
+            set   :
+                account_id  : @account_id
+                title       : mesg.title
+                last_edited : cass.now()
+                type        : mesg.type
+                meta        : {}
+                public      : mesg.public
+            where : {project_id: project_id}
+            json  : ['meta']
+            cb    : (error, result) =>
+                if error
+                    @error_to_client(id: mesg.id, error: "Failed to insert new project into the database.")
+                else
+                    @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
+
+    mesg_get_projects: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to get a list of projects.")
+            return
+            
+        database.select
+            table     : 'projects'
+            columns   : ['project_id', 'title', 'last_edited', 'type', 'public', 'meta']
+            objectify : true
+            json      : ['meta']
+            where     : {account_id:@account_id}
+            cb        : (error, projects) =>
+                if error
+                    @error_to_client(id: mesg.id, error: "Database error -- failed to obtain list of your projects.")
+                else
+                    @push_to_client(message.all_projects(id:mesg.id, projects:projects))
+
+    mesg_set_project_title: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to set the title of a project.")
+            return
+        project_is_owned_by
+            project_id : mesg.project_id
+            account_id : @account_id
+            cb: (error, ok) =>
+                if error
+                    @error_to_client(id:mesg.id, error:error)
+                    return
+                else if not ok
+                    @error_to_client(id:mesg.id, error:"You do not own the project with id #{mesg.project_id}.")
+                else
+                    database.update
+                        table   : "projects"
+                        where   : {project_id:mesg.project_id}
+                        set     : {title : mesg.title}
+                        cb      : (error, result) =>
+                            if error
+                                @error_to_client(id:mesg.id, error:"Database error changing title of the project with id #{mesg.project_id}.")
+                            else
+                                @push_to_client(message.project_title_set(id:mesg.id, project_id:mesg.project_id, title:mesg.title))
+
+
+
+
+                        
+                    
+
+project_is_owned_by = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required         # input: (error, result) where if defined result is true or false
+
+    database.count
+        table : 'projects'
+        where : {project_id: opts.project_id, account_id: opts.account_id}
+        cb : (error, n) ->
+            if error
+                opts.cb(error)
+            else
+                opts.cb(false, n==1)
+        
+    database.select
+        table   : 'projects'
+        columns : ['account_id']
+        where   : {project_id : opts.project_id}
+        cb : (error, result) ->
+            if error
+                opts.cb(error, false)
+            else
+                if result.length == 0
+                    opts.cb("There is no project with id #{mesg.project_id}.", false)
+                else
+                    if result[0][0] != opts.account_id
+                        opts.cb(false, false)  # not an error -- just account_id does not own it.
+                    else:
+                        opts.cb(false, true)   
+     
+        
 
 ##############################
 # Create the SockJS Server

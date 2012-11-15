@@ -21,7 +21,6 @@ exports.test_2plus2 = (test) ->
         host: HOST
         port: PORT
         recv: (mesg) ->
-            console.log(mesg)
             switch mesg.event
                 when "session_description"
                     test.ok(mesg.pid?, "got back a pid")

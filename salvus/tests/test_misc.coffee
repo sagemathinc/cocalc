@@ -34,6 +34,7 @@ exports.test_defaults = (test) ->
         (cb) -> test.deepEqual(misc.defaults({a:1, xyz:'hi'}, {a:5, b:7, xyz:required}), {a:1, b:7, xyz:'hi'}); cb()
         (cb) -> test.deepEqual(misc.defaults({a:1, xyz:'hi'}, {a:5, b:undefined, xyz:required}), {a:1, xyz:'hi'}); cb()        
         (cb) ->
+            console.log("The traceback below is supposed to happen!")
             try
                 misc.defaults({a:1}, {a:5, b:required})
                 test.ok(false)
@@ -41,6 +42,7 @@ exports.test_defaults = (test) ->
                 test.ok(true)
             cb()
         (cb) ->
+            console.log("The traceback below is supposed to happen!")            
             try
                 misc.defaults({a:1}, {b:7})
                 test.ok(false)
