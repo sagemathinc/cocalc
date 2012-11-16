@@ -29,22 +29,22 @@ controller.on "show_page_projects", () ->
     $("#projects").find(".form-search").find("button").click((event) -> page=0; update_project_view(); return false;)
 
     $("#projects-pager-previous").click((event) ->
-        console.log('a')
         page = page-1
-        if page < 0 then
+        if page < 0
             page = 0
+        update_project_view()
         return false
     )
     
     $("#projects-pager-next").click((event) ->
-        console.log('b')        
         page = page+1
+        update_project_view()        
         return false
     )
 
 
     update_project_view = () ->
-        MAX_SHOW = 10
+        MAX_SHOW = 15
         if not project_list?
             return
         X = $("#projects-project_list")
