@@ -3,8 +3,16 @@
     line-height: 18pt;
 }
 
-.project_link {
+.project-link {
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
+}
+
+.project-link:hover {
+    background-color:#efe;
+}
+
+.private-project {
+    background-color:lightyellow;
 }

@@ -399,6 +399,8 @@ class Client extends EventEmitter
                 if error
                     @error_to_client(id: mesg.id, error: "Database error -- failed to obtain list of your projects.")
                 else
+                    # sort them by last_edited (something db doesn't do)
+                    projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
 
     mesg_set_project_title: (mesg) =>
