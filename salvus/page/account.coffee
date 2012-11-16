@@ -210,7 +210,7 @@
         # requested to sign out.  The server can clean up resources
         # and invalidate the remember_me cookie for this client.
         salvus.conn.sign_out
-            timeout : 5
+            timeout : 10
             cb      : (error) ->
                 if error
                     alert_message(type:"error", message:error)

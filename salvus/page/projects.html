@@ -88,6 +88,54 @@
 -->
 
   </div>
+
 </div>  
 
+
+<!-- Create new project -->
+<div class="modal hide fade" id="projects-create_project" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-header big-only">
+    <button type="button" class="close" data-dismiss="modal">×</button>
+    <h2>Create a New Project</h2>
+  </div>
+  <div class="modal-body">
+    <!-- title -->
+    <div class="row span6">
+      <h4 class="big-only">Title</h4>
+      <input class="span6 offset1" type="text" placeholder="Title" id="projects-create_project-title">
+    </div>
+
+    <!-- description -->
+    <div class="row span6">
+      <h4 class="big-only">Description <span class="lighten">(optional)</span></h4>
+      <input class="span6 offset1" type="text" placeholder="Description" id="projects-create_project-description">
+    </div>
+
+    <!-- public? -->
+    <div class="row span6">
+      <hr>
+      <form>
+	<label class="radio">
+	  <input type="radio" name="optionsRadios" id="optionsRadios1" value="option1" checked>
+	  <h4><i class="icon-eye-open"></i> Public</h4>
+	  <span class="big-only lighten">Anyone can see this project. You choose who can modify it.</span>
+	</label>
+	<label class="radio">
+	  <input type="radio" name="optionsRadios" id="optionsRadios2" value="option2">
+	  <h4><i class="icon-lock"></i> Private</h4>
+	  <span class="big-only lighten">You choose who can see and modify this project.</span>
+	</label>	
+      </form>
+    </div>
+
+  </div>
+    <!-- do it -->
+    <div class="modal-footer">
+      <button class="btn btn-success btn-large" data-dismiss="modal" id="projects-create_project-button-create_project">Create project</button>
+    <button class="btn btn-large" data-dismiss="modal" id="projects-create_project-button-cancel">Cancel</button>
+
+  </div>
+  
+
+</div>
 

@@ -74,7 +74,7 @@ class exports.Connection extends EventEmitter
 
         @_last_pong = misc.walltime()
         @_connected = false
-        @_ping_check_interval = 2000
+        @_ping_check_interval = 5000
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->
@@ -292,7 +292,7 @@ class exports.Connection extends EventEmitter
             
         @call
             message : message.get_account_settings(account_id: opts.account_id)
-            timeout : 3
+            timeout : 10
             cb      : opts.cb
 
     # restricted settings are only saved if the password is set; otherwise they are ignored.    

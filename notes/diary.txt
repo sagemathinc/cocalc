@@ -7414,6 +7414,22 @@ Implement these messages in client/hub/cassandra:
 
   [ ] Implement HTML for viewing list of projects in various ways, creating projects, changing title.
 
+    
+      [ ] html "create new project" modal dialog
+      [ ] coffeescript code to load list of projects: on login 
+      [ ] coffeescript code to load list of projects: on receiving a message
+      [ ] coffeescript code to populate list of projects
+      [ ] CS code for new project dialog
+      [ ] CS pager code for project list
+
+      [ ] get rid of project "type" -- makes no sense; 
+
+
+      [ ] Delete project     
+      [ ] Add trash button
+      [ ] empty trash
+      [ ] client/hub/cassandra: delete project
+
 
   
 

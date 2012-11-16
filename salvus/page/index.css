@@ -1,6 +1,53 @@
 account.css
 projects.css
 
+
 .hide {  
     display:none;
 }
+
+.lighten {
+    color: #888;
+}
+
+.close {
+    font-size:24pt;
+}
+
+
+
+
+
+/* workaround responsive bootstrap menu issue */
+body { padding-top:60px; }
+@media (max-width: 979px) { body { padding-top: 0px; } }  
+
+
+/* so on iOS scroll-into-view modals work */
+@media (max-width: 480px)   
+{
+    .modal.fade.in {
+        top: 10px;
+  }
+}
+
+/* Use small-only for content that should only be shown on very small
+   devices, e.g., smart phones, and use big-only for content that is
+   only shown on tablets and desktops */
+
+
+@media (max-width: 480px) {
+  .big-only {
+    display:none;
+  }
+}
+
+@media (min-width: 481px) {
+  .small-only {
+    display:none;
+  }
+}
+
+
+.modal { position:fixed; }
+
