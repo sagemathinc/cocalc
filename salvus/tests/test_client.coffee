@@ -324,7 +324,7 @@ exports.test_project_management = (test) ->
         (cb) ->
             conn.create_project
                 title  : "A Salvus Project"
-                type   : "worksheet"
+                description : "a test project"
                 public : true
                 cb     : (error, result) ->
                     test.ok(not error, "Creating project should not result in an error.")
@@ -339,7 +339,7 @@ exports.test_project_management = (test) ->
                     projects = mesg.projects
                     test.equal(projects.length, 1, "number of projects should be 1")
                     test.equal(projects[0].title, "A Salvus Project", "correct title for first project")
-                    test.equal(projects[0].type, "worksheet", "first project is a worksheet")
+                    test.equal(projects[0].description, "a test project", "first project is a worksheet")
                     test.equal(projects[0].public, true, "first project is public")
                     test.deepEqual(projects[0].meta, {}, "first project has not meta information yet")
                     cb()
@@ -360,7 +360,7 @@ exports.test_project_management = (test) ->
             for i in [1..NUM]
                 conn.create_project
                     title : "Salvus Project #{i}"
-                    type  : "worksheet"
+                    description  : "a test"
                     public : false
                     cb : (error, result) ->
                         test.ok(not error, "Creating project #{i} should succeed")

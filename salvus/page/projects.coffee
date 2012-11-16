@@ -34,19 +34,18 @@
     create_project.on("shown", () -> $("#projects-create_project-title").focus())
 
     $("#projects-create_project-button-create_project").click (event) ->
-        close_create_project()
         title = $("#projects-create_project-title").val()
         if title == ""
             title = "Untitled"
         salvus.conn.create_project
-            title : title
-            #TODO -- description : $("#projects-create_project-description").val()
-            public : true; # TODO
-            type: 'todo'
+            title       : title
+            description : $("#projects-create_project-description").val()
+            public      : $("#projects-create_project-public").is(":checked")
             cb : (error, mesg) ->
                 if error
                     alert_message("Error creating project: #{error}")
                 else
-                    projects.insert(mesg)
+                    projects.insert_project(mesg)
+        close_create_project()
 
 )()

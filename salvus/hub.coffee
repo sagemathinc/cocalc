@@ -373,7 +373,7 @@ class Client extends EventEmitter
                 account_id  : @account_id
                 title       : mesg.title
                 last_edited : cass.now()
-                type        : mesg.type
+                description : mesg.description
                 meta        : {}
                 public      : mesg.public
             where : {project_id: project_id}
@@ -391,7 +391,7 @@ class Client extends EventEmitter
             
         database.select
             table     : 'projects'
-            columns   : ['project_id', 'title', 'last_edited', 'type', 'public', 'meta']
+            columns   : ['project_id', 'title', 'last_edited', 'description', 'public', 'meta']
             objectify : true
             json      : ['meta']
             where     : {account_id:@account_id}

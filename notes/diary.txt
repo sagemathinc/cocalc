@@ -7415,7 +7415,8 @@ Implement these messages in client/hub/cassandra:
   [ ] Implement HTML for viewing list of projects in various ways, creating projects, changing title.
 
     
-      [ ] html "create new project" modal dialog
+      [x] html "create new project" modal dialog
+
       [ ] coffeescript code to load list of projects: on login 
       [ ] coffeescript code to load list of projects: on receiving a message
       [ ] coffeescript code to populate list of projects

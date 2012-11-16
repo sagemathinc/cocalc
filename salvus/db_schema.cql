@@ -204,9 +204,9 @@ CREATE TABLE projects (
      project_id       uuid  PRIMARY KEY,
      account_id       uuid,          // id of the owner of this project
      title            varchar,
-     last_edited      timestamp,
-     type             varchar,       // the project type, e.g., 'worksheet', 'notebook', 'git' (git repository)
+     description      varchar,
      public           boolean,       // whether or not the project is visible to everybody in the world 
+     last_edited      timestamp,
      content          blob,          // binary data of the project, e.g., git bundle, etc.
      meta             varchar,       // JSON object with extensive non-query-able meta-info.
 );

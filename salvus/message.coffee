@@ -357,7 +357,7 @@ message
     event      : 'create_project'
     id         : undefined
     title      : required
-    type       : required    # 'worksheet', ...?
+    description: required
     public     : required
 
 # hub --> client
