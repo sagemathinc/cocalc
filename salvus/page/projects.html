@@ -3,7 +3,7 @@
 
     <div class="row  your-projects-title">
       <div class="span5">
-	<div style="margin-top:2px">Your <span id="projects-count"></span> Projects</div>
+	<div style="margin-top:2px">Your <span id="projects-count"></span> Salvus Projects</div>
       </div>
       <div class="span4">
 	<button class="btn btn-success btn-large pull-right" type="submit" id="new_project-button">New project</button>
@@ -20,31 +20,37 @@
     </div>
     <div class="row span9">
       <div class="btn-group">
-	<button class="btn btn-info">All</button>
-	<button class="btn btn-info">Public</button>
-	<button class="btn btn-info">Private</button>
+	<button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
+	<button class="btn btn-info btn-small" id="projects-public-button">Public</button>
+	<button class="btn btn-info btn-small" id="projects-private-button">Private</button>
       </div>
+      <br>
     </div>
-    <div class="row span9">
-      <hr>
-    </div>
-
     <div class="row span9 well well-small  project-link hide" id="projects-project_list_item_template">
-      <b><a href="">number theory examples</a></b>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="lighten">description</span>
+      <b><a href=""></a></b>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="lighten"></span>
     </div>
 
     <span id="projects-project_list">
 
     </span>
+
     <div class="row span9">
-      <br>
-      <span id="projects-more_projects"></span>
-      <ul class="pager">
-	<li><a href="" id="projects-pager-previous">Previous</a></li>
-	<li><a href="" id="projects-pager-next">Next</a></li>
-      </ul>
+<br>
+      <span id="projects-more_projects" class="lighten"></span>
+<br>
+      <div class="pagination pagination-centered">
+	<ul>
+	  <li><a href="#">«</a></li>
+	  <li><a href="#">1</a></li>
+	  <li><a href="#">2</a></li>
+	  <li><a href="#">3</a></li>
+	  <li><a href="#">4</a></li>
+	  <li><a href="#">»</a></li>
+	</ul>
+      </div>
     </div>
+
 
 
   </div>

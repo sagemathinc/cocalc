@@ -28,6 +28,31 @@ controller.on "show_page_projects", () ->
     $("#projects-find-input").change((event) -> page = 0; update_project_view())
     $("#projects").find(".form-search").find("button").click((event) -> page=0; update_project_view(); return false;)
 
+    select_filter_button = (which) ->
+        for w in ['all', 'public', 'private']
+            a = $("#projects-#{w}-button")
+            if w == which
+                a.removeClass("btn-info").addClass("btn-inverse")
+            else
+                a.removeClass("btn-inverse").addClass("btn-info")
+        
+    only_public = null
+    $("#projects-all-button").click (event) ->
+        only_public = null
+        select_filter_button('all')
+        update_project_view()
+        
+    $("#projects-public-button").click (event) ->
+        only_public = true
+        select_filter_button('public')
+        update_project_view()        
+
+    $("#projects-private-button").click (event) ->
+        only_public = false
+        select_filter_button('private')
+        update_project_view()        
+        
+
     $("#projects-pager-previous").click((event) ->
         page = page-1
         if page < 0
@@ -44,7 +69,7 @@ controller.on "show_page_projects", () ->
 
 
     update_project_view = () ->
-        MAX_SHOW = 15
+        PROJECTS_PER_PAGE = 5
         if not project_list?
             return
         X = $("#projects-project_list")
@@ -55,8 +80,10 @@ controller.on "show_page_projects", () ->
         for project in project_list
             if find_text and (project.title+project.description).toLowerCase().indexOf(find_text) == -1
                 continue
+            if only_public != null and project.public != only_public
+                continue
             n += 1
-            if n < page*MAX_SHOW or n >= (page+1)*MAX_SHOW
+            if n < page*PROJECTS_PER_PAGE or n >= (page+1)*PROJECTS_PER_PAGE
                 continue
             template = $("#projects-project_list_item_template")
             item = template.clone().show().data("project", project)
@@ -73,7 +100,7 @@ controller.on "show_page_projects", () ->
                 return false
             item.appendTo(X)
 
-        $("#projects-more_projects").text(if n >= MAX_SHOW then "#{n-MAX_SHOW} more matching projects not shown..." else "")
+        $("#projects-more_projects").text(if n >= PROJECTS_PER_PAGE then "#{n-PROJECTS_PER_PAGE} more matching projects not shown..." else "")
         
     open_project = (project) ->
         console.log("STUB: open #{project.title}")

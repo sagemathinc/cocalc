@@ -7419,18 +7419,25 @@ Implement these messages in client/hub/cassandra:
       [x] CS code for new project dialog
 
       [x] coffeescript code to load list of projects: on login 
+
+
+I'm back -- Nov 16, 2012 at 6:11pm.   Will work until 1am (or so) if I can!
+--------------------------------------------
+
+      [x] implement -- all/public/private filter buttons
+
+      [ ] pager
+
       [ ] coffeescript code to load list of projects: on receiving a message
       [ ] coffeescript code to populate list of projects
       [ ] CS pager code for project list
 
-      [ ] get rid of project "type" -- makes no sense; 
 
-
-      [ ] Delete project     
-      [ ] Add trash button
-      [ ] empty trash
+      [ ] Delete project - with big red warning
       [ ] client/hub/cassandra: delete project
 
+
+      [x] get rid of project "type" -- makes no sense; 
 
   
 
