@@ -7426,6 +7426,10 @@ I'm back -- Nov 16, 2012 at 6:11pm.   Will work until 1am (or so) if I can!
 
       [x] implement -- all/public/private filter buttons
 
+      [x] fix "enter to submit" for all modals...
+
+      [ ] bug -- user can "change password" to be very weak (even though can't create account that way).
+
       [ ] pager
 
       [ ] coffeescript code to load list of projects: on receiving a message

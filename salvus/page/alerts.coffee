@@ -25,6 +25,7 @@ alert_message = null # exported globally
         c.find(".message").html(opts.message)
         c.prependTo("#alert-messages").show()
         c.click(() -> $(this).remove())
+        setTimeout((()->c.remove()), 5000)
 
 )()
 

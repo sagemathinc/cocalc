@@ -2,16 +2,29 @@
 
   <div class="row span10 well">
 
+    <form>
+	<label class="radio">
+	  <input type="radio" name="feedback-category" id="feedback-category-bug" checked>
+	  <h4>Bug</h4>
+	</label>
+	<label class="radio">
+	  <input type="radio" name="feedback-category" id="feedback-category-idea">
+	  <h4>Idea</h4>
+	</label>
+    </form>
+<!--
       <select id="feedback-category">
 	<option value="bug">Bug</option>
 	<option value="idea">Idea</option>
       </select>
+-->
 
       <br>
 
-      <textarea rows=6 id="feedback-description" class="span10" placeholder="Describe your idea or bug report..."></textarea>
+      <textarea rows=12 id="feedback-description" class="span10" placeholder="Describe it..."></textarea>
   </div>
   
+<!--
   <br><br>
   <div class="row span10 well">
     <div class="row">
@@ -27,15 +40,12 @@
 	</font>
       </div>
     </div>
-<!--    <br>
-    <div class="row span5">
-      <textarea rows=2 id="input" class="span9" placeholder="Why?"></textarea>
-    </div>
--->
   </div>
+-->
 
-  <div class="row span3">
+  <div class="row span3 offset1">
     <a href="#submit_feedback" class="btn btn-primary btn-large">Submit feedback &raquo;</a>
   </div>
+  <br>
 
 </div>

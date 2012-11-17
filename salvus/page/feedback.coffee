@@ -16,7 +16,7 @@
             $("#feedback-nps-slider-value").html(ui.value)
 
     $("a[href='#submit_feedback']").click (event) ->
-        cat = $("#feedback-category").val()
+        cat = if $("#feedback-category-bug").is(":checked") then "bug" else "idea"
         salvus.conn.report_feedback
             category    : cat
             description : $("#feedback-description").val()

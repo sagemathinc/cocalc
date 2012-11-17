@@ -217,45 +217,49 @@
 
 <!-- Change email address -->
 <div class="modal hide" id="account-change_email_address" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
-    <h3  class="big-only">Change email address</h3>
-    <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
-  </div>
-  <div class="modal-body offset1">
-    <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
-    <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
+  <form>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+      <h3  class="big-only">Change email address</h3>
+      <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
+    </div>
+    <div class="modal-body offset1">
+      <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
+      <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
       <input class="span4 offset1" type="text" placeholder="New email" id="account-change_email_new_address">
       <br>
-    <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
+      <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
       <input class="span4 offset1" type="password" placeholder="Password"  id="account-change_email_password">
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
-    <button class="btn" data-dismiss="modal" id="account-change_email_address_cancel_button">Cancel</button>
-  </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
+      <button class="btn" data-dismiss="modal" id="account-change_email_address_cancel_button">Cancel</button>
+    </div>
+  </form>
 </div>
 
 
 
 <!-- Change password -->
 <div class="modal hide" id="account-change_password" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
-    <h3 class="big-only">Change password</h3>
-    <div class="hide account-error-text" id="account-change_password-error"></div>
-  </div>
-  <div class="modal-body offset1">
-    <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
-    <input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
-    <br>
-    <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
-    <input class="span4 offset1" type="password" placeholder="New password" id="account-change_password-new_password">
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-primary" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
-    <button class="btn" data-dismiss="modal" id="account-change_password-button-cancel">Cancel</button>
-  </div>
+  <form>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+      <h3 class="big-only">Change password</h3>
+      <div class="hide account-error-text" id="account-change_password-error"></div>
+    </div>
+    <div class="modal-body offset1">
+      <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
+      <input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
+      <br>
+      <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
+      <input class="span4 offset1" type="password" placeholder="New password" id="account-change_password-new_password">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
+      <button class="btn" data-dismiss="modal" id="account-change_password-button-cancel">Cancel</button>
+    </div>
+  </form>
 </div>
 
 
@@ -263,38 +267,42 @@
 <!-- Forgot password: dialog to request email be sent (and token placed in database) -->
 
 <div class="modal hide" id="account-forgot_password" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
-    <h3>Forgot your password?</h3>
-    Enter your email address to reset your password.
-    <div class="hide account-error-text" id="account-forgot_password-error"></div>
-  </div>
-  <div class="modal-body offset1">
-    <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
-    <input class="span4 offset1" type="text" placeholder="Email address" id="account-forgot_password-email_address">
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
-    <button class="btn" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
-  </div>
+  <form>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+      <h3>Forgot your password?</h3>
+      Enter your email address to reset your password.
+      <div class="hide account-error-text" id="account-forgot_password-error"></div>
+    </div>
+    <div class="modal-body offset1">
+      <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
+      <input class="span4 offset1" type="text" placeholder="Email address" id="account-forgot_password-email_address">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
+      <button class="btn" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
+    </div>
+  </form>
 </div>
 
 
 <!-- Forgot password: reset -->
 <div class="modal hide" id="account-forgot_password_reset" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
-    <h3>Reset your password:</h3>
-    <br>Enter your new password.<br><br>
-    <div class="hide account-error-text" id="account-forgot_password_reset-error"></div>
-  </div>
-  <div class="modal-body offset1">
-    <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
-    <input class="span4 offset1" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>
-    <button class="btn" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
-  </div>
+  <form>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+      <h3>Reset your password:</h3>
+      <br>Enter your new password.<br><br>
+      <div class="hide account-error-text" id="account-forgot_password_reset-error"></div>
+    </div>
+    <div class="modal-body offset1">
+      <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
+      <input class="span4 offset1" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>
+      <button class="btn" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
+    </div>
+  </form>
 </div>
 

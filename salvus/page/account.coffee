@@ -60,11 +60,9 @@
     # Activate buttons
     ################################################
     $("#account-settings-change-settings-button").click (event) ->
-        console.log("change-settings-button...")
         account_settings.load_from_view()
         account_settings.save_to_server(
             cb : (error, mesg) ->
-                console.log(error,mesg)
                 if error
                     alert_message(type:"error", message:error)
                 else
@@ -479,6 +477,16 @@
                         close_forgot_password_reset()
                         window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
         return false
+
+
+
+    ################################################
+    # Upgrade account
+    ################################################
+    $("a[href='#account-settings-upgrade']").click (event) ->
+        alert_message(type:'error', message:"Only free accounts are currently available.")
+        return false
+
 
 
 )()
