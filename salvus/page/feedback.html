@@ -1,51 +1,35 @@
-<div class="container hide" id="feedback">
+<div class="modal hide" id="feedback" tabindex="-1" role="dialog" aria-hidden="true">
+  <form>
+  <div class="row-fluid">
 
-  <div class="row span10 well">
+    <div class="modal-header big-only">
+      <button type="button" class="close" data-dismiss="modal">×</button>
+      <h2>Feedback</h2>
+    </div>
 
-    <form>
-	<label class="radio">
-	  <input type="radio" name="feedback-category" id="feedback-category-bug" checked>
-	  <h4>Bug</h4>
-	</label>
-	<label class="radio">
-	  <input type="radio" name="feedback-category" id="feedback-category-idea">
-	  <h4>Idea</h4>
-	</label>
-    </form>
-<!--
-      <select id="feedback-category">
-	<option value="bug">Bug</option>
-	<option value="idea">Idea</option>
-      </select>
--->
+    <div class="modal-body">
+      <span class="big-only">
+      <label class="radio">
+	<input type="radio" name="feedback-category" id="feedback-category-bug" checked>
+	<h4>Bug</h4>
+      </label>
+      <label class="radio">
+	<input type="radio" name="feedback-category" id="feedback-category-idea">
+	<h4>Idea</h4>
+      </label>
+      </span>
 
       <br>
-
-      <textarea rows=12 id="feedback-description" class="span10" placeholder="Describe it..."></textarea>
-  </div>
-  
-<!--
-  <br><br>
-  <div class="row span10 well">
-    <div class="row">
-      <div class="span5">
-	How likely are you to recommend Salvus to somebody this week? 
-      </div>
-      <div class="span1">
-	<font size=+3><strong id="feedback-nps-slider-value">0</strong></font>
-      </div>
-      <div class="span4">
-	<font size=+2>
-	  <div id="feedback-nps-slider"></div>
-	</font>
-      </div>
+      <textarea rows=6 id="feedback-description" class="span14" placeholder="Describe your idea or report a bug..."></textarea>
     </div>
-  </div>
--->
 
-  <div class="row span3 offset1">
-    <a href="#submit_feedback" class="btn btn-primary btn-large">Submit feedback &raquo;</a>
-  </div>
-  <br>
+    <!-- do it -->
+    <div class="modal-footer">
+      <span class="big-only pull-left">Support level: <b><span id="feedback-support-level"></span></b></span>
+      <button class="btn btn-success btn-large" type="submit" data-dismiss="modal" id="feedback-button-submit">Submit feedback</button>
+      <button class="btn btn-large" data-dismiss="modal">Cancel</button>
+    </div>
+</div>
+  </form>
 
 </div>

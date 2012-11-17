@@ -55,7 +55,7 @@ exports.create_schema = (conn, cb) ->
         winston.info(err)
         if not err
             # create default plan 0
-            conn.cql("UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000 WHERE plan_id=?",
+            conn.cql("UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=?",
                  [DEFAULT_PLAN_ID], (error, results) => cb(error) if error)
             
         cb(err)
@@ -414,7 +414,7 @@ class exports.Salvus extends exports.Cassandra
             table  : 'plans'
             where  : {'plan_id':opts.plan_id}
             columns: ['plan_id', 'name', 'description', 'price', 'current', 'stateless_exec_limits',
-                      'session_limit', 'storage_limit', 'max_session_time', 'ram_limit']
+                      'session_limit', 'storage_limit', 'max_session_time', 'ram_limit', 'support_level']
             objectify: true
             cb : (error, results) ->
                 if error

@@ -1,3 +1,11 @@
+
+
+show_feedback_form = () ->
+    $("#feedback").modal('show')
+
+# make all "#feedback" links live.
+$("a[href='#feedback']").click((event) -> show_feedback_form(); return false;)
+
 (() ->
 
     reset_feedback_form = () ->
@@ -15,7 +23,7 @@
         slide  : (event, ui) ->
             $("#feedback-nps-slider-value").html(ui.value)
 
-    $("a[href='#submit_feedback']").click (event) ->
+    $("#feedback-button-submit").click (event) ->
         cat = if $("#feedback-category-bug").is(":checked") then "bug" else "idea"
         salvus.conn.report_feedback
             category    : cat

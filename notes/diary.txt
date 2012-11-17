@@ -7430,11 +7430,33 @@ I'm back -- Nov 16, 2012 at 6:11pm.   Will work until 1am (or so) if I can!
       [x] pager -- just not going to do it.
       [x] coffeescript code to load list of projects: on receiving a push message
 
-      [ ] Delete project - with big red warning
-      [ ] client/hub/cassandra: delete project
+
+      [x] change feedback to be a modal, with a link from bottom/account/etc.
+
+      [x] adding a support_level option.
+
+cqlsh:test> alter table plans add support_level varchar;
+cqlsh:test> select * from plans;
+ plan_id                              | current | description | max_session_time | name | price | ram_limit | session_limit | stateless_exec_limits | storage_limit | support_level
+--------------------------------------+---------+-------------+------------------+------+-------+-----------+---------------+-----------------------+---------------+---------------
+ 13814000-1dd2-11b2-0000-fe8ebeead9df |    True |        null |               30 | Free |  null |      2000 |             3 |                  null |           250 |          null
+
+cqlsh:test> UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' where plan_id=13814000-1dd2-11b2-0000-fe8ebeead9df;
+cqlsh:test> 
+
+
+      [ ] project html page 
+
+        [ ] html empty page with tab
+        [ ] html basic info about project at top of page with gui to edit
+        [ ] file browser -- show exactly one file called "worksheet.sws" (for now!) and one called "script.sage"
+
+      [ ] files html page, which has many editors for various file types: .sws, .sage, .py, etc.
+          will have tabs for each open file.
 
       [ ] implement clients storing where they connect to database on connection
           See client_connections in hub.coffee
+
       [ ] implement pushing messages to connected clients on other hubs
 
 
@@ -7443,4 +7465,11 @@ I'm back -- Nov 16, 2012 at 6:11pm.   Will work until 1am (or so) if I can!
       [ ] way I fork to startup sage (?) seems to totally break gap mode ??  
 
 
+
+      SEE https://github.com/williamstein/delete/admin for examples of how github does this:
+      [ ] Delete project - with big red warning
+      [ ] client/hub/cassandra: delete project
+      [ ] Make private
+      [ ] Make public
+      [ ] Transfer ownership
 

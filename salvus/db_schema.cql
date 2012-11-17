@@ -66,6 +66,7 @@ CREATE TABLE plans (
     storage_limit    int,   // total file space user can use
     max_session_time int,   // maximum time in minutes that a session can last
     ram_limit        int,   // maximum virtual ram usage in gigabytes per session
+    support_level    varchar,   // you can pay for better support
 
     stateless_exec_limits varchar, // JSON {walltime:seconds, cputime:seconds, vmem:MB, numfiles:int, quota:MB} 
 );   

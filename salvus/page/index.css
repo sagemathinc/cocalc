@@ -1,5 +1,7 @@
 account.css
 projects.css
+project.css
+files.css
 
 
 .hide {  
@@ -11,7 +13,7 @@ projects.css
 }
 
 .close {
-    font-size:24pt;
+    font-size:20pt;
 }
 
 

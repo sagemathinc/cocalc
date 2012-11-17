@@ -43,12 +43,13 @@ class Controller  extends EventEmitter
         return $("#output2").val() != ""
 
 
-controller = new Controller(["about", "demo1", "demo2", "feedback", "account", "projects"], "account")
+controller = new Controller(["about", "demo1", "demo2", "account", "projects", "project", "files"], "account")
 
-controller.hide_page_nav("feedback")
 controller.hide_page_nav("demo1")
 controller.hide_page_nav("demo2")
 controller.hide_page_nav("projects")
+controller.hide_page_nav("project")
+controller.hide_page_nav("files")
 
 # TODO: select a specific page/view for testing
 # controller.switch_to_page("feedback")

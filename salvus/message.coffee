@@ -253,6 +253,7 @@ exports.restricted_account_settings =
     session_limit        : undefined
     max_session_time     : undefined
     ram_limit            : undefined
+    support_level        : undefined
     email_address        : undefined
     connect_Github       : undefined
     connect_Google       : undefined

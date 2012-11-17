@@ -1285,6 +1285,7 @@ get_account_settings = (mesg, push_to_client) ->
                         account_settings.session_limit = plan.session_limit
                         account_settings.max_session_time = plan.max_session_time
                         account_settings.ram_limit = plan.ram_limit
+                        account_settings.support_level = plan.support_level
                         
                         # 4. Send result to client
                         push_to_client(message.account_settings(account_settings))

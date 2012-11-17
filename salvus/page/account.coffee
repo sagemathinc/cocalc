@@ -70,9 +70,9 @@
                     alert_message(type:"info", message:"You have saved your settings.")
         )
 
-    $("#account-settings-cancel-changes-button").click (event) ->
-        account_settings.set_view()
+    $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
 
+    $("#account-settings-tab").find("form").click((event) -> return false)
                 
 
     ################################################
@@ -198,7 +198,7 @@
         # change the navbar title from "Sign in" to "first_name last_name"
         set_account_tab_label(true, mesg.first_name, mesg.last_name)
         controller.switch_to_page("projects")
-        controller.show_page_nav(x) for x in ["feedback", "demo1", "demo2", "projects"]
+        controller.show_page_nav(x) for x in ["projects", "project", "files"]   # "demo1", "demo2"]
 
     # Listen for pushed sign_in events from the server.  This is one way that
     # the sign_in function above can be activated, but not the only way.
@@ -220,7 +220,7 @@
                     set_account_tab_label(false)
                     # Change the view in the account page to the "sign in" view.
                     # Change the navbar title from "Sign in" to "first_name last_name"
-                    (controller.hide_page_nav(x) for x in ["feedback", "demo1", "demo2"])
+                    (controller.hide_page_nav(x) for x in ["projects", "project", "files"]) # "demo1", "demo2"
                     show_page("account-sign_in")
                     controller.switch_to_page("account")
 
@@ -241,7 +241,7 @@
                     alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
                     cb("invalid message")
                     return
-        
+
                 @settings = settings_mesg
                 delete @settings['id']
                 delete @settings['event']
@@ -276,7 +276,7 @@
             set = (element, value) ->
                 # TODO: dumb and dangerous -- do better
                 element.val(value)
-                element.html(value)
+                element.text(value)
             
             
             $("#account-settings-error").hide()
@@ -301,6 +301,9 @@
                         $("#demo2-system").val(value)
                     when 'connect_Github', 'connect_Google', 'connect_Dropbox'
                         set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
+                    when 'support_level'
+                        element.text(value)
+                        $("#feedback-support-level").text(value)
                     else
                         set(element, value)
 
