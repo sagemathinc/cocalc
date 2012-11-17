@@ -53,7 +53,11 @@ class exports.Connection extends EventEmitter
     #    - 'ping'       -- a pong is received back; data is the round trip ping time
     #    - 'message'    -- any message is received
     #    - 'signed_in'  -- server pushes a succesful sign in to the client (e.g., due to
-    #                      'remember me' functionality); data is the signed_in message.  
+    #                      'remember me' functionality); data is the signed_in message.
+    #    - 'project_list_updated' -- sent whenever the list of projects owned by this user
+    #                      changed; data is empty -- browser could ignore this unless
+    #                      the project list is currently being displayed.
+
 
     constructor: (@url) ->
         @emit("connecting")
@@ -119,8 +123,8 @@ class exports.Connection extends EventEmitter
                 @emit("ping", @_last_pong - @_last_ping)
             when "cookies"
                 @_cookies?(mesg)
-            when "signed_in"
-                @emit("signed_in", mesg)
+            when "signed_in", "project_list_updated"
+                @emit(mesg.event, mesg)
 
     ping: () ->
         @_last_ping = misc.walltime()

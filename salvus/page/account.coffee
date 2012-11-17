@@ -202,7 +202,7 @@
 
     # Listen for pushed sign_in events from the server.  This is one way that
     # the sign_in function above can be activated, but not the only way.
-    salvus.conn.on("signed_in", sign_in)
+    salvus.conn.on("signed_in", signed_in)
 
     ################################################
     # Explicit sign out

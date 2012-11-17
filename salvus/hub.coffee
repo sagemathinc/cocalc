@@ -382,6 +382,10 @@ class Client extends EventEmitter
                     @error_to_client(id: mesg.id, error: "Failed to insert new project into the database.")
                 else
                     @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
+                    push_to_clients
+                        to   : client_ids(accounts:[@account_id], exclude:[@conn.id])
+                        mesg : message.project_list_updated()
+                    
 
     mesg_get_projects: (mesg) =>
         if not @account_id?
@@ -475,6 +479,54 @@ init_sockjs_server = () ->
         clients[conn.id] = new Client(conn)
         
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
+
+
+#######################################################
+# Pushing a message to clients; querying for clients
+# This is (or will be) subtle, due to having
+# multiple HUBs running on different computers.
+#######################################################
+
+#
+# INPUT: query parameters
+# 
+# OUTPUT: list of id's, where the id is the SockJS connection id, which we assume is globally
+#         unique across all of space and time.
+# 
+
+client_ids = (opts) ->
+    # TODO: make it so this queries a database...
+    opts = defaults opts,
+        accounts : undefined      # list of account_id's to include
+        exclude  : undefined      # list of id's to exclude from results
+
+    result = []
+    include = (id) ->
+        if id not in result
+            if opts.exclude?
+                if id in opts.exclude
+                    return
+            result.push(id)
+    
+    if opts.accounts?
+        for id, client of clients
+            if client.account_id in opts.accounts
+                include(id)
+                
+    return result
+
+# Send a message to a bunch of clients, connected either to this hub
+# or other hubs (local clients first).
+push_to_clients = (opts) ->
+    opts = defaults opts,
+        to   : required
+        mesg : required
+    # IMPORTANT TODO: extend to use database and inter-hub communication
+
+    # locally connected clients
+    for id in opts.to
+        clients[id].push_to_client(opts.mesg)
+    
 
 
 ########################################

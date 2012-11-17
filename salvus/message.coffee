@@ -391,3 +391,7 @@ message
     project_id : required
     title      : required
 
+# hub --> client(s)
+message
+    event      : 'project_list_updated'
+    

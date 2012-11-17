@@ -23,13 +23,15 @@ controller.on "show_page_projects", () ->
                     compute_search_data()
                     update_project_view()
 
-    page = 0
+
+    # update caused by update happenin on some other client
+    salvus.conn.on('project_list_updated', ((data) -> update_project_list()))
 
     # search as you type
-    $("#projects-find-input").keyup((event) -> page = 0; update_project_view())
+    $("#projects-find-input").keyup((event) -> update_project_view())
     # search when you click a button (which must be uncommented in projects.html):
-    #$("#projects-find-input").change((event) -> page = 0; update_project_view())
-    #$("#projects").find(".form-search").find("button").click((event) -> page=0; update_project_view(); return false;)
+    #$("#projects-find-input").change((event) -> update_project_view())
+    #$("#projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
 
     select_filter_button = (which) ->
         for w in ['all', 'public', 'private']
@@ -55,21 +57,6 @@ controller.on "show_page_projects", () ->
         select_filter_button('private')
         update_project_view()        
         
-
-    $("#projects-pager-previous").click((event) ->
-        page = page-1
-        if page < 0
-            page = 0
-        update_project_view()
-        return false
-    )
-    
-    $("#projects-pager-next").click((event) ->
-        page = page+1
-        update_project_view()        
-        return false
-    )
-
 
     DEFAULT_MAX_PROJECTS = 20
 
@@ -124,6 +111,8 @@ controller.on "show_page_projects", () ->
 
     close_create_project = () ->
         create_project.modal('hide').find('input').val('')
+        $("#projects-create_project-public").attr("checked", true)
+        $("#projects-create_project-private").attr("checked", false)
         
     create_project.find(".close").click((event) -> console.log('foo'); close_create_project())
     
