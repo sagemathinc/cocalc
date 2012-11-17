@@ -23,8 +23,9 @@ alert_message = null # exported globally
         if opts.block
             c.addClass('alert-block')
         c.find(".message").html(opts.message)
-        c.prependTo("#alert-messages").show()
+        c.prependTo("#alert-messages")
         c.click(() -> $(this).remove())
+        
         setTimeout((()->c.remove()), 5000)
 
 )()

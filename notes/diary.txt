@@ -7428,7 +7428,7 @@ I'm back -- Nov 16, 2012 at 6:11pm.   Will work until 1am (or so) if I can!
 
       [x] fix "enter to submit" for all modals...
 
-      [ ] bug -- user can "change password" to be very weak (even though can't create account that way).
+      [x] bug -- user can "change password" to be very weak (even though can't create account that way).
 
       [ ] pager
 
@@ -7443,7 +7443,7 @@ I'm back -- Nov 16, 2012 at 6:11pm.   Will work until 1am (or so) if I can!
 
       [x] get rid of project "type" -- makes no sense; 
 
-  
+      [ ] way I fork to startup sage (?) seems to totally break gap mode ??  
 
 
 

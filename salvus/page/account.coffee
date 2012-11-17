@@ -121,7 +121,7 @@
                             ).popover("show")
                     when "signed_in"
                         alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
-                        sign_in(mesg)
+                        signed_in(mesg)
                     else
                         # should never ever happen
                         alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
@@ -159,7 +159,12 @@
     # Sign in
     ################################################
 
-    $("#sign_in-button").click((event) ->
+    $("#sign_in-form").submit((event) -> sign_in(); return false)
+
+    $("#sign_in-button").click((event) -> sign_in(); return false)
+
+    sign_in = () ->
+        $("#sign_in-email").focus()
         salvus.conn.sign_in
             email_address : $("#sign_in-email").val()
             password      : $("#sign_in-password").val()
@@ -173,15 +178,14 @@
                     when 'sign_in_failed'
                         alert_message(type:"error", message: mesg.reason)
                     when 'signed_in'
-                        sign_in(mesg)
+                        signed_in(mesg)
                     when 'error'
                         alert_message(type:"error", message: mesg.reason)                        
                     else
                         # should never ever happen
                         alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
-    )
     
-    sign_in = (mesg) ->
+    signed_in = (mesg) ->
         # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
         account_id = mesg.account_id
         account_settings.load_from_server((error) ->

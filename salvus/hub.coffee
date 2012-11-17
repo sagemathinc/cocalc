@@ -105,7 +105,6 @@ class Client extends EventEmitter
         @get_cookie
             name : 'remember_me'
             cb   : (value) =>
-                console.log("remember_me = #{value}")
                 if value?
                     x    = value.split('$')
                     hash = generate_hash(x[0], x[1], x[2], x[3])
@@ -562,6 +561,14 @@ sign_in = (client, mesg) =>
     sign_in_error = (error) ->
         client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
 
+    if mesg.email_address == ""
+        sign_in_error("Empty email address.")
+        return
+        
+    if mesg.password == ""
+        sign_in_error("Empty password.")
+        return
+
     signed_in_mesg = null
     async.series([
         # POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
@@ -701,6 +708,22 @@ record_sign_in = (opts) ->
 # allow them anyways!
 zxcvbn = require('../static/zxcvbn/zxcvbn')  # this require takes about 100ms!
 
+
+# Current policy is to allow all but trivial passwords for user convenience.
+# To change this, just increase this number.
+MIN_ALLOWED_PASSWORD_STRENGTH = 1
+
+is_valid_password = (password) ->
+    [valid, reason] = client_lib.is_valid_password(password)
+    if not valid
+        return [valid, reason]
+    password_strength = zxcvbn.zxcvbn(password)  # note -- this is synchronous (but very fast, I think)
+    console.log("password strength = #{password_strength}")
+    if password_strength.score < MIN_ALLOWED_PASSWORD_STRENGTH
+        return [false, "Choose a password that isn't very weak."]
+    return [true, '']
+        
+
 create_account = (client, mesg) ->
     id = mesg.id
     account_id = null
@@ -708,12 +731,11 @@ create_account = (client, mesg) ->
         # run tests on generic validity of input
         (cb) -> 
             issues = client_lib.issues_with_create_account(mesg)
-            console.log("issues = #{issues}")
 
             # Do not allow *really* stupid passwords.
-            password_strength = zxcvbn.zxcvbn(mesg.password)  # note -- this is synchronous (but very fast, I think)
-            if password_strength.score < 1
-                issues['password'] = "Choose a password that isn't very weak."
+            [valid, reason] = is_valid_password(mesg.password)
+            if not valid
+                issues['password'] = reason
 
             # TODO -- only uncomment this for easy testing, allow any password choice
             # the client test suite will then fail, which is good, so we are reminded to comment this out before release!
@@ -855,7 +877,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
 
         # check that new password is valid
         (cb) ->
-            [valid, reason] = client_lib.is_valid_password(mesg.new_password)
+            [valid, reason] = is_valid_password(mesg.new_password)
             if not valid
                 push_to_client(message.changed_password(id:mesg.id, error:{new_password:reason}))
                 cb(true)
@@ -1133,7 +1155,7 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
 
         # Verify password is valid and compute its hash.
         (cb) -> 
-            [valid, reason] = client_lib.is_valid_password(mesg.new_password)
+            [valid, reason] = is_valid_password(mesg.new_password)
             if not valid
                 push_to_client(message.reset_forgot_password_response(id:mesg.id, error:reason))
                 cb(true)
@@ -1376,7 +1398,6 @@ send_to_persistent_sage_session = (mesg, account_id) ->
     if mesg.event == 'send_signal'   # other control messages would go here too
         # TODO: this function is a DOS vector, so we need to secure/limit it
         # Also, need to ensure that user is really allowed to do this action, whatever it is.
-        console.log(session.conn.host)
         sage.send_signal
             host   : session.conn.host
             port   : session.conn.port
