@@ -21,6 +21,6 @@ $(function() {
 
    exit_confirmation.coffee
 
-   window.history.pushState("", "", "/") 
+   window.history.pushState("", "", "/")  /* get rid of # part of URL */
 
 });

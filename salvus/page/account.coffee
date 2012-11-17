@@ -335,6 +335,8 @@
 
     change_email_address = $("#account-change_email_address")
     
+    $("a[href='#account-change_email_address']").click((event)->$('#account-change_email_address').modal('show'))  # should not be needed
+
     close_change_email_address = () ->
         change_email_address.modal('hide').find('input').val('')
         change_email_address.find(".account-error-text").hide()
@@ -397,6 +399,8 @@
     $("#account-change_password-button-cancel").click((event)->close_change_password())
     change_password.on("shown", () -> $("#account-change_password-old_password").focus())
 
+    $("a[href='#account-change_password']").click((event)->$('#account-change_password').modal('show'))  # should not be needed
+
     $("#account-change_password-button-submit").click (event) ->
         salvus.conn.change_password
             email_address : account_settings.settings.email_address
@@ -427,6 +431,8 @@
     
     forgot_password = $("#account-forgot_password")
 
+    $("a[href='#account-forgot_password']").click((event)->$('#account-forgot_password').modal('show'))  # should not be needed
+ 
     close_forgot_password = () ->
         forgot_password.modal('hide').find('input').val('')
         forgot_password.find(".account-error-text").hide()
