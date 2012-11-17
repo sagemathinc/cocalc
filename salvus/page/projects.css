@@ -16,3 +16,8 @@
 .private-project {
     background-color:lightyellow;
 }
+
+.projects-last_edited, .projects-description {
+    color: #666;
+}
+

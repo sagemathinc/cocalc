@@ -1,7 +1,7 @@
 <div class="container hide" id="projects">
-  <div class="span10 well">
+  <div class="span11 well">
 
-    <div class="row  your-projects-title">
+    <div class="your-projects-title">
       <div class="span5">
 	<div style="margin-top:2px"><span class="big-only">Your </span><span id="projects-count"></span> <span class="big-only">Salvus </span>Projects</div>
       </div>
@@ -9,16 +9,16 @@
 	<button class="btn btn-success btn-large pull-right span3" type="submit" id="new_project-button">New project</button>
       </div>
     </div>
-    <div class="row span9">
+    <div class="row span10">
       <hr>
     </div>
-    <div class="row span9">
+    <div class="row span10">
       <form class="form-search">
 	<input class="span6 search-query" type="text" placeholder="Find a project..." id="projects-find-input">
         <!--<button class="btn">Search</button>-->
       </form>
     </div>
-    <div class="row span9">
+    <div class="row span10">
       <div class="btn-group">
 	<button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
 	<button class="btn btn-info btn-small" id="projects-public-button">Public</button>
@@ -26,16 +26,23 @@
       </div>
       <br>
     </div>
-    <div class="row span9 well well-small  project-link hide" id="projects-project_list_item_template">
-      <b><a href=""></a></b>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="lighten"></span>
+    <div class="row span10 well well-small  project-link hide" id="projects-project_list_item_template">
+      <div class="span" style="width: 20px;">
+	<i class="icon-eye-open projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+	<i class="icon-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+      </div>
+      <div class="span3">
+	<a href="" class="projects-title"></a>
+      </div>
+      <div class="span2 projects-last_edited">42 minutes ago</div>
+      <div class="span4 projects-description"></div>
     </div>
 
     <span id="projects-project_list">
 
     </span>
 
-    <div class="row span9">
+    <div class="row span12">
       <br>
       <button class="btn btn-info btn-large" id="projects-show_all">Show all matching projects...</button>      
     </div>
@@ -94,8 +101,6 @@
 </div>
 
 
-<span class="hide" id="projects-public-icon"><i class="icon-eye-open"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-<span class="hide" id="projects-private-icon"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
 
 <!--
 <div class="modal"  tabindex="-1" role="dialog" aria-hidden="true">

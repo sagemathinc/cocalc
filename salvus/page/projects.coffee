@@ -80,14 +80,16 @@ controller.on "show_page_projects", () ->
                 break
             template = $("#projects-project_list_item_template")
             item = template.clone().show().data("project", project)
+            
             if project.public
-                $('#projects-public-icon').clone().show().prependTo(item)
+                item.find(".projects-public-icon").show()
+                item.find(".projects-private-icon").hide()
             else
-                $('#projects-private-icon').clone().show().prependTo(item)
+                item.find(".projects-private-icon").show()
+                item.find(".projects-public-icon").hide()
                 item.addClass("private-project")
-                
-            item.find("a").text(project.title)
-            item.find(".lighten").text(project.description)
+            item.find(".projects-title").text(project.title)
+            item.find(".projects-description").text(project.description)
             item.click (event) ->
                 open_project ($(@).data("project"))
                 return false

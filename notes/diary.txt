@@ -7454,6 +7454,8 @@ cqlsh:test>
       [ ] files html page, which has many editors for various file types: .sws, .sage, .py, etc.
           will have tabs for each open file.
 
+      [ ] cassandra iso date --> how recent (in javascript, computed in browser)
+
       [ ] implement clients storing where they connect to database on connection
           See client_connections in hub.coffee
 
