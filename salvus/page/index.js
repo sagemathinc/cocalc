@@ -16,6 +16,9 @@ $(function() {
    demo2.coffee
    projects.coffee
 
+   editor.coffee
+   files.coffee
+
    exit_confirmation.coffee
 
    window.history.pushState("", "", "/") 
