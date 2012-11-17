@@ -3,10 +3,10 @@
 
     <div class="row  your-projects-title">
       <div class="span5">
-	<div style="margin-top:2px">Your <span id="projects-count"></span> Salvus Projects</div>
+	<div style="margin-top:2px"><span class="big-only">Your </span><span id="projects-count"></span> <span class="big-only">Salvus </span>Projects</div>
       </div>
       <div class="span4">
-	<button class="btn btn-success btn-large pull-right" type="submit" id="new_project-button">New project</button>
+	<button class="btn btn-success btn-large pull-right span3" type="submit" id="new_project-button">New project</button>
       </div>
     </div>
     <div class="row span9">
@@ -15,7 +15,7 @@
     <div class="row span9">
       <form class="form-search">
 	<input class="span6 search-query" type="text" placeholder="Find a project..." id="projects-find-input">
-        <button class="btn">Search</button>
+        <!--<button class="btn">Search</button>-->
       </form>
     </div>
     <div class="row span9">
@@ -36,21 +36,9 @@
     </span>
 
     <div class="row span9">
-<br>
-      <span id="projects-more_projects" class="lighten"></span>
-<br>
-      <div class="pagination pagination-centered">
-	<ul>
-	  <li><a href="#">«</a></li>
-	  <li><a href="#">1</a></li>
-	  <li><a href="#">2</a></li>
-	  <li><a href="#">3</a></li>
-	  <li><a href="#">4</a></li>
-	  <li><a href="#">»</a></li>
-	</ul>
-      </div>
+      <br>
+      <button class="btn btn-info btn-large" id="projects-show_all">Show all matching projects...</button>      
     </div>
-
 
 
   </div>
@@ -60,27 +48,28 @@
 
 <!-- Create new project -->
 <div class="modal hide" id="projects-create_project" tabindex="-1" role="dialog" aria-hidden="true">
+ <form> 
   <div class="modal-header big-only">
     <button type="button" class="close" data-dismiss="modal">×</button>
     <h2>Create a New Project</h2>
   </div>
-  <div class="modal-body">
-    <!-- title -->
-    <div class="row span6">
-      <h4 class="big-only">Title</h4>
-      <input class="span6 offset1" type="text" placeholder="Title" id="projects-create_project-title">
-    </div>
+    <div class="modal-body">
 
-    <!-- description -->
-    <div class="row span6">
-      <h4 class="big-only">Description <span class="lighten">(optional)</span></h4>
-      <input class="span6 offset1" type="text" placeholder="Description" id="projects-create_project-description">
-    </div>
+      <!-- title -->
+      <div class="row span6">
+	<h4 class="big-only">Title</h4>
+	<input class="span6 offset1" placeholder="Untitled" id="projects-create_project-title">
+      </div>
 
-    <!-- public? -->
-    <div class="row span6">
-      <hr class="big-only">
-      <form>
+      <!-- description -->
+      <div class="row span6">
+	<h4 class="big-only">Description <span class="lighten">(optional)</span></h4>
+	<input class="span6 offset1" type="text" placeholder="Description" id="projects-create_project-description">
+      </div>
+
+      <!-- public? -->
+      <div class="row span6">
+	<hr class="big-only">
 	<label class="radio">
 	  <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public" checked>
 	  <h4><i class="icon-eye-open"></i> Public</h4>
@@ -91,20 +80,39 @@
 	  <h4><i class="icon-lock"></i> Private</h4>
 	  <span class="big-only lighten">You choose who can see and modify this project.</span>
 	</label>	
-      </form>
-    </div>
+      </div>
 
   </div>
-    <!-- do it -->
-    <div class="modal-footer">
-      <button class="btn btn-success btn-large" data-dismiss="modal" id="projects-create_project-button-create_project">Create project</button>
+  <!-- do it -->
+  <div class="modal-footer">
+    <button class="btn btn-success btn-large" type="submit" data-dismiss="modal" id="projects-create_project-button-create_project">Create project</button>
     <button class="btn btn-large" data-dismiss="modal" id="projects-create_project-button-cancel">Cancel</button>
 
   </div>
-  
+  </form>
 
 </div>
 
 
 <span class="hide" id="projects-public-icon"><i class="icon-eye-open"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
 <span class="hide" id="projects-private-icon"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+
+<!--
+<div class="modal"  tabindex="-1" role="dialog" aria-hidden="true">
+<form action="" method="post" class="modal" id="form">
+  <div class="modal-header">
+    <button class="close" data-dismiss="modal">×</button>
+    <h3>New User</h3>
+  </div>
+  <div class="modal-body">
+    <label>Name <input name="name" required></label>
+    <label>Email <input name="email" required></label>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" type="submit">Save Changes</button>
+  </div>
+</form>
+</div>
+-->
+
+</div>

@@ -10,23 +10,26 @@ controller.on "show_page_projects", () ->
 ( () ->
 
     project_list = undefined
+    compute_search_data = () ->
+        if project_list?
+            for project in project_list
+                project.search = (project.title+' '+project.description).toLowerCase()
 
     update_project_list = () ->
         salvus.conn.get_projects
             cb: (error, mesg) ->
                 if not error and mesg.event == 'all_projects'
                     project_list = mesg.projects
-                    project_list = project_list.concat(project_list)
-                    project_list = project_list.concat(project_list)
-                    project_list = project_list.concat(project_list)                                        
+                    compute_search_data()
                     update_project_view()
 
-    # keyup would do live "search as you type"; however, it is simply too slow on some devices.
-    #$("#projects-find-input").keyup((event) -> update_project_view())
-
     page = 0
-    $("#projects-find-input").change((event) -> page = 0; update_project_view())
-    $("#projects").find(".form-search").find("button").click((event) -> page=0; update_project_view(); return false;)
+
+    # search as you type
+    $("#projects-find-input").keyup((event) -> page = 0; update_project_view())
+    # search when you click a button (which must be uncommented in projects.html):
+    #$("#projects-find-input").change((event) -> page = 0; update_project_view())
+    #$("#projects").find(".form-search").find("button").click((event) -> page=0; update_project_view(); return false;)
 
     select_filter_button = (which) ->
         for w in ['all', 'public', 'private']
@@ -68,8 +71,11 @@ controller.on "show_page_projects", () ->
     )
 
 
-    update_project_view = () ->
-        PROJECTS_PER_PAGE = 5
+    DEFAULT_MAX_PROJECTS = 20
+
+    $("#projects-show_all").click( (event) -> update_project_view(true) )
+    
+    update_project_view = (show_all=false) ->
         if not project_list?
             return
         X = $("#projects-project_list")
@@ -78,13 +84,13 @@ controller.on "show_page_projects", () ->
         find_text = $("#projects-find-input").val().toLowerCase()
         n = 0
         for project in project_list
-            if find_text and (project.title+project.description).toLowerCase().indexOf(find_text) == -1
+            if find_text != "" and project.search.indexOf(find_text) == -1
                 continue
             if only_public != null and project.public != only_public
                 continue
             n += 1
-            if n < page*PROJECTS_PER_PAGE or n >= (page+1)*PROJECTS_PER_PAGE
-                continue
+            if not show_all and n > DEFAULT_MAX_PROJECTS
+                break
             template = $("#projects-project_list_item_template")
             item = template.clone().show().data("project", project)
             if project.public
@@ -100,8 +106,11 @@ controller.on "show_page_projects", () ->
                 return false
             item.appendTo(X)
 
-        $("#projects-more_projects").text(if n >= PROJECTS_PER_PAGE then "#{n-PROJECTS_PER_PAGE} more matching projects not shown..." else "")
-        
+        if n > DEFAULT_MAX_PROJECTS and not show_all
+            $("#projects-show_all").show()
+        else
+            $("#projects-show_all").hide()
+            
     open_project = (project) ->
         console.log("STUB: open #{project.title}")
                 
