@@ -115,7 +115,10 @@ class Client extends EventEmitter
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
-                            
+
+    #######################################################
+    # Pushing messages to this particular connected client
+    #######################################################
     push_to_client: (mesg) =>
         winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
         @conn.write(to_json(mesg))
@@ -125,6 +128,7 @@ class Client extends EventEmitter
             id    : required
             error : required
         @push_to_client(message.error(id:opts.id, error:opts.error))
+
 
     # Call this method when the user has successfully signed in.
     signed_in: (signed_in_mesg) =>
@@ -382,10 +386,9 @@ class Client extends EventEmitter
                     @error_to_client(id: mesg.id, error: "Failed to insert new project into the database.")
                 else
                     @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                    push_to_clients
-                        to   : client_ids(accounts:[@account_id], exclude:[@conn.id])
-                        mesg : message.project_list_updated()
-                    
+                    push_to_clients  # push a message to all other clients logged in as this user.
+                        where : {accounts: [@account_id], exclude: [@conn.id]}
+                        mesg  : message.project_list_updated()
 
     mesg_get_projects: (mesg) =>
         if not @account_id?
@@ -406,9 +409,9 @@ class Client extends EventEmitter
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
 
-    mesg_set_project_title: (mesg) =>
+    mesg_set_project_data: (mesg) =>
         if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to set the title of a project.")
+            @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
             return
         project_is_owned_by
             project_id : mesg.project_id
@@ -420,20 +423,22 @@ class Client extends EventEmitter
                 else if not ok
                     @error_to_client(id:mesg.id, error:"You do not own the project with id #{mesg.project_id}.")
                 else
+                    # sanatize the mesg.data object -- we don't want client to just be able to set anything about a project.
+                    data = {}
+                    for field in ['title', 'description', 'public']
+                        if mesg.data[field]?
+                            data[field] = mesg.data[field]
                     database.update
                         table   : "projects"
                         where   : {project_id:mesg.project_id}
-                        set     : {title : mesg.title}
+                        set     : data
                         cb      : (error, result) =>
                             if error
-                                @error_to_client(id:mesg.id, error:"Database error changing title of the project with id #{mesg.project_id}.")
+                                @error_to_client(id:mesg.id, error:"Database error changing properties of the project with id #{mesg.project_id}.")
                             else
-                                @push_to_client(message.project_title_set(id:mesg.id, project_id:mesg.project_id, title:mesg.title))
-
-
-
-
-                        
+                                push_to_clients
+                                    where : {projects:[mesg.project_id]}
+                                    mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
                     
 
 project_is_owned_by = (opts) ->
@@ -487,46 +492,96 @@ init_sockjs_server = () ->
 # multiple HUBs running on different computers.
 #######################################################
 
-#
+#############################
+# client_ids:
+# 
 # INPUT: query parameters
 # 
 # OUTPUT: list of id's, where the id is the SockJS connection id, which we assume is globally
 #         unique across all of space and time.
 # 
-
+############################
 client_ids = (opts) ->
     # TODO: make it so this queries a database...
     opts = defaults opts,
-        accounts : undefined      # list of account_id's to include
+        accounts : undefined      # include connected clients logged in under this account_id
+        projects : undefined      # include connected clients that have access to any project in this list of project id's
         exclude  : undefined      # list of id's to exclude from results
+        cb       : required
 
-    result = []
-    include = (id) ->
-        if id not in result
-            if opts.exclude?
-                if id in opts.exclude
-                    return
-            result.push(id)
-    
-    if opts.accounts?
-        for id, client of clients
-            if client.account_id in opts.accounts
-                include(id)
-                
-    return result
+    async.series([
+        (cb) -> 
+            if opts.projects?
+                database.accounts_with_access_to_projects
+                    project : opts.projects
+                    cb : (error, result) ->
+                        if (error)
+                            opts.cb(error)
+                            cb(true)
+                        else
+                            # duplicates are ok
+                            opts.accounts = opts.account.concat(result)
+                            cb()
+            else
+                cb()
+        (cb) -> 
+            result = []
+            include = (id) ->
+                if id not in result
+                    if opts.exclude?
+                        if id in opts.exclude
+                            return
+                    result.push(id)
+
+            # TODO: This will be replaced by one scalable database query on an indexed column
+            if opts.accounts?
+                for id, client of clients
+                    if client.account_id in opts.accounts
+                        include(id)
+
+            opts.cb(false, result)
+            cb()
+    ])
+
 
 # Send a message to a bunch of clients, connected either to this hub
 # or other hubs (local clients first).
 push_to_clients = (opts) ->
     opts = defaults opts,
-        to   : required
-        mesg : required
-    # IMPORTANT TODO: extend to use database and inter-hub communication
+        mesg     : required
+        where    : undefined  # see the client_ids function
+        to       : undefined
+        cb       : undefined
 
-    # locally connected clients
-    for id in opts.to
-        clients[id].push_to_client(opts.mesg)
-    
+    dest = []
+
+    async.series([
+        (cb) ->
+            if opts.where?
+                client_ids(misc.merge(opts.where, cb:(error, result) ->
+                    if error
+                        opts.cb(true)
+                        cb(true)
+                    else
+                        dest = dest.concat(result)
+                        cb()
+                ))
+            else
+                cb()
+                
+        (cb) ->
+            # include all clients explicitly listed in "to"
+            if opts.to?
+                dest = dest.concat(opts.to)
+                
+            # IMPORTANT TODO: extend to use database and inter-hub communication
+            for id in dest
+                clients[id].push_to_client(opts.mesg)
+            opts.cb(false)
+            cb()
+
+            
+    ])
 
 
 ########################################

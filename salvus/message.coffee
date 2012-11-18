@@ -378,19 +378,25 @@ message
     id         : required
     projects   : required     # [{project_id:, type: , title:, last_edited:, meta:}, ...]
 
-# client <--> hub
+
+# client --> hub  
 message
-    event      : 'set_project_title'
+    event      : 'update_project_data'
     id         : undefined
     project_id : required
-    title      : required
-
+    data       : required     # an object; sets the fields in this object, and leaves alone the rest
+    
 # hub --> client
+#
+# When project data is changed by one client, the following is sent to
+# all clients that have access to this project (owner or collaborator).  
+# 
 message
-    event      : 'project_title_set'
-    id         : required
+    event      : 'project_data_updated'
+    id         : undefined
     project_id : required
-    title      : required
+    
+
 
 # hub --> client(s)
 message

@@ -57,6 +57,8 @@ class exports.Connection extends EventEmitter
     #    - 'project_list_updated' -- sent whenever the list of projects owned by this user
     #                      changed; data is empty -- browser could ignore this unless
     #                      the project list is currently being displayed.
+    #    - 'project_data_changed - sent when data about a specific project has changed,
+    #                      e.g., title/description/settings/etc.
 
 
     constructor: (@url) ->
@@ -123,7 +125,7 @@ class exports.Connection extends EventEmitter
                 @emit("ping", @_last_pong - @_last_ping)
             when "cookies"
                 @_cookies?(mesg)
-            when "signed_in", "project_list_updated"
+            when "signed_in", "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
 
     ping: () ->
@@ -358,13 +360,17 @@ class exports.Connection extends EventEmitter
             message : message.get_projects()
             cb      : opts.cb
 
-    set_project_title: (opts) ->
+    #################################################
+    # Individual Projects
+    #################################################
+    update_project_data: (opts) ->
         opts = defaults opts,
             project_id : required
-            title      : required
-            cb         : undefined
+            data       : required
+            timeout    : 10
+            cb         : undefined    # cb would get project_data_updated message back, as does everybody else with eyes on this project
         @call
-            message: message.set_project_title(project_id:opts.project_id, title:opts.title)
+            message: message.update_project_data(project_id:opts.project_id, data:data)
             cb : opts.cb
 
 

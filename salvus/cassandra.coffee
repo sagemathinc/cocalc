@@ -636,5 +636,15 @@ class exports.Salvus extends exports.Cassandra
 
 
     
+    #############
+    # Projects
+    ############
+    accounts_with_access_to_projects: (opts) ->
+        opts = defaults opts,
+            projects : required
+            cb       : required
+
+        
+    
 
    

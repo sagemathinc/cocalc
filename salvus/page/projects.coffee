@@ -101,7 +101,8 @@ controller.on "show_page_projects", () ->
             $("#projects-show_all").hide()
             
     open_project = (project) ->
-        console.log("STUB: open #{project.title}")
+        files_page.set_model(project)
+        controller.switch_to_page("files")
                 
 
     ################################################

@@ -7445,11 +7445,23 @@ cqlsh:test> UPDATE plans SET current='true', name='Free', session_limit=3, stora
 cqlsh:test> 
 
 
-      [x] project html page 
+      [x] files html page 
+        [x] html empty page with tab
+        [x] html basic info about project at top of page with gui to edit
 
-        [ ] html empty page with tab
-        [ ] html basic info about project at top of page with gui to edit
-        [ ] file browser -- show exactly one file called "worksheet.sws" (for now!) and one called "script.sage"
+------------------------
+
+      [ ] make it so clicking on a project sets the "files" page up and shows it.
+
+      [ ] add "files" attribute to database.  This will be a JSON
+          varchar that is the filename+meta-info tree of the project.
+        
+      [ ] file browser -- can be written using new db attribute "files" above.
+ 
+      [ ] html: create new file
+
+
+----------------------------
 
       [ ] files html page, which has many editors for various file types: .sws, .sage, .py, etc.
           will have tabs for each open file.
