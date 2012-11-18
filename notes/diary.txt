@@ -7451,7 +7451,17 @@ cqlsh:test>
 
 ------------------------
 
-      [ ] make it so clicking on a project sets the "files" page up and shows it.
+      [x] make it so clicking on a project sets the "files" page up and shows it.
+
+
+      [ ] cassandra.coffee -- accounts_with_access_to_projects
+      [ ] files.html/coffee -- change title/description
+      [ ] files.coffee -- handle when project is changed, so all relevant clients see the change
+
+
+      [ ] in project list, change the All/public/private buttons to something so we can 
+          select from "public/private/owner/collaborator/viewer" and select multiple at once.
+
 
       [ ] add "files" attribute to database.  This will be a JSON
           varchar that is the filename+meta-info tree of the project.

@@ -209,18 +209,15 @@ CREATE TABLE projects (
      public           boolean,       // whether or not the project is visible to everybody in the world 
      last_edited      timestamp,
      content          blob,          // binary data of the project, e.g., git bundle, etc.
-     meta             varchar,       // JSON object with extensive non-query-able meta-info.
 );
-
 CREATE INDEX ON projects(account_id);
 
-CREATE TABLE project_collaborators (
-     account_id       uuid,
+CREATE TABLE project_users (
      project_id       uuid,
-     read_only        boolean,        // true if this collaborator only has read-only access to the project.
-     PRIMARY KEY(account_id, project_id)
-);
-
+     account_id       uuid,
+     mode             varchar,        // 'owner' (all powerful), 'collaborator' (read write), 'viewer' (read only)
+     PRIMARY KEY (project_id, account_id)
+);  
 
 
 ////////////////////////////////////////////

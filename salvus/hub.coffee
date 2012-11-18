@@ -370,45 +370,36 @@ class Client extends EventEmitter
             return
         project_id = uuid.v4()
         # create project in database
-        database.update
-            table : 'projects'
-            set   :
-                account_id  : @account_id
-                title       : mesg.title
-                last_edited : cass.now()
-                description : mesg.description
-                meta        : {}
-                public      : mesg.public
-            where : {project_id: project_id}
-            json  : ['meta']
-            cb    : (error, result) =>
+        database.create_project
+            project_id  : project_id
+            account_id  : @account_id
+            title       : mesg.title
+            description : mesg.description
+            public      : mesg.public
+            cb          : (error, result) =>
                 if error
                     @error_to_client(id: mesg.id, error: "Failed to insert new project into the database.")
                 else
                     @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
                     push_to_clients  # push a message to all other clients logged in as this user.
-                        where : {accounts: [@account_id], exclude: [@conn.id]}
+                        where : {account_id:@account_id,  exclude: [@conn.id]}
                         mesg  : message.project_list_updated()
-
+            
     mesg_get_projects: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to get a list of projects.")
             return
-            
-        database.select
-            table     : 'projects'
-            columns   : ['project_id', 'title', 'last_edited', 'description', 'public', 'meta']
-            objectify : true
-            json      : ['meta']
-            where     : {account_id:@account_id}
-            cb        : (error, projects) =>
+
+        database.get_projects_with_user
+            account_id : @account_id
+            cb         : (error, projects) =>
                 if error
                     @error_to_client(id: mesg.id, error: "Database error -- failed to obtain list of your projects.")
                 else
                     # sort them by last_edited (something db doesn't do)
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
-
+            
     mesg_set_project_data: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
@@ -437,7 +428,7 @@ class Client extends EventEmitter
                                 @error_to_client(id:mesg.id, error:"Database error changing properties of the project with id #{mesg.project_id}.")
                             else
                                 push_to_clients
-                                    where : {projects:[mesg.project_id]}
+                                    where : {project_id:mesg.project_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
                     
 
@@ -492,28 +483,21 @@ init_sockjs_server = () ->
 # multiple HUBs running on different computers.
 #######################################################
 
-#############################
-# client_ids:
-# 
-# INPUT: query parameters
-# 
-# OUTPUT: list of id's, where the id is the SockJS connection id, which we assume is globally
-#         unique across all of space and time.
-# 
-############################
-client_ids = (opts) ->
-    # TODO: make it so this queries a database...
+# get_client_ids -- given query parameters, returns a list of id's,
+#   where the id is the SockJS connection id, which we assume is
+#   globally unique across all of space and time.
+get_client_ids = (opts) ->
     opts = defaults opts,
-        accounts : undefined      # include connected clients logged in under this account_id
-        projects : undefined      # include connected clients that have access to any project in this list of project id's
-        exclude  : undefined      # list of id's to exclude from results
-        cb       : required
+        account_id : undefined      # include connected clients logged in under this account
+        project_id : undefined      # include connected clients that are a user of this project
+        exclude    : undefined      # array of id's to exclude from results
+        cb         : required
 
     async.series([
         (cb) -> 
-            if opts.projects?
-                database.accounts_with_access_to_projects
-                    project : opts.projects
+            if opts.project_id?
+                database.get_account_ids_using_project
+                    project_id : opts.project_id
                     cb : (error, result) ->
                         if (error)
                             opts.cb(error)
@@ -534,9 +518,9 @@ client_ids = (opts) ->
                     result.push(id)
 
             # TODO: This will be replaced by one scalable database query on an indexed column
-            if opts.accounts?
+            if opts.account_id?
                 for id, client of clients
-                    if client.account_id in opts.accounts
+                    if client.account_id == opts.account_id
                         include(id)
 
             opts.cb(false, result)
@@ -549,7 +533,7 @@ client_ids = (opts) ->
 push_to_clients = (opts) ->
     opts = defaults opts,
         mesg     : required
-        where    : undefined  # see the client_ids function
+        where    : undefined  # see the get_client_ids function
         to       : undefined
         cb       : undefined
 
@@ -558,7 +542,7 @@ push_to_clients = (opts) ->
     async.series([
         (cb) ->
             if opts.where?
-                client_ids(misc.merge(opts.where, cb:(error, result) ->
+                get_client_ids(misc.merge(opts.where, cb:(error, result) ->
                     if error
                         opts.cb(true)
                         cb(true)

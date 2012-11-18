@@ -46,7 +46,6 @@ exports.create_schema = (conn, cb) ->
     blocks = require('fs').readFileSync('db_schema.cql', 'utf8').split('CREATE')
     f = (s, cb) ->
         if s.length > 0
-            #console.log(s)
             conn.cql("CREATE "+s, [], (e,r)->console.log(e) if e; cb(null,0))
         else
             cb(null, 0)
@@ -196,7 +195,6 @@ exports.from_cassandra = from_cassandra = (obj, json, timestamp) ->
     else if value and value.hex?    # uuid de-mangle
         value = value.hex
     if timestamp
-        console.log("obj=#{obj}, ttl = #{obj.ttl}")
         return {timestamp:obj.timestamp, value:value}
     else
         return value
@@ -229,7 +227,7 @@ class exports.Cassandra extends EventEmitter
         where = "";
         for key, val of where_key
             equals_fallback = true
-            for op in ['>', '<', '>=', '<=', '==', '']
+            for op in ['>', '<', '>=', '<=', '==', 'in', '']
                 if op == '' and equals_fallback
                     x = val
                     op = '=='
@@ -237,18 +235,30 @@ class exports.Cassandra extends EventEmitter
                     x = val[op]
                 if x?
                     if key in json
-                        x = to_json(x)
+                        x2 = to_json(x)
+                    else
+                        x2 = x
                     if op != ''
                         equals_fallback = false
                     if op == '=='
                         op = '=' # for cassandra
-                    if typeof(val) == 'boolean'
+                        
+                    if op == 'in'
+                        # !!!!!!!!!!!!!! potential CQL-injection attack  !!!!!!!!!!!
+                        # TODO -- keep checking/complaining?:  in queries just aren't supported by helenus, at least as of Nov 17, 2012 ! :-(
+                        where += "#{key} IN #{array_of_strings_to_cql_list(x2)}"
+                    else if typeof(val) == 'boolean'
                         # work around a *MAJOR* driver bug :-(
                         # TODO: check if fixed in new Helenus driver...
-                        where += "#{key} #{op} '#{x}' AND "
+                        # This is not a CQL-injection vector though, since we explicitly write out each case:
+                        if x
+                            where += "#{key} #{op} 'true'"
+                        else
+                            where += "#{key} #{op} 'false'"
                     else
-                        where += "#{key} #{op} ? AND "
-                        vals.push(x)
+                        where += "#{key} #{op} ?"
+                        vals.push(x2)
+                    where += " AND "
         return where.slice(0,-4)
 
     _set: (properties, vals, json=[]) ->
@@ -261,7 +271,7 @@ class exports.Cassandra extends EventEmitter
                     set += "#{key}=?,"
                     vals.push(val)
                 else
-                    # work around a driver bug :-(
+                    # TODO: here we work around a driver bug :-(
                     set += "#{key}='#{val}',"
         return set.slice(0,-1)
 
@@ -326,9 +336,9 @@ class exports.Cassandra extends EventEmitter
         )
 
     cql: (query, vals, cb) ->
-        #winston.debug(query, vals)
+        winston.debug(query, vals)
         @conn.cql(query, vals, (error, results) =>
-            winston.error("Query cql('#{query}','#{vals}') caused a CQL error:\n#{error}") if error
+            winston.error("Query cql('#{query}','params=#{vals}') caused a CQL error:\n#{error}") if error
             @emit('error', error) if error
             cb?(error, results))
 
@@ -639,12 +649,127 @@ class exports.Salvus extends exports.Cassandra
     #############
     # Projects
     ############
-    accounts_with_access_to_projects: (opts) ->
+    create_project: (opts) ->
         opts = defaults opts,
-            projects : required
-            cb       : required
+            project_id  : required
+            account_id  : required  # owner
+            title       : required
+            description : undefined
+            public      : required
+            cb          : undefined
+
+        async.series([
+            # add entry to projects table
+            (cb) => 
+                @update
+                    table : 'projects'
+                    set   :
+                        account_id  : opts.account_id
+                        title       : opts.title
+                        last_edited : now()
+                        description : opts.description
+                        public      : opts.public
+                    where : {project_id: opts.project_id}
+                    cb    : (error, result) ->
+                        if error
+                            opts.cb(error)
+                            cb(true)
+                        else
+                            cb()
+            # add entry to project_users table
+            (cb) =>
+                @update
+                    table : 'project_users'
+                    set   :
+                        mode       : 'owner'
+                    where : 
+                        project_id : opts.project_id
+                        account_id : opts.account_id
+                    cb    : (error, result) ->
+                        if error
+                            opts.cb(error)
+                            cb(true)
+                        else
+                            opts.cb(false)
+                            cb()
+        ])
+
+    # gets all projects that the given account_id is a user on (owner,
+    # collaborator, or viewer); gets all data about them, not just id's
+    get_projects_with_user: (opts) ->
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+
+        projects = undefined  # array of pairs (project_id, mode)
+        async.series([
+            (cb) => 
+                @select
+                    table     : 'project_users'
+                    columns   : ['project_id', 'mode']
+                    where     : {account_id : opts.account_id}
+                    objectify : false
+                    cb        : (error, results) ->
+                        if error
+                            opts.cb(error)
+                            cb(true)
+                        else
+                            projects = results
+                            cb()
+            (cb) =>
+                @get_projects_with_ids
+                    ids : (x[0] for x in projects)
+                    cb : (error, results) ->
+                        if error
+                            opts.cb(error)
+                            cb(true)
+                        else
+                            if projects.length > 0
+                                for i in [0...projects.length-1]
+                                    results[i].mode = projects[i].mode
+                            opts.cb(false, results)
+                            cb()
+        ])
+
+    get_projects_with_ids: (opts) ->
+        opts = defaults opts,
+            ids : required   # an array of id's
+            cb  : required
+
+        if opts.ids.length == 0  # easy special case -- don't bother to query db!
+            opts.cb(false, [])
+            return
+                
+        @select
+            table     : 'projects'
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public']
+            objectify : true
+            where     : { project_id:{'in':opts.ids} }
+            cb        : (error, results) ->
+                if error
+                    opts.cb(error)
+                else
+                    opts.cb(false, results)
+
+    get_account_ids_using_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+
+        @select
+            table      : 'project_users'
+            columns    : ['account_id']
+            where      : { project_id:opts.project_id }
+            cb         : (error, results) ->
+                if error
+                    opts.cb(error)
+                else
+                    opts.cb(false, results)
+        
 
         
     
 
-   
+array_of_strings_to_cql_list = (a) ->
+    '(' + ("'#{x}'" for x in a).join(',') + ')'
+

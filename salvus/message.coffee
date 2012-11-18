@@ -376,7 +376,7 @@ message
 message                
     event      : 'all_projects'
     id         : required
-    projects   : required     # [{project_id:, type: , title:, last_edited:, meta:}, ...]
+    projects   : required     # [{project_id:, type: , title:, last_edited:}, ...]
 
 
 # client --> hub  
