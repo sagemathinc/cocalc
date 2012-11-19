@@ -15,9 +15,7 @@ $(function() {
    demo1.coffee
    demo2.coffee
    projects.coffee
-
-   editor.coffee
-   files.coffee
+   project.coffee
 
    exit_confirmation.coffee
 

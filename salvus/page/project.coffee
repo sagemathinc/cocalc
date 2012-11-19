@@ -2,11 +2,11 @@
 # The Project Files page
 ###############################################################################
 
-files_page = undefined # export
+project_page = undefined # export
 
 
 (() ->
-    class FilesPage
+    class ProjectPage
         
         set_model: (project) ->
             @project = project
@@ -38,11 +38,11 @@ files_page = undefined # export
         update_view: () ->
             if not @project?
                 return
-            $("#files-project_title").text(@project.title)
-            $("#files-project_description").text(@project.description)
+            $("#project-project_title").text(@project.title)
+            $("#project-project_description").text(@project.description)
             return @
 
 
 
-    files_page = new FilesPage()
+    project_page = new ProjectPage()
 )()    

@@ -219,7 +219,7 @@
                     set_account_tab_label(false)
                     # Change the view in the account page to the "sign in" view.
                     # Change the navbar title from "Sign in" to "first_name last_name"
-                    (controller.hide_page_nav(x) for x in ["projects", "files", "editor"])
+                    (controller.hide_page_nav(x) for x in ["projects", "project"])
                     show_page("account-sign_in")
                     controller.switch_to_page("account")
 

@@ -43,18 +43,13 @@ class Controller  extends EventEmitter
         return $("#output2").val() != ""
 
 
-controller = new Controller(["about", "account", "projects", "files", "editor"], "account")
+controller = new Controller(["about", "account", "projects", "project"], "account")
 
 controller.hide_page_nav("projects")
-controller.hide_page_nav("files")
-controller.hide_page_nav("editor")
-
-# TODO: select a specific page/view for testing
-# controller.switch_to_page("feedback")
-#
+controller.hide_page_nav("project")
 
 # TODO: temporary
 $(".project-close-button").click (e) ->
-    controller.hide_page_nav("files")
+    controller.hide_page_nav("project")
     controller.switch_to_page("projects")
     return false
