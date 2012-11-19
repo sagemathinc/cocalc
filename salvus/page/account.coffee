@@ -7,9 +7,9 @@
 
 
     set_account_tab_label = (signed_in, first_name, last_name) ->
-        # TODO: this is UGLY
-        if signed_in 
-            $("#account-item").find("a").html("#{first_name} #{last_name} (<a href='#sign_out'>Sign out</a>)")
+        if signed_in
+            top_navbar.set_button_label("account", "#{first_name} #{last_name} (<a href='#sign_out'>Sign out</a>)")
+            #$("#account-item").find("a").html()
             $("a[href='#sign_out']").click((event) ->
                 sign_out()
                 return false
@@ -219,7 +219,10 @@
                     set_account_tab_label(false)
                     # Change the view in the account page to the "sign in" view.
                     # Change the navbar title from "Sign in" to "first_name last_name"
-                    (top_navbar.hide_page_nav(x) for x in ["projects", "project"])
+                    
+                    top_navbar.hide_page_nav("projects")
+                    # TODO: have to remove a bunch of other pages
+                    
                     show_page("account-sign_in")
                     top_navbar.switch_to_page("account")
 
