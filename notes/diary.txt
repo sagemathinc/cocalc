@@ -7505,5 +7505,16 @@ November 18, 2012 at 5:35pm -- probably have until 9:30pm, not sure.
 
     [x] rename "files.html", etc., to "project"; get rid of "edit.html",
 
-    [ ] actually implement -- make it so there can be multiple project pages open at once
+    [x] actually implement -- make it so there can be multiple project pages open at once
 
+
+--
+IDEA for embedded console:
+
+   https://github.com/replit/jq-console
+
+This looks very nice.  It was easy to modify the echo.html
+example... but does vi/emacs work through this?  This license is clear
+MIT -- much better -- and the entire code is *small* coffeescript! 
+The min is 24K.     On the other hand, it "isn't a VT100".
+Also, tty.js's license just got sorted out!

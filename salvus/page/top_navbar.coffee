@@ -63,8 +63,10 @@ top_navbar = undefined
             for i, d of @pages
                 if i != id
                     d.page.hide()
+                    d.button.removeClass("active")
                 else
                     d.page.show()
+                    d.button.addClass("active")
 
         # entirely remove the page
         remove_page: (id) ->
