@@ -6,9 +6,15 @@ project_page = undefined # export
 
 
 (() ->
+    MAX_TITLE_LENGTH = 25
+    
     class ProjectPage
         constructor: (@project_id) ->
             @container = $("#project-template").clone()
+            $("#footer").before(@container)
+            @container.top_navbar
+                id    : @project_id
+                label : @project_id
             
         set_model: (project) ->
             @project = project
@@ -38,10 +44,15 @@ project_page = undefined # export
                 timeout : opts.timeout
             
         update_view: () ->
+            console.log(@project)
             if not @project?
                 return
+                
             @container.find(".project-project_title").text(@project.title)
             @container.find(".project-project_description").text(@project.description)
+
+            label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
+            top_navbar.set_button_label(@project.project_id, label)
             return @
 
 

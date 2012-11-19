@@ -102,9 +102,7 @@ top_navbar.on "switch_to_page-projects", () ->
             
     open_project = (project) ->
         project_page(project.project_id).set_model(project)
-        MAX_TITLE_LENGTH = 20
-        $("#navbar-current_project").text(project.title.slice(0,MAX_TITLE_LENGTH) + if project.title.length > MAX_TITLE_LENGTH then "..." else "")
-        top_navbar.switch_to_page("project")
+        top_navbar.switch_to_page(project.project_id)
                 
 
     ################################################

@@ -7505,5 +7505,5 @@ November 18, 2012 at 5:35pm -- probably have until 9:30pm, not sure.
 
     [x] rename "files.html", etc., to "project"; get rid of "edit.html",
 
-    [ ] make it so there can be multiple project pages open at once
+    [ ] actually implement -- make it so there can be multiple project pages open at once
 
