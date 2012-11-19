@@ -4,7 +4,7 @@ $(function() {
 
    tracking.coffee
 
-   controller.coffee
+   top_navbar.coffee
 
    alerts.coffee
 
@@ -12,8 +12,7 @@ $(function() {
 
    account.coffee    
    feedback.coffee
-   demo1.coffee
-   demo2.coffee
+
    projects.coffee
    project.coffee
 

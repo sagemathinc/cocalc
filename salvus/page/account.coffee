@@ -45,7 +45,7 @@
     show_page("account-sign_in")
     #show_page("account-settings")
 
-    controller.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
+    top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
     
     $("a[href='#account-create_account']").click (event) ->
         show_page("account-create_account")
@@ -97,7 +97,7 @@
         for field in create_account_fields
             $("#create_account-#{field}").popover "destroy"
 
-    controller.on("hide_page_account", destroy_create_account_tooltips)
+    top_navbar.on("hide_page_account", destroy_create_account_tooltips)
     
     $("#create_account-button").click((event) ->
         destroy_create_account_tooltips()
@@ -197,7 +197,7 @@
         show_page("account-settings")
         # change the navbar title from "Sign in" to "first_name last_name"
         set_account_tab_label(true, mesg.first_name, mesg.last_name)
-        controller.switch_to_page("projects")
+        top_navbar.switch_to_page("projects")
 
     # Listen for pushed sign_in events from the server.  This is one way that
     # the sign_in function above can be activated, but not the only way.
@@ -219,9 +219,9 @@
                     set_account_tab_label(false)
                     # Change the view in the account page to the "sign in" view.
                     # Change the navbar title from "Sign in" to "first_name last_name"
-                    (controller.hide_page_nav(x) for x in ["projects", "project"])
+                    (top_navbar.hide_page_nav(x) for x in ["projects", "project"])
                     show_page("account-sign_in")
-                    controller.switch_to_page("account")
+                    top_navbar.switch_to_page("account")
 
     ################################################
     # Account settings

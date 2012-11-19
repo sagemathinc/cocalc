@@ -7,7 +7,9 @@ project_page = undefined # export
 
 (() ->
     class ProjectPage
-        
+        constructor: (@project_id) ->
+            @container = $("#project-template").clone()
+            
         set_model: (project) ->
             @project = project
             @update_view()
@@ -38,11 +40,21 @@ project_page = undefined # export
         update_view: () ->
             if not @project?
                 return
-            $("#project-project_title").text(@project.title)
-            $("#project-project_description").text(@project.description)
+            @container.find(".project-project_title").text(@project.title)
+            @container.find(".project-project_description").text(@project.description)
             return @
 
 
+    project_pages = {}
 
-    project_page = new ProjectPage()
+    # Function that returns the project page for the project with given id,
+    # or creates it if it doesn't exist.
+    project_page = (project_id) ->
+        p = project_pages[project_id]
+        if p?
+            return p
+        p = new ProjectPage(project_id)
+        project_pages[project_id] = p
+        return p
+        
 )()    

@@ -42,6 +42,4 @@ $("a[href='#feedback']").click((event) -> show_feedback_form(); return false;)
         return false
 
     
-    controller.on "show_page_feedback", (() -> $("#feedback-description").focus())
-    
 )()    

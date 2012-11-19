@@ -9,7 +9,7 @@
 ###
 
 window.onbeforeunload = (e=window.event) ->
-    if controller.have_unsaved_changes()
+    if top_navbar.have_unsaved_changes()
         #
         # TODO: we could instead just save everything at this point and return null
         # 

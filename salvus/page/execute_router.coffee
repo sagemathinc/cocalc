@@ -6,7 +6,7 @@ execute_router = {}
 
 (() ->
     execute_code = () ->
-        switch controller.active_page
+        switch top_navbar.active_page
             when "demo1"
                 execute_code_demo1()
             when "demo2"
@@ -25,7 +25,7 @@ execute_router = {}
 
     # execute when pressing "shift-enter"
     $("body").keydown (e) ->
-        switch controller.active_page
+        switch top_navbar.active_page
             when "demo1"
                 if is_evaluate_key(e)
                     execute_code_demo1()

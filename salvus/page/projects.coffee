@@ -2,7 +2,7 @@
 
 update_project_list = undefined
 
-controller.on "show_page_projects", () ->
+top_navbar.on "show_page_projects", () ->
     update_project_list?()
     $("#projects-find-input").focus()
 
@@ -101,10 +101,10 @@ controller.on "show_page_projects", () ->
             $("#projects-show_all").hide()
             
     open_project = (project) ->
-        project_page.set_model(project)
+        project_page(project.project_id).set_model(project)
         MAX_TITLE_LENGTH = 20
         $("#navbar-current_project").text(project.title.slice(0,MAX_TITLE_LENGTH) + if project.title.length > MAX_TITLE_LENGTH then "..." else "")
-        controller.switch_to_page("project")
+        top_navbar.switch_to_page("project")
                 
 
     ################################################
