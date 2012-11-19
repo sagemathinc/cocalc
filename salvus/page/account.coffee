@@ -198,7 +198,6 @@
         # change the navbar title from "Sign in" to "first_name last_name"
         set_account_tab_label(true, mesg.first_name, mesg.last_name)
         controller.switch_to_page("projects")
-        controller.show_page_nav(x) for x in ["projects", "files", "editor"]
 
     # Listen for pushed sign_in events from the server.  This is one way that
     # the sign_in function above can be activated, but not the only way.

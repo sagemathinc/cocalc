@@ -102,6 +102,8 @@ controller.on "show_page_projects", () ->
             
     open_project = (project) ->
         files_page.set_model(project)
+        MAX_TITLE_LENGTH = 20
+        $("#navbar-current_project").text(project.title.slice(0,MAX_TITLE_LENGTH) + if project.title.length > MAX_TITLE_LENGTH then "..." else "")
         controller.switch_to_page("files")
                 
 

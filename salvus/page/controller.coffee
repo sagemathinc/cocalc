@@ -6,7 +6,7 @@ class Controller  extends EventEmitter
             @default_page = @page_ids[0]
         for id in @page_ids
             $("a[href='##{id}']").click (e) =>
-                @switch_to_page(e.target.hash.slice(1))
+                @switch_to_page(e.currentTarget.hash.slice(1))
                 return false
             @_hide_page(id)
         @switch_to_page(@default_page)
@@ -52,3 +52,9 @@ controller.hide_page_nav("editor")
 # TODO: select a specific page/view for testing
 # controller.switch_to_page("feedback")
 #
+
+# TODO: temporary
+$(".project-close-button").click (e) ->
+    controller.hide_page_nav("files")
+    controller.switch_to_page("projects")
+    return false

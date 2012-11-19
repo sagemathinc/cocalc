@@ -7462,7 +7462,6 @@ cqlsh:test>
       [ ] in project list, change the All/public/private buttons to something so we can 
           select from "public/private/owner/collaborator/viewer" and select multiple at once.
 
-
       [ ] add "files" attribute to database.  This will be a JSON
           varchar that is the filename+meta-info tree of the project.
         
@@ -7496,4 +7495,15 @@ cqlsh:test>
       [ ] Make private
       [ ] Make public
       [ ] Transfer ownership
+
+
+November 18, 2012 at 5:35pm -- probably have until 9:30pm, not sure. 
+---------------------------------------------------------------------
+
+
+    [x] easy way to close a project page
+
+    [ ] rename "files.html", etc., to "project"
+    [ ] get rid of "edit.html", etc.
+    [ ] make it so there can be multiple project pages open at once
 
