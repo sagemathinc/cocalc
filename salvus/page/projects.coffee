@@ -2,7 +2,7 @@
 
 update_project_list = undefined
 
-top_navbar.on "show_page_projects", () ->
+top_navbar.on "switch_to_page-projects", () ->
     update_project_list?()
     $("#projects-find-input").focus()
 
