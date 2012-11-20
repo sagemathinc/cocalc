@@ -7527,7 +7527,10 @@ I plan to work for 10 hours today on salvus, if all goes well.  We'll see.
 
 How to get there:
 
-  [ ] come up with the ui design
-  [ ] make static html of it
+  [x] come up with the ui design
+  [x] make static html of it
+
+  [ ] make eval in scratch work
+
   [ ] top_navbar -- modif js to be generic
   [ ] 

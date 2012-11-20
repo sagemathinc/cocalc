@@ -1,5 +1,7 @@
 $(function() {
 
+   misc_page.coffee
+
    connect_to_hub.coffee
 
    tracking.coffee
@@ -7,8 +9,6 @@ $(function() {
    top_navbar.coffee
 
    alerts.coffee
-
-   execute_router.coffee
 
    scratch.coffee
 

@@ -70,11 +70,10 @@ top_navbar = undefined
             n = @pages[id]
             if not n?
                 return
-            else
-                n.page.show()
-                n.button.show().addClass("active")
+                
             d = @pages[@current_page_id]
             if d?
+                @emit("switch_from_page-#{@current_page_id}", @current_page_id)
                 d.page.hide()
                 d.button.removeClass("active")
             else
@@ -82,6 +81,9 @@ top_navbar = undefined
                     if m != id
                         p.page.hide()
                         p.button.removeClass("active")
+                        
+            n.page.show()
+            n.button.show().addClass("active")
             @current_page_id = id
             @emit("switch_to_page-#{id}", id)
 
@@ -130,7 +132,7 @@ top_navbar = undefined
     $("#projects").top_navbar
         id      : "projects"
         'class' : 'navbar-big'        
-        label   : "Projects"
+        label   : "Your Projects"
         close   : false        
         
     $("#account").top_navbar
@@ -142,11 +144,11 @@ top_navbar = undefined
 
     $("#about").top_navbar
         id      : "about"
-        label   : "About"
+        label   : "Salvus&trade;"
         pull_right : true
         close   : false
         
     top_navbar.hide_page_button("projects")
-    top_navbar.switch_to_page("account")
+    top_navbar.switch_to_page("scratch")
 
 )()
