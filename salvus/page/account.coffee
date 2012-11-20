@@ -15,12 +15,18 @@
                 return false
             )
         else
-            $("#account-item").find("a").html("Sign in")
+            top_navbar.set_button_label("account", "Sign in", "", false)
     
     ################################################
     # id of account client browser thinks it is signed in as
     ################################################
-    account_id = null
+    account_id = undefined
+
+    top_navbar.on "switch_to_page-account", () ->
+        if not @account_id?
+            $("#sign_in-email").focus()
+
+
 
     ################################################
     # Page Switching Control
@@ -197,7 +203,8 @@
         show_page("account-settings")
         # change the navbar title from "Sign in" to "first_name last_name"
         set_account_tab_label(true, mesg.first_name, mesg.last_name)
-        top_navbar.switch_to_page("projects")
+        top_navbar.show_page_button("projects")
+        top_navbar.switch_to_page("scratch")
 
     # Listen for pushed sign_in events from the server.  This is one way that
     # the sign_in function above can be activated, but not the only way.
@@ -218,12 +225,10 @@
                 else
                     set_account_tab_label(false)
                     # Change the view in the account page to the "sign in" view.
-                    # Change the navbar title from "Sign in" to "first_name last_name"
-                    
-                    top_navbar.hide_page_nav("projects")
+                    show_page("account-sign_in")
+                    top_navbar.hide_page_button("projects")
                     # TODO: have to remove a bunch of other pages
                     
-                    show_page("account-sign_in")
                     top_navbar.switch_to_page("account")
 
     ################################################

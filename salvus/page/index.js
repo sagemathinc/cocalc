@@ -10,8 +10,11 @@ $(function() {
 
    execute_router.coffee
 
+   scratch.coffee
+
    account.coffee    
    feedback.coffee
+
 
    projects.coffee
    project.coffee

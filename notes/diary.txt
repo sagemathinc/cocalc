@@ -7518,3 +7518,16 @@ example... but does vi/emacs work through this?  This license is clear
 MIT -- much better -- and the entire code is *small* coffeescript! 
 The min is 24K.     On the other hand, it "isn't a VT100".
 Also, tty.js's license just got sorted out!
+
+Nov 19, 2012:
+
+I plan to work for 10 hours today on salvus, if all goes well.  We'll see.
+
+  TODAY'S GOAL: very simple worksheet mode, with ability to open worksheets, etc.
+
+How to get there:
+
+  [ ] come up with the ui design
+  [ ] make static html of it
+  [ ] top_navbar -- modif js to be generic
+  [ ] 

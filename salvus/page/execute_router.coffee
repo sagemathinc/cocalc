@@ -23,7 +23,7 @@ execute_router = {}
 
     is_evaluate_key = is_shift_enter
 
-    # execute when pressing "shift-enter"
+    # execute when pressing the evaluate key
     $("body").keydown (e) ->
         switch top_navbar.active_page
             when "demo1"

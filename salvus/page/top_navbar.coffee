@@ -33,14 +33,15 @@ top_navbar = undefined
                 insert_after  : undefined  # if given, the page is inserted after the page with given id.
                 insert_before : undefined  # if given, the page is inserted after the page with given id.
                 pull_right    : false      # if true, place button in the right-hand side group of buttons.
+                close         : true       # if true, include a "close" x.
 
             button = @button_template.clone()
             if opts.pull_right
                 @buttons_right.append(button)
-                button.before(@divider_template.clone())
+                #button.before(@divider_template.clone())
             else
                 @buttons.append(button)
-                button.after(@divider_template.clone())
+                #button.after(@divider_template.clone())
             @pages[opts.id] = {page:opts.page, button:button}
 
             a = button.find("a")
@@ -48,39 +49,59 @@ top_navbar = undefined
             that = @
             a.click((event) -> that.switch_to_page($(this).data("id")); return false)
 
-            @set_button_label(opts.id, opts.label, opts['class'])
+            @set_button_label(opts.id, opts.label, opts['class'], opts['close'])
 
-        set_button_label: (id, label, klass) ->
+        set_button_label: (id, label, klass, close=true) ->
             button = @pages[id].button
             a = button.find("a")
-            a.html(label)
+            a.find(".button-label").html(label)
+            close_button = a.find(".close-button")
+            if close
+                close_button.data("id", id)
+                that = @
+                close_button.click((event) -> that.remove_page($(this).data("id")); return false)
+            else
+                close_button.hide()
             if klass?
-                a.addClass(klass)
+                a.find(".button-label").addClass(klass)
+                #a.addClass(klass)
                 
         switch_to_page: (id) ->
+            n = @pages[id]
+            if not n?
+                return
+            else
+                n.page.show()
+                n.button.show().addClass("active")
+            d = @pages[@current_page_id]
+            if d?
+                d.page.hide()
+                d.button.removeClass("active")
+            else
+                for m, p of @pages
+                    if m != id
+                        p.page.hide()
+                        p.button.removeClass("active")
+            @current_page_id = id
             @emit("switch_to_page-#{id}", id)
-            @show_page_nav(id)
-            for i, d of @pages
-                if i != id
-                    d.page.hide()
-                    d.button.removeClass("active")
-                else
-                    d.page.show()
-                    d.button.addClass("active")
 
         # entirely remove the page
         remove_page: (id) ->
             p = @pages[id]
-            p.page.destroy()
-            p.button.destroy()
-            delete @pages[id]
+            if p?
+                p.page.remove()
+                p.button.remove()
+                delete @pages[id]
+                for id of @pages
+                    @switch_to_page(id)
+                    return
 
         # make it so the navbar entry to go to a given page is hidden
-        hide_page_nav: (id) ->
+        hide_page_button: (id) ->
             @pages[id].button.hide()
 
         # make it so the navbar entry to go to a given page is shown
-        show_page_nav: (id) ->
+        show_page_button: (id) ->
             @pages[id].button.show()
 
         # TODO -- ?
@@ -97,35 +118,35 @@ top_navbar = undefined
                 top_navbar.add_page(opts)
 
 
-
-
     ###############################################################                        
     # Add the standard pages
 
-    $("#about").top_navbar
-        id      : "about"
-        'class' : 'brand'
-        label   : "Salvus&trade;"
+    $("#scratch").top_navbar
+        id      : "scratch"
+        'class' : 'navbar-big'
+        label   : "Scratch"
+        close   : false
         
     $("#projects").top_navbar
         id      : "projects"
-        'class' : 'brand'
+        'class' : 'navbar-big'        
         label   : "Projects"
+        close   : false        
         
     $("#account").top_navbar
         id     : "account"
         label  : "Sign in"
         pull_right : true
+        close   : false        
 
 
-    top_navbar.hide_page_nav("projects")
-
+    $("#about").top_navbar
+        id      : "about"
+        label   : "About"
+        pull_right : true
+        close   : false
+        
+    top_navbar.hide_page_button("projects")
+    top_navbar.switch_to_page("account")
 
 )()
-
-
-# TODO: temporary
-#$(".project-close-button").click (e) ->
-#    top_navbar.hide_page_nav("project")
-#    top_navbar.switch_to_page("projects")
-#    return false

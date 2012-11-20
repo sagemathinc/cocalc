@@ -1,10 +1,18 @@
-.project-link {
-    background-color:#fafafa;
+.project-file-link {
+    background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
 }
 
-.project-link:hover {
+.project-file-link:hover {
     background-color:#efe;
 }
 
+.project-project_title {
+    font-size:18pt;
+}
+
+.project-project_description {
+    font-size:12pt;
+    color: #666;
+}

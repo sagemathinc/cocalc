@@ -1,7 +1,12 @@
-.project-close-button {
-    font-size:20px;
+.close-button {
+   font-size: 18px;
 }
 
-.project-close-button:hover {
+.close-button-x:hover {
     color: #fff;
+    font-size: 18px;
+}
+
+.navbar-big {
+    font-size:20px;
 }
