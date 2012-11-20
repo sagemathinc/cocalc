@@ -7611,6 +7611,30 @@ can connect to cassandra...
 
 Goal for today:
 
-   [ ] make the scratch area legit.
+   [ ] make the scratch area legit... but how?
 
 
+ [ ] mobile friendly version of top bar... 
+
+
+
+ [ ]  move the modification of mercury.min.js to scratch.coffee for better maintainability
+
+
+
+First, let's describe some ways we would like it to work, even if I have no clue how to implement this:
+
+
+ * Make a text mode that is just like "bold", but is "sage".  Turn mode on by default.
+
+ * When in that mode and press execute shortcut (or hit big button),
+   then all code in that region is executed.  
+   Result is 
+
+ * input to sage will thus be arbitrary html -- we'll somehow parse code out of it by --> plain text'ing it.
+   but this will be nice, because people can bold/color/math/whatever their *input*.
+ * Where is the cursor?  
+ 
+
+
+    
