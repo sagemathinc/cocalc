@@ -7523,14 +7523,27 @@ Nov 19, 2012:
 
 I plan to work for 10 hours today on salvus, if all goes well.  We'll see.
 
-  TODAY'S GOAL: very simple worksheet mode, with ability to open worksheets, etc.
+  TODAY'S GOAL: very simple worksheet mode; ability to open worksheets; create new files,  etc.
 
 How to get there:
 
   [x] come up with the ui design
   [x] make static html of it
 
-  [ ] make eval in scratch work
+  [x] make eval in scratch work
 
-  [ ] top_navbar -- modif js to be generic
-  [ ] 
+  [ ] create a simple Salvus worksheet:
+
+     [x] find an html5 editor that:
+           - works on my nexus4 and ipad
+           - opera/safari/firefox/chrome
+
+So far: wysihtml5 *DOES* when I run the demo locally (but not their demo online)
+        bootstrap-wysihtml5 does *NOT* work.  
+         
+        aloha seems neat/powerful/annoying, but is GPL. :-(
+
+WOAH, http://jejacks0n.github.com/mercury/ this just knocked my socks off!!!!
+
+  [x] I have 100% decided to definitely go with Mercury.  It has the right license, is beautiful code, looks good, etc.  It's frickin' sweet.
+
