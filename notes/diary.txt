@@ -7547,3 +7547,5 @@ WOAH, http://jejacks0n.github.com/mercury/ this just knocked my socks off!!!!
 
   [x] I have 100% decided to definitely go with Mercury.  It has the right license, is beautiful code, looks good, etc.  It's frickin' sweet.
 
+  [ ] use Mercury to make an editable area in the scratch pad.
+

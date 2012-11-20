@@ -66,12 +66,34 @@ set_evaluate_key = undefined # exported
             return false
 
     top_navbar.on "switch_to_page-scratch", () ->
-        $("#input").focus()
+        #$("#input").focus()
+        $(".scratch-worksheet").focus()
         $("body").keydown(keydown_handler)
+        Mercury.trigger('toggle:interface');
 
     top_navbar.on "switch_from_page-scratch", () ->
         $("body").unbind("keydown", keydown_handler)
-        
-        
+        Mercury.trigger('toggle:interface');
 
+    ######################################################################
+    # extend Mercury for salvus: (note the online docs at
+    # https://github.com/jejacks0n/mercury/wiki/Extending-Mercury are
+    # out of date...)
+    #
+
+    jQuery(window).on 'mercury:ready', () ->
+        console.log(Mercury.config.toolbars.editable)
+        Mercury.config.toolbars.editable.titleAndContent = ['Simple Markup', 'Inserts a title, paragraph tag, and a button']
+        Mercury.config.behaviors.titleAndContent = (selection) ->
+            url = prompt('Enter the link for the button')
+            selection.replace('<div><h2>Title</h2><p>content</p><a href="' + url + '" class="button">button</a><hr/></div>')
+
+    window.salvus_exec = (input, f) ->
+        salvus.execute_code(
+            code: input
+            cb : f
+            preparse: true
+            allow_cache: false
+        )
+    
 )()
