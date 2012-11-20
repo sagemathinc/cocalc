@@ -4949,7 +4949,7 @@ s.restart('haproxy', '02salvus')
 
      virsh list  --all # check that no base vm is running
      export PREV=salvus5
-     export NAME=salvus6
+     export NAME=salvus5b
      qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
 
       virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
@@ -7547,5 +7547,70 @@ WOAH, http://jejacks0n.github.com/mercury/ this just knocked my socks off!!!!
 
   [x] I have 100% decided to definitely go with Mercury.  It has the right license, is beautiful code, looks good, etc.  It's frickin' sweet.
 
-  [ ] use Mercury to make an editable area in the scratch pad.
+  [x] use Mercury to make an editable area in the scratch pad.
+
+--
+
+ [ ] I didn't restrict permissions in salvus directory in version I pushed out in VM!
+     To fix:
+       
+       (1) start new version of VM of deployed version on 08salvus
+       (2) fix salvus5 there --> salvus5b
+       (3) push out new vm image
+       (4) modify deploy2 in 01salvus (new "salvus5b" base)
+       (5) restart sage servers
+       
+Update deploy2
+Reload:
+ import admin, deploy2; reload(admin); reload(deploy2); s=deploy2.services; h = s._hosts
+- stop sage servers      
+ s.stop('sage')
+- restart vm's
+ [s.restart('vm',hostname="sage0%s"%i)  for i in range(2,10)]; [s.restart('vm',hostname="sage%s"%i)  for i in range(10,17)]
+- ssh into a vm and confirm fix
+ done
+- drop table
+  In [7]: !cqlsh -3 10.1.1.2 -k salvus
+  truncate stateless_exec
+- start sage
+
+ok, that was pretty hard, but it worked.  I ended up using one of the web vm's as master control, since they
+can connect to cassandra...
+
+
+        
+      
+
+
+     virsh list  --all # check that no base vm is running
+     export PREV=salvus5
+     export NAME=salvus5b
+     qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+
+      virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+       # IMPORTANT!
+       sudo chown og-rwx -R salvus
+
+       sudo apt-get update; sudo apt-get upgrade; 
+       sudo reboot -h now
+       cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
+       . salvus-env
+
+
+# for example:
+       ./build.py --build_stunnel --build_nodejs --build_nodejs_packages --build_haproxy --build_nginx --build_cassandra --build_python_packages
+
+     virsh --connect qemu:///session undefine $NAME
+     virsh --connect qemu:///session destroy $NAME
+     virsh --connect qemu:///session list --all
+
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py 
+-----
+
+Goal for today:
+
+   [ ] make the scratch area legit.
+
 
