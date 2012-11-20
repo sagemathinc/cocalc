@@ -94,9 +94,6 @@ top_navbar = undefined
                 p.page.remove()
                 p.button.remove()
                 delete @pages[id]
-                for id of @pages
-                    @switch_to_page(id)
-                    return
 
         # make it so the navbar entry to go to a given page is hidden
         hide_page_button: (id) ->
@@ -141,7 +138,7 @@ top_navbar = undefined
         pull_right : true
         close   : false        
 
-
+    
     $("#about").top_navbar
         id      : "about"
         label   : "Salvus&trade;"
