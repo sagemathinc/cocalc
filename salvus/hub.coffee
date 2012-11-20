@@ -400,7 +400,7 @@ class Client extends EventEmitter
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
             
-    mesg_set_project_data: (mesg) =>
+    mesg_update_project_data: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
             return
@@ -428,7 +428,7 @@ class Client extends EventEmitter
                                 @error_to_client(id:mesg.id, error:"Database error changing properties of the project with id #{mesg.project_id}.")
                             else
                                 push_to_clients
-                                    where : {project_id:mesg.project_id}
+                                    where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
                     
 
@@ -493,6 +493,14 @@ get_client_ids = (opts) ->
         exclude    : undefined      # array of id's to exclude from results
         cb         : required
 
+    result = []
+    include = (id) ->
+        if id not in result
+            if opts.exclude?
+                if id in opts.exclude
+                    return
+            result.push(id)
+            
     async.series([
         (cb) -> 
             if opts.project_id?
@@ -503,26 +511,17 @@ get_client_ids = (opts) ->
                             opts.cb(error)
                             cb(true)
                         else
-                            # duplicates are ok
-                            opts.accounts = opts.account.concat(result)
+                            for id in result
+                                include(id)
                             cb()
             else
                 cb()
         (cb) -> 
-            result = []
-            include = (id) ->
-                if id not in result
-                    if opts.exclude?
-                        if id in opts.exclude
-                            return
-                    result.push(id)
-
             # TODO: This will be replaced by one scalable database query on an indexed column
             if opts.account_id?
                 for id, client of clients
                     if client.account_id == opts.account_id
                         include(id)
-
             opts.cb(false, result)
             cb()
     ])
@@ -544,7 +543,7 @@ push_to_clients = (opts) ->
             if opts.where?
                 get_client_ids(misc.merge(opts.where, cb:(error, result) ->
                     if error
-                        opts.cb(true)
+                        opts.cb?(true)
                         cb(true)
                     else
                         dest = dest.concat(result)
@@ -559,9 +558,13 @@ push_to_clients = (opts) ->
                 dest = dest.concat(opts.to)
                 
             # IMPORTANT TODO: extend to use database and inter-hub communication
+            console.log("dest = #{dest}")
+            for i of clients
+                console.log("current client id: #{i}")
             for id in dest
-                clients[id].push_to_client(opts.mesg)
-            opts.cb(false)
+                console.log(id)
+                clients[id]?.push_to_client(opts.mesg)
+            opts.cb?(false)
             cb()
 
             

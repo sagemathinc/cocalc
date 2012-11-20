@@ -370,7 +370,7 @@ class exports.Connection extends EventEmitter
             timeout    : 10
             cb         : undefined    # cb would get project_data_updated message back, as does everybody else with eyes on this project
         @call
-            message: message.update_project_data(project_id:opts.project_id, data:data)
+            message: message.update_project_data(project_id:opts.project_id, data:opts.data)
             cb : opts.cb
 
 

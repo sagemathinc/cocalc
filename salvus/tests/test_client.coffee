@@ -264,8 +264,8 @@ exports.test_session = (test) ->
                         s.on("open", cb)
                         cb()
                     
-        # execute some code that will produce at least 2 output messages, and collect all messages
         (cb) ->
+            # console.log("execute some code that will produce at least 2 output messages, and collect all messages")
             s.execute_code
                 code: "2+2;sys.stdout.flush();sleep(.5)"
                 cb: (mesg) ->
@@ -273,8 +273,9 @@ exports.test_session = (test) ->
                     if mesg.done
                         cb()
                         
-        # make some checks on the messages
+        
         (cb) ->
+            #console.log("make some checks on the messages")
             test.equal(v[0].stdout, '4\n', 'first output is 4')
             test.equal(v[0].done, false, 'not done after first output')
             test.equal(v[1].stdout, '', 'second output is empty')
@@ -285,8 +286,8 @@ exports.test_session = (test) ->
             test.ok(s.walltime() >= .5, 'verify that the walltime method on the session is sane')
             cb()
 
-        # preparser: false
         (cb) ->
+            #console.log("preparser: false")
             s.execute_code
                 code : "2^3 + 1/3"
                 preparse : false
@@ -294,14 +295,16 @@ exports.test_session = (test) ->
                     test.equal(mesg.stdout,'1\n','evaluate a silly expression without the Sage preparser')
                     cb()
             
-        # start a computation going, then interrupt it and do something else
         (cb) ->
+            #console.log("start a computation going, then interrupt it and do something else")
             s.execute_code(
                 code:'print(1);sys.stdout.flush();sleep(10)', 
                 cb: (mesg) ->
+                    #console.log("got #{JSON.stringify(mesg)}")
                     if not mesg.done
                         test.equal(mesg.stdout,'1\n', 'test that we get 1 from interrupted computation')
                         s.interrupt()
+                        # There is NO cb() here, because this interrupt causes this function to get called again.
                     else
                         test.equal(mesg.stderr?.slice(0,5),'Error', 'test that there is an error message from interrupting')
                         cb()
@@ -312,16 +315,17 @@ exports.test_project_management = (test) ->
     project_id = null
     new_title = "Changed title"
     NUM = 100
-    test.expect(NUM + 21)
+    test.expect(NUM + 19)
     async.series([
         (cb) ->
+            #console.log("sign in")
             conn.sign_in
                 email_address : email_address
                 password      : password
                 timeout       : 1
                 cb            : (error, results) -> test.ok(not error); cb()
-        # insert a project
         (cb) ->
+            #console.log("insert a project")
             conn.create_project
                 title  : "A Salvus Project"
                 description : "a test project"
@@ -331,8 +335,8 @@ exports.test_project_management = (test) ->
                     project_id = result.project_id
                     test.equal(result.event, 'project_created', "event type should be 'project_created'")
                     cb()
-        # verify that it was correctly inserted
         (cb) ->
+            #console.log("verify that it was correctly inserted")
             conn.get_projects
                 cb : (error, mesg) ->
                     test.ok(not error, "Getting project list should not result in an error.")
@@ -341,21 +345,20 @@ exports.test_project_management = (test) ->
                     test.equal(projects[0].title, "A Salvus Project", "correct title for first project")
                     test.equal(projects[0].description, "a test project", "first project is a worksheet")
                     test.equal(projects[0].public, true, "first project is public")
-                    test.deepEqual(projects[0].meta, {}, "first project has not meta information yet")
                     cb()
-        # change the title
         (cb) ->
-            conn.set_project_title
+            #console.log("change the title")
+            conn.update_project_data
                 project_id : project_id
-                title      : new_title
+                data       : {title : new_title}
                 cb         : (error, result) ->
+                    #console.log(error, JSON.stringify(result))
                     test.ok(not error, "do not get an error changing project title")
-                    test.equal(result.event, "project_title_set", "correct event after changing project title")
+                    test.equal(result.event, "project_data_updated", "correct event after changing project title")
                     test.equal(result.project_id, project_id, "correct project_id after changing project title")
-                    test.equal(result.title, new_title, "correct new title after changing project title in return message")
                     cb()
-        # create NUM more projects
         (cb) ->
+            #console.log("create NUM more projects")
             j = 0
             for i in [1..NUM]
                 conn.create_project
@@ -367,8 +370,8 @@ exports.test_project_management = (test) ->
                         j += 1
                         if j==NUM
                             cb()
-        # confirm that there are now NUM+1 projects
         (cb) ->
+            #console.log("confirm that there are now NUM+1 projects")
             conn.get_projects
                 cb : (error, mesg) ->
                     test.ok(not error, "Getting project list (of length #{NUM+1} this time) should not result in an error.")
@@ -377,16 +380,16 @@ exports.test_project_management = (test) ->
                     test.equal((p for p in projects when p.public).length, 1, "exactly one project should be public")
                     cb()
 
-        # sign in as a different user
         (cb) ->
+            #console.log("sign in as a different user")
             conn.sign_in
                 email_address : email_address2
                 password      : password2
                 timeout       : 1
                 cb            : (error, results) -> test.ok(not error); cb()
 
-        # check that new user has no projects
         (cb) ->
+            #console.log("check that new user has no projects")
             conn.get_projects
                 cb : (error, mesg) ->
                     test.ok(not error, "Getting project list for new user should not be an error.")
@@ -394,11 +397,11 @@ exports.test_project_management = (test) ->
                     test.equal(projects.length, 0, "number of projects should be 0")
                     cb()
 
-        # try to change title of project of the other user
         (cb) ->
-            conn.set_project_title
+            #console.log("try to change title of project of the other user")
+            conn.update_project_data
                 project_id : project_id
-                title      : "Hacked by Chinese!"
+                data       : {title : "Hacked by Chinese!"}
                 cb         : (error, result) ->
                     test.ok(not error, "Setting project title should not result in comm error.")
                     test.equal(result.event, 'error', "Setting project title of other user should be an error.")

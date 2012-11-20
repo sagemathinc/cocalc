@@ -1,4 +1,4 @@
->Aug 10, 2012:
+Aug 10, 2012:
 ------------
 
 I'm setting up VM's on my infrastructure.  Right now I have:
@@ -7635,6 +7635,8 @@ First, let's describe some ways we would like it to work, even if I have no clue
    but this will be nice, because people can bold/color/math/whatever their *input*.
  * Where is the cursor?  
  
+----
 
+ [ ] fix bugs in test suite caused by refactoring.
 
     
