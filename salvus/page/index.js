@@ -1,26 +1,25 @@
 $(function() {
+    misc_page.coffee
 
-   misc_page.coffee
+    connect_to_hub.coffee
 
-   connect_to_hub.coffee
+    tracking.coffee
 
-   tracking.coffee
+    top_navbar.coffee
 
-   top_navbar.coffee
+    alerts.coffee
 
-   alerts.coffee
+    scratch.coffee
 
-   scratch.coffee
-
-   account.coffee    
-   feedback.coffee
+    account.coffee    
+    feedback.coffee
 
 
-   projects.coffee
-   project.coffee
+    projects.coffee
+    project.coffee
 
-   exit_confirmation.coffee
+    exit_confirmation.coffee
 
-   window.history.pushState("", "", "/")  /* get rid of # part of URL */
+    window.history.pushState("", "", "/")  /* get rid of # part of URL */
 
-});
+})

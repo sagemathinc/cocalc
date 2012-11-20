@@ -7637,6 +7637,10 @@ First, let's describe some ways we would like it to work, even if I have no clue
  
 ----
 
- [ ] fix bugs in test suite caused by refactoring.
+ [x] fix bugs in test suite caused by refactoring.
+
+ [ ] get mercury to work on my small laptop.
+
+Hmm... I might be making a big mistake with using mercury.  I'm going to try wysihtml5 again, more seriously.
 
     

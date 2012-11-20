@@ -10,7 +10,7 @@ set_evaluate_key = undefined # exported
     persistent_session = null    
 
 
-    $("#execute").click((event) -> execute_code())
+    #$("#execute").click((event) -> execute_code())
     
 
     is_evaluate_key = misc_page.is_shift_enter
@@ -37,11 +37,11 @@ set_evaluate_key = undefined # exported
         #$("#input").focus()
         $(".scratch-worksheet").focus()
         $("body").keydown(keydown_handler)
-        Mercury.trigger('toggle:interface');
+        #Mercury?.trigger('toggle:interface');
 
     top_navbar.on "switch_from_page-scratch", () ->
         $("body").unbind("keydown", keydown_handler)
-        Mercury.trigger('toggle:interface');
+        #Mercury?.trigger('toggle:interface');
 
     ######################################################################
     # extend Mercury for salvus: (note the online docs at
@@ -74,7 +74,7 @@ set_evaluate_key = undefined # exported
     $(window).on 'mercury:ready', () ->
 
     # TODO: this won't work when code contains ''' -- replace by a more sophisticated message to the sage server
-    eval_wrap = (input, system) -> 'print ' + system + ".eval(r'''" + input + "''')" 
+    eval_wrap = (input, system) -> 'print ' + system + ".eval(r'''" + input + "''')"
 
     salvus_exec = (input, cb) ->
         if persistent_session == null
@@ -89,8 +89,8 @@ set_evaluate_key = undefined # exported
                         persistent_session = session
             return  # can't evaluate the code yet -- will try again when the callback above succeeds
 
-        #system = $("#scratch-system").val()
-        system = 'sage'
+        system = $("iframe").contents().find("#scratch-system").val()
+        console.log("Evaluate using #{system}")
         switch system
             when 'sage'
                 preparse = true
@@ -100,8 +100,6 @@ set_evaluate_key = undefined # exported
             else
                 preparse = false                
                 input = eval_wrap(input, system)
-
-        console.log("input = ", input)
 
         persistent_session.execute_code
             code        : input

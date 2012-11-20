@@ -1,52 +1,28 @@
 <div class="container hide" id="scratch">
 
   <div class="row">
-    <div class="span9">
+    <div class="span6">
       <h3>Salvus&trade; Scratchpad</h3><br>
+    </div>
+    <div class="span3">
+      <select id="scratch-system" rel="tooltip" title="Evaluate code using this mathematical software system.">
+	<option value="sage">Sage</option>
+	<option value="python">Python</option>
+	<option value="gp">Pari/GP</option>
+	<option value="maxima">Maxima</option>
+	<option value="gap">GAP</option>
+      </select>
     </div>
   </div>
 
+
   <div class="row">
-    <div class="span11 well scratch-worksheet" data-mercury="full">
+    <div class="span11 well scratch-worksheet"   data-mercury="full">
       factorial(69)
       <br>
     </div>
   </div>
 
 
-
-  <br><hr><br>
-  <div class="row">
-    <div class="well span11">
-      <div class="span3">
-	<label class="checkbox">
-	  <input type="checkbox" id="script-cache" checked=true
-		 rel="tooltip" title="Cache evaluation of code in the database,
-				      so that evaluating the same code in the future is
-				      instant.">Allow Caching
-	</label>
-      </div>
-      <div class="span3">
-	<select id="scratch-system" rel="tooltip" title="Evaluate code using this mathematical software system.">
-	  <option value="sage">Sage</option>
-	  <option value="python">Python</option>
-	  <option value="gp">Pari/GP</option>
-	  <option value="maxima">Maxima</option>
-	  <option value="gap">GAP</option>
-	</select>
-      </div>
-
-      <div class = "row">
-	<div class="span1">
-	  <font size=-1>
-	    <br>
-	    <span id="time"></span><br>
-	    <span id="run_status"></span><br>
-	  </font>
-	</div>
-      </div>
-
-    </div>
-  </div>
 </div>
 
