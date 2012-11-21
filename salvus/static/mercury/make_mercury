@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-##############################################################################
-# I made up the file src/base.js based on mercury-compiled.js.
-##############################################################################
-
 import os
 
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
@@ -13,12 +9,15 @@ def cmd(s):
     os.system(s)
 
 sources = []
+anything_changed = False
 
 def coffee(m):
+    global anything_changed
     cf = "src/%s.js.coffee"%m
     x = os.path.split(cf)[-1][:-7] + '.js'
     js = "src/build/" + x
     if not os.path.exists(js) or os.path.getmtime(cf) > os.path.getmtime(js):
+        anything_changed = True
         cmd("coffee -c -o src/build/ " + cf)
     sources.append(js)
 
@@ -70,5 +69,6 @@ coffee("modals/insertsnippet")
 coffee("modals/inserttable")
 coffee("finalize")
 
-cmd("cat %s > src/build/mercury.js"%(' '.join(sources)))
-cmd("uglifyjs2 src/build/mercury.js > assets/javascripts/mercury.min.js")
+if anything_changed:
+    cmd("cat %s > src/build/mercury.js"%(' '.join(sources)))
+    cmd("uglifyjs2 src/build/mercury.js > assets/javascripts/mercury.min.js")
