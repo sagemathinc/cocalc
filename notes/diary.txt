@@ -7703,3 +7703,6 @@ a month deleting everything except one life of mercury!
 
 [ ] how to use contenteditable:
      https://developer.mozilla.org/en-US/docs/Rich-Text_Editing_in_Mozilla
+
+[ ] finding cursor?
+http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div

@@ -49,10 +49,10 @@ set_evaluate_key = undefined # exported
     top_navbar.on "switch_to_page-scratch", () ->
         $("#input").focus()
         $(".scratch-worksheet").focus()
-        $("body").keydown(keydown_handler)
+        $(document).keydown(keydown_handler)
 
     top_navbar.on "switch_from_page-scratch", () ->
-        $("body").unbind("keydown", keydown_handler)
+        $(document).unbind("keydown", keydown_handler)
 
     ######################################################################
     # extend Mercury for salvus: (note the online docs at
@@ -77,7 +77,17 @@ set_evaluate_key = undefined # exported
 
 
     execute_code = () ->
-        console.log("evaluating!")
+        console.log('exec')
+        input = window.getSelection().getRangeAt().startContainer.data
+        output = window.getSelection().getRangeAt().endContainer
+        console.log("evaluating: #{input}")
+        r = input + "\n\n"
+        salvus_exec(input, (mesg) ->
+            console.log(mesg)
+            r += mesg.stdout
+            output.replaceWholeText(r))
+
+            
 
     # TODO: this won't work when code contains ''' -- replace by a more sophisticated message to the sage server
     eval_wrap = (input, system) -> 'print ' + system + ".eval(r'''" + input + "''')"
