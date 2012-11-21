@@ -7662,7 +7662,12 @@ OK, here's my plan:
 This must be better than starting from scratch!
 [x] get rid of "assets" subdirectory.
 
+--------
 [ ] understand mercury enough to shift-enter = evaluate.
+
+--------
+
+ [ ] I need a plan since Mercury currently only works on non-IE.  !
 
 
 
