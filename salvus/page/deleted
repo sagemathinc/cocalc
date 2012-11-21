@@ -24,3 +24,24 @@
                     $("#account-settings-email_address").html(mesg.new_email_address)
                     account_settings.settings.email_address = mesg.new_email_address
                     return true   # kill modal
+
+        Mercury.config.behaviors.execute2 = (selection, options) ->
+            e = selection.wrap('<div class="sage-cell">', true)
+            console.log(e)
+            e.execute_cell()
+
+        Mercury.config.behaviors.execute = (selection, options) ->
+            input = selection.textContent()
+            output = ""
+            salvus_exec input, (mesg) ->
+                console.log(mesg)
+                if mesg.stdout?
+                    output += "<span class='sage-stdout'>#{mesg.stdout}</span>"
+                if mesg.stderr?
+                    output += "<span class='sage-stderr'>#{mesg.stderr}</span>"
+                selection.insertNode("<span>" + input + "<br>" + output + "</span>")
+                Mercury.trigger('reinitialize')
+        
+    $(window).on 'mercury:ready', () ->
+
+

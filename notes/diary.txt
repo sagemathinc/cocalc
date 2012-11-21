@@ -7668,8 +7668,38 @@ This must be better than starting from scratch!
 --------
 
  [ ] I need a plan since Mercury currently only works on non-IE.  !
+     Plan: 
+        * a Salvus worksheet is an HTML document that happens to have sage code in it, and
+          for which salvus enables powerful interactive usage.
+        * Mercury will be the prefered editor
+        * Other lesser editors will be supported as a fallback.
+        
+I will implement the following as several different scratch worksheets in salvus, 
+then 
+
+  Level 0: basic editor functionality:
+
+      - input code in sage cells
+      - evaluate code
+      - enter text between cells in a different font. 
+
+Write something that ensures this works very well on everything, then move on to level 1.
+
+  Level 1: 
+      - move cells around
+      - 
+
+----------
+
+WAIT one fucking minute!   Contenteditable in built into web browsers these days, and 
+might be exactly what I really want at the core of all this bullshit.
+
+OK, this mercury shit has got to 100% go.  Everything I need is already nicely available
+in contenteditable, which is built-in to all modern web browser.   I would have spent
+a month deleting everything except one life of mercury!
+
+ [x] remove mercury from salvus completely
 
 
-
-
-
+[ ] how to use contenteditable:
+     https://developer.mozilla.org/en-US/docs/Rich-Text_Editing_in_Mozilla

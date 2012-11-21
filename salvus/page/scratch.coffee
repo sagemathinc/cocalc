@@ -24,8 +24,7 @@ set_evaluate_key = undefined # exported
             cb(false, persistent_session)
 
 
-    #$("#execute").click((event) -> execute_code())
-    #
+    $("#execute").click((event) -> execute_code())
 
     is_evaluate_key = misc_page.is_shift_enter
     
@@ -48,14 +47,12 @@ set_evaluate_key = undefined # exported
             return false
 
     top_navbar.on "switch_to_page-scratch", () ->
-        #$("#input").focus()
+        $("#input").focus()
         $(".scratch-worksheet").focus()
-        #$("body").keydown(keydown_handler)
-        Mercury?.trigger('toggle:interface');
+        $("body").keydown(keydown_handler)
 
     top_navbar.on "switch_from_page-scratch", () ->
-        #$("body").unbind("keydown", keydown_handler)
-        Mercury?.trigger('toggle:interface');
+        $("body").unbind("keydown", keydown_handler)
 
     ######################################################################
     # extend Mercury for salvus: (note the online docs at
@@ -63,66 +60,20 @@ set_evaluate_key = undefined # exported
     # out of date...)
     #
 
-    $(window).on 'mercury:loaded', () ->
-        orig = Mercury.config.toolbars.primary
-        Mercury.config.toolbars.primary =
-            execute2 : ['Execute2', "Execute code using Sage"]
-            execute  : ['Execute', "Execute code using Sage"]
-            undo:      ['Undo', 'Undo your last action']
-            redo:      ['Redo', 'Redo your last action']
-            insertLink : orig.insertLink
-            insertMedia: orig.insertMedia
-            insertTable: orig.insertTable
-
-        orig = Mercury.config.toolbars.editable
-        delete Mercury.config.toolbars.editable
-        Mercury.config.toolbars.editable =
-            _regions:    orig._regions
-            formatblock: ['Block Format', null, { select: '/mercury/selects/formatblock.html', preload: true }]
-            htmlEditor:          ['Edit HTML', 'Edit the HTML content', { regions: ['full'] }]
-            backColor:           ['Background Color', null, { palette: '/mercury/palettes/backcolor.html', context: true, preload: true, regions: ['full'] }]
-            foreColor:           ['Text Color', null, { palette: '/mercury/palettes/forecolor.html', context: true, preload: true, regions: ['full'] }]
-            decoration: orig.decoration
-            script: orig.script
-            justify: orig.justify
-            list: orig.list
-            indent: orig.indent
-            rules:orig.rules
-
-        # Make a jQuery plugin for executing the code in a cell
-        $.fn.extend
-            execute_cell: (opts) -> 
-                return @each () ->
-                    cell = $(this)
-                    # wrap input in sage-input
-                    input = this.innerText
-                    console.log("input='#{input}'")
-                    salvus_exec input, (mesg) ->
-                        console.log(mesg)
-                        if mesg.stdout?
-                            cell.append($("<pre><span class='sage-stdout'>#{mesg.stdout}</span></pre>"))
-                        if mesg.stderr?
-                            cell.append($("<pre><span class='sage-stderr'>#{mesg.stderr}</span></pre>"))
-
-                                                
-        Mercury.config.behaviors.execute2 = (selection, options) ->
-            e = selection.wrap('<div class="sage-cell">', true)
-            console.log(e)
-            e.execute_cell()
-
-        Mercury.config.behaviors.execute = (selection, options) ->
-            input = selection.textContent()
-            output = ""
-            salvus_exec input, (mesg) ->
-                console.log(mesg)
-                if mesg.stdout?
-                    output += "<span class='sage-stdout'>#{mesg.stdout}</span>"
-                if mesg.stderr?
-                    output += "<span class='sage-stderr'>#{mesg.stderr}</span>"
-                selection.insertNode("<span>" + input + "<br>" + output + "</span>")
-                Mercury.trigger('reinitialize')
-        
-    $(window).on 'mercury:ready', () ->
+    # Make a jQuery plugin for executing the code in a cell
+    $.fn.extend
+        execute_cell: (opts) -> 
+            return @each () ->
+                cell = $(this)
+                # wrap input in sage-input
+                input = this.innerText
+                console.log("input='#{input}'")
+                salvus_exec input, (mesg) ->
+                    console.log(mesg)
+                    if mesg.stdout?
+                        cell.append($("<pre><span class='sage-stdout'>#{mesg.stdout}</span></pre>"))
+                    if mesg.stderr?
+                        cell.append($("<pre><span class='sage-stderr'>#{mesg.stderr}</span></pre>"))
 
 
     execute_code = () ->
@@ -136,7 +87,7 @@ set_evaluate_key = undefined # exported
             if error
                 conosole.log("ERROR GETTING SESSION")
                 return
-            system = $("iframe").contents().find("#scratch-system").val()
+            system = $("#scratch-system").val()
             console.log("Evaluate using '#{system}'")
             switch system
                 when 'sage'

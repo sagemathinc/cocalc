@@ -24,7 +24,5 @@ browserify -v --exports=require,connect node_modules/client_browser.js -o static
       gen_page && \
       uglifyjs2 static/index.js -o static/index.min.js 
 
-static/mercury/make_mercury
-
 cp node_modules/message.js  static/salvus/ 
 coffee -o static/salvus/ -c static/salvus/salvus.coffee 
