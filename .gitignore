@@ -19,5 +19,5 @@ salvus/static/index.html
 salvus/static/index.css
 salvus/page/temp
 
-salvus/static/mercury/assets/javascripts/mercury.min.js
+salvus/static/mercury/js/mercury.min.js
 salvus/static/mercury/src/build

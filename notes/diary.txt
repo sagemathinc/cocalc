@@ -7660,9 +7660,9 @@ OK, here's my plan:
 [x] Move the source code of Mercury with build system into salvus repo and minimize.
 [x] Modify/fork it extensively to build the Salvus editor/notebook.
 This must be better than starting from scratch!
+[x] get rid of "assets" subdirectory.
 
-
-[ ] get rid of "assets" subdirectory.
+[ ] understand mercury enough to shift-enter = evaluate.
 
 
 

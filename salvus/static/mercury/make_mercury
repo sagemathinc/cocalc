@@ -71,4 +71,4 @@ coffee("finalize")
 
 if anything_changed:
     cmd("cat %s > src/build/mercury.js"%(' '.join(sources)))
-    cmd("uglifyjs2 src/build/mercury.js > assets/javascripts/mercury.min.js")
+    cmd("uglifyjs2 src/build/mercury.js > js/mercury.min.js")
