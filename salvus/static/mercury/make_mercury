@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+
+##############################################################################
+# I made up the file src/base.js based on mercury-compiled.js.
+##############################################################################
+
+import os
+
+os.chdir(os.path.split(os.path.realpath(__file__))[0])
+
+def cmd(s):
+    print s
+    os.system(s)
+
+sources = []
+
+def coffee(m):
+    cf = "src/%s.js.coffee"%m
+    x = os.path.split(cf)[-1][:-7] + '.js'
+    js = "src/build/" + x
+    if not os.path.exists(js) or os.path.getmtime(cf) > os.path.getmtime(js):
+        cmd("coffee -c -o src/build/ " + cf)
+    sources.append(js)
+
+def js(m):
+    sources.append("src/" + m + ".js")
+
+
+js("base")
+coffee("mercury")
+js("dependencies/jquery.additions")
+js("dependencies/jquery.htmlClean")
+js("dependencies/liquidmetal")
+js("dependencies/showdown")
+coffee("native_extensions")
+coffee("page_editor")
+coffee("history_buffer")
+coffee("table_editor")
+coffee("dialog")
+coffee("palette")
+coffee("select")
+coffee("panel")
+coffee("modal")
+coffee("lightview")
+coffee("statusbar")
+coffee("toolbar")
+coffee("toolbar.button")
+coffee("toolbar.button_group")
+coffee("toolbar.expander")
+coffee("tooltip")
+coffee("snippet")
+coffee("snippet_toolbar")
+coffee("region")
+coffee("uploader")
+coffee("regions/full")
+coffee("regions/image")
+coffee("regions/markdown")
+coffee("regions/simple")
+coffee("regions/snippets")
+coffee("dialogs/backcolor")
+coffee("dialogs/forecolor")
+coffee("dialogs/formatblock")
+coffee("dialogs/snippetpanel")
+coffee("dialogs/style")
+coffee("modals/htmleditor")
+coffee("modals/insertcharacter")
+coffee("modals/insertlink")
+coffee("modals/insertmedia")
+coffee("modals/insertsnippet")
+coffee("modals/inserttable")
+coffee("finalize")
+
+cmd("cat %s > src/build/mercury.js"%(' '.join(sources)))
+cmd("uglifyjs2 src/build/mercury.js > assets/javascripts/mercury.min.js")

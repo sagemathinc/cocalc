@@ -1,6 +1,8 @@
 ###
 # Google Analytics Tracking Code
 ###
+
+###  DISABLED!
 _gaq = _gaq || []
 _gaq.push(['_setAccount', 'UA-34321400-1'])
 _gaq.push(['_trackPageview'])
@@ -13,3 +15,4 @@ _gaq.push(['_trackPageview'])
     s = document.getElementsByTagName('script')[0]
     s.parentNode.insertBefore(ga, s)
 )()
+###

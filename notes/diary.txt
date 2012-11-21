@@ -7616,9 +7616,7 @@ Goal for today:
 
  [ ] mobile friendly version of top bar... 
 
-
-
- [ ]  move the modification of mercury.min.js to scratch.coffee for better maintainability
+ [x]  move the modification of mercury.min.js to scratch.coffee for better maintainability
 
 
 
@@ -7639,8 +7637,34 @@ First, let's describe some ways we would like it to work, even if I have no clue
 
  [x] fix bugs in test suite caused by refactoring.
 
- [ ] get mercury to work on my small laptop.
+ [x] get mercury to work on my small laptop.
 
 Hmm... I might be making a big mistake with using mercury.  I'm going to try wysihtml5 again, more seriously.
+No, mercury is pretty amazing, because it really does give DOM access, functional config, etc.
+Wysihtml5 does not seem to provide that.
 
     
+----
+
+  [ ] Mercury -- Figure out where the cursor is or at least what the current region is.  HOW?...
+
+OK, here's my plan:
+
+[x] Come up with a way to build Mercury without using rails at all
+    from coffeescript sources, or die trying.
+
+    I got it to work outside tree, at least for all the coffeescript
+    files, though I didn't worry about css or menus yet!  It wasn't
+    tooooo hard.
+
+[ ] Move the source code of Mercury with build system into salvus repo and minimize.
+
+[ ] get rid of "assets" subdirectory.
+
+
+[ ] Modify/fork it extensively to build the Salvus editor/notebook.
+This must be better than starting from scratch!
+
+
+
+
