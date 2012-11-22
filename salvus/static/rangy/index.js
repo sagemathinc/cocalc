@@ -20,57 +20,72 @@
     active_cell = void 0;
     $.fn.extend({
       salvus_worksheet: function(opts) {
-        return this.each(function() {
-          var worksheet;
+        var worksheet;
+        worksheet = void 0;
+        this.each(function() {
           worksheet = $(".salvus-templates").find(".salvus-worksheet").clone();
           $(this).append(worksheet);
-          worksheet.append_salvus_cell();
-          worksheet.append_salvus_cell();
           return worksheet.append_salvus_cell();
         });
+        return worksheet;
       },
       append_salvus_cell: function(opts) {
-        return this.each(function() {
-          var cell, id;
+        var cell;
+        cell = void 0;
+        this.each(function() {
+          var id;
           cell = $(".salvus-templates").find(".salvus-cell").clone().data("worksheet", $(this));
           id = uuid();
           cell.attr('id', id);
-          cell.find(".salvus-cell-input").data("cell", cell).focus().click(function(e) {
+          cell.find(".salvus-cell-input").data("cell", cell).click(function(e) {
+            return active_cell = $(this).data('cell');
+          }).focus(function(e) {
             return active_cell = $(this).data('cell');
           });
           $(this).append(cell);
-          return active_cell = cell;
+          active_cell = cell;
+          return cell.find(".salvus-cell-input").focus();
         });
+        return cell;
       }
     });
     $(document).keydown(function(e) {
       if (e.which === 13 && !e.shiftKey) {
-        execute_code();
-        return false;
+        return execute_code();
       }
     });
     execute_code = function() {
-      var cell, input, input_text, next, output, output_text;
+      var cell, e, input, input_text, next, output, output_text;
+      e = $(document.activeElement);
+      if (!e.hasClass('salvus-cell-input')) {
+        return true;
+      }
       cell = active_cell;
-      console.log('execute_code!', cell);
+      if (!(cell != null)) {
+        return;
+      }
+      if (typeof console !== "undefined" && console !== null) {
+        console.log('execute_code!', cell);
+      }
       input = cell.find(".salvus-cell-input");
       input_text = input.text();
-      console.log(input_text);
+      if (typeof console !== "undefined" && console !== null) {
+        console.log(input_text);
+      }
       output = cell.find(".salvus-cell-output");
       output_text = eval(input_text);
-      worksheet.attr('contenteditable', false);
       output.text(output_text);
-      worksheet.attr('contenteditable', true);
       next = cell.next();
       if (next.length === 0) {
-        next = cell.data("worksheet").append_salvus_cell();
+        next = worksheet.append_salvus_cell();
       }
       next.find(".salvus-cell-input").focus();
       active_cell = next;
       return false;
     };
     page = $("#page");
-    return worksheet = page.salvus_worksheet();
+    worksheet = page.salvus_worksheet();
+    return typeof console !== "undefined" && console !== null ? console.log(worksheet) : void 0;
   });
 
 }).call(this);

@@ -3,39 +3,38 @@
 }
 
 .salvus-worksheet {
-    border: 1px solid black;
+    border: 1px solid #aaa;
+    background-color:#fafafa;
     padding: 10px;
     margin: 10px;
+    box-shadow: 10px 10px 5px #888;
 }
 
 .salvus-cell {
-    border-top:1px solid #666;
+    border-top:1px dashed #ddd;
 }
 
 .salvus-cell-note {
-    padding: 5px;
     background-color:#fff;
-    font-family: "Times";
+    font-family: "Verdana";
     color:#000;
-    min-height:1em;
     width:98%;
+}
+
+.salvus-prompt {
+    font-family: "Monaco";
+    width:2em;
+    color:#00a;
 }
 
 .salvus-cell-input {
-    padding: 5px;
-    background-color:lightyellow;
-    font-family: "Courier New";
-    color:#00a;
-    min-height:1em;
-    width:98%;
-    border: 1px solid lightblue;
+    font-family: "Monaco";
+    width:90%;
+    padding-left:2px;
 }
 
 .salvus-cell-output {
-    border-top: 1px solid lightgrey;
-    padding: 5px;
-    font-family: "Courier New";
-    color:#444;
-    background-color:#fff;
+    font-family: "Monaco";
+    color:#666;
 }
 
