@@ -61,13 +61,12 @@
       worksheet.attr('contenteditable', false);
       output.text(output_text);
       worksheet.attr('contenteditable', true);
-      console.log(output.html());
-      return false;
       next = cell.next();
       if (next.length === 0) {
         next = cell.data("worksheet").append_salvus_cell();
       }
       next.find(".salvus-cell-input").focus();
+      active_cell = next;
       return false;
     };
     page = $("#page");

@@ -43,21 +43,19 @@ $(() ->
         console.log('execute_code!', cell)
         input = cell.find(".salvus-cell-input")
         input_text = input.text()
+        #input_text = input.val()
         console.log(input_text)
         output = cell.find(".salvus-cell-output")
 
         output_text = eval(input_text)
-        worksheet.attr('contenteditable',false); output.text(output_text);
-        worksheet.attr('contenteditable',true)
+        worksheet.attr('contenteditable',false); output.text(output_text);worksheet.attr('contenteditable',true)
         
-        console.log(output.html())
-        return false
-
         next = cell.next()
         if next.length == 0
             next = cell.data("worksheet").append_salvus_cell()
-            
+
         next.find(".salvus-cell-input").focus()
+        active_cell = next
         return false
     
     page = $("#page")

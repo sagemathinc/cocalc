@@ -9,19 +9,33 @@
 }
 
 .salvus-cell {
-    border-top:1px solid black;
+    border-top:1px solid #666;
+}
+
+.salvus-cell-note {
+    padding: 5px;
+    background-color:#fff;
+    font-family: "Times";
+    color:#000;
+    min-height:1em;
+    width:98%;
 }
 
 .salvus-cell-input {
     padding: 5px;
+    background-color:lightyellow;
     font-family: "Courier New";
-    background-color:#fff;
+    color:#00a;
+    min-height:1em;
+    width:98%;
+    border: 1px solid lightblue;
 }
 
 .salvus-cell-output {
     border-top: 1px solid lightgrey;
     padding: 5px;
     font-family: "Courier New";
+    color:#444;
     background-color:#fff;
 }
 
