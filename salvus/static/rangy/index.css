@@ -1,0 +1,9 @@
+.input {
+    border: 1px solid blue;
+    padding: 5px;
+}
+
+.output {
+    border: 1px solid orange;
+    padding: 5px;
+}

@@ -7706,3 +7706,8 @@ a month deleting everything except one life of mercury!
 
 [ ] finding cursor?
 http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div
+
+
+[x] rangy -- add to salvus
+
+[ ] implement basic idea for salvus worksheet *NOW* using rangy.
