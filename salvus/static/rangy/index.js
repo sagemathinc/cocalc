@@ -16,44 +16,53 @@
   };
 
   $(function() {
-    var execute_code, page;
+    var active_cell, execute_code, page, worksheet;
+    active_cell = void 0;
     $.fn.extend({
       salvus_worksheet: function(opts) {
         return this.each(function() {
           var worksheet;
           worksheet = $(".salvus-templates").find(".salvus-worksheet").clone();
           $(this).append(worksheet);
+          worksheet.append_salvus_cell();
+          worksheet.append_salvus_cell();
           return worksheet.append_salvus_cell();
         });
       },
       append_salvus_cell: function(opts) {
         return this.each(function() {
-          var button, cell, id;
+          var cell, id;
           cell = $(".salvus-templates").find(".salvus-cell").clone().data("worksheet", $(this));
           id = uuid();
           cell.attr('id', id);
-          button = cell.find(".btn");
-          button.data("cell", cell).click(function(e) {
-            execute_code($(this).data("cell"));
-            return $(this).hide();
-          }).hide();
-          cell.find(".salvus-cell-input").data("cell", cell).keydown(function(e) {
-            if (e.which === 13 && e.shiftKey) {
-              return execute_code($(this).data("cell"));
-            }
-          }).focus(function(e) {
-            return $(this).data("cell").find(".btn").show();
-          }).focus();
-          return $(this).append(cell);
+          cell.find(".salvus-cell-input").data("cell", cell).focus().click(function(e) {
+            return active_cell = $(this).data('cell');
+          });
+          $(this).append(cell);
+          return active_cell = cell;
         });
       }
     });
-    execute_code = function(cell) {
-      var input, input_text, next, output;
+    $(document).keydown(function(e) {
+      if (e.which === 13 && !e.shiftKey) {
+        execute_code();
+        return false;
+      }
+    });
+    execute_code = function() {
+      var cell, input, input_text, next, output, output_text;
+      cell = active_cell;
+      console.log('execute_code!', cell);
       input = cell.find(".salvus-cell-input");
       input_text = input.text();
+      console.log(input_text);
       output = cell.find(".salvus-cell-output");
-      output.text(eval(input_text));
+      output_text = eval(input_text);
+      worksheet.attr('contenteditable', false);
+      output.text(output_text);
+      worksheet.attr('contenteditable', true);
+      console.log(output.html());
+      return false;
       next = cell.next();
       if (next.length === 0) {
         next = cell.data("worksheet").append_salvus_cell();
@@ -62,7 +71,7 @@
       return false;
     };
     page = $("#page");
-    return page.salvus_worksheet();
+    return worksheet = page.salvus_worksheet();
   });
 
 }).call(this);

@@ -9,6 +9,7 @@
 }
 
 .salvus-cell {
+    border-top:1px solid black;
 }
 
 .salvus-cell-input {
