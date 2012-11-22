@@ -6,16 +6,42 @@
 
   <script type="text/javascript" src="/jquery/jquery.min.js"></script>
   <script type="text/javascript" src="/jquery/jquery-ui/js/jquery-ui.min.js"></script>
+  <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
+  <script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
+
   <script type="text/javascript" src="index.js"> </script>
 
 </head>
 <body>
-<h1>Rangy Tests</h1>
-  <div contenteditable="true" id="editable" class="input">
-    2+3
+  <div class="row span6 hero well">
+  <h1>Rangy Worksheet</h1>
   </div>
-  <div contenteditable="true" id="editable" class="output">
-  </div>
+
+  <div class="row span10" id="page">
+
+
+  <span class="salvus-templates">
+
+    <div class="salvus-cell well well-small">
+      <div class="row">
+	<div class="span1">
+	  <a class="btn btn-primary btn-small">Execute</a>
+	</div>
+	<div class="span8">
+	  <div contenteditable="true" class="salvus-cell-input">
+	  </div>
+	  <div class="salvus-cell-output">
+	  </div>
+	</div>
+      </div>
+    </div>
+
+    <div class="salvus-worksheet">
+      <h2 contenteditable="true" class="salvus-worksheet-title">Salvus Worksheet</h2>
+    </div>
+  </span>
+
 </body>
 </html>
 

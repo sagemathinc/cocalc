@@ -1,9 +1,26 @@
-.input {
-    border: 1px solid blue;
-    padding: 5px;
+.salvus-templates {
+    display:none;
 }
 
-.output {
-    border: 1px solid orange;
-    padding: 5px;
+.salvus-worksheet {
+    border: 1px solid black;
+    padding: 10px;
+    margin: 10px;
 }
+
+.salvus-cell {
+}
+
+.salvus-cell-input {
+    padding: 5px;
+    font-family: "Courier New";
+    background-color:#fff;
+}
+
+.salvus-cell-output {
+    border-top: 1px solid lightgrey;
+    padding: 5px;
+    font-family: "Courier New";
+    background-color:#fff;
+}
+
