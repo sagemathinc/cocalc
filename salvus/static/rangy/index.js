@@ -6,6 +6,14 @@
 
 
 (function() {
+  var uuid;
+
+  uuid = function() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+    });;
+  };
 
   $(function() {
     var execute_code, page;
@@ -15,40 +23,43 @@
           var worksheet;
           worksheet = $(".salvus-templates").find(".salvus-worksheet").clone();
           $(this).append(worksheet);
-          worksheet.append_salvus_cell();
-          return worksheet;
+          return worksheet.append_salvus_cell();
         });
       },
       append_salvus_cell: function(opts) {
         return this.each(function() {
-          var cell;
+          var button, cell, id;
           cell = $(".salvus-templates").find(".salvus-cell").clone().data("worksheet", $(this));
-          cell.find(".salvus-cell-input").data("cell", cell).keydown(execute_code);
-          cell.draggable({
-            handle: ".span1"
-          });
-          $(this).append(cell);
-          return cell;
+          id = uuid();
+          cell.attr('id', id);
+          button = cell.find(".btn");
+          button.data("cell", cell).click(function(e) {
+            execute_code($(this).data("cell"));
+            return $(this).hide();
+          }).hide();
+          cell.find(".salvus-cell-input").data("cell", cell).keydown(function(e) {
+            if (e.which === 13 && e.shiftKey) {
+              return execute_code($(this).data("cell"));
+            }
+          }).focus(function(e) {
+            return $(this).data("cell").find(".btn").show();
+          }).focus();
+          return $(this).append(cell);
         });
       }
     });
-    execute_code = function(e) {
-      var cell, input_text, next, output, t;
-      if (e.which === 13 && e.shiftKey) {
-        t = $(this);
-        cell = t.data("cell");
-        input_text = t.text();
-        output = cell.find(".salvus-cell-output");
-        console.log(input_text);
-        output.text(eval(input_text));
-        next = cell.next();
-        if (next.length === 0) {
-          next = cell.data("worksheet").append_salvus_cell();
-        }
-        console.log(next.find(".salvus-cell-input"));
-        next.find(".salvus-cell-input").focus();
-        return false;
+    execute_code = function(cell) {
+      var input, input_text, next, output;
+      input = cell.find(".salvus-cell-input");
+      input_text = input.text();
+      output = cell.find(".salvus-cell-output");
+      output.text(eval(input_text));
+      next = cell.next();
+      if (next.length === 0) {
+        next = cell.data("worksheet").append_salvus_cell();
       }
+      next.find(".salvus-cell-input").focus();
+      return false;
     };
     page = $("#page");
     return page.salvus_worksheet();
