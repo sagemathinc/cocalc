@@ -37,10 +37,36 @@ $(() ->
             return cell
 
     
-    $(document).keydown((e) ->
-        if e.which is 13 and not e.shiftKey
-            return execute_code()
-    )
+    $(document).keydown (e) ->
+        switch e.which
+            when 13 # enter
+                if not e.shiftKey
+                    return execute_code()
+            when 40 # down arrow
+                if e.altKey or e.ctrlKey
+                    return focus_next_editable()
+            when 38 # up arrow
+                if e.altKey or e.ctrlKey
+                    return focus_previous_editable()
+
+    containing_cell = (elt) ->
+        p = elt.parentsUntil(".salvus-cell")
+        if p.length == 0
+            return elt.parent()
+        else
+            return p.parent()
+
+    focus_next_editable = () ->
+        e = $(document.activeElement)
+        console.log(containing_cell(e))
+        containing_cell(e).next().find(".salvus-cell-input").focus()
+        return false
+        
+    focus_previous_editable = () ->
+        e = $(document.activeElement)
+        containing_cell(e).prev().find(".salvus-cell-input").focus()
+        return false
+        
 
     highlight = (input) ->
         Rainbow.color(input.text(), "python", ((highlighted) -> input.html(highlighted)))

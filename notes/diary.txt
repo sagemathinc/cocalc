@@ -7723,8 +7723,8 @@ I have a basic worksheet idea that I like now! Plan:
   [x] fix multi-line input  -- easy: just change style; amazing.
   [x] change background of note area on mouse over
   [x] syntax highlight input
-  [ ] up and down arrow to move between input lines
-
+  [x] up and down arrow to move between input lines -- something very, very rudimentary
+  [ ] fix on iOS -- keep getting logged out.
   [ ] insert cell (how?)
   [ ] control-c/escape interrupt
   [ ] execute/interrupt buttons.
