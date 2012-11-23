@@ -48,6 +48,9 @@ $(() ->
             when 38 # up arrow
                 if e.altKey or e.ctrlKey
                     return focus_previous_editable()
+            when 27 # escape
+                interrupt_session()
+
 
     containing_cell = (elt) ->
         p = elt.parentsUntil(".salvus-cell")
@@ -66,7 +69,6 @@ $(() ->
         e = $(document.activeElement)
         containing_cell(e).prev().find(".salvus-cell-input").focus()
         return false
-        
 
     highlight = (input) ->
         Rainbow.color(input.text(), "python", ((highlighted) -> input.html(highlighted)))
@@ -94,6 +96,9 @@ $(() ->
         
         stdout.text("")
         stderr.text("")
+        
+        cell.find(".salvus-running").show().activity(width:1.5, segments:14)
+        
         salvus_exec
             input: input_text
             cb: (mesg) ->
@@ -101,6 +106,8 @@ $(() ->
                     stdout.text(stdout.text() + mesg.stdout)
                 if mesg.stderr?
                     stderr.text(stderr.text() + mesg.stderr)
+                if mesg.done
+                    cell.find(".salvus-running").hide()
                     
         next = cell.next()
         if next.length == 0
@@ -128,6 +135,10 @@ $(() ->
         else
             cb(false, persistent_session)
 
+    interrupt_session = () ->
+        if persistent_session
+            persistent_session.interrupt()
+            
     salvus_exec = (opts) ->
         opts = defaults opts,
             input: required

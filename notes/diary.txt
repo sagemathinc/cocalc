@@ -7723,10 +7723,12 @@ I have a basic worksheet idea that I like now! Plan:
   [x] fix multi-line input  -- easy: just change style; amazing.
   [x] change background of note area on mouse over
   [x] syntax highlight input
-  [x] up and down arrow to move between input lines -- something very, very rudimentary
-  [ ] fix on iOS -- keep getting logged out.
+  [x] up and down arrow to move between input lines -- something very, very rudimentary 
+  [x] control-c/escape interrupt
+  [ ] indicator that a cell is running.
+  [ ] enable/disable keyboard shortcuts on switch to/from worksheet page
+  [ ] fix on iOS -- keep getting logged out (?)
   [ ] insert cell (how?)
-  [ ] control-c/escape interrupt
   [ ] execute/interrupt buttons.
   [ ] separate output div for stdout/stderr/etc.
   [ ] abstract worksheet1

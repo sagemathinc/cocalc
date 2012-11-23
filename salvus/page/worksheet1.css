@@ -33,6 +33,12 @@
     padding:2px;
 }
 
+.salvus-running {
+    width:.5ex;
+    padding-left:5px;    
+    color:#888;
+}
+
 .salvus-prompt:hover {
 }
 
