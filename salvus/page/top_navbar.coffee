@@ -126,6 +126,12 @@ top_navbar = undefined
         label   : "Scratch"
         close   : false
         
+    $("#worksheet1").top_navbar
+        id      : "worksheet1"
+        'class' : 'navbar-big'
+        label   : "Worksheet 1"
+        close   : false
+        
     $("#projects").top_navbar
         id      : "projects"
         'class' : 'navbar-big'        

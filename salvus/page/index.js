@@ -14,7 +14,8 @@ $(function() {
     account.coffee    
     feedback.coffee
 
-
+    worksheet1.coffee
+    
     projects.coffee
     project.coffee
 
