@@ -7710,4 +7710,19 @@ http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-cont
 
 [x] rangy -- add to salvus
 
-[ ] implement basic idea for salvus worksheet *NOW* using rangy.
+[x] implement basic idea for salvus worksheet *NOW* using rangy.  (but didn't end up using rangy at all...)
+
+Nov 23, 2012 at 5:28am
+=======================
+
+I got up early and am going to sneak some time into salvus now.
+I have a basic worksheet idea that I like now! Plan:
+
+  [ ] up and down arrow to move between input lines
+  [ ] fix multi-line input 
+  [x] worksheet: fix multi-line output
+  [ ] separate output div for stdout/stderr/etc.
+  [ ] style stderr output better
+  [ ] abstract worksheet1
+  [ ] drag and drop to re-order
+ 

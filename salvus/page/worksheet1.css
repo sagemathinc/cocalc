@@ -4,14 +4,15 @@
 
 .salvus-worksheet {
     border: 1px solid #aaa;
-    background-color:#fafafa;
+    background-color:#fff;
     padding: 10px;
     margin: 10px;
     box-shadow: 10px 10px 5px #888;
+    padding-bottom:25px;
 }
 
 .salvus-cell {
-    border-top:1px dashed #ddd;
+   /* border-top:1px dashed #ddd; */
 }
 
 .salvus-cell-note {
@@ -23,18 +24,21 @@
 
 .salvus-prompt {
     font-family: "Monaco";
-    width:2em;
+    width:2ex;
     color:#00a;
+    padding:2px;
 }
 
 .salvus-cell-input {
     font-family: "Monaco";
     width:90%;
-    padding-left:2px;
+    padding:2px;
 }
 
 .salvus-cell-output {
     font-family: "Monaco";
     color:#666;
+    white-space: pre; 
+    word-wrap: break-word;
 }
 

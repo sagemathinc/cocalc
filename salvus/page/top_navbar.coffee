@@ -120,16 +120,16 @@ top_navbar = undefined
     ###############################################################                        
     # Add the standard pages
 
-    $("#scratch").top_navbar
+    #$("#scratch").top_navbar
+    #    id      : "scratch"
+    #    'class' : 'navbar-big'
+    #    label   : "Scratch"
+    #    close   : false
+        
+    $("#worksheet1").top_navbar
         id      : "scratch"
         'class' : 'navbar-big'
         label   : "Scratch"
-        close   : false
-        
-    $("#worksheet1").top_navbar
-        id      : "worksheet1"
-        'class' : 'navbar-big'
-        label   : "Worksheet 1"
         close   : false
         
     $("#projects").top_navbar

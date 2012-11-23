@@ -68,7 +68,6 @@ $(() ->
                     output.text(output.text() + mesg.stdout)
                 if mesg.stderr?
                     output.text(output.text() + mesg.stderr)
-                    
         next = cell.next()
         if next.length == 0
             next = worksheet.append_salvus_cell()
@@ -86,7 +85,7 @@ $(() ->
     session = (cb) ->
         if persistent_session == null
             salvus.conn.new_session
-                limits: {}
+                limits: {walltime:600, cputime:60}
                 timeout: 2
                 cb: (error, session) ->
                     console.log("session", session)
