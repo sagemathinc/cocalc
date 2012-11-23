@@ -48,26 +48,28 @@ $(() ->
             return true
         cell = active_cell
         if not cell?
-            console.log("BUG -- active cell not defined")
+            console?.log("BUG -- active cell not defined")
             return
-        console?.log('execute_code!', cell)
         input = cell.find(".salvus-cell-input")
         input_text = input.text()
         #input_text = input.val()
+
         output = cell.find(".salvus-cell-output")
-
-        #output_text = eval(input_text)
-        #worksheet.attr('contenteditable',false)
-
-        output.text("")
+        
+        stdout = output.find(".salvus-stdout")
+        stderr = output.find(".salvus-stderr")
+        console.log(output, stdout)
+        
+        stdout.text("")
+        stderr.text("")
         salvus_exec
             input: input_text
             cb: (mesg) ->
-                console.log("CALLBACK", mesg)
                 if mesg.stdout?
-                    output.text(output.text() + mesg.stdout)
+                    stdout.text(stdout.text() + mesg.stdout)
                 if mesg.stderr?
-                    output.text(output.text() + mesg.stderr)
+                    stderr.text(stderr.text() + mesg.stderr)
+                    
         next = cell.next()
         if next.length == 0
             next = worksheet.append_salvus_cell()
@@ -77,8 +79,6 @@ $(() ->
     
     page = $("#worksheet1")
     worksheet = page.salvus_worksheet()
-    console?.log(worksheet)
-
 
     persistent_session = null    
 
@@ -88,7 +88,6 @@ $(() ->
                 limits: {walltime:600, cputime:60}
                 timeout: 2
                 cb: (error, session) ->
-                    console.log("session", session)
                     if error
                         cb(true, error)
                     else
@@ -101,10 +100,9 @@ $(() ->
         opts = defaults opts,
             input: required
             cb: required
-        console.log("a! - input=#{input}")
         session (error, s) ->
             if error
-                console.log("ERROR GETTING SESSION")
+                console?.log("ERROR GETTING SESSION")
                 return
             s.execute_code
                 code        : opts.input

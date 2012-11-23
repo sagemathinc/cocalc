@@ -24,21 +24,32 @@
 
 .salvus-prompt {
     font-family: "Monaco";
-    width:2ex;
+    width:3ex;
     color:#00a;
     padding:2px;
 }
 
 .salvus-cell-input {
     font-family: "Monaco";
-    width:90%;
     padding:2px;
+    background-color:lightyellow;
+    white-space: pre; 
+    word-wrap: break-word;
 }
 
 .salvus-cell-output {
+}
+
+.salvus-stdout {
     font-family: "Monaco";
     color:#666;
     white-space: pre; 
     word-wrap: break-word;
 }
 
+.salvus-stderr {
+    font-family: "Monaco";
+    color:#a00;
+    white-space: pre; 
+    word-wrap: break-word;
+}

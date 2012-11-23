@@ -9,8 +9,6 @@ $(function() {
 
     alerts.coffee
 
-    scratch.coffee
-
     account.coffee    
     feedback.coffee
 
