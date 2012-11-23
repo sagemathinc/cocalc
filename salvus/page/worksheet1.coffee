@@ -33,7 +33,7 @@ $(() ->
                 $(this).append(cell)
                 #cell.draggable().bind("click", () -> $(this).focus())
                 active_cell = cell
-                cell.find(".salvus-cell-input").focus()
+                cell.find(".salvus-cell-input").focus().blur((e) -> highlight($(this)))
             return cell
 
     
@@ -41,6 +41,9 @@ $(() ->
         if e.which is 13 and not e.shiftKey
             return execute_code()
     )
+
+    highlight = (input) ->
+        Rainbow.color(input.text(), "python", ((highlighted) -> input.html(highlighted)))
 
     execute_code = () ->
         e = $(document.activeElement)
@@ -51,14 +54,17 @@ $(() ->
             console?.log("BUG -- active cell not defined")
             return
         input = cell.find(".salvus-cell-input")
+        
         input_text = input.text()
         #input_text = input.val()
 
+        # syntax highlight input:
+        highlight(input)
+        
         output = cell.find(".salvus-cell-output")
         
         stdout = output.find(".salvus-stdout")
         stderr = output.find(".salvus-stderr")
-        console.log(output, stdout)
         
         stdout.text("")
         stderr.text("")
