@@ -3,7 +3,10 @@
 ### 
 
 $(() ->
-    uuid = require('misc').uuid
+    misc = require('misc')
+    uuid = misc.uuid
+    required = misc.required
+    defaults = misc.defaults
     
     active_cell = undefined
 
@@ -45,24 +48,27 @@ $(() ->
             return true
         cell = active_cell
         if not cell?
+            console.log("BUG -- active cell not defined")
             return
         console?.log('execute_code!', cell)
         input = cell.find(".salvus-cell-input")
         input_text = input.text()
         #input_text = input.val()
-        console?.log(input_text)
         output = cell.find(".salvus-cell-output")
 
         #output_text = eval(input_text)
         #worksheet.attr('contenteditable',false)
+
+        output.text("")
         salvus_exec
             input: input_text
             cb: (mesg) ->
                 console.log("CALLBACK", mesg)
-                #if mesg.stdout?
-                #    output.text(mesg.stdout)
-                #if mesg.stderr?
-        
+                if mesg.stdout?
+                    output.text(output.text() + mesg.stdout)
+                if mesg.stderr?
+                    output.text(output.text() + mesg.stderr)
+                    
         next = cell.next()
         if next.length == 0
             next = worksheet.append_salvus_cell()
@@ -81,7 +87,7 @@ $(() ->
         if persistent_session == null
             salvus.conn.new_session
                 limits: {}
-                timeout: 10
+                timeout: 2
                 cb: (error, session) ->
                     console.log("session", session)
                     if error
@@ -92,16 +98,18 @@ $(() ->
         else
             cb(false, persistent_session)
 
-    salvus_exec = (input, cb) ->
-        console.log("a!")        
+    salvus_exec = (opts) ->
+        opts = defaults opts,
+            input: required
+            cb: required
+        console.log("a! - input=#{input}")
         session (error, s) ->
             if error
                 console.log("ERROR GETTING SESSION")
                 return
-            console.log("go!")
             s.execute_code
-                code        : input
-                cb          : (x) -> console.log(x)
+                code        : opts.input
+                cb          : opts.cb
                 preparse    : true
     
     
