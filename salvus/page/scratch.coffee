@@ -95,7 +95,7 @@ set_evaluate_key = undefined # exported
     salvus_exec = (input, cb) ->
         session (error, s) ->
             if error
-                conosole.log("ERROR GETTING SESSION")
+                console.log("ERROR GETTING SESSION")
                 return
             system = $("#scratch-system").val()
             console.log("Evaluate using '#{system}'")

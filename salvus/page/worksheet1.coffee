@@ -53,10 +53,15 @@ $(() ->
         console?.log(input_text)
         output = cell.find(".salvus-cell-output")
 
-        output_text = eval(input_text)
+        #output_text = eval(input_text)
         #worksheet.attr('contenteditable',false)
-        output.text(output_text)
-        #worksheet.attr('contenteditable',true)
+        salvus_exec
+            input: input_text
+            cb: (mesg) ->
+                console.log("CALLBACK", mesg)
+                #if mesg.stdout?
+                #    output.text(mesg.stdout)
+                #if mesg.stderr?
         
         next = cell.next()
         if next.length == 0
@@ -68,5 +73,36 @@ $(() ->
     page = $("#worksheet1")
     worksheet = page.salvus_worksheet()
     console?.log(worksheet)
+
+
+    persistent_session = null    
+
+    session = (cb) ->
+        if persistent_session == null
+            salvus.conn.new_session
+                limits: {}
+                timeout: 10
+                cb: (error, session) ->
+                    console.log("session", session)
+                    if error
+                        cb(true, error)
+                    else
+                        persistent_session = session
+                        cb(false, persistent_session)
+        else
+            cb(false, persistent_session)
+
+    salvus_exec = (input, cb) ->
+        console.log("a!")        
+        session (error, s) ->
+            if error
+                console.log("ERROR GETTING SESSION")
+                return
+            console.log("go!")
+            s.execute_code
+                code        : input
+                cb          : (x) -> console.log(x)
+                preparse    : true
+    
     
 )

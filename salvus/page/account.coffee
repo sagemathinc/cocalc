@@ -204,7 +204,7 @@
         # change the navbar title from "Sign in" to "first_name last_name"
         set_account_tab_label(true, mesg.first_name, mesg.last_name)
         top_navbar.show_page_button("projects")
-        top_navbar.switch_to_page("scratch")
+        top_navbar.switch_to_page("worksheet1")
 
     # Listen for pushed sign_in events from the server.  This is one way that
     # the sign_in function above can be activated, but not the only way.
