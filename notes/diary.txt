@@ -7791,6 +7791,7 @@ Bugs found with Dennis last night:
   [ ] Forgot your password
   [ ] really need a proper notifications bar
   [ ] tooltip for footer is too far off to the right
+  [ ] 3 times per minute -- maybe too much of a constraint?
 
   [ ] return doesn't close modal feedback
 

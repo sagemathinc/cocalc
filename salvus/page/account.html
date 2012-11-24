@@ -44,7 +44,7 @@
       <input class="span4" type="text" placeholder="First name" id="create_account-first_name"><br>
       <input class="span4" type="text" placeholder="Last name" id="create_account-last_name"><br>
       <input class="span4" type="text" placeholder="Email" id="create_account-email_address"><br>
-      <input class="span4" type="password" placeholder="Password" id="create_account-password"><br><br>
+      <input class="span4 salvus-password-meter" type="password" placeholder="Password" id="create_account-password"><br><br>
       <label class="checkbox">
 	<input type="checkbox" id="create_account-agreed_to_terms">
 	I agree to <a href="#link-terms" data-toggle="modal">Salvus Terms</a>
@@ -260,7 +260,7 @@
       <input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
       <br>
       <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
-      <input class="span4 offset1" type="password" placeholder="New password" id="account-change_password-new_password">
+      <input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
@@ -304,7 +304,7 @@
     </div>
     <div class="modal-body offset1">
       <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
-      <input class="span4 offset1" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
+      <input class="span4 offset1  salvus-password-meter" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>

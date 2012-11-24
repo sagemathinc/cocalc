@@ -126,17 +126,16 @@ top_navbar = undefined
     #    label   : "Scratch"
     #    close   : false
         
-    $("#worksheet1").top_navbar
-        id      : "scratch"
-        'class' : 'navbar-big'
-        label   : "Scratch"
-        close   : false
-        
     $("#projects").top_navbar
         id      : "projects"
         'class' : 'navbar-big'        
-        label   : "Your Projects"
+        label   : "Projects"
         close   : false        
+        
+    $("#worksheet1").top_navbar
+        id      : "scratch"
+        label   : "Scratch Worksheet"
+        close   : false
         
     $("#account").top_navbar
         id     : "account"

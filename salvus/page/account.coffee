@@ -159,7 +159,7 @@
             return @each () ->
                 password_strength_meter($(this))
 
-    $(':password').password_strength_meter()
+    $('.salvus-password-meter').password_strength_meter()
 
     ################################################
     # Sign in
