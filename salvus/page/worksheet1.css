@@ -43,27 +43,27 @@
 }
 
 .salvus-cell-input {
-    font-family: "Monaco";
     padding:2px;
     padding-left:5px;
     padding-right:5px;
     background-color:#fffffa;
     white-space: pre; 
     word-wrap: break-word;
+    min-height:1.6em;
 }
 
 .salvus-cell-output {
 }
 
 .salvus-stdout {
-    font-family: "Monaco";
+    font-family: "Courier New";
     color:#666;
     white-space: pre; 
     word-wrap: break-word;
 }
 
 .salvus-stderr {
-    font-family: "Monaco";
+    font-family: "Courier New";
     color:#a00;
     white-space: pre; 
     word-wrap: break-word;

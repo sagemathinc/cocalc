@@ -7779,15 +7779,16 @@ New local script:
 import admin; import cassandra; reload(admin); reload(cassandra); s = admin.Services('conf/deploy_local/', username='wstein', keyspace='test'); h=s._hosts
 
 
-Bugs found with Dennis last night:
-----------------------------------
+Bugs (some found with Dennis):
+-----------------------------
 
   [x] don't require user to sign in to send feedback!
   [x] Modal feedback doesn't close
+  [x] Password strength only where setting password
+  [x] firefox linux -- text input box in worksheet is too thin.
 
   [ ] Invalid password reset link should fail immediately.
   [ ] Labels on password
-  [ ] Password strength only if bad after login.
   [ ] Forgot your password
   [ ] really need a proper notifications bar
   [ ] tooltip for footer is too far off to the right
@@ -7795,6 +7796,7 @@ Bugs found with Dennis last night:
 
   [ ] return doesn't close modal feedback
 
+  [ ] firefox -- .text() gets rid of newlines... (but webkit doesn't)
 
 Regarding the worksheet interface, I'm going to just do something very
 much like the sage notebook, but with small tweaks.  I can do other
