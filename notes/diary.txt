@@ -7789,3 +7789,7 @@ Bugs found with Dennis last night:
   [ ] really need a proper notifications bar
 
 
+Regarding the worksheet interface, I'm going to just do something very
+much like the sage notebook, but with small tweaks.  I can do other
+interfaces later.  This will mean I don't have to do too much design,
+and won't alienate users too much.
