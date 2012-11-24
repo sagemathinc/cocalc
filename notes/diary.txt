@@ -7783,7 +7783,7 @@ Bugs found with Dennis last night:
 ----------------------------------
 
   [x] don't require user to sign in to send feedback!
-  [ ] Modal feedback doesn't close
+  [x] Modal feedback doesn't close
 
   [ ] Invalid password reset link should fail immediately.
   [ ] Labels on password
@@ -7791,6 +7791,8 @@ Bugs found with Dennis last night:
   [ ] Forgot your password
   [ ] really need a proper notifications bar
   [ ] tooltip for footer is too far off to the right
+
+  [ ] return doesn't close modal feedback
 
 
 Regarding the worksheet interface, I'm going to just do something very

@@ -24,12 +24,14 @@ $("a[href='#feedback']").click((event) -> show_feedback_form(); return false;)
             $("#feedback-nps-slider-value").html(ui.value)
 
     $("#feedback-button-submit").click (event) ->
+        $("#feedback").modal('hide')
         cat = if $("#feedback-category-bug").is(":checked") then "bug" else "idea"
         salvus.conn.report_feedback
             category    : cat
             description : $("#feedback-description").val()
             nps         : $("#feedback-nps-slider-value").html()
             cb          : (error, mesg) ->
+                reset_feedback_form()
                 if error
                     alert_message(type:"error", message: "There was an error submitting feedback ('#{error}').")
                     return
