@@ -438,8 +438,6 @@
     
     forgot_password = $("#account-forgot_password")
 
-    $("a[href='#account-forgot_password']").click((event)->$('#account-forgot_password').modal('show'))  # should not be needed
- 
     close_forgot_password = () ->
         forgot_password.modal('hide').find('input').val('')
         forgot_password.find(".account-error-text").hide()

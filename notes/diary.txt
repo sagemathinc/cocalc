@@ -7787,9 +7787,9 @@ Bugs (some found with Dennis):
   [x] Password strength only where setting password
   [x] firefox linux -- text input box in worksheet is too thin.
   [x] Labels on password
+  [x] Forgot your password -- link at front does nothing
 
   [ ] Invalid password reset link should fail immediately.
-  [ ] Forgot your password
   [ ] really need a proper notifications bar
   [ ] tooltip for footer is too far off to the right
   [ ] 3 times per minute -- maybe too much of a constraint?
