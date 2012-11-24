@@ -7786,9 +7786,9 @@ Bugs (some found with Dennis):
   [x] Modal feedback doesn't close
   [x] Password strength only where setting password
   [x] firefox linux -- text input box in worksheet is too thin.
+  [x] Labels on password
 
   [ ] Invalid password reset link should fail immediately.
-  [ ] Labels on password
   [ ] Forgot your password
   [ ] really need a proper notifications bar
   [ ] tooltip for footer is too far off to the right

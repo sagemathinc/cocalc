@@ -233,10 +233,16 @@
     <div class="modal-body offset1">
       <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
       <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
-      <input class="span4 offset1" type="text" placeholder="New email" id="account-change_email_new_address">
+      <label>
+	<b  class="big-only">New email</b>
+	<input class="span4 offset1" type="text" placeholder="New email" id="account-change_email_new_address">
+      </label>
       <br>
       <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
-      <input class="span4 offset1" type="password" placeholder="Password"  id="account-change_email_password">
+      <label>
+	<b class="big-only">Password</b>
+	<input class="span4 offset1" type="password" placeholder="Password"  id="account-change_email_password">
+      </label>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
@@ -257,10 +263,16 @@
     </div>
     <div class="modal-body offset1">
       <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
-      <input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
+      <label>
+	<b class="big-only">Old password</b>
+	<input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
+      </label>
       <br>
-      <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
-      <input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
+	<div class="hide account-error-text" id="account-change_password-error-new_password"></div>
+	<label>
+	  <b class="big-only">New password</b>
+	  <input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
+	</label>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
