@@ -970,6 +970,9 @@ class Hosts(object):
         return self(hostname, 'reboot -h now', sudo=True, timeout=5)
 
     def ufw(self, hostname, commands):
+        if self[hostname] == ['127.0.0.1']:
+            print "Not enabling firewall on 127.0.0.1"
+            return
         cmd = ' && '.join(['ufw disable'] +
                           ['ufw default allow incoming'] + ['ufw default allow outgoing'] + ['ufw --force reset']
                           + ['ufw ' + c for c in commands] +
@@ -1044,7 +1047,8 @@ class Hosts(object):
                 pass # file doesn't exist
 
 class Services(object):
-    def __init__(self, path, username=whoami):
+    def __init__(self, path, username=whoami, keyspace='salvus'):
+        self._keyspace = keyspace
         self._path = path
         self._username = username
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
@@ -1052,10 +1056,10 @@ class Services(object):
         try:
             self._cassandra = self._hosts['cassandra']
             import cassandra
+            cassandra.KEYSPACE = self._keyspace
             cassandra.set_nodes(self._cassandra)
         except ValueError:
-            # no cassandra hosts
-            pass
+            print "WARNING: no cassandra hosts -- severly degraded functionality!"
 
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]

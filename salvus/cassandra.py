@@ -24,6 +24,8 @@ IMPORTANT MAINTENANCE NOTES:
 import json, random, sha, time as _time, uuid
 import cql
 
+KEYSPACE = "salvus"
+
 NODES = []
 last_node = -1
 
@@ -69,7 +71,9 @@ class Time(float):
 
 
 pool = {}
-def connect(keyspace='salvus', use_cache=True):
+def connect(keyspace=None, use_cache=True):
+    if keyspace is None:
+        keyspace = KEYSPACE
     if use_cache and pool.has_key(keyspace):  
         return pool[keyspace]
     for i in range(len(NODES)):
@@ -83,11 +87,15 @@ def connect(keyspace='salvus', use_cache=True):
             print msg  # TODO -- logger
     raise RuntimeError("no cassandra nodes are up!! (selecting from %s)"%NODES)
 
-def cursor(keyspace='salvus', use_cache=True):
+def cursor(keyspace=None, use_cache=True):
+    if keyspace is None:
+        keyspace = KEYSPACE
     return connect(keyspace=keyspace, use_cache=use_cache).cursor()
 
 import signal
-def cursor_execute(query, param_dict=None, keyspace='salvus', timeout=1):
+def cursor_execute(query, param_dict=None, keyspace=None, timeout=1):
+    if keyspace is None:
+        keyspace = KEYSPACE
     if param_dict is None: param_dict = {}
     for k, v in param_dict.iteritems():
         if hasattr(v, 'to_cassandra'):
@@ -116,7 +124,9 @@ def keyspace_exists(con, keyspace):
     except cql.ProgrammingError:
         return False
 
-def init_salvus_schema(keyspace='salvus'):
+def init_salvus_schema(keyspace=None):
+    if keyspace is None:
+        keyspace = KEYSPACE
     con = connect(keyspace=None)
     cursor = con.cursor()
     if not keyspace_exists(con, keyspace):

@@ -7738,3 +7738,54 @@ I have a basic worksheet idea that I like now! Plan:
 
 soon.
   [ ] click on "sage:" prompt to change it to another system -- and it *stays* changed
+
+Nov 24, 2012
+=============
+
+I'm switching to using Linux again for development.  I'm so sick of
+being so behind/frustrated/broken with everything on OS X.  I'm also
+very tired of being locked into Apple's bullshit.  Very tired of it.
+After 5 years.  I going to use the VM for a while, but maybe switch to
+native if necessary... we'll see.
+
+First problem -- wrong java version causes cassandra crash:
+Fix:  
+
+     sudo apt-get install openjdk-7-jre
+     sudo apt-get remove openjdk-6-*
+
+Next problem:
+    * no ipython readline history
+
+Suddenly the network stopped working in the vm, when I unplugged my laptop. 
+Gees.  No -- that was the firewall from starting salvus locally.
+
+Other big problem -- I only have sage-5.0 installed in this ubuntu; this will
+take a while to fix.
+
+
+8am: I'm up and running. First task:
+
+   [x] get salvus test suite to pass locally:
+
+      [x] the websock sockjs linux node client isn't working: 
+             conn = require("sockjs-client-ws").create("http://localhost:5000/hub")
+          BOOM.
+          UFW firewall issue again, of course.  I uninstalled ufw.
+
+
+New local script:
+
+import admin; import cassandra; reload(admin); reload(cassandra); s = admin.Services('conf/deploy_local/', username='wstein', keyspace='test'); h=s._hosts
+
+
+Bugs found with Dennis last night:
+----------------------------------
+  [ ] Invalid password reset link should fail immediately.
+  [ ] Modal feedback doesn't close
+  [ ] Labels on password
+  [ ] Password strength only if bad after login.
+  [ ] Forgot your password
+  [ ] really need a proper notifications bar
+
+

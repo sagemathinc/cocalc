@@ -96,8 +96,9 @@ $(() ->
         
         stdout.text("")
         stderr.text("")
-        
-        cell.find(".salvus-running").show().activity(width:1.5, segments:14)
+
+        # looks bad; crashes chrome on linux hard.
+        #cell.find(".salvus-running").show().activity(width:1.5, segments:14)
         
         salvus_exec
             input: input_text

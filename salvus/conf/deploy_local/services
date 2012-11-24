@@ -9,7 +9,7 @@ localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 localhost
 
 [hub]
-localhost
+localhost {'keyspace':'test'}
 
 [stunnel] {'sudo':True}
 localhost
