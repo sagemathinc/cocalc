@@ -353,10 +353,7 @@ class Client extends EventEmitter
     # Messages: Client feedback
     ######################################################
     mesg_report_feedback: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send feedback."))
-        else
-            report_feedback(mesg, @push_to_client, @account_id)
+        report_feedback(mesg, @push_to_client, @account_id)
 
     mesg_get_all_feedback_from_user: (mesg) =>
         get_all_feedback_from_user(mesg, @push_to_client, @account_id)

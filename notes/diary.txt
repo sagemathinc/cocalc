@@ -7781,12 +7781,16 @@ import admin; import cassandra; reload(admin); reload(cassandra); s = admin.Serv
 
 Bugs found with Dennis last night:
 ----------------------------------
-  [ ] Invalid password reset link should fail immediately.
+
+  [x] don't require user to sign in to send feedback!
   [ ] Modal feedback doesn't close
+
+  [ ] Invalid password reset link should fail immediately.
   [ ] Labels on password
   [ ] Password strength only if bad after login.
   [ ] Forgot your password
   [ ] really need a proper notifications bar
+  [ ] tooltip for footer is too far off to the right
 
 
 Regarding the worksheet interface, I'm going to just do something very
