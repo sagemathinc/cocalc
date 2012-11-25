@@ -9,6 +9,7 @@ $(() ->
     defaults = misc.defaults
     
     active_cell = undefined
+    last_active_cell = undefined
 
     worksheet1 = $("#worksheet1")
     
@@ -19,10 +20,10 @@ $(() ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
                 worksheet.append_salvus_cell()
-                worksheet.find("a[href='#worksheet1-execute_code']").click((e) -> execute_code(); return false)
+                worksheet.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
                 worksheet.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
             return worksheet
-                
+
         append_salvus_cell: (opts) ->
             cell = undefined
             @each () ->
@@ -31,11 +32,11 @@ $(() ->
                 cell.attr('id', id)
                 cell.find(".salvus-cell-input").data("cell", cell).click((e) ->
                     active_cell = $(this).data('cell')
-                ).focus((e) -> active_cell = $(this).data('cell'))
+                ).focus((e) -> last_active_cell = active_cell = $(this).data('cell'))
                 $(this).append(cell)
                 #cell.draggable().bind("click", () -> $(this).focus())
-                active_cell = cell
-                cell.find(".salvus-cell-input").focus().blur((e) -> highlight($(this)))
+                last_active_cell = active_cell = cell
+                cell.find(".salvus-cell-input").focus().blur((e) -> active_cell=undefined; highlight($(this)) )
             return cell
 
     
@@ -76,12 +77,8 @@ $(() ->
         Rainbow.color(input.text(), "python", ((highlighted) -> input.html(highlighted)))
 
     execute_code = () ->
-        e = $(document.activeElement)
-        if not e.hasClass('salvus-cell-input')
-            return true
         cell = active_cell
         if not cell?
-            console?.log("BUG -- active cell not defined")
             return
         input = cell.find(".salvus-cell-input")
         
@@ -101,7 +98,7 @@ $(() ->
 
         # activity() -- looks bad and crashes chrome on linux hard.
         # # .activity(width:1.5, segments:14)
-        timer = setTimeout((() -> cell.find(".salvus-running").show()), 100)
+        timer = setTimeout((() -> cell.find(".salvus-running").show()), 500)
         
         salvus_exec
             input: input_text
@@ -118,10 +115,11 @@ $(() ->
         if next.length == 0
             next = worksheet.append_salvus_cell()
         next.find(".salvus-cell-input").focus()
-        active_cell = next
+        last_active_cell = active_cell = next
         return false
     
     page = $("#worksheet1")
+
     worksheet = page.salvus_worksheet()
 
     persistent_session = null    

@@ -7806,15 +7806,14 @@ TODO:
 TOP PRIORITY:
 
   [ ] firefox -- .text() gets rid of newlines... (but webkit doesn't)
-
--->  [ ] evaluate button / interrupt button
-
-  [x] lame "running" indicator just to have something easy to implement
   [ ] tab completion 
   [ ] get salvus to work on ie (maybe just deal with console?)
   [ ] switch to using a keyboard handling library
+  [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
+  [x] lame "running" indicator just to have something easy to implement
 
 LATER:
+  [ ] floating interrupt/evaluate control
   [ ] a good activity spinner to show when comp is running
   [ ] if use scratch worksheet, then login, the scratch worksheet session is of course no longer valid.  What to do?
   [ ] an execute message that pre-empts whatever was going
