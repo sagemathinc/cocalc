@@ -1,12 +1,12 @@
 ###
-# 
+#
 # Library for working with JSON messages for Salvus.
 #
 # (c) 2012, William Stein
-# 
+#
 # We use functions to work with messages to ensure some level of
 # consistency, defaults, and avoid errors from typos, etc.
-# 
+#
 ###
 #
 
@@ -22,8 +22,8 @@ message = (obj) ->
         defaults(opts, obj)
 
 ############################################
-# Sage session management; executing code 
-############################################# 
+# Sage session management; executing code
+#############################################
 
 # hub --> sage_server and browser --> hub
 message(
@@ -33,7 +33,7 @@ message(
 )
 
 # hub --> browser
-message( 
+message(
     event        : 'session_started'
     id           : required
     session_uuid : undefined
@@ -72,7 +72,7 @@ message(
     preparse     : true
     allow_cache  : true
 )
-        
+
 # sage_server --> hub_i --> hub_j --> browser
 message(
     event        : 'output'
@@ -95,7 +95,7 @@ message(
 # hub --> browser;   sent in response to a ping
 message(
     event   : 'pong'
-    id      : undefined        
+    id      : undefined
 )
 
 ############################################
@@ -142,12 +142,12 @@ message(
     id             : undefined
     event          : 'sign_in_failed'
     email_address  : required
-    reason         : required  
+    reason         : required
 )
 
 # hub --> client; sent in response to either create_account or log_in
 message(
-    event          : 'signed_in'   
+    event          : 'signed_in'
     id             : undefined     # message uuid
     account_id     : required      # uuid of user's account
     first_name     : required      # user's first name
@@ -177,15 +177,15 @@ message(
     email_address  : required
     old_password   : required
     new_password   : required
-)    
-    
+)
+
 
 # hub --> client
 # if error is true, that means the password was not changed; would
 # happen if password is wrong (message:'invalid password').
 message(
     event          : 'changed_password'
-    id             : undefined    
+    id             : undefined
     error          : undefined
 )
 
@@ -217,19 +217,19 @@ message
 message(
     event             : 'change_email_address'
     id                : undefined
-    account_id        : required    
-    old_email_address : required    
-    new_email_address : required    
+    account_id        : required
+    old_email_address : required
+    new_email_address : required
     password          : required
-)    
-    
+)
+
 # hub --> client
 message(
     event               : 'changed_email_address'
     id                  : undefined
     error               : false  # some other error
     ttl                 : undefined   # if user is trying to change password too often, this is time to wait
-)    
+)
 
 
 ############################################
@@ -261,7 +261,7 @@ exports.restricted_account_settings =
 
 # these can be changed without additional re-typing of the password
 # (of course, user must have somehow logged in):
-exports.unrestricted_account_settings = 
+exports.unrestricted_account_settings =
     first_name           : required
     last_name            : required
     default_system       : required
@@ -332,12 +332,12 @@ message
     id          : required
     error       : undefined
     data        : required  # JSON list of objects
-    
+
 
 ######################################################################################
 # This is a message that goes
 #      hub --> client
-# In response, the client grabs "/cookies?id=...,set=...,get=..." via an AJAX call.  
+# In response, the client grabs "/cookies?id=...,set=...,get=..." via an AJAX call.
 # During that call the server can get/set HTTP-only cookies.
 ######################################################################################
 message
@@ -373,32 +373,32 @@ message
     id         : undefined
 
 # hub --> client
-message                
+message
     event      : 'all_projects'
     id         : required
     projects   : required     # [{project_id:, type: , title:, last_edited:}, ...]
 
 
-# client --> hub  
+# client --> hub
 message
     event      : 'update_project_data'
     id         : undefined
     project_id : required
     data       : required     # an object; sets the fields in this object, and leaves alone the rest
-    
+
 # hub --> client
 #
 # When project data is changed by one client, the following is sent to
-# all clients that have access to this project (owner or collaborator).  
-# 
+# all clients that have access to this project (owner or collaborator).
+#
 message
     event      : 'project_data_updated'
     id         : undefined
     project_id : required
-    
+
 
 
 # hub --> client(s)
 message
     event      : 'project_list_updated'
-    
+
