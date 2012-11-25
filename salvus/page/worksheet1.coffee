@@ -64,7 +64,7 @@ $(() ->
 
     focus_next_editable = () ->
         e = $(document.activeElement)
-        console.log(containing_cell(e))
+        #console.log(containing_cell(e))
         containing_cell(e).next().find(".salvus-cell-input").focus()
         return false
         
@@ -83,6 +83,10 @@ $(() ->
         input = cell.find(".salvus-cell-input")
         
         input_text = input.text()
+        
+        #console.log(input.html())
+        #console.log(input.text())
+        # 
         #input_text = input.val()
 
         # syntax highlight input:

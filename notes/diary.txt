@@ -7805,10 +7805,11 @@ TODO:
 
 TOP PRIORITY:
 
-  [ ] firefox -- .text() gets rid of newlines... (but webkit doesn't)
+  [ ] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't)
   [ ] tab completion 
   [ ] get salvus to work on ie (maybe just deal with console?)
   [ ] switch to using a keyboard handling library
+
   [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
   [x] lame "running" indicator just to have something easy to implement
 
