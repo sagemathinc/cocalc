@@ -12,6 +12,9 @@
 #         make_coffee && echo "require('hub').start_server()" | coffee
 #
 ##############################################################################
+#
+
+REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # node.js -- builtin libraries 
 http    = require('http')
@@ -267,7 +270,7 @@ class Client extends EventEmitter
     # Messages: Sage compute sessions and code execution
     ######################################################
     mesg_execute_code: (mesg) =>
-        if not @account_id?
+        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to execute code."))
             return
         if mesg.session_uuid?
@@ -276,16 +279,15 @@ class Client extends EventEmitter
             stateless_sage_exec(mesg, @push_to_client)
 
     mesg_start_session: (mesg) =>
-        if not @account_id?
+        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
         create_persistent_sage_session(mesg, @account_id, @push_to_client)
 
     mesg_send_signal: (mesg) =>
-        if not @account_id?
+        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
             return
-        # TODO: this must go -- no notion of who/what/authentication, etc -- this is just a demo.        
         send_to_persistent_sage_session(mesg, @account_id)
 
     ######################################################

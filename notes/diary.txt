@@ -2756,7 +2756,7 @@ ConnectTo = 03salvus
 salvus@02salvus:~$ sudo su  
 [sudo] password for salvus: 
 root@02salvus:/home/salvus# killall tincd
-root@02salvus:/home/salvus# /home/salvus/salvus/salvus/data/local/sbin/tincd -D -d3
+root@02salvus:/home/salvus# /home/salvus/salvus/salvus/data/local/sbin/tincd -D -d3 
 
     THIS FAILS.  
 
@@ -7787,18 +7787,38 @@ Bugs (some found with Dennis):
   [x] Password strength only where setting password
   [x] firefox linux -- text input box in worksheet is too thin.
   [x] Labels on password
-  [x] Forgot your password -- link at front does nothing
-
-  [ ] Invalid password reset link should fail immediately.
-  [ ] really need a proper notifications bar
-  [ ] tooltip for footer is too far off to the right
-  [ ] 3 times per minute -- maybe too much of a constraint?
-
-  [ ] return doesn't close modal feedback
-
-  [ ] firefox -- .text() gets rid of newlines... (but webkit doesn't)
+  [x] Forgot your password -- link at front does nothing  
 
 Regarding the worksheet interface, I'm going to just do something very
 much like the sage notebook, but with small tweaks.  I can do other
 interfaces later.  This will mean I don't have to do too much design,
 and won't alienate users too much.
+
+---
+
+New plan: get to a new release with "similar" functionality to the
+sage notebook in time for ICERM.
+
+-------
+
+TODO:
+
+TOP PRIORITY:
+  [ ] firefox -- .text() gets rid of newlines... (but webkit doesn't)
+  [ ] tab completion 
+  [ ] work on ie (maybe just deal with console?)
+
+LATER:
+  [ ] if use scratch worksheet, then login, the scratch worksheet session is of course no longer valid.  What to do?
+  [ ] an execute message that pre-empts whatever was going
+  [ ] Invalid password reset link should fail immediately.
+  [ ] really need a proper notifications area where all notifications appear, etc.
+  [ ] tooltip for footer is too far off to the right
+  [ ] 3 times per minute -- maybe too much of a constraint?
+  [ ] return doesn't close modal feedback
+
+DONE:
+ [x] support using scratch worksheet *without* having to first login <--
+
+
+
