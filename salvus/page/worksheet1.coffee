@@ -22,6 +22,8 @@ $(() ->
                 worksheet.append_salvus_cell()
                 worksheet.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
                 worksheet.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
+                worksheet.find("a[href='#worksheet1-tab']").button().click((e) -> tab_completion(); return false)
+                worksheet.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)                
             return worksheet
 
         append_salvus_cell: (opts) ->
@@ -145,6 +147,16 @@ $(() ->
     interrupt_session = () ->
         if persistent_session
             persistent_session.interrupt()
+
+    restart_session = () ->
+        if persistent_session
+            persistent_session.kill()
+            alert_message(type:"success", message:"Restarted your Sage session.  (WARNING: Your variables are no longer defined.)")
+            persistent_session = null
+            worksheet.find(".salvus-running").hide()
+
+    tab_completion = () ->
+        alert("not implemented")
             
     salvus_exec = (opts) ->
         opts = defaults opts,
