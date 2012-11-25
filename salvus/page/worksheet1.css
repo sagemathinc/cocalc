@@ -22,10 +22,9 @@ pre {
 
 .salvus-cell-note {
     background-color:#fff;
-    font-family: "Verdana";
-    color:#000;
+    color:#333;
     border: 1px solid white;
-    min-height:1.6em;
+    min-height:1.5em;
 }
 
 .salvus-cell-note:hover {

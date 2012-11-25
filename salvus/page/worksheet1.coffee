@@ -1,18 +1,20 @@
 ###
 # coffee -w -c index.coffee
-### 
+###
 
 $(() ->
     misc = require('misc')
     uuid = misc.uuid
     required = misc.required
     defaults = misc.defaults
-    
+
+    html_to_text = require("client").html_to_text
+
     active_cell = undefined
     last_active_cell = undefined
 
     worksheet1 = $("#worksheet1")
-    
+
     $.fn.extend
         salvus_worksheet: (opts) ->
             worksheet = undefined
@@ -23,7 +25,7 @@ $(() ->
                 worksheet.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
                 worksheet.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
                 worksheet.find("a[href='#worksheet1-tab']").button().click((e) -> tab_completion(); return false)
-                worksheet.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)                
+                worksheet.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
             return worksheet
 
         append_salvus_cell: (opts) ->
@@ -38,10 +40,10 @@ $(() ->
                 $(this).append(cell)
                 #cell.draggable().bind("click", () -> $(this).focus())
                 last_active_cell = active_cell = cell
-                cell.find(".salvus-cell-input").focus().blur((e) -> active_cell=undefined; highlight($(this)) )
+                cell.find(".salvus-cell-input").focus().blur((e) -> active_cell=undefined; highlight(input:$(this)) )
             return cell
 
-    
+
     $(document).keydown (e) ->
         switch e.which
             when 13 # enter
@@ -69,43 +71,68 @@ $(() ->
         #console.log(containing_cell(e))
         containing_cell(e).next().find(".salvus-cell-input").focus()
         return false
-        
+
     focus_previous_editable = () ->
         e = $(document.activeElement)
         containing_cell(e).prev().find(".salvus-cell-input").focus()
         return false
 
-    highlight = (input) ->
-        Rainbow.color(input.text(), "python", ((highlighted) -> input.html(highlighted)))
+    highlight = (opts) ->
+        opts = defaults opts,
+            input    : required   # DOM element to de-html and syntax highlight
+            cb       : undefined  # called with (error, plain_text) when done.
+            language : 'python'
+
+        html = opts.input.html()
+        if not html.match(/\S/)
+            # easy special case -- whitespace
+            opts.cb?(false, '')
+            return
+
+        console.log("hilighting '#{html}'")
+        html_to_text
+            html : html
+            cb   : (error, plain_text) ->
+                console.log("   ---> plain_text: '#{plain_text}'")
+                if error
+                    opts.cb?(error)
+                else
+                    Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
+                    opts.cb?(false, plain_text)
 
     execute_code = () ->
         cell = active_cell
         if not cell?
             return
-        input = cell.find(".salvus-cell-input")
-        
-        input_text = input.text()
-        
-        #console.log(input.html())
-        #console.log(input.text())
-        # 
-        #input_text = input.val()
 
-        # syntax highlight input:
-        highlight(input)
-        
+        input = cell.find(".salvus-cell-input")
+
+        # syntax highlight input, then call execute on the resulting plain text:
+        highlight
+            input : input
+            cb: (error, input_text) ->
+                if error
+                    alert_message(type:"error", message:"There was an error parsing the content of an input cell.")
+                else
+                    execute_code_in_cell(input_text, cell)
+
+        return false
+
+    execute_code_in_cell = (input_text, cell) ->
+
+        input = cell.find(".salvus-cell-input")
         output = cell.find(".salvus-cell-output")
-        
         stdout = output.find(".salvus-stdout")
         stderr = output.find(".salvus-stderr")
-        
+
+        # delete any output already in the output area
         stdout.text("")
         stderr.text("")
 
         # activity() -- looks bad and crashes chrome on linux hard.
         # # .activity(width:1.5, segments:14)
         timer = setTimeout((() -> cell.find(".salvus-running").show()), 500)
-        
+
         salvus_exec
             input: input_text
             cb: (mesg) ->
@@ -116,19 +143,19 @@ $(() ->
                 if mesg.done
                     clearTimeout(timer)
                     cell.find(".salvus-running").hide()
-                    
+
         next = cell.next()
         if next.length == 0
             next = worksheet.append_salvus_cell()
         next.find(".salvus-cell-input").focus()
         last_active_cell = active_cell = next
         return false
-    
+
     page = $("#worksheet1")
 
     worksheet = page.salvus_worksheet()
 
-    persistent_session = null    
+    persistent_session = null
 
     session = (cb) ->
         if persistent_session == null
@@ -157,7 +184,7 @@ $(() ->
 
     tab_completion = () ->
         alert("not implemented")
-            
+
     salvus_exec = (opts) ->
         opts = defaults opts,
             input: required
@@ -170,6 +197,6 @@ $(() ->
                 code        : opts.input
                 cb          : opts.cb
                 preparse    : true
-    
-    
+
+
 )

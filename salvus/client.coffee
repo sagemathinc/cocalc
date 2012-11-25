@@ -410,4 +410,40 @@ exports.issues_with_create_account = (mesg) ->
         issues.password = reason
         
     return issues
+
+
+#################################################
+# HTML parsing functionality -- probably move
+#################################################
+#
+
+htmlparser = require("htmlparser")
+
+# extract plain text from a dom tree object, as produced by htmlparser.
+dom_to_text = (dom) ->
+    result = ''
+    for d in dom
+        if d.type == 'text'
+            result += d.data
+        if d.type == 'tag' and (d.name == 'div' or d.name == 'br')   
+            result += '\n'
+        if d.children?
+            result += dom_to_text(d.children)
+    return result
+
+# create a lossy plain text representation of html
+exports.html_to_text = (opts) ->
+    opts = defaults opts,
+        html : required
+        cb   : required    # cb(error, result)
+        
+    handler = new htmlparser.DefaultHandler (error, dom) ->
+        if error
+            opts.cb(error)
+        else
+            opts.cb(false, dom_to_text(dom))
+            
+    (new htmlparser.Parser(handler)).parseComplete(opts.html)
+
+
     

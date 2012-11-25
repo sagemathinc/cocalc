@@ -43,7 +43,7 @@ pre, pre code {
 }
 
 pre .comment {
-    color: #998;
+    color: #8B0000;
 }
 
 pre .support {
@@ -56,6 +56,7 @@ pre .tag, pre .tag-name {
 
 pre .keyword, pre .css-property, pre .vendor-prefix, pre .sass, pre .class, pre .id, pre .css-value, pre .entity.function, pre .storage.function {
     font-weight: bold;
+    color:#00008b;
 }
 
 pre .css-property, pre .css-value, pre .vendor-prefix, pre .support.namespace {
