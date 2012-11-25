@@ -84,6 +84,42 @@ message(
 )
 
 ############################################
+# Session Introspection
+#############################################
+# An introspect message from the client can result in numerous types
+# of responses (but there will only be one response).  The id of the
+# message from hub back to client will match the id of the message
+# from client to hub; the client is responsible for deciding
+# what/where/how to deal with the message.
+
+# client --> hub
+message
+    event              : 'introspect'
+    id                 : undefined
+    text_before_cursor : required       # text before the cursor
+    text_after_cursor  : undefined      # optional text after the cursor
+
+# hub --> client (can be sent in response to introspect message)
+message
+    event       : 'introspection_completions'
+    id          : undefined   # match id of 'introspect' message
+    completions : required    # a list of strings (no HTML)
+
+# hub --> client  (can be sent in response to introspect message)
+message
+    event       : 'introspection_docstring'
+    id          : undefined
+    docstring   : required    # a string (no HTML), probably formatted using Sphinx/REST
+
+# hub --> client
+message
+    event       : 'introspection_source'
+    id          : undefined
+    docstring   : required    # a string
+
+
+
+############################################
 # Ping/pong
 #############################################
 # browser --> hub
