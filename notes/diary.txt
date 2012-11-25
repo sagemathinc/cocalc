@@ -7805,16 +7805,22 @@ TODO:
 
 TOP PRIORITY:
 
-  [ ] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
-  [ ] tab completion 
+  [x] bug -- extra space on highlight
+  [ ] tab completion
+
+  [ ] save logged in user's scratch worksheet to database
+  [ ] save non-logged in user's scratch worksheet to cookie (?)
   [ ] mathjax
   [ ] paren matching
+  [ ] move scratch worksheet to a project
 
   [x] kill/restart session
   [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
   [x] lame "running" indicator just to have something easy to implement
+  [x] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
 
 LATER:
+  [ ] make button bar move on mobile device
   [ ] user customize syntax highlighting and other worksheet colors via a gui *or* edit css
   [ ] get salvus to work on ie (maybe just deal with console?)
   [ ] switch to using a keyboard handling library

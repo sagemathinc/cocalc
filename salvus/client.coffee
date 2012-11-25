@@ -80,7 +80,7 @@ class exports.Connection extends EventEmitter
 
         @_last_pong = misc.walltime()
         @_connected = false
-        @_ping_check_interval = 5000
+        @_ping_check_interval = 10000
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->
@@ -393,8 +393,7 @@ exports.is_valid_password = (password) ->
         return [true, '']
     catch err
         return [false, 'Password must be between 3 and 64 characters in length.']
-    
-        
+
 exports.issues_with_create_account = (mesg) ->
     issues = {}
     if not mesg.agreed_to_terms
@@ -408,27 +407,32 @@ exports.issues_with_create_account = (mesg) ->
     [valid, reason] = exports.is_valid_password(mesg.password)
     if not valid
         issues.password = reason
-        
     return issues
 
 
 #################################################
 # HTML parsing functionality -- probably move
 #################################################
-#
 
 htmlparser = require("htmlparser")
 
 # extract plain text from a dom tree object, as produced by htmlparser.
-dom_to_text = (dom) ->
+dom_to_text = (dom, divs=false) ->
     result = ''
     for d in dom
-        if d.type == 'text'
-            result += d.data
-        if d.type == 'tag' and (d.name == 'div' or d.name == 'br')   
-            result += '\n'
+        switch d.type
+            when 'text'
+                result += d.data
+            when 'tag'
+                switch d.name
+                    when 'div'
+                        divs = true
+                        result += '\n'
+                    when 'br'
+                        if not divs
+                            result += '\n'
         if d.children?
-            result += dom_to_text(d.children)
+            result += dom_to_text(d.children, divs)
     return result
 
 # create a lossy plain text representation of html
@@ -436,14 +440,11 @@ exports.html_to_text = (opts) ->
     opts = defaults opts,
         html : required
         cb   : required    # cb(error, result)
-        
+
     handler = new htmlparser.DefaultHandler (error, dom) ->
         if error
             opts.cb(error)
         else
             opts.cb(false, dom_to_text(dom))
-            
+
     (new htmlparser.Parser(handler)).parseComplete(opts.html)
-
-
-    

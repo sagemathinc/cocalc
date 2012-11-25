@@ -89,15 +89,15 @@ $(() ->
             opts.cb?(false, '')
             return
 
-        console.log("hilighting '#{html}'")
+        #console.log("html='#{html}'")
         html_to_text
             html : html
             cb   : (error, plain_text) ->
-                console.log("   ---> plain_text: '#{plain_text}'")
                 if error
                     opts.cb?(error)
                 else
-                    Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
+                    if plain_text.match(/\S/)
+                        Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
                     opts.cb?(false, plain_text)
 
     execute_code = () ->
@@ -118,6 +118,7 @@ $(() ->
 
         return false
 
+
     execute_code_in_cell = (input_text, cell) ->
 
         input = cell.find(".salvus-cell-input")
@@ -129,27 +130,27 @@ $(() ->
         stdout.text("")
         stderr.text("")
 
-        # activity() -- looks bad and crashes chrome on linux hard.
-        # # .activity(width:1.5, segments:14)
-        timer = setTimeout((() -> cell.find(".salvus-running").show()), 500)
+        if input_text != ""
+            # activity() -- looks bad and crashes chrome on linux hard.
+            # # .activity(width:1.5, segments:14)
+            timer = setTimeout((() -> cell.find(".salvus-running").show()), 1000)
 
-        salvus_exec
-            input: input_text
-            cb: (mesg) ->
-                if mesg.stdout?
-                    stdout.text(stdout.text() + mesg.stdout).show()
-                if mesg.stderr?
-                    stderr.text(stderr.text() + mesg.stderr).show()
-                if mesg.done
-                    clearTimeout(timer)
-                    cell.find(".salvus-running").hide()
+            salvus_exec
+                input: input_text
+                cb: (mesg) ->
+                    if mesg.stdout?
+                        stdout.text(stdout.text() + mesg.stdout).show()
+                    if mesg.stderr?
+                        stderr.text(stderr.text() + mesg.stderr).show()
+                    if mesg.done
+                        clearTimeout(timer)
+                        cell.find(".salvus-running").hide()
 
         next = cell.next()
         if next.length == 0
             next = worksheet.append_salvus_cell()
         next.find(".salvus-cell-input").focus()
         last_active_cell = active_cell = next
-        return false
 
     page = $("#worksheet1")
 
@@ -191,12 +192,13 @@ $(() ->
             cb: required
         session (error, s) ->
             if error
-                console?.log("ERROR GETTING SESSION")
-                return
-            s.execute_code
-                code        : opts.input
-                cb          : opts.cb
-                preparse    : true
+                alert_message(type:"error", message:"Unable to start a new Sage session.")
+                worksheet.find(".salvus-running").hide()
+            else
+                s.execute_code
+                    code        : opts.input
+                    cb          : opts.cb
+                    preparse    : true
 
 
 )
