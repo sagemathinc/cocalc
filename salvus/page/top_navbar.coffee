@@ -54,7 +54,7 @@ top_navbar = undefined
         set_button_label: (id, label, klass, close=true) ->
             button = @pages[id].button
             a = button.find("a")
-            a.find(".button-label").html(label)
+            a.find(".button-label").html(label + " &raquo;")
             close_button = a.find(".close-button")
             if close
                 close_button.data("id", id)
@@ -126,6 +126,11 @@ top_navbar = undefined
     #    label   : "Scratch"
     #    close   : false
         
+    $("#about").top_navbar
+        id      : "about"
+        label   : "Salvus&trade;"
+        close   : false
+        
     $("#projects").top_navbar
         id      : "projects"
         'class' : 'navbar-big'        
@@ -144,12 +149,6 @@ top_navbar = undefined
         close   : false        
 
     
-    $("#about").top_navbar
-        id      : "about"
-        label   : "Salvus&trade;"
-        pull_right : true
-        close   : false
-        
     top_navbar.hide_page_button("projects")
     top_navbar.switch_to_page("scratch")
 

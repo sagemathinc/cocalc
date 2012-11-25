@@ -11,6 +11,11 @@
     padding-bottom:25px;
 }
 
+pre {
+    padding:0px;
+    margin:0px;
+}
+
 .salvus-cell {
    /* border-top:1px dashed #ddd; */
 }
@@ -19,7 +24,7 @@
     background-color:#fff;
     font-family: "Verdana";
     color:#000;
-    border: 1px solid #fff;
+    border: 1px solid white;
 }
 
 .salvus-cell-note:hover {
@@ -53,6 +58,7 @@
 }
 
 .salvus-cell-output {
+    background-color:#f8f8f8;
 }
 
 .salvus-stdout {

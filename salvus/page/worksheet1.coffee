@@ -19,6 +19,7 @@ $(() ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
                 worksheet.append_salvus_cell()
+                worksheet.append_salvus_cell()
             return worksheet
                 
         append_salvus_cell: (opts) ->
@@ -104,9 +105,9 @@ $(() ->
             input: input_text
             cb: (mesg) ->
                 if mesg.stdout?
-                    stdout.text(stdout.text() + mesg.stdout)
+                    stdout.text(stdout.text() + mesg.stdout).show()
                 if mesg.stderr?
-                    stderr.text(stderr.text() + mesg.stderr)
+                    stderr.text(stderr.text() + mesg.stderr).show()
                 if mesg.done
                     cell.find(".salvus-running").hide()
                     
