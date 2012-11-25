@@ -59,7 +59,7 @@ class ConnectionJSON(object):
                 if errno != 4:
                     raise
         raise EOFError
-    
+
     def recv(self):
         n = self._recv(4)
         if len(n) < 4:
@@ -82,7 +82,7 @@ class Message(object):
             if key != 'self':
                 m[key] = val
         return m
-        
+
     def start_session(self, limits={'walltime':3600, 'cputime':3600, 'numfiles':1000, 'vmem':2048}):
         limits = dict(limits)
         return self._new('start_session', locals())
@@ -91,7 +91,7 @@ class Message(object):
         return self._new('session_description', locals())
 
     def send_signal(self, pid, signal=signal.SIGINT):
-        return self._new('send_signal', locals())        
+        return self._new('send_signal', locals())
 
     def terminate_session(self, done=True):
         return self._new('terminate_session', locals())
@@ -106,7 +106,7 @@ class Message(object):
         if stderr is not None: m['stderr'] = stderr
         if done is not None: m['done'] = done
         return m
-        
+
 message = Message()
 
 whoami = os.environ['USER']
@@ -120,7 +120,7 @@ def client1(port, hostname):
     mesg = conn.recv()
     pid = mesg['pid']
     print "PID = %s"%pid
-    
+
     id = 0
     while True:
         try:
@@ -140,7 +140,7 @@ def client1(port, hostname):
                     if 'done' in mesg and mesg['id'] >= id:
                         break
             id += 1
-            
+
         except KeyboardInterrupt:
             print "Sending interrupt signal"
             conn2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -180,7 +180,7 @@ def execute(conn, id, code, preparse):
     def send_stdout(output, done):
         conn.send(message.output(stdout=output, done=done, id=id))
     def send_stderr(output, done):
-        conn.send(message.output(stderr=output, done=done, id=id))        
+        conn.send(message.output(stderr=output, done=done, id=id))
     try:
         streams = (sys.stdout, sys.stderr)
         sys.stdout = OutputStream(send_stdout)
@@ -205,7 +205,7 @@ def execute(conn, id, code, preparse):
         (sys.stdout, sys.stderr) = streams
 
 
-def drop_privileges(id, home):        
+def drop_privileges(id, home):
     gid = id
     uid = id
     os.chown(home, uid, gid)
@@ -236,7 +236,7 @@ def session(conn, home, cputime, numfiles, vmem, uid):
         conn.send(message.terminate_session())
         print "** Sage process killed by external SIGQUIT signal (time limit probably exceeded) **\n\n"
         sys.exit(0)
-        
+
     signal.signal(signal.SIGQUIT, handle_parent_sigquit)
 
     # seed the random number generator(s)
@@ -329,7 +329,7 @@ def handle_session_term(signum, frame):
         except:
             return
         if not pid: return
- 
+
 def serve_connection(conn):
     conn = ConnectionJSON(conn)
     mesg = conn.recv()
@@ -365,7 +365,7 @@ def serve_connection(conn):
                 cputime=limits.get('cputime', LIMITS['cputime']),
                 numfiles=limits.get('numfiles', LIMITS['numfiles']),
                 vmem=limits.get('vmem', LIMITS['vmem']))
-    
+
 def serve(port, address):
     #log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -383,8 +383,8 @@ def serve(port, address):
     exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
     #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
-    
-    
+
+
     t = time.time()
     s.listen(128)
     i = 0
@@ -399,7 +399,7 @@ def serve(port, address):
             except socket.error, msg:
                 continue
             if not os.fork(): # child
-                try: 
+                try:
                     serve_connection(conn)
                 finally:
                     conn.close()
@@ -426,12 +426,12 @@ def serve2(port, address):
             serve_connection(self.request)
             self.request.close()
             os._exit(0)
-            
+
     class ForkingTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
         pass
     S = ForkingTCPServer((address, port), Handler)
     S.serve_forever()
-    
+
 
 def run_server(port, address, pidfile, logfile):
     if pidfile:
@@ -463,7 +463,7 @@ if __name__ == "__main__":
                         help="store log in this file (default: '' = don't log to a file)")
     parser.add_argument("-c", dest="client", default=False, action="store_const", const=True,
                         help="run in test client mode number 1 (command line)")
-    parser.add_argument("--hostname", dest="hostname", type=str, default='', 
+    parser.add_argument("--hostname", dest="hostname", type=str, default='',
                         help="hostname to connect to in client mode")
     parser.add_argument("--portfile", dest="portfile", type=str, default='',
                         help="write port to this file")
@@ -473,7 +473,7 @@ if __name__ == "__main__":
     if args.daemon and not args.pidfile:
         print "%s: must specify pidfile in daemon mode"%sys.argv[0]
         sys.exit(1)
-    
+
     if args.log_level:
         pass
         #level = getattr(logging, args.log_level.upper())
@@ -493,7 +493,7 @@ if __name__ == "__main__":
 
     pidfile = os.path.abspath(args.pidfile) if args.pidfile else ''
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
-    
+
     main = lambda: run_server(port=args.port, address=args.address, pidfile=pidfile, logfile=logfile)
     if args.daemon:
         import daemon
