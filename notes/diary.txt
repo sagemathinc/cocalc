@@ -20,10 +20,10 @@ configuring:
 
 !!!
 
-combinat is massively faster than geom at running virtual machines.  
+combinat is massively faster than geom at running virtual machines.
 Either there is something really weird with the disk (which I doubt, since
-boxen had the same problem), or the instruction set support, or BIOS 
-configuration, or something. Very weird. 
+boxen had the same problem), or the instruction set support, or BIOS
+configuration, or something. Very weird.
 
 
 Aug 27, 2012:
@@ -47,7 +47,7 @@ OK, that was easy...
 
 Then onto serious stuff.
 
-Testing out Ansible (http://ansible.github.com/) 
+Testing out Ansible (http://ansible.github.com/)
 
    easy_install jinja2 pyyaml paramiko
    export ANSIBLE_LIBRARY=/Users/wstein/salvus/salvus/data/local/ansible
@@ -63,7 +63,7 @@ Setting up a public git server on combinat1:
 salvus@combinat1:~$ apt-get install apache2
 salvus@combinat1:~$ git clone salvus salvus.git
 salvus@combinat1:~$ cd salvus.git/.git/hooks;  cp post-update.sample post-update; cd
-salvus@combinat1:~$ more /etc/apache2/httpd.conf 
+salvus@combinat1:~$ more /etc/apache2/httpd.conf
 <VirtualHost *:80>
     DocumentRoot /home/salvus/salvus.git/.git
     <Directory /home/salvus/salvus.git/.git>
@@ -74,12 +74,12 @@ salvus@combinat1:~$ more /etc/apache2/httpd.conf
 
 Then:
   http://combinat1.salv.us/
-gives the repo. 
+gives the repo.
 
    export ANSIBLE_LIBRARY=/Users/wstein/salvus/salvus/data/local/ansible
    export ANSIBLE_HOSTS=/Users/wstein/salvus/salvus/conf/ansible_hosts
 
-OK, done (in seconds), and now this works to automatically update 
+OK, done (in seconds), and now this works to automatically update
 all nodes to latest version.
 
   ansible all -m shell -a "cd salvus; git pull http://combinat1.salv.us" -u salvus
@@ -94,7 +94,7 @@ Build cassandra on all nodes:
 
 
 
-I'm now working on diving up the nodes and deploying. 
+I'm now working on diving up the nodes and deploying.
 
 [cassandra]
 servedby1.salv.us -- just asked them to give me 64GB disk space
@@ -102,7 +102,7 @@ bsd1.salv.us -- creating and easily adding a 64GB disk:
 
    VBoxManage createhd --filename cassandra.vdi --size 64000 --variant Fixed   # takes about 10 minutes, at least?
    ansible bsd1 -a "shutdown -h now" -u salvus -s -K  # shutdown bsd1...
-   VBoxManage storageattach bsd1 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd      
+   VBoxManage storageattach bsd1 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd
    nohup VBoxHeadless -s bsd1 --vrde off &
 
 # format:
@@ -120,11 +120,11 @@ bsd1.salv.us -- creating and easily adding a 64GB disk:
    chown salvus. /cassandra
 
    mount -a
-   
-   
-  
 
-combinat4.salv.us -- 
+
+
+
+combinat4.salv.us --
    1. need to use lvm to expand my existing 64GB partition:
 - stop all vm's:
 
@@ -166,22 +166,22 @@ I did math and got:
 
    3. attach it to combinat4
 
-VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd      
+VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd
 
 # oops -- already had users.vdi -- this was designed for running sage.  need to use a different vm!
 # should use combinat2.salv.us
 
-VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium none --port 2 --type hdd 
+VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium none --port 2 --type hdd
 
 VBoxManage closemedium disk cassandra.vdi
 VBoxManage list hdds
 mv cassandra.vdi ../combinat2
 
 # fix what I broke:
-VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium tmp.vdi --port 2 --type hdd 
+VBoxManage storageattach combinat4 --storagectl "SATA Controller" --medium tmp.vdi --port 2 --type hdd
 
 cd ../combinat2
-VBoxManage storageattach combinat2 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd      
+VBoxManage storageattach combinat2 --storagectl "SATA Controller" --medium cassandra.vdi --port 2 --type hdd
 
 
 # woah -- I got the hostnames wrong!
@@ -208,8 +208,8 @@ better than ansible, but if not, I'll start setting up my
 infrastructure using it.
 
 I'm just going to go with ansible. Why?  Because it is actually very
-close to what I already wrote with my admin.py, at least in spirit.  
-Use ssh, etc. 
+close to what I already wrote with my admin.py, at least in spirit.
+Use ssh, etc.
 
 I setup git@combinat1 as follows:
 
@@ -245,12 +245,12 @@ on every host, so it doesn't ask for the ssh key the first time.
 First thing to do on Aug 30:
 
    - finish adding strict host checking and authorized keys even for the sage servers; we want them
-     to be up to date with the VPN, etc. 
+     to be up to date with the VPN, etc.
 
 
 August 30, 2012:
 
-Goal for today: nail down control of infrastructure. 
+Goal for today: nail down control of infrastructure.
 
 More precisely, type password once and do all of following:
 
@@ -258,16 +258,16 @@ More precisely, type password once and do all of following:
 
    * start sage servers
 
-   * start nginx, haproxy, 
+   * start nginx, haproxy,
 
 
    * start cassandra
 
    * monitor to see what is running or not
 
-   * 
+   *
 
-   
+
 ---
 
 OK, after using ansible more, I do not like it.  But there are things
@@ -280,7 +280,7 @@ paramiko, then finishing my admin.py script.
 
 My tinc vpn is still not in great shape.  I really need to make the
 configuration much more centralized and systematic, e.g., all the
-tinc.conf files for all nodes need to be in the repo.  
+tinc.conf files for all nodes need to be in the repo.
 
 I've been having trouble on my laptop since I didn't have
    TCPonly = yes
@@ -299,7 +299,7 @@ HOW.
 
  Problem 1: How to get status of nginx.  There is a pidfile.
 
-  
+
 Aug 31, 2012:
 -------------
   cd salvus/salvus/data/secrets/
@@ -308,7 +308,7 @@ Aug 31, 2012:
 
 Sept 1, 2012:
 -------------
-  
+
 I'm trying to deploy now!  It'll be a lot of debugging of every component...
 
 Obvious todos for today:
@@ -333,12 +333,12 @@ until 5:30
 
 ------
 
-9:00pm: 
+9:00pm:
 
  [ ] protect cassandra nodes as follows:
      use iptables to make a rule so all incoming packets from interfaces that are
      aimed at the cassandra ports are blocked, unless they come from one of a white-listed
-     group of nodes.  These will be exactly the tornado nodes.   
+     group of nodes.  These will be exactly the tornado nodes.
      This way we still only need one VPN!
 
 Goal: block incoming packets to Cassandra default ports: 7000, 7001, 9160 except
@@ -350,7 +350,7 @@ Sept 2, 2012:
 -------------
 
  [x] I'm very confused about cassandra, due to *nothing* in the salvus keyspace working -- I get
-     "Unable to complete request: one or more nodes were unavailable." 
+     "Unable to complete request: one or more nodes were unavailable."
      no matter what I do.  Why?
 
      - If I create a new columnfamily in the same keyspace, it fails:
@@ -393,7 +393,7 @@ c.execute('select * from services')
    OperationalError: Unable to complete request: one or more nodes were unavailable.
 
 
-How to change keyspace options.   
+How to change keyspace options.
 
 Use cassandra-cli (!):
 
@@ -402,12 +402,12 @@ $ cassandra-cli -h servedby1.salv.us -k salvus
 50c04637-08eb-38a7-94bc-c84eeb0b82ac
 Waiting for schema agreement...
 ... schemas agree across the cluster
-[default@salvus] 
-    
-This does work.  This fixes the problem, strangely, and much to my surprise. 
+[default@salvus]
+
+This does work.  This fixes the problem, strangely, and much to my surprise.
 
 Moreover, this sucker is frightenlying DURABLE.  I just tried killing 2 out of 3 of the nodes,
-and everything "just works". Amazing. 
+and everything "just works". Amazing.
 
 
  [x] I see "Cluster: Test Cluster" when I do "describe cluster".  This should be "salvus"!
@@ -415,7 +415,7 @@ and everything "just works". Amazing.
  [x] protect cassandra nodes as follows:
      use iptables to make a rule so all incoming packets from interfaces that are
      aimed at the cassandra ports are blocked, unless they come from one of a white-listed
-     group of nodes.  These will be exactly the tornado nodes.   
+     group of nodes.  These will be exactly the tornado nodes.
      This way we still only need one VPN!
 
 Goal: block incoming packets to Cassandra default ports: 7000, 7001, 9160 except
@@ -426,7 +426,7 @@ from a very specific list of hosts, namely all hosts running tornado.
 10.38.1.5,10.38.1.7,10.38.1.10,10.38.1.1,10.38.1.11
 
 ufw reset
-ufw allow 
+ufw allow
 ufw allow proto tcp from 10.38.1.10 to any port 7000,7001,9160
 ufw deny 9160
 ufw deny 7000
@@ -443,10 +443,10 @@ What I want for each cassandra node (which in some cases is also other services 
 
 0. Reset
 
-  ufw --force reset  
+  ufw --force reset
 
 1. Allow ssh, nginx, http, stunnel, tornado access from anywhere, which means anywhere in VPN.
-  
+
   ufw allow 22
   ufw allow 80
   ufw allow 443
@@ -458,7 +458,7 @@ What I want for each cassandra node (which in some cases is also other services 
 
   ufw allow from 10.38.1.1; ufw allow from 10.38.1.5; ufw allow from 10.38.1.7; ufw allow from 10.38.1.10; ufw allow from 10.38.1.11
 
-3. Deny everything else. 
+3. Deny everything else.
 
   ufw deny proto tcp to any port 1:65535; ufw deny proto udp to any port 1:65535
 
@@ -485,7 +485,7 @@ of the VMRC console, hit "control+right_alt/option".
 
  [x] start stunnel's
 
- [x] make it so haproxy auto-determines nginx and tornado nodes, so they don't have to be passed in -- more precisely, the admin program finds this info at runtime. 
+ [x] make it so haproxy auto-determines nginx and tornado nodes, so they don't have to be passed in -- more precisely, the admin program finds this info at runtime.
 
  [x] get haproxy setup and running on cluster
 
@@ -494,8 +494,8 @@ of the VMRC console, hit "control+right_alt/option".
  [x] get tornado setup and running on cluster:
 
    -- I forgot about the second inter-tornado-server communications tcp port.  The firewall is blocking it.
-      But also, even with that disabled, it isn't working.  
-      Oh, 7000 is the Cassandra port, isn't it?  Yep. 
+      But also, even with that disabled, it isn't working.
+      Oh, 7000 is the Cassandra port, isn't it?  Yep.
       So... I'll make an option to pass in the port to Tornado, and have the port be 5001.
 
  [x] database is not working again !
@@ -503,7 +503,7 @@ of the VMRC console, hit "control+right_alt/option".
 
  [x] get sage setup and running on cluster
 
- 
+
 
 
 Sept 3, 2012:
@@ -546,7 +546,7 @@ williamstein
 
 admin.tinc_conf('servedby1',...)
 
-vi data/local/etc/tinc/tinc.conf 
+vi data/local/etc/tinc/tinc.conf
 ConnectTo = bsd0
 ConnectTo = combinat0
 ConnectTo = servedby1
@@ -600,14 +600,14 @@ salvus@bsd2:~/salvus/salvus$ sage -python sage_server.py -c -p 6000 --hostname b
 PID = 17184
 sage [0]: 2+3
 5
-sage [1]: 
+sage [1]:
 Exiting Sage client.
 
 Or in salvus:
 print os.popen('echo "2+2" | sage -python sage_server.py -c -p 6000 --hostname bsd2.salv.us').read()
 
 Maybe?
-import os, socket   
+import os, socket
 print socket.gethostname()
 os.system('echo "2+2" | sage -python /tmp/sage_server.py -c -p 6000 --hostname `hostname`.salv.us > /tmp/a')
 print "out=", open('/tmp/a').read()
@@ -745,7 +745,7 @@ No.  I will simply be storing git bundles in Cassandra.  All data is
 still versioned, and I do not have to implement 'GridFS'.
 
 
-2012-09-05 at 12:36pm. 
+2012-09-05 at 12:36pm.
 ----------------------
 
 I'm doing budget work for a grant right now.   We have:
@@ -753,7 +753,7 @@ I'm doing budget work for a grant right now.   We have:
   (10648*1.269 + 500)/.8 = 17515.3900000000 = amount I need to bring
   in to pay myself and for hosting costs
 
-I will thus make getting $20K/month my goal for income from Salvus for this year. 
+I will thus make getting $20K/month my goal for income from Salvus for this year.
 
 At $99/year (or $10/month), that would require 2400 users.  That's my
 target for paying customers for year 1.
@@ -773,7 +773,7 @@ Sept 18, 2012:
     [ ] expand deploy config to make full use of the new machines.
     [ ] upgrade tornado in salvus -- 2.4 is out!
     [ ] salvus programming:
-         [ ] automated sage server disk quotas 
+         [ ] automated sage server disk quotas
          [ ] remove all files after session terminates
          [ ] make choice of sage server determined by speed/success with previous choice
          [ ] make choice of database determined by speed/success with previous choice
@@ -787,7 +787,7 @@ Sept 18, 2012:
          [ ] way to send generic json message from sage process to browser; ensure fast
          [ ] persistent sessions (options appears on login)
          [ ] embed ability to compute via "mashup" in other webpages via a javascript snippet.
- 
+
 
 ------------
 
@@ -799,15 +799,15 @@ nontrivial piece of software!
 
 1. Install newest ceph/rados:
 
-wget -q -O- https://raw.github.com/ceph/ceph/master/keys/release.asc | sudo apt-key add - 
-echo deb http://ceph.com/debian/ $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/ceph.list 
+wget -q -O- https://raw.github.com/ceph/ceph/master/keys/release.asc | sudo apt-key add -
+echo deb http://ceph.com/debian/ $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/ceph.list
 sudo apt-get update && sudo apt-get install ceph
 
 2. Config:
    - make /dev/sdb1 with a btrfs formated filesystem on each node
    - do *NOT* put anything in /etc/fstab!
 
-3. I made a file ceph1.conf: 
+3. I made a file ceph1.conf:
    - on salvus1 in /var/lib/ceph.
 
 Here is the one I used here:
@@ -863,7 +863,7 @@ Here is the one I used here:
 
 4. Setup password-less login as root via ssh from salvus1 to salvus2 and salvus3.
 
- a. On all nodes -- Edit /etc/ssh/sshd_config to allow root login, then 
+ a. On all nodes -- Edit /etc/ssh/sshd_config to allow root login, then
         /etc/init.d/ssh restart
     Also, set root passwd.
 
@@ -873,7 +873,7 @@ Here is the one I used here:
 
 5. Push out config:
 
-    mkcephfs -a -c /var/lib/ceph/ceph1.conf --mkbtrfs 
+    mkcephfs -a -c /var/lib/ceph/ceph1.conf --mkbtrfs
 
 6. Try it:
 
@@ -892,13 +892,13 @@ repeatedly.  Why is it so incredibly slow?  The network connection is very fast 
 
 I also tried copying a 100MB file to /ceph, and it takes
 forever... basically hanging/killing the whole thing!  This is
-ridiculous.  
+ridiculous.
 
 I tried turning of noatime, and that fixed nothing.
 Transfer of a single 100MB file takes the time it should.
 But ls of a bunch of small files is insanely slow.
 
-The slowness problem completely vanishing by using ceph-fuse: 
+The slowness problem completely vanishing by using ceph-fuse:
 
     mkdir /ceph
     ceph-fuse -m `hostname` /ceph
@@ -942,9 +942,9 @@ Is fast!
 
 Now try to make a KVM VM:
 
-   rados mkpool vm_disks 
+   rados mkpool vm_disks
    qemu-img create -f rbd rbd:vm_disks/box1_disk1 1G
-   
+
 # disk.xml:
 
 <disk type='network' device='disk'>
@@ -978,7 +978,7 @@ Making the /etc/hosts file contain:
 On salvus01 and salvus02:
 -------------------------
 
-Making /etc/hostname file contain:  
+Making /etc/hostname file contain:
    02salvus.math.washington.edu
 
 Then type "service hostname restart"
@@ -992,7 +992,7 @@ Then type "service hostname restart"
 Do the same on 02salvus:
 
   lvcreate --name ganeti_test --size 20G 02salvus   # i named the lvm differently
-  
+
 3. Create ceph config file:
 
 /var/lib/ceph/ceph0.conf
@@ -1026,7 +1026,7 @@ Do the same on 02salvus:
 
 4. Push out config and make filesystem:
 
-   mkcephfs -a -c /var/lib/ceph/ceph0.conf --mkbtrfs 
+   mkcephfs -a -c /var/lib/ceph/ceph0.conf --mkbtrfs
 
 5. Test it out:
    # on each of 01salvus and 02salvus:
@@ -1034,14 +1034,14 @@ Do the same on 02salvus:
    /etc/init.d/ceph start
    mkdir /mnt/ceph; ceph-fuse -m `hostname` /mnt/ceph
 
-   
+
 root@01salvus:/var/lib/ceph# df -h |grep ceph
 /dev/mapper/lvm-ganeti_test   20G  504M   18G   3% /var/lib/ceph/osd
 ceph-fuse                     40G  5.1G   35G  13% /mnt/ceph
-   
+
 ---------
 
-Success.  Now moving on to ganeti. 
+Success.  Now moving on to ganeti.
 
 GANETI test install:
 
@@ -1084,15 +1084,15 @@ gnt-cluster (ganeti v2.6.0) 2.6.0
 
 Lots of crap, but see the line at the very, very end of this step.
 
-   - I uncommented a line in /etc/default/ganeti-instance-debootstrap 
+   - I uncommented a line in /etc/default/ganeti-instance-debootstrap
        EXTRA_PKGS="acpi-support-base,console-tools,udev,linux-image-amd64"
 
-   - CLUSTERNAME:   Huh?  
-      I added *this* to /etc/hosts on 01salvus and 02salvus, 
+   - CLUSTERNAME:   Huh?
+      I added *this* to /etc/hosts on 01salvus and 02salvus,
       and made the CLUSTERNAME "ganeti".
 
-# this ip is something I don't have allocated to me, but it is in my range, so 
-# I'm "taking" it.  
+# this ip is something I don't have allocated to me, but it is in my range, so
+# I'm "taking" it.
 
 128.208.160.190 ganeti
 
@@ -1113,7 +1113,7 @@ gnt-cluster destroy --yes-do-it
 rm -rf /var/lib/ganeti/; mkdir /var/lib/ganeti
 
 
-   gnt-cluster init --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage --master-netdev=virbr0 --ipolicy-disk-templates=rbd ganeti 
+   gnt-cluster init --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage --master-netdev=virbr0 --ipolicy-disk-templates=rbd ganeti
 
 <ARGH>
 
@@ -1143,7 +1143,7 @@ Back to trying ganeti...  I had hit this:
 
 as I found looking in:
 
-   /var/log/ganeti/commands.log 
+   /var/log/ganeti/commands.log
 
 I did this as they recommend:
 
@@ -1166,22 +1166,22 @@ Now I hit:
 
 I note that I completely misunderstood the "--master-netdev" parameter, and this could be the problem.
 
-   gnt-cluster init --master-netdev=eth0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti 
+   gnt-cluster init --master-netdev=eth0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti
 
 
 -----------
 
-I'm going to try my own python install from scratch in /root, since this is just 
+I'm going to try my own python install from scratch in /root, since this is just
 messed up.
 
- cd 
+ cd
  mkdir local
  wget http://python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2
- tar xf Python-2.7.3.tar.bz2 
- cd Python-2.7.3/ 
+ tar xf Python-2.7.3.tar.bz2
+ cd Python-2.7.3/
  ./configure --prefix=/root/local
  make install
- 
+
 # Modify /root/.bash_profile so /root/local/bin is in front of path
 # and logout/login/confirm.
 
@@ -1190,8 +1190,8 @@ messed up.
 # Install easy_install:
 
  wget http://pypi.python.org/packages/source/s/setuptools/setuptools-0.6c11.tar.gz
- tar xf setuptools-0.6c11.tar.gz 
- cd setuptools-0.6c11/   
+ tar xf setuptools-0.6c11.tar.gz
+ cd setuptools-0.6c11/
  python setup.py install
 
 # Now install deps:
@@ -1208,7 +1208,7 @@ make
 make install
 
 
-gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti 
+gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti
 
 To get it to actually use my new python, I have to install my replace command and do:
 
@@ -1233,7 +1233,7 @@ Hmm.  The master device really is on the web and using "128.208.160.190".
 
 THIS WORKED:
 
-gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti 
+gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --no-lvm-storage  --ipolicy-disk-templates=rbd ganeti
 
 --
 4. Join other node to cluster:
@@ -1256,7 +1256,7 @@ root@01salvus:/usr/local/lib/python2.7/dist-packages/ganeti# gnt-os list
 Can't get the OS list
 
 This is because I didn't do this:
- 
+
   http://docs.ganeti.org/ganeti/current/html/install.html#installing-the-operating-system-support-packages
 
 which is explained wrong!!!!!  What the FUCK.
@@ -1303,11 +1303,11 @@ Next error on trying again with the same input:
 
    gnt-instance add -n 01salvus -o debootstrap+default -t rbd -s 4G test1
 
-Next error -- checking bridges on destination node '01salvus.math.washington.edu': Missing bridges xen-br0 
+Next error -- checking bridges on destination node '01salvus.math.washington.edu': Missing bridges xen-br0
 
    gnt-instance add -n 01salvus -o debootstrap+default --net 0:link=virbr0 -t rbd -s 4G test1
 
-# the docs say "bridge=", but they are wrong.  
+# the docs say "bridge=", but they are wrong.
 
 Fails due to lack of /sys/bus/rbd/devices, so I do
 
@@ -1374,7 +1374,7 @@ This did not work.  Hmm.
 
 ----
 
-What to do.  
+What to do.
 
 I should try a local simple storage first before even trying drbd.
 
@@ -1384,14 +1384,14 @@ Try again with plain with a 1-node cluster:
 
 gnt-node remove 02salvus.math.washington.edu
 gnt-cluster destroy --yes-do-it
-gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --vg-name=lvm ganeti 
+gnt-cluster init --master-netdev=virbr0 --enabled-hypervisors=kvm  --no-drbd-storage --vg-name=lvm ganeti
 
   gnt-instance add -n 01salvus -o debootstrap+default --net 0:link=virbr0 -t plain -s 4G test1
 
 This did fully work.
 
-I tried the Ganeti Web Manager and it really sucks. 
-I'm officially rejecting ganeti as a possible component of salvus.  Oh well. 
+I tried the Ganeti Web Manager and it really sucks.
+I'm officially rejecting ganeti as a possible component of salvus.  Oh well.
 
 Options:
   * list here: http://www.linux-kvm.org/page/Management_Tools
@@ -1410,7 +1410,7 @@ Cloudstack on ubuntu 12.04:
 
 OpenNebula:
 
-Looks like the only big-usage academic/truly free cloud option. 
+Looks like the only big-usage academic/truly free cloud option.
 
 Packages:
 
@@ -1444,18 +1444,18 @@ CloudStack... doesn't seem to support Ubuntu 12.04 and seems weird.
 Eucalyptus: looks interesting. Try it.
 
 Following http://www.eucalyptus.com/download/eucalyptus/ubuntu-12
-  
+
 
   wget http://www.eucalyptus.com/sites/all/modules/pubdlcnt/pubdlcnt.php?file=/sites/all/files/c1240596-eucalyptus-release-key.pub&nid=878
   apt-key add *eucalyptus-release-key.pub
 
-  echo "deb http://downloads.eucalyptus.com/software/eucalyptus/3.1/ubuntu precise main" > /etc/apt/sources.list.d/eucalyptus.list 
+  echo "deb http://downloads.eucalyptus.com/software/eucalyptus/3.1/ubuntu precise main" > /etc/apt/sources.list.d/eucalyptus.list
 
   echo "deb http://downloads.eucalyptus.com/software/euca2ools/2.1/ubuntu precise main" > /etc/apt/sources.list.d/euca2ools.list
 
   apt-get update
 
-  apt-get install eucalyptus-cloud eucalyptus-cc eucalyptus-sc eucalyptus-walrus 
+  apt-get install eucalyptus-cloud eucalyptus-cc eucalyptus-sc eucalyptus-walrus
   apt-get install  eucalyptus-nc
 
 
@@ -1467,13 +1467,13 @@ Following http://www.eucalyptus.com/download/eucalyptus/ubuntu-12
 ￼service eucalyptus-nc start
 
 root@01salvus:~# netstat -a |grep 8773
-tcp        0      0 *:8773                  *:*                     LISTEN     
-udp        0      0 228.7.7.3:8773          *:*                                
-udp        0      0 01salvus.math.wash:8773 *:*                                
+tcp        0      0 *:8773                  *:*                     LISTEN
+udp        0      0 228.7.7.3:8773          *:*
+udp        0      0 01salvus.math.wash:8773 *:*
 root@01salvus:~# netstat -a |grep 8774
-tcp        0      0 *:8774                  *:*                     LISTEN     
+tcp        0      0 *:8774                  *:*                     LISTEN
 root@01salvus:~# netstat -a |grep 8775
-tcp        0      0 *:8775                  *:*                     LISTEN     
+tcp        0      0 *:8775                  *:*                     LISTEN
 
 Registering COMPONENTS:
 
@@ -1496,7 +1496,7 @@ WEB INTERFACE:
   ssh -L 8443:localhost:8443 salvus@01salvus
 
 Then visit:
-  
+
   https://localhost:8443/
 
 Login and password are *both* "admin".
@@ -1539,7 +1539,7 @@ This article looks good:  http://www.sysadminworld.com/2012/ubuntu-12-04-kvm-vir
 
 chmod a+rw ubuntu-12.04-server-amd64.iso
 
-virt-install -v --graphics vnc,port=8123 --name test2 --ram 1024 --disk path=/tmp/test2.img,size=4  -c ubuntu-12.04-server-amd64.iso 
+virt-install -v --graphics vnc,port=8123 --name test2 --ram 1024 --disk path=/tmp/test2.img,size=4  -c ubuntu-12.04-server-amd64.iso
 
 
 Try as normal user (salvus) and fail.
@@ -1572,8 +1572,8 @@ Have to spoof mac for wifi router to let me back!
 
 sh-3.2# ifconfig en0
 en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
-	ether 10:40:f3:91:6b:26 
-	inet6 fe80::1240:f3ff:fe91:6b26%en0 prefixlen 64 scopeid 0x4 
+	ether 10:40:f3:91:6b:26
+	inet6 fe80::1240:f3ff:fe91:6b26%en0 prefixlen 64 scopeid 0x4
 	inet 169.254.76.216 netmask 0xffff0000 broadcast 169.254.255.255
 	media: autoselect
 	status: active
@@ -1586,7 +1586,7 @@ OK, after a very long day of this, I've learned one thing:
 
    USE libvert directly!
 
-There is no significant value added for me in using any of the private cloud systems. 
+There is no significant value added for me in using any of the private cloud systems.
 
 By using libvirt I can even using Ceph/RDB if I want and it is fast enough...
 
@@ -1645,7 +1645,7 @@ Try it out:
    git clone git://github.com/collie/sheepdog.git
    cd sheepdog
    ./autogen.sh
-   ./configure 
+   ./configure
    make
    make install
 
@@ -1701,7 +1701,7 @@ Also we will have to monitor machines:
 
 Stopping machines:
 
-    - change cassandra db 
+    - change cassandra db
 
 -------------------
 
@@ -1733,12 +1733,12 @@ Sept 22, 2012:
 This is a session of playing with libvirt/kvm, just to get comfortable.  It's nice!
 
    [ ] setup a template libvirt VM for running other services
-   [ ] setup a template libvirt ubuntu VM for running Sage 
+   [ ] setup a template libvirt ubuntu VM for running Sage
 
 Started these installs at 6:45am
- 
+
 # base salvus image
-virt-install --os-variant=ubuntuprecise -v --graphics vnc,port=8122 --name salvus --vcpus=2  --ram 4096 --disk path=salvus.img,size=4 -c ubuntu-12.04-server-amd64.iso 
+virt-install --os-variant=ubuntuprecise -v --graphics vnc,port=8122 --name salvus --vcpus=2  --ram 4096 --disk path=salvus.img,size=4 -c ubuntu-12.04-server-amd64.iso
 
  virsh -c qemu:///session undefine salvus
 
@@ -1747,7 +1747,7 @@ virt-install --os-variant=ubuntuprecise -v --graphics vnc,port=8122 --name salvu
 
 
 # salvus_sage
-virt-install -v --graphics vnc,port=8124 --name salvus_sage --vcpus=16 --ram 8192 --disk path=salvus_sage.img,size=12 -c ubuntu-12.04-server-amd64.iso 
+virt-install -v --graphics vnc,port=8124 --name salvus_sage --vcpus=16 --ram 8192 --disk path=salvus_sage.img,size=12 -c ubuntu-12.04-server-amd64.iso
 
 ssh -L 8124:localhost:8124 salvus@01salvus.math.washington.edu
 
@@ -1764,7 +1764,7 @@ To ssh into a machine:
 virsh -c qemu:///session qemu-monitor-command --hmp salvus_sage 'hostfwd_add ::2222-:22'   # NOT persistent?!
 ssh localhost -p 2222
 
-I'm going to try to install sage from source on there -- see how long it takes, etc. 
+I'm going to try to install sage from source on there -- see how long it takes, etc.
 
 I'm also going to try a build test on geom -- I hope it works!
 
@@ -1777,11 +1777,11 @@ it was 14 seconds, versus around 15 seconds not in the VM.
 
 The other main issue is how incredibly slow the network is.  Maybe
 that is easily fixed by re-installing the OS, since I seriously tested
-a lot on here.  On geom -- using kvm -- the network is fine. 
+a lot on here.  On geom -- using kvm -- the network is fine.
 
 Just curious if this was because of running using qemu but without kvm?
 
-It's kvm.  Weird. 
+It's kvm.  Weird.
 
 My next guess is it is because limited hardware of the CPU is made available to the
 machine, so optimizations aren't done.
@@ -1843,7 +1843,7 @@ From the man virt-install page:
 I'll try a new install with "--cpu host" and see what happens.   I'm going to do this on 03salvus too, to see if the networking issues
 is resolved.
 
-virt-install -v --cpu host --graphics vnc,port=8124 --name salvus_sage --vcpus=16 --ram 8192 --disk path=salvus_sage.img,size=12 -c ubuntu-12.04-server-amd64.iso 
+virt-install -v --cpu host --graphics vnc,port=8124 --name salvus_sage --vcpus=16 --ram 8192 --disk path=salvus_sage.img,size=12 -c ubuntu-12.04-server-amd64.iso
 
 NOTE: The physical network on all the salvus nodes is way too slow. It's 10MB/s, but should be 100?!
 The card is: Broadcom NetXtreme II BCM5716 1000Base-T
@@ -1879,7 +1879,7 @@ According to http://manpages.ubuntu.com/manpages/lucid/man4/bce.4freebsd.html
 "1000baseSX   Sets 1000Mbps operation.  Only full-duplex mode is supported
                   at this speed."
 
-So the question is how to use the builtin driver, but set to the above speed. 
+So the question is how to use the builtin driver, but set to the above speed.
 
 Try:
 
@@ -1889,7 +1889,7 @@ Try:
 
   ethtool eth0
 
-   root@03salvus:/etc# /sbin/mii-tool 
+   root@03salvus:/etc# /sbin/mii-tool
    eth0: negotiated 100baseTx-FD, link ok
   ...
 
@@ -1897,19 +1897,19 @@ Try:
  ifconfig eth0 media 1000baseTx
 
 What I want: [   31.797673] bnx2 0000:01:00.0: eth0: NIC Copper Link is Up, 1000 Mbps full duplex
-root@combinat:/home/wstein# /sbin/mii-tool 
+root@combinat:/home/wstein# /sbin/mii-tool
 eth0: negotiated 1000baseT-FD flow-control, link ok
 
 
 What I got:  [   25.759307] bnx2 0000:01:00.0: eth0: NIC Copper Link is Up, 100 Mbps full duplex
-root@03salvus:/etc# /sbin/mii-tool 
+root@03salvus:/etc# /sbin/mii-tool
 eth0: negotiated 100baseTx-FD, link ok
 
 ----
 
 I think it is the CABLE!  That's what this page says:  http://ubuntuforums.org/archive/index.php/t-1283713.html
 
-Moreover, 02salvus and 04salvus do connect fine at gigabit. 
+Moreover, 02salvus and 04salvus do connect fine at gigabit.
 
 Solution: swap out the cables on 01salvus and 03salvus!!!!
 
@@ -1921,7 +1921,7 @@ I should test virtualbox on ...
 
 In the meantime, on 01salvus, I'll try this:
 
-   virt-install -v --cpu host --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk sparse=true,path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso 
+   virt-install -v --cpu host --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk sparse=true,path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso
 
    ssh -L 8125:localhost:8125 salvus@01salvus.math.washington.edu
 
@@ -1937,16 +1937,16 @@ So finally, I'll do this whole test on 02salvus, which has a solid network, and 
 
 
    scp 01salvus:.screenrc .
-   virt-install -v --cpu host --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso    
+   virt-install -v --cpu host --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso
    ssh -L 8125:localhost:8125 salvus@02salvus.math.washington.edu
 
    virsh -c qemu:///session start salvus_sage_cpuhost
-   virsh -c qemu:///session qemu-monitor-command --hmp salvus_sage_cpuhost 'hostfwd_add ::2222-:22'   
+   virsh -c qemu:///session qemu-monitor-command --hmp salvus_sage_cpuhost 'hostfwd_add ::2222-:22'
    ssh localhost -p 2222
    wget http://sage.math.washington.edu/home/release/sage-5.3/sage-5.3.tar
    sudo apt-get install g++ gfortran m4 make dpkg-dev libssl-dev
    sleep 6000; export MAKE="make -j16"; tar xvf sage-5.3.tar; cd sage-5.3; make
-   
+
 
 I solved the networking slowdown issue!
 (Thanks to https://help.ubuntu.com/community/KVM/Networking)
@@ -1954,7 +1954,7 @@ I solved the networking slowdown issue!
     <interface type='user'>
       <mac address='52:54:00:be:75:c2'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
-      <model type='virtio'/>  <!-- ADD THIS LINE to ~/.libvirt/qemu/salvus_sage_cpuhost.xml --> 
+      <model type='virtio'/>  <!-- ADD THIS LINE to ~/.libvirt/qemu/salvus_sage_cpuhost.xml -->
     </interface>
 
 This should be something I can do via the virt-install line with:
@@ -1963,7 +1963,7 @@ This should be something I can do via the virt-install line with:
 
 so, this should be it:
 
-   virt-install -v --cpu host -net nic,model=virtio -net user --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso    
+   virt-install -v --cpu host -net nic,model=virtio -net user --graphics vnc,port=8125 --name salvus_sage_cpuhost --vcpus=16 --ram 8192 --disk path=salvus_sage_cpuhost.img,size=14 -c ubuntu-12.04-server-amd64.iso
 
 ---
 
@@ -1984,13 +1984,13 @@ Step 1: make a base template
 
 
    virt-install -v --cpu host --network user,model=virtio --graphics vnc,port=8125 --name salvus_base --vcpus=2 --ram 4096 --disk path=salvus_base.img,size=8 -c ubuntu-12.04-server-amd64.iso
- 
+
    ssh -L 8125:localhost:8125 salvus@01salvus.math.washington.edu
 
 Setup LVM with one big root partition and no swap (swap will be on another image).
 
    virsh -c qemu:///session start salvus_base
-   virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'   
+   virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'
 
 Sept 25, 2012
 =============
@@ -2039,12 +2039,12 @@ Options:
 
   - right now the vpn info *is* in a database, namely the git repo.
     But pushing and pulling to/from that every time I modify the vpn
-    seem bad. 
+    seem bad.
 
   - use Cassandra to store the vpn info:
        - advantage: no single point of failure
-       - disadvantage: only a few nodes can connect to cassandra, so we'll have to 
-         run another service just to deal with this. 
+       - disadvantage: only a few nodes can connect to cassandra, so we'll have to
+         run another service just to deal with this.
        - service is called tinc_directory.py
        - the *only* machines that need access to the directory database are the
          virtual machine hosts, since they will be configuring the tinc directory
@@ -2058,12 +2058,12 @@ Options:
          files, etc., as soon as it can contact a tornado node and
          that node works... but until then it uses the last
          potentially stale default hosts info.
-       - problem: if I do this via tornado, I have to somehow deal with authentication, 
+       - problem: if I do this via tornado, I have to somehow deal with authentication,
          since it is necessary to write to the database when provisioning new nodes.
          i don't have to worry about ssl, since all traffic is encrypted.
-  
+
   - use a sqlite file on the "master control node" --> SPOF
-  
+
   - put a postgresql server back into salvus just for this --> SPOF
 
   - get better at just using the git repo for this (or is this is a
@@ -2111,7 +2111,7 @@ For other nodes:
 Back on 01salvus:
 
 git pull 02salvus:salvus/
- 
+
   [x] just installed updates on bsd.math and restarted those virtual
       machines.  some of the combinat vm's were mysteriously crashed!
 
@@ -2121,14 +2121,14 @@ git pull 02salvus:salvus/
 
 qemu-img create -f qcow2 -b winxp.img test01.img
 
-  [x] *** System restart required ***  -- wonder about -- 
+  [x] *** System restart required ***  -- wonder about --
 Answer: http://askubuntu.com/questions/28530/how-can-i-tell-what-package-requires-a-reboot-of-my-system
 salvus@01salvus:~$ more  /var/run/reboot-required.pkgs
 linux-image-3.2.0-31-generic
 linux-base
 dbus
 
-  [ ] 01salvus needs -- apt-get update; apt-get upgrade 
+  [ ] 01salvus needs -- apt-get update; apt-get upgrade
 
 
 -------
@@ -2174,7 +2174,7 @@ Test the image
 # apt-get install guestmount
 # add salvus user to fuse group !!!
 mkdir x
-guestmount -a salvus_base-clone.img --rw x -i    
+guestmount -a salvus_base-clone.img --rw x -i
 
 
 From a random place I found this:
@@ -2198,7 +2198,7 @@ qemu-img create -b  salvus_base.img -f  qcow2    salvus_base-clone2.img  # 0.080
 
 virt-install --cpu host --network user,model=virtio --graphics vnc,port=8120 --name salvus_base_clone1 --vcpus=2 --ram 4096 --import --disk salvus_base-clone1.img,device=disk,bus=virtio,format=qcow2 --noautoconsole  # 5.829s
 
-virt-install --cpu host --network user,model=virtio --graphics vnc,port=8121 --name salvus_base_clone2 --vcpus=2 --ram 4096 --import --disk salvus_base-clone2.img,device=disk,bus=virtio,format=qcow2 --noautoconsole  # 
+virt-install --cpu host --network user,model=virtio --graphics vnc,port=8121 --name salvus_base_clone2 --vcpus=2 --ram 4096 --import --disk salvus_base-clone2.img,device=disk,bus=virtio,format=qcow2 --noautoconsole  #
 
   ssh -L 8120:localhost:8120 -L 8121:localhost:8121 salvus@01salvus
 
@@ -2207,7 +2207,7 @@ MACs are different.  Good.
 Hmm. but the network sucks.  need to retry that parameter and fix this.
 
   virsh -c qemu:///session list
-  virsh -c qemu:///session qemu-monitor-command --hmp salvus_base_clone2 'hostfwd_add ::2222-:22'   
+  virsh -c qemu:///session qemu-monitor-command --hmp salvus_base_clone2 'hostfwd_add ::2222-:22'
 
 
 I wonder about recompacting .img, but don't really need to worry about that...
@@ -2229,7 +2229,7 @@ Through tinc, between combinat0 and 01salvus (physical machines), we get:
 
    [  3]  0.0-10.0 sec   270 MBytes   226 Mbits/sec
 
-which is I guess OK, given that it is encrypted, etc. 
+which is I guess OK, given that it is encrypted, etc.
 
 From combinat1 -- a *VirtualBox* VM -- to 01salvus over tinc:
 
@@ -2241,7 +2241,7 @@ From combinat1 -- a *VirtualBox* VM -- to 01salvus over tinc:
    [  3] local 10.38.1.7 port 39425 connected with 10.38.1.14 port 5001
    [ ID] Interval       Transfer     Bandwidth
    [  3]  0.0-10.0 sec  43.6 MBytes  36.4 Mbits/sec
- 
+
 To combinat.math.washington.edu from combinat1:
 
    [  3]  0.0- 3.0 sec   187 MBytes   522 Mbits/sec
@@ -2255,7 +2255,7 @@ TCP window size: 23.5 KByte (default)
 ------------------------------------------------------------
 [  3] local 10.0.2.15 port 38370 connected with 128.95.224.230 port 5001
 [ ID] Interval       Transfer     Bandwidth
-[  3]  0.0- 3.0 sec   168 MBytes   469 Mbits/secx	
+[  3]  0.0- 3.0 sec   168 MBytes   469 Mbits/secx
 
 So tinc is *killing* us here!
 
@@ -2311,7 +2311,7 @@ virsh --connect qemu:///session list --all
 2. Start base machine:
 
 virsh --connect qemu:///session start salvus_base
-virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'   
+virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'
 ssh localhost -p 2222
 
 3. Make it better:
@@ -2322,13 +2322,13 @@ sudo apt-get autoremove
 sudo apt-get install liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs23
 
 
-I just did 
+I just did
 
    wget http://sage.math.washington.edu/home/release/sage-5.3/sage-5.3.tar
 
 when logged in via "ssh localhost -p 2222" and that ssh network thing died, as did the whole
 NETWORK!  But not the vm. Restarting the network on the host fixed the problem temporarily.
-This is of course very worrisome. 
+This is of course very worrisome.
 
 ----
 
@@ -2360,7 +2360,7 @@ TCP window size: 22.9 KByte (default)
 
 See tinc taking a full core in top:
 
- 9163 root       1 -19 15116 1540 1168 R   98  0.0   1:13.61 tincd    
+ 9163 root       1 -19 15116 1540 1168 R   98  0.0   1:13.61 tincd
 
 ---
 
@@ -2384,8 +2384,8 @@ and change vcpu from 2 to 16.
 salvus@01salvus:~$ scp ubuntu-12.04-server-amd64.iso 10.38.1.254:
 ubuntu-12.04-server-amd64.iso                                                                                         14%  101MB  26.0MB/s   00:22 ETA
 
-5. start some other useful stuff installing:  
- 
+5. start some other useful stuff installing:
+
      sudo apt-get install texlive
 
 6. start sage build:
@@ -2408,28 +2408,28 @@ Will it be as good?
      substitute e1000 for virtio in the first -net flag to qemu-kvm."
 
 I'm going to try a speed test on this, by cloning the other img (live?!), then
-making a new machine using that. 
+making a new machine using that.
 
 
    qemu-img convert salvus_base.img nettest.img
 
 
-   virt-install -d --cpu host --network user,model=e1000 --graphics vnc,port=8122 --name nettest --vcpus=2 --ram 4096 --import --disk nettest.img,device=disk,bus=virtio,format=qcow2 --noautoconsole 
+   virt-install -d --cpu host --network user,model=e1000 --graphics vnc,port=8122 --name nettest --vcpus=2 --ram 4096 --import --disk nettest.img,device=disk,bus=virtio,format=qcow2 --noautoconsole
 
-This fails with "Unable to read from monitor: Connection reset by peer", no matter what I do . Weird. 
-I think I'll just wait and setup a copy-on-write image as before. 
+This fails with "Unable to read from monitor: Connection reset by peer", no matter what I do . Weird.
+I think I'll just wait and setup a copy-on-write image as before.
 
   qemu-img create -b  salvus_base.img -f  qcow2    salvus_base-clone1.img
 
-  virt-install --cpu host --network user,model=e1000 --graphics vnc,port=8120 --name salvus_base_clone1 --vcpus=2 --ram 4096 --import --disk salvus_base-clone1.img,device=disk,bus=virtio,format=qcow2 --noautoconsole  
+  virt-install --cpu host --network user,model=e1000 --graphics vnc,port=8120 --name salvus_base_clone1 --vcpus=2 --ram 4096 --import --disk salvus_base-clone1.img,device=disk,bus=virtio,format=qcow2 --noautoconsole
 
 Make another clone right now with virtio
 
   qemu-img create -b  salvus_base.img -f  qcow2    salvus_base-virtio.img
 
-  virt-install --cpu host --network user,model=virtio --graphics vnc,port=8121 --name salvus_base_virtio --vcpus=2 --ram 4096 --import --disk salvus_base-virtio.img,device=disk,bus=virtio,format=qcow2 --noautoconsole 
+  virt-install --cpu host --network user,model=virtio --graphics vnc,port=8121 --name salvus_base_virtio --vcpus=2 --ram 4096 --import --disk salvus_base-virtio.img,device=disk,bus=virtio,format=qcow2 --noautoconsole
 
-It really is necessary to generate new keys, etc. 
+It really is necessary to generate new keys, etc.
 
 THIS IS REALLY THE BUG:
 
@@ -2457,7 +2457,7 @@ Fix was easy - this is a slight security risk though (see http://bugs.debian.org
 
      sudo chmod a+r /boot/vmlinuz-* # used by guestmount
      mkdir mnt; guestmount -i -a salvus_base-virtio.img --rw mnt
-     ls mnt 
+     ls mnt
      fusermount -u mnt
 
 [ ] get pid of kvm process
@@ -2509,7 +2509,7 @@ Renaming from salvus_base to template?  Actually salvus_base is a good name.
 
 virsh start salvus_base
 
-root@salvus-base:/boot/grub# vi /etc/grub.d/00_header 
+root@salvus-base:/boot/grub# vi /etc/grub.d/00_header
 root@salvus-base:/boot/grub# update-grub2
 
 OK, done.
@@ -2557,11 +2557,11 @@ Partition type:
    p   primary (1 primary, 0 extended, 3 free)
    e   extended
 Select (default p): e
-Partition number (1-4, default 2): 
+Partition number (1-4, default 2):
 Using default value 2
-First sector (499712-33554431, default 499712): 
+First sector (499712-33554431, default 499712):
 Using default value 499712
-Last sector, +sectors or +size{K,M,G} (499712-33554431, default 33554431): 
+Last sector, +sectors or +size{K,M,G} (499712-33554431, default 33554431):
 Using default value 33554431
 
 Command (m for help): p
@@ -2585,9 +2585,9 @@ Partition type:
    l   logical (numbered from 5)
 Select (default p): l
 Adding logical partition 5
-First sector (501760-33554431, default 501760): 
+First sector (501760-33554431, default 501760):
 Using default value 501760
-Last sector, +sectors or +size{K,M,G} (501760-33554431, default 33554431): 
+Last sector, +sectors or +size{K,M,G} (501760-33554431, default 33554431):
 Using default value 33554431
 
 Fix type
@@ -2644,7 +2644,7 @@ real    7m23.826s
 user    98m13.080s
 sys     13m17.094s
 
-I'm curious how long on the non-VM (bare metal hardware). 
+I'm curious how long on the non-VM (bare metal hardware).
 Also, I'm curious how long while building on the bare metal hardware at the same time...
 
 MAIN Goal now is getting vm.py to actually work.
@@ -2661,7 +2661,7 @@ bare metal overall.
 
 Working on loging now that I can start vm's, etc.
 
-salvus@01salvus:~/salvus/salvus$ . salvus-env 
+salvus@01salvus:~/salvus/salvus$ . salvus-env
 salvus@01salvus:~/salvus/salvus$ ./vm.py --ip_address=10.38.1.38 --hostname=01salvus1 --logfile=log -d
 
 
@@ -2677,7 +2677,7 @@ On the host machines:
 Trying on 02salvus:
 
 ./vm.py --ip_address 2.1
-virsh -c qemu:///session qemu-monitor-command --hmp 10.38.2.1 'hostfwd_add ::2222-:22'   
+virsh -c qemu:///session qemu-monitor-command --hmp 10.38.2.1 'hostfwd_add ::2222-:22'
 ssh localhost -p 2222
 
 
@@ -2690,8 +2690,8 @@ sudo apt-get install virtinst
 7:10am Sept 30:
 ===============
 
-I just changed the /etc/rc.local's to 
- 
+I just changed the /etc/rc.local's to
+
    nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd
 
 I can autostart/stop/etc. VM's on all *salvus machines.  However, the
@@ -2701,7 +2701,7 @@ why.  Here is my plan to find out:
 [] start a VM on 03salvus
        salvus@03salvus:~$ cd salvus/salvus/; . salvus-env; ./vm.py --ip_address=3.1
 
-[] see if it works magically; if so, done -- try 04salvus 
+[] see if it works magically; if so, done -- try 04salvus
    DOESN'T WORK
 
 [] start a VM on 01salvus, and verify that vpn does work.
@@ -2710,7 +2710,7 @@ why.  Here is my plan to find out:
 [] swap in various ways the two vm credentials exactly and see what happens:
 
    1. add host public key for 3.1 vm to 01salvus server and try to connect manually:
-       salvus@03salvus:~$ virsh -c qemu:///session qemu-monitor-command --hmp 10.38.3.1 'hostfwd_add ::2222-:22'   
+       salvus@03salvus:~$ virsh -c qemu:///session qemu-monitor-command --hmp 10.38.3.1 'hostfwd_add ::2222-:22'
        salvus@03salvus:~$ ssh localhost -p 2222
        salvus@10dot38dot3dot1:~$ sudo scp /home/salvus/salvus/salvus/data/local/etc/tinc/hosts/10dot38dot3dot1 salvus.math.washington.edu@01salvus:salvus/salvus/data/local/
        salvus@10dot38dot3dot1:~$ vi /home/salvus/salvus/salvus/data/local/etc/tinc/tinc.conf  # change 03salvus to 01salvus
@@ -2748,20 +2748,20 @@ lrwxrwxrwx 1 salvus salvus   27 Sep 28 22:51 hosts -> ../../../../conf/tinc_host
    4. Try to connect to 03salvus from 02salvus:
 
 salvus@02salvus:~$ vi /home/salvus/salvus/salvus/data/local/etc/tinc/tinc.conf  # comment out others -- put only 03salvus
-salvus@02salvus:~$ more /home/salvus/salvus/salvus/data/local/etc/tinc/tinc.conf  
+salvus@02salvus:~$ more /home/salvus/salvus/salvus/data/local/etc/tinc/tinc.conf
 Name = 02salvus
 ConnectTo = 03salvus
 #ConnectTo = combinat0
 #ConnectTo = bsd0
-salvus@02salvus:~$ sudo su  
-[sudo] password for salvus: 
+salvus@02salvus:~$ sudo su
+[sudo] password for salvus:
 root@02salvus:/home/salvus# killall tincd
-root@02salvus:/home/salvus# /home/salvus/salvus/salvus/data/local/sbin/tincd -D -d3 
+root@02salvus:/home/salvus# /home/salvus/salvus/salvus/data/local/sbin/tincd -D -d3
 
-    THIS FAILS.  
+    THIS FAILS.
 
-    Conclusion: Something wrong with 03salvus's config -- not the VM, but the server.  Inspect further. 
-  
+    Conclusion: Something wrong with 03salvus's config -- not the VM, but the server.  Inspect further.
+
     Ahhh.  03salvus and 04salvus got new public keys.  I probably
     never updated those in the base template vm.  So the problem is
     that clients are not trusting the server (not the other way
@@ -2785,14 +2785,14 @@ root@salvus-base:/home/salvus/salvus/salvus/data/local/etc/tinc# scp hosts/salvu
 
 works!
 
-salvus@01salvus:~$ virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'   
+salvus@01salvus:~$ virsh -c qemu:///session qemu-monitor-command --hmp salvus_base 'hostfwd_add ::2222-:22'
 salvus@01salvus:~$ ssh localhost -p 2222
 
 
      * apt-get update; apt-get upgrade
 re-edit /etc/grub.d/00_header
      * reboot, reboot  -- works, works
-     * shutdown 
+     * shutdown
 
      * (done) test on 01salvus
      * push out new vm template to (rsync):
@@ -2810,7 +2810,7 @@ salvus@03salvus:~/vm/images$ du -sch *
 7.8G    salvus_base.img
 7.8G    total
 
-     * test 
+     * test
 
 salvus@03salvus:~$ cd salvus/salvus/; . salvus-env; ./vm.py --ip_address=3.1
 
@@ -2872,7 +2872,7 @@ In [2]: v = admin.VirtualMachine('2.1', vcpus=3, ram=3)
 
 TOP:
 
-64739 salvus    20   0 3973m 257m 6092 S   91  0.4   0:07.10 kvm                                                       64814 salvus    20   0 2412m  26m 6036 S   75  0.0   0:02.31 kvm                                                       64827 salvus    20   0 2412m  26m 6036 S   51  0.0   0:01.64 kvm                                                       64685 salvus    20   0 4045m 260m 6092 S   31  0.4   0:07.64 kvm                                                       64711 salvus    20   0 3973m 256m 6092 S   25  0.4   0:07.56 kvm                                                       64726 salvus    20   0 3757m 261m 6092 S   24  0.4   0:07.17 kvm                                                       64672 salvus    20   0 4109m 253m 6092 S   24  0.4   0:07.47 kvm                                                       64701 salvus    20   0 4050m 250m 6092 S   15  0.4   0:07.47 kvm       
+64739 salvus    20   0 3973m 257m 6092 S   91  0.4   0:07.10 kvm                                                       64814 salvus    20   0 2412m  26m 6036 S   75  0.0   0:02.31 kvm                                                       64827 salvus    20   0 2412m  26m 6036 S   51  0.0   0:01.64 kvm                                                       64685 salvus    20   0 4045m 260m 6092 S   31  0.4   0:07.64 kvm                                                       64711 salvus    20   0 3973m 256m 6092 S   25  0.4   0:07.56 kvm                                                       64726 salvus    20   0 3757m 261m 6092 S   24  0.4   0:07.17 kvm                                                       64672 salvus    20   0 4109m 253m 6092 S   24  0.4   0:07.47 kvm                                                       64701 salvus    20   0 4050m 250m 6092 S   15  0.4   0:07.47 kvm
 
 salvus@01salvus:~/salvus/salvus$ df -h
 Filesystem                 Size  Used Avail Use% Mounted on
@@ -2911,7 +2911,7 @@ TODO: make status output different, e.g., maybe it could give status for the kvm
       as it is, then %mem, etc., are useless....
 
 In [8]: [str(x.status()) for x in v]
-Out[8]: 
+Out[8]:
 ["{'%mem': '0.0', 'pid': '4842', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}",
  "{'%mem': '0.0', 'pid': '4847', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}",
  "{'%mem': '0.0', 'pid': '4864', '%cpu': '0.0', 'cputime': '00:00:00', 'etime': '01:33', 'start': '09:32:00', 'vsize': '80592', 'rss': '8244'}",
@@ -2943,19 +2943,19 @@ the table, and gets played eventually to all nodes).
 I really need some database-like thing -- with no single point of failure, etc., --
 to keep track of this configuration info, in the long run.
 
-   http://zookeeper.apache.org/   -- not so impressed.  
+   http://zookeeper.apache.org/   -- not so impressed.
 
 Another option would be to use git.  Just store config info in these
 text files in a git repo, and pull/push it around as needed.  This
 might work?  It's what I'm doing now, basically.
 
 Right now I'm going to figure out the file-based infrastructure implementation and get
-it implemented. 
+it implemented.
 
 git pull wstein@salvus0.salv.us:/Users/wstein/salvus/
 
  [x] Define format via sample config file.  Will be much like Service class.
- [x] Test/debug 
+ [x] Test/debug
 
  [x] Starting Sage service: test/debug as good example:
 
@@ -2967,14 +2967,14 @@ Sage client test:
 blastoff:salvus wstein$ time echo "os.popen('hostname').read()" | ./sage_server.py -c --hostname 10.38.2.1 -p 6000
 PID = 2723
 sage [0]: '10dot38dot2dot1\n'
-sage [1]: 
+sage [1]:
 Exiting Sage client.
 real	0m0.329s
 user	0m0.116s
 sys	0m0.069s
 
 
-   [x]      - turning on the firewall kills tinc unless I ssh in via 2222 then it comes back and works. 
+   [x]      - turning on the firewall kills tinc unless I ssh in via 2222 then it comes back and works.
 
 ufw --force reset && ufw allow 22 && ufw allow out 22 && ufw allow out 53 && ufw allow 655 && ufw allow out 655 && ufw allow proto tcp from 10.38.1.5 to any port 6000 && ufw allow proto tcp from 10.38.1.7 to any port 6000 && ufw allow proto tcp from 10.38.1.1 to any port 6000 && ufw allow proto tcp from 10.38.1.11 to any port 6000 && ufw deny proto tcp to any port 1:65535 && ufw deny proto udp to any port 1:65535 && ufw default deny outgoing && ufw --force enable
 
@@ -3001,7 +3001,7 @@ sage.math over NFS: 82.5 MB/s
 
 sage.math ramdisk (tmpfs):  933 MB/s
 
-disk.math locally:  39.5 MB/s  (my home dir) 
+disk.math locally:  39.5 MB/s  (my home dir)
                     226 MB/s   in /lvm/data/home/, which has the RAID
 
 combinat locally:  73.7 MB/s
@@ -3021,7 +3021,7 @@ Another benchmark:
 
 salvus@10dot38dot2dot1:~$ wget http://sage.math.washington.edu/home/release/sage-5.4.rc0/sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
 2012-09-30 19:49:14 (49.7 MB/s) - `sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz' saved [738098205/738098205]
-salvus@10dot38dot2dot1:~$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz 
+salvus@10dot38dot2dot1:~$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
 real	0m46.797s
 user	0m18.109s
 sys	0m7.236s
@@ -3033,7 +3033,7 @@ sys	0m0.004s
 Versus native disk on 01salvus:
 salvus@01salvus:~/tmp$ wget http://sage.math.washington.edu/home/release/sage-5.4.rc0/sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
 2012-09-30 19:50:02 (82.0 MB/s) - `sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz' saved [738098205/738098205]
-salvus@01salvus:~/tmp$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz 
+salvus@01salvus:~/tmp$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
 real	0m22.142s
 user	0m17.841s
 sys	0m6.420s
@@ -3043,7 +3043,7 @@ user	0m0.000s
 sys	0m0.048s
 
 
-----> Combining with the sync time, it is almost the same...  Note that the vm in the test had very little ram. 
+----> Combining with the sync time, it is almost the same...  Note that the vm in the test had very little ram.
 Try again with a VM with lots (32gb) of RAM:
 
 salvus@10dot38dot2dot1:~$ free
@@ -3052,8 +3052,8 @@ Mem:      32951292     438400   32512892          0      14248      43396
 -/+ buffers/cache:     380756   32570536
 Swap:            0          0          0
 salvus@10dot38dot2dot1:~$ wget http://sage.math.washington.edu/home/release/sage-5.4.rc0/sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
-100%[===============================================================================================================================================>] 738,098,205 86.4M/s   in 8.5s    
-salvus@10dot38dot2dot1:~$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz 
+100%[===============================================================================================================================================>] 738,098,205 86.4M/s   in 8.5s
+salvus@10dot38dot2dot1:~$ time tar xf sage-5.4.rc0-sage.math.washington.edu-x86_64-Linux.tar.gz
 real	0m32.921s
 user	0m18.241s
 sys	0m9.941s
@@ -3084,7 +3084,7 @@ easier to manage, right?  Which is easier to manage?
                   - easy to make a complete backup of it.
                   - supports 128-bit AES encryption.  This would be
                     *perfect* to have -- then even if an image is
-                    copied/taken/etc, nothing is lost. 
+                    copied/taken/etc, nothing is lost.
                     Obviously, this will entail typing a password
                     when the vm is started, but that's ok, since
                     I can automate that through admin.py.
@@ -3114,15 +3114,15 @@ backups that Cassandra (the DB) produces.  But that is *it*.
 
 
 [ ] create img file, format ext4:
-      
-salvus@02salvus:~/tmp$ qemu-img create -f qcow2 ~/vm/images/10.38.2.1-cassandra1.img 64G
-Formatting '/home/salvus/vm/images/10.38.2.1-cassandra1.img', fmt=qcow2 size=68719476736 encryption=off cluster_size=65536 
 
-salvus@02salvus:~/tmp$ ls -lh ~/vm/images/10.38.2.1-cassandra1.img 
+salvus@02salvus:~/tmp$ qemu-img create -f qcow2 ~/vm/images/10.38.2.1-cassandra1.img 64G
+Formatting '/home/salvus/vm/images/10.38.2.1-cassandra1.img', fmt=qcow2 size=68719476736 encryption=off cluster_size=65536
+
+salvus@02salvus:~/tmp$ ls -lh ~/vm/images/10.38.2.1-cassandra1.img
 -rw-r--r-- 1 salvus salvus 193K Sep 30 22:22 /home/salvus/vm/images/10.38.2.1-cassandra1.img
 
 # FAIL!!!
-# mkfs.ext4 -f ~/vm/images/10.38.2.1-cassandra1.img 
+# mkfs.ext4 -f ~/vm/images/10.38.2.1-cassandra1.img
 # mount -t ext4 -o loop ~/vm/images/10.38.2.1-cassandra1.img  mnt
 
 Try this:
@@ -3132,7 +3132,7 @@ FAIL.
 LAME: I have an idea -- put special code to do *all* the provisioning logic
 in salvus itself, and just call it in /etc/rc.local.
 
-Bad idea. 
+Bad idea.
 
 !! this works !! Try this:
 
@@ -3161,53 +3161,53 @@ Do a test run to see how things come up:
    qemu-img create -b ~/vm/images/salvus_base.img -f qcow2 root.img
    fusermount -u mnt
 
-   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --disk test1.img,device=disk,bus=virtio,format=qcow2 --noautoconsole    
+   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --disk test1.img,device=disk,bus=virtio,format=qcow2 --noautoconsole
 
-virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --filesystem /home/salvus/tmp/mnt/,/mnt/foo  --noautoconsole    
-virsh -c qemu:///session qemu-monitor-command --hmp test1 'hostfwd_add ::2222-:22'   
+virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --filesystem /home/salvus/tmp/mnt/,/mnt/foo  --noautoconsole
+virsh -c qemu:///session qemu-monitor-command --hmp test1 'hostfwd_add ::2222-:22'
 
 
-   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --disk test1.img --noautoconsole    
+   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2 --disk test1.img --noautoconsole
 
 virsh --connect qemu:///session undefine test1
 
-   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2,cache=writeback --disk test1.img,bus=virtio,cache=writeback --noautoconsole    
+   virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2,cache=writeback --disk test1.img,bus=virtio,cache=writeback --noautoconsole
 
 # disk gets big when I do:  dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
 # but speed is fine.
 
 time qemu-img convert test1.img test2.img  # this results in disk that is small again!
 
- virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2,cache=writeback --disk test1.img,bus=virtio,cache=writeback --disk test2.img,bus=virtio,cache=writeback --disk test3.img,bus=virtio,cache=writeback  --noautoconsole    
+ virt-install --cpu host --network user,model=virtio --name test1 --vcpus=8 --ram 4096 --import --disk root.img,device=disk,bus=virtio,format=qcow2,cache=writeback --disk test1.img,bus=virtio,cache=writeback --disk test2.img,bus=virtio,cache=writeback --disk test3.img,bus=virtio,cache=writeback  --noautoconsole
 
 # the devices are mounted in order as /dev/vda1 /dev/vdb1  /dev/vdc1 /dev/vdd1... in order of --disk on command line.
 
-So this should now be dead easy to finish.	
+So this should now be dead easy to finish.
 
 
 -----------------
 
 [ ] Database Encryption plan: Replace the script "salvus/salvus/data/local/bin/start-cassandra"
-by making 
+by making
 
-       ./cassandra.py 
+       ./cassandra.py
 
 do what start-cassandra does, but also have option to encrypt its path using ecryptfs.
 It will have to interactively ask for the passphrase.  Then make admin.py support this.
 NEVER pass the passphrase on the command line or as a saved file.
 
-This is the right level at which to implement encryption for salvus. 
-It will work on all of virtualbox/vmware/in the cloud/kvm, native hosts, etc. 
+This is the right level at which to implement encryption for salvus.
+It will work on all of virtualbox/vmware/in the cloud/kvm, native hosts, etc.
 It greatly simplifies implementing my own private cloud functionality.
 Also, the way ecryptfs works, evidently as long as you know the passphrase,
 you can read the files. Full stop.   If somebody steals in .img file or
-physical computer, nothing is compromised.  
+physical computer, nothing is compromised.
 
 Even better -- I should be able to set things up so when the salvus
 user logs in via ssh (paramiko) to start cassandra, the encrypted img
-is mounted.  That would be nice.  
+is mounted.  That would be nice.
 
-This article looks potentially useful: 
+This article looks potentially useful:
    http://nwrickert2.wordpress.com/2012/01/17/experimenting-with-ecryptfs/
 
 -----------------
@@ -3223,7 +3223,7 @@ working?
 todo -- Bug to fix later -- status when machine is down, should reflect that instead of going boom!
 In [21]: s.status('sage','10.')
 INFO:root:python_c: cd "$HOME/salvus/salvus" && . salvus-env && python -c "import admin; print admin.Sage(id=0,**{'address': '10.38.1.100'}).status()"
-INFO:root:10.38.1.100 --> 
+INFO:root:10.38.1.100 -->
 
 Back to work on persistent disks:
 -------------------
@@ -3245,7 +3245,7 @@ OK, everything works.  The only thing left for later is automatically increasing
 
 I'm my office at 9:54am.  Should prep for class but I want to do one more important thing:
    - make it so the base templates are in a different subdir, and that one can
-     select the one to use.  This will make it much, much easier to 
+     select the one to use.  This will make it much, much easier to
 
 Snuck it in -- done by 10:14am.
 
@@ -3253,7 +3253,7 @@ Now back to teaching prep.
 
 NEXT thing I must address -- I think caching to the cassandra db is *really* slow every once in a while.
 It should *NOT* block getting answers back!  Weird.  Anyways, _something_ is really slow every once
-and a while for no reason.  
+and a while for no reason.
 
 The problem was that I needed to run repair on the cassandra node on
 bsd1.  It was jacked.  Giving inconsistent results, etc.  I also
@@ -3273,7 +3273,7 @@ Plan:  [x] I set USE_EXECUTION_CACHE to False and the problem persists.  So it i
 In [1]: import cassandra
 In [2]: cassandra.set_nodes(['combinat4.salv.us','bsd1.salv.us','servedby1.salv.us'])
 In [3]: cassandra.get_sage_servers()
-Out[3]: 
+Out[3]:
 [(u'combinat3.salv.us', 6000),
  (u'combinat2.salv.us', 6000),
  (u'bsd2.salv.us', 6000),
@@ -3285,7 +3285,7 @@ cassandra is stupid and time consuming.
 
 I ended up working for nearly 2 hours, but now the use of cassandra is massively better.
 It automatically fails over only if there is a connection error or it takes more than 1
-second to do something.  In that case, screw that server -- try another. 
+second to do something.  In that case, screw that server -- try another.
 
 Now we solidly get about 0.09 on fresh comps.
 
@@ -3312,7 +3312,7 @@ I'm going to look into making vm.py work with VirtualBox.  It would be handy.
 I restructured the ~/vm/images path on 02salvus and in my code.  I need to update
 code and make that change on 01,03,04salvus.  Doing that now.
 
-   
+
    cd salvus; git pull wstein@salvus0.salv.us:/Users/wstein/salvus/; cd ~/vm/images; mkdir base; mv salvus_base.img base/salvus.img; emacs /home/salvus/vm/qemu/salvus_base.xml
 
 DONE.
@@ -3322,10 +3322,10 @@ I also just updated the base VM and added ecryptfs-utils.
 Re-shrink base image on 01salvus:
 
 Before:
-salvus@01salvus:~/vm/images/base$ du -sch salvus.img 
+salvus@01salvus:~/vm/images/base$ du -sch salvus.img
 8.0G	salvus.img
 8.0G	total
-salvus@01salvus:~/vm/images/base$ du -sc salvus.img 
+salvus@01salvus:~/vm/images/base$ du -sc salvus.img
 8359236	salvus.img
 8359236	total
 
@@ -3368,7 +3368,7 @@ mv tmp.img salvus.img
   [ ] How to make a VirtualBox "differencing image".
 
 
-[ ] I seriously need to code in admin.py to answer questions: 
+[ ] I seriously need to code in admin.py to answer questions:
      - "what would be deployed on a given node?"
      - what is actually deployed on a given node
 
@@ -3413,18 +3413,18 @@ NO -- Potential plan:
 *need* to backup and no more.  And that's the cassandra data.
 
 Instead, I should focus on how to do that safely, and archive those
-snapshots.  Absolutely nothing else needs to be backed up.   
+snapshots.  Absolutely nothing else needs to be backed up.
 
 I should:
- 
+
    (1) make sure all infrastructure configuration, setup, etc., is as
        *automated as possible* and stored in the github salvus repo.
-   (2) become very good at backing up cassandra's DB, and have this backup 
+   (2) become very good at backing up cassandra's DB, and have this backup
        be something that is done from within the cassandra nodes, controlled
        by my admin scripts, so it works no matter how they are deployed.
    (3) ensure that *all* state relevant to the salvus app is stored in
        cassandra or github.
-      
+
 
 [ ] try exporting cassandra to json:
 
@@ -3453,7 +3453,7 @@ Fix on existing nodes:
 
    import admin, deploy; reload(admin); reload(deploy); h = deploy.hosts; s=deploy.services
    h('all','ufw disable; killall apt-get; apt-get -y --force-yes install libjna-java; ufw --force enable', sudo=True)
-   # BETTER: 
+   # BETTER:
          h.apt_install('all', 'libjna-java')
 
 Fix on my base salvus image:
@@ -3465,7 +3465,7 @@ Fix on my base salvus image:
   # push out the updated base image
 
 Netflix's Priam does all the backup stuff I would want and much, much more: https://github.com/Netflix/Priam
-Unfortunately, it is undocumented and only works on AWS with their API's so is useless to me.  However, 
+Unfortunately, it is undocumented and only works on AWS with their API's so is useless to me.  However,
 it is important to note that they:
 
     1. do use the incremental backup feature
@@ -3485,8 +3485,8 @@ In the meantime, doing:
 
   h.nodetool('snapshot')
 
-and 
-  
+and
+
   h.nodetool('repair')
 
 regularly is a good idea.
@@ -3503,7 +3503,7 @@ Move to salvus:
 (done)  1. Replace combinat.math.washington.edu in godaddy dns with ip of 01salvus.
 (done)  2. Add ip for 02salvus also, for redundancy.
 
-PLAN: 
+PLAN:
 
   [ ] fix vpn broadcast everywhere and restart those tinc's
 
@@ -3511,11 +3511,11 @@ PLAN:
       with these rules/properties; except it will still use two old
       cassandras
 
-  [ ] turn off old deployment 
+  [ ] turn off old deployment
 
   [ ] fix network stuff on all old machines by hand (since vbox isn't automatic).
 
-  [ ] start old machines as part of new deployment. 
+  [ ] start old machines as part of new deployment.
 
 DETAILS tinc:
 
@@ -3543,7 +3543,7 @@ ARGH -- weirdly all the new dell machines are inaccessible over the
 network right now, so I can't do anything anyways.  i'll get up very
 early tomorrow and work on this after I am doing preping to teach.
 
-LET THIS BE A WARNING TO ME!  
+LET THIS BE A WARNING TO ME!
 
 Now salvus is running on servedby, combinat (for the sage sessions --
 it isn't dead?), and bsd. But it is running!
@@ -3562,7 +3562,7 @@ instances for testing.   I will mention this in my talk tomorrow,
 and start planning to set them up!
 
 
-I'm going to try to make it so I can run vm's on geom just as easily as 0ksalvus. 
+I'm going to try to make it so I can run vm's on geom just as easily as 0ksalvus.
 
 Packages (and important fix):
 
@@ -3574,7 +3574,7 @@ Base image:
 
    salvus@geom: mkdir vm; mkdir vm/images/; mkdir vm/images/base
 
-# Remove old .libvirt on geom and replace by one from 01salvus, and symlink to 
+# Remove old .libvirt on geom and replace by one from 01salvus, and symlink to
 
    salvus@geom: rm -rf ~/.libvirt; cd vm; ln -s ~/.libvirt/qemu .; scp -r 01salvus:.libvirt ~/
 
@@ -3587,13 +3587,13 @@ Base image:
 
 # Fix permissions so that guestmount works (run this *and* put in /etc/rc.local)
 
-   sudo chmod a+r /boot/vmlinuz-* # used by guestmount  
+   sudo chmod a+r /boot/vmlinuz-* # used by guestmount
 
 Add salvus to the kvm, libvirt and fuse groups in etc/group
- 
+
 
 Build salvus:
- 
+
    git clone https://github.com/williamstein/salvus.git; cd salvus/salvus; . salvus-env ; ./build.py --build_all
 
 Setup vpn:
@@ -3604,7 +3604,7 @@ Setup vpn:
 Oct 3, 2012
 ===========
 
-Working on setting up vpn and kvm for other hosts.  
+Working on setting up vpn and kvm for other hosts.
 
 I've change the tinc names to match hostnames.  This means I need to
 update salvus on all tinc vpn servers, which are:
@@ -3643,7 +3643,7 @@ for hostname in ['%02dsalvus.math.washington.edu'%k for k in [1,2,3,4]] + \
 Setup to use 01salvus as base git repo:
 
   cd salvus; git remote rm origin; git remote add origin 01salvus.math.washington.edu:salvus/; git pull origin master
-  
+
 
 # on 01salvus:
 
@@ -3666,7 +3666,7 @@ Trying to get rid of last virtualbox vm on combinat.
 
 This is: combinat4.salv.us = 10.38.1.10
 
-I'm first just trying to copy off the cassandra-0 directory, which is actually quite small 
+I'm first just trying to copy off the cassandra-0 directory, which is actually quite small
 
 Making a test machine on geom:
 
@@ -3694,12 +3694,12 @@ I want to:
    - test
    - stop old one
    - expand new one to encompass old one
-   - turn off combinat4 
+   - turn off combinat4
    - uninstall virtualbox on combinat
    - test that kvm works on combinat
 
 
-===   
+===
 
 I'm going to give a talk tomorrow on Salvus.  My goals in giving this talk are:
 
@@ -3715,7 +3715,7 @@ Title slide
 
 
   Salvus - Adj. meaning well, unharmed, sound; alive; safe, saved
- 
+
   Pictures
 
 
@@ -3785,7 +3785,7 @@ Longterm Programmng Goals (Features):
     files, and there is a revision history.
 
   * A command line -- alternative way to browse a project, and will
-    be like the bash command line.   Can type "sage" to run Sage here. 
+    be like the bash command line.   Can type "sage" to run Sage here.
 
   * Editing documents -- Salvus will also provide browser-based
     editing of several file types, starting with .sws files (for
@@ -3817,20 +3817,20 @@ monolithic single-point-of-failure Sage notebook:
   * Taking my time and doing things right (and have thrown away huge
     amounts of code I wrote this summer).  With the sage notebook, I
     wrote something that *looks* and feels a lot like the current
-    version in a sleep-deprived month.  
+    version in a sleep-deprived month.
 
   * Architecture is very service-based.  Numerous independent
     components running on dozens of machines communicating securely
     via messages over a VPN.
 
   * Design goal -- absolutely no single points of failure anywhere in
-    the design of salvus.  
+    the design of salvus.
 
 (Note: The demo at http://salv.us is very unimpressive, because all the
 real work is behind the scenes.)
 
 Salvus Technology stack:
- 
+
   * Physical Hardware and Remote VM's
   * Virtualization:  libvirt + kvm
   * VPN: tinc
@@ -3859,28 +3859,28 @@ Diagram (make it using mindmap):
    https1.1 (websocket, etc.)
       |
       |   https://salv.us
-     \|/ 
- HAProxy Load Balancers                      
+     \|/
+ HAProxy Load Balancers
  /|\       /|\      /|\      /|\
-  |         |        |        |                                                
-  |https1.1 |        |        |                                     
- \|/       \|/      \|/      \|/                                      
+  |         |        |        |
+  |https1.1 |        |        |
+ \|/       \|/      \|/      \|/
 Tornado  Tornado  Tornado  Tornado    <--------------------------->   Cassandra   Cassandra    Cassandra ...
            /|\      /|\                                                 /|\
             |        |        -------------------------------------------|
-   ---------|        |        |                                         
+   ---------|        |        |
    |                 |        |
    |                          |
   \|/                        \|/
  SageServer   SageServer  SageServer   SageServer ...
 
-   
+
 Discussion of each component -- rest of talk.
 
- 
+
 
 Physical Hardware and Remote VM's:
------------------------------------ 
+-----------------------------------
   * 4 3Ghz 16-core 64GB RAM, 1TB disk, 1U servers in Padelford basement
   * 1 8-core 32GB RAM machine in my office
   * 3 3Ghz 16-core 64GB RAM, 6TB disk, 1U servers currently being shiped to the UW tower
@@ -3898,7 +3898,7 @@ This should be enough to support several thousand paying customers
 
 Pricing will likely be around $10/month per user for the first tier of
 non-free account, which competes very well with linnode + sagenb
-($100/month?).   
+($100/month?).
 
 Goal by end of March 2013: Have 1,500 worldwide paying users at
 $10/month, which is what the above hardware should easily be able to
@@ -3910,10 +3910,10 @@ Virtualization:  libvirt + kvm:
   * Virtualization is absolutely essential due to allowing users to
     remotely execute arbitrary code (ok, with sagenb.org nothing is
     virtualizaed, but that is just a ticking bomb, which keeps going
-    off!)  
+    off!)
 
   * Public clouds: many companies now rent virtual machines.
- 
+
   * Private clouds: startup many virtual machines based on a template
     with certain parameters, start services running on them.  When the
     machine shuts down, it leaves no trace (except persistent sparse
@@ -3952,22 +3952,22 @@ VPN: tinc
 
   * tinc is "a Virtual Private Network (VPN) daemon that uses
     tunnelling and encryption to create a secure private network
-    between hosts on the Internet."  
+    between hosts on the Internet."
 
     Key features:
          - Every public facing machine on the vpn also acts as a
            server, so clients (virtual machines, public cloud
            instances) can connect as long as *any* public-facing
-           maching is up.   
-         - It's P2P -- not all traffic has to go through one 
-           master node, which could be very inefficient. 
+           maching is up.
+         - It's P2P -- not all traffic has to go through one
+           master node, which could be very inefficient.
          - All traffic is encrypted.
          - Easy/sensible; oo add a machine to the VPN, you just
            generate a public and private key, then add the public key
            to at least one public facing machine.
          - A small C program that builds in seconds, and has been
            under development since 1998.
-      
+
   * by using a VPN, I can easily combine cloud computers, my own
     computers, etc., and don't have to worry about ip addresses
     changing.  Also, I don't have to worry about securing
@@ -3976,7 +3976,7 @@ VPN: tinc
     SSL + TCP communication between the Tornado web server and backend
     Sage process; I threw all that code away, and instead just use a
     VPN and have a nice clean class A address space as a bonus.
- 
+
 Database: Cassandra
 ====================
 
@@ -4016,7 +4016,7 @@ an absolutely crucial design decision.
     how redundant they are.  I had learned a lot about MongoDB (a
     noSQL database) a few years ago, and after getting LMFDB.org to
     use it a lot (and using it for my own database work), I think it
-    sucks.... for me at least. 
+    sucks.... for me at least.
 
       "Does everyone hate MongoDB?"
       http://news.ycombinator.com/item?id=4570790
@@ -4042,7 +4042,7 @@ an absolutely crucial design decision.
     using CQL3, which looks like a restricted subset of SQL, with NO
     JOINS or relations at all between tables!
 
-   
+
 SSL: stunnel   -- https://salv.us
 =================================
 
@@ -4063,8 +4063,8 @@ SSL: stunnel   -- https://salv.us
 
   * https://salv.us works and doesn't give a security warning on any
     devices I've tested it on.
- 
-  * This component is a no-brainer. 
+
+  * This component is a no-brainer.
 
   * With salvus we run a couple of stunnel's and put them all in DNS, so
     the browser chooses one.  When an stunnel fails, the browser will just
@@ -4087,7 +4087,7 @@ Static HTTP: nginx
 
 nginx seems to be the canonical choice for serving a huge number of
 static webpages efficiently.  It was easy to setup and use.  It's
-lightweight and easy to build from source.    
+lightweight and easy to build from source.
 
 nginx is single threaded.  This is absolutely key to its success in
 serving huge numbers of requests per second.  It's far more efficient
@@ -4129,7 +4129,7 @@ I wrote from scratch a TCP server that starts up as a Sage process
 with various things pre-imported such as graphics, Maxima, etc.,
 listens on a socket (running as root), accepts a connection, forks,
 lowers privileges, executes blocks of sage code, and streams results
-back over the connection.  
+back over the connection.
 
 The design is much different than with the SAge notebook, where one
 process watches another.  Here, as code executes, the running process
@@ -4151,14 +4151,14 @@ ugly quickly, but looked cool and powerful.
 
 I then wrote a big Python program to do component administration
 (starting and stopping the many programs listed above), using mainly
-Python Subprocess module, and only got it working on a single machine. 
+Python Subprocess module, and only got it working on a single machine.
 
 Then -- just as with private clouds, I found that there are tons (and
 tons!) of programs out there for managing installing and running
 software on a bunch of machine.  I found one called Ansible that I
 kind of liked at first, but found it to be too immature and not so
 widely used.  There were some other solutions, but they seemed like
-massive overkill.  I spent quite a bit of time investigating them. 
+massive overkill.  I spent quite a bit of time investigating them.
 But for every actual application, there is a bunch of subtle logic
 that just has to be figured out and coded, and I had a lot of that down
 from my code mentioned above.
@@ -4173,7 +4173,7 @@ unorganized and bad, at first glance.  But when I actually started
 
 So I adopted some of the code mentioned above, and have something that
 really works now.  This is actually where *most* of the code I've
-written and kept has gone.  
+written and kept has gone.
 
 -------
 
@@ -4185,7 +4185,7 @@ Oct 5, 2012:
   I now want to make it so the sage notebook is usable through
   salv.us, but made highly scalable and available! -- why not?
 
-  Here's the overall plan:  
+  Here's the overall plan:
 
     * create a new kind of service designed much like the existing
       sage_server.py (maybe as part of it)
@@ -4222,7 +4222,7 @@ Oct 6, 2012:
 ===========
 
 I have around 4-5 hours to do focused work on salvus.  I'm well rested
-and have an espresso.  Let's see what happens. 
+and have an espresso.  Let's see what happens.
 
 First goal: deal with the new hosts file format.  I'm going to consider
 getting rid of the groups and just putting the group info in the hostname.
@@ -4245,13 +4245,13 @@ salvus@01salvus:~$ emacs salvus/salvus/data/local/etc/tinc/hosts/`hostname`
 Wait maybe I can just change them on my laptop; git commit, then pull and restart tincd's?
 
 blastoff:~ wstein$ cd salvus/salvus/conf/tinc_hosts/
-blastoff:tinc_hosts wstein$ 
+blastoff:tinc_hosts wstein$
 
 I have to also modify tinc-up on each host.
 
  cd salvus/salvus; . salvus-env; git pull; emacs data/local/etc/tinc/tinc.conf; emacs data/local/etc/tinc/tinc-up ; restart_tincd
 
-#!/bin/sh                                                                                                                                     
+#!/bin/sh
 ifconfig $INTERFACE 10.1.1.1 netmask 255.0.0.0
 
 Also useful:
@@ -4319,7 +4319,7 @@ ConnectTo = geom
 Device = /dev/tap0
 
 
-Done.  
+Done.
 
 I just fixed an issue with stunnel control too.
 
@@ -4342,7 +4342,7 @@ Proper shutdown:
     s.stop('vm')
     s.status('vm')
 
-WORKFLOW/OPS: It seems critical that I come up with a good way to do upgrades, staging, etc., 
+WORKFLOW/OPS: It seems critical that I come up with a good way to do upgrades, staging, etc.,
 
 In particular, I need to be able to regularly update the base image without having to restart
 all guests.   Or do it in a sensible rolling way...
@@ -4474,10 +4474,10 @@ to /etc/apt/sources.list:
 
 I'm trying this now on 03salvus and 04salvus....
 
-... and it seems to have worked -- no crashes all night long. 
+... and it seems to have worked -- no crashes all night long.
 
 I'm going to push the changes to 01salvus, 02salvus, geom, and combinat right now,
-reboot 01salvus, 02salvus, and restart salvus. 
+reboot 01salvus, 02salvus, and restart salvus.
 
 It seems that geom and combinat now work too (at least iperf passes).
 
@@ -4498,7 +4498,7 @@ Time to think more about SACNAS.  My plan:
      staying.
 
   3. If I have time left, try to implement a scalable worksheet server
-     and salvus accounts and *use it* this Wednesday.  
+     and salvus accounts and *use it* this Wednesday.
 
 Plan for 1:
   [ ] Make a sagenb process class in admin.py.
@@ -4507,13 +4507,13 @@ Plan for 1:
 10.1.1.1 padelford kvm-host 01salvus
 10.1.1.2 padelford kvm sagenb1
 
-10.1.2.1 padelford kvm-host 02salvus 
+10.1.2.1 padelford kvm-host 02salvus
 10.1.2.2 padelford kvm sagenb2
 
-10.1.3.1 padelford kvm-host 03salvus 
+10.1.3.1 padelford kvm-host 03salvus
 10.1.3.2 padelford kvm sagenb3
 
-10.1.4.1 padelford kvm-host 04salvus 
+10.1.4.1 padelford kvm-host 04salvus
 10.1.4.2 padelford kvm sagenb4
 
 # services
@@ -4543,7 +4543,7 @@ class Sagenb(Process):
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
         Process.__init__(self, id, name='sage', port=port,
                          pidfile    = pidfile,
-                         logfile = logfile, monitor_database=monitor_database, 
+                         logfile = logfile, monitor_database=monitor_database,
                          start_cmd  = ['sage', '--python', 'sage_server.py',
                                        '-p', port, '--address', address,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
@@ -4553,25 +4553,25 @@ class Sagenb(Process):
 
     def port(self):
         return self._port
-        
+
 
 
 Plan for 3 (version 1):
 
   [ ] User account table.
-  [ ] User account creation page. 
+  [ ] User account creation page.
   [ ] Table that contains columns:
           user_id   complete_tarball_of_a_sagenb
   [ ] Extend sage_server.py to accept a message that is:
            "Create file with given name and contents in current directory."
   [ ] Write a little bit of code that does this:
          "Start a sage notebook server using this tarball on this port."
-  [ ] Modify tornado server so that when an authenticated user visits 
+  [ ] Modify tornado server so that when an authenticated user visits
            http://salv.us/sagenb
-      they get their sagenb. 
+      they get their sagenb.
 
 There is no way I can do this in time in a way that I will like.
- 
+
 -----------------
 
 Oct 9, 2012 at 12:28pm
@@ -4593,15 +4593,15 @@ and 172.25.242.133 through 172.25.242.190
 
 Use 128GB for automatic LVM partitioning.
 
-128.95.242.133 05salvus 
-128.95.242.135 06salvus 
-128.95.242.137 07salvus 
-128.95.242.139 08salvus 
+128.95.242.133 05salvus
+128.95.242.135 06salvus
+128.95.242.137 07salvus
+128.95.242.139 08salvus
 
-128.95.242.134 05salvus-admin 
-128.95.242.136 06salvus-admin 
-128.95.242.138 07salvus-admin 
-128.95.242.140 08salvus-admin 
+128.95.242.134 05salvus-admin
+128.95.242.136 06salvus-admin
+128.95.242.138 07salvus-admin
+128.95.242.140 08salvus-admin
 
 [x] openssh server
 [x] virtual machine host
@@ -4619,9 +4619,9 @@ dns-nameservers 128.95.120.1 128.95.112.1 8.8.8.8 8.8.4.4
 
 
 
-Then on first boot: 
+Then on first boot:
 
-* Turn off memtest 
+* Turn off memtest
 
 * Control-E
 
@@ -4666,7 +4666,7 @@ mkdir ~/vm; mkdir ~/vm/images; mkdir ~/vm/images/base; rsync --sparse -uaxvH 01s
 # Edit /etc/rc.local
 
 sudo emacs /etc/rc.local
-   sudo chmod a+r /boot/vmlinuz-* # used by guestmount  
+   sudo chmod a+r /boot/vmlinuz-* # used by guestmount
    nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd
 
 
@@ -4707,7 +4707,7 @@ Steps to create salvus*.sagenb.org servers:
 
 (done) -- finish vm host config on 05-08salvus:
 
- usermod -a -G fuse,kvm,libvirtd,netdev salvus;  chmod a+wr /dev/kvm 
+ usermod -a -G fuse,kvm,libvirtd,netdev salvus;  chmod a+wr /dev/kvm
 
 -- setup tincd:
 
@@ -4762,7 +4762,7 @@ MAKING A NEW BASE: (needs to be put in scripts/)
      virsh --connect qemu:///session destroy $NAME
      virsh --connect qemu:///session list --all
 
-     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py 
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py
 
 
 import admin; admin.tinc_conf('10.4.3.1')
@@ -4863,7 +4863,7 @@ NameVirtualHost *:80
 
 Oct 11, 2012:
 ---------------
-5:47pm. 
+5:47pm.
 
   [x] get salvus working on my laptop again:
 
@@ -4922,7 +4922,7 @@ polishing and getting the details right.
 Plan:
 
 [x]  - make a new .img version with the latest code:
-   
+
  -- snippet below
  -- cd salvus; git pull https://github.com/williamstein/salvus.git
  -- apt-get update; apt-get upgrade
@@ -4955,7 +4955,7 @@ s.restart('haproxy', '02salvus')
       virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
      virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
 
-       sudo apt-get update; sudo apt-get upgrade; 
+       sudo apt-get update; sudo apt-get upgrade;
        sudo reboot -h now
        cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
        . salvus-env
@@ -4967,10 +4967,10 @@ s.restart('haproxy', '02salvus')
      virsh --connect qemu:///session destroy $NAME
      virsh --connect qemu:///session list --all
 
-     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py 
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py
 ------------
 
-[ ] BIG TASK: deploy more robustly -- I'm going to extend my salvus deployment to 2 more nodes in the UW tower. 
+[ ] BIG TASK: deploy more robustly -- I'm going to extend my salvus deployment to 2 more nodes in the UW tower.
 
    phase 1:
     [x] add 05salvus, 06salvus to ip list for salv.us
@@ -4980,14 +4980,14 @@ s.restart('haproxy', '02salvus')
     [x] start vm's
     [x] start web services on vm's
     [x] test that is working
-   
+
    phase 2:
     [ ] configure 4 more cassandra nodes to tower center (for a total of 8)
 
  - reading http://www.datastax.com/docs/1.1/operations/cluster_management#adding-capacity
  - for now I'll add 4 new nodes, hence doubling the size.
  - run this code:
-N=8; 
+N=8;
 for i in range(N):
     print  i * (2**127 / N)
  - for now, I'm evidently not yet using the NetworkTopologyStrategy,
@@ -5015,7 +5015,7 @@ So... I will:
 
  [x] set seeds back on.
  [x] restart the first 4 cassandra procs (really just to fix their firewalls):
- 
+
 [s.restart('cassandra', 'cassandra0%s'%i) for i in range(1, 5)]
 
 
@@ -5030,13 +5030,13 @@ h.nodetool('repair', node, wait=True)
 h.nodetool('ring', node, wait=True)
 
 
-[x] SERIOUS BUG: 
+[x] SERIOUS BUG:
 
    When creating the cassandra nodes above, I created *two* machines
    with persistent images on the same host at the same time.  This
    failed.  The reason is because the command I use to make the image
-   creates the same filename for both, the moves it!  Need to use 
-   a temporary subdirectory.  
+   creates the same filename for both, the moves it!  Need to use
+   a temporary subdirectory.
 
 Two options to fix this:
 
@@ -5047,12 +5047,12 @@ or
 According to the official manpage, "Prepared disk images are written
 to file "test1.img" in the local directory."... so option (1) isn't an
 option, evidently.  So I'll do (2).
-  
-Yes, the bug is fixed.  Nice.  
+
+Yes, the bug is fixed.  Nice.
 
 ----------------------
 [x] BIG TASK: Implement user account creation and login.
-   
+
    - no fancy html yet!
    - user *must* have a valid email address
    - limited number of accounts per email address
@@ -5073,10 +5073,10 @@ Yes, the bug is fixed.  Nice.
 [x] look at what it gives and think.
 [x] write some code in cassandra.py
 
-  
+
   get_users_permissions(email_hash)  # things user with given email can do  (keyed on *hash* of email)
   stateless_exec(email_hash, ...)    # cursor over stateless exec by this user  (extra stuff to search by range, sorted by date)
-  
+
 
 ** very interesting discussion about how to use sockjs with authentication **
 
@@ -5086,10 +5086,10 @@ Yes, the bug is fixed.  Nice.
      standard:
         - user_id (counter)  -- row key
         - username          -- indexed
-     optional:   
-        - password_hash 
+     optional:
+        - password_hash
         - email address
-        - google openid code (whatever that is)   
+        - google openid code (whatever that is)
         - etc.
 [x] write cassandra.py code to create account table
 [x] write cassandra.py code to implement basic operations:
@@ -5136,12 +5136,12 @@ but filename changes on click...
 Then:
 
 cd salvus/salvus/src;
-git rm dsc-cassandra-1.1.2.tar.bz2 
-tar jxf dsc-cassandra-1.1.5-bin.tar.gz 
+git rm dsc-cassandra-1.1.2.tar.bz2
+tar jxf dsc-cassandra-1.1.5-bin.tar.gz
 tar jcf dsc-cassandra-1.1.5.tar.bz2 dsc-cassandra-1.1.5
 rm -rf dsc-cassandra-1.1.5-bin.tar.gz dsc-cassandra-1.1.5
 # elsewhere >>>  import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts; s.stop('cassandra')
-cd ..; . salvus-env; ./build.py --build_cassandra     
+cd ..; . salvus-env; ./build.py --build_cassandra
 # elsewhere >>> s.start('cassandra')
 
 It did not work.  Somehow the schema got all corrupted:
@@ -5157,23 +5157,23 @@ Note the "column1", which should be "running". and the values should be boolean.
 I installed the old version of cassandra and the old data works again.
 
 I then did what the instructions at http://www.datastax.com/docs/1.1/install/upgrading#completing-upgrade say,
-namely 
+namely
 
    nodetool repair
-   nodetool drain 
+   nodetool drain
 
 and it works fine now.  Cool.   So be careful when upgrading!
-   
+
   [x] haproxy: 1.5-dev11 --> 1.5-dev12
 
 Download (very, very slow!) from http://haproxy.1wt.eu/#down
-http://haproxy.1wt.eu/download/1.5/src/devel/?C=M;O=D   
+http://haproxy.1wt.eu/download/1.5/src/devel/?C=M;O=D
 
 It just worked no problem at all.
 
   [x] nginx: 1.3.2 --> 1.3.7
 
-Fast from here http://wiki.nginx.org/Install   
+Fast from here http://wiki.nginx.org/Install
 Seems to have worked perfectly.
 
   [x] stunnel: 4.53 --> 4.54
@@ -5193,7 +5193,7 @@ There's no tarball, so I did the following on 05salvus:
    cd ..
    tar jcvf  protobuf-2.5.0.tar.bz2 protobuf-2.5.0
    rm -rf protobuf-2.5.0
-   
+
 then copy back to laptop and test.
 
 Then I do:
@@ -5225,7 +5225,7 @@ Once *every upgrade* works locally:
 In [20]: import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts
 
 In [21]: h.nodetool('ring', wait=True)
-wstein's password: 
+wstein's password:
 INFO:root:127.0.0.1 (sage):
 INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_5.6)
 INFO:paramiko.transport:Authentication (publickey) failed.
@@ -5248,13 +5248,13 @@ TIRED/Sat Oct 13 at 7:58pm...
 
 salvus -- It's 6:52pm and I'm laying important groundwork for writing
 the salvus client browser code.  My experiments earlier this summer
-make me concerned about javascript: 
+make me concerned about javascript:
    (1) the resulting code is pretty big -- e.g., ipython notebook is huge
    (2) the code can be very hard to read/follow/organize...
 
 So I'm looking into CoffeeScript.
 
-Iced CoffeeScript -- better async...	
+Iced CoffeeScript -- better async...
 
    http://maxtaco.github.com/coffee-script/
 
@@ -5293,7 +5293,7 @@ I installed emacs coffee-mode from
 by putting the script in ~/.emacs-scripts/, M-x byte-compile-file,
 and adding this to my ~/.emacs file:
    (load "coffee-mode")
-The syntax hilighting looks good.  
+The syntax hilighting looks good.
 
 If I wanted 4-space indent:
    (custom-set-variables '(coffee-tab-width 4))
@@ -5349,7 +5349,7 @@ Converting sagews.js --> salvus.coffee, is getting confused / not
 working automatically, mainly due to sagews.js not really being
 properly object oriented.  I'll fix this first thing in the morning...
 
-See Object Orientation here: 
+See Object Orientation here:
    http://css.dzone.com/articles/its-time-learn-coffeescript?utm_source=feedburner&utm_medium=feed&utm_campaign=Feed%3A+zones%2Fcss+(CSS+Zone)
 
 
@@ -5362,11 +5362,11 @@ Testing starting/stopping of tornado and making sockjs connection:
 In [13]: !kill -STOP 28228
 In [14]: !kill -CONT 28228
 
-  [ ] try to find some way to use javascript/node (?) to test my site???  even something very, very minimal. 
+  [ ] try to find some way to use javascript/node (?) to test my site???  even something very, very minimal.
 
   [ ] implement "logged_in" message type (in proto?) -- see comment in salvus.coffee
 
-  
+
 
 IDEA: for picking files -- https://www.filepicker.io/products/javascript_v1/
 
@@ -5419,7 +5419,7 @@ Tuesday, Oct 16, 2012:
 
 Actually, I'm going to attempt to rewrite tornado_server.py using
 NodeJS, mainly because there is a huge amount of momentum behind
-nodejs right now and because of CoffeeScript.  
+nodejs right now and because of CoffeeScript.
 
 Things my tornado server does:
 
@@ -5442,7 +5442,7 @@ Plan (what is below):
 
   * write sample snippets of code that show how do to do each thing.
 
-  * write the actual new code. 
+  * write the actual new code.
 
 Most depended on packages:
 
@@ -5473,7 +5473,7 @@ Writing async code: https://github.com/caolan/async
  	 user	7m39.467s
 	 sys	0m49.534s
     - includes its dependencies :-)
-    - npm: 
+    - npm:
          export ??? PATH=`pwd`:$PATH # in node build
          # move out
          git clone git://github.com/isaacs/npm.git && cd npm && make
@@ -5483,7 +5483,7 @@ Files for examples/demos of everything: salvus/notes/node
 [x] SockJS Server
 -------------
 
-  * https://github.com/sockjs/sockjs-node 
+  * https://github.com/sockjs/sockjs-node
        -- looks rock solid.
 
 $ npm install sockjs
@@ -5496,7 +5496,7 @@ See salvus/notes/node/chat
 
 --> * https://github.com/simplereach/helenus
          -- supports CQL3, had connection pool, etc.
-  * https://github.com/racker/node-cassandra-client 
+  * https://github.com/racker/node-cassandra-client
        -- does *not* support CQL3, at least as of 2 months ago -- https://github.com/racker/node-cassandra-client/issues/38
 
 [x] USE  -- node/cql/test3.coffee  # helenus seems to work great
@@ -5508,7 +5508,7 @@ execute('select * from sage_servers')
 Nice talk?   http://www.datastax.com/wp-content/uploads/2012/08/10_SimpleReach_NodeJS-Helenus.pdf
 
 
-[x] Protobuf: conclusion -- I'll switch back to JSON, but keep a file describing the message format. 
+[x] Protobuf: conclusion -- I'll switch back to JSON, but keep a file describing the message format.
 --------
 
    * http://stackoverflow.com/questions/12225253/which-node-js-module-should-i-install-to-be-able-to-use-google-protocol-buffers
@@ -5533,21 +5533,21 @@ var schema = new Schema(fs.readFileSync('mesg.desc'));
 [ ] Authentication
 ------------------
 
-   * This looks very good, since it supports *tons* of different sites: 
+   * This looks very good, since it supports *tons* of different sites:
         https://github.com/ciaranj/connect-auth
 
    * This looks even better: http://passportjs.org/
         - excellent documentation
         - normalized user profile info: http://passportjs.org/guide/user-profile.html
-        - argument by passport author about why he thinks it is better than everyauth: 
+        - argument by passport author about why he thinks it is better than everyauth:
               http://stackoverflow.com/questions/3498005/user-authentication-libraries-for-node-js
 
 -->* This one might be even better yet: https://github.com/bnoguchi/everyauth
 
-... 
+...
 
-    
-    
+
+
 
 [x] CLI
 ----------
@@ -5559,8 +5559,8 @@ var schema = new Schema(fs.readFileSync('mesg.desc'));
         - "no config doesn't mean good if you want the free documentation, other than that I'd say optimist is sweet"
 
    * commander -- https://github.com/visionmedia/commander.js
-        - looks very good as well 
-        - blog: http://tjholowaychuk.com/post/9103188408/commander-js-nodejs-command-line-interfaces-made-easy 
+        - looks very good as well
+        - blog: http://tjholowaychuk.com/post/9103188408/commander-js-nodejs-command-line-interfaces-made-easy
         - "I recently changed from optimist to commander for all our internal tooling. The api feel really natural but what else would you expect from tj, he's an API god."
    * nomnom -- https://github.com/harthur/nomnom
         - looks good too
@@ -5573,7 +5573,7 @@ var schema = new Schema(fs.readFileSync('mesg.desc'));
 [x] Daemon
 ----------
 
-       
+
  --> * https://github.com/niegowski/node-daemonize2
          - simple and exactly what I need
 
@@ -5596,7 +5596,7 @@ blastoff:daemon wstein$ npm install forever-monitor
 
 wait... surprisingly, a little module called "init" actually does what I want?!
 
-blastoff:daemon wstein$ more in.js 
+blastoff:daemon wstein$ more in.js
 init = require('init');
 
 init.simple({
@@ -5610,11 +5610,11 @@ init.simple({
 
 This works perfectly... no.?
 
-I've looked at probably a dozen daemon modules!  
+I've looked at probably a dozen daemon modules!
 
-Finally, this one looks good: 
+Finally, this one looks good:
 
-   https://npmjs.org/package/start-stop-daemon 
+   https://npmjs.org/package/start-stop-daemon
 
 This is AWESOME -- it built on that "forever" script, but works
 with a single process, which of course I want.   As an added bonus
@@ -5644,13 +5644,13 @@ the code to js first, then run it. But that is OK.
     * https://github.com/nomiddlename/log4js-node
          - looks confused/harder to use/not as documented
 
-[x] USE -- see daemon/soln.coffee 
+[x] USE -- see daemon/soln.coffee
     Winston works well!
 
 [x] web framework -- Express ?
 ===================
 
-  * https://github.com/mauricemach/zappa 
+  * https://github.com/mauricemach/zappa
    - basically express + coffeescript.
 
 
@@ -5722,14 +5722,14 @@ Oct 19, 2012:
    [x] test sockjs works with node_server
 
    [ ] authentication
-   [ ] handling evaluation 
-   [ ] integration with admin.py: 
+   [ ] handling evaluation
+   [ ] integration with admin.py:
           -  node_secrets
 
 I'm going to hit this very focused now for the next two hours:
-  
+
 [ ] connection to sage (need to make sage accept json format -- lot of work!)
-    * Basically I have to intrusively change everything in my stack to use JSON and get rid of protobuf.	
+    * Basically I have to intrusively change everything in my stack to use JSON and get rid of protobuf.
 
      [x] skim through sage_server.py
      [x] rewrite sage_server.py to use JSON  -- turned out to take < 30 minutes total!
@@ -5739,17 +5739,17 @@ I'm going to hit this very focused now for the next two hours:
              - source code
              - build
              - mesg.proto, etc.
-   
+
 
 Oct 20, 2012:
 approx 5am - 10am salvus session:
     [x] reading a lot.
 
-    [ ] someday -- later (!) maybe -- I should make sure and compress the JSON messages using zlib (say): 
+    [ ] someday -- later (!) maybe -- I should make sure and compress the JSON messages using zlib (say):
                http://nodejs.org/api/zlib.html#zlib_zlib
-        Because "cpu cheap/bandwidth expensive"  
+        Because "cpu cheap/bandwidth expensive"
         But if can't decompress in browser this may be stupid.  Also, what if sockjs already compressed?
-        Anyway, there may be hidden costs. 
+        Anyway, there may be hidden costs.
 
     [ ] implement support for sage_server from nodejs, e.g, sage.coffee
 
@@ -5759,7 +5759,7 @@ approx 5am - 10am salvus session:
           (e.g., return answers to requests)
 
       [ ] write code to actually handle queries!
-      
+
 
 
 IDEA -- local GUI for sage using https://github.com/rogerwang/node-webkit;  http://appjs.org/
@@ -5787,7 +5787,7 @@ Plan for now: finish writing node_server and cleaning it up.
 
   [ ] use cassandra to choose sage servers
   [ ] deal with failure to connect to sage much more robustly
-  [ ] code cleanup/refactor  
+  [ ] code cleanup/refactor
        [ ] sage.coffee -- proper headers and comments
 
 
@@ -5805,13 +5805,13 @@ I mostly fixed the race condition mentioned above, but there are issues:
 
 As I was laying in bed last night, I started feeling that a big
 blocker for completely finishing salvus (to some milestone) at this
-point is not having a detailed todo list for the whole project.   
+point is not having a detailed todo list for the whole project.
 
 
 Hmmm, I'm pissed about this sage_server.py hang thing.  It does
 reliably hang.  I *must* fix this and have a nice way to test that
 this continues to work.  Having the key component randomly hang is not
-cool. 
+cool.
 
 Facts:
 
@@ -5836,7 +5836,7 @@ Facts:
 66112 s000  Z+     0:00.00 (python2.7)
 66113 s000  Z+     0:00.00 (python2.7)
 66244 s010  S+     0:00.00 grep python
-blastoff:salvus wstein$ 
+blastoff:salvus wstein$
 
   - one single client maybe not enough to cause a crash..
 
@@ -5845,17 +5845,17 @@ blastoff:salvus wstein$
     This took about 5 minutes.  There are *no* zombie pythons left this time.
 
   - I bet s.listen(0) defaults to s.listen(5) since the docs say the
-    number of connections must be >=1.  
+    number of connections must be >=1.
 
-        Trying s.listen(1) now.  
+        Trying s.listen(1) now.
 
     I see -- when that happens there is only one client accepting at a
     time, though of course we can have many clients.  I wonder if when
     there is more than 1, two forking at the same time screws up some
     important state?
 
-    With this setting I have not been able to get sage_server.py to 
-    actually crash.  Although, occassionally, I get...  
+    With this setting I have not been able to get sage_server.py to
+    actually crash.  Although, occassionally, I get...
 
            error: sage connection error: Error: write EPIPE
 
@@ -5865,12 +5865,12 @@ and trying again gives:
 
     on node_server, which is not caught, and kills the node server right now.
     I only get that when I have two distinct node servers trying to connect
-    to sage_server.py at the same time. 
-    It is very easy to get this.    
-   
+    to sage_server.py at the same time.
+    It is very easy to get this.
+
 After a very long time, no sage_server.py crashes.
 
-I put back in the thread that kills stuff and the Connection object, and 
+I put back in the thread that kills stuff and the Connection object, and
 *did* get a hang after a while.
 
 Getting rid of that (thread/Connection stuff), I think I got a hang
@@ -5887,7 +5887,7 @@ Immediate goals:
   [ ] deploy node-based version with changes
   [ ] polish code bigtime
 
-Oct 24, 2012, morning work.  
+Oct 24, 2012, morning work.
 ===========================
 
 I just ran a test of sage_server.py.  It spawn 340028 sessions
@@ -5972,7 +5972,7 @@ root@cassandra01:/home/salvus/salvus/salvus# ufw default allow outgoing
 --------
 Oct 25, 2012
 ------------
-   [x] check up on test running on 10dot19dot1dot1 (on 08salvus): 
+   [x] check up on test running on 10dot19dot1dot1 (on 08salvus):
         it ran for 12 hours with no problems with 21 clients, 3 servers, and not the slightest hicup.  Nice.
         turning off that vm
 
@@ -5999,8 +5999,8 @@ Oct 25, 2012
           * i like "hub" the best
 
    [x] enable twitter bootstrap in my index.html page and make sure it looks ok on mobile...
-     
-   [x] then remove jquery mobile support and mobile/ directory 
+
+   [x] then remove jquery mobile support and mobile/ directory
 
    [x] deploy with the rename node --> nodejs; support for mobile browsers again; fix issues that come up
 
@@ -6012,7 +6012,7 @@ SOON:
        [ ] - improve the sage firewall function in admin.py in the same way that I fixed up the cassandra firewall.
            What we want:
                - incoming: port 6000 from nodejs servers; port 22 from control
-               - outgoing: port 655 to tincd servers that this machine connects to, which will already be established 
+               - outgoing: port 655 to tincd servers that this machine connects to, which will already be established
 
        [ ] - make "dynamic firewall" updateable, i.e., control can update
              firewalls on all nodes that need them without having to restart
@@ -6022,7 +6022,7 @@ SOON:
              associated with it, and corr host vm should let in the minimum
              required for those services.  Then when a sage vm gets rooted,
              it won't be able to attack any other vm's, since they will not
-             have whitelisted it.  
+             have whitelisted it.
 
 -----------
 
@@ -6031,7 +6031,7 @@ Oct 25 at 5:52pm:
 
 Plan:
 
-./hub --port 5000 --tcp_port 5001 --address 127.0.0.1 --database_nodes 127.0.0.1 
+./hub --port 5000 --tcp_port 5001 --address 127.0.0.1 --database_nodes 127.0.0.1
 watch hub.coffee ./hub restart --port 5000 --tcp_port 5001 --address 127.0.0.1 --database_nodes 127.0.0.1  --log_file=data/logs/hub
 
     [x] caching single session in db, just because I should, and it is a trivial app of cassandra
@@ -6073,8 +6073,8 @@ opening the project, we can connect back into it.
 ---
 
 Not sure that was a good idea.  More generic would be having
-UUID:Value stores, and add ttl support to both them and KeyValueStore. 
-That would be useful in many places, and solve this problem nicely. 
+UUID:Value stores, and add ttl support to both them and KeyValueStore.
+That would be useful in many places, and solve this problem nicely.
  [x] uuid:value store
 
 
@@ -6108,7 +6108,7 @@ TODO:
     session_uuid has to be added back into messages coming back from
     that sage connection.
 
-[x] 
+[x]
     Make a simple node client to test that the above works right, and
     is fast.  It should be extremely fast due to not having to fork
     and exchange a bunch of messages.
@@ -6136,7 +6136,7 @@ I'm not loving this requireJS at all.  It's really annoying.  Another thing seem
 
 I want a file called salvus.js which is output by webmake.  It will
 provide a namespace containing all the relevant functionality needed
-to implement the view part of the application.  
+to implement the view part of the application.
 
     [x] structured CoffeeScript that represents a connection to the hub and works in both browser and node
 
@@ -6145,7 +6145,7 @@ to implement the view part of the application.
 -----------------
 
 I want the following, with same code in both node and in the browser.
-          
+
 conn = client.Connect('https://localhost')  # in browser
 conn = client_node.Connect('http://localhost:5000')  # in node
 
@@ -6156,7 +6156,7 @@ session = conn.new_session({walltime:60, cputime:60, numfiles:200, vmem:2000})
 [ ] Support events: http://pragprog.com/magazines/2011-08/decouple-your-apps-with-eventdriven-coffeescript
 
   x- running into trouble with events do to lack of support in webmake.
-  x- trying browserify, which supports events: 
+  x- trying browserify, which supports events:
          https://github.com/substack/node-browserify
 
 [x] while I'm here, might as well add minifcation/uglification as an option.
@@ -6251,7 +6251,7 @@ Login:
                  [ ] Plans
                  [ ] Auths
 
-            [ ] datastructure in hub that says which -- if any -- user a 
+            [ ] datastructure in hub that says which -- if any -- user a
                 sockjs connection is authenticated as.
 
      [ ] transition hub to be an express application
@@ -6262,11 +6262,11 @@ Login:
   [ ] store script(s) in database
   [ ] browse past scripts
 
-  [ ] add some anti-load/DOS stuff to hub.coffee, e.g., 
+  [ ] add some anti-load/DOS stuff to hub.coffee, e.g.,
            * bound on number of persistent sessions on a given server
            * bound on simultaneous number of exec's
 
- 
+
   [ ] I should implement a database-free way to dump/backup each important cassandra db table...
   [ ] up arrow history for command line
   [ ] desparately need heartbeat so auto-reconnect is rock solid.  This is *horrible* as is.
@@ -6274,7 +6274,7 @@ Login:
 
   [ ] FAIL:   https://mail.google.com/mail/u/0/?shva=1#inbox/13aadfd160c80679
           print "effectuées "
-    
+
 
 [ ] alter table plans add description varchar;
 
@@ -6292,7 +6292,7 @@ New plan for today: 6pm - 2am (8 hours)
               - creates tables
               - does tests with them
 
-       [ ] callbacks should *always* pass error as first argument, since that is 
+       [ ] callbacks should *always* pass error as first argument, since that is
            where client code will use it.
        [ ] plans
        [ ] accounts
@@ -6308,7 +6308,7 @@ New plan for today: 6pm - 2am (8 hours)
   [ ] 2 hours: persist everything currently implemented
 
   [ ] 2 hours worksheet -- try to implement something based on https://github.com/xing/wysihtml5
-  
+
 TOTAL FAIL.  Replan:
 I have 9pm - 2am or 5 hours.
 
@@ -6320,10 +6320,10 @@ I have 9pm - 2am or 5 hours.
 
 Ok, I successfully setup a very nice testing framework.
 however, it requires having code to easily create the whole db schema in node.
-It is weird having the schema defined in code in cassandra.py. 
+It is weird having the schema defined in code in cassandra.py.
 So I want to make a schema that is in a file, then make it
 so both cassandra.py and cassandra.coffee can make all tables
-and indexes in the schema that aren't already defined. 
+and indexes in the schema that aren't already defined.
 This will be more maintainable, easier to read, etc.
 
 
@@ -6340,14 +6340,14 @@ This will be more maintainable, easier to read, etc.
     use my last few minutes for some client testing.
 
     Even the most basic test of client isn't possible now because hub.coffee is maybe broken.
-    Fix all that next chance I get.  We have direction! 
+    Fix all that next chance I get.  We have direction!
 
 
 
 
 
 
- 1:00am -? 
+ 1:00am -?
    PLAN
 
 
@@ -6366,13 +6366,13 @@ Soon:
      actually make the address in the db: "hostname:port", since can't
      have index on non-primary key tables.  Then split it after query,
      and return {host:..., port:...}.
-         
+
 --------------------------------
 
 Oct 30 at 2:08pm - until 2am
 
    [x] evaluate google compute engine (using free trial):
-           Conclusion: ignore until salvus is making money.  Even a token presence is well over $2K/year. 
+           Conclusion: ignore until salvus is making money.  Even a token presence is well over $2K/year.
 
 
 starting at 2pm:  Google Compute Engine
@@ -6399,7 +6399,7 @@ Published rates: https://cloud.google.com/pricing/compute-engine
 >>> 80*12
 960
 
-In short, what I get for $5000/year costs $90K/year from Google.  
+In short, what I get for $5000/year costs $90K/year from Google.
 
 ---
 
@@ -6410,7 +6410,7 @@ Goal:
 it looks like they have a couple of specific VM's, but one can't upload your own image.
    [x] provision a disk -- done through webpage
    [ ] be able to ssh in
-   [ ] build/install salvus 
+   [ ] build/install salvus
    [ ] build/install sage
    [ ] setup tinc (?)
 
@@ -6424,8 +6424,8 @@ Go to the following link in your browser:
 Enter verification code: 4/bYXPuOh6N9xpIMhR8Uojkk7vJPQH.Mkq67l9oocsQuJJVnL49Cc-WrTlndQI
 Authentication successful.
 WARNING: You don't have an ssh key for Google Compute Engine. Creating one now...
-Enter passphrase (empty for no passphrase): 
-Enter same passphrase again: 
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
 INFO: Updated project with new ssh key. It can take several minutes for the instance to pick up the key.
 INFO: Waiting 300 seconds before attempting to connect.
 ----
@@ -6456,7 +6456,7 @@ my laptop 1.8Ghz: 1.12881588936
 my laptop 2.6Ghz: 1.09943389893
 bsd.math: 1.5067961216  # older version of python!
 a vm running on 3ghz salvus box: 0.94832611084
-combinat.math: 1.39991497993 
+combinat.math: 1.39991497993
 servedby1: 1.52679586411
 servedby2: 1.40613603592
 
@@ -6488,12 +6488,12 @@ root@test:/home/wstein# /sbin/hdparm -t /dev/vda1
  Timing buffered disk reads: 446 MB in  3.01 seconds = 148.37 MB/sec
 
 My VM: about 535MB/sec (due to caching!)
-root@cassandra01:/home/salvus# /sbin/hdparm -t /dev/vda1 
+root@cassandra01:/home/salvus# /sbin/hdparm -t /dev/vda1
 /dev/vda1:
  Timing buffered disk reads: 242 MB in  0.45 seconds = 535.10 MB/sec
 
 My hardware: 142MB/sec
-root@08salvus:/home/salvus# /sbin/hdparm -t /dev/sda1 
+root@08salvus:/home/salvus# /sbin/hdparm -t /dev/sda1
 /dev/sda1:
  Timing buffered disk reads: 242 MB in  1.71 seconds = 141.75 MB/sec
 
@@ -6517,7 +6517,7 @@ On my hardware:
 salvus@08salvus:~$ time dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync; rm test
 512+0 records in
 512+0 records out
-536870912 bytes (537 MB) copied, 4.30397 s, 125 MB/s  
+536870912 bytes (537 MB) copied, 4.30397 s, 125 MB/s
 
 ---
 Network:
@@ -6537,7 +6537,7 @@ From 02salvus to 01salvus:
                      (using vpn)  259 Mbits/sec
                      (not using vpn) 943Mbits/sec
 
-From vm on 01salvus: (not using vpn) 41.4 Mbits/sec, 87.3 Mbits/sec, 51.8 Mbits/sec, 
+From vm on 01salvus: (not using vpn) 41.4 Mbits/sec, 87.3 Mbits/sec, 51.8 Mbits/sec,
                      (using vpn)  209 Mbits/sec,  216 Mbits/sec, 206 Mbits/sec
 
 
@@ -6578,14 +6578,14 @@ I wrote a blogpost about trying GCE: http://salvusmath.blogspot.com/2012/10/tryi
 
 ---
 
-  The only thing left is to wait for sage and salvus to build... for what it is worth.   I'll check up on that in a few hours. 
+  The only thing left is to wait for sage and salvus to build... for what it is worth.   I'll check up on that in a few hours.
 
 5:40pm: time to regroup
 ========================
 
 Things to do:
 
-   [x] cassandra.coffee -- should the cb not be part of opts?  Look at code and decide. 
+   [x] cassandra.coffee -- should the cb not be part of opts?  Look at code and decide.
         Decision -- no, leave it as is!  Reason is that it makes it
         clear which function is the callback when reading the code.
 
@@ -6600,7 +6600,7 @@ Things to do:
             checks that a heartbeat message was received.  if not,
             close connection and reconnect.
        [x] create new message event: "heartbeat"
-            -- even better, create "ping" message and corresponding "pong" back. 
+            -- even better, create "ping" message and corresponding "pong" back.
             -- integrate into client
             -- provide function to get last ping time and display in gui (at least for testing)
 
@@ -6609,7 +6609,7 @@ TODO   [ ] there is a subtle bug/issue with the design right now, which
    create_persistent_sage_session) is tied via a closure to the specific sockjs conection that
    made it.  However, if the user connects later or reconnects, then that connection no longer exists.
    NOTE: right now in index.coffee in onopen we just make a new command line session in this case.
-   
+
    [x] change client*coffee to use opts
 
 .... took until 12:22am, but I made the connection far more robust
@@ -6642,7 +6642,7 @@ Oct 31, 2012:
 ==============
 
    [ ] account creation
-        
+
          - message.create_account(username, email_address):
               [ ] creates entry in accounts table in database setting
                   account to be "not_validated", unless there are
@@ -6650,7 +6650,7 @@ Oct 31, 2012:
 
 BAH -- an attacker can use the above as a way to send lots of email out!  not good.
 
-              [ ] a given ip address 
+              [ ] a given ip address
               [ ] sends out an email to the email_address with a link in it
               [ ] when user visits that link, database changes account to "validated"
 
@@ -6669,10 +6669,10 @@ course.
 
 I will implement something similar to what they do, since it is really
 massively user friendly, and they are super good at growing their user
-base.  It's what I secretly want but am scared of.   
+base.  It's what I secretly want but am scared of.
 
 Dropbox:
-  * they do not validate the email address of users. 
+  * they do not validate the email address of users.
   * they require typing password to change linked email address
   * they require knowing email address linked to an account to do a password reset
   * at most one account per email for saneness of their database backend -- but one can just do + trick to get more...
@@ -6697,20 +6697,20 @@ OK, here we go. The steps:
           account_id, first_name, last_name, email_address, password_hash
 
    [x] function on client.coffee:
-          .call(message, timeout, cb):   
+          .call(message, timeout, cb):
        that: (1) slaps a uuid on the message
              (2) sends the message
-             (3) waits for up to timeout in seconds for a message back tagged with that uuid,       
+             (3) waits for up to timeout in seconds for a message back tagged with that uuid,
                   - if get message, call cb with it:
                            cb(null, message)
                   - if don't get message, call cb to report an error
                            cb(true, "timeout after 5 seconds")
-             (4) in either case in 3, the callback is then removed. 
+             (4) in either case in 3, the callback is then removed.
 
         WHY?  Because I want 100% of the client/server communication
         to go via messages, not via AJAX, HTTP, etc., so that other
         client apps -- e.g., pure TCP -- will be 100% doable.  Also,
-        this makes testing via client_node.coffee much easier. 
+        this makes testing via client_node.coffee much easier.
 
    [x] define all of the messages we need to implement everything in
        salvus_messages.coffee to implement the entire login protocol.
@@ -6739,7 +6739,7 @@ OK, here we go. The steps:
              # hub --> client
              message.changed_password(id, error, message)
               # if error is true, that means the password was not changed; would
-                happen if password is wrong (message:'invalid password'), 
+                happen if password is wrong (message:'invalid password'),
                 or request is too frequent (message:'too many password change requests')
 
              # client --> hub
@@ -6755,20 +6755,20 @@ OK, here we go. The steps:
 
               - this will require using a key:value store with ttl:
                     name = 'account_creation_attempts'
-                   
+
                key:ip_address
                value:number_of_attempts
                ttl:1 day
 
               - due to proxy and a class of students all creating accounts at once,
-                we only have an upper bound up to some amount of time. 
+                we only have an upper bound up to some amount of time.
 
               - if number of accounts from ip exceeds 10 (say), require a captcha (?)
 
           [x] bruteforce attack: limit change_password requests to 25 per day.
 
                 name = 'change_password_attempts'
-                    
+
                 key:email_address
                 value:number_of_attempts
                 ttl:1 day
@@ -6776,11 +6776,11 @@ OK, here we go. The steps:
 3:58pm
 --------------------
 
--- I finished and tested backend account creation, except the above DOS restrictions. 
+-- I finished and tested backend account creation, except the above DOS restrictions.
 -- Also, backend login doesn't actually set *any* backend state -- but that will be easy.
 
 Next:
- 
+
    [ ] implement password reset functionality:
         done - define a new message: client <--> hub  "password_reset(email_address)"
         done - write function in client that sends that message
@@ -6802,13 +6802,13 @@ Next:
          - define password_reset url handler, which displays a form:
                    [password]
                    [retype password]
-           and gives no information about the account, in particular, not the email address.  
-           the form will include resubmitting the uuid.  
+           and gives no information about the account, in particular, not the email address.
+           the form will include resubmitting the uuid.
          - form submits again to
                   https://salv.us/hub/password_reset
            but this time using POST instead of GET, so that the
            password doesn't appear in the URL, so we can distinguish them,
-           and because GET shouldn't change state, but POST does. 
+           and because GET shouldn't change state, but POST does.
          - confirmation dialog
          - then redirects to https://salv.us
    [x] implement the anti-DOS measures described above
@@ -6832,9 +6832,9 @@ Next:
 
    [ ] create a ClientConnection object in hub.coffee
 
-   [ ] change property of ClientConnection on successful login 
+   [ ] change property of ClientConnection on successful login
 
-   [ ] integrated "report an issue" feature linked to an account. 
+   [ ] integrated "report an issue" feature linked to an account.
        report goes to database.
        contains any internal state information that the hub knows!!!
 
@@ -6860,7 +6860,7 @@ Up at about 7am, and going to work very, very hard on Salvus all day today.
     of date in the current install...
 
 [x] new messages needed for login
-   
+
 Nov 2, 2012:
 ===========
 
@@ -6873,7 +6873,7 @@ Nov 2, 2012:
 Nov 3, 2012:
 ===========
 
-  [ ] test suite for login system  
+  [ ] test suite for login system
 
  [x] get rid of this HEX:{"account_id":{"hex":"3acb0196-b9eb-48b7-884f-335f563f244d"},"client_ip_address":"127.0.0.1"}
 
@@ -6904,10 +6904,10 @@ CREATE INDEX ON feedback(account_id);   // so we can show (via GUI) all feedback
      [x] function in cassandra
 
 report_feedback = (account_id, type, description, data, nps)
-feedback_from_user = (account_id) 
+feedback_from_user = (account_id)
 
      [x] function in client
- 
+
 report_feedback = (type, description, nps)
 feedback_from_me = ()
 
@@ -6981,12 +6981,12 @@ IE.  The layout, etc., has gone to hell.  I have no idea why or how...
 ---
 
 
-I will define a class called Page. 
+I will define a class called Page.
 
 When you create a Page it:
 
   (1) registers itself centrally somehow
-  (2) has a 
+  (2) has a
 
 .. it's just not clear what I need until I write some more code..
 
@@ -7018,7 +7018,7 @@ last_logout-timestamp for each user on the server-side.  Any cookie
 where expire_at < now or created_at < last_logout is rejected at
 validation time.
 
-         
+
 
 
 Nov 7 at 7:19pm:
@@ -7026,7 +7026,7 @@ Nov 7 at 7:19pm:
 
 * learned about https://www.easel.io/, which is a web-based gui for developing bootstrap sites.
 
- * Definite guide to authentication here -- 
+ * Definite guide to authentication here --
      http://stackoverflow.com/questions/549/the-definitive-guide-to-forms-based-website-authentication
    Let's see how my design does:
 
@@ -7038,12 +7038,12 @@ Now it is 8:25pm and I'm caught up on a lot HAcker News, etc.  Time to program!
 Admin --> Tracking Info
 
 It's javascript so put that somewhere (?) -- tracking.coffee
- 
-  
+
+
   [x] Make it so "Sign in" navbar item changes to the User's Name.
 
 
-  [x] Add a new page to account.html that is displayed by default if the 
+  [x] Add a new page to account.html that is displayed by default if the
       user *is* logged in -- namely a big Sign out at the top, then
       tabbed groups of user settings (nothing there yet).
 
@@ -7062,7 +7062,7 @@ I'm going to warm up by:
 
   [x] make it so feedback send button is live
 
- 
+
 
 ---
 
@@ -7091,9 +7091,9 @@ Nov 9 at 5:37pm.
 
 Plan:
 
-  [x] change evaluate key: 
+  [x] change evaluate key:
 
-      options -- 
+      options --
 
           shift-enter
           control-enter
@@ -7104,8 +7104,8 @@ Plan:
        eventually: make list of options a query to the server where
        list depends on the user (paying customers can potentially get
        more; options can change dynamically)   ??
-       for now: 
-          Sage 
+       for now:
+          Sage
           Python
           Octave
 	  R
@@ -7119,11 +7119,11 @@ Plan:
   [x] caching for single cell needs to distinguish between whether or not code was preparsed.
 
   [x] change email address - gui
- 
+
 Sunday, Nov 11 at 7:18am:
 =========================
 
-I did not work at all on Salvus yesterday, due to working on the ramp all day and 
+I did not work at all on Salvus yesterday, due to working on the ramp all day and
 wanting to just goof off in the evening for once.
 
 Now I will work for about 3 hours, and will work for a few hour after
@@ -7135,7 +7135,7 @@ For now:
 
 Next up, this -- report (and make sure) of *any* errors on email change before closing modal:
 
-  [x] change email: 
+  [x] change email:
         - give error on fail
         - check that new address available
   [x] correct focus for login, change email, etc.
@@ -7143,23 +7143,23 @@ Next up, this -- report (and make sure) of *any* errors on email change before c
 
 -----|
 
-Nov 12 
+Nov 12
 =================
 at 6:31am:
 Verterans Day!
 
---> [ ] new policy: Like dropbox, I'm going to make salvus only warn people if they choose a stupid password, but still allow it. 
-        But then salvus will nag them until they change it to be strong. 
+--> [ ] new policy: Like dropbox, I'm going to make salvus only warn people if they choose a stupid password, but still allow it.
+        But then salvus will nag them until they change it to be strong.
 
   [x] (5) change password gui
-  
-  [x](5) password reset gui  
-[x] -- basic problem: how to do password reset with a consistent gui/ui look, etc.  
+
+  [x](5) password reset gui
+[x] -- basic problem: how to do password reset with a consistent gui/ui look, etc.
      Obviously, I could just add another url handler, but that would be ugly.
      It would be nice if I could do:
 
           https://salv.us#forgot?forgot_key=UUID
- 
+
      and have (1) the forgot_key get set as a javascript variable (or in DOM)
               (2) a modal dialog be displayed
 Is this possible? YES.  easy.
@@ -7175,10 +7175,10 @@ Is this possible? YES.  easy.
 
   [x] disable connect-to box
 
-  [x] (3) sign-up: enable automatic zxcvbn.zxcvbn 
-  [x] (3) change password -- enable automatic zxcvbn.zxcvbn 
+  [x] (3) sign-up: enable automatic zxcvbn.zxcvbn
+  [x] (3) change password -- enable automatic zxcvbn.zxcvbn
 
-  [x] disallow the very weakest possible passwords. 
+  [x] disallow the very weakest possible passwords.
 
 Nov 13
 ------
@@ -7186,12 +7186,12 @@ Nov 13
 I'm just working fulltime today on salvus.
 
   [x](7) remember me cookie:
-somehow, 
+somehow,
     - store in cookie a uuid
     - store in database a secure_hash(uuid):value table with ttl and value=account_id
     - if client initially connects and has a cookie uuid such that
       secure_hash(uuid) is in table, then automatically sign them in.
-    
+
 The solution is to send (via sockjs) an id, then use that to send the
 cookies *back* to some URL... AFTER we have made the sockjs
 connection.  This will work and keep cookies httponly. (http://www.codinghorror.com/blog/2008/08/protecting-your-cookies-httponly.html)
@@ -7217,7 +7217,7 @@ Next up:
 
    [x] make "remember me" sign-in's get recorded in the database log
 
-   [x] for ease of use (de-normalization), add an extra "misc" column to successful_sign_ins that 
+   [x] for ease of use (de-normalization), add an extra "misc" column to successful_sign_ins that
        includes JSON:  {first_name:*, last_name:*, email_address:*, remember_me:bool}
    [x] ensure that users have to be authenticated before performing
        actions that require auth.
@@ -7239,7 +7239,7 @@ OK, it is now time to start working on the actual Sage-related compute functiona
    - A sortable list of saved sessions that user can bring back up easily, which are stored in database.
 
 This is just like the sage notebook, and will be useful.  Full
-projects with directories, etc., can be done later.  
+projects with directories, etc., can be done later.
 
 worksheet schema:
 
@@ -7247,7 +7247,7 @@ CREATE TABLE worksheets (
      worksheet_id     uuid  PRIMARY KEY,
      title            varchar,
      last_edited      timestamp,
-     users            varchar,       // JSON object giving user access for this worksheet: 
+     users            varchar,       // JSON object giving user access for this worksheet:
                                      //    [{first_name:?, last_name:?, account_id:?, read_only:bool}, ...]
      content          varchar,       // JSON object representing the actual contents of the worksheet
 );
@@ -7300,18 +7300,18 @@ CREATE TABLE worksheet_snapshots (
 );
 
 Getting rid of old snapshots would just involve querying then doing
-delete with IN and a list of timestamps.  
+delete with IN and a list of timestamps.
 
 
 
 Questions about sage sessions:
 
  What are the running sage sessions in a project?
- 
+
 
 I want to have a full terminal emulator command line session ability.
 If I had that -- like c9.io already has -- then salv.us would instantly
-become very, very useful to people.  
+become very, very useful to people.
 
 After searching forever, I've found this: https://github.com/chjj/tty.js/
 
@@ -7343,8 +7343,8 @@ something pretty awesome as follows:
    - define a message type that is "data from session with given id",
      and whenever client receives that message, it calls an
      appropriate function on all
-   - whenever there is output on (1), it goes to (2), which then pushes 
-     the output to all tuned-in clients 
+   - whenever there is output on (1), it goes to (2), which then pushes
+     the output to all tuned-in clients
    - the clients (3) receive the message and call term.write with the
      data as input.
 
@@ -7365,9 +7365,9 @@ However, the generic version is very regularly updated:
    https://github.com/xing/wysihtml5
 WAIT, yes it is updated regularly: https://github.com/jhollingworth/bootstrap-wysihtml5
 
-This wysihtml5 has tons of events -- it's like codemirror, but for a full html document. 
+This wysihtml5 has tons of events -- it's like codemirror, but for a full html document.
 
-   
+
 Nov 14, 2012:
 ==============
 
@@ -7376,14 +7376,14 @@ This is the last night to work before getting back to working on the vert ramp..
 Anyway, I tested the command line shell with aly and she was not so
 excited, especially because it felt pretty laggy for her -- that is of
 course an issue with command line shells -- roundtrip of keystrokes,
-etc. Latency kills!  I forgot about that in my excitement. 
+etc. Latency kills!  I forgot about that in my excitement.
 
 I'm going to focus first on getting a core notion of projects and gui
 for managing them (at a very simple level) in place.  A project is:
 
     * uuid
     * title (that one can change)
-    * type 
+    * type
     * metadata JSON object
     * blob
 
@@ -7401,7 +7401,7 @@ Goals for tonight:
       [x] fixed bug: creating a new session then immediately sending it code
           to eval gets immediately returned from cache with no eval
           happening.   The reason is that the whole session-creation code
-          has no callbacks, like it must....  since I was just learning. 
+          has no callbacks, like it must....  since I was just learning.
           So that needed to get rewritten.
 
 Implement these messages in client/hub/cassandra:
@@ -7409,16 +7409,16 @@ Implement these messages in client/hub/cassandra:
       [x] create_project
       [x] get_projects
       [x] set_project_title
- 
-      [x] write some test code for test suite, and fix up / improve test suite 
+
+      [x] write some test code for test suite, and fix up / improve test suite
 
   [ ] Implement HTML for viewing list of projects in various ways, creating projects, changing title.
 
-    
+
       [x] html "create new project" modal dialog
       [x] CS code for new project dialog
 
-      [x] coffeescript code to load list of projects: on login 
+      [x] coffeescript code to load list of projects: on login
 
 
 I'm back -- Nov 16, 2012 at 6:11pm.   Will work until 1am (or so) if I can!
@@ -7442,10 +7442,10 @@ cqlsh:test> select * from plans;
  13814000-1dd2-11b2-0000-fe8ebeead9df |    True |        null |               30 | Free |  null |      2000 |             3 |                  null |           250 |          null
 
 cqlsh:test> UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' where plan_id=13814000-1dd2-11b2-0000-fe8ebeead9df;
-cqlsh:test> 
+cqlsh:test>
 
 
-      [x] files html page 
+      [x] files html page
         [x] html empty page with tab
         [x] html basic info about project at top of page with gui to edit
 
@@ -7459,14 +7459,14 @@ cqlsh:test>
       [ ] files.coffee -- handle when project is changed, so all relevant clients see the change
 
 
-      [ ] in project list, change the All/public/private buttons to something so we can 
+      [ ] in project list, change the All/public/private buttons to something so we can
           select from "public/private/owner/collaborator/viewer" and select multiple at once.
 
       [ ] add "files" attribute to database.  This will be a JSON
           varchar that is the filename+meta-info tree of the project.
-        
+
       [ ] file browser -- can be written using new db attribute "files" above.
- 
+
       [ ] html: create new file
 
 
@@ -7483,9 +7483,9 @@ cqlsh:test>
       [ ] implement pushing messages to connected clients on other hubs
 
 
-      [x] get rid of project "type" -- makes no sense; 
+      [x] get rid of project "type" -- makes no sense;
 
-      [ ] way I fork to startup sage (?) seems to totally break gap mode ??  
+      [ ] way I fork to startup sage (?) seems to totally break gap mode ??
 
 
 
@@ -7497,7 +7497,7 @@ cqlsh:test>
       [ ] Transfer ownership
 
 
-November 18, 2012 at 5:35pm -- probably have until 9:30pm, not sure. 
+November 18, 2012 at 5:35pm -- probably have until 9:30pm, not sure.
 ---------------------------------------------------------------------
 
 
@@ -7515,7 +7515,7 @@ IDEA for embedded console:
 
 This looks very nice.  It was easy to modify the echo.html
 example... but does vi/emacs work through this?  This license is clear
-MIT -- much better -- and the entire code is *small* coffeescript! 
+MIT -- much better -- and the entire code is *small* coffeescript!
 The min is 24K.     On the other hand, it "isn't a VT100".
 Also, tty.js's license just got sorted out!
 
@@ -7539,8 +7539,8 @@ How to get there:
            - opera/safari/firefox/chrome
 
 So far: wysihtml5 *DOES* when I run the demo locally (but not their demo online)
-        bootstrap-wysihtml5 does *NOT* work.  
-         
+        bootstrap-wysihtml5 does *NOT* work.
+
         aloha seems neat/powerful/annoying, but is GPL. :-(
 
 WOAH, http://jejacks0n.github.com/mercury/ this just knocked my socks off!!!!
@@ -7553,17 +7553,17 @@ WOAH, http://jejacks0n.github.com/mercury/ this just knocked my socks off!!!!
 
  [ ] I didn't restrict permissions in salvus directory in version I pushed out in VM!
      To fix:
-       
+
        (1) start new version of VM of deployed version on 08salvus
        (2) fix salvus5 there --> salvus5b
        (3) push out new vm image
        (4) modify deploy2 in 01salvus (new "salvus5b" base)
        (5) restart sage servers
-       
+
 Update deploy2
 Reload:
  import admin, deploy2; reload(admin); reload(deploy2); s=deploy2.services; h = s._hosts
-- stop sage servers      
+- stop sage servers
  s.stop('sage')
 - restart vm's
  [s.restart('vm',hostname="sage0%s"%i)  for i in range(2,10)]; [s.restart('vm',hostname="sage%s"%i)  for i in range(10,17)]
@@ -7578,8 +7578,8 @@ ok, that was pretty hard, but it worked.  I ended up using one of the web vm's a
 can connect to cassandra...
 
 
-        
-      
+
+
 
 
      virsh list  --all # check that no base vm is running
@@ -7593,7 +7593,7 @@ can connect to cassandra...
        # IMPORTANT!
        sudo chown og-rwx -R salvus
 
-       sudo apt-get update; sudo apt-get upgrade; 
+       sudo apt-get update; sudo apt-get upgrade;
        sudo reboot -h now
        cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
        . salvus-env
@@ -7606,7 +7606,7 @@ can connect to cassandra...
      virsh --connect qemu:///session destroy $NAME
      virsh --connect qemu:///session list --all
 
-     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py 
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py
 -----
 
 Goal for today:
@@ -7614,7 +7614,7 @@ Goal for today:
    [ ] make the scratch area legit... but how?
 
 
- [ ] mobile friendly version of top bar... 
+ [ ] mobile friendly version of top bar...
 
  [x]  move the modification of mercury.min.js to scratch.coffee for better maintainability
 
@@ -7626,13 +7626,13 @@ First, let's describe some ways we would like it to work, even if I have no clue
  * Make a text mode that is just like "bold", but is "sage".  Turn mode on by default.
 
  * When in that mode and press execute shortcut (or hit big button),
-   then all code in that region is executed.  
-   Result is 
+   then all code in that region is executed.
+   Result is
 
  * input to sage will thus be arbitrary html -- we'll somehow parse code out of it by --> plain text'ing it.
    but this will be nice, because people can bold/color/math/whatever their *input*.
- * Where is the cursor?  
- 
+ * Where is the cursor?
+
 ----
 
  [x] fix bugs in test suite caused by refactoring.
@@ -7643,7 +7643,7 @@ Hmm... I might be making a big mistake with using mercury.  I'm going to try wys
 No, mercury is pretty amazing, because it really does give DOM access, functional config, etc.
 Wysihtml5 does not seem to provide that.
 
-    
+
 ----
 
   [ ] Mercury -- Figure out where the cursor is or at least what the current region is.  HOW?...
@@ -7668,30 +7668,30 @@ This must be better than starting from scratch!
 --------
 
  [ ] I need a plan since Mercury currently only works on non-IE.  !
-     Plan: 
+     Plan:
         * a Salvus worksheet is an HTML document that happens to have sage code in it, and
           for which salvus enables powerful interactive usage.
         * Mercury will be the prefered editor
         * Other lesser editors will be supported as a fallback.
-        
-I will implement the following as several different scratch worksheets in salvus, 
-then 
+
+I will implement the following as several different scratch worksheets in salvus,
+then
 
   Level 0: basic editor functionality:
 
       - input code in sage cells
       - evaluate code
-      - enter text between cells in a different font. 
+      - enter text between cells in a different font.
 
 Write something that ensures this works very well on everything, then move on to level 1.
 
-  Level 1: 
+  Level 1:
       - move cells around
-      - 
+      -
 
 ----------
 
-WAIT one fucking minute!   Contenteditable in built into web browsers these days, and 
+WAIT one fucking minute!   Contenteditable in built into web browsers these days, and
 might be exactly what I really want at the core of all this bullshit.
 
 OK, this mercury shit has got to 100% go.  Everything I need is already nicely available
@@ -7723,7 +7723,7 @@ I have a basic worksheet idea that I like now! Plan:
   [x] fix multi-line input  -- easy: just change style; amazing.
   [x] change background of note area on mouse over
   [x] syntax highlight input
-  [x] up and down arrow to move between input lines -- something very, very rudimentary 
+  [x] up and down arrow to move between input lines -- something very, very rudimentary
   [x] control-c/escape interrupt
   [ ] indicator that a cell is running.
   [ ] enable/disable keyboard shortcuts on switch to/from worksheet page
@@ -7749,7 +7749,7 @@ After 5 years.  I going to use the VM for a while, but maybe switch to
 native if necessary... we'll see.
 
 First problem -- wrong java version causes cassandra crash:
-Fix:  
+Fix:
 
      sudo apt-get install openjdk-7-jre
      sudo apt-get remove openjdk-6-*
@@ -7757,7 +7757,7 @@ Fix:
 Next problem:
     * no ipython readline history
 
-Suddenly the network stopped working in the vm, when I unplugged my laptop. 
+Suddenly the network stopped working in the vm, when I unplugged my laptop.
 Gees.  No -- that was the firewall from starting salvus locally.
 
 Other big problem -- I only have sage-5.0 installed in this ubuntu; this will
@@ -7768,7 +7768,7 @@ take a while to fix.
 
    [x] get salvus test suite to pass locally:
 
-      [x] the websock sockjs linux node client isn't working: 
+      [x] the websock sockjs linux node client isn't working:
              conn = require("sockjs-client-ws").create("http://localhost:5000/hub")
           BOOM.
           UFW firewall issue again, of course.  I uninstalled ufw.
@@ -7787,7 +7787,7 @@ Bugs (some found with Dennis):
   [x] Password strength only where setting password
   [x] firefox linux -- text input box in worksheet is too thin.
   [x] Labels on password
-  [x] Forgot your password -- link at front does nothing  
+  [x] Forgot your password -- link at front does nothing
 
 Regarding the worksheet interface, I'm going to just do something very
 much like the sage notebook, but with small tweaks.  I can do other
