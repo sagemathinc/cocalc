@@ -19,7 +19,8 @@ $(() ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
                 worksheet.append_salvus_cell()
-                worksheet.append_salvus_cell()
+                worksheet.find("a[href='#worksheet1-execute_code']").click((e) -> execute_code(); return false)
+                worksheet.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
             return worksheet
                 
         append_salvus_cell: (opts) ->
@@ -41,7 +42,7 @@ $(() ->
     $(document).keydown (e) ->
         switch e.which
             when 13 # enter
-                if not e.shiftKey
+                if e.shiftKey
                     return execute_code()
             when 40 # down arrow
                 if e.altKey or e.ctrlKey
@@ -98,8 +99,9 @@ $(() ->
         stdout.text("")
         stderr.text("")
 
-        # looks bad; crashes chrome on linux hard.
-        #cell.find(".salvus-running").show().activity(width:1.5, segments:14)
+        # activity() -- looks bad and crashes chrome on linux hard.
+        # # .activity(width:1.5, segments:14)
+        timer = setTimeout((() -> cell.find(".salvus-running").show()), 100)
         
         salvus_exec
             input: input_text
@@ -109,6 +111,7 @@ $(() ->
                 if mesg.stderr?
                     stderr.text(stderr.text() + mesg.stderr).show()
                 if mesg.done
+                    clearTimeout(timer)
                     cell.find(".salvus-running").hide()
                     
         next = cell.next()

@@ -25,6 +25,7 @@ pre {
     font-family: "Verdana";
     color:#000;
     border: 1px solid white;
+    min-height:1.6em;
 }
 
 .salvus-cell-note:hover {
@@ -39,9 +40,10 @@ pre {
 }
 
 .salvus-running {
-    width:.5ex;
+    width:4ex;
     padding-left:5px;    
-    color:#888;
+    color:#448;
+    text-decoration:blink;
 }
 
 .salvus-prompt:hover {
@@ -58,7 +60,7 @@ pre {
 }
 
 .salvus-cell-output {
-    background-color:#f8f8f8;
+  /*  background-color:#f8f8f8; */
 }
 
 .salvus-stdout {
