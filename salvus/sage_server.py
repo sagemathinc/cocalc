@@ -277,8 +277,9 @@ def session(conn, home, cputime, numfiles, vmem, uid):
             pass
 
 def introspect(conn, id, text_before_cursor, text_after_cursor):
-    stub = message.introspect_completions(id=id, completions=['stub','your','function','using','sage'])
-    conn.send(stub)
+    completions = [x for x in namespace.keys() if x.startswith(text_before_cursor)]
+    mesg = message.introspect_completions(id=id, completions=completions)
+    conn.send(mesg)
 
 def rmtree(path):
     if not path.startswith('/tmp/') or path.startswith('/var/') or path.startswith('/private/'):

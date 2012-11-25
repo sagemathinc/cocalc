@@ -91,15 +91,23 @@ $(() ->
                 alert_message(type:"error", message:"Unable to start a Sage session in which to introspect.")
                 return
 
-            s.introspect
-                text_before_cursor: "si"
-                text_after_cursor: undefined
-                cb: (error, mesg) ->
+            input = active_cell.find(".salvus-cell-input")
+            highlight
+                input : input
+                cb : (error, input_text) ->
                     if error
-                        alert_message(type:"error", message:mesg.error)
-                    if mesg?
-                        console.log("mesg = ", misc.to_json(mesg))
-                        
+                        alert_message(type:"error", message:"Problem parsing a cell for introspection.")
+                        return
+
+                    s.introspect
+                        text_before_cursor: input_text
+                        text_after_cursor: undefined
+                        cb: (error, mesg) ->
+                            if error
+                                alert_message(type:"error", message:mesg.error)
+                            if mesg?
+                                alert_message(type:"info", message:misc.to_json(mesg.completions))
+
         return false
 
 
