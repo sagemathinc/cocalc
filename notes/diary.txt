@@ -7813,6 +7813,11 @@ TOP PRIORITY:
   [ ] mathjax
   [ ] paren matching
   [ ] move scratch worksheet to a project
+  [ ] when pasting into input cell, turn into text first, e.g., &nbsp;'s get pasted in for spaces right now...  This is pretty bad.
+  [ ] because of block breaking code in sage_server.py, this gives an error:
+"for i in range(10):
+
+   print i"
 
   [x] kill/restart session
   [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)

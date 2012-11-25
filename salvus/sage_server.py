@@ -107,6 +107,21 @@ class Message(object):
         if done is not None: m['done'] = done
         return m
 
+    def introspect_completions(self, id, completions):
+        m = self._new('introspect_completions', locals())
+        m['id'] = id
+        return m
+
+    def introspect_docstring(self, id, docstring):
+        m = self._new('introspect_docstring', locals())
+        m['id'] = id
+        return m
+
+    def introspect_source_code(self, id, source_code):
+        m = self._new('introspect_source_code', locals())
+        m['id'] = id
+        return m
+
 message = Message()
 
 whoami = os.environ['USER']
@@ -247,14 +262,23 @@ def session(conn, home, cputime, numfiles, vmem, uid):
         try:
             mesg = conn.recv()
             #print 'INFO:child%s: received message "%s"'%(pid, mesg)
-            if mesg['event'] == 'terminate_session':
+            event = mesg['event']
+            if event == 'terminate_session':
                 return
-            elif mesg['event'] == 'execute_code':
+            elif event == 'execute_code':
                 execute(conn=conn, id=mesg['id'], code=mesg['code'], preparse=mesg['preparse'])
+            elif event == 'introspect':
+                introspect(conn=conn, id=mesg['id'],
+                           text_before_cursor=mesg['text_before_cursor'],
+                           text_after_cursor=mesg.get('text_after_cursor', None))
             else:
                 raise RuntimeError("invalid message '%s'"%mesg)
         except KeyboardInterrupt:
             pass
+
+def introspect(conn, id, text_before_cursor, text_after_cursor):
+    stub = message.introspect_completions(id=id, completions=['stub','your','function','using','sage'])
+    conn.send(stub)
 
 def rmtree(path):
     if not path.startswith('/tmp/') or path.startswith('/var/') or path.startswith('/private/'):

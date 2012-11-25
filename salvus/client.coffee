@@ -43,12 +43,9 @@ class Session extends EventEmitter
         @emit("close")
         @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
 
-    # introspection
     introspect: (opts) ->
-        opts = defaults opts
-            text_before_cursor: required
-            text_after_cursor:  undefined
-        @conn.send(message.introspect(opts))
+        opts.session_uuid = @session_uuid
+        @conn.introspect(opts)
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -167,6 +164,26 @@ class exports.Connection extends EventEmitter
             @execute_callbacks[uuid] = opts.cb
         @send(message.execute_code(id:uuid, code:opts.code, preparse:opts.preparse, allow_cache:opts.allow_cache))
         return uuid
+
+    # introspection
+    introspect: (opts) ->
+        opts = defaults opts,
+            text_before_cursor: required
+            text_after_cursor:  undefined
+            timeout          :  3         # max time to wait in seconds before error
+            session_uuid     :  required
+            cb               :  required  # pointless without a callback
+
+        mesg = message.introspect
+            text_before_cursor : opts.text_before_cursor
+            text_after_cursor  : opts.text_after_cursor
+            session_uuid       : opts.session_uuid
+
+        @call
+            message : mesg
+            timeout : opts.timeout
+            cb      : opts.cb
+
 
     call: (opts={}) ->
         # This function:

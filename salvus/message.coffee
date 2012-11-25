@@ -96,26 +96,27 @@ message(
 message
     event              : 'introspect'
     id                 : undefined
+    session_uuid       : required
     text_before_cursor : required
     text_after_cursor  : undefined
 
 # hub --> client (can be sent in response to introspect message)
 message
-    event       : 'introspection_completions'
+    event       : 'introspect_completions'
     id          : undefined   # match id of 'introspect' message
-    completions : required    # a list of strings (no HTML)
+    completions : required    # a list of strings
 
 # hub --> client  (can be sent in response to introspect message)
 message
-    event       : 'introspection_docstring'
+    event       : 'introspect_docstring'
     id          : undefined
-    docstring   : required    # a string (no HTML), probably formatted using Sphinx/REST
+    docstring   : required
 
 # hub --> client
 message
-    event       : 'introspection_source'
+    event       : 'introspect_source_code'
     id          : undefined
-    docstring   : required    # a string
+    source_code : required
 
 
 

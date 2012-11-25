@@ -24,7 +24,7 @@ $(() ->
                 worksheet.append_salvus_cell()
                 worksheet.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
                 worksheet.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
-                worksheet.find("a[href='#worksheet1-tab']").button().click((e) -> tab_completion(); return false)
+                worksheet.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_completion(); return false)
                 worksheet.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
             return worksheet
 
@@ -57,6 +57,50 @@ $(() ->
                     return focus_previous_editable()
             when 27 # escape
                 interrupt_session()
+            when 9 # tab key
+                if input_is_selected()
+                    indent_selected_input(e.shiftKey)
+                    return false
+                else
+                    return introspect()
+
+    ########################################
+    # indent and unindent block
+    ########################################
+    input_is_selected = () ->
+        # TODO: implement
+        return false
+
+    indent_selected_input = (unindent=false) ->
+        return false
+
+
+    ########################################
+    # introspection
+    ########################################
+
+    # Syntax highlight last active cell, get plain text back along
+    # with cursor position, decide whether or not to insert four
+    # spaces or introspect.
+    introspect = () ->
+        if not active_cell?
+            return
+
+        session (error, s) ->
+            if error
+                alert_message(type:"error", message:"Unable to start a Sage session in which to introspect.")
+                return
+
+            s.introspect
+                text_before_cursor: "si"
+                text_after_cursor: undefined
+                cb: (error, mesg) ->
+                    if error
+                        alert_message(type:"error", message:mesg.error)
+                    if mesg?
+                        console.log("mesg = ", misc.to_json(mesg))
+                        
+        return false
 
 
     containing_cell = (elt) ->
@@ -111,6 +155,7 @@ $(() ->
         highlight
             input : input
             cb: (error, input_text) ->
+                #console.log("input_text='#{input_text}'")
                 if error
                     alert_message(type:"error", message:"There was an error parsing the content of an input cell.")
                 else

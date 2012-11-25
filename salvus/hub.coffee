@@ -296,12 +296,12 @@ class Client extends EventEmitter
     #   - docstring of function/object
     #   - source code of function/class
     ######################################################
-    mesg_introspection: (mesg) ->
+    mesg_introspect: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
             return
 
-        introspection(mesg, @push_to_client)
+        send_to_persistent_sage_session(mesg, @account_id)
 
     ######################################################
     # Messages: Keeping client connected
@@ -648,11 +648,6 @@ is_password_correct = (opts) ->
         opts.cb?("One of password_hash, account_id, or email_address must be specified.")
 
 
-########################################
-# Introspection
-########################################
-introspection = (mesg, cb) ->
-    cb(false, message.introspection_completions(id:mesg.id, completions:['stub','your','function']))
 
 ########################################
 # Account Management
@@ -1478,7 +1473,7 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
                         persistent_sage_sessions[session_uuid].account_id = account_id
                         push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
                     else
-                        winston.error("(hub) persistent_sage_conn -- unhandled message event = '#{m.event}'")
+                        push_to_client(m)
             cb: ->
                 winston.info("(hub) persistent_sage_conn -- connected.")
                 # send message to server requesting parameters for this session
