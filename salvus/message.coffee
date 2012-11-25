@@ -92,12 +92,12 @@ message(
 # from client to hub; the client is responsible for deciding
 # what/where/how to deal with the message.
 
-# client --> hub
+# client --> hub --> sage_server
 message
     event              : 'introspect'
     id                 : undefined
-    text_before_cursor : required       # text before the cursor
-    text_after_cursor  : undefined      # optional text after the cursor
+    text_before_cursor : required
+    text_after_cursor  : undefined
 
 # hub --> client (can be sent in response to introspect message)
 message

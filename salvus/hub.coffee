@@ -291,6 +291,19 @@ class Client extends EventEmitter
         send_to_persistent_sage_session(mesg, @account_id)
 
     ######################################################
+    # Message: Introspections
+    #   - completions of an identifier / methods on an object (may result in code evaluation)
+    #   - docstring of function/object
+    #   - source code of function/class
+    ######################################################
+    mesg_introspection: (mesg) ->
+        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
+            return
+
+        introspection(mesg, @push_to_client)
+
+    ######################################################
     # Messages: Keeping client connected
     ######################################################
     # ping/pong
@@ -633,6 +646,13 @@ is_password_correct = (opts) ->
                     opts.cb?(false, password_hash_library.verify(opts.password, account.password_hash))
     else
         opts.cb?("One of password_hash, account_id, or email_address must be specified.")
+
+
+########################################
+# Introspection
+########################################
+introspection = (mesg, cb) ->
+    cb(false, message.introspection_completions(id:mesg.id, completions:['stub','your','function']))
 
 ########################################
 # Account Management

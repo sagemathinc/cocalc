@@ -43,6 +43,12 @@ class Session extends EventEmitter
         @emit("close")
         @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
 
+    # introspection
+    introspect: (opts) ->
+        opts = defaults opts
+            text_before_cursor: required
+            text_after_cursor:  undefined
+        @conn.send(message.introspect(opts))
 
 class exports.Connection extends EventEmitter
     # Connection events:
