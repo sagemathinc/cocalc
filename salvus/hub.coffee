@@ -7,7 +7,7 @@
 #
 # Run this by running ./hub [options]
 #
-# For local debugging, run this way, since it gives better stack traces. 
+# For local debugging, run this way, since it gives better stack traces.
 #
 #         make_coffee && echo "require('hub').start_server()" | coffee
 #
@@ -16,7 +16,7 @@
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
-# node.js -- builtin libraries 
+# node.js -- builtin libraries
 http    = require('http')
 url     = require('url')
 {EventEmitter} = require('events')
@@ -33,7 +33,7 @@ to_json = misc.to_json
 to_safe_str = misc.to_safe_str
 from_json = misc.from_json
 
-# third-party libraries: add any new nodejs dependencies to the NODEJS_PACKAGES list in build.py 
+# third-party libraries: add any new nodejs dependencies to the NODEJS_PACKAGES list in build.py
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
@@ -54,11 +54,11 @@ clients            = {}
 # HTTP Server
 ###
 
-init_http_server = () -> 
+init_http_server = () ->
     http_server = http.createServer((req, res) ->
 
         {query, pathname} = url.parse(req.url, true)
-        
+
         if pathname != '/alive'
             winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
 
@@ -79,10 +79,10 @@ init_http_server = () ->
                 res.end('')
             else
                 res.end('hub server')
-                
+
     )
 
-    
+
 #############################################################
 # Client = a client that is connected via sockjs to the hub
 #############################################################
@@ -95,12 +95,12 @@ class Client extends EventEmitter
         # authenticated as.  Use @account_id to decide whether or not
         # it is safe to carry out a given action.
         @account_id = undefined
-        
+
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
         @check_for_remember_me()
-        
+
         @conn.on("data", @handle_message_from_client)
         @conn.on("close", () => delete clients[@conn.id])
 
@@ -138,7 +138,7 @@ class Client extends EventEmitter
 
         # Record that this connection is authenticated:
         @account_id = signed_in_mesg.account_id
-        
+
         record_sign_in
             ip_address    : @ip_address
             successful    : true
@@ -147,7 +147,7 @@ class Client extends EventEmitter
             account_id    : signed_in_mesg.account_id
             first_name    : signed_in_mesg.first_name
             last_name     : signed_in_mesg.last_name
-        
+
 
     signed_out: () =>
         @account_id = undefined
@@ -161,12 +161,12 @@ class Client extends EventEmitter
             cb   : required   # cb(value)
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name))
-        
-    set_cookie: (opts) -> 
+
+    set_cookie: (opts) ->
         opts = defaults opts,
             name  : required
-            value : required     
-            ttl   : undefined    # time in seconds until cookie expires 
+            value : required
+            ttl   : undefined    # time in seconds until cookie expires
             cb    : undefined    # cb() when cookie is set
         options = {}
         if opts.ttl?
@@ -174,7 +174,7 @@ class Client extends EventEmitter
         @once("set_cookie-#{opts.name}", ()->opts.cb?())
         @cookies[opts.name] = {value:opts.value, options:options}
         @push_to_client(message.cookies(id:@conn.id, set:opts.name))
-    
+
     remember_me: (opts) ->
         #############################################################
         # Remember me.  There are many ways to implement
@@ -203,34 +203,34 @@ class Client extends EventEmitter
         # the cookie automatically at the same time that the
         # browser invalidates it.
         #############################################################
-        
-        opts = defaults opts, 
+
+        opts = defaults opts,
             account_id    : required
             first_name    : required
             last_name     : required
             email_address : required
-            
+
         opts.remember_me = true
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
         ttl              = 7*24*3600     # 7 days
-        
+
         @remember_me_db.set
-            key   : @hash_session_id 
+            key   : @hash_session_id
             value : signed_in_mesg
             ttl   : ttl
-                
+
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @set_cookie
             name  : 'remember_me'
             value : [x[0], x[1], x[2], session_id].join('$')
             ttl   : ttl
-            
+
     invalidate_remember_me: (opts) ->
         opts = defaults opts,
             cb : required
-            
+
         if @hash_session_id?
             @remember_me_db.delete
                 key : @hash_session_id
@@ -240,7 +240,7 @@ class Client extends EventEmitter
 
     ################################################################
     # Message handling functions:
-    # 
+    #
     # Each function below that starts with mesg_ handles a given
     # message type (an event).  The implementations of many of the
     # handlers are somewhat long/involved, so the function below
@@ -308,7 +308,7 @@ class Client extends EventEmitter
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"Not signed in."))
             return
-            
+
         @signed_out()
         @invalidate_remember_me
             cb:(error) =>
@@ -323,19 +323,19 @@ class Client extends EventEmitter
     ######################################################
     mesg_password_reset: (mesg) =>
         password_reset(mesg, @ip_address, @push_to_client)
-        
+
     mesg_change_password: (mesg) =>
         change_password(mesg, @ip_address, @push_to_client)
 
     mesg_forgot_password: (mesg) =>
         forgot_password(mesg, @ip_address, @push_to_client)
-        
+
     mesg_reset_forgot_password: (mesg) =>
         reset_forgot_password(mesg, @ip_address, @push_to_client)
-        
+
     mesg_change_email_address: (mesg) =>
         change_email_address(mesg, @ip_address, @push_to_client)
-        
+
     ######################################################
     # Messages: Account settings
     ######################################################
@@ -344,7 +344,7 @@ class Client extends EventEmitter
             @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
         else
             get_account_settings(mesg, @push_to_client)
-        
+
     mesg_account_settings: (mesg) =>
         if @account_id != mesg.account_id
             @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
@@ -359,7 +359,7 @@ class Client extends EventEmitter
 
     mesg_get_all_feedback_from_user: (mesg) =>
         get_all_feedback_from_user(mesg, @push_to_client, @account_id)
-    
+
     ######################################################
     # Messages: Project Management
     ######################################################
@@ -383,7 +383,7 @@ class Client extends EventEmitter
                     push_to_clients  # push a message to all other clients logged in as this user.
                         where : {account_id:@account_id,  exclude: [@conn.id]}
                         mesg  : message.project_list_updated()
-            
+
     mesg_get_projects: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to get a list of projects.")
@@ -398,7 +398,7 @@ class Client extends EventEmitter
                     # sort them by last_edited (something db doesn't do)
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
-            
+
     mesg_update_project_data: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
@@ -429,7 +429,7 @@ class Client extends EventEmitter
                                 push_to_clients
                                     where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
-                    
+
 
 project_is_owned_by = (opts) ->
     opts = defaults opts,
@@ -445,7 +445,7 @@ project_is_owned_by = (opts) ->
                 opts.cb(error)
             else
                 opts.cb(false, n==1)
-        
+
     database.select
         table   : 'projects'
         columns : ['account_id']
@@ -460,19 +460,19 @@ project_is_owned_by = (opts) ->
                     if result[0][0] != opts.account_id
                         opts.cb(false, false)  # not an error -- just account_id does not own it.
                     else:
-                        opts.cb(false, true)   
-     
-        
+                        opts.cb(false, true)
+
+
 
 ##############################
 # Create the SockJS Server
 ##############################
 init_sockjs_server = () ->
     sockjs_server = sockjs.createServer()
-    
+
     sockjs_server.on "connection", (conn) ->
         clients[conn.id] = new Client(conn)
-        
+
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
 
@@ -499,9 +499,9 @@ get_client_ids = (opts) ->
                 if id in opts.exclude
                     return
             result.push(id)
-            
+
     async.series([
-        (cb) -> 
+        (cb) ->
             if opts.project_id?
                 database.get_account_ids_using_project
                     project_id : opts.project_id
@@ -515,7 +515,7 @@ get_client_ids = (opts) ->
                             cb()
             else
                 cb()
-        (cb) -> 
+        (cb) ->
             # TODO: This will be replaced by one scalable database query on an indexed column
             if opts.account_id?
                 for id, client of clients
@@ -550,12 +550,12 @@ push_to_clients = (opts) ->
                 ))
             else
                 cb()
-                
+
         (cb) ->
             # include all clients explicitly listed in "to"
             if opts.to?
                 dest = dest.concat(opts.to)
-                
+
             # IMPORTANT TODO: extend to use database and inter-hub communication
             console.log("dest = #{dest}")
             for i of clients
@@ -566,7 +566,7 @@ push_to_clients = (opts) ->
             opts.cb?(false)
             cb()
 
-            
+
     ])
 
 
@@ -582,7 +582,7 @@ crypto = require('crypto')
 # passwords and cookies.  Old ones can be read just fine (with the old
 # parameters).
 HASH_ALGORITHM   = 'sha512'
-HASH_ITERATIONS  = 1000  
+HASH_ITERATIONS  = 1000
 HASH_SALT_LENGTH = 32
 
 # This function is private and burried inside the password-hash
@@ -594,7 +594,7 @@ generate_hash = (algorithm, salt, iterations, password) ->
     for i in [1..iterations]
         hash = crypto.createHmac(algorithm, salt).update(hash).digest('hex')
     return algorithm + '$' + salt + '$' + iterations + '$' + hash
-    
+
 exports.password_hash = password_hash = (password) ->
     return password_hash_library.generate(password,
         algorithm  : HASH_ALGORITHM
@@ -615,7 +615,7 @@ is_password_correct = (opts) ->
         password      : required
         cb            : undefined
         password_hash : undefined
-        account_id    : undefined   
+        account_id    : undefined
         email_address : undefined
     if opts.password_hash?
         r = password_hash_library.verify(opts.password, opts.password_hash)
@@ -635,16 +635,16 @@ is_password_correct = (opts) ->
         opts.cb?("One of password_hash, account_id, or email_address must be specified.")
 
 ########################################
-# Account Management 
+# Account Management
 ########################################
 
 password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_time/(3600*24.0)) # time to crack in days
 
 #############################################################################
 # User sign in
-# 
+#
 # Anti-DOS cracking throttling policy:
-# 
+#
 #   * POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
 #   * POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
 #   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
@@ -657,7 +657,7 @@ sign_in = (client, mesg) =>
     if mesg.email_address == ""
         sign_in_error("Empty email address.")
         return
-        
+
     if mesg.password == ""
         sign_in_error("Empty password.")
         return
@@ -690,7 +690,7 @@ sign_in = (client, mesg) =>
                         sign_in_error("A given email address is allowed at most 10 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
-                    
+
         # POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
         (cb) ->
             database.count
@@ -704,7 +704,7 @@ sign_in = (client, mesg) =>
                         sign_in_error("A given ip address is allowed at most 10 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
-                        
+
         # POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
         (cb) ->
             database.count
@@ -740,15 +740,15 @@ sign_in = (client, mesg) =>
                         sign_in_error("Invalid password for #{mesg.email_address}.")
                         cb(true); return
                     else
-                    
+
                         signed_in_mesg = message.signed_in
                             id            : mesg.id
-                            account_id    : account.account_id 
+                            account_id    : account.account_id
                             first_name    : account.first_name
                             last_name     : account.last_name
                             email_address : mesg.email_address
                             remember_me   : false
-                            
+
                         client.signed_in(signed_in_mesg)
                         client.push_to_client(signed_in_mesg)
                         cb()
@@ -789,7 +789,7 @@ record_sign_in = (opts) ->
             table : 'successful_sign_ins'
             set   : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
             where : {time:cass.now(), account_id:opts.account_id}
-        
+
 
 
 # We cannot put the zxcvbn password strength checking in
@@ -815,14 +815,14 @@ is_valid_password = (password) ->
     if password_strength.score < MIN_ALLOWED_PASSWORD_STRENGTH
         return [false, "Choose a password that isn't very weak."]
     return [true, '']
-        
+
 
 create_account = (client, mesg) ->
     id = mesg.id
     account_id = null
     async.series([
         # run tests on generic validity of input
-        (cb) -> 
+        (cb) ->
             issues = client_lib.issues_with_create_account(mesg)
 
             # Do not allow *really* stupid passwords.
@@ -832,8 +832,8 @@ create_account = (client, mesg) ->
 
             # TODO -- only uncomment this for easy testing, allow any password choice
             # the client test suite will then fail, which is good, so we are reminded to comment this out before release!
-            # delete issues['password'] 
-            
+            # delete issues['password']
+
             if misc.len(issues) > 0
                 client.push_to_client(message.account_creation_failed(id:id, reason:issues))
                 cb(true)
@@ -856,8 +856,8 @@ create_account = (client, mesg) ->
                         ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
                         cb()
                     else if value < 100
-                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)                    
-                        cb()  
+                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)
+                        cb()
                     else # bad situation
                         database.log(
                             event : 'create_account'
@@ -879,7 +879,7 @@ create_account = (client, mesg) ->
                 else
                     cb()
             )
-            
+
         # create new account
         (cb) ->
             database.create_account(
@@ -900,7 +900,7 @@ create_account = (client, mesg) ->
                     )
                     cb()
             )
-            
+
         # send message back to user that they are logged in as the new user
         (cb) ->
             mesg = message.signed_in
@@ -914,7 +914,7 @@ create_account = (client, mesg) ->
             client.push_to_client(mesg)
             cb()
     ])
-    
+
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
@@ -946,7 +946,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         )
                         cb()
             )
-                            
+
         # get account and validate the password
         (cb) ->
             database.get_account(
@@ -976,8 +976,8 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                 cb(true)
             else
                 cb()
-            
-        # record current password hash (just in case?) and that we are changing password and set new password   
+
+        # record current password hash (just in case?) and that we are changing password and set new password
         (cb) ->
 
             database.log(
@@ -987,7 +987,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                     client_ip_address : client_ip_address
                     previous_password_hash : account.password_hash
             )
-            
+
             database.change_password(
                 account_id:    account.account_id
                 password_hash: password_hash(mesg.new_password),
@@ -998,11 +998,11 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         push_to_client(message.changed_password(id:mesg.id, error:false)) # finally, success!
                     cb()
             )
-    ])            
-            
+    ])
 
-change_email_address = (mesg, client_ip_address, push_to_client) ->    
-    
+
+change_email_address = (mesg, client_ip_address, push_to_client) ->
+
     if mesg.old_email_address == mesg.new_email_address  # easy case
         push_to_client(message.changed_email_address(id:mesg.id))
         return
@@ -1010,7 +1010,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
     if not client_lib.is_valid_email_address(mesg.new_email_address)
         push_to_client(message.changed_email_address(id:mesg.id, error:'email_invalid'))
         return
-        
+
     async.series([
         # Make sure there hasn't been an email change attempt for this
         # email address in the last 5 seconds:
@@ -1022,7 +1022,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                 cb : (error, value) ->
                     if error
                         push_to_client(message.changed_email_address(id:mesg.id, error:error))
-                        cb(true) 
+                        cb(true)
                         return
                     if value?  # is defined, so problem -- it's over
                         push_to_client(message.changed_email_address(id:mesg.id, error:'too_frequent', ttl:WAIT))
@@ -1041,7 +1041,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                         )
                         cb()
             )
-                            
+
         # validate the password
         (cb) ->
             is_password_correct
@@ -1064,7 +1064,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         # if I need to at some point.
         (cb) ->
             database.log(event : 'change_email_address', value : {client_ip_address : client_ip_address, old_email_address : mesg.old_email_address, new_email_address : mesg.new_email_address})
-                    
+
             #################################################
             # TODO: At this point, we should send an email to
             # old_email_address with a hash-code that can be used
@@ -1086,7 +1086,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 #############################################################################
 # Send an email message to the given email address with a code that
 # can be used to reset the password for a certain account.
-# 
+#
 # Anti-use-salvus-to-spam/DOS throttling policies:
 #   * a given email address can be sent at most 2 password resets per hour
 #   * a given ip address can send at most 3 password reset request per minute
@@ -1127,7 +1127,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         cb(true); return
                     else
                         cb()
-                        
+
         # POLICY 1: We limit the number of password resets that an email address can receive to at most 2 per hour
         (cb) ->
             database.count
@@ -1142,7 +1142,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         cb(true)
                         return
                     cb()
-                    
+
         # POLICY 2: a given ip address can send at most 3 password reset request per minute
         (cb) ->
             database.count
@@ -1156,7 +1156,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset request from the ip address #{client_ip_address}."))
                         cb(true); return
                     cb()
-                        
+
 
         # POLICY 3: a given ip can send at most 25 per hour
         (cb) ->
@@ -1197,7 +1197,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         cb()
             )
 
-        # send an email to mesg.email_address that has a link to 
+        # send an email to mesg.email_address that has a link to
         (cb) ->
             body = """
                 Somebody just requested to change the password on your Salvus account.
@@ -1208,7 +1208,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
 
                 If you don't want to change your password, ignore this message.
                 """
-                
+
             send_email
                 subject : 'Salvus password reset confirmation'
                 body    : body
@@ -1221,7 +1221,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         push_to_client(message.forgot_password_response(id:mesg.id))
                         cb()
     ])
-            
+
 
 reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
     if mesg.event != 'reset_forgot_password'
@@ -1229,7 +1229,7 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
         return
 
     email_address = account_id = db = null
-    
+
     async.series([
         # check that request is valid
         (cb) ->
@@ -1247,14 +1247,14 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
                     cb()
 
         # Verify password is valid and compute its hash.
-        (cb) -> 
+        (cb) ->
             [valid, reason] = is_valid_password(mesg.new_password)
             if not valid
                 push_to_client(message.reset_forgot_password_response(id:mesg.id, error:reason))
                 cb(true)
             else
                 cb()
-                    
+
         # Get the account_id.
         (cb) ->
             database.get_account
@@ -1291,7 +1291,7 @@ get_account_settings = (mesg, push_to_client) ->
     account_settings = null
     async.series([
         # 1. Get entry in the database corresponding to this account.
-        (cb) -> 
+        (cb) ->
             database.get_account
                 account_id : mesg.account_id
                 cb : (error, data) ->
@@ -1303,7 +1303,7 @@ get_account_settings = (mesg, push_to_client) ->
                         # long run it will always be easy to migrate the database
                         # forward (with new columns).
                         delete data['password_hash']
-                        
+
                         for key, val of message.account_settings_defaults
                             if not data[key]?
                                 data[key] = val
@@ -1311,7 +1311,7 @@ get_account_settings = (mesg, push_to_client) ->
                         account_settings = data
                         account_settings.id = mesg.id
                         cb()
-                        
+
         # 3. Get information about user plan
         (cb) ->
             database.get_plan
@@ -1327,7 +1327,7 @@ get_account_settings = (mesg, push_to_client) ->
                         account_settings.max_session_time = plan.max_session_time
                         account_settings.ram_limit = plan.ram_limit
                         account_settings.support_level = plan.support_level
-                        
+
                         # 4. Send result to client
                         push_to_client(message.account_settings(account_settings))
                         cb() # done!
@@ -1352,7 +1352,7 @@ save_account_settings = (mesg, push_to_client) ->
             else
                 push_to_client(message.account_settings_saved(id:mesg.id))
 
-    
+
 ########################################
 # User Feedback
 ########################################
@@ -1373,7 +1373,7 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
     database.get_all_feedback_from_user
         account_id  : account_id
         cb          : (err, results) -> push_to_client(message.all_feedback_from_user(id:mesg.id, data:to_json(results), error:err))
-    
+
 
 
 #########################################
@@ -1394,7 +1394,7 @@ exports.send_email = send_email = (opts={}) ->
         cb      : undefined)
 
     async.series([
-        (cb) -> 
+        (cb) ->
             if email_server == null
                 filename = 'data/secrets/salvusmath_email_password'
                 require('fs').readFile(filename, 'utf8', (error, password) ->
@@ -1411,7 +1411,7 @@ exports.send_email = send_email = (opts={}) ->
                 )
             else
                 cb()
-        (cb) -> 
+        (cb) ->
             email_server.send(
                text : opts.body
                from : opts.from
@@ -1423,9 +1423,9 @@ exports.send_email = send_email = (opts={}) ->
     ])
 
 
-    
-            
-    
+
+
+
 
 ########################################
 # Persistent Sage Sessions
@@ -1467,7 +1467,7 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
         # Save sage_conn object so that when the user requests evaluation of
         # code in the session with this id, we use this.
         persistent_sage_sessions[session_uuid] = {conn:sage_conn}
-        
+
         winston.info("(hub) added #{session_uuid} to persistent sessions")
     )
 
@@ -1479,7 +1479,7 @@ send_to_persistent_sage_session = (mesg, account_id) ->
     if session.account_id != account_id
         winston.info("(hub) attempt by account #{account_id} to execute code in session #{session_uuid} that it does not own.   This can only be the result of a bug or hack.")
         return
-    
+
     if not session?
         winston.error("TODO -- session #{mesg.session_uuid} does not exist")
         return
@@ -1511,7 +1511,7 @@ init_stateless_exec = () ->
 
 stateless_sage_exec = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec #{to_safe_str(input_mesg)}")
-    exec_nocache = () -> 
+    exec_nocache = () ->
         output_messages = []
         stateless_sage_exec_nocache(input_mesg,
             (mesg) ->
@@ -1527,7 +1527,7 @@ stateless_sage_exec = (input_mesg, output_message_callback) ->
         return
     stateless_exec_cache.get(key:[input_mesg.code, input_mesg.preparse], cb:(err, output) ->
         if output?
-            winston.info("(hub) -- using cache")        
+            winston.info("(hub) -- using cache")
             for mesg in output
                 mesg.id = input_mesg.id
                 output_message_callback(mesg)
@@ -1539,7 +1539,7 @@ stateless_sage_exec_fake = (input_mesg, output_message_callback) ->
     # test mode to eliminate all of the calls to sage_server time/overhead
     output_message_callback({"stdout":eval(input_mesg.code),"done":true,"event":"output","id":input_mesg.id})
 
-stateless_exec_using_server = (input_mesg, output_message_callback, host, port) -> 
+stateless_exec_using_server = (input_mesg, output_message_callback, host, port) ->
     sage_conn = new sage.Connection(
         host:host
         port:port
@@ -1563,8 +1563,8 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
             winston.error("(hub) no sage servers!")
             output_message_callback(message.terminate_session(reason:'no Sage servers'))
     )
-    
-    
+
+
 #############################################
 # Start everything running
 #############################################
@@ -1589,7 +1589,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
-    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')    
+    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .parse(process.argv)
 
 if program._name == 'hub.js'
@@ -1602,8 +1602,8 @@ if program._name == 'hub.js'
 
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
-    
-    
+
+
 
 
 

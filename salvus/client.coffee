@@ -14,7 +14,7 @@ class Session extends EventEmitter
             conn         : required  # a Connection instance
             limits       : required  # object giving limits of session that we actually got
             session_uuid : required
-            
+
         @start_time   = misc.walltime()
         @conn         = opts.conn
         @limits       = opts.limits
@@ -24,7 +24,7 @@ class Session extends EventEmitter
     walltime: () ->
         return misc.walltime() - @start_time
 
-    # If cb is given, it is called every time output for this particular code appears; 
+    # If cb is given, it is called every time output for this particular code appears;
     # No matter what, you can always still listen in with the 'output' even, and note
     # the uuid, which is returned from this function.
     execute_code: (opts={}) ->
@@ -38,17 +38,17 @@ class Session extends EventEmitter
     # default = SIGINT
     interrupt: () ->
         @conn.send(message.send_signal(session_uuid:@session_uuid, signal:2))
-        
+
     kill: () ->
         @emit("close")
         @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
-        
-    
+
+
 class exports.Connection extends EventEmitter
     # Connection events:
     #    - 'connecting' -- trying to establish a connection
     #    - 'connected'  -- succesfully established a connection; data is the protocol as a string
-    #    - 'error'      -- called when an error occurs 
+    #    - 'error'      -- called when an error occurs
     #    - 'output'     -- received some output for stateless execution (not in any session)
     #    - 'ping'       -- a pong is received back; data is the round trip ping time
     #    - 'message'    -- any message is received
@@ -99,14 +99,14 @@ class exports.Connection extends EventEmitter
             #console.log(err)
 
     handle_message: (mesg) ->
-        id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here. 
+        id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
         f = @call_callbacks[id]
         if f?
             if f != null
                 f(null, mesg)
             delete @call_callbacks[id]
             return
-            
+
         switch mesg.event
             when "output"
                 cb = @execute_callbacks[mesg.id]
@@ -137,7 +137,7 @@ class exports.Connection extends EventEmitter
             limits  : required
             timeout : 10          # how long until give up on getting a new session
             cb      : undefined   # cb(error, session)  if error is defined it is a string
-            
+
         @call
             message : message.start_session(limits:opts.limits)
             timeout : opts.timeout
@@ -188,7 +188,7 @@ class exports.Connection extends EventEmitter
                 ), opts.timeout*1000
             )
 
-        
+
     #################################################
     # Account Management
     #################################################
@@ -210,7 +210,7 @@ class exports.Connection extends EventEmitter
             agreed_to_terms: opts.agreed_to_terms
         )
         @call(message:mesg, timeout:opts.timeout, cb:opts.cb)
-        
+
     sign_in: (opts) ->
         opts = defaults(opts,
             email_address : required
@@ -258,7 +258,7 @@ class exports.Connection extends EventEmitter
             new_email_address : required
             password          : required
             cb                : undefined
-            
+
         @call
             message: message.change_email_address
                 account_id        : opts.account_id
@@ -295,13 +295,13 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id : required
             cb         : required
-            
+
         @call
             message : message.get_account_settings(account_id: opts.account_id)
             timeout : 10
             cb      : opts.cb
 
-    # restricted settings are only saved if the password is set; otherwise they are ignored.    
+    # restricted settings are only saved if the password is set; otherwise they are ignored.
     save_account_settings: (opts) ->
         opts = defaults opts,
             account_id : required
@@ -312,8 +312,8 @@ class exports.Connection extends EventEmitter
         @call
             message : message.account_settings(misc.merge(opts.settings, {account_id: opts.account_id, password: opts.password}))
             cb      : opts.cb
-                
-                
+
+
     ############################################
     # User Feedback
     #############################################
@@ -323,23 +323,23 @@ class exports.Connection extends EventEmitter
             description : required
             nps         : undefined
             cb          : undefined
-            
+
         @call
             message: message.report_feedback
                 category    : opts.category
                 description : opts.description
                 nps         : opts.nps
             cb     : opts.cb
-    
+
     feedback: (opts={}) ->
         opts = defaults opts,
             cb : required
-            
+
         @call
             message: message.get_all_feedback_from_user()
             cb : (err, results) ->
                 opts.cb(err, misc.from_json(results?.data))
-                
+
     #################################################
     # Project Management
     #################################################
