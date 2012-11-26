@@ -43,6 +43,51 @@ $(() ->
                 cell.find(".salvus-cell-input").focus()#.blur((e) -> active_cell=undefined; highlight(input:$(this)) )
             return cell
 
+    ###############################################################
+    # jquery plugins for manipulating the contenteditable editor
+    # in ways I need, using rangy mostly for cross-platform support
+    # TODO: Move this to its own file.
+    ###############################################################
+    $.fn.extend
+        # set_caret_position: move the cursor to given position in the given element
+        salvusws_set_caret_position: (opts={}) ->
+            opts = defaults opts,
+                offset: 0
+                type:   'character'   # 'range', 'character'
+            @each () ->
+                range = rangy.createRange()
+                if opts.type == 'range'
+                    range.setStart(this, opts.offset)
+                    range.setEnd(this, opts.offset)
+                else
+                    range.selectCharacters(this, opts.offset, opts.offset)
+                sel = rangy.getSelection()
+                if sel.rangeCount > 0
+                    sel.removeAllRanges()
+                sel.addRange(range)
+
+        salvusws_insert_node_at_caret: (opts={}) ->
+            opts = defaults opts, {}  # for now
+            @each () ->
+                sel   = rangy.getSelection()
+                range = sel.getRangeAt(0)
+                range.insertNode(this)
+
+        salvusws_text: (opts={}) ->   # returns text rather than a jquery wrapped object
+            opts = defaults opts, {} # no options
+            result = ''
+            @each () ->
+                r = rangy.createRange()
+                r.selectNodeContents(this)
+                result += r.text()
+
+            # &nbsp;'s are converted to character code 160, not 32 (which is a space).
+            # We thus must replace all 32's by 160, or sage will be unhappy:
+            return result.replace(/\xA0/g, " ")
+
+    ####################################################
+    # keyboard control -- rewrite to use some library
+    ####################################################
     $(document).keydown (e) ->
         switch e.which
             when 13 # enter
@@ -51,53 +96,9 @@ $(() ->
                 else
                     e = $(document.activeElement)
                     if e.hasClass("salvus-cell-input")
-                        console.log("doing it")
-
-                        sel = rangy.getSelection()
-                        range = sel.getRangeAt(0)
-
-
-                        #range.pasteHtml("<span><br></span>")
-
-
-                        #return false
-
-
-                        newNode = $("<span><br> </span>")[0]   # need to figure out how to get rid of this space (?)
-                        range.insertNode(newNode)
-
-
-                        #r2 = rangy.createRange()
-                        #r2.selectNodeContents(newNode)
-                        #r2.moveStart("character", 1)
-                        #sel.setSingleRange(r2)
-                        #sel.deleteFromDocument(r2)
-                        #
-                        sel.removeAllRanges()
-                        r2 = rangy.createRange()
-                        r2.setStart(newNode,1)
-                        r2.setEnd(newNode,1)
-                        if sel.rangeCount > 0
-                            sel.removeAllRanges()
-                        sel.addRange(r2)
+                        # TODO: I have not figured out how to get this to work (esp. on firefox) without the space after <br>, which is mildly annoying.
+                        $("<span><br> </span>").salvusws_insert_node_at_caret().salvusws_set_caret_position(offset:1)
                         return false
-
-                        # r2 = rangy.createRange()
-                        # r2.selectNodeContents(newNode)
-                        # r2.moveStart("character", 1)
-                        # sel.setSingleRange(r2)
-                        # sel.deleteFromDocument(r2)
-
-                        # sel.removeAllRanges()
-                        # r2 = rangy.createRange()
-                        # r2.setStart(newNode,1)
-                        # r2.setEnd(newNode,1)
-                        # if sel.rangeCount > 0
-                        #     sel.removeAllRanges()
-                        # sel.addRange(r2)
-
-                        return false
-
             when 40 # down arrow
                 if e.altKey or e.ctrlKey
                     return focus_next_editable()
@@ -184,32 +185,12 @@ $(() ->
             cb       : undefined  # called with (error, plain_text) when done.
             language : 'python'
 
-        console.log("raw_html='#{opts.input.html()}'")
-        console.log(rangy.innerText(opts.input[0]))
-
-        # html_to_text
-        #     html : opts.input.html()
-        #     cb   : (error, plain_text) ->
-        #         if error
-        #             opts.cb?(error)
-        #         else
-        #             #if plain_text.match(/\S/)
-        #                 #Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
-        #             opts.cb?(false, plain_text)
-
-
-        console.log(opts.input.html())
-        console.log(rangy.innerText(opts.input[0]))
-        plain_text = rangy.innerText(opts.input[0])
-        # &nbsp;'s are converted to character code 160, not 32 (which is a space).
-        # We thus must replace all 32's by 160, or sage will be unhappy:
-        plain_text = plain_text.replace(/\xA0/g, " ")
+        plain_text = opts.input.salvusws_text()
         if not plain_text.match(/\S/)
             # easy special case -- whitespace
             opts.cb?(false, '')
             return
-        console.log("plain_text='#{plain_text}'")
-        Rainbow.color(plain_text, opts.language, ((highlighted) -> console.log("highlighted='#{highlighted}'"); opts.input.html(highlighted)))
+        Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
         opts.cb?(false, plain_text)
 
     execute_code = () ->
