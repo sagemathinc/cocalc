@@ -40,15 +40,33 @@ $(() ->
                 $(this).append(cell)
                 #cell.draggable().bind("click", () -> $(this).focus())
                 last_active_cell = active_cell = cell
-                cell.find(".salvus-cell-input").focus().blur((e) -> active_cell=undefined; highlight(input:$(this)) )
+                cell.find(".salvus-cell-input").focus()#.blur((e) -> active_cell=undefined; highlight(input:$(this)) )
             return cell
-
 
     $(document).keydown (e) ->
         switch e.which
             when 13 # enter
                 if e.shiftKey
                     return execute_code()
+                else
+                    e = $(document.activeElement)
+                    if e.hasClass("salvus-cell-input")
+                        console.log("doing it")
+                        #range = rangy.createRange()
+                        #range.selectNode(e[0])
+                        sel = rangy.getSelection()
+                        range = sel.getRangeAt(0)
+                        newNode = $("<span><br> </span>")[0]   # need to figure out how to get rid of this space (?)
+                        range.insertNode(newNode)
+                        r2 = rangy.createRange()
+                        #r2.selectNode(newNode)
+                        r2.setStart(newNode,1)
+                        r2.setEnd(newNode,1)
+                        if sel.rangeCount > 0
+                            sel.removeAllRanges()
+                        rangy.getSelection().addRange(r2)
+                        return false
+
             when 40 # down arrow
                 if e.altKey or e.ctrlKey
                     return focus_next_editable()
@@ -135,22 +153,33 @@ $(() ->
             cb       : undefined  # called with (error, plain_text) when done.
             language : 'python'
 
-        html = opts.input.html()
-        if not html.match(/\S/)
+        console.log("raw_html='#{opts.input.html()}'")
+        console.log(rangy.innerText(opts.input[0]))
+
+        # html_to_text
+        #     html : opts.input.html()
+        #     cb   : (error, plain_text) ->
+        #         if error
+        #             opts.cb?(error)
+        #         else
+        #             #if plain_text.match(/\S/)
+        #                 #Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
+        #             opts.cb?(false, plain_text)
+            
+
+        console.log(opts.input.html())
+        console.log(rangy.innerText(opts.input[0]))
+        plain_text = rangy.innerText(opts.input[0])
+        # &nbsp;'s are converted to character code 160, not 32 (which is a space).
+        # We thus must replace all 32's by 160, or sage will be unhappy:
+        plain_text = plain_text.replace(/\xA0/g, " ")
+        if not plain_text.match(/\S/)
             # easy special case -- whitespace
             opts.cb?(false, '')
             return
-
-        #console.log("html='#{html}'")
-        html_to_text
-            html : html
-            cb   : (error, plain_text) ->
-                if error
-                    opts.cb?(error)
-                else
-                    if plain_text.match(/\S/)
-                        Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
-                    opts.cb?(false, plain_text)
+        console.log("plain_text='#{plain_text}'")
+        Rainbow.color(plain_text, opts.language, ((highlighted) -> console.log("highlighted='#{highlighted}'"); opts.input.html(highlighted)))
+        opts.cb?(false, plain_text)
 
     execute_code = () ->
         cell = active_cell

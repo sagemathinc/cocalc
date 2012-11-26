@@ -471,3 +471,4 @@ exports.html_to_text = (opts) ->
             opts.cb(false, dom_to_text(dom))
 
     (new htmlparser.Parser(handler)).parseComplete(opts.html)
+

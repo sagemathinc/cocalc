@@ -7806,8 +7806,24 @@ TODO:
 TOP PRIORITY:
 
   [x] bug -- extra space on highlight
-  [ ] tab completion
 
+  [ ] add a coffee-script debugger console to my page for development work; this will make life much easier.
+      - at very bottom and always visible
+      - 
+
+  [ ] tab completion
+-->      [ ] page: determining where the cursor is
+-->      [ ] page: putting the cursor back
+      [ ] page: dynamic syntax highlighting (given cursor control)
+      [ ] sage_server: decide which type of introspection to do
+      [ ] sage_server: introspect completions
+      [ ] sage_server: introspect docstring
+      [ ] sage_server: introspect source code
+      [ ] page: display list of completions and choose one
+      [ ] page: display a docstring (with Sphinx html formatting?)
+      [ ] page: display source code
+
+  [ ] @interact foundations
   [ ] save logged in user's scratch worksheet to database
   [ ] save non-logged in user's scratch worksheet to cookie (?)
   [ ] mathjax
@@ -7844,3 +7860,6 @@ DONE:
 
 
 
+---
+
+ascii code of a character: .charCodeAt(0)
