@@ -52,27 +52,50 @@ $(() ->
                     e = $(document.activeElement)
                     if e.hasClass("salvus-cell-input")
                         console.log("doing it")
-                        #range = rangy.createRange()
-                        #range.selectNode(e[0])
+
                         sel = rangy.getSelection()
                         range = sel.getRangeAt(0)
-                        newNode = $("<span><br><br></span>")[0]   # need to figure out how to get rid of this space (?)
+
+
+                        #range.pasteHtml("<span><br></span>")
+
+
+                        #return false
+
+
+                        newNode = $("<span><br> </span>")[0]   # need to figure out how to get rid of this space (?)
                         range.insertNode(newNode)
 
+
+                        #r2 = rangy.createRange()
+                        #r2.selectNodeContents(newNode)
+                        #r2.moveStart("character", 1)
+                        #sel.setSingleRange(r2)
+                        #sel.deleteFromDocument(r2)
+                        #
+                        sel.removeAllRanges()
                         r2 = rangy.createRange()
                         r2.setStart(newNode,1)
                         r2.setEnd(newNode,1)
                         if sel.rangeCount > 0
                             sel.removeAllRanges()
                         sel.addRange(r2)
-                        
-                        sel.removeAllRanges()
+                        return false
 
-                        r2 = rangy.createRange()
-                        r2.selectNodeContents(newNode)
-                        r2.moveStart("character", 1)
-                        sel.setSingleRange(r2)
-                        sel.deleteFromDocument(r2)
+                        # r2 = rangy.createRange()
+                        # r2.selectNodeContents(newNode)
+                        # r2.moveStart("character", 1)
+                        # sel.setSingleRange(r2)
+                        # sel.deleteFromDocument(r2)
+
+                        # sel.removeAllRanges()
+                        # r2 = rangy.createRange()
+                        # r2.setStart(newNode,1)
+                        # r2.setEnd(newNode,1)
+                        # if sel.rangeCount > 0
+                        #     sel.removeAllRanges()
+                        # sel.addRange(r2)
+
                         return false
 
             when 40 # down arrow
@@ -173,7 +196,7 @@ $(() ->
         #             #if plain_text.match(/\S/)
         #                 #Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
         #             opts.cb?(false, plain_text)
-            
+
 
         console.log(opts.input.html())
         console.log(rangy.innerText(opts.input[0]))
