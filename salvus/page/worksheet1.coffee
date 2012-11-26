@@ -56,15 +56,23 @@ $(() ->
                         #range.selectNode(e[0])
                         sel = rangy.getSelection()
                         range = sel.getRangeAt(0)
-                        newNode = $("<span><br> </span>")[0]   # need to figure out how to get rid of this space (?)
+                        newNode = $("<span><br><br></span>")[0]   # need to figure out how to get rid of this space (?)
                         range.insertNode(newNode)
+
                         r2 = rangy.createRange()
-                        #r2.selectNode(newNode)
                         r2.setStart(newNode,1)
                         r2.setEnd(newNode,1)
                         if sel.rangeCount > 0
                             sel.removeAllRanges()
-                        rangy.getSelection().addRange(r2)
+                        sel.addRange(r2)
+                        
+                        sel.removeAllRanges()
+
+                        r2 = rangy.createRange()
+                        r2.selectNodeContents(newNode)
+                        r2.moveStart("character", 1)
+                        sel.setSingleRange(r2)
+                        sel.deleteFromDocument(r2)
                         return false
 
             when 40 # down arrow
