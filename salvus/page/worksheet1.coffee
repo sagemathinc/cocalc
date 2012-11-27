@@ -85,9 +85,17 @@ $(() ->
             # We thus must replace all 32's by 160, or sage will be unhappy:
             return result.replace(/\xA0/g, " ")
 
+    get_caret_position = () ->
+        sel   = rangy.getSelection()
+        range = sel.getRangeAt(0)
+        console.log(range)
+        return range
+
     ####################################################
     # keyboard control -- rewrite to use some library
     ####################################################
+    down_pos = null
+    up_pos = null
     $(document).keydown (e) ->
         switch e.which
             when 13 # enter
@@ -100,6 +108,8 @@ $(() ->
                         $("<span><br> </span>").salvusws_insert_node_at_caret().salvusws_set_caret_position(offset:1)
                         return false
             when 40 # down arrow
+                console.log("keydown", get_caret_position())
+                down_pos = get_caret_position()
                 if e.altKey or e.ctrlKey
                     return focus_next_editable()
             when 38 # up arrow
@@ -113,6 +123,13 @@ $(() ->
                     return false
                 else
                     return introspect()
+
+    $(document).keyup (e) ->
+        switch e.which
+            when 40
+                console.log("keyup")
+                up_pos = get_caret_position()
+                console.log("down/up", down_pos, up_pos, down_pos==up_pos)
 
     ########################################
     # indent and unindent block

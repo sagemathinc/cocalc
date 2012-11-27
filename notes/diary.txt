@@ -7807,10 +7807,16 @@ TOP PRIORITY:
 
   [x] bug -- extra space on highlight
 
-  [ ] add a coffee-script debugger console to my page for development work; this will make life much easier.
-      - at very bottom and always visible
-      - 
+  [ ] ability to use cursor keys to move between cells
+      [ ] down arrow when on last line of compute moves to note
+      [ ] down arrow on last line of note moves to next compute cell
+      HOW to implement? 
+          - if you hit arrow key and cursor does not move, then do DOM
+            query to find next editable and put cursor there in the
+            position it was at last time (recorded using data
+            attribute?)
 
+  [ ] save worksheet DOM to backend
   [ ] tab completion
 -->      [ ] page: determining where the cursor is
 -->      [ ] page: putting the cursor back
@@ -7824,6 +7830,7 @@ TOP PRIORITY:
       [ ] page: display source code
 
   [ ] @interact foundations
+  [ ] auto-indent
   [ ] save logged in user's scratch worksheet to database
   [ ] save non-logged in user's scratch worksheet to cookie (?)
   [ ] mathjax
@@ -7854,6 +7861,9 @@ LATER:
   [ ] tooltip for footer is too far off to the right
   [ ] 3 times per minute -- maybe too much of a constraint?
   [ ] return doesn't close modal feedback
+  [ ] sage server: priotorize active users
+  [ ] load report when session starts, etc. -- user can see it.
+  [ ] upsell: trial is slow (by x%), but click here for faster version
 
 DONE:
  [x] support using scratch worksheet *without* having to first login <--
