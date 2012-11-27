@@ -11,7 +11,7 @@ set_evaluate_key = undefined # exported
 
     session = (cb) ->
         if persistent_session == null
-            salvus.conn.new_session
+            salvus_client.new_session
                 limits: {}
                 timeout: 10
                 cb: (error, session) ->

@@ -26,7 +26,7 @@ $("a[href='#feedback']").click((event) -> show_feedback_form(); return false;)
     $("#feedback-button-submit").click (event) ->
         $("#feedback").modal('hide')
         cat = if $("#feedback-category-bug").is(":checked") then "bug" else "idea"
-        salvus.conn.report_feedback
+        salvus_client.report_feedback
             category    : cat
             description : $("#feedback-description").val()
             nps         : $("#feedback-nps-slider-value").html()

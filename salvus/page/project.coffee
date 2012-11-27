@@ -25,7 +25,7 @@ project_page = undefined # export
                 project_id : required
                 cb         : undefined
                 
-            salvus.conn.get_project
+            salvus_client.get_project
                 cb : (error, project) =>
                     if error
                         opts.cb?(error)
@@ -38,7 +38,7 @@ project_page = undefined # export
             opts = defaults opts,
                 timeout : 10
                 
-            salvus.conn.update_project_data
+            salvus_client.update_project_data
                 data    : @project
                 cb      : opts.cb  
                 timeout : opts.timeout

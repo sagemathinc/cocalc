@@ -245,7 +245,10 @@ class exports.Connection extends EventEmitter
         @call(
             message : message.sign_in(email_address:opts.email_address, password:opts.password, remember_me:opts.remember_me)
             timeout : opts.timeout
-            cb      : opts.cb
+            cb      : (error, mesg) ->
+                if not error and mesg.event == "signed_in"
+                    @account_id = mesg.account_id
+                opts.cb(error, mesg)
         )
 
     sign_out: (opts) ->
@@ -253,6 +256,9 @@ class exports.Connection extends EventEmitter
             cb           : undefined
             timeout      : 10 # seconds
         )
+
+        @account_id = undefined
+
         @call(
             message : message.sign_out()
             timeout : opts.timeout
@@ -335,6 +341,42 @@ class exports.Connection extends EventEmitter
         @call
             message : message.account_settings(misc.merge(opts.settings, {account_id: opts.account_id, password: opts.password}))
             cb      : opts.cb
+
+
+    ############################################
+    # Scratch worksheet
+    #############################################
+    save_scratch_worksheet: (opts={}) ->
+        opts = defaults opts,
+            data : required
+            cb   : undefined   # cb(false) = saved ok; cb(true) = did not save
+        if @account_id?
+            console.log("database storage of scratch worksheet not implemented.")
+        else
+            if localStorage?
+                localStorage.scratch_worksheet = opts.data
+
+    load_scratch_worksheet: (opts={}) ->
+        opts = defaults opts,
+            cb   : required
+        if @account_id?
+            console.log("database storage of scratch worksheet not implemented.")
+        else
+            if localStorage? and localStorage.scratch_worksheet?
+                opts.cb(false, localStorage.scratch_worksheet)
+            else
+                opts.cb(true)
+            return
+
+    delete_scratch_worksheet: (opts={}) ->
+        opts = defaults opts,
+            cb   : undefined
+        if @account_id?
+            console.log("database storage of scratch worksheet not implemented.")
+        else
+            if localStorage? and localStorage.scratch_worksheet?
+                delete localStorage.scratch_worksheet
+            opts.cb?(false)
 
 
     ############################################

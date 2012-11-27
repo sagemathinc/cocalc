@@ -13,7 +13,7 @@ top_navbar = undefined
     required = defaults.required
     {EventEmitter} = require('events')
 
-    
+
     class TopNavbar  extends EventEmitter
 
         constructor: () ->
@@ -65,12 +65,12 @@ top_navbar = undefined
             if klass?
                 a.find(".button-label").addClass(klass)
                 #a.addClass(klass)
-                
+
         switch_to_page: (id) ->
             n = @pages[id]
             if not n?
                 return
-                
+
             d = @pages[@current_page_id]
             if d?
                 @emit("switch_from_page-#{@current_page_id}", @current_page_id)
@@ -81,7 +81,7 @@ top_navbar = undefined
                     if m != id
                         p.page.hide()
                         p.button.removeClass("active")
-                        
+
             n.page.show()
             n.button.show().addClass("active")
             @current_page_id = id
@@ -117,7 +117,7 @@ top_navbar = undefined
                 top_navbar.add_page(opts)
 
 
-    ###############################################################                        
+    ###############################################################
     # Add the standard pages
 
     #$("#scratch").top_navbar
@@ -125,30 +125,30 @@ top_navbar = undefined
     #    'class' : 'navbar-big'
     #    label   : "Scratch"
     #    close   : false
-        
+
     $("#about").top_navbar
         id      : "about"
         label   : "Salvus&trade;"
         close   : false
-        
+
     $("#projects").top_navbar
         id      : "projects"
-        'class' : 'navbar-big'        
+        'class' : 'navbar-big'
         label   : "Projects"
-        close   : false        
-        
+        close   : false
+
     $("#worksheet1").top_navbar
         id      : "scratch"
         label   : "Scratch Worksheet"
         close   : false
-        
+
     $("#account").top_navbar
         id     : "account"
         label  : "Sign in"
         pull_right : true
-        close   : false        
+        close   : false
 
-    
+
     top_navbar.hide_page_button("projects")
     top_navbar.switch_to_page("scratch")
 

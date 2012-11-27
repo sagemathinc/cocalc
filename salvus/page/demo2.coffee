@@ -12,7 +12,7 @@ interrupt_exec2 = null     # exported
     execute_code_demo2 = () ->
 
         if persistent_session == null
-            salvus.conn.new_session
+            salvus_client.new_session
                 limits: {}
                 timeout: 10
                 cb: (error, session) ->

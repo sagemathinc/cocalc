@@ -7799,6 +7799,45 @@ and won't alienate users too much.
 New plan: get to a new release with "similar" functionality to the
 sage notebook in time for ICERM.
 
+
+ascii code of a character: .charCodeAt(0)
+---
+
+Nov 27 at 11:11am
+------------------
+
+Now I'm going to make it so the scratch worksheet is saved.  For
+simplicity, I'll just store this as a column of the user account.
+Then it gets loaded when the user logs in, and saved every so often.
+
+alter table accounts add scratch_worksheet varchar;
+
+I have a feeling there is something wrong with this... somewhere.
+The problem would be if in implementing things I piggy back too much
+on existing code and make something that doesn't make any sense.
+Better would be to put in client.coffee two functions:
+
+    save_scratch_worksheet(html:html, cb:cb)
+    load_scratch_worksheet(cb:cb)
+
+When user is logged in, we use the database.
+When user is not logged in, we use local storage.
+The rest of page code doesn't know the difference.
+
+  [ ] implement javascript local version first, and test -- no schema needed
+
+cookie 
+   -- limited to 4k (!)
+   -- sent with each http request.
+   -- what about html5 local storage
+
+
+  [ ] implement database version
+
+
+
+
+
 -------
 
 TODO:
@@ -7806,7 +7845,6 @@ TODO:
 TOP PRIORITY:
 
   [ ] save logged in user's scratch worksheet to database
-  [ ] save non-logged in user's scratch worksheet to cookie (?)
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note
       [ ] down arrow on last line of note moves to next compute cell
@@ -7816,7 +7854,6 @@ TOP PRIORITY:
             position it was at last time (recorded using data
             attribute?)
 
-  [ ] save worksheet DOM to backend
   [ ] tab completion
 -->      [ ] page: determining where the cursor is
 -->      [ ] page: putting the cursor back
@@ -7829,6 +7866,8 @@ TOP PRIORITY:
       [ ] page: display a docstring (with Sphinx html formatting?)
       [ ] page: display source code
 
+  [ ] save non-logged in user's scratch worksheet to cookie (?)
+  [ ] useful message when session times out
 
   [ ] @interact foundations
   [ ] auto-indent
@@ -7861,6 +7900,10 @@ TOP PRIORITY:
 
 LATER:
 
+  [ ] delete worksheet confirmation
+  [ ] make worksheet1 (scratch worksheet) not do anything until user clicks an "i agree to terms of usage" checkbox;
+      box does not come back so long as user local storage contains a worksheet.
+
   [ ] make button bar move on mobile device
   [ ] user customize syntax highlighting and other worksheet colors via a gui *or* edit css
   [ ] get salvus to work on ie (maybe just deal with console?)
@@ -7884,5 +7927,3 @@ DONE:
 
 
 ---
-
-ascii code of a character: .charCodeAt(0)

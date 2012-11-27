@@ -16,7 +16,7 @@
             )
         else
             top_navbar.set_button_label("account", "Sign in", "", false)
-    
+
     ################################################
     # id of account client browser thinks it is signed in as
     ################################################
@@ -52,16 +52,16 @@
     #show_page("account-settings")
 
     top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
-    
+
     $("a[href='#account-create_account']").click (event) ->
         show_page("account-create_account")
         return false
-        
+
     $("a[href='#account-sign_in']").click (event) ->
         destroy_create_account_tooltips()
         show_page("account-sign_in");
         return false
-        
+
     ################################################
     # Activate buttons
     ################################################
@@ -79,7 +79,7 @@
     $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
 
     $("#account-settings-tab").find("form").click((event) -> return false)
-                
+
 
     ################################################
     # Tooltips
@@ -104,7 +104,7 @@
             $("#create_account-#{field}").popover "destroy"
 
     top_navbar.on("hide_page_account", destroy_create_account_tooltips)
-    
+
     $("#create_account-button").click((event) ->
         destroy_create_account_tooltips()
 
@@ -132,7 +132,7 @@
                         # should never ever happen
                         alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
-        salvus.conn.create_account(opts)
+        salvus_client.create_account(opts)
     )
 
 
@@ -171,7 +171,7 @@
 
     sign_in = () ->
         $("#sign_in-email").focus()
-        salvus.conn.sign_in
+        salvus_client.sign_in
             email_address : $("#sign_in-email").val()
             password      : $("#sign_in-password").val()
             remember_me   : $("#sign_in-remember_me").is(":checked")
@@ -186,11 +186,11 @@
                     when 'signed_in'
                         signed_in(mesg)
                     when 'error'
-                        alert_message(type:"error", message: mesg.reason)                        
+                        alert_message(type:"error", message: mesg.reason)
                     else
                         # should never ever happen
                         alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
-    
+
     signed_in = (mesg) ->
         # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
         account_id = mesg.account_id
@@ -198,7 +198,7 @@
             if not error
                 account_settings.set_view()
         )
-        
+
         # change the view in the account page to the settings/sign out view
         show_page("account-settings")
         # change the navbar title from "Sign in" to "first_name last_name"
@@ -208,7 +208,7 @@
 
     # Listen for pushed sign_in events from the server.  This is one way that
     # the sign_in function above can be activated, but not the only way.
-    salvus.conn.on("signed_in", signed_in)
+    salvus_client.on("signed_in", signed_in)
 
     ################################################
     # Explicit sign out
@@ -217,7 +217,7 @@
         # Send a message to the server that the user explicitly
         # requested to sign out.  The server can clean up resources
         # and invalidate the remember_me cookie for this client.
-        salvus.conn.sign_out
+        salvus_client.sign_out
             timeout : 10
             cb      : (error) ->
                 if error
@@ -228,7 +228,7 @@
                     show_page("account-sign_in")
                     top_navbar.hide_page_button("projects")
                     # TODO: have to remove a bunch of other pages
-                    
+
                     top_navbar.switch_to_page("account")
 
     ################################################
@@ -237,7 +237,7 @@
 
     class AccountSettings
         load_from_server: (cb) ->
-            salvus.conn.get_account_settings(account_id:account_id, cb:(error, settings_mesg) =>
+            salvus_client.get_account_settings(account_id:account_id, cb:(error, settings_mesg) =>
                 if error
                     alert_message(type:"error", message:"Error loading account settings - #{error}")
                     @settings = 'error'
@@ -252,7 +252,7 @@
                 @settings = settings_mesg
                 delete @settings['id']
                 delete @settings['event']
-                
+
                 cb()
             )
 
@@ -260,7 +260,7 @@
         load_from_view: () ->
             if not @settings? or @settings == "error"
                 return  # not logged in -- don't bother
-                
+
             for prop of @settings
                 element = $("#account-settings-#{prop}")
                 switch prop
@@ -271,11 +271,11 @@
                     else
                         val = element.val()
                 @settings[prop] = val
-                
+
         set_view: () ->
             if not @settings?
                 return  # not logged in -- don't bother
-                
+
             if @settings == 'error'
                 $("#account-settings-error").show()
                 return
@@ -284,8 +284,8 @@
                 # TODO: dumb and dangerous -- do better
                 element.val(value)
                 element.text(value)
-            
-            
+
+
             $("#account-settings-error").hide()
 
             for prop, value of @settings
@@ -328,26 +328,26 @@
             if not @settings? or @settings == 'error'
                 opts.cb("There are no account settings to save.")
                 return
-            salvus.conn.save_account_settings
+            salvus_client.save_account_settings
                 account_id : account_id
                 settings   : @settings
                 password   : opts.password
                 cb         : opts.cb
 
     account_settings = new AccountSettings()
-        
+
     ################################################
     # Change Email Address
     ################################################
 
     change_email_address = $("#account-change_email_address")
-    
+
     $("a[href='#account-change_email_address']").click((event)->$('#account-change_email_address').modal('show'))  # should not be needed
 
     close_change_email_address = () ->
         change_email_address.modal('hide').find('input').val('')
         change_email_address.find(".account-error-text").hide()
-        
+
     # When click in the cancel button on the change email address
     # dialog, it is important to hide an error messages; also clear
     # password.
@@ -361,8 +361,8 @@
     $("#account-change_email_address_button").click (event) ->
         new_email_address = $("#account-change_email_new_address").val()
         password = $("#account-change_email_password").val()
-            
-        salvus.conn.change_email
+
+        salvus_client.change_email
             old_email_address : account_settings.settings.email_address
             new_email_address : new_email_address
             password          : password
@@ -391,7 +391,7 @@
                     account_settings.settings.email_address = new_email_address
                     close_change_email_address()
         return false
-        
+
     ################################################
     # Change password
     ################################################
@@ -401,7 +401,7 @@
     close_change_password = () ->
         change_password.modal('hide').find('input').val('')
         change_password.find(".account-error-text").hide()
-        
+
     change_password.find(".close").click((event) -> close_change_password())
     $("#account-change_password-button-cancel").click((event)->close_change_password())
     change_password.on("shown", () -> $("#account-change_password-old_password").focus())
@@ -409,7 +409,7 @@
     $("a[href='#account-change_password']").click((event)->$('#account-change_password').modal('show'))  # should not be needed
 
     $("#account-change_password-button-submit").click (event) ->
-        salvus.conn.change_password
+        salvus_client.change_password
             email_address : account_settings.settings.email_address
             old_password  : $("#account-change_password-old_password").val()
             new_password  : $("#account-change_password-new_password").val()
@@ -435,7 +435,7 @@
     ################################################
     # Forgot your password?
     ################################################
-    
+
     forgot_password = $("#account-forgot_password")
 
     close_forgot_password = () ->
@@ -449,7 +449,7 @@
     $("#account-forgot_password-button-submit").click (event) ->
         email_address = $("#account-forgot_password-email_address").val()
         forgot_password.find(".account-error-text").hide()
-        salvus.conn.forgot_password
+        salvus_client.forgot_password
             email_address : email_address
             cb : (error, mesg) ->
                 if error
@@ -458,7 +458,7 @@
                     alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
                 else
                     alert_message(type:"info", message:"Salvus sent a password reset email message to #{email_address}.")
-    
+
 
     #################################################################
     # Page you get when you click "Forgot your password" email link and main page loads
@@ -468,7 +468,7 @@
     if url_args.length == 3 and url_args[1] == "forgot"
         forget_password_reset_key = url_args[2]
         forgot_password_reset.modal("show")
-    
+
     close_forgot_password_reset = () ->
         forgot_password_reset.modal('hide').find('input').val('')
         forgot_password_reset.find(".account-error-text").hide()
@@ -480,7 +480,7 @@
     $("#account-forgot_password_reset-button-submit").click (event) ->
         new_password = $("#account-forgot_password_reset-new_password").val()
         forgot_password_reset.find(".account-error-text").hide()
-        salvus.conn.reset_forgot_password
+        salvus_client.reset_forgot_password
             reset_code   : url_args[2]
             new_password : new_password
             cb : (error, mesg) ->

@@ -16,7 +16,7 @@ top_navbar.on "switch_to_page-projects", () ->
                 project.search = (project.title+' '+project.description).toLowerCase()
 
     update_project_list = () ->
-        salvus.conn.get_projects
+        salvus_client.get_projects
             cb: (error, mesg) ->
                 if not error and mesg.event == 'all_projects'
                     project_list = mesg.projects
@@ -25,7 +25,7 @@ top_navbar.on "switch_to_page-projects", () ->
 
 
     # update caused by update happenin on some other client
-    salvus.conn.on('project_list_updated', ((data) -> update_project_list()))
+    salvus_client.on('project_list_updated', ((data) -> update_project_list()))
 
     # search as you type
     $("#projects-find-input").keyup((event) -> update_project_view())
@@ -127,7 +127,7 @@ top_navbar.on "switch_to_page-projects", () ->
         title = $("#projects-create_project-title").val()
         if title == ""
             title = "Untitled"
-        salvus.conn.create_project
+        salvus_client.create_project
             title       : title
             description : $("#projects-create_project-description").val()
             public      : $("#projects-create_project-public").is(":checked")

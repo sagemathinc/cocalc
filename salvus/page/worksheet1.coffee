@@ -15,7 +15,9 @@ $(() ->
     active_cell = undefined
     last_active_cell = undefined
 
+    page = $("#worksheet1")
     worksheet1 = $("#worksheet1")
+    worksheet = undefined
 
     $.fn.extend
         salvus_worksheet: (opts) ->
@@ -24,10 +26,12 @@ $(() ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
                 worksheet.append_salvus_cell()
-                worksheet.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
-                worksheet.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
-                worksheet.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_completion(); return false)
-                worksheet.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
+
+                worksheet1.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
+                worksheet1.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
+                worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_completion(); return false)
+                worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
+                worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
             return worksheet
 
         append_salvus_cell: (opts) ->
@@ -290,15 +294,13 @@ $(() ->
         next.find(".salvus-cell-input").focus()
         last_active_cell = active_cell = next
 
-    page = $("#worksheet1")
-
-    worksheet = page.salvus_worksheet()
+    ##############################################################################################
 
     persistent_session = null
 
     session = (cb) ->
         if persistent_session == null
-            salvus.conn.new_session
+            salvus_client.new_session
                 limits: {walltime:600, cputime:60}
                 timeout: 2
                 cb: (error, session) ->
@@ -321,6 +323,12 @@ $(() ->
             persistent_session = null
             worksheet.find(".salvus-running").hide()
 
+    delete_worksheet= () ->
+        # TODO: confirmation
+        worksheet.remove()
+        worksheet = page.salvus_worksheet()
+        salvus_client.delete_scratch_worksheet()
+
     tab_completion = () ->
         alert("not implemented")
 
@@ -328,6 +336,12 @@ $(() ->
         opts = defaults opts,
             input: required
             cb: required
+
+        salvus_client.save_scratch_worksheet
+            data : worksheet.html()
+            cb   : (error) ->
+                console.log("save_worksheet", error)
+
         session (error, s) ->
             if error
                 alert_message(type:"error", message:"Unable to start a new Sage session.")
@@ -338,5 +352,18 @@ $(() ->
                     cb          : opts.cb
                     preparse    : true
 
+
+    ##############################################################################################
+
+    salvus_client.on "connected", (protocol) ->
+        salvus_client.load_scratch_worksheet
+            cb: (error, result) ->
+                if error
+                    worksheet = page.salvus_worksheet()
+                    console.log("set worksheet 1")
+                else
+                    worksheet = $("<div class='well salvus-worksheet span12'>").html(result)
+                    console.log("set worksheet 2")
+                    page.append(worksheet)
 
 )
