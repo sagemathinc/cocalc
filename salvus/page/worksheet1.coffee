@@ -40,7 +40,8 @@ $(() ->
                 $(this).append(cell)
                 #cell.draggable().bind("click", () -> $(this).focus())
                 last_active_cell = active_cell = cell
-                cell.find(".salvus-cell-input").focus()#.blur((e) -> active_cell=undefined; highlight(input:$(this)) )
+                cell.find(".salvus-cell-input").focus()
+                #.blur((e) -> active_cell=undefined; highlight(input:$(this)) )
             return cell
 
     ###############################################################
@@ -85,17 +86,31 @@ $(() ->
             # We thus must replace all 32's by 160, or sage will be unhappy:
             return result.replace(/\xA0/g, " ")
 
+    class CaretPosition
+        constructor: (@container, @offset) ->
+        equals: (other) ->  # true if this and other are at the same position
+            @container == other.container and @offset == other.offset
+        set: (type='range') -> # moves the cursor to this position, if it exists
+            range = rangy.createRange()
+            range.setStart(@container, @offset)
+            range.setEnd(@container, @offset)
+            sel = rangy.getSelection()
+            if sel.rangeCount > 0
+                sel.removeAllRanges()
+            sel.addRange(range)
+
     get_caret_position = () ->
-        sel   = rangy.getSelection()
-        range = sel.getRangeAt(0)
-        console.log(range)
-        return range
+        try
+            sel   = rangy.getSelection()
+            range = sel.getRangeAt(0)
+            return new CaretPosition(range.startContainer, range.startOffset)
+        catch error
+            return undefined  # no caret position
 
     ####################################################
     # keyboard control -- rewrite to use some library
     ####################################################
-    down_pos = null
-    up_pos = null
+    keydown_caret_position = null
     $(document).keydown (e) ->
         switch e.which
             when 13 # enter
@@ -104,32 +119,34 @@ $(() ->
                 else
                     e = $(document.activeElement)
                     if e.hasClass("salvus-cell-input")
-                        # TODO: I have not figured out how to get this to work (esp. on firefox) without the space after <br>, which is mildly annoying.
+                        # TODO: I have not figured out how to get this
+                        # to work (esp. on firefox) without the space
+                        # after <br>, which is mildly annoying.
                         $("<span><br> </span>").salvusws_insert_node_at_caret().salvusws_set_caret_position(offset:1)
                         return false
             when 40 # down arrow
-                console.log("keydown", get_caret_position())
-                down_pos = get_caret_position()
-                if e.altKey or e.ctrlKey
-                    return focus_next_editable()
+                if e.shiftKey
+                    focus_next_editable()
+                    return false
+                pos = get_caret_position()
+                if pos?
+                    setTimeout((() -> focus_next_editable() if get_caret_position()?.equals(pos)), 1)
             when 38 # up arrow
-                if e.altKey or e.ctrlKey
-                    return focus_previous_editable()
-            when 27 # escape
+                if e.shiftKey
+                    focus_previous_editable()
+                    return false
+                pos = get_caret_position()
+                if pos?
+                    setTimeout((() -> focus_previous_editable() if get_caret_position()?.equals(pos)), 1)
+            when 27 # escape = 27
                 interrupt_session()
-            when 9 # tab key
+            when 9 # tab key = 9
                 if input_is_selected()
                     indent_selected_input(e.shiftKey)
                     return false
                 else
                     return introspect()
 
-    $(document).keyup (e) ->
-        switch e.which
-            when 40
-                console.log("keyup")
-                up_pos = get_caret_position()
-                console.log("down/up", down_pos, up_pos, down_pos==up_pos)
 
     ########################################
     # indent and unindent block
@@ -185,15 +202,24 @@ $(() ->
         else
             return p.parent()
 
+    # returns jquery wrapped active element
+    save_caret_position = () ->
+        return $(document.activeElement).data("caret_position", get_caret_position())
+
     focus_next_editable = () ->
-        e = $(document.activeElement)
-        #console.log(containing_cell(e))
-        containing_cell(e).next().find(".salvus-cell-input").focus()
+        e = save_caret_position()
+        n = containing_cell(e).next().find(".salvus-cell-input").focus()
+        p = n.data("caret_position")
+        if p?
+            p.set()
         return false
 
     focus_previous_editable = () ->
-        e = $(document.activeElement)
-        containing_cell(e).prev().find(".salvus-cell-input").focus()
+        e = save_caret_position()
+        n = containing_cell(e).prev().find(".salvus-cell-input").focus()
+        p = n.data("caret_position")
+        if p?
+            p.set()
         return false
 
     highlight = (opts) ->

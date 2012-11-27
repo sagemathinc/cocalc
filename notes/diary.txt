@@ -7831,6 +7831,7 @@ TOP PRIORITY:
 
   [ ] @interact foundations
   [ ] auto-indent
+  [ ] highlight and tab/shift-tab for indent: https://github.com/alanhogan/Tabby (?)
   [ ] save logged in user's scratch worksheet to database
   [ ] save non-logged in user's scratch worksheet to cookie (?)
   [ ] mathjax
