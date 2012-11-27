@@ -116,14 +116,6 @@ $(() ->
             when 13 # enter
                 if e.shiftKey
                     return execute_code()
-                else
-                    e = $(document.activeElement)
-                    if e.hasClass("salvus-cell-input")
-                        # TODO: I have not figured out how to get this
-                        # to work (esp. on firefox) without the space
-                        # after <br>, which is mildly annoying.
-                        $("<span><br> </span>").salvusws_insert_node_at_caret().salvusws_set_caret_position(offset:1)
-                        return false
             when 40 # down arrow
                 if e.shiftKey
                     focus_next_editable()
@@ -233,7 +225,7 @@ $(() ->
             # easy special case -- whitespace
             opts.cb?(false, '')
             return
-        Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted)))
+        Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted.replace(/\n/g,'<br>'))))
         opts.cb?(false, plain_text)
 
     execute_code = () ->
