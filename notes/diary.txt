@@ -7807,6 +7807,10 @@ TOP PRIORITY:
 
   [x] bug -- extra space on highlight
 
+  [x] ability to use cursor keys to move between compute cells
+
+  [ ] Rainbow highlighter -- has a bug with triple quoted strings
+
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note
       [ ] down arrow on last line of note moves to next compute cell
@@ -7843,12 +7847,18 @@ TOP PRIORITY:
 
    print i"
 
+  [x] evaluating a large input cell takes a huge time to do nothing -- why?
+      it turns out getting the plain text using the .text() method of rangy is *DOG SLOW*!
+      What about that HTML parser I ditched?
+      It is 10000 times faster than rangy for this!  W00t.  OK, I keep it.
+
   [x] kill/restart session
   [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
   [x] lame "running" indicator just to have something easy to implement
   [x] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
 
 LATER:
+
   [ ] make button bar move on mobile device
   [ ] user customize syntax highlighting and other worksheet colors via a gui *or* edit css
   [ ] get salvus to work on ie (maybe just deal with console?)

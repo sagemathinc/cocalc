@@ -4,6 +4,8 @@
 
 $(() ->
     misc = require('misc')
+    client = require('client')
+    async = require('async')
     uuid = misc.uuid
     required = misc.required
     defaults = misc.defaults
@@ -78,9 +80,14 @@ $(() ->
             opts = defaults opts, {} # no options
             result = ''
             @each () ->
-                r = rangy.createRange()
-                r.selectNodeContents(this)
-                result += r.text()
+                that = this
+                async.series([
+                    (cb) -> client.html_to_text(html:$(that).html(), cb:((error, plain) -> result += plain; cb()))
+                ])
+                # This was the rangy implementation, but it was 10000 times slower than htmlparser, so screw that!
+                #r = rangy.createRange()
+                #r.selectNodeContents(this)
+                #result += r.text()
 
             # &nbsp;'s are converted to character code 160, not 32 (which is a space).
             # We thus must replace all 32's by 160, or sage will be unhappy:
@@ -117,16 +124,20 @@ $(() ->
                 if e.shiftKey
                     return execute_code()
             when 40 # down arrow
-                if e.shiftKey
+                if e.ctrlKey or e.altKey
                     focus_next_editable()
                     return false
+                if e.shiftKey
+                    return true
                 pos = get_caret_position()
                 if pos?
                     setTimeout((() -> focus_next_editable() if get_caret_position()?.equals(pos)), 1)
             when 38 # up arrow
-                if e.shiftKey
+                if e.ctrlKey or e.altKey
                     focus_previous_editable()
                     return false
+                if e.shiftKey
+                    return true
                 pos = get_caret_position()
                 if pos?
                     setTimeout((() -> focus_previous_editable() if get_caret_position()?.equals(pos)), 1)
@@ -239,7 +250,6 @@ $(() ->
         highlight
             input : input
             cb: (error, input_text) ->
-                #console.log("input_text='#{input_text}'")
                 if error
                     alert_message(type:"error", message:"There was an error parsing the content of an input cell.")
                 else
@@ -249,7 +259,6 @@ $(() ->
 
 
     execute_code_in_cell = (input_text, cell) ->
-
         input = cell.find(".salvus-cell-input")
         output = cell.find(".salvus-cell-output")
         stdout = output.find(".salvus-stdout")
