@@ -122,7 +122,7 @@ class exports.Connection extends EventEmitter
                     @emit("output", mesg)
             when "terminate_session"
                 session = @_sessions[mesg.session_uuid]
-                session.emit("close")
+                session?.emit("close")
             when "pong"
                 @_last_pong = misc.walltime()
                 @emit("ping", @_last_pong - @_last_ping)
