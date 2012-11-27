@@ -53,9 +53,10 @@ pre {
     padding-left:5px;
     padding-right:5px;
     background-color:#fffffa;
-    white-space: pre; 
+    white-space: pre;
     word-wrap: break-word;
     min-height:1.6em;
+    width:90%;
 }
 
 .salvus-cell-output {

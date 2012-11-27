@@ -26,12 +26,6 @@ $(() ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
                 worksheet.append_salvus_cell()
-
-                worksheet1.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
-                worksheet1.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
-                worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_completion(); return false)
-                worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
-                worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
             return worksheet
 
         append_salvus_cell: (opts) ->
@@ -355,15 +349,22 @@ $(() ->
 
     ##############################################################################################
 
+    worksheet1.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
+    worksheet1.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
+    worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_completion(); return false)
+    worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
+    worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
+
     salvus_client.on "connected", (protocol) ->
         salvus_client.load_scratch_worksheet
             cb: (error, result) ->
                 if error
+                    console.log("creating new worksheet")
                     worksheet = page.salvus_worksheet()
-                    console.log("set worksheet 1")
                 else
-                    worksheet = $("<div class='well salvus-worksheet span12'>").html(result)
-                    console.log("set worksheet 2")
+                    console.log("loading saved worksheet")
+                    worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
+                    worksheet.html(result)
                     page.append(worksheet)
 
 )

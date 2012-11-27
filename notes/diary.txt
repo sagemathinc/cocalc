@@ -7844,7 +7844,9 @@ TODO:
 
 TOP PRIORITY:
 
+  [ ] make it so re-loaded scratch worksheet is *active*
   [ ] save logged in user's scratch worksheet to database
+
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note
       [ ] down arrow on last line of note moves to next compute cell
@@ -7854,6 +7856,7 @@ TOP PRIORITY:
             position it was at last time (recorded using data
             attribute?)
 
+       
   [ ] tab completion
 -->      [ ] page: determining where the cursor is
 -->      [ ] page: putting the cursor back
