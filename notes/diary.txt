@@ -7805,12 +7805,8 @@ TODO:
 
 TOP PRIORITY:
 
-  [x] bug -- extra space on highlight
-
-  [x] ability to use cursor keys to move between compute cells
-
-  [ ] Rainbow highlighter -- has a bug with triple quoted strings
-
+  [ ] save logged in user's scratch worksheet to database
+  [ ] save non-logged in user's scratch worksheet to cookie (?)
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note
       [ ] down arrow on last line of note moves to next compute cell
@@ -7833,19 +7829,25 @@ TOP PRIORITY:
       [ ] page: display a docstring (with Sphinx html formatting?)
       [ ] page: display source code
 
+
   [ ] @interact foundations
   [ ] auto-indent
   [ ] highlight and tab/shift-tab for indent: https://github.com/alanhogan/Tabby (?)
-  [ ] save logged in user's scratch worksheet to database
-  [ ] save non-logged in user's scratch worksheet to cookie (?)
   [ ] mathjax
   [ ] paren matching
   [ ] move scratch worksheet to a project
   [ ] when pasting into input cell, turn into text first, e.g., &nbsp;'s get pasted in for spaces right now...  This is pretty bad.
+  [ ] mode where hub kills any session without activity for xxx time...
   [ ] because of block breaking code in sage_server.py, this gives an error:
 "for i in range(10):
 
    print i"
+
+  [x] Rainbow highlighter -- has a bug with triple quoted strings:
+      - the regexp is wrong: correct version is /('{3}|"{3})[\s\S]*?\1/gm
+        """[\s\S]*"""
+  [x] bug -- extra space on highlight
+  [x] ability to use cursor keys to move between compute cells
 
   [x] evaluating a large input cell takes a huge time to do nothing -- why?
       it turns out getting the plain text using the .text() method of rangy is *DOG SLOW*!
