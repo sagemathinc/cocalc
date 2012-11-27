@@ -68,8 +68,8 @@ CREATE TABLE plans (
     ram_limit        int,   // maximum virtual ram usage in gigabytes per session
     support_level    varchar,   // you can pay for better support
 
-    stateless_exec_limits varchar, // JSON {walltime:seconds, cputime:seconds, vmem:MB, numfiles:int, quota:MB} 
-);   
+    stateless_exec_limits varchar, // JSON {walltime:seconds, cputime:seconds, vmem:MB, numfiles:int, quota:MB}
+);
 
 CREATE INDEX ON plans(current)
 
@@ -101,23 +101,23 @@ CREATE TABLE accounts (
 
     enable_tooltips    boolean
 
-);    
-    
+);
+
 CREATE INDEX ON accounts(first_name);
 CREATE INDEX ON accounts(last_name);
 CREATE INDEX ON accounts(email_address);
 CREATE INDEX ON accounts(plan_id);
-    
+
 CREATE TABLE account_log (
     account_id   uuid PRIMARY KEY,
     event        varchar,
     value        varchar
-);    
+);
 
 CREATE TABLE auths (
     account_id   uuid,
-    provider     varchar,   
-    login_name   varchar,   
+    provider     varchar,
+    login_name   varchar,
     info         varchar,
     PRIMARY KEY(account_id, provider, login_name)
 );
@@ -142,7 +142,7 @@ CREATE TABLE feedback (
     status  varchar,      // 'new' (user just reported it), 'issue' (opened ticket in feedback tracker), 'closed' (resolved), 'invalid'
     notes   varchar,      // notes by salvus developers about this issue
     url     varchar,      // pointer into feedback tracking system, if feedback is sent to a standard feedback tracker (e.g., a github issue)
-    time    timestamp 
+    time    timestamp
 );
 
 CREATE INDEX ON feedback(account_id);   // so we can show (via GUI) all feedback issues associated with a given user to a user
@@ -183,7 +183,7 @@ CREATE TABLE failed_sign_ins_by_email_address (
      PRIMARY KEY(email_address, time)
 );
 
-CREATE TABLE successful_sign_ins (  
+CREATE TABLE successful_sign_ins (
      account_id     uuid,
      time           timestamp,
      ip_address     varchar,
@@ -194,7 +194,7 @@ CREATE TABLE successful_sign_ins (
      last_name      varchar,       // for convenience
      PRIMARY KEY(account_id, time)
 );
-       
+
 
 
 ////////////////////////////////////////////
@@ -206,7 +206,7 @@ CREATE TABLE projects (
      account_id       uuid,          // id of the owner of this project
      title            varchar,
      description      varchar,
-     public           boolean,       // whether or not the project is visible to everybody in the world 
+     public           boolean,       // whether or not the project is visible to everybody in the world
      last_edited      timestamp,
      content          blob,          // binary data of the project, e.g., git bundle, etc.
 );
@@ -217,7 +217,7 @@ CREATE TABLE project_users (
      account_id       uuid,
      mode             varchar,        // 'owner' (all powerful), 'collaborator' (read write), 'viewer' (read only)
      PRIMARY KEY (project_id, account_id)
-);  
+);
 
 
 ////////////////////////////////////////////
@@ -229,10 +229,9 @@ CREATE TABLE sessions (
      project_id       uuid,
      hub              varchar,    // "hostname:port" -- when hub restarted, admin deletes all these records
      server           varchar     // "hostname:port" -- server that session is running on
-);  
-// there could be other metadata about the session, e.g., RAM limits, etc. 
+);
+// there could be other metadata about the session, e.g., RAM limits, etc.
 
 CREATE INDEX on sessions(project_id);
 CREATE INDEX on sessions(hub);
 CREATE INDEX on sessions(server);
-       
