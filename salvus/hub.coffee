@@ -1448,6 +1448,8 @@ exports.send_email = send_email = (opts={}) ->
 persistent_sage_sessions = {}
 
 
+SAGE_SESSION_LIMITS_NOT_LOGGED_IN = {cputime:30, walltime:3*60, vmem:2000, numfiles:1000, quota:128}
+
 SAGE_SESSION_LIMITS = {cputime:60, walltime:15*60, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (mesg, account_id, push_to_client) ->
@@ -1455,7 +1457,10 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
     # generate a uuid
     session_uuid = uuid.v4()
     # cap limits
-    misc.min_object(mesg.limits, SAGE_SESSION_LIMITS)  # TODO
+    if account_id?
+        misc.min_object(mesg.limits, SAGE_SESSION_LIMITS)  # TODO
+    else
+        misc.min_object(mesg.limits, SAGE_SESSION_LIMITS_NOT_LOGGED_IN)  # TODO
     database.random_sage_server( cb:(error, sage_server) ->
         # TODO: deal with case when there are no sage servers -- or when error is set !
         sage_conn = new sage.Connection(
