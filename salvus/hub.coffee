@@ -123,7 +123,8 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
+        #winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
+        winston.debug("hub --> client: sending #{mesg.event}")
         @conn.write(to_json(mesg))
 
     error_to_client: (opts) ->
@@ -136,7 +137,7 @@ class Client extends EventEmitter
     # Call this method when the user has successfully signed in.
     signed_in: (signed_in_mesg) =>
 
-        # Record that this connection is authenticated:
+        # Record that this connection is authenticated as user with given uuid.
         @account_id = signed_in_mesg.account_id
 
         record_sign_in
@@ -323,6 +324,7 @@ class Client extends EventEmitter
             return
 
         @signed_out()
+        #console.log("after signed_out, account_id = #{@account_id}")
         @invalidate_remember_me
             cb:(error) =>
                 winston.debug("signing out: #{mesg.id}, #{error}")
@@ -385,6 +387,7 @@ class Client extends EventEmitter
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to load the scratch worksheet from the server."))
             return
+        #console.log(@account_id)
         database.uuid_value_store(name:"scratch_worksheets").get
             uuid : @account_id
             cb   : (error, data) =>
@@ -707,6 +710,7 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
 #############################################################################
 sign_in = (client, mesg) =>
+    #console.log("sign_in")
     sign_in_error = (error) ->
         client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
 
@@ -867,7 +871,7 @@ is_valid_password = (password) ->
     if not valid
         return [valid, reason]
     password_strength = zxcvbn.zxcvbn(password)  # note -- this is synchronous (but very fast, I think)
-    console.log("password strength = #{password_strength}")
+    #console.log("password strength = #{password_strength}")
     if password_strength.score < MIN_ALLOWED_PASSWORD_STRENGTH
         return [false, "Choose a password that isn't very weak."]
     return [true, '']

@@ -7840,9 +7840,8 @@ TODO:
 TOP PRIORITY:
 
   [ ] tab completion
-      [ ] page: determining where the cursor is
--     [ ] page: putting the cursor back
-      [ ] page: dynamic syntax highlighting (given cursor control)
+      [x] page: determining where the cursor is
+-     [x] page: putting the cursor back
       [ ] sage_server: decide which type of introspection to do
       [ ] sage_server: introspect completions
       [ ] sage_server: introspect docstring
@@ -7850,9 +7849,11 @@ TOP PRIORITY:
       [ ] page: display list of completions and choose one
       [ ] page: display a docstring (with Sphinx html formatting?)
       [ ] page: display source code
+      [ ] page: dynamic syntax highlighting (given cursor control) ?
   [ ] @interact foundations
   [ ] mathjax
 
+  [ ] sign out must clear scratch worksheet.
 -----------------
 
   [ ] message when session times out; countdown timer...

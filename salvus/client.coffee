@@ -102,14 +102,6 @@ class exports.Connection extends EventEmitter
             #console.log(err)
 
     handle_message: (mesg) ->
-        id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
-        f = @call_callbacks[id]
-        if f?
-            if f != null
-                f(null, mesg)
-            delete @call_callbacks[id]
-            return
-
         switch mesg.event
             when "output"
                 cb = @execute_callbacks[mesg.id]
@@ -130,9 +122,17 @@ class exports.Connection extends EventEmitter
                 @_cookies?(mesg)
             when "signed_in"
                 @account_id = mesg.account_id
-                @emit(mesg.event, mesg)
+                @emit("signed_in", mesg)
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
+
+        id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
+        f = @call_callbacks[id]
+        if f?
+            if f != null
+                f(null, mesg)
+            delete @call_callbacks[id]
+            return
 
     ping: () ->
         @_last_ping = misc.walltime()

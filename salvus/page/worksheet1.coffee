@@ -1,6 +1,3 @@
-###
-# coffee -w -c index.coffee
-###
 
 $(() ->
     misc = require('misc')
@@ -199,12 +196,12 @@ $(() ->
     # spaces or introspect.
     introspect = () ->
         if not active_cell?
-            return
+            return true
 
         session (error, s) ->
             if error
                 alert_message(type:"error", message:"Unable to start a Sage session in which to introspect.")
-                return
+                return true
 
             input = active_cell.find(".salvus-cell-input")
             highlight
@@ -361,8 +358,9 @@ $(() ->
         worksheet = page.salvus_worksheet()
         salvus_client.delete_scratch_worksheet()
 
-    tab_completion = () ->
-        alert("not implemented")
+    tab_button = () ->
+        # TODO: could also just be indenting a block
+        introspect()
 
     save_scratch_worksheet = (notify=false) ->
         salvus_client.save_scratch_worksheet
@@ -410,7 +408,7 @@ $(() ->
 
     worksheet1.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
     worksheet1.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
-    worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_completion(); return false)
+    worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_button(); return false)
     worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
     worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
     worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_scratch_worksheet(true); return false)
@@ -433,7 +431,9 @@ $(() ->
                 worksheet.hide()
                 setTimeout((() -> worksheet.show()), 500)
 
-    salvus_client.on "connected", load_scratch_worksheet
-    salvus_client.on "signed_in", load_scratch_worksheet
+    salvus_client.on "connected", () ->
+        load_scratch_worksheet()
+    salvus_client.on "signed_in", () ->
+        load_scratch_worksheet()
 
 )
