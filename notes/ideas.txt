@@ -1,3 +1,5 @@
+[ ] better bootstrap alert boxes? -- http://fabien-d.github.com/alertify.js/ and http://news.ycombinator.com/item?id=4844180; but actually, this isn't so good... since the alerts disappear, aren't centered
+
  [ ] AWS cost sheet -- https://cloudvertical.com/cloud-costs
 
 [ ] from scratch javascript slideshow that is *really* nice -- view source on http://talks.golang.org/2012/splash.slide#1
