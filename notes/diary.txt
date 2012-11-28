@@ -7844,7 +7844,7 @@ TOP PRIORITY:
   [ ] editing highlighted code as is just doesn't work -- too subtle and not cross-browser.
       change to have two input pre's, one with code and one highlighted. So... next
       top-priority todo item is: INTEGRATE CODEMIRROR 3 in for input compute cells! ASAP.
-
+  [ ] message when session times out, then restart it.... will happen only if user's browser is there!
   [ ] tab completion
       [x] page: determining where the cursor is
 -     [x] page: putting the cursor back
@@ -7868,7 +7868,7 @@ TOP PRIORITY:
 
 -----------------
 
-  [ ] message when session times out; countdown timer...
+  [ ] countdown session timer, with link to buy now.
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note
       [ ] down arrow on last line of note moves to next compute cell
