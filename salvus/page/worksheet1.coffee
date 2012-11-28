@@ -428,9 +428,9 @@ $(() ->
                     c = worksheet.find(".salvus-cell").salvus_cell()
                     $(c[0]).find(".salvus-cell-input").focus()
                     page.append(worksheet)
+
                 worksheet.hide()
                 setTimeout((() -> worksheet.show()), 500)
-
 
     salvus_client.on "connected", load_scratch_worksheet
     salvus_client.on "signed_in", load_scratch_worksheet
