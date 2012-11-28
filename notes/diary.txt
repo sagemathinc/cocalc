@@ -7830,12 +7830,7 @@ cookie
    -- limited to 4k (!)
    -- sent with each http request.
    -- what about html5 local storage
-
-
   [ ] implement database version
-
-
-
 
 
 -------
@@ -7844,30 +7839,9 @@ TODO:
 
 TOP PRIORITY:
 
-  [x] make it so re-loaded scratch worksheet is *active*
-
-  [ ] save logged in user's scratch worksheet to database
-
-  [ ] focus on a cell when switching to scratch worksheet page.
-
-  [ ] only set highlighted to false on cell on change
-
-  [ ] worksheet1 keyboard shortcuts should only be active when
-      that page is displayed, e.g., tabbing in sign in doesn't work.
-
-  [ ] ability to use cursor keys to move between cells
-      [ ] down arrow when on last line of compute moves to note
-      [ ] down arrow on last line of note moves to next compute cell
-      HOW to implement? 
-          - if you hit arrow key and cursor does not move, then do DOM
-            query to find next editable and put cursor there in the
-            position it was at last time (recorded using data
-            attribute?)
-
-       
   [ ] tab completion
--->      [ ] page: determining where the cursor is
--->      [ ] page: putting the cursor back
+      [ ] page: determining where the cursor is
+-     [ ] page: putting the cursor back
       [ ] page: dynamic syntax highlighting (given cursor control)
       [ ] sage_server: decide which type of introspection to do
       [ ] sage_server: introspect completions
@@ -7876,46 +7850,41 @@ TOP PRIORITY:
       [ ] page: display list of completions and choose one
       [ ] page: display a docstring (with Sphinx html formatting?)
       [ ] page: display source code
-
-  [ ] save non-logged in user's scratch worksheet to cookie (?)
-  [ ] useful message when session times out
-
   [ ] @interact foundations
+  [ ] mathjax
+
+-----------------
+
+  [ ] message when session times out; countdown timer...
+  [ ] worksheet1 keyboard shortcuts should only be active when
+      that page is displayed, e.g., tabbing in sign in doesn't work.
+  [ ] ability to use cursor keys to move between cells
+      [ ] down arrow when on last line of compute moves to note
+      [ ] down arrow on last line of note moves to next compute cell
+      HOW to implement? 
+          - if you hit arrow key and cursor does not move, then do DOM
+            query to find next editable and put cursor there in the
+            position it was at last time (recorded using data
+            attribute?)
   [ ] auto-indent
   [ ] highlight and tab/shift-tab for indent: https://github.com/alanhogan/Tabby (?)
-  [ ] mathjax
   [ ] paren matching
   [ ] move scratch worksheet to a project
   [ ] when pasting into input cell, turn into text first, e.g., &nbsp;'s get pasted in for spaces right now...  This is pretty bad.
   [ ] mode where hub kills any session without activity for xxx time...
+  [ ] focus on a cell when switching to scratch worksheet page.
   [ ] because of block breaking code in sage_server.py, this gives an error:
 "for i in range(10):
 
    print i"
 
-  [x] Rainbow highlighter -- has a bug with triple quoted strings:
-      - the regexp is wrong: correct version is /('{3}|"{3})[\s\S]*?\1/gm
-        """[\s\S]*"""
-  [x] bug -- extra space on highlight
-  [x] ability to use cursor keys to move between compute cells
-
-  [x] evaluating a large input cell takes a huge time to do nothing -- why?
-      it turns out getting the plain text using the .text() method of rangy is *DOG SLOW*!
-      What about that HTML parser I ditched?
-      It is 10000 times faster than rangy for this!  W00t.  OK, I keep it.
-
-  [x] kill/restart session
-  [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
-  [x] lame "running" indicator just to have something easy to implement
-  [x] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
-
 LATER:
 
+  [ ] only set highlighted to false on cell on change
   [ ] save state (open tab
   [ ] delete worksheet confirmation
   [ ] make worksheet1 (scratch worksheet) not do anything until user clicks an "i agree to terms of usage" checkbox;
       box does not come back so long as user local storage contains a worksheet.
-
   [ ] make button bar move on mobile device
   [ ] user customize syntax highlighting and other worksheet colors via a gui *or* edit css
   [ ] get salvus to work on ie (maybe just deal with console?)
@@ -7934,7 +7903,27 @@ LATER:
   [ ] upsell: trial is slow (by x%), but click here for faster version
 
 DONE:
- [x] support using scratch worksheet *without* having to first login <--
+  [x] save non-logged in user's scratch worksheet to cookie (?)
+  [x] support using scratch worksheet *without* having to first login <--
+
+  [x] make it so re-loaded scratch worksheet is *active*
+  [x] save logged in user's scratch worksheet to database
+  [x] add tooltips for the control buttons
+  [x] Rainbow highlighter -- has a bug with triple quoted strings:
+      - the regexp is wrong: correct version is /('{3}|"{3})[\s\S]*?\1/gm
+        """[\s\S]*"""
+  [x] bug -- extra space on highlight
+  [x] ability to use cursor keys to move between compute cells
+
+  [x] evaluating a large input cell takes a huge time to do nothing -- why?
+      it turns out getting the plain text using the .text() method of rangy is *DOG SLOW*!
+      What about that HTML parser I ditched?
+      It is 10000 times faster than rangy for this!  W00t.  OK, I keep it.
+
+  [x] kill/restart session
+  [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
+  [x] lame "running" indicator just to have something easy to implement
+  [x] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
 
 
 
