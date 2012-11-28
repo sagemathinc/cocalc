@@ -128,7 +128,11 @@ class exports.Connection extends EventEmitter
                 @emit("ping", @_last_pong - @_last_ping)
             when "cookies"
                 @_cookies?(mesg)
-            when "signed_in", "project_list_updated", 'project_data_changed'
+            when "signed_in"
+                console.log("signed in")
+                @account_id = mesg.account_id
+                @emit(mesg.event, mesg)
+            when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
 
     ping: () ->
@@ -245,9 +249,7 @@ class exports.Connection extends EventEmitter
         @call(
             message : message.sign_in(email_address:opts.email_address, password:opts.password, remember_me:opts.remember_me)
             timeout : opts.timeout
-            cb      : (error, mesg) ->
-                if not error and mesg.event == "signed_in"
-                    @account_id = mesg.account_id
+            cb      : (error, mesg) =>
                 opts.cb(error, mesg)
         )
 
@@ -349,24 +351,26 @@ class exports.Connection extends EventEmitter
     save_scratch_worksheet: (opts={}) ->
         opts = defaults opts,
             data : required
-            cb   : undefined   # cb(false) = saved ok; cb(true) = did not save
+            cb   : undefined   # cb(false, info) = saved ok; cb(true, info) = did not save
         if @account_id?
-            console.log("database storage of scratch worksheet not implemented.")
+            opts.cb(true, "Saving worksheet to server is not implemented.")
         else
             if localStorage?
                 localStorage.scratch_worksheet = opts.data
+                opts.cb(false, "Saved worksheet to local storage in your browser (sign in to save to backend database).")
+            else
+                opts.cb(true, "Log in to save scratch worksheet.")
 
     load_scratch_worksheet: (opts={}) ->
         opts = defaults opts,
             cb   : required
         if @account_id?
-            console.log("database storage of scratch worksheet not implemented.")
+            opts.cb(true, "Database storage of scratch worksheet not yet implemented.")
         else
             if localStorage? and localStorage.scratch_worksheet?
                 opts.cb(false, localStorage.scratch_worksheet)
             else
-                opts.cb(true)
-            return
+                opts.cb(true, "Log in to load scratch worksheet.")
 
     delete_scratch_worksheet: (opts={}) ->
         opts = defaults opts,

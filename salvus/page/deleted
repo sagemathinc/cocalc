@@ -1,3 +1,6 @@
+                #cell.draggable().bind("click", () -> $(this).focus())
+                #last_active_cell = active_cell = cell
+                #.blur((e) -> active_cell=undefined; highlight(input:$(this)) )
 
 
                         #r2 = rangy.createRange()

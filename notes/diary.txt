@@ -7846,6 +7846,8 @@ TOP PRIORITY:
 
   [ ] make it so re-loaded scratch worksheet is *active*
   [ ] save logged in user's scratch worksheet to database
+  [ ] save scratch worksheet when leaving page, or periodically.
+  [ ] only set highlighted to false on cell on change
 
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note
@@ -7903,6 +7905,7 @@ TOP PRIORITY:
 
 LATER:
 
+  [ ] save state (open tab
   [ ] delete worksheet confirmation
   [ ] make worksheet1 (scratch worksheet) not do anything until user clicks an "i agree to terms of usage" checkbox;
       box does not come back so long as user local storage contains a worksheet.

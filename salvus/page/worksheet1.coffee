@@ -19,8 +19,32 @@ $(() ->
     worksheet1 = $("#worksheet1")
     worksheet = undefined
 
+    activate_salvus_cell = (cell) ->
+        cell.find(".salvus-cell-input"
+        ).data('highlighted', true
+        ).click( (e) ->
+            active_cell = containing_cell($(this))
+        ).focus( (e) ->
+            last_active_cell = active_cell = containing_cell($(this))
+        )
+
+    salvus_cell = (opts={}) ->
+        opts = defaults opts,
+            id : undefined
+        cell = $("#worksheet1"
+        ).find(".salvus-templates"
+        ).find(".salvus-cell"
+        ).clone(
+        ).attr('id', if opts.id? then opts.id else uuid())
+
+        activate_salvus_cell(cell)
+        return cell
+
     $.fn.extend
         salvus_worksheet: (opts) ->
+            # salvus_worksheet: appends a Salvus worksheet to each element of the jQuery
+            # wrapped set; resuts in the last worksheet created as a
+            # jQuery wrapped object.
             worksheet = undefined
             @each () ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
@@ -28,20 +52,26 @@ $(() ->
                 worksheet.append_salvus_cell()
             return worksheet
 
+        salvus_cell: (opts={}) ->
+            # Convert each element of the wrapped set into a salvus cell.
+            # If the optional id is given, then the first cell created
+            # will have that id attribute (the rest will be random).
+            opts = defaults opts,
+                id: undefined
+            @each () ->
+                t = $(this)
+                if t.hasClass("salvus-cell")
+                    # this is already a Salvus Cell, so we activate its javascript
+                    activate_salvus_cell(t)
+                else
+                    # create new cell and replace this with it.
+                    $(this).replaceWith(salvus_cell(id:opts.id))
+                opts.id = undefined if opts.id?
+
         append_salvus_cell: (opts) ->
             cell = undefined
             @each () ->
-                cell = $("#worksheet1").find(".salvus-templates").find(".salvus-cell").clone().data("worksheet", $(this))
-                id = uuid()
-                cell.attr('id', id)
-                cell.find(".salvus-cell-input").data("cell", cell).click((e) ->
-                    active_cell = $(this).data('cell')
-                ).focus((e) -> last_active_cell = active_cell = $(this).data('cell'))
-                $(this).append(cell)
-                #cell.draggable().bind("click", () -> $(this).focus())
-                last_active_cell = active_cell = cell
-                cell.find(".salvus-cell-input").focus()
-                #.blur((e) -> active_cell=undefined; highlight(input:$(this)) )
+                cell = salvus_cell().focus().appendTo($(this))
             return cell
 
     ###############################################################
@@ -209,7 +239,11 @@ $(() ->
 
     focus_next_editable = () ->
         e = save_caret_position()
+        h = e.data('highlighted')
+        if h? and not h
+            highlight(input: e)
         n = containing_cell(e).next().find(".salvus-cell-input").focus()
+        n.data('highlighted', false)  # TODO -- actually only do this when user changes it
         p = n.data("caret_position")
         if p?
             p.set()
@@ -234,7 +268,10 @@ $(() ->
             # easy special case -- whitespace
             opts.cb?(false, '')
             return
-        Rainbow.color(plain_text, opts.language, ((highlighted) -> opts.input.html(highlighted.replace(/\n/g,'<br>'))))
+        Rainbow.color(plain_text, opts.language, (highlighted) ->
+            opts.input.html(highlighted.replace(/\n/g,'<br>'))
+            opts.input.data('highlighted', true)
+        )
         opts.cb?(false, plain_text)
 
     execute_code = () ->
@@ -243,6 +280,7 @@ $(() ->
             return
 
         input = cell.find(".salvus-cell-input")
+        worksheet_changed()
 
         # syntax highlight input, then call execute on the resulting plain text:
         highlight
@@ -326,15 +364,36 @@ $(() ->
     tab_completion = () ->
         alert("not implemented")
 
+    save_scratch_worksheet = (notify=false) ->
+        salvus_client.save_scratch_worksheet
+            data : worksheet.html()
+            cb   : (error, msg) ->
+                if notify
+                    if error
+                        alert_message(type:"error", message:msg)
+                    else
+                        alert_message(type:"info", message:msg)
+                if not error
+                    worksheet_saved()
+
+    worksheet_is_saved = true
+
+    worksheet_saved = () ->
+        worksheet_is_saved = true
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").addClass('btn-success')
+
+    worksheet_changed = () ->
+        worksheet_is_saved = false
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success')
+
+    window.onbeforeunload = (e=window.event) ->
+        if not worksheet_is_saved
+            return "Your scratch worksheet is not saved."
+
     salvus_exec = (opts) ->
         opts = defaults opts,
             input: required
             cb: required
-
-        salvus_client.save_scratch_worksheet
-            data : worksheet.html()
-            cb   : (error) ->
-                console.log("save_worksheet", error)
 
         session (error, s) ->
             if error
@@ -354,17 +413,20 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_completion(); return false)
     worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
     worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
+    worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_scratch_worksheet(true); return false)
 
     salvus_client.on "connected", (protocol) ->
         salvus_client.load_scratch_worksheet
             cb: (error, result) ->
                 if error
-                    console.log("creating new worksheet")
                     worksheet = page.salvus_worksheet()
+                    alert_message(type:"info", message: "Created a new scratch worksheet.")
                 else
-                    console.log("loading saved worksheet")
+                    alert_message(type:"info", message: "Loaded last saved scratch worksheet.")
                     worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                     worksheet.html(result)
+                    c = worksheet.find(".salvus-cell").salvus_cell()
+                    $(c[0]).find(".salvus-cell-input").focus()
                     page.append(worksheet)
 
 )
