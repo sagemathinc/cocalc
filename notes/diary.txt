@@ -7890,6 +7890,7 @@ TOP PRIORITY:
    print i"
 
 LATER:
+  [ ] user personal data repository that is big/scaled/fast/query-able and public.
   [ ] only set highlighted to false on cell on change
   [ ] save state (open tab
   [ ] delete worksheet confirmation
