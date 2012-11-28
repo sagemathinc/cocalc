@@ -87,7 +87,7 @@
 
     enable_tooltips = () ->
         $("[rel=tooltip]").tooltip
-            delay: {show: 1000, hide: 100}
+            delay: {show: 600, hide: 100}
             placement: 'right'
 
     disable_tooltips = () ->

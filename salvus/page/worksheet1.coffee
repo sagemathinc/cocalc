@@ -429,6 +429,7 @@ $(() ->
                     $(c[0]).find(".salvus-cell-input").focus()
                     page.append(worksheet)
 
+                # TODO -- very, very lame.
                 worksheet.hide()
                 setTimeout((() -> worksheet.show()), 500)
 
