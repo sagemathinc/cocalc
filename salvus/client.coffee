@@ -394,9 +394,9 @@ class exports.Connection extends EventEmitter
                 timeout : 5
                 cb      : (error, m) ->
                     if error
-                        opts.cb(true, m.error)
+                        opts.cb?(true, m.error)
                     else
-                        opts.cb(false, "Deleted scratch worksheet from the server.")
+                        opts.cb?(false, "Deleted scratch worksheet from the server.")
         else
             if localStorage? and localStorage.scratch_worksheet?
                 delete localStorage.scratch_worksheet

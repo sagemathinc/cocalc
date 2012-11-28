@@ -103,7 +103,7 @@
         for field in create_account_fields
             $("#create_account-#{field}").popover "destroy"
 
-    top_navbar.on("hide_page_account", destroy_create_account_tooltips)
+    top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 
     $("#create_account-button").click((event) ->
         destroy_create_account_tooltips()

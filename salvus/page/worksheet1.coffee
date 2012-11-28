@@ -143,7 +143,8 @@ $(() ->
     # keyboard control -- rewrite to use some library
     ####################################################
     keydown_caret_position = null
-    $(document).keydown (e) ->
+
+    keydown_handler = (e) ->
         switch e.which
             when 13 # enter
                 if e.shiftKey
@@ -174,6 +175,14 @@ $(() ->
                     return false
                 else
                     return introspect()
+
+    top_navbar.on "switch_to_page-scratch", () ->
+        console.log("switch_to")
+        $(document).keydown(keydown_handler)
+
+    top_navbar.on "switch_from_page-scratch", () ->
+        console.log("switch_from")
+        $(document).unbind("keydown", keydown_handler)
 
 
     ########################################

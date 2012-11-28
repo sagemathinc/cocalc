@@ -133,7 +133,7 @@ top_navbar = undefined
 
     $("#projects").top_navbar
         id      : "projects"
-        'class' : 'navbar-big'
+        #'class' : 'navbar-big'
         label   : "Projects"
         close   : false
 

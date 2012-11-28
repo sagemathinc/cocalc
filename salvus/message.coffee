@@ -356,6 +356,10 @@ message
     id    : undefined
 
 message
+    event : 'delete_scratch_worksheet'
+    id    : undefined
+
+message
     event : 'scratch_worksheet_loaded'
     id    : undefined
     data  : required
