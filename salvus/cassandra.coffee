@@ -1,5 +1,5 @@
 #########################################################################
-# 
+#
 # Interface to the Cassandra Database.
 #
 # *ALL* DB queries (using CQL, etc.) should be in this file, with
@@ -10,7 +10,7 @@
 # (c) William Stein, University of Washington
 #
 #########################################################################
-    
+
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
@@ -56,11 +56,11 @@ exports.create_schema = (conn, cb) ->
             # create default plan 0
             conn.cql("UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=?",
                  [DEFAULT_PLAN_ID], (error, results) => cb(error) if error)
-            
+
         cb(err)
     )
-        
-    
+
+
 
 
 class UUIDValueStore
@@ -70,7 +70,7 @@ class UUIDValueStore
     # u.get(uuid:7, cb:console.log)
     constructor: (@cassandra, opts={}) ->
         @opts = defaults(opts,  name:'default')
-        
+
     set: (opts={}) ->
         opts = defaults(opts,  uuid:undefined, value:undefined, ttl:0, cb:undefined)
         opts.uuid = uuid.v4() if not opts.uuid?
@@ -82,7 +82,7 @@ class UUIDValueStore
             cb:opts.cb
         )
         return opts.uuid
-        
+
     get: (opts={}) ->
         opts = defaults(opts, uuid:undefined, cb:undefined)
         @cassandra.select(
@@ -91,21 +91,21 @@ class UUIDValueStore
             where:{name:@opts.name, uuid:opts.uuid}
             cb:(error, results) -> opts.cb?(error, if results.length == 1 then from_json(results[0][0]))
         )
-            
+
     delete: (opts={}) ->
         opts = defaults(opts, uuid:undefined, cb:undefined)
         @cassandra.delete(table:'uuid_value', where:{name:@opts.name, uuid:opts.uuid}, cb:opts.cb)
-        
+
     delete_all: (opts={}) ->
         opts = defaults(opts,  cb:undefined)
         @cassandra.delete(table:'uuid_value', where:{name:@opts.name}, cb:opts.cb)
-        
+
     length: (opts={}) ->
         opts = defaults(opts,  cb:undefined)
         @cassandra.count(table:'uuid_value', where:{name:@opts.name}, cb:opts.cb)
-        
+
     all: (opts={}) ->
-        opts = defaults(opts,  cb:required)        
+        opts = defaults(opts,  cb:required)
         @cassandra.select(
             table:'uuid_value'
             columns:['uuid', 'value']
@@ -122,7 +122,7 @@ class KeyValueStore
     #   d.get(key:[1,2], console.log)   # but call it again in > 5 seconds and get nothing...
     constructor: (@cassandra, opts={}) ->
         @opts = defaults(opts,  name:'default')
-        
+
     set: (opts={}) ->
         opts = defaults opts,
             key   : undefined
@@ -136,7 +136,7 @@ class KeyValueStore
             set:{value:to_json(opts.value)}
             ttl:opts.ttl
             cb:opts.cb
-                        
+
     get: (opts={}) ->
         opts = defaults opts,
             key       : undefined
@@ -158,19 +158,19 @@ class KeyValueStore
                 where:{name:@opts.name, key:to_json(opts.key)}
                 cb:(error, results) -> opts.cb?(error, if results.length == 1 then from_json(results[0][0]))
             )
-            
+
     delete: (opts={}) ->
         opts = defaults(opts, key:undefined, cb:undefined)
         @cassandra.delete(table:'key_value', where:{name:@opts.name, key:to_json(opts.key)}, cb:opts.cb)
-        
+
     delete_all: (opts={}) ->
         opts = defaults(opts,  cb:undefined)
         @cassandra.delete(table:'key_value', where:{name:@opts.name}, cb:opts.cb)
-        
+
     length: (opts={}) ->
         opts = defaults(opts,  cb:undefined)
         @cassandra.count(table:'key_value', where:{name:@opts.name}, cb:opts.cb)
-        
+
     all: (opts={}) ->
         opts = defaults(opts,  cb:undefined)
         @cassandra.select(
@@ -188,7 +188,7 @@ class KeyValueStore
 exports.from_cassandra = from_cassandra = (obj, json, timestamp) ->
     if not obj?
         return undefined
-        
+
     value = obj.value
     if json
         value = from_json(value)
@@ -206,7 +206,7 @@ class exports.Cassandra extends EventEmitter
             cb       : undefined
             keyspace : undefined
             timeout  : 3000
-            
+
         console.log("keyspace = #{opts.keyspace}")
         @conn = new helenus.ConnectionPool(
             hosts     :  opts.hosts
@@ -242,7 +242,7 @@ class exports.Cassandra extends EventEmitter
                         equals_fallback = false
                     if op == '=='
                         op = '=' # for cassandra
-                        
+
                     if op == 'in'
                         # !!!!!!!!!!!!!! potential CQL-injection attack  !!!!!!!!!!!
                         # TODO -- keep checking/complaining?:  in queries just aren't supported by helenus, at least as of Nov 17, 2012 ! :-(
@@ -262,12 +262,12 @@ class exports.Cassandra extends EventEmitter
         return where.slice(0,-4)
 
     _set: (properties, vals, json=[]) ->
-        set = ""; 
+        set = "";
         for key, val of properties
             if key in json
                 val = to_json(val)
             if val?  # only consider properties with defined values
-                if typeof(val) != 'boolean'            
+                if typeof(val) != 'boolean'
                     set += "#{key}=?,"
                     vals.push(val)
                 else
@@ -288,7 +288,7 @@ class exports.Cassandra extends EventEmitter
             query += " WHERE #{where}"
         @cql(query, vals, (error, results) -> opts.cb?(error, results[0].get('count').value))
 
-    update: (opts={}) -> 
+    update: (opts={}) ->
         opts = defaults opts,
             table     : required
             where     : {}
@@ -318,7 +318,7 @@ class exports.Cassandra extends EventEmitter
             json      : []          # list of columns that should be converted from JSON format
             timestamp : []          # list of columns to retrieve in the form {value:'value of that column', timestamp:timestamp of that column}
                                     # timestamp columns must not be part of the primary key
-            
+
         vals = []
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
         if opts.where?
@@ -344,22 +344,22 @@ class exports.Cassandra extends EventEmitter
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)
-    
+
     uuid_value_store: (opts={}) -> # uuid_value_store(name:"the name")
         new UUIDValueStore(@, opts)
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->
         if not opts.keyspace?
-            opts.keyspace = 'salvus' 
+            opts.keyspace = 'salvus'
         super(opts)
-        
+
     #####################################
     # The log: we log important conceptually meaningful events
     # here.  This is something we will actually look at.
     #####################################
     log: (opts={}) ->
-        opts = defaults(opts, 
+        opts = defaults(opts,
             event : required    # string
             value : required    # object (will be JSON'd)
             ttl   : undefined
@@ -384,7 +384,7 @@ class exports.Salvus extends exports.Cassandra
         # isn't trivial because I haven't implemented ranges in
         # @select yet, and I don't want to spend a lot of time on this
         # right now. maybe just write query using CQL.
-        
+
         @select(
             table   : 'central_log'
             where   : where
@@ -395,13 +395,13 @@ class exports.Salvus extends exports.Cassandra
                 else
                     cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
         )
-            
 
-    
+
+
     #####################################
     # Managing network services
     #####################################
-    running_sage_servers: (opts={}) ->  
+    running_sage_servers: (opts={}) ->
         opts = defaults(opts,  cb:undefined)
         @select(table:'sage_servers', columns:['address'], where:{running:true}, cb:(error, results) ->
             # TODO: we hardcoded 6000 for now
@@ -409,7 +409,7 @@ class exports.Salvus extends exports.Cassandra
         )
 
     random_sage_server: (opts={}) -> # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)
-        opts = defaults(opts,  cb:undefined)        
+        opts = defaults(opts,  cb:undefined)
         @running_sage_servers(cb:(error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res)))
 
 
@@ -444,7 +444,7 @@ class exports.Salvus extends exports.Cassandra
             else
                 cb(null, cnt==0)
         )
-        
+
     create_account: (opts={}) ->
         opts = defaults(opts,
             cb:undefined
@@ -453,10 +453,10 @@ class exports.Salvus extends exports.Cassandra
             email_address : required
             password_hash : required
         )
-            
+
         account_id = uuid.v4()
         a = {first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, password_hash:opts.password_hash, plan_id:DEFAULT_PLAN_ID}
-        
+
         @update(
             table :'accounts'
             set   : a
@@ -469,7 +469,7 @@ class exports.Salvus extends exports.Cassandra
     get_account: (opts={}) ->
         opts = defaults(opts,
             cb            : required
-            email_address : undefined     # provide either email or account_id (not both) 
+            email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
             columns       : ['account_id', 'password_hash', 'first_name', 'last_name', 'email_address',
                              'plan_id', 'plan_starttime',
@@ -482,10 +482,10 @@ class exports.Salvus extends exports.Cassandra
             where.account_id = opts.account_id
         if opts.email_address?
             where.email_address = opts.email_address
-            
+
         @select
             table   : 'accounts'
-            where   : where 
+            where   : where
             columns : opts.columns
             objectify : true
             cb      : (error, results) ->
@@ -508,7 +508,7 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             # We treat email separately, since email must be unique,
             # but Cassandra does not have a unique col feature.
-            (cb) => 
+            (cb) =>
                 if opts.settings.email_address?
                     @change_email_address
                         account_id    : opts.account_id
@@ -523,7 +523,7 @@ class exports.Salvus extends exports.Cassandra
                 else
                     cb()
             # make all the non-email changes
-            (cb) => 
+            (cb) =>
                 @update
                     table      : 'accounts'
                     where      : {'account_id':opts.account_id}
@@ -532,7 +532,7 @@ class exports.Salvus extends exports.Cassandra
                         opts.cb(error, result)
                         cb()
         ])
- 
+
 
     change_password: (opts={}) ->
         opts = defaults(opts,
@@ -554,10 +554,10 @@ class exports.Salvus extends exports.Cassandra
             email_address : required
             cb            : undefined
         )
-        
+
         # verify that email address is not already taken
         async.series([
-            (cb) => 
+            (cb) =>
                 @count
                     table   : 'accounts'
                     where   : {email_address : opts.email_address}
@@ -576,7 +576,7 @@ class exports.Salvus extends exports.Cassandra
                         opts.cb(error, true)
                         cb()
         ])
-        
+
 
     #####################################
     # User Feedback
@@ -589,7 +589,7 @@ class exports.Salvus extends exports.Cassandra
             data:        required
             nps:         undefined
             cb:          undefined
-            
+
         feedback_id = uuid.v4()
         time = now()
         @update
@@ -603,7 +603,7 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             account_id : required
             cb         : undefined
-            
+
         @select
             table     : "feedback"
             where     : {account_id:opts.account_id}
@@ -624,12 +624,12 @@ class exports.Salvus extends exports.Cassandra
             objectify : true
             cb        : opts.cb
 
-    
+
     #############
     # Plans
     ############
     create_plan: (opts={}) ->
-        opts = defaults(opts,  name:undefined, cb:undefined)        
+        opts = defaults(opts,  name:undefined, cb:undefined)
         @update
             table : 'plans'
             where : {plan_id:uuid.v4()}
@@ -637,15 +637,15 @@ class exports.Salvus extends exports.Cassandra
             cb    : opts.cb
 
     plan: (opts={}) ->
-        opts = defaults(opts,  id:undefined, columns:[], cb:undefined)        
+        opts = defaults(opts,  id:undefined, columns:[], cb:undefined)
         @select(table:'plans', columns:columns, where:{plan_id:id}, cb:opts.cb)
-        
+
     current_plans: (opts={}) ->
-        opts = defaults(columns:[], cb:undefined)        
+        opts = defaults(columns:[], cb:undefined)
         @select(table:'plans', columns:opts.columns, where:{current:true}, cb:opts.cb)
 
 
-    
+
     #############
     # Projects
     ############
@@ -660,7 +660,7 @@ class exports.Salvus extends exports.Cassandra
 
         async.series([
             # add entry to projects table
-            (cb) => 
+            (cb) =>
                 @update
                     table : 'projects'
                     set   :
@@ -682,7 +682,7 @@ class exports.Salvus extends exports.Cassandra
                     table : 'project_users'
                     set   :
                         mode       : 'owner'
-                    where : 
+                    where :
                         project_id : opts.project_id
                         account_id : opts.account_id
                     cb    : (error, result) ->
@@ -703,7 +703,7 @@ class exports.Salvus extends exports.Cassandra
 
         projects = undefined  # array of pairs (project_id, mode)
         async.series([
-            (cb) => 
+            (cb) =>
                 @select
                     table     : 'project_users'
                     columns   : ['project_id', 'mode']
@@ -739,7 +739,7 @@ class exports.Salvus extends exports.Cassandra
         if opts.ids.length == 0  # easy special case -- don't bother to query db!
             opts.cb(false, [])
             return
-                
+
         @select
             table     : 'projects'
             columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public']
@@ -765,10 +765,10 @@ class exports.Salvus extends exports.Cassandra
                     opts.cb(error)
                 else
                     opts.cb(false, results)
-        
 
-        
-    
+
+
+
 
 array_of_strings_to_cql_list = (a) ->
     '(' + ("'#{x}'" for x in a).join(',') + ')'

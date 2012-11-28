@@ -99,10 +99,7 @@ CREATE TABLE accounts (
     connect_Google     varchar,
     connect_Dropbox    varchar,
 
-    enable_tooltips    boolean,
-
-    scratch_worksheet  varchar
-
+    enable_tooltips    boolean
 );
 
 CREATE INDEX ON accounts(first_name);

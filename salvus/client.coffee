@@ -129,7 +129,6 @@ class exports.Connection extends EventEmitter
             when "cookies"
                 @_cookies?(mesg)
             when "signed_in"
-                console.log("signed in")
                 @account_id = mesg.account_id
                 @emit(mesg.event, mesg)
             when "project_list_updated", 'project_data_changed'
@@ -353,11 +352,18 @@ class exports.Connection extends EventEmitter
             data : required
             cb   : undefined   # cb(false, info) = saved ok; cb(true, info) = did not save
         if @account_id?
-            opts.cb(true, "Saving worksheet to server is not implemented.")
+            @call
+                message : message.save_scratch_worksheet(data:opts.data)
+                timeout : 5
+                cb      : (error, m) ->
+                    if error
+                        opts.cb(true, m.error)
+                    else
+                        opts.cb(false, "Saved scratch worksheet to server.")
         else
             if localStorage?
                 localStorage.scratch_worksheet = opts.data
-                opts.cb(false, "Saved worksheet to local storage in your browser (sign in to save to backend database).")
+                opts.cb(false, "Saved scratch worksheet to local storage in your browser (sign in to save to backend database).")
             else
                 opts.cb(true, "Log in to save scratch worksheet.")
 
@@ -365,7 +371,14 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             cb   : required
         if @account_id?
-            opts.cb(true, "Database storage of scratch worksheet not yet implemented.")
+            @call
+                message : message.load_scratch_worksheet()
+                timeout : 5
+                cb      : (error, m) ->
+                    if error
+                        opts.cb(true, m.error)
+                    else
+                        opts.cb(false, m.data)
         else
             if localStorage? and localStorage.scratch_worksheet?
                 opts.cb(false, localStorage.scratch_worksheet)
@@ -376,7 +389,14 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             cb   : undefined
         if @account_id?
-            console.log("database storage of scratch worksheet not implemented.")
+            @call
+                message : message.delete_scratch_worksheet()
+                timeout : 5
+                cb      : (error, m) ->
+                    if error
+                        opts.cb(true, m.error)
+                    else
+                        opts.cb(false, "Deleted scratch worksheet from the server.")
         else
             if localStorage? and localStorage.scratch_worksheet?
                 delete localStorage.scratch_worksheet

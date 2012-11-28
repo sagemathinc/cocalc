@@ -344,6 +344,23 @@ message
     id    : undefined
 
 ############################################
+# Scratch worksheet
+#############################################
+message
+    event : 'save_scratch_worksheet'
+    data  : required
+    id    : undefined
+
+message
+    event : 'load_scratch_worksheet'
+    id    : undefined
+
+message
+    event : 'scratch_worksheet_loaded'
+    id    : undefined
+    data  : required
+
+############################################
 # User Feedback
 #############################################
 

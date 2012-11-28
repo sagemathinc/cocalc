@@ -7844,10 +7844,16 @@ TODO:
 
 TOP PRIORITY:
 
-  [ ] make it so re-loaded scratch worksheet is *active*
+  [x] make it so re-loaded scratch worksheet is *active*
+
   [ ] save logged in user's scratch worksheet to database
-  [ ] save scratch worksheet when leaving page, or periodically.
+
+  [ ] focus on a cell when switching to scratch worksheet page.
+
   [ ] only set highlighted to false on cell on change
+
+  [ ] worksheet1 keyboard shortcuts should only be active when
+      that page is displayed, e.g., tabbing in sign in doesn't work.
 
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note

@@ -415,18 +415,24 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
     worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_scratch_worksheet(true); return false)
 
-    salvus_client.on "connected", (protocol) ->
+    load_scratch_worksheet = () ->
         salvus_client.load_scratch_worksheet
             cb: (error, result) ->
+                if worksheet?
+                    worksheet.remove()
                 if error
                     worksheet = page.salvus_worksheet()
-                    alert_message(type:"info", message: "Created a new scratch worksheet.")
+                    #alert_message(type:"info", message: "Created a new scratch worksheet.")
                 else
-                    alert_message(type:"info", message: "Loaded last saved scratch worksheet.")
+                    #alert_message(type:"info", message: "Loaded last saved scratch worksheet.")
                     worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                     worksheet.html(result)
                     c = worksheet.find(".salvus-cell").salvus_cell()
                     $(c[0]).find(".salvus-cell-input").focus()
                     page.append(worksheet)
+
+
+    salvus_client.on "connected", load_scratch_worksheet
+    salvus_client.on "signed_in", load_scratch_worksheet,
 
 )

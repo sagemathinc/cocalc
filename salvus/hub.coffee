@@ -365,6 +365,47 @@ class Client extends EventEmitter
             save_account_settings(mesg, @push_to_client)
 
     ######################################################
+    # Messages: Saving/loading scratch worksheet
+    ######################################################
+    mesg_save_scratch_worksheet: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to save the scratch worksheet to the server."))
+            return
+
+        database.uuid_value_store(name:"scratch_worksheets").set
+            uuid  : @account_id
+            value : mesg.data
+            cb    : (error, result) =>
+                if error
+                    @push_to_client(message.error(id:mesg.id, message:error))
+                else
+                    @push_to_client(message.success(id:mesg.id))
+
+    mesg_load_scratch_worksheet: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to load the scratch worksheet from the server."))
+            return
+        database.uuid_value_store(name:"scratch_worksheets").get
+            uuid : @account_id
+            cb   : (error, data) =>
+                if error
+                    @push_to_client(message.error(id:mesg.id, error:error))
+                else
+                    @push_to_client(message.scratch_worksheet_loaded(id:mesg.id, data:data))
+
+    mesg_delete_scratch_worksheet: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to delete your scratch worksheet from the server."))
+            return
+        database.uuid_value_store(name:"scratch_worksheets").delete
+            uuid : @account_id
+            cb   : (error, data) =>
+                if error
+                    @push_to_client(message.error(id:mesg.id, error:error))
+                else
+                    @push_to_client(message.success(id:mesg.id))
+
+    ######################################################
     # Messages: Client feedback
     ######################################################
     mesg_report_feedback: (mesg) =>
