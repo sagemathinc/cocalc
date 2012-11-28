@@ -177,11 +177,9 @@ $(() ->
                     return introspect()
 
     top_navbar.on "switch_to_page-scratch", () ->
-        console.log("switch_to")
         $(document).keydown(keydown_handler)
 
     top_navbar.on "switch_from_page-scratch", () ->
-        console.log("switch_from")
         $(document).unbind("keydown", keydown_handler)
 
 
@@ -274,6 +272,7 @@ $(() ->
             # easy special case -- whitespace
             opts.cb?(false, '')
             return
+
         Rainbow.color(plain_text, opts.language, (highlighted) ->
             opts.input.html(highlighted.replace(/\n/g,'<br>'))
             opts.input.data('highlighted', true)
@@ -437,8 +436,8 @@ $(() ->
                     page.append(worksheet)
 
                 # TODO -- very, very lame.
-                worksheet.hide()
-                setTimeout((() -> worksheet.show()), 500)
+                # worksheet.hide()
+                # setTimeout((() -> worksheet.show()), 500)
 
     salvus_client.on "connected", () ->
         load_scratch_worksheet()

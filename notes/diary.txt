@@ -7839,6 +7839,9 @@ TODO:
 
 TOP PRIORITY:
 
+  [ ] editing highlighted code as is just doesn't work -- too subtle and not cross-browser.
+      change to have two input pre's, one with code and one highlighted. 
+
   [ ] tab completion
       [x] page: determining where the cursor is
 -     [x] page: putting the cursor back
@@ -7846,6 +7849,11 @@ TOP PRIORITY:
       [ ] sage_server: introspect completions
       [ ] sage_server: introspect docstring
       [ ] sage_server: introspect source code
+      [ ] page: display all introspects as alert_message for now...
+
+  [ ] sort out cell editor -- probably a single codemirror3 would be a good idea for now.
+
+  [ ] tab completion -- phase 2, after sorting out cell input editor
       [ ] page: display list of completions and choose one
       [ ] page: display a docstring (with Sphinx html formatting?)
       [ ] page: display source code
@@ -7857,8 +7865,6 @@ TOP PRIORITY:
 -----------------
 
   [ ] message when session times out; countdown timer...
-  [ ] worksheet1 keyboard shortcuts should only be active when
-      that page is displayed, e.g., tabbing in sign in doesn't work.
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note
       [ ] down arrow on last line of note moves to next compute cell
@@ -7904,6 +7910,8 @@ LATER:
   [ ] upsell: trial is slow (by x%), but click here for faster version
 
 DONE:
+  [x] worksheet1 keyboard shortcuts should only be active when
+      that page is displayed, e.g., tabbing in sign in doesn't work.
   [x] save non-logged in user's scratch worksheet to cookie (?)
   [x] support using scratch worksheet *without* having to first login <--
 
