@@ -7839,8 +7839,11 @@ TODO:
 
 TOP PRIORITY:
 
+---------------------------------
+
   [ ] editing highlighted code as is just doesn't work -- too subtle and not cross-browser.
-      change to have two input pre's, one with code and one highlighted. 
+      change to have two input pre's, one with code and one highlighted. So... next
+      top-priority todo item is: INTEGRATE CODEMIRROR 3 in for input compute cells! ASAP.
 
   [ ] tab completion
       [x] page: determining where the cursor is
@@ -7851,7 +7854,7 @@ TOP PRIORITY:
       [ ] sage_server: introspect source code
       [ ] page: display all introspects as alert_message for now...
 
-  [ ] sort out cell editor -- probably a single codemirror3 would be a good idea for now.
+-------------------------------
 
   [ ] tab completion -- phase 2, after sorting out cell input editor
       [ ] page: display list of completions and choose one
@@ -7860,8 +7863,9 @@ TOP PRIORITY:
       [ ] page: dynamic syntax highlighting (given cursor control) ?
   [ ] @interact foundations
   [ ] mathjax
-
+  [ ] plots -- display using this? http://modeln.github.com/sDashboard/
   [ ] sign out must clear scratch worksheet.
+
 -----------------
 
   [ ] message when session times out; countdown timer...
