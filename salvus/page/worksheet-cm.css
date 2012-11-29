@@ -1,1 +1,29 @@
- 
+
+.CodeMirror {
+    border: 1px solid #eee;
+    height: auto;
+    background-color: #fffffa;
+/*    box-shadow: 10px 10px 5px #888; */
+}
+
+.CodeMirror-scroll {
+  /*   overflow-y: auto; */
+    overflow-x: auto;
+}
+
+
+
+.worksheet-cm-stdout {
+   background-color:#f8f8f8;
+   color:#666;
+   border-left: 2px solid blue;
+   padding-left:10px;
+   margin-left:2px;
+
+}
+
+.worksheet-cm-stderr {
+   background-color:#f8f8f8;
+   color:#a00;
+}
+

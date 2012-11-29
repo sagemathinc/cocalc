@@ -7850,8 +7850,13 @@ PLAN:
   x - include codemirror3 in static/codemirror3 directory
   x - remove old static/codemirror directory
   x - make a single codemirror3 textarea that auto-expands
-  - type in code and when hit "shift-enter" all code back to the last output is evaluated.
+
+** Oh my god!! Codemirror3 kicks frickin' ASS!  **
+
+ xx - type in code and when hit "shift-enter" all code back to the last output is evaluated.
     (fake it with a stub)
+  x    - where is the cursor
+  x     - insert a lineWidget right there with the output
   - the output is displayed using a single line-widget
   - keystroke to insert new break (i.e., empty output)
   - keystroke to insert a line widget that is a standard html5 editable div
