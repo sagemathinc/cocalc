@@ -7847,9 +7847,9 @@ TOP PRIORITY:
 PLAN:
   x- make a new nearly empty page "worksheet-cm.html"
   x- make worksheet-cm.html the default page
-  - include codemirror3 in static/codemirror3 directory
-  - remove static/codemirror directory
-  - make a single codemirror3 textarea that auto-expands (or not -- could be option)
+  x - include codemirror3 in static/codemirror3 directory
+  x - remove old static/codemirror directory
+  x - make a single codemirror3 textarea that auto-expands
   - type in code and when hit "shift-enter" all code back to the last output is evaluated.
     (fake it with a stub)
   - the output is displayed using a single line-widget
