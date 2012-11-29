@@ -1,13 +1,12 @@
-
+/*
 .CodeMirror {
     border: 1px solid #aaa;
     height: 30em;
-/*    height: auto;*/
     background-color: #fffffa;
     border-radius: 3px;
     box-shadow: 3px 3px 1px #888;  
 }
-
+*/
 /*.CodeMirror-scroll {
     overflow-y: hidden;
     overflow-x: auto;

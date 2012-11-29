@@ -17,13 +17,42 @@ $(() ->
     worksheet = undefined
 
     activate_salvus_cell = (cell) ->
-        cell.find(".salvus-cell-input"
+        input = cell.find(".salvus-cell-input"
         ).data('highlighted', true
         ).click( (e) ->
             active_cell = containing_cell($(this))
         ).focus( (e) ->
             last_active_cell = active_cell = containing_cell($(this))
         )
+        editor = CodeMirror.fromTextArea input[0],
+            lineNumbers    : false
+            firstLineNumber: 1
+            indentUnit     : 4
+            tabSize        : 4
+            lineWrapping   : true
+            undoDepth      : 200
+            autofocus      : false
+            extraKeys      :
+                'Shift-Enter':(editor) -> execute_code()
+                "Up":(editor) ->
+                    if editor.getCursor().line == 0
+                        focus_previous_cell()
+                    else
+                        throw CodeMirror.Pass
+                "Down":(editor) ->
+                    if editor.getCursor().line >= editor.lineCount() - 1
+                        focus_next_cell()
+                    else
+                        throw CodeMirror.Pass
+
+        cell.data('editor',editor)
+        editor.on "focus", (e) ->
+            last_active_cell = active_cell = cell
+            $(e.getWrapperElement()).addClass('salvus-input-cell-focus').removeClass('salvus-input-cell-blur')
+        editor.on "blur", (e) ->
+            $(e.getWrapperElement()).addClass('salvus-input-cell-blur').removeClass('salvus-input-cell-focus')
+
+        #$(editor.getScrollerElement()).css('max-height', Math.floor($(window).height()/2))
 
     salvus_cell = (opts={}) ->
         opts = defaults opts,
@@ -68,7 +97,10 @@ $(() ->
         append_salvus_cell: (opts) ->
             cell = undefined
             @each () ->
-                cell = salvus_cell().focus().appendTo($(this))
+                cell = salvus_cell().appendTo($(this))
+                editor = cell.data('editor')
+                editor.refresh()
+                editor.focus()
             return cell
 
     ###############################################################
@@ -145,28 +177,31 @@ $(() ->
     keydown_caret_position = null
 
     keydown_handler = (e) ->
+        console.log("keydown: ", e)
         switch e.which
             when 13 # enter
                 if e.shiftKey
                     return execute_code()
             when 40 # down arrow
                 if e.ctrlKey or e.altKey
-                    focus_next_editable()
+                    focus_next_cell()
                     return false
                 if e.shiftKey
                     return true
-                pos = get_caret_position()
-                if pos?
-                    setTimeout((() -> focus_next_editable() if get_caret_position()?.equals(pos)), 1)
+
+                if active_cell.data('editor').getCursor().line == 0
+                    focus_previous_cell()
+
             when 38 # up arrow
                 if e.ctrlKey or e.altKey
-                    focus_previous_editable()
+                    focus_previous_cell()
                     return false
                 if e.shiftKey
                     return true
-                pos = get_caret_position()
-                if pos?
-                    setTimeout((() -> focus_previous_editable() if get_caret_position()?.equals(pos)), 1)
+                editor = active_cell.data('editor')
+                if editor.getCursor().line == editor.lineCount()-1
+                    focus_next_cell()
+
             when 27 # escape = 27
                 interrupt_session()
             when 9 # tab key = 9
@@ -211,21 +246,14 @@ $(() ->
                 return true
 
             input = active_cell.find(".salvus-cell-input")
-            highlight
-                input : input
-                cb : (error, input_text) ->
+            s.introspect
+                text_before_cursor: input.getValue()
+                text_after_cursor: undefined
+                cb: (error, mesg) ->
                     if error
-                        alert_message(type:"error", message:"Problem parsing a cell for introspection.")
-                        return
-
-                    s.introspect
-                        text_before_cursor: input_text
-                        text_after_cursor: undefined
-                        cb: (error, mesg) ->
-                            if error
-                                alert_message(type:"error", message:mesg.error)
-                            if mesg?
-                                alert_message(type:"info", message:misc.to_json(mesg.completions))
+                        alert_message(type:"error", message:mesg.error)
+                    if mesg?
+                        alert_message(type:"info", message:misc.to_json(mesg.completions))
 
         return false
 
@@ -261,6 +289,15 @@ $(() ->
             p.set()
         return false
 
+    focus_editor = (cell) ->
+        cell.data('editor').focus()
+
+    focus_next_cell = () ->
+        focus_editor(active_cell.next())
+
+    focus_previous_cell = () ->
+        focus_editor(active_cell.prev())
+
     highlight = (opts) ->
         opts = defaults opts,
             input    : required   # DOM element to de-html and syntax highlight
@@ -280,21 +317,14 @@ $(() ->
         opts.cb?(false, plain_text)
 
     execute_code = () ->
+        console.log("execute_code")
         cell = active_cell
         if not cell?
             return
-
-        input = cell.find(".salvus-cell-input")
         worksheet_changed()
-
-        # syntax highlight input, then call execute on the resulting plain text:
-        highlight
-            input : input
-            cb: (error, input_text) ->
-                if error
-                    alert_message(type:"error", message:"There was an error parsing the content of an input cell.")
-                else
-                    execute_code_in_cell(input_text, cell)
+        console.log(cell)
+        console.log(cell.data('editor'))
+        execute_code_in_cell(cell.data('editor').getValue(), cell)
 
         return false
 
@@ -328,7 +358,7 @@ $(() ->
         next = cell.next()
         if next.length == 0
             next = worksheet.append_salvus_cell()
-        next.find(".salvus-cell-input").focus()
+        focus_editor(next)
         last_active_cell = active_cell = next
 
     ##############################################################################################
@@ -434,10 +464,6 @@ $(() ->
                     c = worksheet.find(".salvus-cell").salvus_cell()
                     $(c[0]).find(".salvus-cell-input").focus()
                     page.append(worksheet)
-
-                # TODO -- very, very lame.
-                # worksheet.hide()
-                # setTimeout((() -> worksheet.show()), 500)
 
     salvus_client.on "connected", () ->
         load_scratch_worksheet()

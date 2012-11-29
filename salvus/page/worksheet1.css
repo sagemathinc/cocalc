@@ -1,3 +1,24 @@
+.CodeMirror {
+    height:auto;
+    background-color: #ffffff;
+    box-shadow: 3px 3px 2px #888;
+}
+
+.CodeMirror-scroll {
+  max-height: 30em;
+  height: auto;
+  overflow-y: hidden;
+  overflow-x: auto;
+}
+
+.salvus-input-cell-focus {
+    border: 1px solid #88f;
+}
+
+.salvus-input-cell-blur {
+    border: 1px solid #bbb;
+}
+
 .salvus-templates {
     display:none;
 }
@@ -49,27 +70,25 @@ pre {
 }
 
 .salvus-cell-input {
-    padding:2px;
-    padding-left:5px;
-    padding-right:5px;
-    background-color:#fffffa;
-    white-space: pre;
-    word-wrap: break-word;
-    min-height:1.6em;
-    width:90%;
 }
 
 .salvus-cell-output {
+    padding-left:30px;
+    padding-top:3px;
+    max-height: 30em;
+    height: auto;
+    overflow-y: auto;
+    overflow-x: auto;
   /*  background-color:#f8f8f8; */
 }
 
 .salvus-stdout {
     font-family: "Courier New";
-    color:#666;
+    color:#33a;
     white-space: pre; 
-    white-space:pre-wrap;
+/*    white-space:pre-wrap;
     word-wrap: break-word;
-    overflow-wrap: break-word;
+    overflow-wrap: break-word;*/
 }
 
 .salvus-stderr {
@@ -80,4 +99,11 @@ pre {
 }
 
 .salvus-worksheet-buttons {
+}
+
+.salvus-worksheet-title {
+}
+
+.salvus-worksheet-description {
+   color:#888;
 }
