@@ -7844,6 +7844,22 @@ TOP PRIORITY:
   [ ] editing highlighted code as is just doesn't work -- too subtle and not cross-browser.
       change to have two input pre's, one with code and one highlighted. So... next
       top-priority todo item is: INTEGRATE CODEMIRROR 3 in for input compute cells! ASAP.
+PLAN:
+  x- make a new nearly empty page "worksheet-cm.html"
+  x- make worksheet-cm.html the default page
+  - include codemirror3 in static/codemirror3 directory
+  - remove static/codemirror directory
+  - make a single codemirror3 textarea that auto-expands (or not -- could be option)
+  - type in code and when hit "shift-enter" all code back to the last output is evaluated.
+    (fake it with a stub)
+  - the output is displayed using a single line-widget
+  - keystroke to insert new break (i.e., empty output)
+  - keystroke to insert a line widget that is a standard html5 editable div
+  - bring over the button bar, etc., from worksheet1 to make this actually call to sage, save state, etc.
+  - evaluate result!
+
+  - rename worksheet1 to "worksheet-contenteditable" in case it ever needs to be resurrected.
+
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
   [ ] tab completion
       [x] page: determining where the cursor is

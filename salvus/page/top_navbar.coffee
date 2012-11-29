@@ -142,6 +142,11 @@ top_navbar = undefined
         label   : "Scratch Worksheet"
         close   : false
 
+    $("#worksheet-cm").top_navbar
+        id      : "worksheet-cm"
+        label   : "Codemirror Worksheet"
+        close   : false
+        
     $("#account").top_navbar
         id     : "account"
         label  : "Sign in"
@@ -150,6 +155,6 @@ top_navbar = undefined
 
 
     top_navbar.hide_page_button("projects")
-    top_navbar.switch_to_page("scratch")
+    top_navbar.switch_to_page("worksheet-cm")
 
 )()

@@ -13,6 +13,8 @@ $(function() {
     feedback.coffee
 
     worksheet1.coffee
+
+    worksheet-cm.coffee
     
     projects.coffee
     project.coffee
