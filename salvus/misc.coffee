@@ -1,6 +1,6 @@
 ##########################################################################
-# 
-# Misc. functions that are needed elsewhere.  
+#
+# Misc. functions that are needed elsewhere.
 #
 ##########################################################################
 #
@@ -34,13 +34,13 @@ exports.defaults = (obj1, obj2) ->
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
-        console.trace()  
+        console.trace()
         throw "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
     r = {}
     for prop, val of obj2
         if obj1.hasOwnProperty(prop)
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
-                console.trace()                
+                console.trace()
                 throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
@@ -51,7 +51,7 @@ exports.defaults = (obj1, obj2) ->
                 r[prop] = obj2[prop]
     for prop, val of obj1
         if not obj2.hasOwnProperty(prop)
-            console.trace()                            
+            console.trace()
             throw "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
     return r
 
@@ -96,8 +96,8 @@ exports.to_safe_str = (x) ->
         if key.indexOf("pass") == -1
             obj[key] = x[key]
     return exports.to_json(obj)
-    
-# convert from a JSON string to Javascript 
+
+# convert from a JSON string to Javascript
 exports.from_json = (x) ->
     try
         JSON.parse(x)
@@ -123,4 +123,21 @@ exports.pairs_to_obj = (v) ->
     for x in v
         o[x[0]] = x[1]
     return o
-        
+
+
+# from http://stackoverflow.com/questions/4009756/how-to-count-string-occurrence-in-string via http://js2coffee.org/
+exports.substring_count = (string, subString, allowOverlapping) ->
+    string += ""
+    subString += ""
+    return string.length + 1 if subString.length <= 0
+    n = 0
+    pos = 0
+    step = (if (allowOverlapping) then (1) else (subString.length))
+    loop
+        pos = string.indexOf(subString, pos)
+        if pos >= 0
+            n++
+            pos += step
+        else
+            break
+    return n

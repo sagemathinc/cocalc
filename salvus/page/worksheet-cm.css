@@ -3,27 +3,54 @@
     border: 1px solid #eee;
     height: auto;
     background-color: #fffffa;
-/*    box-shadow: 10px 10px 5px #888; */
+    box-shadow: 6px 6px 3px #888; 
 }
 
 .CodeMirror-scroll {
-  /*   overflow-y: auto; */
+    overflow-y: hidden;
     overflow-x: auto;
 }
 
 
 
-.worksheet-cm-stdout {
-   background-color:#f8f8f8;
+.worksheet-cm-stdout-background {
+   background-color:lightyellow;
+}
+
+.worksheet-cm-stdout-wrap {
    color:#666;
-   border-left: 2px solid blue;
-   padding-left:10px;
-   margin-left:2px;
-
+   padding-left:20px;
 }
 
-.worksheet-cm-stderr {
-   background-color:#f8f8f8;
+.worksheet-cm-stderr-background {
+   background-color:#ffdada;
+}
+
+.worksheet-cm-stderr-wrap {
    color:#a00;
+   padding-left:20px;
+
 }
 
+.worksheet-cm-title {
+}
+
+.worksheet-cm-description {
+   color:#888;
+}
+
+
+.worksheet-cm-cell-gutter {
+    width:2ex;
+    background-color:#fefefe;
+}
+
+.worksheet-cm-cell-gutter-marker {
+    color:#00f;
+    background-color:#00f;
+}
+
+.worksheet-cm-output-gutter {
+    /*background-color:#00f; */
+    border-right:solid 3px blue;
+}

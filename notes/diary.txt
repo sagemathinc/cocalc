@@ -7857,7 +7857,20 @@ PLAN:
     (fake it with a stub)
   x    - where is the cursor
   x     - insert a lineWidget right there with the output
-  - the output is displayed using a single line-widget
+
+MY NEW DESIGN GOAL: make this editor system I'm creating for salvus the editor I would want to use for everything instead of emacs.
+
+x  - evaluate sage code instead of javascript.
+
+x  - the text output is displayed using markText
+
+  - change background style of output so it is clear which is which.
+
+  - save/load: use markClean() and isClean()
+
+  - undo/redo buttons
+
+  - the images are displayed using lineWidget + draggable !
   - keystroke to insert new break (i.e., empty output)
   - keystroke to insert a line widget that is a standard html5 editable div
   - bring over the button bar, etc., from worksheet1 to make this actually call to sage, save state, etc.
@@ -7866,6 +7879,8 @@ PLAN:
   - If i'm going with this, use ~/salvus0/codemirror-3.0rc1/bin/compress to make a single thing.
 
   - rename worksheet1 to "worksheet-contenteditable" in case it ever needs to be resurrected.
+
+  - scroll on *top* and bottom: http://suwala.eu/blog/2012/02/01/horizontal-scrollbar-top-and-bottom-element/
 
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
   [ ] tab completion
