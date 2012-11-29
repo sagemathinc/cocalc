@@ -32,7 +32,7 @@
     e = templates.find(".worksheet-cm").clone().show().appendTo(page).find("textarea")
     e.val('')
     editor = CodeMirror.fromTextArea e[0],
-        lineNumbers  : true
+        #lineNumbers  : true
         firstLineNumber: 0
         indentUnit   : 4
         tabSize      : 4
@@ -87,6 +87,8 @@
             value : required
             type  : 'stdout'
             bookmark: required
+        if opts.value[opts.value.length-1] != "\n"
+            opts.value += "\n"
         pos = opts.bookmark.find()
         if not pos?
             console.log("bookmark vanished!")
@@ -110,7 +112,7 @@
     execute_code = () ->
         {input, output} = editor.block_info()
         console.log(misc.to_json(input), misc.to_json(output))
-        editor.replaceRange("", output.from, output.to)
+        editor.replaceRange("\n", output.from, output.to)
         input_text = editor.getRange(input.from, input.to)
         console.log("execute_code: '#{input_text}'")
 
@@ -119,12 +121,14 @@
             editor.replaceRange("\n", output.from)
         output_bookmark = editor.setBookmark({line:output.from.line, ch:0})
         new_cursor_pos = {line:output.from.line, ch:0}
+        console.log(misc.to_json(new_cursor_pos), editor.lineCount())
         editor.setCursor(new_cursor_pos)
 
         console.log("bookmark pos = ", misc.to_json(output_bookmark.find()))
         salvus_exec
             input : input_text
             cb    : (mesg) ->
+                console.log(misc.to_json(mesg))
                 if mesg.stdout?
                     output_bookmark = editor.insert_output(value:mesg.stdout, type:'stdout', bookmark:output_bookmark)
                 if mesg.stderr?

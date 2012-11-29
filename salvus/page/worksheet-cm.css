@@ -1,15 +1,18 @@
 
 .CodeMirror {
-    border: 1px solid #eee;
-    height: auto;
+    border: 1px solid #aaa;
+    height: 30em;
+/*    height: auto;*/
     background-color: #fffffa;
-    box-shadow: 6px 6px 3px #888; 
+    border-radius: 3px;
+    box-shadow: 3px 3px 1px #888;  
 }
 
-.CodeMirror-scroll {
+/*.CodeMirror-scroll {
     overflow-y: hidden;
     overflow-x: auto;
 }
+*/
 
 
 
@@ -52,5 +55,5 @@
 
 .worksheet-cm-output-gutter {
     /*background-color:#00f; */
-    border-right:solid 3px blue;
+    border:solid 1px grey;
 }
