@@ -36,7 +36,7 @@
         firstLineNumber: 0
         indentUnit   : 4
         tabSize      : 4
-        lineWrapping : false
+        lineWrapping : true
         undoDepth    : 200
         autofocus    : false
         gutters      : ['CodeMirror-linenumbers', 'worksheet-cm-cell-gutter']
