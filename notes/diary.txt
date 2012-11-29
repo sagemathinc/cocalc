@@ -7857,6 +7857,8 @@ PLAN:
   - keystroke to insert a line widget that is a standard html5 editable div
   - bring over the button bar, etc., from worksheet1 to make this actually call to sage, save state, etc.
   - evaluate result!
+  - can use a gutter to set the evaluation mode
+  - If i'm going with this, use ~/salvus0/codemirror-3.0rc1/bin/compress to make a single thing.
 
   - rename worksheet1 to "worksheet-contenteditable" in case it ever needs to be resurrected.
 
