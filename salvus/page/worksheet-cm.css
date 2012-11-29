@@ -44,7 +44,7 @@
 
 
 .worksheet-cm-cell-gutter {
-    width:2ex;
+    width:5ex;
     background-color:#fefefe;
 }
 
@@ -54,6 +54,6 @@
 }
 
 .worksheet-cm-output-gutter {
-    /*background-color:#00f; */
-    border:solid 1px grey;
+    background-color:lightyellow;
+ /*   border:solid 1px grey; */
 }

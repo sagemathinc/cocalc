@@ -7835,6 +7835,18 @@ cookie
 
 -------
 
+Nov 29, 2012:
+-------------
+
+I'm getting very frustrated with how long it is taking for me to create a worksheet editor.
+I should just define what a worksheet *is*, make a straightforward editor that does enough,
+then focus on all the backend stuff around that, which is a lot of work that has to get
+done and won't get undone.    I can then go back to finding some new clever way of making an editor...
+but life isn't so easy, is it?
+
+
+
+
 TODO:
 
 TOP PRIORITY:
@@ -7861,16 +7873,14 @@ PLAN:
 MY NEW DESIGN GOAL: make this editor system I'm creating for salvus the editor I would want to use for everything instead of emacs.
 
 x  - evaluate sage code instead of javascript.
-
 x  - the text output is displayed using markText
+x - change background style of output so it is clear which is which.
 
-  - change background style of output so it is clear which is which.
+
+... I'm not loving this!
 
   - save/load: use markClean() and isClean()
-
   - undo/redo buttons
-
-  - the images are displayed using lineWidget + draggable !
   - keystroke to insert new break (i.e., empty output)
   - keystroke to insert a line widget that is a standard html5 editable div
   - bring over the button bar, etc., from worksheet1 to make this actually call to sage, save state, etc.
@@ -7881,6 +7891,9 @@ x  - the text output is displayed using markText
   - rename worksheet1 to "worksheet-contenteditable" in case it ever needs to be resurrected.
 
   - scroll on *top* and bottom: http://suwala.eu/blog/2012/02/01/horizontal-scrollbar-top-and-bottom-element/
+
+  [ ] modify worksheet1.coffee so the cells are codemirror cells, but otherwise it is the same
+
 
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
   [ ] tab completion
