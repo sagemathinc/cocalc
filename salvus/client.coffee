@@ -369,11 +369,12 @@ class exports.Connection extends EventEmitter
 
     load_scratch_worksheet: (opts={}) ->
         opts = defaults opts,
-            cb   : required
+            cb      : required
+            timeout : 5
         if @account_id?
             @call
                 message : message.load_scratch_worksheet()
-                timeout : 5
+                timeout : opts.timeout
                 cb      : (error, m) ->
                     if error
                         opts.cb(true, m.error)

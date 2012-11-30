@@ -40,18 +40,19 @@ $(() ->
                 delete_cell(containing_cell($(editor.getWrapperElement())))
             else
                 throw CodeMirror.Pass
-    
+
+    activate_worksheet = (worksheet) ->
+        # make the title and description notify when the worksheet is dirty.
+        worksheet.find("[contenteditable]").endow_contenteditable_with_change_event(
+        ).on("change", () -> worksheet_is_dirty())
 
     activate_salvus_cell = (cell) ->
+        # initialize the insert-cell bar
         cell.find(".salvus-cell-insert-before").click((e) -> insert_cell_before(cell))
         cell.find(".salvus-cell-insert-after").click((e) -> insert_cell_after(cell))
 
-        input = cell.find(".salvus-cell-input"
-        ).click( (e) ->
-            active_cell = containing_cell($(this))
-        ).focus( (e) ->
-            last_active_cell = active_cell = containing_cell($(this))
-        )
+        # initialize the code editor
+        input = cell.find(".salvus-cell-input")
         editor = CodeMirror.fromTextArea input[0],
             lineNumbers    : false
             firstLineNumber: 1
@@ -63,7 +64,7 @@ $(() ->
             extraKeys      : extraKeys
             matchBrackets  : true
 
-        cell.data('editor',editor)
+        cell.data('editor', editor)
         $(editor.getWrapperElement()).addClass('salvus-input-cell-blur')
 
         editor.on "focus", (e) ->
@@ -71,9 +72,18 @@ $(() ->
             $(e.getWrapperElement()).addClass('salvus-input-cell-focus').removeClass('salvus-input-cell-blur')
         editor.on "blur", (e) ->
             $(e.getWrapperElement()).addClass('salvus-input-cell-blur').removeClass('salvus-input-cell-focus')
+        editor.on "change", (e, changeObj) ->
+            worksheet_is_dirty()
 
-        #$(editor.getScrollerElement()).css('max-height', Math.floor($(window).height()/2))
+        # setup the note part of the cell:
+        cell.find(".salvus-cell-note").endow_contenteditable_with_change_event(
+        ).on("change", (note) -> worksheet_is_dirty())
 
+        ##how one could dynamically set something in css...
+        ##$(editor.getScrollerElement()).css('max-height', Math.floor($(window).height()/2))
+
+
+    
     salvus_cell = (opts={}) ->
         opts = defaults opts,
             id : undefined
@@ -87,6 +97,19 @@ $(() ->
         return cell
 
     $.fn.extend
+        endow_contenteditable_with_change_event: (opts) ->
+            @each () ->
+                $(this).live('focus', ->
+                    $this = $(this)
+                    $this.data('before', $this.html())
+                    return $this
+                ).live('blur keyup paste', ->
+                    $this = $(this)
+                    if $this.data('before') isnt $this.html()
+                        $this.data('before', $this.html())
+                        $this.trigger('change')
+                    return $this)
+
         salvus_worksheet: (opts) ->
             # salvus_worksheet: appends a Salvus worksheet to each element of the jQuery
             # wrapped set; resuts in the last worksheet created as a
@@ -95,6 +118,7 @@ $(() ->
             @each () ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
+                activate_worksheet(worksheet)
                 focus_editor(worksheet.append_salvus_cell())
             return worksheet
 
@@ -243,25 +267,29 @@ $(() ->
         focus_editor(active_cell.prev())
 
     insert_cell_before = (cell) ->
+        worksheet_is_dirty()
         new_cell = salvus_cell()
         cell.before(new_cell)
         refresh_editor(new_cell)
         focus_editor(new_cell)
 
     insert_cell_after = (cell) ->
+        worksheet_is_dirty()
         new_cell = salvus_cell()
         cell.after(new_cell)
         refresh_editor(new_cell)
         focus_editor(new_cell)
 
     delete_cell = (cell) ->
+        worksheet_is_dirty()
         note = cell.find(".salvus-cell-note").html()
         cell_above = cell.prev()
         cell_below = cell.next()
         if not cell_below.hasClass("salvus-cell")  # it's the last cell on the worksheet, so don't delete
             return
-        note_below = cell_below.find(".salvus-cell-note")
-        note_below.html(note + '<br>' + note_below.html())
+        if note != ""
+            note_below = cell_below.find(".salvus-cell-note")
+            note_below.html(note + '<br>' + note_below.html())
         cell.remove()
         if cell_above.length > 0 and cell_above.hasClass("salvus-cell")
             focus_editor(cell_above)
@@ -273,13 +301,14 @@ $(() ->
             focus_editor(new_cell)
 
     ########################################
-    # Executing code
+    # Editing / Executing code
     ########################################
+
     execute_code = () ->
         cell = active_cell
         if not cell?
             return
-        worksheet_changed()
+        worksheet_is_dirty()
         execute_code_in_cell(cell.data('editor').getValue(), cell)
         return false
 
@@ -355,7 +384,7 @@ $(() ->
         # TODO: could also just be indenting a block
         introspect()
 
-    save_scratch_worksheet = (notify=false) ->
+    save_worksheet = (notify=false) ->
 
         salvus_client.save_scratch_worksheet
             data : misc.to_json(worksheet_to_obj())
@@ -366,20 +395,22 @@ $(() ->
                     else
                         alert_message(type:"info", message:msg)
                 if not error
-                    worksheet_saved()
+                    worksheet_is_clean()
+                    
 
-    worksheet_is_saved = true
+    _worksheet_is_dirty = true
 
-    worksheet_saved = () ->
-        worksheet_is_saved = true
+    worksheet_is_clean = () ->
+        _worksheet_is_dirty = false
         worksheet1.find("a[href='#worksheet1-save_worksheet']").addClass('btn-success')
 
-    worksheet_changed = () ->
-        worksheet_is_saved = false
+    worksheet_is_dirty = () ->
+        _worksheet_is_dirty = true
         worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success')
+        
 
     window.onbeforeunload = (e=window.event) ->
-        if not worksheet_is_saved
+        if _worksheet_is_dirty
             return "Your scratch worksheet is not saved."
 
     salvus_exec = (opts) ->
@@ -405,10 +436,11 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_button(); return false)
     worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
     worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
-    worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_scratch_worksheet(true); return false)
+    worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_worksheet(true); return false)
 
     load_scratch_worksheet = () ->
         salvus_client.load_scratch_worksheet
+            timeout: 10
             cb: (error, data) ->
                 if worksheet?
                     worksheet.remove()
@@ -418,8 +450,10 @@ $(() ->
                     obj = misc.from_json(data)
                     worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                     page.append(worksheet)
+                    activate_worksheet(worksheet)
                     set_worksheet_from_obj(obj)
                     focus_editor_on_first_cell()
+                worksheet_is_clean()
 
     salvus_client.on "connected", () ->
         load_scratch_worksheet()

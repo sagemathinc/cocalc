@@ -7910,6 +7910,12 @@ x - change background style of output so it is clear which is which.
   [x] insert a new cell between existing cells
   [x] add paren matching
   [x] delete cell
+  [x] paren matching -- there is an easy codemirror plugin
+
+  [x] finish implementing dirty and clean for worksheet state.
+
+  [ ] refactor worksheet1 code to a new object oriented structure, now that it is clear, and enough is done.
+
 
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
   [ ] tab completion
@@ -7920,8 +7926,6 @@ x - change background style of output so it is clear which is which.
       [ ] sage_server: introspect docstring
       [ ] sage_server: introspect source code
       [ ] page: display all introspects as alert_message for now...
-
-  [ ] paren matching -- there is an easy codemirror plugin
 
 -------------------------------
 
@@ -7936,6 +7940,10 @@ x - change background style of output so it is clear which is which.
   [ ] sign out must clear scratch worksheet.
 
 -----------------
+
+  [ ] on mobile chrome (my phone) codemirror doesn't get a scrollbar (since there are no scrollbars) so there
+      is no way to see an input cell that turns to scroll.  One option -- 
+  [ ] on mobile, tooltips suck
 
   [ ] countdown session timer, with link to buy now.
   [ ] ability to use cursor keys to move between cells

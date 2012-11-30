@@ -12,11 +12,12 @@
 }
 
 .salvus-input-cell-focus {
-    border: 1px solid #88f;
+    border: 3px solid #99f;
+    box-shadow: 4px 4px 2px #bbf;
 }
 
 .salvus-input-cell-blur {
-    border: 1px solid #bbb;
+    border: 1px solid #dedede;
 }
 
 .salvus-templates {
@@ -49,7 +50,7 @@ pre {
 }
 
 .salvus-cell-note:hover {
-    border: 1px dashed #aaa;
+    border: 1px dashed #999;
 }
 
 .salvus-prompt {
@@ -109,13 +110,13 @@ pre {
 }
 
 .salvus-cell-insert-before {
-    height:4px;
+    height:5px;
 }
 .salvus-cell-insert-before:hover {
     background-color:lightblue;
 }
 .salvus-cell-insert-after {
-    height:4px;
+    height:5px;
 }
 .salvus-cell-insert-after:hover {
     background-color:lightblue;
