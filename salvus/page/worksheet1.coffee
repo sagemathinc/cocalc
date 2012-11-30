@@ -34,6 +34,12 @@ $(() ->
         "Tab":(editor) ->
             # decide if we can "tab complete"
             throw CodeMirror.Pass
+
+        "Backspace":(editor) ->
+            if editor.getValue() == ""
+                delete_cell(containing_cell($(editor.getWrapperElement())))
+            else
+                throw CodeMirror.Pass
     
 
     activate_salvus_cell = (cell) ->
@@ -248,6 +254,23 @@ $(() ->
         refresh_editor(new_cell)
         focus_editor(new_cell)
 
+    delete_cell = (cell) ->
+        note = cell.find(".salvus-cell-note").html()
+        cell_above = cell.prev()
+        cell_below = cell.next()
+        if not cell_below.hasClass("salvus-cell")  # it's the last cell on the worksheet, so don't delete
+            return
+        note_below = cell_below.find(".salvus-cell-note")
+        note_below.html(note + '<br>' + note_below.html())
+        cell.remove()
+        if cell_above.length > 0 and cell_above.hasClass("salvus-cell")
+            focus_editor(cell_above)
+        else if cell_below.length > 0 and cell_below.hasClass("salvus-cell")
+            focus_editor(cell_below)
+        else
+            new_cell = worksheet.append_salvus_cell()
+            new_cell.find(".salvus-cell-note").html(note)
+            focus_editor(new_cell)
 
     ########################################
     # Executing code
