@@ -1,3 +1,5 @@
+[ ] lighttable: http://www.chris-granger.com/2012/04/12/light-table---a-new-ide-concept/
+
 [ ] twitter bootstrap resources: http://www.bootstraphero.com/the-big-badass-list-of-twitter-bootstrap-resources
 
 [ ] better bootstrap alert boxes? -- http://fabien-d.github.com/alertify.js/ and http://news.ycombinator.com/item?id=4844180; but actually, this isn't so good... since the alerts disappear, aren't centered

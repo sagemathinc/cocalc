@@ -7876,7 +7876,7 @@ x  - evaluate sage code instead of javascript.
 x  - the text output is displayed using markText
 x - change background style of output so it is clear which is which.
 
-
+  -  "   allow_cache  : true" ?
   - save/load: use markClean() and isClean()
   - undo/redo buttons
   - keystroke to insert new break (i.e., empty output)
