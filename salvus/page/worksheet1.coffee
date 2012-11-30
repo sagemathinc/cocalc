@@ -55,6 +55,7 @@ $(() ->
             undoDepth      : 200
             autofocus      : false
             extraKeys      : extraKeys
+            matchBrackets  : true
 
         cell.data('editor',editor)
         $(editor.getWrapperElement()).addClass('salvus-input-cell-blur')

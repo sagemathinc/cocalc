@@ -391,6 +391,7 @@ class Client extends EventEmitter
         database.uuid_value_store(name:"scratch_worksheets").get
             uuid : @account_id
             cb   : (error, data) =>
+                console.log("error=#{error}, data=#{data}")
                 if error
                     @push_to_client(message.error(id:mesg.id, error:error))
                 else

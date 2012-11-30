@@ -7908,6 +7908,8 @@ x - change background style of output so it is clear which is which.
 
 
   [x] insert a new cell between existing cells
+  [x] add paren matching
+
 
 
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
