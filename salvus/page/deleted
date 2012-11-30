@@ -1,3 +1,48 @@
+    ###############################################################
+    # jquery plugins for manipulating the contenteditable editor
+    # in ways I need, using rangy mostly for cross-platform support
+    # TODO: Move this to its own file.
+    ###############################################################
+    $.fn.extend
+        # set_caret_position: move the cursor to given position in the given element
+        salvusws_set_caret_position: (opts={}) ->
+            opts = defaults opts,
+                offset: 0
+                type:   'character'   # 'range', 'character'
+            @each () ->
+                range = rangy.createRange()
+                if opts.type == 'range'
+                    range.setStart(this, opts.offset)
+                    range.setEnd(this, opts.offset)
+                else
+                    range.selectCharacters(this, opts.offset, opts.offset)
+                sel = rangy.getSelection()
+                if sel.rangeCount > 0
+                    sel.removeAllRanges()
+                sel.addRange(range)
+
+    class CaretPosition
+        constructor: (@container, @offset) ->
+        equals: (other) ->  # true if this and other are at the same position
+            @container == other.container and @offset == other.offset
+        set: (type='range') -> # moves the cursor to this position, if it exists
+            range = rangy.createRange()
+            range.setStart(@container, @offset)
+            range.setEnd(@container, @offset)
+            sel = rangy.getSelection()
+            if sel.rangeCount > 0
+                sel.removeAllRanges()
+            sel.addRange(range)
+
+    get_caret_position = () ->
+        try
+            sel   = rangy.getSelection()
+            range = sel.getRangeAt(0)
+            return new CaretPosition(range.startContainer, range.startOffset)
+        catch error
+            return undefined  # no caret position
+
+--------------
         salvusws_text: (opts={}) ->   # returns text rather than a jquery wrapped object
             opts = defaults opts, {} # no options
             result = ''

@@ -7877,20 +7877,18 @@ x  - the text output is displayed using markText
 x - change background style of output so it is clear which is which.
 
 
-... I'm not loving this!
-
   - save/load: use markClean() and isClean()
   - undo/redo buttons
   - keystroke to insert new break (i.e., empty output)
   - keystroke to insert a line widget that is a standard html5 editable div
   - bring over the button bar, etc., from worksheet1 to make this actually call to sage, save state, etc.
-  - evaluate result!
   - can use a gutter to set the evaluation mode
   - If i'm going with this, use ~/salvus0/codemirror-3.0rc1/bin/compress to make a single thing.
-
-  - rename worksheet1 to "worksheet-contenteditable" in case it ever needs to be resurrected.
-
   - scroll on *top* and bottom: http://suwala.eu/blog/2012/02/01/horizontal-scrollbar-top-and-bottom-element/
+
+  - evaluate result!
+
+... I'm *NOT* loving this! -- it turns out that this approach just feels wrong during usage, though in theory it seems neat.
 -----------------------------------
 
 
@@ -7898,7 +7896,16 @@ x - change background style of output so it is clear which is which.
   [x] remove worksheet-cm from visibility
   [x] get rid of including Rainbow.
   [x] get rid of including htmlparse.
+  [ ] saving and loading scratch worksheet again:
 
+[x] Define the JSON format --
+{
+ title:
+ description:
+ cells:[ {id:<uuid text>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
+}
+[ ] function that serializes the scratch worksheet from DOM
+[ ] functions that loads serialized scratch worksheet into DOM
 
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
   [ ] tab completion

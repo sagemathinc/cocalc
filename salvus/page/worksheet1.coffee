@@ -43,6 +43,13 @@ $(() ->
                     else
                         throw CodeMirror.Pass
 
+                "Esc":(editor) ->
+                    interrupt_session()
+
+                "Tab":(editor) ->
+                    # decide if we can "tab complete"
+                    throw CodeMirror.Pass
+
         cell.data('editor',editor)
         editor.on "focus", (e) ->
             last_active_cell = active_cell = cell
@@ -101,56 +108,6 @@ $(() ->
                 editor.focus()
             return cell
 
-    ###############################################################
-    # jquery plugins for manipulating the contenteditable editor
-    # in ways I need, using rangy mostly for cross-platform support
-    # TODO: Move this to its own file.
-    ###############################################################
-    $.fn.extend
-        # set_caret_position: move the cursor to given position in the given element
-        salvusws_set_caret_position: (opts={}) ->
-            opts = defaults opts,
-                offset: 0
-                type:   'character'   # 'range', 'character'
-            @each () ->
-                range = rangy.createRange()
-                if opts.type == 'range'
-                    range.setStart(this, opts.offset)
-                    range.setEnd(this, opts.offset)
-                else
-                    range.selectCharacters(this, opts.offset, opts.offset)
-                sel = rangy.getSelection()
-                if sel.rangeCount > 0
-                    sel.removeAllRanges()
-                sel.addRange(range)
-
-        salvusws_insert_node_at_caret: (opts={}) ->
-            opts = defaults opts, {}  # for now
-            @each () ->
-                sel   = rangy.getSelection()
-                range = sel.getRangeAt(0)
-                range.insertNode(this)
-
-    class CaretPosition
-        constructor: (@container, @offset) ->
-        equals: (other) ->  # true if this and other are at the same position
-            @container == other.container and @offset == other.offset
-        set: (type='range') -> # moves the cursor to this position, if it exists
-            range = rangy.createRange()
-            range.setStart(@container, @offset)
-            range.setEnd(@container, @offset)
-            sel = rangy.getSelection()
-            if sel.rangeCount > 0
-                sel.removeAllRanges()
-            sel.addRange(range)
-
-    get_caret_position = () ->
-        try
-            sel   = rangy.getSelection()
-            range = sel.getRangeAt(0)
-            return new CaretPosition(range.startContainer, range.startOffset)
-        catch error
-            return undefined  # no caret position
 
     ####################################################
     # keyboard control -- rewrite to use some library
@@ -159,55 +116,14 @@ $(() ->
 
     keydown_handler = (e) ->
         switch e.which
-            when 13 # enter
-                if e.shiftKey
-                    return execute_code()
-            when 40 # down arrow
-                if e.ctrlKey or e.altKey
-                    focus_next_cell()
-                    return false
-                if e.shiftKey
-                    return true
-
-                if active_cell.data('editor').getCursor().line == 0
-                    focus_previous_cell()
-
-            when 38 # up arrow
-                if e.ctrlKey or e.altKey
-                    focus_previous_cell()
-                    return false
-                if e.shiftKey
-                    return true
-                editor = active_cell.data('editor')
-                if editor.getCursor().line == editor.lineCount()-1
-                    focus_next_cell()
-
             when 27 # escape = 27
                 interrupt_session()
-            when 9 # tab key = 9
-                if input_is_selected()
-                    indent_selected_input(e.shiftKey)
-                    return false
-                else
-                    return introspect()
 
     top_navbar.on "switch_to_page-scratch", () ->
         $(document).keydown(keydown_handler)
 
     top_navbar.on "switch_from_page-scratch", () ->
         $(document).unbind("keydown", keydown_handler)
-
-
-    ########################################
-    # indent and unindent block
-    ########################################
-    input_is_selected = () ->
-        # TODO: implement
-        return false
-
-    indent_selected_input = (unindent=false) ->
-        return false
-
 
     ########################################
     # introspection

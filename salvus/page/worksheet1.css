@@ -1,7 +1,7 @@
 .CodeMirror {
     height:auto;
     background-color: #ffffff;
-    box-shadow: 3px 3px 2px #888;
+/*    box-shadow: 3px 3px 2px #888;*/
 }
 
 .CodeMirror-scroll {
