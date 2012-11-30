@@ -15,6 +15,27 @@ $(() ->
     worksheet1 = $("#worksheet1")
     worksheet = undefined
 
+    extraKeys =
+        "Shift-Enter":(editor) -> execute_code()
+        "Up":(editor) ->
+            if editor.getCursor().line == 0
+                focus_previous_cell()
+            else
+                throw CodeMirror.Pass
+        "Down":(editor) ->
+            if editor.getCursor().line >= editor.lineCount() - 1
+                focus_next_cell()
+            else
+                throw CodeMirror.Pass
+
+        "Esc":(editor) ->
+            interrupt_session()
+
+        "Tab":(editor) ->
+            # decide if we can "tab complete"
+            throw CodeMirror.Pass
+    
+
     activate_salvus_cell = (cell) ->
         input = cell.find(".salvus-cell-input"
         ).click( (e) ->
@@ -30,26 +51,8 @@ $(() ->
             lineWrapping   : true
             undoDepth      : 200
             autofocus      : false
-            extraKeys      :
-                'Shift-Enter':(editor) -> execute_code()
-                "Up":(editor) ->
-                    if editor.getCursor().line == 0
-                        focus_previous_cell()
-                    else
-                        throw CodeMirror.Pass
-                "Down":(editor) ->
-                    if editor.getCursor().line >= editor.lineCount() - 1
-                        focus_next_cell()
-                    else
-                        throw CodeMirror.Pass
-
-                "Esc":(editor) ->
-                    interrupt_session()
-
-                "Tab":(editor) ->
-                    # decide if we can "tab complete"
-                    throw CodeMirror.Pass
-
+            extraKeys      : extraKeys
+    
         cell.data('editor',editor)
         editor.on "focus", (e) ->
             last_active_cell = active_cell = cell
