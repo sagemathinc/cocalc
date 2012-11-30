@@ -367,12 +367,9 @@ $(() ->
                 if error
                     worksheet = page.salvus_worksheet()
                 else
-                    console.log(data)
                     obj = misc.from_json(data)
-                    console.log(obj)
                     worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                     page.append(worksheet)
-                    console.log(obj)
                     set_worksheet_from_obj(obj)
                     focus_editor_on_first_cell()
 
