@@ -37,6 +37,9 @@ $(() ->
     
 
     activate_salvus_cell = (cell) ->
+        cell.find(".salvus-cell-insert-before").click((e) -> insert_cell_before(cell))
+        cell.find(".salvus-cell-insert-after").click((e) -> insert_cell_after(cell))
+
         input = cell.find(".salvus-cell-input"
         ).click( (e) ->
             active_cell = containing_cell($(this))
@@ -110,8 +113,7 @@ $(() ->
             cell = undefined
             @each () ->
                 cell = salvus_cell(opts).appendTo($(this))
-                editor = cell.data('editor')
-                editor.refresh()
+                refresh_editor(cell)
             return cell
 
 
@@ -205,6 +207,9 @@ $(() ->
 
         return false
 
+    ########################################
+    # Moving around / focus
+    ########################################
 
     containing_cell = (elt) ->
         p = elt.parentsUntil(".salvus-cell")
@@ -212,6 +217,9 @@ $(() ->
             return elt.parent()
         else
             return p.parent()
+
+    refresh_editor = (cell) ->
+        cell.data('editor').refresh()
 
     focus_editor = (cell) ->
         cell.data('editor').focus()
@@ -227,6 +235,22 @@ $(() ->
     focus_previous_cell = () ->
         focus_editor(active_cell.prev())
 
+    insert_cell_before = (cell) ->
+        new_cell = salvus_cell()
+        cell.before(new_cell)
+        refresh_editor(new_cell)
+        focus_editor(new_cell)
+
+    insert_cell_after = (cell) ->
+        new_cell = salvus_cell()
+        cell.after(new_cell)
+        refresh_editor(new_cell)
+        focus_editor(new_cell)
+
+
+    ########################################
+    # Executing code
+    ########################################
     execute_code = () ->
         cell = active_cell
         if not cell?

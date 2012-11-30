@@ -45,7 +45,7 @@ pre {
     background-color:#fff;
     color:#333;
     border: 1px solid white;
-    min-height:1.5em;
+    /*min-height:1.5em; */
 }
 
 .salvus-cell-note:hover {
@@ -106,4 +106,17 @@ pre {
 
 .salvus-worksheet-description {
    color:#888;
+}
+
+.salvus-cell-insert-before {
+    height:4px;
+}
+.salvus-cell-insert-before:hover {
+    background-color:lightblue;
+}
+.salvus-cell-insert-after {
+    height:4px;
+}
+.salvus-cell-insert-after:hover {
+    background-color:lightblue;
 }

@@ -7896,16 +7896,19 @@ x - change background style of output so it is clear which is which.
   [x] remove worksheet-cm from visibility
   [x] get rid of including Rainbow.
   [x] get rid of including htmlparse.
-  [ ] saving and loading scratch worksheet again:
-
+  [x] saving and loading scratch worksheet again:
 [x] Define the JSON format --
 {
  title:
  description:
  cells:[ {id:<uuid text>, note:<html>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
 }
-[ ] function that serializes the scratch worksheet from DOM
-[ ] functions that loads serialized scratch worksheet into DOM
+[x] function that serializes the scratch worksheet from DOM
+[x] functions that loads serialized scratch worksheet into DOM
+
+
+  [x] insert a new cell between existing cells
+
 
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
   [ ] tab completion
@@ -7916,6 +7919,8 @@ x - change background style of output so it is clear which is which.
       [ ] sage_server: introspect docstring
       [ ] sage_server: introspect source code
       [ ] page: display all introspects as alert_message for now...
+
+  [ ] paren matching -- there is an easy codemirror plugin
 
 -------------------------------
 
@@ -7942,7 +7947,6 @@ x - change background style of output so it is clear which is which.
             attribute?)
   [ ] auto-indent
   [ ] highlight and tab/shift-tab for indent: https://github.com/alanhogan/Tabby (?)
-  [ ] paren matching
   [ ] move scratch worksheet to a project
   [ ] when pasting into input cell, turn into text first, e.g., &nbsp;'s get pasted in for spaces right now...  This is pretty bad.
   [ ] mode where hub kills any session without activity for xxx time...
