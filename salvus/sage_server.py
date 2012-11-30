@@ -278,6 +278,7 @@ def session(conn, home, cputime, numfiles, vmem, uid):
 
 def introspect(conn, id, text_before_cursor, text_after_cursor):
     completions = [x for x in namespace.keys() if x.startswith(text_before_cursor)]
+    completions.sort()
     mesg = message.introspect_completions(id=id, completions=completions)
     conn.send(mesg)
 

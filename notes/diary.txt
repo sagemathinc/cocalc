@@ -7927,6 +7927,9 @@ x - change background style of output so it is clear which is which.
       [ ] sage_server: introspect source code
       [ ] page: display all introspects as alert_message for now...
 
+  [ ] tab completion optimization idea:
+       - cache completions for identifier... until next execute
+
 -------------------------------
 
   [ ] tab completion -- phase 2, after sorting out cell input editor

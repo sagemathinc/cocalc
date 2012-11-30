@@ -1,7 +1,10 @@
 {EventEmitter} = require('events')
 
+require('async')  # just so it can be used in page.
+
 message = require("message")
 misc    = require("misc")
+
 defaults = misc.defaults
 required = defaults.required
 

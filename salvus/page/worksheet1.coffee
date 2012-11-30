@@ -1,5 +1,6 @@
 
 $(() ->
+    async = require('async')
     misc = require('misc')
     client = require('client')
     uuid = misc.uuid
@@ -15,8 +16,104 @@ $(() ->
     worksheet1 = $("#worksheet1")
     worksheet = undefined
 
+
+    get_completions = (editor, cb) ->
+        completions = []
+        to = editor.getCursor()
+        from   = {line:to.line, ch:0}
+        session = null
+        async.series([
+            (cb) ->
+                get_session (error, s) ->
+                    if error
+                        alert_message(type:"error", message:"Unable to start a Sage session in which to introspect.")
+                        cb(true)
+                    else
+                        session = s
+                        cb()
+            (cb) ->
+                input = editor.getRange(from, to)
+                session.introspect
+                    text_before_cursor : input
+                    text_after_cursor  : undefined  # TODO
+                    cb : (error, mesg) ->
+                        if error
+                            alert_message(type:"error", message:mesg.error)
+                        else
+                            completions = mesg.completions
+                        cb()
+        ], () -> cb(completions:completions, from:from, to:to))
+
+    COMPLETIONS_SIZE = 13
+    CodeMirror.commands.autocomplete = (editor) ->
+        get_completions(editor, (result) ->        # code below based on simple-hint.js from the CodeMirror3 distribution
+            {from, to, completions} = result
+            if completions.length == 0
+                return
+            sel = $("<select>")
+            complete = $("<div>").addClass("salvus-completions").append(sel)
+            for c in completions
+                sel.append($("<option>").text(c))
+            sel.find(":first").attr("selected", true)
+            sel.attr("size", Math.min(COMPLETIONS_SIZE, completions.length))
+            pos = editor.cursorCoords(from)
+
+            insert = (str) ->
+                editor.replaceRange(str, from, to)
+            if completions.length == 1
+                insert(completions[0])
+                return
+
+            complete.css
+                left : pos.left   + 'px'
+                top  : pos.bottom + 'px'
+            $("body").append(complete)
+            # If we're at the edge of the screen, then we want the menu to appear on the left of the cursor.
+            winW = window.innerWidth or Math.max(document.body.offsetWidth, document.documentElement.offsetWidth)
+            if winW - pos.left < sel.attr("clientWidth")
+                complete.css(left: (pos.left - sel.attr("clientWidth")) + "px")
+            # Hide scrollbar
+            if completions.length <= COMPLETIONS_SIZE
+                complete.css(width: (sel.attr("clientWidth") - 1) + "px")
+
+            done = false
+            close = () ->
+                if done
+                    return
+                done = true
+                complete.remove()
+
+            pick = () ->
+                insert(sel.val())
+                close()
+                setTimeout((() -> editor.focus()), 50)
+
+            sel.blur(pick)
+            #sel.click(pick)
+            sel.dblclick(pick)
+            sel.keydown (event) ->
+                code = event.keyCode
+                switch code
+                    when 13 # enter
+                        pick()
+                        return false
+                    when 27
+                        close()
+                        editor.focus()
+                        return false
+                    else
+                        if code != 38 and code != 40 and code != 33 and code != 34 and not CodeMirror.isModifierKey(event)
+                            close()
+                            editor.focus()
+                            # Pass to CodeMirror (e.g., backspace)
+                            editor.triggerOnKeyDown(event)
+            sel.focus()
+
+        )
+
     extraKeys =
-        "Shift-Enter":(editor) -> execute_code()
+        "Ctrl-Space"  : "autocomplete"
+        "Shift-Enter" : (editor) -> execute_code()
         "Up":(editor) ->
             if editor.getCursor().line == 0
                 focus_previous_cell()
@@ -112,7 +209,7 @@ $(() ->
 
         salvus_worksheet: (opts) ->
             # salvus_worksheet: appends a Salvus worksheet to each element of the jQuery
-            # wrapped set; resuts in the last worksheet created as a
+            # wrapped set; results in the last worksheet created as a
             # jQuery wrapped object.
             worksheet = undefined
             @each () ->
@@ -168,7 +265,7 @@ $(() ->
     # {
     # title:
     # description:
-    # cells: [ {id:<uuid text>, note:<html>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
+    # cells: [ {id:<uuid text>, type:"code", note:<html>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
     # }
 
     cell_to_obj = (cell) ->
@@ -183,6 +280,7 @@ $(() ->
             note   : cell.find(".salvus-cell-note").html()
             input  : cell.data("editor").getValue()
             output : output
+            type   : "code"
         }
 
     obj_to_cell = (obj, cell) ->
@@ -221,7 +319,7 @@ $(() ->
         if not active_cell?
             return true
 
-        session (error, s) ->
+        get_session (error, s) ->
             if error
                 alert_message(type:"error", message:"Unable to start a Sage session in which to introspect.")
                 return true
@@ -349,7 +447,7 @@ $(() ->
 
     persistent_session = null
 
-    session = (cb) ->
+    get_session = (cb) ->
         if persistent_session == null
             salvus_client.new_session
                 limits: {walltime:600, cputime:60}
@@ -382,7 +480,9 @@ $(() ->
 
     tab_button = () ->
         # TODO: could also just be indenting a block
-        introspect()
+        if active_cell?
+            CodeMirror.commands.autocomplete(active_cell.data('editor'))
+            return false
 
     save_worksheet = (notify=false) ->
 
@@ -418,7 +518,7 @@ $(() ->
             input: required
             cb: required
 
-        session (error, s) ->
+        get_session (error, s) ->
             if error
                 alert_message(type:"error", message:"Unable to start a new Sage session.")
                 worksheet.find(".salvus-running").hide()

@@ -121,3 +121,21 @@ pre {
 .salvus-cell-insert-after:hover {
     background-color:lightblue;
 }
+
+.salvus-completions {
+  background: lightyellow;
+  position: absolute;
+  z-index: 10;
+  overflow: hidden;
+  box-shadow: 4px 4px 2px #bbf;
+  border: 3px solid #99f;
+}
+
+.salvus-completions select {
+  background: lightyellow;
+  outline: none;
+  border: none;
+  padding: 3;
+  margin: 3;
+  font-family: monospace;
+}
