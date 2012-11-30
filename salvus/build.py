@@ -11,11 +11,11 @@ The components of sagews are:
     * nginx -- static web server
     * haproxy -- proxy and load ballancer
     * tinc -- p2p vpn
-    * protobuf -- google's messaging api and format 
+    * protobuf -- google's messaging api and format
     * cassandra -- distributed p2p database
-    * sage (which we do not build here, yet -- perhaps we should)      
+    * sage (which we do not build here, yet -- perhaps we should)
 
-This supports OS X and Ubuntu 12.04 on AMD and Intel. 
+This supports OS X and Ubuntu 12.04 on AMD and Intel.
 """
 
 import logging, os, shutil, subprocess, sys, time
@@ -37,7 +37,7 @@ NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
-    'password-hash', 'emailjs', 'cookies', 'htmlparser'
+    'password-hash', 'emailjs', 'cookies'
     ]
 
 PYTHON_PACKAGES = [
@@ -89,7 +89,7 @@ def build_tinc():
         cmd('make install', path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_python():
     log.info('building python'); start = time.time()
@@ -100,7 +100,7 @@ def build_python():
         cmd('make install', path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_node():
     log.info('building node'); start = time.time()
@@ -109,10 +109,10 @@ def build_node():
         cmd('./configure --prefix="%s"'%TARGET, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
-        cmd('git clone git://github.com/isaacs/npm.git && cd npm && make install', path) 
+        cmd('git clone git://github.com/isaacs/npm.git && cd npm && make install', path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_nginx():
     log.info('building nginx'); start = time.time()
@@ -124,7 +124,7 @@ def build_nginx():
         cmd('mv sbin/nginx bin/', TARGET)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_haproxy():
     log.info('building haproxy'); start = time.time()
@@ -137,18 +137,18 @@ def build_haproxy():
         cmd('cp haproxy "%s"/bin/'%TARGET, path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_stunnel():
     log.info('building stunnel'); start = time.time()
     try:
         path = extract_package('stunnel')
-        cmd('./configure --prefix="%s"'%TARGET, path)        
+        cmd('./configure --prefix="%s"'%TARGET, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install < /dev/null', path)  # make build non-interactive -- I don't care about filling in a form for a demo example
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_cassandra():
     log.info('installing cassandra'); start = time.time()
@@ -164,7 +164,7 @@ def build_cassandra():
         cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(TARGET, 'bin')), path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_protobuf():
     log.info('building protobuf'); start = time.time()
@@ -181,7 +181,7 @@ def build_protobuf():
             pass
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_python_packages():
     log.info('building python_packages'); start = time.time()
@@ -192,7 +192,7 @@ def build_python_packages():
             cmd('easy_install %s'%pkg, '/tmp')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 def build_node_modules():
     log.info('building node_modules'); start = time.time()
@@ -200,7 +200,7 @@ def build_node_modules():
         cmd('npm install %s'%(' '.join(NODE_MODULES)), PWD)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start        
+        return time.time()-start
 
 if __name__ == "__main__":
     import argparse
@@ -226,7 +226,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--build_stunnel', dest='build_stunnel', action='store_const', const=True, default=False,
                         help="build the stunnel server")
-    
+
     parser.add_argument('--build_cassandra', dest='build_cassandra', action='store_const', const=True, default=False,
                         help="build the cassandra database server")
 

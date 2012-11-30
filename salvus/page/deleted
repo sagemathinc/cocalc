@@ -1,3 +1,21 @@
+        salvusws_text: (opts={}) ->   # returns text rather than a jquery wrapped object
+            opts = defaults opts, {} # no options
+            result = ''
+            @each () ->
+                that = this
+                async.series([
+                    (cb) -> client.html_to_text(html:$(that).html(), cb:((error, plain) -> result += plain; cb()))
+                ])
+                # This was the rangy implementation, but it was 10000 times slower than htmlparser, so screw that!
+                #r = rangy.createRange()
+                #r.selectNodeContents(this)
+                #result += r.text()
+
+            # &nbsp;'s are converted to character code 160, not 32 (which is a space).
+            # We thus must replace all 32's by 160, or sage will be unhappy:
+            return result.replace(/\xA0/g, " ")
+
+
                 #cell.draggable().bind("click", () -> $(this).focus())
                 #last_active_cell = active_cell = cell
                 #.blur((e) -> active_cell=undefined; highlight(input:$(this)) )

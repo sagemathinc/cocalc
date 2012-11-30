@@ -2,7 +2,6 @@
 $(() ->
     misc = require('misc')
     client = require('client')
-    async = require('async')
     uuid = misc.uuid
     required = misc.required
     defaults = misc.defaults
@@ -18,7 +17,6 @@ $(() ->
 
     activate_salvus_cell = (cell) ->
         input = cell.find(".salvus-cell-input"
-        ).data('highlighted', true
         ).click( (e) ->
             active_cell = containing_cell($(this))
         ).focus( (e) ->
@@ -133,23 +131,6 @@ $(() ->
                 range = sel.getRangeAt(0)
                 range.insertNode(this)
 
-        salvusws_text: (opts={}) ->   # returns text rather than a jquery wrapped object
-            opts = defaults opts, {} # no options
-            result = ''
-            @each () ->
-                that = this
-                async.series([
-                    (cb) -> client.html_to_text(html:$(that).html(), cb:((error, plain) -> result += plain; cb()))
-                ])
-                # This was the rangy implementation, but it was 10000 times slower than htmlparser, so screw that!
-                #r = rangy.createRange()
-                #r.selectNodeContents(this)
-                #result += r.text()
-
-            # &nbsp;'s are converted to character code 160, not 32 (which is a space).
-            # We thus must replace all 32's by 160, or sage will be unhappy:
-            return result.replace(/\xA0/g, " ")
-
     class CaretPosition
         constructor: (@container, @offset) ->
         equals: (other) ->  # true if this and other are at the same position
@@ -177,7 +158,6 @@ $(() ->
     keydown_caret_position = null
 
     keydown_handler = (e) ->
-        console.log("keydown: ", e)
         switch e.which
             when 13 # enter
                 if e.shiftKey
@@ -233,9 +213,6 @@ $(() ->
     # introspection
     ########################################
 
-    # Syntax highlight last active cell, get plain text back along
-    # with cursor position, decide whether or not to insert four
-    # spaces or introspect.
     introspect = () ->
         if not active_cell?
             return true
@@ -269,26 +246,6 @@ $(() ->
     save_caret_position = () ->
         return $(document.activeElement).data("caret_position", get_caret_position())
 
-    focus_next_editable = () ->
-        e = save_caret_position()
-        h = e.data('highlighted')
-        if h? and not h
-            highlight(input: e)
-        n = containing_cell(e).next().find(".salvus-cell-input").focus()
-        n.data('highlighted', false)  # TODO -- actually only do this when user changes it
-        p = n.data("caret_position")
-        if p?
-            p.set()
-        return false
-
-    focus_previous_editable = () ->
-        e = save_caret_position()
-        n = containing_cell(e).prev().find(".salvus-cell-input").focus()
-        p = n.data("caret_position")
-        if p?
-            p.set()
-        return false
-
     focus_editor = (cell) ->
         cell.data('editor').focus()
 
@@ -298,34 +255,12 @@ $(() ->
     focus_previous_cell = () ->
         focus_editor(active_cell.prev())
 
-    highlight = (opts) ->
-        opts = defaults opts,
-            input    : required   # DOM element to de-html and syntax highlight
-            cb       : undefined  # called with (error, plain_text) when done.
-            language : 'python'
-
-        plain_text = opts.input.salvusws_text()
-        if not plain_text.match(/\S/)
-            # easy special case -- whitespace
-            opts.cb?(false, '')
-            return
-
-        Rainbow.color(plain_text, opts.language, (highlighted) ->
-            opts.input.html(highlighted.replace(/\n/g,'<br>'))
-            opts.input.data('highlighted', true)
-        )
-        opts.cb?(false, plain_text)
-
     execute_code = () ->
-        console.log("execute_code")
         cell = active_cell
         if not cell?
             return
         worksheet_changed()
-        console.log(cell)
-        console.log(cell.data('editor'))
         execute_code_in_cell(cell.data('editor').getValue(), cell)
-
         return false
 
 

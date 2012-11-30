@@ -142,11 +142,11 @@ top_navbar = undefined
         label   : "Scratch Worksheet"
         close   : false
 
-    $("#worksheet-cm").top_navbar
-        id      : "worksheet-cm"
-        label   : "Codemirror Worksheet"
-        close   : false
-        
+    #$("#worksheet-cm").top_navbar
+    #    id      : "worksheet-cm"
+    #    label   : "Codemirror Worksheet"
+    #    close   : false
+
     $("#account").top_navbar
         id     : "account"
         label  : "Sign in"

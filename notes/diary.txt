@@ -7891,8 +7891,13 @@ x - change background style of output so it is clear which is which.
   - rename worksheet1 to "worksheet-contenteditable" in case it ever needs to be resurrected.
 
   - scroll on *top* and bottom: http://suwala.eu/blog/2012/02/01/horizontal-scrollbar-top-and-bottom-element/
+-----------------------------------
 
-  [ ] modify worksheet1.coffee so the cells are codemirror cells, but otherwise it is the same
+
+  [x] modify worksheet1.coffee so the cells are codemirror cells, but otherwise it is the same
+  [x] remove worksheet-cm from visibility
+  [x] get rid of including Rainbow.
+  [x] get rid of including htmlparse.
 
 
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
