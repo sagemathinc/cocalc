@@ -7902,7 +7902,7 @@ x - change background style of output so it is clear which is which.
 {
  title:
  description:
- cells:[ {id:<uuid text>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
+ cells:[ {id:<uuid text>, note:<html>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
 }
 [ ] function that serializes the scratch worksheet from DOM
 [ ] functions that loads serialized scratch worksheet into DOM

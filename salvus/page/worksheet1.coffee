@@ -52,8 +52,10 @@ $(() ->
             undoDepth      : 200
             autofocus      : false
             extraKeys      : extraKeys
-    
+
         cell.data('editor',editor)
+        $(editor.getWrapperElement()).addClass('salvus-input-cell-blur')
+
         editor.on "focus", (e) ->
             last_active_cell = active_cell = cell
             $(e.getWrapperElement()).addClass('salvus-input-cell-focus').removeClass('salvus-input-cell-blur')
@@ -83,7 +85,7 @@ $(() ->
             @each () ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
-                worksheet.append_salvus_cell()
+                focus_editor(worksheet.append_salvus_cell())
             return worksheet
 
         salvus_cell: (opts={}) ->
@@ -102,21 +104,20 @@ $(() ->
                     $(this).replaceWith(salvus_cell(id:opts.id))
                 opts.id = undefined if opts.id?
 
-        append_salvus_cell: (opts) ->
+        append_salvus_cell: (opts={}) ->
+            opts = defaults opts,
+                id : undefined
             cell = undefined
             @each () ->
-                cell = salvus_cell().appendTo($(this))
+                cell = salvus_cell(opts).appendTo($(this))
                 editor = cell.data('editor')
                 editor.refresh()
-                editor.focus()
             return cell
 
 
     ####################################################
     # keyboard control -- rewrite to use some library
     ####################################################
-    keydown_caret_position = null
-
     keydown_handler = (e) ->
         switch e.which
             when 27 # escape = 27
@@ -127,6 +128,57 @@ $(() ->
 
     top_navbar.on "switch_from_page-scratch", () ->
         $(document).unbind("keydown", keydown_handler)
+
+    ########################################
+    # Serialization to JSON-safe object
+    ########################################
+    # {
+    # title:
+    # description:
+    # cells: [ {id:<uuid text>, note:<html>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
+    # }
+
+    cell_to_obj = (cell) ->
+        cell   = $(cell)
+        output = {}
+        for stream in ['stdout', 'stderr']
+            x = cell.find(".salvus-#{stream}").html()
+            if x.trim() != ""
+                output[stream] = x
+        return {
+            id     : cell.attr("id")
+            note   : cell.find(".salvus-cell-note").html()
+            input  : cell.data("editor").getValue()
+            output : output
+        }
+
+    obj_to_cell = (obj, cell) ->
+        cell = $(cell)
+        cell.attr("id", obj.id)
+        cell.find(".salvus-cell-note").html(obj.note)
+        cell.data("editor").setValue(obj.input)
+        if obj.output.stdout?
+            cell.find(".salvus-stdout").html(obj.output.stdout).show()
+        if obj.output.stderr?
+            cell.find(".salvus-stderr").html(obj.output.stderr).show()
+
+    worksheet_to_obj = () ->
+        # jquery officially iterates through objects in DOM order, as of 1.3.2.
+        obj = {
+            title       : worksheet.find(".salvus-worksheet-title").html()
+            description : worksheet.find(".salvus-worksheet-description").html()
+            cells       : []
+        }
+        $.each(worksheet.find(".salvus-cell"), (key, cell) -> obj.cells.push(cell_to_obj(cell)))
+        return obj
+
+    set_worksheet_from_obj = (obj) ->
+        worksheet.find(".salvus-worksheet-title").html(obj.title)
+        worksheet.find(".salvus-worksheet-description").html(obj.description)
+        worksheet.find(".salvus-cell").remove()
+        for cell_obj in obj.cells
+            obj_to_cell(cell_obj, worksheet.append_salvus_cell()[0])
+
 
     ########################################
     # introspection
@@ -161,12 +213,13 @@ $(() ->
         else
             return p.parent()
 
-    # returns jquery wrapped active element
-    save_caret_position = () ->
-        return $(document.activeElement).data("caret_position", get_caret_position())
-
     focus_editor = (cell) ->
         cell.data('editor').focus()
+        active_cell = last_active_cell = cell
+
+    focus_editor_on_first_cell = () ->
+        worksheet.find(".salvus-cell:first")
+        focus_editor(worksheet.find(".salvus-cell:first"))
 
     focus_next_cell = () ->
         focus_editor(active_cell.next())
@@ -246,7 +299,7 @@ $(() ->
 
     delete_worksheet= () ->
         # TODO: confirmation
-        worksheet.remove()
+        worksheet?.remove()
         worksheet = page.salvus_worksheet()
         salvus_client.delete_scratch_worksheet()
 
@@ -255,8 +308,9 @@ $(() ->
         introspect()
 
     save_scratch_worksheet = (notify=false) ->
+
         salvus_client.save_scratch_worksheet
-            data : worksheet.html()
+            data : misc.to_json(worksheet_to_obj())
             cb   : (error, msg) ->
                 if notify
                     if error
@@ -307,17 +361,20 @@ $(() ->
 
     load_scratch_worksheet = () ->
         salvus_client.load_scratch_worksheet
-            cb: (error, result) ->
+            cb: (error, data) ->
                 if worksheet?
                     worksheet.remove()
                 if error
                     worksheet = page.salvus_worksheet()
                 else
+                    console.log(data)
+                    obj = misc.from_json(data)
+                    console.log(obj)
                     worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
-                    worksheet.html(result)
-                    c = worksheet.find(".salvus-cell").salvus_cell()
-                    $(c[0]).find(".salvus-cell-input").focus()
                     page.append(worksheet)
+                    console.log(obj)
+                    set_worksheet_from_obj(obj)
+                    focus_editor_on_first_cell()
 
     salvus_client.on "connected", () ->
         load_scratch_worksheet()
