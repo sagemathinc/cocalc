@@ -368,23 +368,27 @@ $(() ->
         cell.find('.salvus-stdout').html('')
         cell.find('.salvus-stderr').html('')
 
-    delete_cell_contents = (cell) ->
-        delete_cell_output(cell)
-        cell.data('editor').setValue('')
-        cell.find('.salvus-cell-note').html('')
+    delete_cell_contents = (opts) ->
+        opts = defaults opts,
+            cell      : required
+            keep_note : false
+        delete_cell_output(opts.cell)
+        opts.cell.data('editor').setValue('')
+        if not opts.keep_note
+            opts.cell.find('.salvus-cell-note').html('')
 
     delete_cell = (opts) ->
         opts = defaults opts,
             cell      : required
             keep_note : false
         worksheet_is_dirty()
+        if number_of_cells() == 1    # it's the only cell on the worksheet, don't delete -- just empty
+            delete_cell_contents(cell:opts.cell, keep_note:opts.keep_note)
+            return
         cell = opts.cell
         note = cell.find(".salvus-cell-note").html()
         cell_above = cell.prev()
         cell_below = cell.next()
-        if not cell_below.hasClass("salvus-cell")  # it's the last cell on the worksheet, so don't delete -- just empty
-            delete_cell_contents(cell)
-            return
         if note != "" and opts.keep_note
             # TODO: use append_to_note above.
             note_below = cell_below.find(".salvus-cell-note")
@@ -435,11 +439,15 @@ $(() ->
         worksheet.find(".salvus-cell:first")
         focus_editor(worksheet.find(".salvus-cell:first"))
 
-    focus_next_cell = () ->
-        focus_editor(active_cell.next())
+    focus_next_cell = (cell) ->
+        next = next_cell(cell)
+        if next?
+            focus_editor(next)
 
-    focus_previous_cell = () ->
-        focus_editor(active_cell.prev())
+    focus_previous_cell = (cell) ->
+        prev = previous_cell(cell)
+        if prev?
+            focus_editor(prev)
 
     insert_cell_before = (cell) ->
         worksheet_is_dirty()
@@ -465,16 +473,13 @@ $(() ->
     # Editing / Executing code
     ########################################
 
-    execute_code = () ->
-        cell = active_cell
-        if not cell?
-            return
+    execute_all = () ->
+        for cell in worksheet.find(".salvus-cell")
+            execute_cell($(cell))
+
+    execute_cell = (cell) ->
         worksheet_is_dirty()
-        execute_code_in_cell(cell.data('editor').getValue(), cell)
-        return false
-
-
-    execute_code_in_cell = (input_text, cell) ->
+        input_text = cell.data('editor').getValue()
         input = cell.find(".salvus-cell-input")
         output = cell.find(".salvus-cell-output")
         stdout = output.find(".salvus-stdout")
@@ -484,7 +489,7 @@ $(() ->
         stdout.text("")
         stderr.text("")
 
-        if input_text != ""
+        if input_text.trim() != ""
             # activity() -- looks bad and crashes chrome on linux hard.
             # # .activity(width:1.5, segments:14)
             timer = setTimeout((() -> cell.find(".salvus-running").show()), 1000)
@@ -534,6 +539,13 @@ $(() ->
             alert_message(type:"success", message:"Restarted your Sage session.  (WARNING: Your variables are no longer defined.)")
             persistent_session = null
             worksheet.find(".salvus-running").hide()
+
+    number_of_cells = () ->
+        return worksheet.find(".salvus-cell").length
+
+    delete_all_output = () ->
+        for cell in worksheet.find(".salvus-cell")
+            delete_cell_output($(cell))
 
     delete_worksheet= () ->
         # TODO: confirmation
@@ -602,17 +614,17 @@ $(() ->
         "Ctrl-Space"     : "autocomplete"
         "Ctrl-Backspace" : (editor) -> join_cells(editor.cell)
         "Ctrl-;"         : (editor) -> split_cell(editor.cell)
-        "Ctrl-Up"        : (editor) -> active_cell=last_active_cell; move_cell_up(active_cell)
-        "Ctrl-Down"      : (editor) -> active_cell=last_active_cell; move_cell_down(active_cell)
-        "Shift-Enter"    : (editor) -> execute_code()
+        "Ctrl-Up"        : (editor) -> move_cell_up(editor.cell)
+        "Ctrl-Down"      : (editor) -> move_cell_down(editor.cell)
+        "Shift-Enter"    : (editor) -> execute_cell(editor.cell)
         "Up"             : (editor) ->
             if editor.getCursor().line == 0
-                focus_previous_cell()
+                focus_previous_cell(editor.cell)
             else
                 throw CodeMirror.Pass
         "Down"           : (editor) ->
             if editor.getCursor().line >= editor.lineCount() - 1
-                focus_next_cell()
+                focus_next_cell(editor.cell)
             else
                 throw CodeMirror.Pass
 
@@ -631,11 +643,13 @@ $(() ->
 
     ##############################################################################################
 
-    worksheet1.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_code(); return false)
+    worksheet1.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_cell(active_cell); return false)
     worksheet1.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
     worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_button(); return false)
     worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
+    worksheet1.find("a[href='#worksheet1-execute_all']").button().click((e) -> execute_all(); return false)
     worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
+    worksheet1.find("a[href='#worksheet1-delete_all_output']").button().click((e) -> delete_all_output(); return false)
     worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_worksheet(true); return false)
 
     worksheet1.find("a[href='#worksheet1-delete_cell']").button().click((e) -> active_cell=last_active_cell; delete_cell(cell:active_cell, keep_note:true); return false)

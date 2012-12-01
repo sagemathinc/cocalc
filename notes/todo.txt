@@ -31,8 +31,7 @@
   [ ] sign out must clear scratch worksheet.
 
 -----------------
-
-   [ ] force the keyboard to appear when clicking on edit cell on iOS ipad3.
+   [ ] when editing input of cell, make entire output become light grey or something...?
   [ ] on mobile chrome (my phone) codemirror doesn't get a scrollbar (since there are no scrollbars) so there
       is no way to see an input cell that turns to scroll.  One option -- 
   [ ] on mobile, tooltips suck
@@ -82,6 +81,8 @@ LATER:
   [ ] upsell: trial is slow (by x%), but click here for faster version
 
 DONE:
+   [x] CAN'T: force the keyboard to appear when clicking on edit cell on iOS ipad3.
+  [x] splitting cells
   [x] modify worksheet1.coffee so the cells are codemirror cells, but otherwise it is the same
   [x] remove worksheet-cm from visibility
   [x] get rid of including Rainbow.

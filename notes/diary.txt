@@ -8008,12 +8008,17 @@ tot=1:20   10:50am -- off to REI or something with tish for a bit...
 tot=1:20   2:37pm -- now really back to work.... on splitting cells
 tot=1:45   3:02pm -- cell splitting is done
 
+   [x] evaluate all -- might as well
+   [x] delete all output -- easy peasy
+
    [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
+
    [ ] finish implementing genuine introspection
 
    [ ] change worksheet storage format, so output is an optimized
        stream of messages (store the type in the DOM as data, so
        serializing code doesn't have to know types?).
+
    [ ] simple interact
    [ ] images
 
