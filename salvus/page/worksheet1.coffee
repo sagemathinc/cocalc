@@ -332,6 +332,15 @@ $(() ->
         # 6. Focus cell above.
         focus_editor(prev_cell)
 
+    split_cell = (cell) ->
+        console.log("split cell")
+
+    move_cell_up = (cell) ->
+        console.log("move cell up")
+
+    move_cell_down = (cell) ->
+        console.log("move cell down")
+
     delete_cell_output = (cell) ->
         cell.find('.salvus-stdout').html('')
         cell.find('.salvus-stderr').html('')
@@ -522,11 +531,11 @@ $(() ->
 
     worksheet_is_clean = () ->
         _worksheet_is_dirty = false
-        worksheet1.find("a[href='#worksheet1-save_worksheet']").addClass('btn-success')
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").addClass("btn-success").find(".save-worksheet-saved").show()
 
     worksheet_is_dirty = () ->
         _worksheet_is_dirty = true
-        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success')
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success').find(".save-worksheet-saved").hide()
 
 
     window.onbeforeunload = (e=window.event) ->
@@ -554,28 +563,31 @@ $(() ->
     ###############################################################
 
     extraKeys =
-        "Ctrl-Space"  : "autocomplete"
+        "Ctrl-Space"     : "autocomplete"
         "Ctrl-Backspace" : (editor) -> join_cells(containing_cell_of_editor(editor))
-        "Shift-Enter" : (editor) -> execute_code()
-        "Up":(editor) ->
+        "Ctrl-;"         : (editor) -> split_cell(containing_cell_of_editor(editor))
+        "Ctrl-Up"        : (editor) -> move_cell_up(containing_cell_of_editor(editor))
+        "Ctrl-Down"      : (editor) -> move_cell_down(containing_cell_of_editor(editor))
+        "Shift-Enter"    : (editor) -> execute_code()
+        "Up"             : (editor) ->
             if editor.getCursor().line == 0
                 focus_previous_cell()
             else
                 throw CodeMirror.Pass
-        "Down":(editor) ->
+        "Down"           : (editor) ->
             if editor.getCursor().line >= editor.lineCount() - 1
                 focus_next_cell()
             else
                 throw CodeMirror.Pass
 
-        "Esc":(editor) ->
+        "Esc"            : (editor) ->
             interrupt_session()
 
-        "Tab":(editor) ->
+        "Tab"            : (editor) ->
             # decide if we can "tab complete"
             throw CodeMirror.Pass
 
-        "Backspace":(editor) ->
+        "Backspace"      : (editor) ->
             if editor.getValue() == ""
                 delete_cell(cell:containing_cell_of_editor(editor), keep_note:true)
             else
@@ -590,7 +602,11 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
     worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_worksheet(true); return false)
 
+    worksheet1.find("a[href='#worksheet1-delete_cell']").button().click((e) -> active_cell=last_active_cell; delete_cell(cell:active_cell, keep_note:true); return false)
     worksheet1.find("a[href='#worksheet1-join_cells']").button().click((e) -> active_cell=last_active_cell; join_cells(active_cell); return false)
+    worksheet1.find("a[href='#worksheet1-split_cell']").button().click((e) -> active_cell=last_active_cell; split_cell(active_cell); return false)
+    worksheet1.find("a[href='#worksheet1-move_cell_up']").button().click((e) -> active_cell=last_active_cell; move_cell_up(active_cell); return false)
+    worksheet1.find("a[href='#worksheet1-move_cell_down']").button().click((e) -> active_cell=last_active_cell; move_cell_down(active_cell); return false)
 
     load_scratch_worksheet = () ->
         salvus_client.load_scratch_worksheet

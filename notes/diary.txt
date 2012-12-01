@@ -7826,7 +7826,7 @@ The rest of page code doesn't know the difference.
 
   [ ] implement javascript local version first, and test -- no schema needed
 
-cookie 
+cookie
    -- limited to 4k (!)
    -- sent with each http request.
    -- what about html5 local storage
@@ -7946,7 +7946,7 @@ DONE:
   [ ] change worksheet format so that the output is:
 
             output:[list of messages...]
-      where we can optimize it upon serialization by combining adjacent things of the same time. 
+      where we can optimize it upon serialization by combining adjacent things of the same time.
 
       streams:
          stdout
@@ -7983,22 +7983,23 @@ Dec 1, 2012
 
 7:30am.
 The final push begins.  I have exactly one week to do a significant release.
-I have ALL weekend.  
+I have ALL weekend.
 
 I'm going to first try one easy or impossible bug:
 
-   [x] force the keyboard to appear when clicking on edit cell on iOS ipad3.... only after tab completion. 
+   [x] force the keyboard to appear when clicking on edit cell on iOS ipad3.... only after tab completion.
        - idea: blur, then focus.
  --> soln -- don't autofocus back -- force user to.
 
-It seems like a good warm up. ... and yet it seems like a major pain.  Probably a better solution is to 
+It seems like a good warm up. ... and yet it seems like a major pain.  Probably a better solution is to
 write a better completions UI.
 
 What to do next?!  So many things:
    [x] joining cells as in the sage notebook
        - working on desktop and ios
 
-   [ ] splitting cells as in the sage notebook
+-->   [ ] splitting cells as in the sage notebook
+start at 9:31am (at victrola)
 
    [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
    [ ] finish implementing genuine introspection
