@@ -7853,7 +7853,7 @@ TOP PRIORITY:
 
 ---------------------------------
 
-  [ ] editing highlighted code as is just doesn't work -- too subtle and not cross-browser.
+XX  [ ] editing highlighted code as is just doesn't work -- too subtle and not cross-browser.
       change to have two input pre's, one with code and one highlighted. So... next
       top-priority todo item is: INTEGRATE CODEMIRROR 3 in for input compute cells! ASAP.
 PLAN:
@@ -7891,6 +7891,31 @@ x - change background style of output so it is clear which is which.
 ... I'm *NOT* loving this! -- it turns out that this approach just feels wrong during usage, though in theory it seems neat.
 -----------------------------------
 
+DONE:
+  [x] worksheet1 keyboard shortcuts should only be active when
+      that page is displayed, e.g., tabbing in sign in doesn't work.
+  [x] save non-logged in user's scratch worksheet to cookie (?)
+  [x] support using scratch worksheet *without* having to first login <--
+
+  [x] make it so re-loaded scratch worksheet is *active*
+  [x] save logged in user's scratch worksheet to database
+  [x] add tooltips for the control buttons
+  [x] Rainbow highlighter -- has a bug with triple quoted strings:
+      - the regexp is wrong: correct version is /('{3}|"{3})[\s\S]*?\1/gm
+        """[\s\S]*"""
+  [x] bug -- extra space on highlight
+  [x] ability to use cursor keys to move between compute cells
+
+  [x] evaluating a large input cell takes a huge time to do nothing -- why?
+      it turns out getting the plain text using the .text() method of rangy is *DOG SLOW*!
+      What about that HTML parser I ditched?
+      It is 10000 times faster than rangy for this!  W00t.  OK, I keep it.
+
+  [x] kill/restart session
+  [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
+  [x] lame "running" indicator just to have something easy to implement
+  [x] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
+
 
   [x] modify worksheet1.coffee so the cells are codemirror cells, but otherwise it is the same
   [x] remove worksheet-cm from visibility
@@ -7914,10 +7939,32 @@ x - change background style of output so it is clear which is which.
 
   [x] finish implementing dirty and clean for worksheet state.
 
+
+-----
+
+  [ ] change worksheet format so that the output is:
+
+            output:[list of messages...]
+      where we can optimize it upon serialization by combining adjacent things of the same time. 
+
+      streams:
+         stdout
+         stderr
+         stdhtml
+
+  [ ] html output
+
+  [ ] very basic implementation of a manipulate control using
+  bootstrap, in order to make sure my approach can work.
+      @interact
+      def f(function=['sin', 'cos', 'tan']):
+          print function
+  and get a nice button bar.
+
   [ ] refactor worksheet1 code to a new object oriented structure, now that it is clear, and enough is done.
 
-
   [ ] message when session times out, then restart it.... will happen only if user's browser is there!
+
   [ ] tab completion
       [x] page: determining where the cursor is
 -     [x] page: putting the cursor back
@@ -7991,31 +8038,6 @@ LATER:
   [ ] sage server: priotorize active users
   [ ] load report when session starts, etc. -- user can see it.
   [ ] upsell: trial is slow (by x%), but click here for faster version
-
-DONE:
-  [x] worksheet1 keyboard shortcuts should only be active when
-      that page is displayed, e.g., tabbing in sign in doesn't work.
-  [x] save non-logged in user's scratch worksheet to cookie (?)
-  [x] support using scratch worksheet *without* having to first login <--
-
-  [x] make it so re-loaded scratch worksheet is *active*
-  [x] save logged in user's scratch worksheet to database
-  [x] add tooltips for the control buttons
-  [x] Rainbow highlighter -- has a bug with triple quoted strings:
-      - the regexp is wrong: correct version is /('{3}|"{3})[\s\S]*?\1/gm
-        """[\s\S]*"""
-  [x] bug -- extra space on highlight
-  [x] ability to use cursor keys to move between compute cells
-
-  [x] evaluating a large input cell takes a huge time to do nothing -- why?
-      it turns out getting the plain text using the .text() method of rangy is *DOG SLOW*!
-      What about that HTML parser I ditched?
-      It is 10000 times faster than rangy for this!  W00t.  OK, I keep it.
-
-  [x] kill/restart session
-  [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
-  [x] lame "running" indicator just to have something easy to implement
-  [x] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
 
 
 
