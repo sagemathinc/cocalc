@@ -7998,7 +7998,7 @@ What to do next?!  So many things:
    [x] joining cells as in the sage notebook
        - working on desktop and ios
 
--->   [ ] splitting cells as in the sage notebook
+-->   [x] splitting cells as in the sage notebook
 9:31am -- start (at victrola)
 10:24am -- fiddled with button bar a lot; cleaned it up; set up wiring for cell split/join/move
 tot=1:16   10:47am -- move cell up/down is now done... and pretty awesome!  if I add clear way to select multiple cells at once, this will be very useful indeed.
@@ -8006,6 +8006,7 @@ tot=1:16   10:47am -- move cell up/down is now done... and pretty awesome!  if I
 tot=1:20   10:50am -- off to REI or something with tish for a bit...
 1:34pm -- BACK to work after shopping with tish, etc. -- NOPE... went skating in back yard (excercise!)
 tot=1:20   2:37pm -- now really back to work.... on splitting cells
+tot=1:45   3:02pm -- cell splitting is done
 
    [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
    [ ] finish implementing genuine introspection
@@ -8018,3 +8019,7 @@ tot=1:20   2:37pm -- now really back to work.... on splitting cells
 
    [ ] rewrite worksheet/cells to be classes and encapsulated, so I can have multiple instances
        on the page
+
+   [ ] * interrupt button could be green, but change to yellow when code is running.
+      * restart could be green, but change to yellow when a session is active.
+

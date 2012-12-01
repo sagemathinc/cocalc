@@ -135,6 +135,7 @@ $(() ->
             matchBrackets  : true
 
         cell.data('editor', editor)
+        editor.cell = cell
         $(editor.getWrapperElement()).addClass('salvus-input-cell-blur')
 
         editor.on "focus", (e) ->
@@ -340,22 +341,26 @@ $(() ->
         # 2. move all text after cursor in this cell to beginning of new cell
         editor = cell.data('editor')
         from = editor.getCursor()
-        to   = {line:editor.numLines(), ch:0}
+        to   = {line:editor.lineCount(), ch:0}
         code = editor.getRange(from, to)
         editor.replaceRange('', from, to)
-        new_cell.
+        new_editor = new_cell.data('editor')
+        new_editor.replaceRange(code, {line:new_editor.lineCount(),ch:0})
+        # 3. delete output
+        delete_cell_output(cell)
+        focus_editor(new_cell)
 
     move_cell_up = (cell) ->
         prev = previous_cell(cell)
         if prev?
-            worksheet_is_dirty()            
+            worksheet_is_dirty()
             cell.insertBefore(prev)
             focus_editor(cell)
 
     move_cell_down = (cell) ->
         next = next_cell(cell)
         if next?
-            worksheet_is_dirty()            
+            worksheet_is_dirty()
             cell.insertAfter(next)
             focus_editor(cell)
 
@@ -418,9 +423,6 @@ $(() ->
             return elt.parent()
         else
             return p.parent()
-
-    containing_cell_of_editor = (editor) ->
-        return containing_cell($(editor.getWrapperElement()))
 
     refresh_editor = (cell) ->
         cell.data('editor').refresh()
@@ -565,11 +567,11 @@ $(() ->
 
     worksheet_is_clean = () ->
         _worksheet_is_dirty = false
-        worksheet1.find("a[href='#worksheet1-save_worksheet']").addClass("btn-success").find(".save-worksheet-saved").show()
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-warning').addClass("btn-success").find(".save-worksheet-saved").show()
 
     worksheet_is_dirty = () ->
         _worksheet_is_dirty = true
-        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success').find(".save-worksheet-saved").hide()
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success').addClass('btn-warning').find(".save-worksheet-saved").hide()
 
 
     window.onbeforeunload = (e=window.event) ->
@@ -598,8 +600,8 @@ $(() ->
 
     extraKeys =
         "Ctrl-Space"     : "autocomplete"
-        "Ctrl-Backspace" : (editor) -> join_cells(containing_cell_of_editor(editor))
-        "Ctrl-;"         : (editor) -> split_cell(containing_cell_of_editor(editor))
+        "Ctrl-Backspace" : (editor) -> join_cells(editor.cell)
+        "Ctrl-;"         : (editor) -> split_cell(editor.cell)
         "Ctrl-Up"        : (editor) -> active_cell=last_active_cell; move_cell_up(active_cell)
         "Ctrl-Down"      : (editor) -> active_cell=last_active_cell; move_cell_down(active_cell)
         "Shift-Enter"    : (editor) -> execute_code()
@@ -623,7 +625,7 @@ $(() ->
 
         "Backspace"      : (editor) ->
             if editor.getValue() == ""
-                delete_cell(cell:containing_cell_of_editor(editor), keep_note:true)
+                delete_cell(cell:editor.cell, keep_note:true)
             else
                 throw CodeMirror.Pass
 
