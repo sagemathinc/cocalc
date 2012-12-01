@@ -481,7 +481,7 @@ $(() ->
         worksheet_is_dirty()
         input_text = cell.data('editor').getValue()
         input = cell.find(".salvus-cell-input")
-        output = cell.find(".salvus-cell-output")
+        output = cell.find(".salvus-cell-output").show()
         stdout = output.find(".salvus-stdout")
         stderr = output.find(".salvus-stderr")
 
@@ -547,6 +547,12 @@ $(() ->
         for cell in worksheet.find(".salvus-cell")
             delete_cell_output($(cell))
 
+    hide_all_output = () ->
+        worksheet.find(".salvus-cell-output").hide()
+
+    show_all_output = () ->
+        worksheet.find(".salvus-cell-output").show()
+
     delete_worksheet= () ->
         # TODO: confirmation
         worksheet?.remove()
@@ -579,11 +585,11 @@ $(() ->
 
     worksheet_is_clean = () ->
         _worksheet_is_dirty = false
-        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-warning').addClass("btn-success").find(".save-worksheet-saved").show()
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-info').addClass("btn-success").find(".save-worksheet-saved").show()
 
     worksheet_is_dirty = () ->
         _worksheet_is_dirty = true
-        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success').addClass('btn-warning').find(".save-worksheet-saved").hide()
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success').addClass('btn-info').find(".save-worksheet-saved").hide()
 
 
     window.onbeforeunload = (e=window.event) ->
@@ -650,6 +656,8 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-execute_all']").button().click((e) -> execute_all(); return false)
     worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
     worksheet1.find("a[href='#worksheet1-delete_all_output']").button().click((e) -> delete_all_output(); return false)
+    worksheet1.find("a[href='#worksheet1-hide_all_output']").button().click((e) -> hide_all_output(); return false)
+    worksheet1.find("a[href='#worksheet1-show_all_output']").button().click((e) -> show_all_output(); return false)
     worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_worksheet(true); return false)
 
     worksheet1.find("a[href='#worksheet1-delete_cell']").button().click((e) -> active_cell=last_active_cell; delete_cell(cell:active_cell, keep_note:true); return false)

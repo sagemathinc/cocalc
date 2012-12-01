@@ -8011,6 +8011,8 @@ tot=1:45   3:02pm -- cell splitting is done
    [x] evaluate all -- might as well
    [x] delete all output -- easy peasy
 
+   [x] hide/show all output
+
    [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
 
    [ ] finish implementing genuine introspection
