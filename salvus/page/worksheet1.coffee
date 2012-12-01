@@ -89,7 +89,6 @@ $(() ->
                 setTimeout((() -> editor.focus()), 50)
 
             sel.blur(pick)
-            #sel.click(pick)
             sel.dblclick(pick)
             sel.keydown (event) ->
                 code = event.keyCode

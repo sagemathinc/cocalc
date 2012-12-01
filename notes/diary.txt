@@ -7891,132 +7891,33 @@ x - change background style of output so it is clear which is which.
 ... I'm *NOT* loving this! -- it turns out that this approach just feels wrong during usage, though in theory it seems neat.
 -----------------------------------
 
+Dec 1, 2012
+============
 
-  [x] modify worksheet1.coffee so the cells are codemirror cells, but otherwise it is the same
-  [x] remove worksheet-cm from visibility
-  [x] get rid of including Rainbow.
-  [x] get rid of including htmlparse.
-  [x] saving and loading scratch worksheet again:
-[x] Define the JSON format --
-{
- title:
- description:
- cells:[ {id:<uuid text>, note:<html>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
-}
-[x] function that serializes the scratch worksheet from DOM
-[x] functions that loads serialized scratch worksheet into DOM
+7:30am.
+The final push begins.  I have exactly one week to do a significant release.
+I have ALL weekend.  
 
+I'm going to first try one easy or impossible bug:
 
-  [x] insert a new cell between existing cells
-  [x] add paren matching
-  [x] delete cell
-  [x] paren matching -- there is an easy codemirror plugin
+   [ ] force the keyboard to appear when clicking on edit cell on iOS ipad3.... only after tab completion. 
+       - idea: blur, then focus.
 
-  [x] finish implementing dirty and clean for worksheet state.
+It seems like a good warm up. ... and yet it seems like a major pain.  Probably a better solution is to 
+write a better completions UI.
 
-  [ ] refactor worksheet1 code to a new object oriented structure, now that it is clear, and enough is done.
+What to do next?!  So many things:
 
+   [ ] splitting and joining cells as in the sage notebook
 
-  [ ] message when session times out, then restart it.... will happen only if user's browser is there!
-  [ ] tab completion
-      [x] page: determining where the cursor is
--     [x] page: putting the cursor back
-      [ ] sage_server: decide which type of introspection to do
-      [ ] sage_server: introspect completions
-      [ ] sage_server: introspect docstring
-      [ ] sage_server: introspect source code
-      [ ] page: display all introspects as alert_message for now...
+   [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
+   [ ] finish implementing genuine introspection
 
-  [ ] tab completion optimization idea:
-       - cache completions for identifier... until next execute
+   [ ] change worksheet storage format, so output is an optimized
+       stream of messages (store the type in the DOM as data, so
+       serializing code doesn't have to know types?).
+   [ ] simple interact
+   [ ] images
 
--------------------------------
-
-  [ ] tab completion -- phase 2, after sorting out cell input editor
-      [ ] page: display list of completions and choose one
-      [ ] page: display a docstring (with Sphinx html formatting?)
-      [ ] page: display source code
-      [ ] page: dynamic syntax highlighting (given cursor control) ?
-  [ ] @interact foundations
-  [ ] mathjax
-  [ ] plots -- display using this? http://modeln.github.com/sDashboard/
-  [ ] sign out must clear scratch worksheet.
-
------------------
-
-  [ ] on mobile chrome (my phone) codemirror doesn't get a scrollbar (since there are no scrollbars) so there
-      is no way to see an input cell that turns to scroll.  One option -- 
-  [ ] on mobile, tooltips suck
-
-  [ ] countdown session timer, with link to buy now.
-  [ ] ability to use cursor keys to move between cells
-      [ ] down arrow when on last line of compute moves to note
-      [ ] down arrow on last line of note moves to next compute cell
-      HOW to implement? 
-          - if you hit arrow key and cursor does not move, then do DOM
-            query to find next editable and put cursor there in the
-            position it was at last time (recorded using data
-            attribute?)
-  [ ] auto-indent
-  [ ] highlight and tab/shift-tab for indent: https://github.com/alanhogan/Tabby (?)
-  [ ] move scratch worksheet to a project
-  [ ] when pasting into input cell, turn into text first, e.g., &nbsp;'s get pasted in for spaces right now...  This is pretty bad.
-  [ ] mode where hub kills any session without activity for xxx time...
-  [ ] focus on a cell when switching to scratch worksheet page.
-  [ ] because of block breaking code in sage_server.py, this gives an error:
-"for i in range(10):
-
-   print i"
-
-LATER:
-  [ ] user personal data repository that is big/scaled/fast/query-able and public.
-  [ ] only set highlighted to false on cell on change
-  [ ] save state (open tab
-  [ ] delete worksheet confirmation
-  [ ] make worksheet1 (scratch worksheet) not do anything until user clicks an "i agree to terms of usage" checkbox;
-      box does not come back so long as user local storage contains a worksheet.
-  [ ] make button bar move on mobile device
-  [ ] user customize syntax highlighting and other worksheet colors via a gui *or* edit css
-  [ ] get salvus to work on ie (maybe just deal with console?)
-  [ ] switch to using a keyboard handling library
-  [ ] floating interrupt/evaluate control
-  [ ] a good activity spinner to show when comp is running
-  [ ] if use scratch worksheet, then login, the scratch worksheet session is of course no longer valid.  What to do?
-  [ ] an execute message that pre-empts whatever was going
-  [ ] Invalid password reset link should fail immediately.
-  [ ] really need a proper notifications area where all notifications appear, etc.
-  [ ] tooltip for footer is too far off to the right
-  [ ] 3 times per minute -- maybe too much of a constraint?
-  [ ] return doesn't close modal feedback
-  [ ] sage server: priotorize active users
-  [ ] load report when session starts, etc. -- user can see it.
-  [ ] upsell: trial is slow (by x%), but click here for faster version
-
-DONE:
-  [x] worksheet1 keyboard shortcuts should only be active when
-      that page is displayed, e.g., tabbing in sign in doesn't work.
-  [x] save non-logged in user's scratch worksheet to cookie (?)
-  [x] support using scratch worksheet *without* having to first login <--
-
-  [x] make it so re-loaded scratch worksheet is *active*
-  [x] save logged in user's scratch worksheet to database
-  [x] add tooltips for the control buttons
-  [x] Rainbow highlighter -- has a bug with triple quoted strings:
-      - the regexp is wrong: correct version is /('{3}|"{3})[\s\S]*?\1/gm
-        """[\s\S]*"""
-  [x] bug -- extra space on highlight
-  [x] ability to use cursor keys to move between compute cells
-
-  [x] evaluating a large input cell takes a huge time to do nothing -- why?
-      it turns out getting the plain text using the .text() method of rangy is *DOG SLOW*!
-      What about that HTML parser I ditched?
-      It is 10000 times faster than rangy for this!  W00t.  OK, I keep it.
-
-  [x] kill/restart session
-  [x] lame evaluate button / interrupt button (just at the top and bottom and nowhere else)
-  [x] lame "running" indicator just to have something easy to implement
-  [x] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
-
-
-
----
+   [ ] rewrite worksheet/cells to be classes and encapsulated, so I can have multiple instances
+       on the page
