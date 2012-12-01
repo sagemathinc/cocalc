@@ -318,6 +318,7 @@ $(() ->
         if prev_cell.length == 0
             focus_editor(cell)
             return
+        worksheet_is_dirty()
         # 2. Copy note contents to end of note of cell above.
         append_to_note(prev_cell, "<br>" + cell.find('.salvus-cell-note').html())
         # 3. Copy input contents to end of input contents of cell above.
@@ -334,12 +335,21 @@ $(() ->
 
     split_cell = (cell) ->
         console.log("split cell")
+        worksheet_is_dirty()
 
     move_cell_up = (cell) ->
-        console.log("move cell up")
+        prev = previous_cell(cell)
+        if prev?
+            worksheet_is_dirty()            
+            cell.insertBefore(prev)
+            focus_editor(cell)
 
     move_cell_down = (cell) ->
-        console.log("move cell down")
+        next = next_cell(cell)
+        if next?
+            worksheet_is_dirty()            
+            cell.insertAfter(next)
+            focus_editor(cell)
 
     delete_cell_output = (cell) ->
         cell.find('.salvus-stdout').html('')
@@ -379,6 +389,20 @@ $(() ->
     ########################################
     # Moving around / focus
     ########################################
+
+    next_cell = (cell) ->
+        next = cell.next()
+        if next.hasClass("salvus-cell")
+            return next
+        else
+            return undefined
+
+    previous_cell = (cell) ->
+        prev = cell.prev()
+        if prev.hasClass("salvus-cell")
+            return prev
+        else
+            return undefined
 
     containing_cell = (elt) ->
         p = elt.parentsUntil(".salvus-cell")
@@ -566,8 +590,8 @@ $(() ->
         "Ctrl-Space"     : "autocomplete"
         "Ctrl-Backspace" : (editor) -> join_cells(containing_cell_of_editor(editor))
         "Ctrl-;"         : (editor) -> split_cell(containing_cell_of_editor(editor))
-        "Ctrl-Up"        : (editor) -> move_cell_up(containing_cell_of_editor(editor))
-        "Ctrl-Down"      : (editor) -> move_cell_down(containing_cell_of_editor(editor))
+        "Ctrl-Up"        : (editor) -> active_cell=last_active_cell; move_cell_up(active_cell)
+        "Ctrl-Down"      : (editor) -> active_cell=last_active_cell; move_cell_down(active_cell)
         "Shift-Enter"    : (editor) -> execute_code()
         "Up"             : (editor) ->
             if editor.getCursor().line == 0
