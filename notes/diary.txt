@@ -8001,8 +8001,11 @@ What to do next?!  So many things:
 -->   [ ] splitting cells as in the sage notebook
 9:31am -- start (at victrola)
 10:24am -- fiddled with button bar a lot; cleaned it up; set up wiring for cell split/join/move
-10:47am -- move cell up/down is now done... and pretty awesome!  if I add clear way to select multiple cells at once, this will be very useful indeed.
+tot=1:16   10:47am -- move cell up/down is now done... and pretty awesome!  if I add clear way to select multiple cells at once, this will be very useful indeed.
+1:34pm -- BACK to work after shopping with tish, etc. -- NOPE... went skating in back yard (excercise!)
+tot=1:16   2:37pm -- now really back to work.
 
+Task now -- splitting cells
 
    [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
    [ ] finish implementing genuine introspection
