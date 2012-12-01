@@ -334,8 +334,16 @@ $(() ->
         focus_editor(prev_cell)
 
     split_cell = (cell) ->
-        console.log("split cell")
         worksheet_is_dirty()
+        # 1. create new cell after this one
+        new_cell = insert_cell_after(cell)
+        # 2. move all text after cursor in this cell to beginning of new cell
+        editor = cell.data('editor')
+        from = editor.getCursor()
+        to   = {line:editor.numLines(), ch:0}
+        code = editor.getRange(from, to)
+        editor.replaceRange('', from, to)
+        new_cell.
 
     move_cell_up = (cell) ->
         prev = previous_cell(cell)
@@ -437,6 +445,7 @@ $(() ->
         cell.before(new_cell)
         refresh_editor(new_cell)
         focus_editor(new_cell)
+        return new_cell
 
     insert_cell_after = (cell) ->
         worksheet_is_dirty()
@@ -444,6 +453,7 @@ $(() ->
         cell.after(new_cell)
         refresh_editor(new_cell)
         focus_editor(new_cell)
+        return new_cell
 
     append_to_note = (cell, html) ->
         note = cell.find(".salvus-cell-note")
