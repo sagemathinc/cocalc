@@ -7891,6 +7891,7 @@ x - change background style of output so it is clear which is which.
 ... I'm *NOT* loving this! -- it turns out that this approach just feels wrong during usage, though in theory it seems neat.
 -----------------------------------
 
+<<<<<<< HEAD
 DONE:
   [x] worksheet1 keyboard shortcuts should only be active when
       that page is displayed, e.g., tabbing in sign in doesn't work.
@@ -7976,69 +7977,37 @@ DONE:
 
   [ ] tab completion optimization idea:
        - cache completions for identifier... until next execute
+=======
+Dec 1, 2012
+============
 
--------------------------------
+7:30am.
+The final push begins.  I have exactly one week to do a significant release.
+I have ALL weekend.  
 
-  [ ] tab completion -- phase 2, after sorting out cell input editor
-      [ ] page: display list of completions and choose one
-      [ ] page: display a docstring (with Sphinx html formatting?)
-      [ ] page: display source code
-      [ ] page: dynamic syntax highlighting (given cursor control) ?
-  [ ] @interact foundations
-  [ ] mathjax
-  [ ] plots -- display using this? http://modeln.github.com/sDashboard/
-  [ ] sign out must clear scratch worksheet.
+I'm going to first try one easy or impossible bug:
 
------------------
+   [x] force the keyboard to appear when clicking on edit cell on iOS ipad3.... only after tab completion. 
+       - idea: blur, then focus.
+ --> soln -- don't autofocus back -- force user to.
 
-  [ ] on mobile chrome (my phone) codemirror doesn't get a scrollbar (since there are no scrollbars) so there
-      is no way to see an input cell that turns to scroll.  One option -- 
-  [ ] on mobile, tooltips suck
+It seems like a good warm up. ... and yet it seems like a major pain.  Probably a better solution is to 
+write a better completions UI.
 
-  [ ] countdown session timer, with link to buy now.
-  [ ] ability to use cursor keys to move between cells
-      [ ] down arrow when on last line of compute moves to note
-      [ ] down arrow on last line of note moves to next compute cell
-      HOW to implement? 
-          - if you hit arrow key and cursor does not move, then do DOM
-            query to find next editable and put cursor there in the
-            position it was at last time (recorded using data
-            attribute?)
-  [ ] auto-indent
-  [ ] highlight and tab/shift-tab for indent: https://github.com/alanhogan/Tabby (?)
-  [ ] move scratch worksheet to a project
-  [ ] when pasting into input cell, turn into text first, e.g., &nbsp;'s get pasted in for spaces right now...  This is pretty bad.
-  [ ] mode where hub kills any session without activity for xxx time...
-  [ ] focus on a cell when switching to scratch worksheet page.
-  [ ] because of block breaking code in sage_server.py, this gives an error:
-"for i in range(10):
+What to do next?!  So many things:
+   [x] joining cells as in the sage notebook
+       - working on desktop and ios
 
-   print i"
+   [ ] splitting cells as in the sage notebook
 
-LATER:
-  [ ] user personal data repository that is big/scaled/fast/query-able and public.
-  [ ] only set highlighted to false on cell on change
-  [ ] save state (open tab
-  [ ] delete worksheet confirmation
-  [ ] make worksheet1 (scratch worksheet) not do anything until user clicks an "i agree to terms of usage" checkbox;
-      box does not come back so long as user local storage contains a worksheet.
-  [ ] make button bar move on mobile device
-  [ ] user customize syntax highlighting and other worksheet colors via a gui *or* edit css
-  [ ] get salvus to work on ie (maybe just deal with console?)
-  [ ] switch to using a keyboard handling library
-  [ ] floating interrupt/evaluate control
-  [ ] a good activity spinner to show when comp is running
-  [ ] if use scratch worksheet, then login, the scratch worksheet session is of course no longer valid.  What to do?
-  [ ] an execute message that pre-empts whatever was going
-  [ ] Invalid password reset link should fail immediately.
-  [ ] really need a proper notifications area where all notifications appear, etc.
-  [ ] tooltip for footer is too far off to the right
-  [ ] 3 times per minute -- maybe too much of a constraint?
-  [ ] return doesn't close modal feedback
-  [ ] sage server: priotorize active users
-  [ ] load report when session starts, etc. -- user can see it.
-  [ ] upsell: trial is slow (by x%), but click here for faster version
+   [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
+   [ ] finish implementing genuine introspection
 
+   [ ] change worksheet storage format, so output is an optimized
+       stream of messages (store the type in the DOM as data, so
+       serializing code doesn't have to know types?).
+   [ ] simple interact
+   [ ] images
 
-
----
+   [ ] rewrite worksheet/cells to be classes and encapsulated, so I can have multiple instances
+       on the page

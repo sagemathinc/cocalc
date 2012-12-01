@@ -86,10 +86,10 @@ $(() ->
             pick = () ->
                 insert(sel.val())
                 close()
-                setTimeout((() -> editor.focus()), 50)
+                if not IS_MOBILE
+                    setTimeout((() -> editor.focus()), 50)
 
             sel.blur(pick)
-            #sel.click(pick)
             sel.dblclick(pick)
             sel.keydown (event) ->
                 code = event.keyCode
@@ -110,33 +110,6 @@ $(() ->
             sel.focus()
 
         )
-
-    extraKeys =
-        "Ctrl-Space"  : "autocomplete"
-        "Shift-Enter" : (editor) -> execute_code()
-        "Up":(editor) ->
-            if editor.getCursor().line == 0
-                focus_previous_cell()
-            else
-                throw CodeMirror.Pass
-        "Down":(editor) ->
-            if editor.getCursor().line >= editor.lineCount() - 1
-                focus_next_cell()
-            else
-                throw CodeMirror.Pass
-
-        "Esc":(editor) ->
-            interrupt_session()
-
-        "Tab":(editor) ->
-            # decide if we can "tab complete"
-            throw CodeMirror.Pass
-
-        "Backspace":(editor) ->
-            if editor.getValue() == ""
-                delete_cell(containing_cell($(editor.getWrapperElement())))
-            else
-                throw CodeMirror.Pass
 
     activate_worksheet = (worksheet) ->
         # make the title and description notify when the worksheet is dirty.
@@ -180,7 +153,7 @@ $(() ->
         ##$(editor.getScrollerElement()).css('max-height', Math.floor($(window).height()/2))
 
 
-    
+
     salvus_cell = (opts={}) ->
         opts = defaults opts,
             id : undefined
@@ -216,7 +189,7 @@ $(() ->
                 worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
                 activate_worksheet(worksheet)
-                focus_editor(worksheet.append_salvus_cell())
+                worksheet.append_salvus_cell()
             return worksheet
 
         salvus_cell: (opts={}) ->
@@ -337,6 +310,64 @@ $(() ->
         return false
 
     ########################################
+    # Splitting/joining/deleting
+    ########################################
+    join_cells = (cell) ->
+        prev_cell = cell.prev()
+        # 1. If no cell above this one, do nothing then return.
+        if prev_cell.length == 0
+            focus_editor(cell)
+            return
+        # 2. Copy note contents to end of note of cell above.
+        append_to_note(prev_cell, "<br>" + cell.find('.salvus-cell-note').html())
+        # 3. Copy input contents to end of input contents of cell above.
+        editor = cell.data('editor')
+        prev_editor = prev_cell.data('editor')
+        prev_editor.replaceRange("\n" + editor.getValue(), {line:prev_editor.lineCount(),ch:0})
+
+        # 4. Delete this cell
+        delete_cell(cell:cell, keep_note:false)
+        # 5. Delete all output (now invalid)
+        delete_cell_output(prev_cell)
+        # 6. Focus cell above.
+        focus_editor(prev_cell)
+
+    delete_cell_output = (cell) ->
+        cell.find('.salvus-stdout').html('')
+        cell.find('.salvus-stderr').html('')
+
+    delete_cell_contents = (cell) ->
+        delete_cell_output(cell)
+        cell.data('editor').setValue('')
+        cell.find('.salvus-cell-note').html('')
+
+    delete_cell = (opts) ->
+        opts = defaults opts,
+            cell      : required
+            keep_note : false
+        worksheet_is_dirty()
+        cell = opts.cell
+        note = cell.find(".salvus-cell-note").html()
+        cell_above = cell.prev()
+        cell_below = cell.next()
+        if not cell_below.hasClass("salvus-cell")  # it's the last cell on the worksheet, so don't delete -- just empty
+            delete_cell_contents(cell)
+            return
+        if note != "" and opts.keep_note
+            # TODO: use append_to_note above.
+            note_below = cell_below.find(".salvus-cell-note")
+            note_below.html(note + '<br>' + note_below.html())
+        cell.remove()
+        if cell_above.length > 0 and cell_above.hasClass("salvus-cell")
+            focus_editor(cell_above)
+        else if cell_below.length > 0 and cell_below.hasClass("salvus-cell")
+            focus_editor(cell_below)
+        else
+            new_cell = worksheet.append_salvus_cell()
+            new_cell.find(".salvus-cell-note").html(note)
+            focus_editor(new_cell)
+
+    ########################################
     # Moving around / focus
     ########################################
 
@@ -346,6 +377,9 @@ $(() ->
             return elt.parent()
         else
             return p.parent()
+
+    containing_cell_of_editor = (editor) ->
+        return containing_cell($(editor.getWrapperElement()))
 
     refresh_editor = (cell) ->
         cell.data('editor').refresh()
@@ -378,25 +412,9 @@ $(() ->
         refresh_editor(new_cell)
         focus_editor(new_cell)
 
-    delete_cell = (cell) ->
-        worksheet_is_dirty()
-        note = cell.find(".salvus-cell-note").html()
-        cell_above = cell.prev()
-        cell_below = cell.next()
-        if not cell_below.hasClass("salvus-cell")  # it's the last cell on the worksheet, so don't delete
-            return
-        if note != ""
-            note_below = cell_below.find(".salvus-cell-note")
-            note_below.html(note + '<br>' + note_below.html())
-        cell.remove()
-        if cell_above.length > 0 and cell_above.hasClass("salvus-cell")
-            focus_editor(cell_above)
-        else if cell_below.length > 0 and cell_below.hasClass("salvus-cell")
-            focus_editor(cell_below)
-        else
-            new_cell = worksheet.append_salvus_cell()
-            new_cell.find(".salvus-cell-note").html(note)
-            focus_editor(new_cell)
+    append_to_note = (cell, html) ->
+        note = cell.find(".salvus-cell-note")
+        note.html(note.html() + html)
 
     ########################################
     # Editing / Executing code
@@ -477,6 +495,8 @@ $(() ->
         worksheet?.remove()
         worksheet = page.salvus_worksheet()
         salvus_client.delete_scratch_worksheet()
+        if not IS_MOBILE
+            focus_editor_on_first_cell()
 
     tab_button = () ->
         # TODO: could also just be indenting a block
@@ -496,7 +516,7 @@ $(() ->
                         alert_message(type:"info", message:msg)
                 if not error
                     worksheet_is_clean()
-                    
+
 
     _worksheet_is_dirty = true
 
@@ -507,7 +527,7 @@ $(() ->
     worksheet_is_dirty = () ->
         _worksheet_is_dirty = true
         worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-success')
-        
+
 
     window.onbeforeunload = (e=window.event) ->
         if _worksheet_is_dirty
@@ -528,6 +548,38 @@ $(() ->
                     cb          : opts.cb
                     preparse    : true
 
+    ###############################################################
+    # Keyboard shortcuts -- defined at the bottom, because some of
+    # these depend on functions above being defined.
+    ###############################################################
+
+    extraKeys =
+        "Ctrl-Space"  : "autocomplete"
+        "Ctrl-Backspace" : (editor) -> join_cells(containing_cell_of_editor(editor))
+        "Shift-Enter" : (editor) -> execute_code()
+        "Up":(editor) ->
+            if editor.getCursor().line == 0
+                focus_previous_cell()
+            else
+                throw CodeMirror.Pass
+        "Down":(editor) ->
+            if editor.getCursor().line >= editor.lineCount() - 1
+                focus_next_cell()
+            else
+                throw CodeMirror.Pass
+
+        "Esc":(editor) ->
+            interrupt_session()
+
+        "Tab":(editor) ->
+            # decide if we can "tab complete"
+            throw CodeMirror.Pass
+
+        "Backspace":(editor) ->
+            if editor.getValue() == ""
+                delete_cell(cell:containing_cell_of_editor(editor), keep_note:true)
+            else
+                throw CodeMirror.Pass
 
     ##############################################################################################
 
@@ -537,6 +589,8 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
     worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
     worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_worksheet(true); return false)
+
+    worksheet1.find("a[href='#worksheet1-join_cells']").button().click((e) -> active_cell=last_active_cell; join_cells(active_cell); return false)
 
     load_scratch_worksheet = () ->
         salvus_client.load_scratch_worksheet
@@ -552,8 +606,9 @@ $(() ->
                     page.append(worksheet)
                     activate_worksheet(worksheet)
                     set_worksheet_from_obj(obj)
-                    focus_editor_on_first_cell()
                 worksheet_is_clean()
+                if not isMobile.any()
+                    focus_editor_on_first_cell()
 
     salvus_client.on "connected", () ->
         load_scratch_worksheet()

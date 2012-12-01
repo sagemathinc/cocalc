@@ -1,3 +1,5 @@
+[ ] html5/css3 feature detection: http://modernizr.com/
+
 [ ] lighttable: http://www.chris-granger.com/2012/04/12/light-table---a-new-ide-concept/
 
 [ ] twitter bootstrap resources: http://www.bootstraphero.com/the-big-badass-list-of-twitter-bootstrap-resources
