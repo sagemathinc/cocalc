@@ -9,41 +9,48 @@
 	    <a href="#worksheet1-tab" class="btn btn-info" rel="tooltip" title="Tab completion, docstrings, etc.">tab</a>
 	    <a href="#worksheet1-save_worksheet" class="btn btn-success" rel="tooltip" title="Save this worksheet to the server or local storage.">save</a>
 	    <a href="#worksheet1-interrupt_session" class="btn btn-warning" rel="tooltip" title="Stop the currently running computation.">stop</a>
-	    <a href="#worksheet1-restart_session" class="btn btn-danger" rel="tooltip" title="Kill the currently running Sage process.  All your variables will be reset.">kill</a>
-	    <a href="#worksheet1-delete_worksheet" class="btn btn-inverse"  rel="tooltip" title="Delete the contents of this worksheet.">delete</a>
+	    <a href="#worksheet1-restart_session" class="btn btn-danger" rel="tooltip" title="Restart the currently running Sage process.  All your variables will be reset.">restart</a>
+	    <a href="#worksheet1-delete_worksheet" class="btn btn-inverse"  rel="tooltip" title="Delete this worksheet.">delete</a>
 	  </div>
 	</div>
       </div>
     </div>
-
-    <span class="salvus-templates">
-
-      <div class="salvus-cell">
-	<div class="salvus-cell-insert-before"></div>
-	<div class="salvus-cell-note" contenteditable="true"></div>
-	<div class="row">
-	  <div class="span11">
-	    <textarea class="salvus-cell-input"></textarea>
+    <div class="row salvus-worksheet-buttons">
+      <div class="span4">
+	<div class="btn-toolbar">
+	  <div class="btn-group">
+	    <a href="#worksheet1-join_cells" class="btn"  rel="tooltip" title="Join current cell to previous one.">join</a>
 	  </div>
 	</div>
-	<div class="salvus-cell-output">
-	  <div class="salvus-running hide">running &bull; &bull; &bull;</div>
-	  <span class="salvus-stdout hide">
-	  </span>
-	  <span class="salvus-stderr hide">
-	  </span>
-	</div>
-	<div class="salvus-cell-insert-after"></div>
       </div>
+    </div>
+  </div>
 
-      <div class="salvus-worksheet span11">
-	<h2 class="salvus-worksheet-title" contenteditable="true">Scratch Worksheet</h2>
-	<h4 class="salvus-worksheet-description" contenteditable="true">This is your default scratch worksheet.</h2>
-</div>
+  <span class="salvus-templates">
 
+    <div class="salvus-cell">
+      <div class="salvus-cell-insert-before"></div>
+      <div class="salvus-cell-note" contenteditable="true"></div>
+      <div class="row">
+	<div class="span11">
+	  <textarea class="salvus-cell-input"></textarea>
+	</div>
+      </div>
+      <div class="salvus-cell-output">
+	<div class="salvus-running hide">running &bull; &bull; &bull;</div>
+	<span class="salvus-stdout hide">
+	</span>
+	<span class="salvus-stderr hide">
+	</span>
+      </div>
+      <div class="salvus-cell-insert-after"></div>
+    </div>
 
-</span>
-</div>
+    <div class="salvus-worksheet span11">
+      <h2 class="salvus-worksheet-title" contenteditable="true">Scratch Worksheet</h2>
+      <h4 class="salvus-worksheet-description" contenteditable="true">This is your default scratch worksheet.</h4>
+    </div>
+  </span>
 </div>
 
 <!--<div class="salvus-cell-input span11"  contenteditable="true"></div>-->

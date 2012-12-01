@@ -7900,15 +7900,19 @@ I have ALL weekend.
 
 I'm going to first try one easy or impossible bug:
 
-   [ ] force the keyboard to appear when clicking on edit cell on iOS ipad3.... only after tab completion. 
+   [x] force the keyboard to appear when clicking on edit cell on iOS ipad3.... only after tab completion. 
        - idea: blur, then focus.
+ --> soln -- don't autofocus back -- force user to.
 
 It seems like a good warm up. ... and yet it seems like a major pain.  Probably a better solution is to 
 write a better completions UI.
 
 What to do next?!  So many things:
 
-   [ ] splitting and joining cells as in the sage notebook
+   [x] joining cells as in the sage notebook
+       - working on desktop and ios
+
+   [ ] splitting cells as in the sage notebook
 
    [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
    [ ] finish implementing genuine introspection

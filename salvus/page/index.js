@@ -1,4 +1,6 @@
 $(function() {
+    feature.coffee
+ 
     misc_page.coffee
 
     connect_to_hub.coffee
