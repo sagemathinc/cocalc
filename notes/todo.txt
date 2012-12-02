@@ -51,7 +51,7 @@
   [ ] when pasting into input cell, turn into text first, e.g., &nbsp;'s get pasted in for spaces right now...  This is pretty bad.
   [ ] mode where hub kills any session without activity for xxx time...
   [ ] focus on a cell when switching to scratch worksheet page.
-  [ ] because of block breaking code in sage_server.py, this gives an error:
+  [x] because of block breaking code in sage_server.py, this gives an error:
 "for i in range(10):
 
    print i"

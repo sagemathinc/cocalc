@@ -472,6 +472,33 @@ $(() ->
         note = cell.find(".salvus-cell-note")
         note.html(note.html() + html)
 
+    append_cell_output_from_mesg = (cell, mesg) ->
+        if mesg.stdout?
+            append_cell_output
+                cell  : cell
+                class : 'stdout'
+                value  : mesg.stdout
+        if mesg.stderr?
+            append_cell_output
+                cell  : cell
+                class : 'stderr'
+                value  : mesg.stderr
+        if mesg.html?
+            append_cell_output
+                cell  : cell
+                class : 'html'
+                value  : mesg.html
+        if mesg.javascript?
+            append_cell_output
+                cell  : cell
+                class : 'javascript'
+                value : mesg.javascript
+        if mesg.coffeescript?
+            append_cell_output
+                cell  : cell
+                class : 'coffeescript'
+                value : mesg.coffeescript
+
     append_cell_output = (opts) ->
         opts = defaults opts,
             cell  : required
@@ -520,32 +547,7 @@ $(() ->
             salvus_exec
                 input: input_text
                 cb: (mesg) ->
-                    #console.log(misc.to_json(mesg))
-                    if mesg.stdout?
-                        append_cell_output
-                            cell  : cell
-                            class : 'stdout'
-                            value  : mesg.stdout
-                    if mesg.stderr?
-                        append_cell_output
-                            cell  : cell
-                            class : 'stderr'
-                            value  : mesg.stderr
-                    if mesg.html?
-                        append_cell_output
-                            cell  : cell
-                            class : 'html'
-                            value  : mesg.html
-                    if mesg.javascript?
-                        append_cell_output
-                            cell  : cell
-                            class : 'javascript'
-                            value : mesg.javascript
-                    if mesg.coffeescript?
-                        append_cell_output
-                            cell  : cell
-                            class : 'coffeescript'
-                            value : mesg.coffeescript
+                    append_cell_output_from_mesg(cell, mesg)
                     if mesg.done
                         clearTimeout(timer)
                         cell.find(".salvus-running").hide()
@@ -613,7 +615,6 @@ $(() ->
             return false
 
     save_worksheet = (notify=false) ->
-
         salvus_client.save_scratch_worksheet
             data : misc.to_json(worksheet_to_obj())
             cb   : (error, msg) ->
@@ -703,7 +704,7 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-delete_all_output']").button().click((e) -> delete_all_output(); return false)
     worksheet1.find("a[href='#worksheet1-hide_all_output']").button().click((e) -> hide_all_output(); return false)
     worksheet1.find("a[href='#worksheet1-show_all_output']").button().click((e) -> show_all_output(); return false)
-    worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_worksheet(true); return false)
+    worksheet1.find("a[href='#worksheet1-save_worksheet']").button().click((e) -> save_worksheet(false); return false)
 
     worksheet1.find("a[href='#worksheet1-delete_cell']").button().click((e) -> active_cell=last_active_cell; delete_cell(cell:active_cell, keep_note:true); return false)
     worksheet1.find("a[href='#worksheet1-join_cells']").button().click((e) -> active_cell=last_active_cell; join_cells(active_cell); return false)

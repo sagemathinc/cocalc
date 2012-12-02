@@ -8035,7 +8035,25 @@ tot=3:40 [ ] Finally, really back to work
 tot=5:40 -- 9:30pm -- finished javascript/coffeescript functions:
                        salvus.[...]
 
-   [ ] very, very simple mini interact:
+   [ ] very, very simple mini interact
+
+salvus.html("""
+<br>
+<input id="i1" value="2"></input>
+<input id="i2" value="3"></input>
+<button class="btn btn-large btn-success">Compute It!</button>
+<hr>
+""")
+salvus.coffeescript("""
+cell.find("button").click () -> 
+    salvus_exec
+        input: "#{cell.find('#i1').val()} + #{cell.find('#i2').val()}"
+        cb: (mesg) -> append_cell_output_from_mesg(cell, mesg)
+""")
+
+   [ ] autosave
+
+   [ ] multiple scratch worksheets... will be just like sage notebook!
 
    [ ] make it so the tab key introspects when it should, and is a tab key otherwise.
 

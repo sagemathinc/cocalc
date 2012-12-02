@@ -3,12 +3,17 @@
 sage_server.py -- unencrypted forking TCP server that can run as root,
                create accounts on the fly, and serve sage as those
                accounts, using protobuf messages.
+
+For debugging:
+
+       sage --python sage_server.py -p 6000 --address 127.0.0.1
+
 """
 
-# This is the one file that must be GPL'd (if salvus is
-# redistributed...) because it imports the Sage library.  This file is
-# not directly imported by anything else; the Python process it runs
-# is used over a TCP connection.  So nothing viral here.
+# This file must be GPL'd (if salvus is redistributed...) because it
+# imports the Sage library.  This file is not directly imported by
+# anything else; the Python process it runs is used over a TCP
+# connection.  So nothing viral here.
 
 ########################################################################################
 #       Copyright (C) 2012 William Stein <wstein@gmail.com>

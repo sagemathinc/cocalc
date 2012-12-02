@@ -100,7 +100,7 @@ def strip_string_literals(code, state=None):
 
 def divide_into_blocks(code):
     code, literals, state = strip_string_literals(code)
-    code = code.splitlines()
+    code = [x for x in code.splitlines() if x.strip()]  # remove blank lines
     i = len(code)-1
     blocks = []
     while i >= 0:
@@ -118,7 +118,7 @@ def divide_into_blocks(code):
         code = code[:i]
         i = len(code)-1
 
-    # merge try/except/finally blocks
+    # merge try/except/finally/decorator blocks
     i = 1
     while i < len(blocks):
         s = blocks[i][-1].lstrip()
@@ -126,6 +126,10 @@ def divide_into_blocks(code):
             if blocks[i-1][-1].lstrip().startswith('try:'):
                 blocks[i-1][-1] += '\n' + blocks[i][-1]
                 blocks[i-1][1] = blocks[i][1]
+                del blocks[i]
+        elif s.startswith('def') and blocks[i-1][-1].lstrip().startswith('@'):
+            blocks[i-1][-1] += '\n' + blocks[i][-1]
+            blocks[i-1][1] = blocks[i][1]
             del blocks[i]
         else:
             i += 1
