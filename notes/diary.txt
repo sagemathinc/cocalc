@@ -8017,16 +8017,31 @@ tot=3:13 -- 4:29pm   [x] change output so it is an optimized stream
 
 tot=3:37 -- 4:53pm   [x] change so that can output raw html (not put into a pre span).
 
-   [ ] change worksheet storage format, so output is an optimized
+tot=3:39 -- 6:53pm [ ] back at work, after making dinner, etc. with kido-s
+
+   [x] change worksheet storage format, so output is an optimized
        stream of messages (store the type in the DOM as data, so
        serializing code doesn't have to know types?).
+
+6:55pm - 7:30pm ---> Linux playing around!
+
+tot=3:40 [ ] Finally, really back to work
+
+   [x] add execute-javascript command, which will be a foundation for other things
+- define a message
+- implement command in sage_server
+- implement handling in client
+
+tot=5:40 -- 9:30pm -- finished javascript/coffeescript functions:
+                       salvus.[...]
+
+   [ ] very, very simple mini interact:
 
    [ ] make it so the tab key introspects when it should, and is a tab key otherwise.
 
    [ ] finish implementing genuine introspection
 
-   [ ] simple interact
-   [ ] images
+   [ ] plotting images
 
    [ ] rewrite worksheet/cells to be classes and encapsulated, so I can have multiple instances
        on the page

@@ -1515,7 +1515,8 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
             recv:(m) ->
                 winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{to_safe_str(m)})")
                 switch m.event
-                    when "output", "terminate_session"
+                    # DANGER: forwarding execute_javascript messages is a potential a security issue.
+                    when "output", "terminate_session", "execute_javascript"
                         m.session_uuid = session_uuid  # tag with session uuid
                         push_to_client(m)
                     when "session_description"

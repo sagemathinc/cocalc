@@ -73,6 +73,7 @@ message(
     allow_cache  : true
 )
 
+# Output resulting from evaluating code that is displayed by the browser.
 # sage_server --> hub_i --> hub_j --> browser
 message(
     event        : 'output'
@@ -80,9 +81,32 @@ message(
     stdout       : undefined
     stderr       : undefined
     html         : undefined
+    javascript   : undefined
+    coffeescript : undefined
     done         : false
     session_uuid : undefined
 )
+
+#
+# This message tells the client to execute the given Javascript code in the browser.
+# Of course, for safety, the client may choose to ignore this message.  If coffeescript
+# is set to true, then the code is assumed to be coffeescript and is first compiled
+# to Javascript.
+
+# sage_server --> client 
+message(
+    event        : 'execute_javascript'
+    session_uuid : undefined
+    id           : undefined
+    code         : required
+    coffeescript : false
+)
+
+message(
+    event : 'execute_javascript'
+
+)
+
 
 ############################################
 # Session Introspection

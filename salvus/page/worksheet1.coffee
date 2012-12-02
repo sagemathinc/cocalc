@@ -244,7 +244,13 @@ $(() ->
         output = []
         for o in cell.find(".salvus-cell-output").children()
             s = $(o)
-            output.push(class:s.attr('class').slice(7), html:s.html())
+            cls = s.attr('class').slice(7)
+            switch cls
+                when 'javascript', 'coffeescript'
+                    value = s.data('value')
+                else
+                    value = s.html()
+            output.push(class:cls, value:value)
         return {
             id     : cell.attr("id")
             note   : cell.find(".salvus-cell-note").html()
@@ -259,9 +265,11 @@ $(() ->
         cell.find(".salvus-cell-note").html(obj.note)
         cell.data("editor").setValue(obj.input)
 
-        output = cell.find(".salvus-cell-output").show()
         for s in obj.output
-            output.append(templates.find(".salvus-#{s.class}").clone().html(s.html))
+            append_cell_output
+                cell  : cell
+                class : s.class
+                value : s.value
 
     worksheet_to_obj = () ->
         # jquery officially iterates through objects in DOM order, as of 1.3.2.
@@ -468,14 +476,26 @@ $(() ->
         opts = defaults opts,
             cell  : required
             class : required
-            html  : required
+            value  : required
 
+        cell = opts.cell
         output = opts.cell.find(".salvus-cell-output").show()
-        last_output = output.find(":last-child")
-        if last_output.length > 0 and last_output.hasClass(opts.class)
-            last_output.html(last_output.html() + opts.html)
-        else
-            output.append(templates.find(".#{opts.class}").clone().html(opts.html))
+        css_class_selector = ".salvus-#{opts.class}"
+        switch opts.class
+            when 'javascript', 'coffeescript'
+                output.append(templates.find(css_class_selector).clone().data('value', opts.value))
+                # do it (!)
+                #console.log("eval'ing: #{opts.value}")
+                if opts.class == 'javascript'
+                    eval(opts.value)
+                else
+                    eval(CoffeeScript.compile(opts.value))
+            else
+                last_output = output.find(":last-child")
+                if last_output.length > 0 and last_output.hasClass()
+                    last_output.html(last_output.html() + opts.value)
+                else
+                    output.append(templates.find(css_class_selector).clone().html(opts.value))
 
     ########################################
     # Editing / Executing code
@@ -500,21 +520,32 @@ $(() ->
             salvus_exec
                 input: input_text
                 cb: (mesg) ->
+                    #console.log(misc.to_json(mesg))
                     if mesg.stdout?
                         append_cell_output
                             cell  : cell
-                            class : 'salvus-stdout'
-                            html  : mesg.stdout
+                            class : 'stdout'
+                            value  : mesg.stdout
                     if mesg.stderr?
                         append_cell_output
                             cell  : cell
-                            class : 'salvus-stderr'
-                            html  : mesg.stderr
+                            class : 'stderr'
+                            value  : mesg.stderr
                     if mesg.html?
                         append_cell_output
                             cell  : cell
-                            class : 'salvus-html'
-                            html  : mesg.html
+                            class : 'html'
+                            value  : mesg.html
+                    if mesg.javascript?
+                        append_cell_output
+                            cell  : cell
+                            class : 'javascript'
+                            value : mesg.javascript
+                    if mesg.coffeescript?
+                        append_cell_output
+                            cell  : cell
+                            class : 'coffeescript'
+                            value : mesg.coffeescript
                     if mesg.done
                         clearTimeout(timer)
                         cell.find(".salvus-running").hide()
@@ -698,7 +729,7 @@ $(() ->
                 if not isMobile.any()
                     focus_editor_on_first_cell()
 
-    salvus_client.on "connected", () ->
+    salvus_client.once "connected", () ->
         load_scratch_worksheet()
     salvus_client.on "signed_in", () ->
         load_scratch_worksheet()

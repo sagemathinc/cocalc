@@ -99,12 +99,17 @@ class Message(object):
     def execute_code(self, id, code, preparse=True):
         return self._new('execute_code', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, done=None):
+    def execute_javascript(self, id, code, coffeescript=False):
+        return self._new('execute_javascript', locals())
+
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, done=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None: m['stdout'] = stdout
         if stderr is not None: m['stderr'] = stderr
         if html is not None: m['html'] = html
+        if javascript is not None: m['javascript'] = javascript
+        if coffeescript is not None: m['coffeescript'] = coffeescript
         if done is not None: m['done'] = done
         return m
 
@@ -192,19 +197,29 @@ class OutputStream(object):
         self._f(self._buf, done=done)
         self._buf = ''
 
+class Salvus(object):
+    def __init__(self, conn, id):
+        self._conn = conn
+        self._id   = id
+    def javascript(self, code, done=False):
+        self._conn.send(message.output(javascript=code, id=self._id, done=done))
+    def coffeescript(self, code, done=False):
+        self._conn.send(message.output(coffeescript=code, id=self._id, done=done))
+    def html(self, html, done=False):
+        self._conn.send(message.output(html=str(html), id=self._id, done=done))
+    def stdout(self, output, done=False):
+        self._conn.send(message.output(stdout=str(output), done=done, id=self._id))
+    def stderr(self, output, done=False):
+        self._conn.send(message.output(stderr=str(output), done=done, id=self._id))
+
 def execute(conn, id, code, preparse):
-    def send_stdout(output, done):
-        conn.send(message.output(stdout=output, done=done, id=id))
-    def send_stderr(output, done):
-        conn.send(message.output(stderr=output, done=done, id=id))
-    def send_html(output):
-        conn.send(message.output(html=str(output), id=id))
-    namespace['html'] = send_html
+    salvus = Salvus(conn=conn, id=id)
+    namespace['salvus'] = salvus
 
     try:
         streams = (sys.stdout, sys.stderr)
-        sys.stdout = OutputStream(send_stdout)
-        sys.stderr = OutputStream(send_stderr)
+        sys.stdout = OutputStream(salvus.stdout)
+        sys.stderr = OutputStream(salvus.stderr)
         for start, stop, block in parsing.divide_into_blocks(code):
             if preparse:
                 block = parsing.preparse_code(block)
