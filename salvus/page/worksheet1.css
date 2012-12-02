@@ -1,7 +1,6 @@
-.CodeMirror {
+/*.CodeMirror {
     height:auto;
     background-color: #ffffff;
-/*    box-shadow: 3px 3px 2px #888;*/
 }
 
 .CodeMirror-scroll {
@@ -9,7 +8,7 @@
   height: auto;
   overflow-y: hidden;
   overflow-x: auto;
-}
+}*/
 
 .salvus-input-cell-focus {
     border: 3px solid #99f;
@@ -144,3 +143,9 @@ pre {
   font-family: monospace;
 }
 
+.salvus-worksheet-text-text {
+    font-family: "Courier New";
+    color:#33a;
+    white-space: pre; 
+    word-wrap: break-word;
+}

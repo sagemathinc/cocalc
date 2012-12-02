@@ -8051,7 +8051,11 @@ Not fucking around.
  - redo edit mode more nicely:
      - codemirror
      - nicely indented and structured/colored
+     - verify that edited JSON is valid before saving; give useful error messages
 
+- make it so disabled buttons don't do anything.
+
+   [ ] MAJOR MOBILE ISSUE: codemirror has no vertical scrollbars...
 
    [ ] idea for a way to implement "%auto". 
        have a control output type, e.g., mesg.control =

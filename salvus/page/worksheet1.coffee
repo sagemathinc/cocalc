@@ -17,8 +17,21 @@ $(() ->
     templates = worksheet1.find(".salvus-templates")
     views =
         worksheet : undefined
-        edit      : page.append(templates.find(".salvus-worksheet-edit").clone().hide())
-        text      : page.append(templates.find(".salvus-worksheet-text").clone().hide())
+        edit      : templates.find(".salvus-worksheet-edit").clone().hide().appendTo(page)
+        text      : templates.find(".salvus-worksheet-text").clone().hide().appendTo(page)
+
+    views.edit.data('editor',
+        CodeMirror.fromTextArea(views.edit.find("textarea")[0],
+            lineNumbers  : true
+            indentUnit   : 4
+            tabSize      : 4
+            lineWrapping : true
+            matchBrackets: true
+            undoDepth    : 200
+            mode         : "javascript"
+        )
+    )
+    views.edit.data('editor').on('gutterClick', CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder))
 
     get_completions = (editor, cb) ->
         completions = []
@@ -127,12 +140,13 @@ $(() ->
         # initialize the code editor
         input = cell.find(".salvus-cell-input")
         editor = CodeMirror.fromTextArea input[0],
+            mode           : "python"
             lineNumbers    : false
             firstLineNumber: 1
             indentUnit     : 4
             tabSize        : 4
             lineWrapping   : true
-            undoDepth      : 200
+            undoDepth      : 40
             autofocus      : false
             extraKeys      : extraKeys
             matchBrackets  : true
@@ -507,6 +521,10 @@ $(() ->
             class : required
             value  : required
 
+        # ignore all empty output.
+        if opts.value == ""
+            return
+
         cell = opts.cell
         output = opts.cell.find(".salvus-cell-output").show()
         css_class_selector = ".salvus-#{opts.class}"
@@ -699,7 +717,7 @@ $(() ->
     # 3 worksheet views: live, edit, text
     ##############################################################################################
     show_view = (name) ->
-        for n in ['live', 'edit', 'text']
+        for n in ['worksheet', 'edit', 'text']
             button = worksheet1.find("a[href='#worksheet1-#{n}-view']")
             if n == name
                 button.addClass('btn-primary').removeClass('btn-info')
@@ -708,15 +726,21 @@ $(() ->
                 button.addClass('btn-info').removeClass('btn-primary')
                 views[n].hide()
 
-    live_view = () ->
-        show_view('live')
+    worksheet_view = () ->
+        $(".salvus-worksheet-buttons").find(".btn").removeClass('disabled')
+        show_view('worksheet')
 
     edit_view = () ->
-        views.edit.find("textarea").val("FOO BAR!")
+        $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
         show_view('edit')
+        editor = views.edit.data('editor')
+        editor.refresh()
+        editor.setValue(JSON.stringify(worksheet_to_obj(), null, 4))
 
     text_view = () ->
+        $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
         show_view('text')
+        views.text.find(".salvus-worksheet-text-text").html(misc.to_json(worksheet_to_obj()))
 
     # Activate buttons:
 
@@ -737,7 +761,7 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-move_cell_up']").button().click((e) -> active_cell=last_active_cell; move_cell_up(active_cell); return false)
     worksheet1.find("a[href='#worksheet1-move_cell_down']").button().click((e) -> active_cell=last_active_cell; move_cell_down(active_cell); return false)
 
-    worksheet1.find("a[href='#worksheet1-live-view']").button().click((e) -> live_view(); return false)
+    worksheet1.find("a[href='#worksheet1-worksheet-view']").button().click((e) -> worksheet_view(); return false)
     worksheet1.find("a[href='#worksheet1-edit-view']").button().click((e) -> edit_view(); return false)
     worksheet1.find("a[href='#worksheet1-text-view']").button().click((e) -> text_view(); return false)
 
