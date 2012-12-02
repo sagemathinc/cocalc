@@ -139,7 +139,7 @@ top_navbar = undefined
 
     $("#worksheet1").top_navbar
         id      : "scratch"
-        label   : "Scratch Worksheet"
+        label   : "Scratch Worksheets"
         close   : false
 
     #$("#worksheet-cm").top_navbar

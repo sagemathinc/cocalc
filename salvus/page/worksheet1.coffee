@@ -631,11 +631,11 @@ $(() ->
 
     worksheet_is_clean = () ->
         _worksheet_is_dirty = false
-        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-info').addClass("btn-primary").find(".save-worksheet-saved").show()
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").addClass("disabled")
 
     worksheet_is_dirty = () ->
         _worksheet_is_dirty = true
-        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('btn-primary').addClass('btn-info').find(".save-worksheet-saved").hide()
+        worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('disabled')
 
 
     window.onbeforeunload = (e=window.event) ->
