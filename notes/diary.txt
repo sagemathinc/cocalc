@@ -8011,15 +8011,17 @@ tot=1:45   3:02pm -- cell splitting is done
    [x] evaluate all -- might as well
    [x] delete all output -- easy peasy
 
-   [x] hide/show all output
+tot=2:23 -- 3:40pm   [x] hide/show all output
 
-   [ ] make it so the tab key inrospects when it should, and is a tab key otherwise.
-
-   [ ] finish implementing genuine introspection
+   [ ] change output so it is an optimized stream
 
    [ ] change worksheet storage format, so output is an optimized
        stream of messages (store the type in the DOM as data, so
        serializing code doesn't have to know types?).
+
+   [ ] make it so the tab key introspects when it should, and is a tab key otherwise.
+
+   [ ] finish implementing genuine introspection
 
    [ ] simple interact
    [ ] images

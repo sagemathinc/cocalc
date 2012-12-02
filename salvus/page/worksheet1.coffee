@@ -14,6 +14,7 @@ $(() ->
 
     page = $("#worksheet1")
     worksheet1 = $("#worksheet1")
+    templates = worksheet1.find(".salvus-templates")
     worksheet = undefined
 
 
@@ -158,11 +159,7 @@ $(() ->
     salvus_cell = (opts={}) ->
         opts = defaults opts,
             id : undefined
-        cell = $("#worksheet1"
-        ).find(".salvus-templates"
-        ).find(".salvus-cell"
-        ).clone(
-        ).attr('id', if opts.id? then opts.id else uuid())
+        cell = templates.find(".salvus-cell").clone().attr('id', if opts.id? then opts.id else uuid())
 
         activate_salvus_cell(cell)
         return cell
@@ -187,7 +184,7 @@ $(() ->
             # jQuery wrapped object.
             worksheet = undefined
             @each () ->
-                worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
+                worksheet = templates.find(".salvus-worksheet").clone()
                 $(this).append(worksheet)
                 activate_worksheet(worksheet)
                 worksheet.append_salvus_cell()
@@ -239,16 +236,15 @@ $(() ->
     # {
     # title:
     # description:
-    # cells: [ {id:<uuid text>, type:"code", note:<html>, input:<text>, output:{stdout:<html>, stderr:<html>}} ]
+    # cells: [ {id:<uuid text>, type:"code", note:<html>, input:<text>, output:[{class:..., html:...}, ...,]} ]
     # }
 
     cell_to_obj = (cell) ->
         cell   = $(cell)
-        output = {}
-        for stream in ['stdout', 'stderr']
-            x = cell.find(".salvus-#{stream}").html()
-            if x.trim() != ""
-                output[stream] = x
+        output = []
+        for o in cell.find(".salvus-cell-output").children()
+            s = $(o)
+            output.push(class:s.attr('class'), html:s.html())
         return {
             id     : cell.attr("id")
             note   : cell.find(".salvus-cell-note").html()
@@ -262,10 +258,10 @@ $(() ->
         cell.attr("id", obj.id)
         cell.find(".salvus-cell-note").html(obj.note)
         cell.data("editor").setValue(obj.input)
-        if obj.output.stdout?
-            cell.find(".salvus-stdout").html(obj.output.stdout).show()
-        if obj.output.stderr?
-            cell.find(".salvus-stderr").html(obj.output.stderr).show()
+
+        output = cell.find(".salvus-cell-output").show()
+        for s in obj.output
+            output.append(templates.find(".#{s.class}").clone().html(s.html))
 
     worksheet_to_obj = () ->
         # jquery officially iterates through objects in DOM order, as of 1.3.2.
@@ -469,6 +465,19 @@ $(() ->
         note = cell.find(".salvus-cell-note")
         note.html(note.html() + html)
 
+    append_cell_output = (opts) ->
+        opts = defaults opts,
+            cell  : required
+            class : required
+            html  : required
+
+        output = opts.cell.find(".salvus-cell-output").show()
+        last_output = output.find(":last-child")
+        if last_output.length > 0 and last_output.hasClass(opts.class)
+            last_output.html(last_output.html() + opts.html)
+        else
+            output.append(templates.find(".#{opts.class}").clone().html(opts.html))
+
     ########################################
     # Editing / Executing code
     ########################################
@@ -498,9 +507,15 @@ $(() ->
                 input: input_text
                 cb: (mesg) ->
                     if mesg.stdout?
-                        stdout.text(stdout.text() + mesg.stdout).show()
+                        append_cell_output
+                            cell  : cell
+                            class : 'salvus-stdout'
+                            html  : mesg.stdout
                     if mesg.stderr?
-                        stderr.text(stderr.text() + mesg.stderr).show()
+                        append_cell_output
+                            cell  : cell
+                            class : 'salvus-stderr'
+                            html  : mesg.stderr
                     if mesg.done
                         clearTimeout(timer)
                         cell.find(".salvus-running").hide()
@@ -676,7 +691,7 @@ $(() ->
                     worksheet = page.salvus_worksheet()
                 else
                     obj = misc.from_json(data)
-                    worksheet = worksheet1.find(".salvus-templates").find(".salvus-worksheet").clone()
+                    worksheet = templates.find(".salvus-worksheet").clone()
                     page.append(worksheet)
                     activate_worksheet(worksheet)
                     set_worksheet_from_obj(obj)
