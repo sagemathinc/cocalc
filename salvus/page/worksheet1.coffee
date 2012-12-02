@@ -254,6 +254,27 @@ $(() ->
     # description:
     # cells: [ {id:<uuid text>, type:"code", note:<html>, input:<text>, output:[{class:..., html:...}, ...,]} ]
     # }
+    #
+
+    cell_to_plain_text = (cell) ->
+        r = ''
+        note = cell.find(".salvus-cell-note").text().trim()
+        if note != ""
+            r += '\n' + note + '\n'
+        code = cell.data('editor').getValue().trim()
+        if code != ''
+            r += '    sage: ' + code.replace(/\n\s/g,'\n    ...    ').replace(/\n[a-z]/g, '\n    sage:')
+        for o in cell.find(".salvus-cell-output").children()
+            s = $(o)
+            cls = s.attr('class').slice(7)
+            switch cls
+                when 'javascript', 'coffeescript'
+                    value = "#{cls}: #{s.data('value').trim()}"
+                else
+                    value = s.text().trim()
+                    console.log(value)
+            r += '\n' + '    ' + value.replace(/\n/g, '\n    ')
+        return r
 
     cell_to_obj = (cell) ->
         cell   = $(cell)
@@ -304,6 +325,15 @@ $(() ->
         for cell_obj in obj.cells
             obj_to_cell(cell_obj, views.worksheet.append_salvus_cell()[0])
 
+    worksheet_to_plain_text = () ->
+        r = ''
+        r += 'Title: ' + views.worksheet.find(".salvus-worksheet-title").text() + '\n'
+        r += 'Description: ' + views.worksheet.find(".salvus-worksheet-description").text() + '\n'
+        $.each(views.worksheet.find(".salvus-cell"), (key, cell) ->
+            r += '\n' + cell_to_plain_text($(cell))
+        )
+        console.log(r)
+        return r
 
     ########################################
     # introspection
@@ -740,7 +770,7 @@ $(() ->
     text_view = () ->
         $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
         show_view('text')
-        views.text.find(".salvus-worksheet-text-text").html(misc.to_json(worksheet_to_obj()))
+        views.text.find(".salvus-worksheet-text-text").text(worksheet_to_plain_text())
 
     # Activate buttons:
 

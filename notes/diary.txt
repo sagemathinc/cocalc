@@ -8052,7 +8052,14 @@ Not fucking around.
      - codemirror
      - nicely indented and structured/colored
      - verify that edited JSON is valid before saving; give useful error messages
+tot=1:30: 8am
 
+tot=2:15: 9:06am
+     - wasted an hour on code folding; will wait on this
+9:06am: now at stumptown with tishy!
+        I'm going to do some straightforward but tedious things that have got to get done anyways.
+
+    
 - make it so disabled buttons don't do anything.
 
    [ ] MAJOR MOBILE ISSUE: codemirror has no vertical scrollbars...
@@ -8064,6 +8071,8 @@ Not fucking around.
 
        *or* just have a cell tag attribute, and have lots of tags that
        impact things.... and make that list of tags editable by the user.
+
+   [ ] code folding -- code loaded/in there, but gutterClick just doesn't happen.  probably a DOM confusion issue.  
 
    [ ] very, very simple mini interact
 
