@@ -258,9 +258,14 @@ $(() ->
 
     cell_to_plain_text = (cell) ->
         r = ''
-        note = cell.find(".salvus-cell-note").text().trim()
+        note = client.html_to_text(cell.find(".salvus-cell-note").html()).trim()
         if note != ""
-            r += '\n' + note + '\n'
+            if note.length >= 2
+                if note[note.length-1] != ':'
+                    note += '::'
+                else if note[note.length-2] != ':'
+                    note += ':'
+            r += '\n' + note + '\n\n'
         code = cell.data('editor').getValue().trim()
         if code != ''
             r += '    sage: ' + code.replace(/\n\s/g,'\n    ...    ').replace(/\n[a-z]/g, '\n    sage:')
@@ -326,9 +331,10 @@ $(() ->
             obj_to_cell(cell_obj, views.worksheet.append_salvus_cell()[0])
 
     worksheet_to_plain_text = () ->
-        r = ''
+        r = '-------------------------------------------------------------------------\n'
         r += 'Title: ' + views.worksheet.find(".salvus-worksheet-title").text() + '\n'
-        r += 'Description: ' + views.worksheet.find(".salvus-worksheet-description").text() + '\n'
+        r += 'Description: ' + views.worksheet.find(".salvus-worksheet-description").text()
+        r += '\n-------------------------------------------------------------------------\n'
         $.each(views.worksheet.find(".salvus-cell"), (key, cell) ->
             r += '\n' + cell_to_plain_text($(cell))
         )

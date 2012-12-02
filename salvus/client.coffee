@@ -501,3 +501,38 @@ exports.issues_with_create_account = (mesg) ->
     if not valid
         issues.password = reason
     return issues
+
+
+
+##########################################################################
+
+
+htmlparser = require("htmlparser")
+
+# extract plain text from a dom tree object, as produced by htmlparser.
+dom_to_text = (dom, divs=false) ->
+    result = ''
+    for d in dom
+        switch d.type
+            when 'text'
+                result += d.data
+            when 'tag'
+                switch d.name
+                    when 'div'
+                        divs = true
+                        result += '\n'
+                    when 'br'
+                        if not divs
+                            result += '\n'
+        if d.children?
+            result += dom_to_text(d.children, divs)
+    result = result.replace(/&nbsp;/g,' ')
+    return result
+
+# html_to_text returns a lossy plain text representation of html,
+# which does preserve newlines (unlink wrapped_element.text())
+exports.html_to_text = (html) ->
+    handler = new htmlparser.DefaultHandler((error, dom) ->)
+    (new htmlparser.Parser(handler)).parseComplete(html)
+    return dom_to_text(handler.dom)
+
