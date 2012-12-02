@@ -25,12 +25,17 @@ $(() ->
             lineNumbers  : true
             indentUnit   : 4
             tabSize      : 4
-            lineWrapping : true
+            lineWrapping : false
             matchBrackets: true
             undoDepth    : 200
             mode         : "javascript"
         )
     )
+
+    views.edit_save_button = worksheet1.find("a[href='#salvus-worksheet-edit-save']")
+    views.edit.data('editor').on('change', () -> views.edit_save_button.removeClass("disabled"))
+    
+    # TODO: this does not work.
     views.edit.data('editor').on('gutterClick', CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder))
 
     get_completions = (editor, cb) ->
@@ -289,7 +294,6 @@ $(() ->
                     value = "#{cls}: #{s.data('value').trim()}"
                 else
                     value = s.text().trim()
-                    console.log(value)
             r += '\n' + '    ' + value.replace(/\n/g, '\n    ')
         return r
 
@@ -350,7 +354,6 @@ $(() ->
         $.each(views.worksheet.find(".salvus-cell"), (key, cell) ->
             r += '\n' + cell_to_plain_text($(cell))
         )
-        console.log(r)
         return r
 
     ########################################
@@ -769,10 +772,10 @@ $(() ->
             button = worksheet1.find("a[href='#worksheet1-#{n}-view']")
             if n == name
                 button.addClass('btn-primary').removeClass('btn-info')
-                views[n].show()
+                views[n]?.show()
             else
                 button.addClass('btn-info').removeClass('btn-primary')
-                views[n].hide()
+                views[n]?.hide()
 
     worksheet_view = () ->
         $(".salvus-worksheet-buttons").find(".btn").removeClass('disabled')
@@ -784,6 +787,16 @@ $(() ->
         editor = views.edit.data('editor')
         editor.refresh()
         editor.setValue(JSON.stringify(worksheet_to_obj(), null, 4))
+
+    edit_view_save_changes = () ->
+        value = views.edit.data('editor').getValue()
+        try
+            obj = JSON.parse(value)
+            set_worksheet_from_obj(obj)
+            return true
+        catch e
+            alert("Invalid JSON")
+            return false
 
     text_view = () ->
         $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
@@ -815,10 +828,20 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-edit-view']").button().click((e) -> edit_view(); return false)
     worksheet1.find("a[href='#worksheet1-text-view']").button().click((e) -> text_view(); return false)
 
+    # TODO: "are you sure?"
+    worksheet1.find("a[href='#salvus-worksheet-edit-cancel']").button().click((e) -> worksheet_view(); return false)
+    worksheet1.find("a[href='#salvus-worksheet-edit-save']").button().click((e) ->
+        if edit_view_save_changes()
+            $(this).addClass('disabled')
+            worksheet_view()
+        return false
+    )
+
     load_scratch_worksheet = () ->
         salvus_client.load_scratch_worksheet
             timeout: 10
             cb: (error, data) ->
+                worksheet_view()
                 if views.worksheet?
                     views.worksheet.remove()
                 if error
