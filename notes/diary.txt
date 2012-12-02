@@ -8013,7 +8013,9 @@ tot=1:45   3:02pm -- cell splitting is done
 
 tot=2:23 -- 3:40pm   [x] hide/show all output
 
-   [ ] change output so it is an optimized stream
+tot=3:13 -- 4:29pm   [x] change output so it is an optimized stream
+
+tot=3:37 -- 4:53pm   [x] change so that can output raw html (not put into a pre span).
 
    [ ] change worksheet storage format, so output is an optimized
        stream of messages (store the type in the DOM as data, so

@@ -79,6 +79,7 @@ message(
     id           : undefined
     stdout       : undefined
     stderr       : undefined
+    html         : undefined
     done         : false
     session_uuid : undefined
 )

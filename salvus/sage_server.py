@@ -99,11 +99,12 @@ class Message(object):
     def execute_code(self, id, code, preparse=True):
         return self._new('execute_code', locals())
 
-    def output(self, id, stdout=None, stderr=None, done=None):
+    def output(self, id, stdout=None, stderr=None, html=None, done=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None: m['stdout'] = stdout
         if stderr is not None: m['stderr'] = stderr
+        if html is not None: m['html'] = html
         if done is not None: m['done'] = done
         return m
 
@@ -196,6 +197,10 @@ def execute(conn, id, code, preparse):
         conn.send(message.output(stdout=output, done=done, id=id))
     def send_stderr(output, done):
         conn.send(message.output(stderr=output, done=done, id=id))
+    def send_html(output):
+        conn.send(message.output(html=str(output), id=id))
+    namespace['html'] = send_html
+
     try:
         streams = (sys.stdout, sys.stderr)
         sys.stdout = OutputStream(send_stdout)

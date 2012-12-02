@@ -244,7 +244,7 @@ $(() ->
         output = []
         for o in cell.find(".salvus-cell-output").children()
             s = $(o)
-            output.push(class:s.attr('class'), html:s.html())
+            output.push(class:s.attr('class').slice(7), html:s.html())
         return {
             id     : cell.attr("id")
             note   : cell.find(".salvus-cell-note").html()
@@ -261,7 +261,7 @@ $(() ->
 
         output = cell.find(".salvus-cell-output").show()
         for s in obj.output
-            output.append(templates.find(".#{s.class}").clone().html(s.html))
+            output.append(templates.find(".salvus-#{s.class}").clone().html(s.html))
 
     worksheet_to_obj = () ->
         # jquery officially iterates through objects in DOM order, as of 1.3.2.
@@ -361,8 +361,7 @@ $(() ->
             focus_editor(cell)
 
     delete_cell_output = (cell) ->
-        cell.find('.salvus-stdout').html('')
-        cell.find('.salvus-stderr').html('')
+        cell.find(".salvus-cell-output").children().remove()
 
     delete_cell_contents = (opts) ->
         opts = defaults opts,
@@ -491,12 +490,7 @@ $(() ->
         input_text = cell.data('editor').getValue()
         input = cell.find(".salvus-cell-input")
         output = cell.find(".salvus-cell-output").show()
-        stdout = output.find(".salvus-stdout")
-        stderr = output.find(".salvus-stderr")
-
-        # delete any output already in the output area
-        stdout.text("")
-        stderr.text("")
+        delete_cell_output(cell)
 
         if input_text.trim() != ""
             # activity() -- looks bad and crashes chrome on linux hard.
@@ -516,6 +510,11 @@ $(() ->
                             cell  : cell
                             class : 'salvus-stderr'
                             html  : mesg.stderr
+                    if mesg.html?
+                        append_cell_output
+                            cell  : cell
+                            class : 'salvus-html'
+                            html  : mesg.html
                     if mesg.done
                         clearTimeout(timer)
                         cell.find(".salvus-running").hide()
@@ -568,11 +567,11 @@ $(() ->
     show_all_output = () ->
         worksheet.find(".salvus-cell-output").show()
 
-    delete_worksheet= () ->
-        # TODO: confirmation
+    clear_worksheet= () ->
+        # TODO: confirmation, or better -- make it easy to undo last clear.... ?
         worksheet?.remove()
+        worksheet_is_dirty()
         worksheet = page.salvus_worksheet()
-        salvus_client.delete_scratch_worksheet()
         if not IS_MOBILE
             focus_editor_on_first_cell()
 
@@ -669,7 +668,7 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_button(); return false)
     worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
     worksheet1.find("a[href='#worksheet1-execute_all']").button().click((e) -> execute_all(); return false)
-    worksheet1.find("a[href='#worksheet1-delete_worksheet']").button().click((e) -> delete_worksheet(); return false)
+    worksheet1.find("a[href='#worksheet1-clear_worksheet']").button().click((e) -> clear_worksheet(); return false)
     worksheet1.find("a[href='#worksheet1-delete_all_output']").button().click((e) -> delete_all_output(); return false)
     worksheet1.find("a[href='#worksheet1-hide_all_output']").button().click((e) -> hide_all_output(); return false)
     worksheet1.find("a[href='#worksheet1-show_all_output']").button().click((e) -> show_all_output(); return false)
