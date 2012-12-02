@@ -231,6 +231,18 @@ $(() ->
                 refresh_editor(cell)
             return cell
 
+        select_all: (opts={}) ->
+            @each () ->
+                if window.getSelection
+                    range = document.createRange()
+                    range.selectNode(this)
+                    window.getSelection().addRange(range)
+                else if document.selection
+                    range = document.body.createTextRange()
+                    range.moveToElementText(this)
+                    range.select()
+
+
 
     ####################################################
     # keyboard control -- rewrite to use some library
@@ -776,17 +788,9 @@ $(() ->
     text_view = () ->
         $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
         show_view('text')
-        views.text.click( () ->
-            if window.getSelection
-                range = document.createRange()
-                range.selectNode(views.text[0])
-                window.getSelection().addRange(range)
-            else
-                range = document.body.createTextRange()
-                range.moveToElementText(views.text[0])
-                range.select()
-        )
-        views.text.find(".salvus-worksheet-text-text").text(worksheet_to_plain_text())
+        output = views.text.find(".salvus-worksheet-text-text")
+        output.text(worksheet_to_plain_text())
+        output.select_all()
 
     # Activate buttons:
 
