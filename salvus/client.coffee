@@ -518,7 +518,7 @@ dom_to_text = (dom, divs=false) ->
                 result += d.data
             when 'tag'
                 switch d.name
-                    when 'div'
+                    when 'div','p'
                         divs = true
                         result += '\n'
                     when 'br'
