@@ -86,6 +86,9 @@
     ################################################
 
     enable_tooltips = () ->
+        if IS_MOBILE
+            # never enable on mobile -- they are totally broken
+            return
         $("[rel=tooltip]").tooltip
             delay: {show: 1000, hide: 100}
             placement: 'right'
