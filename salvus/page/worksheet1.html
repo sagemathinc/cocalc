@@ -7,6 +7,9 @@
 	  <a href="#worksheet1-execute_code" class="btn  btn-small btn-success" rel="tooltip" title="Evaluate the code in the current cell."><i class="icon-play"></i> execute</a>
 	  <a href="#worksheet1-tab" class="btn  btn-small btn-success" rel="tooltip" title="Tab completion, docstrings, etc."><i class="icon-step-forward"></i> tab</a>
 	  <a href="#worksheet1-interrupt_session" class="btn btn-small btn-success" rel="tooltip" title="Stop the currently running computation."><i class="icon-stop"></i> stop</a>
+	  <a href="#worksheet1-restart_session" class="btn btn-small btn-success" rel="tooltip" title="Restart the currently running Sage process.  All your variables will be reset."><i class="icon-refresh"></i> restart</a>
+
+	  <a href="#worksheet1-execute_all" class="btn btn-small btn-success" rel="tooltip" title="Execute all code."><i class="icon-play"></i> all</a>
 	</div>
 	<div class="btn-group">
 	  <a href="#worksheet1-delete_cell" class="btn btn-small"  rel="tooltip" title="Delete the current cell."><i class="icon-remove-sign"></i> delete</a>
@@ -26,16 +29,10 @@
 	</div>
 
 	<div class="btn-group">
-	  
-	  <a href="#worksheet1-restart_session" class="btn btn-small btn-warning" rel="tooltip" title="Restart the currently running Sage process.  All your variables will be reset."><i class="icon-refresh"></i> restart</a>
-
-	  <a href="#worksheet1-execute_all" class="btn btn-small btn-warning" rel="tooltip" title="Execute all code."><i class="icon-play"></i> execute</a>
-	</div>
-	<div class="btn-group">
 	  <a href="#worksheet1-hide_all_output" class="btn btn-small btn-warning" rel="tooltip" title="Hide all output"><i class="icon-eye-close"></i> hide</a>
 	  <a href="#worksheet1-show_all_output" class="btn btn-small btn-warning" rel="tooltip" title="Show all output"><i class="icon-eye-open"></i> show</a>
 	  <a href="#worksheet1-delete_all_output" class="btn btn-small btn-warning" rel="tooltip" title="Delete all output."><i class="icon-remove-sign"></i> delete</a>
-	  <a href="#worksheet1-clear_worksheet" class="btn btn-small btn-danger"  rel="tooltip" title="Delete all cells in this worksheet."><i class="icon-remove-sign"></i> delete all</a>
+	  <a href="#worksheet1-clear_worksheet" class="btn btn-small btn-danger"  rel="tooltip" title="Delete all cells in this worksheet."><i class="icon-remove-sign"></i> all</a>
 	</div>
       </span>
     </div>
@@ -69,7 +66,10 @@
     </div>
 
     <div class="salvus-worksheet-edit span11">
-      <textarea class="salvus-worksheet-edit-text"></textarea>
+      <textarea></textarea>
+    </div>
+    <div class="salvus-worksheet-text span11">
+      <textarea></textarea>
     </div>
 
 

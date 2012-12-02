@@ -15,8 +15,10 @@ $(() ->
     page = $("#worksheet1")
     worksheet1 = $("#worksheet1")
     templates = worksheet1.find(".salvus-templates")
-    worksheet = undefined
-
+    views =
+        worksheet : undefined
+        edit      : page.append(templates.find(".salvus-worksheet-edit").clone().hide())
+        text      : page.append(templates.find(".salvus-worksheet-text").clone().hide())
 
     get_completions = (editor, cb) ->
         completions = []
@@ -274,19 +276,19 @@ $(() ->
     worksheet_to_obj = () ->
         # jquery officially iterates through objects in DOM order, as of 1.3.2.
         obj = {
-            title       : worksheet.find(".salvus-worksheet-title").html()
-            description : worksheet.find(".salvus-worksheet-description").html()
+            title       : views.worksheet.find(".salvus-worksheet-title").html()
+            description : views.worksheet.find(".salvus-worksheet-description").html()
             cells       : []
         }
-        $.each(worksheet.find(".salvus-cell"), (key, cell) -> obj.cells.push(cell_to_obj(cell)))
+        $.each(views.worksheet.find(".salvus-cell"), (key, cell) -> obj.cells.push(cell_to_obj(cell)))
         return obj
 
     set_worksheet_from_obj = (obj) ->
-        worksheet.find(".salvus-worksheet-title").html(obj.title)
-        worksheet.find(".salvus-worksheet-description").html(obj.description)
-        worksheet.find(".salvus-cell").remove()
+        views.worksheet.find(".salvus-worksheet-title").html(obj.title)
+        views.worksheet.find(".salvus-worksheet-description").html(obj.description)
+        views.worksheet.find(".salvus-cell").remove()
         for cell_obj in obj.cells
-            obj_to_cell(cell_obj, worksheet.append_salvus_cell()[0])
+            obj_to_cell(cell_obj, views.worksheet.append_salvus_cell()[0])
 
 
     ########################################
@@ -402,7 +404,7 @@ $(() ->
         else if cell_below.length > 0 and cell_below.hasClass("salvus-cell")
             focus_editor(cell_below)
         else
-            new_cell = worksheet.append_salvus_cell()
+            new_cell = views.worksheet.append_salvus_cell()
             new_cell.find(".salvus-cell-note").html(note)
             focus_editor(new_cell)
 
@@ -439,8 +441,8 @@ $(() ->
         active_cell = last_active_cell = cell
 
     focus_editor_on_first_cell = () ->
-        worksheet.find(".salvus-cell:first")
-        focus_editor(worksheet.find(".salvus-cell:first"))
+        views.worksheet.find(".salvus-cell:first")
+        focus_editor(views.worksheet.find(".salvus-cell:first"))
 
     focus_next_cell = (cell) ->
         next = next_cell(cell)
@@ -529,7 +531,7 @@ $(() ->
     ########################################
 
     execute_all = () ->
-        for cell in worksheet.find(".salvus-cell")
+        for cell in views.worksheet.find(".salvus-cell")
             execute_cell($(cell))
 
     execute_cell = (cell) ->
@@ -554,7 +556,7 @@ $(() ->
 
         next = cell.next()
         if next.length == 0
-            next = worksheet.append_salvus_cell()
+            next = views.worksheet.append_salvus_cell()
         focus_editor(next)
         last_active_cell = active_cell = next
 
@@ -585,26 +587,26 @@ $(() ->
             persistent_session.kill()
             alert_message(type:"success", message:"Restarted your Sage session.  (WARNING: Your variables are no longer defined.)")
             persistent_session = null
-            worksheet.find(".salvus-running").hide()
+            views.worksheet.find(".salvus-running").hide()
 
     number_of_cells = () ->
-        return worksheet.find(".salvus-cell").length
+        return views.worksheet.find(".salvus-cell").length
 
     delete_all_output = () ->
-        for cell in worksheet.find(".salvus-cell")
+        for cell in views.worksheet.find(".salvus-cell")
             delete_cell_output($(cell))
 
     hide_all_output = () ->
-        worksheet.find(".salvus-cell-output").hide()
+        views.worksheet.find(".salvus-cell-output").hide()
 
     show_all_output = () ->
-        worksheet.find(".salvus-cell-output").show()
+        views.worksheet.find(".salvus-cell-output").show()
 
     clear_worksheet= () ->
         # TODO: confirmation, or better -- make it easy to undo last clear.... ?
-        worksheet?.remove()
+        views.worksheet?.remove()
         worksheet_is_dirty()
-        worksheet = page.salvus_worksheet()
+        views.worksheet = page.salvus_worksheet()
         if not IS_MOBILE
             focus_editor_on_first_cell()
 
@@ -650,7 +652,7 @@ $(() ->
         get_session (error, s) ->
             if error
                 alert_message(type:"error", message:"Unable to start a new Sage session.")
-                worksheet.find(".salvus-running").hide()
+                views.worksheet.find(".salvus-running").hide()
             else
                 s.execute_code
                     code        : opts.input
@@ -694,6 +696,29 @@ $(() ->
                 throw CodeMirror.Pass
 
     ##############################################################################################
+    # 3 worksheet views: live, edit, text
+    ##############################################################################################
+    show_view = (name) ->
+        for n in ['live', 'edit', 'text']
+            button = worksheet1.find("a[href='#worksheet1-#{n}-view']")
+            if n == name
+                button.addClass('btn-primary').removeClass('btn-info')
+                views[n].show()
+            else
+                button.addClass('btn-info').removeClass('btn-primary')
+                views[n].hide()
+
+    live_view = () ->
+        show_view('live')
+
+    edit_view = () ->
+        views.edit.find("textarea").val("FOO BAR!")
+        show_view('edit')
+
+    text_view = () ->
+        show_view('text')
+
+    # Activate buttons:
 
     worksheet1.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_cell(active_cell); return false)
     worksheet1.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
@@ -712,19 +737,23 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-move_cell_up']").button().click((e) -> active_cell=last_active_cell; move_cell_up(active_cell); return false)
     worksheet1.find("a[href='#worksheet1-move_cell_down']").button().click((e) -> active_cell=last_active_cell; move_cell_down(active_cell); return false)
 
+    worksheet1.find("a[href='#worksheet1-live-view']").button().click((e) -> live_view(); return false)
+    worksheet1.find("a[href='#worksheet1-edit-view']").button().click((e) -> edit_view(); return false)
+    worksheet1.find("a[href='#worksheet1-text-view']").button().click((e) -> text_view(); return false)
+
     load_scratch_worksheet = () ->
         salvus_client.load_scratch_worksheet
             timeout: 10
             cb: (error, data) ->
-                if worksheet?
-                    worksheet.remove()
+                if views.worksheet?
+                    views.worksheet.remove()
                 if error
-                    worksheet = page.salvus_worksheet()
+                    views.worksheet = page.salvus_worksheet()
                 else
                     obj = misc.from_json(data)
-                    worksheet = templates.find(".salvus-worksheet").clone()
-                    page.append(worksheet)
-                    activate_worksheet(worksheet)
+                    views.worksheet = templates.find(".salvus-worksheet").clone()
+                    page.append(views.worksheet)
+                    activate_worksheet(views.worksheet)
                     set_worksheet_from_obj(obj)
                 worksheet_is_clean()
                 if not isMobile.any()
