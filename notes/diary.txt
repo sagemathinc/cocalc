@@ -8035,6 +8035,32 @@ tot=3:40 [ ] Finally, really back to work
 tot=5:40 -- 9:30pm -- finished javascript/coffeescript functions:
                        salvus.[...]
 
+
+Dec 2, 2012
+starting at 6:35am.
+Not fucking around. 
+
+   [ ] edit mode that shows the underlying JSON object of the
+       worksheet in a nicely presented way, and allows
+       editing/saving/reloading.  This would be good to do ASAP, since
+       it will allow me to constantly have a clear view of how the
+       underlying structure of worksheets is evolving.
+
+ - add a page for editing
+ - add buttons for switching between two modes
+ - redo edit mode more nicely:
+     - codemirror
+     - nicely indented and structured/colored
+
+
+   [ ] idea for a way to implement "%auto". 
+       have a control output type, e.g., mesg.control =
+       with various commands (given as objects), e.g,.
+              mesg.control = {on:"load", command:"execute_code"}
+
+       *or* just have a cell tag attribute, and have lots of tags that
+       impact things.... and make that list of tags editable by the user.
+
    [ ] very, very simple mini interact
 
 salvus.html("""
