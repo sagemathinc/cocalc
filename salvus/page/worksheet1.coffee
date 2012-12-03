@@ -62,7 +62,6 @@ $(() ->
                     ch -= 1
                 input = input.slice(ch+1)
                 from.ch = ch+1
-                console.log("input = #{input}")
 
                 session.introspect
                     text_before_cursor : input
@@ -622,7 +621,7 @@ $(() ->
     ########################################
     
     start_session_timer = (seconds) ->
-        console.log(seconds)
+        #console.log(seconds)
         t = new Date()
         t.setTime(t.getTime() + seconds*1000)
         views.worksheet.find('.salvus-worksheet-countdown-timer').show().draggable().countdown('destroy').countdown
@@ -794,6 +793,7 @@ $(() ->
         "Ctrl-;"         : (editor) -> split_cell(editor.cell)
         "Ctrl-Up"        : (editor) -> move_cell_up(editor.cell)
         "Ctrl-Down"      : (editor) -> move_cell_down(editor.cell)
+        "Ctrl-Enter"     : (editor) -> execute_cell(editor.cell); focus_editor(insert_cell_after(editor.cell))
         "Shift-Enter"    : (editor) -> execute_cell(editor.cell)
         "Up"             : (editor) ->
             if editor.getCursor().line == 0
