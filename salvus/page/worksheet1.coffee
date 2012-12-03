@@ -359,29 +359,38 @@ $(() ->
         return r
 
     ########################################
-    # introspection
+    # The tab key
     ########################################
 
-    introspect = () ->
-        if not active_cell?
-            return true
+    autoindent_button = () ->
+        if active_cell?
+            CodeMirror.commands.indentAuto(active_cell.data('editor'))
+            focus_editor(active_cell)
 
-        get_session (error, s) ->
-            if error
-                alert_message(type:"error", message:"Unable to start a Sage session in which to introspect.")
-                return true
+    tab_button = () ->
+        if active_cell?
+            tab_cell(active_cell)
+            focus_editor(active_cell)
 
-            input = active_cell.find(".salvus-cell-input")
-            s.introspect
-                text_before_cursor: input.getValue()
-                text_after_cursor: undefined
-                cb: (error, mesg) ->
-                    if error
-                        alert_message(type:"error", message:mesg.error)
-                    if mesg?
-                        alert_message(type:"info", message:misc.to_json(mesg.completions))
+    # Simulates pressing the tab key in a cell.  Causes either
+    # indentation, de-dentation, or introspection, depending on the
+    # status of the cell.
+    tab_cell = (cell) ->
+        editor = cell.data('editor')
+        # 1. If anything is selected, send a normal tab key
+        if editor.somethingSelected()
+            CodeMirror.commands.defaultTab(editor)
+            return
+        # 2. If there is not a non-whitespace character right before the cursor (on the same line), send a normal tab key.
+        pos = editor.getCursor()
+        if pos.ch == 0 or editor.getRange({line:pos.line, ch:pos.ch-1}, pos).search(/\s/) != -1
+            CodeMirror.commands.defaultTab(editor)
+            return
+        # 3. Otherwise, introspect.
+        introspect_cell(cell)
 
-        return false
+    introspect_cell = (cell) ->
+        CodeMirror.commands.autocomplete(cell.data('editor'))
 
     ########################################
     # Splitting/joining/deleting
@@ -721,12 +730,6 @@ $(() ->
         if not IS_MOBILE
             focus_editor_on_first_cell()
 
-    tab_button = () ->
-        # TODO: could also just be indenting a block
-        if active_cell?
-            CodeMirror.commands.autocomplete(active_cell.data('editor'))
-            return false
-
     save_worksheet = (notify=false) ->
         salvus_client.save_scratch_worksheet
             data : misc.to_json(worksheet_to_obj())
@@ -776,7 +779,6 @@ $(() ->
     ###############################################################
 
     extraKeys =
-        "Ctrl-Space"     : "autocomplete"
         "Ctrl-Backspace" : (editor) -> join_cells(editor.cell)
         "Ctrl-;"         : (editor) -> split_cell(editor.cell)
         "Ctrl-Up"        : (editor) -> move_cell_up(editor.cell)
@@ -797,8 +799,7 @@ $(() ->
             interrupt_session()
 
         "Tab"            : (editor) ->
-            # decide if we can "tab complete"
-            throw CodeMirror.Pass
+            tab_cell(editor.cell)
 
         "Backspace"      : (editor) ->
             if editor.getValue() == ""
@@ -859,6 +860,7 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-execute_code']").click((e) -> active_cell=last_active_cell; execute_cell(active_cell); return false)
     worksheet1.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
     worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_button(); return false)
+    worksheet1.find("a[href='#worksheet1-autoindent']").button().click((e) -> active_cell=last_active_cell; autoindent_button(); return false)
     worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
     worksheet1.find("a[href='#worksheet1-execute_all']").button().click((e) -> return false if $(this).hasClass('disabled'); execute_all(); return false)
     worksheet1.find("a[href='#worksheet1-clear_worksheet']").button().click((e) -> clear_worksheet(); return false)
