@@ -8076,6 +8076,8 @@ Dec 3, 2012:
    [ ] interacts
    [ ] multiple scratch worksheets... will be just like sage notebook!
 
+   [ ] countup timer about how long a computation is going (part of spinner stuff... and I think countdown has this feature?)
+
 --------
 
 

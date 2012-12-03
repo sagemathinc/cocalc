@@ -53,6 +53,17 @@ $(() ->
                         cb()
             (cb) ->
                 input = editor.getRange(from, to)
+
+                # Adjust from and input to capture the whole identifier, possibly including a final open paren:
+                ch = to.ch-1
+                if input[ch] == '('
+                    ch -= 1
+                while ch >= 0 and input[ch].search(/[a-z|A-Z|0-9|_|\.]/) == 0
+                    ch -= 1
+                input = input.slice(ch+1)
+                from.ch = ch+1
+                console.log("input = #{input}")
+
                 session.introspect
                     text_before_cursor : input
                     text_after_cursor  : undefined  # TODO

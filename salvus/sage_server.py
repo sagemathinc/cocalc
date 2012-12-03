@@ -302,8 +302,9 @@ def session(conn, home, cputime, numfiles, vmem, uid):
             pass
 
 def introspect(conn, id, text_before_cursor, text_after_cursor):
-    completions = [x for x in namespace.keys() if x.startswith(text_before_cursor)]
-    completions.sort()
+    expr = text_before_cursor
+    z = parsing.completions(text_before_cursor, namespace=namespace, docstring=False, preparse=True)
+    completions = [expr + a for a in z['result']]
     mesg = message.introspect_completions(id=id, completions=completions)
     conn.send(mesg)
 

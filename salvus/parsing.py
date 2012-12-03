@@ -135,3 +135,94 @@ def divide_into_blocks(code):
             i += 1
             
     return blocks
+
+
+
+
+############################################
+
+# Keywords from http://docs.python.org/release/2.7.2/reference/lexical_analysis.html
+_builtin_completions = __builtins__.keys() + ['and', 'del', 'from', 'not', 'while', 'as', 'elif', 'global', 'or', 'with', 'assert', 'else', 'if', 'pass', 'yield', 'break', 'except', 'import', 'print', 'class', 'exec', 'in', 'raise', 'continue', 'finally', 'is', 'return', 'def', 'for', 'lambda', 'try']
+
+def completions(code, namespace, docstring=False, preparse=True):
+    result = []
+    target = ''
+    expr = ''
+    try:
+        code0, literals, state = strip_string_literals(code)
+        # TODO: this has to be replaced by using ast on preparsed version.  Not easy.
+        i = max([code0.rfind(t) for t in '\n;='])+1
+        while i<len(code0) and code0[i] in string.whitespace:
+            i += 1
+        expr = code0[i:]%literals
+        before_expr = code0[:i]%literals
+        #sys.stderr.write('expr='+expr)
+        #sys.stderr.write('before_expr='+before_expr)            
+        if not docstring and '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
+            get_help = False
+            target = expr
+            j = len(expr)
+            v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
+        else:
+            i = max([expr.rfind(s) for s in '?('])
+            if docstring and i == -1:
+                get_help = True
+                target = ''
+                obj = expr
+            else:
+                if i == len(expr)-1:
+                    get_help = True
+                    target = expr[i+1:]
+                    obj = expr[:i]
+                else:
+                    get_help = False
+                    i = expr.rfind('.')
+                    target = expr[i+1:]
+                    obj = expr[:i]
+
+            if obj in namespace:
+                O = namespace[obj]
+            else:
+                O = None
+                # # the more dangerous eval.
+                # try:
+                #     import signal
+                #     def mysig(*args): raise KeyboardInterrupt
+                #     signal.signal(signal.SIGALRM, mysig)
+                #     signal.alarm(1)
+                #     import sage.all_cmdline
+                #     if before_expr.strip():
+                #         try:
+                #             exec (before_expr if not preparse else preparse_code(before_expr)) in namespace
+                #         except Exception, msg:
+                #             pass
+                #             # for debugging only
+                #             #traceback.print_exc()
+                #     O = eval(obj if not preparse else preparse_code(obj), namespace)
+                # finally:
+                #     signal.signal(signal.SIGALRM, signal.SIG_IGN)
+            if get_help:
+                import sage.misc.sageinspect
+                result = eval('f(obj)', {'obj':O, 'f':sage.misc.sageinspect.sage_getdoc})
+
+            else:
+                if O is not None:
+                    v = dir(O)
+                    if hasattr(O, 'trait_names'):
+                        v += O.trait_names()
+                    if not target.startswith('_'):
+                        v = [x for x in v if x and not x.startswith('_')]
+                    j = len(target)
+                    v = [x[j:] for x in v if x.startswith(target)]
+                else:
+                    v = []
+        if not get_help:
+            result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
+    except Exception, msg:
+        import traceback
+        traceback.print_exc()
+        result = []
+        status = 'ok'
+    else:
+        status = 'ok'
+    return {'result':result, 'target':target, 'expr':expr, 'status':status, 'help':get_help}
