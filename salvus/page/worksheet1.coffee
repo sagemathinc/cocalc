@@ -32,9 +32,8 @@ $(() ->
         )
     )
 
-    views.edit_save_button = worksheet1.find("a[href='#salvus-worksheet-edit-save']")
-    views.edit.data('editor').on('change', () -> views.edit_save_button.removeClass("disabled"))
-    
+    views.edit.data('editor').on('change', () -> views.edit.find('.btn').removeClass("disabled"))
+
     # TODO: this does not work.
     views.edit.data('editor').on('gutterClick', CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder))
 
@@ -767,19 +766,25 @@ $(() ->
     ##############################################################################################
     # 3 worksheet views: live, edit, text
     ##############################################################################################
+
+    current_view = 'worksheet'
     show_view = (name) ->
+        current_view = name
         for n in ['worksheet', 'edit', 'text']
             button = worksheet1.find("a[href='#worksheet1-#{n}-view']")
             if n == name
-                button.addClass('btn-primary').removeClass('btn-info')
+                button.addClass('btn-primary').removeClass('btn-info').removeClass('disabled')
                 views[n]?.show()
             else
-                button.addClass('btn-info').removeClass('btn-primary')
+                button.addClass('btn-info').removeClass('btn-primary').removeClass('disabled')
                 views[n]?.hide()
 
     worksheet_view = () ->
         $(".salvus-worksheet-buttons").find(".btn").removeClass('disabled')
         show_view('worksheet')
+        if views.worksheet?
+            for cell in views.worksheet.find('.salvus-cell')
+                $(cell).data('editor').refresh()
 
     edit_view = () ->
         $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
@@ -787,6 +792,7 @@ $(() ->
         editor = views.edit.data('editor')
         editor.refresh()
         editor.setValue(JSON.stringify(worksheet_to_obj(), null, 4))
+        views.edit.find('.btn').addClass("disabled")
 
     edit_view_save_changes = () ->
         value = views.edit.data('editor').getValue()
@@ -811,7 +817,7 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-interrupt_session']").button().click((e) -> interrupt_session(); return false)
     worksheet1.find("a[href='#worksheet1-tab']").button().click((e) -> active_cell=last_active_cell; tab_button(); return false)
     worksheet1.find("a[href='#worksheet1-restart_session']").button().click((e) -> restart_session(); return false)
-    worksheet1.find("a[href='#worksheet1-execute_all']").button().click((e) -> execute_all(); return false)
+    worksheet1.find("a[href='#worksheet1-execute_all']").button().click((e) -> return false if $(this).hasClass('disabled'); execute_all(); return false)
     worksheet1.find("a[href='#worksheet1-clear_worksheet']").button().click((e) -> clear_worksheet(); return false)
     worksheet1.find("a[href='#worksheet1-delete_all_output']").button().click((e) -> delete_all_output(); return false)
     worksheet1.find("a[href='#worksheet1-hide_all_output']").button().click((e) -> hide_all_output(); return false)
@@ -824,7 +830,14 @@ $(() ->
     worksheet1.find("a[href='#worksheet1-move_cell_up']").button().click((e) -> active_cell=last_active_cell; move_cell_up(active_cell); return false)
     worksheet1.find("a[href='#worksheet1-move_cell_down']").button().click((e) -> active_cell=last_active_cell; move_cell_down(active_cell); return false)
 
-    worksheet1.find("a[href='#worksheet1-worksheet-view']").button().click((e) -> worksheet_view(); return false)
+    worksheet1.find("a[href='#worksheet1-worksheet-view']").button().click((e) ->
+        if current_view == 'edit'
+            if edit_view_save_changes()
+                worksheet_view()
+        else
+            worksheet_view()
+        return false
+    )
     worksheet1.find("a[href='#worksheet1-edit-view']").button().click((e) -> edit_view(); return false)
     worksheet1.find("a[href='#worksheet1-text-view']").button().click((e) -> text_view(); return false)
 
