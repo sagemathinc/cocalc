@@ -31,6 +31,7 @@
   [ ] sign out must clear scratch worksheet.
 
 -----------------
+   [ ] code folding -- code loaded/in there, but gutterClick just doesn't happen.  probably a DOM confusion issue.  
    [ ] when editing input of cell, make entire output become light grey or something...?
   [ ] on mobile chrome (my phone) codemirror doesn't get a scrollbar (since there are no scrollbars) so there
       is no way to see an input cell that turns to scroll.  One option -- 
