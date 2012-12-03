@@ -8064,12 +8064,12 @@ tot=4:30 12-1pm: finished edit mode v.1
 5:33pm - 9:00pm: time to bust ass before "Dexter, Homeland"
 goal for now:
    [x] make it so disabled buttons don't do anything.
-
    [x] indicator when session restarts + countdown timer
 
-   [ ] multiple scratch worksheets... will be just like sage notebook!
    [ ] tab completion
+
    [ ] mini-interacts
+   [ ] multiple scratch worksheets... will be just like sage notebook!
 
 --------
 
