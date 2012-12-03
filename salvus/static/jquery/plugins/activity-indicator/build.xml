@@ -1,6 +1,0 @@
-<project name="activity-indicator" default="dist">
-
-	<property name="plugin.version" value="1.0.0" />
-	<import file="../build/plugin.xml" />
-
-</project>

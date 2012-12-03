@@ -617,6 +617,26 @@ $(() ->
         for cell in views.worksheet.find(".salvus-cell")
             execute_cell($(cell))
 
+    start_cell_spinner = (cell) ->
+        cell.find(".salvus-running").show().spin(
+            lines   : 15
+            length  : 7
+            width   : 2
+            radius  : 4
+            corners : 1.0
+            rotate  : 0
+            trail   : 60
+            speed   : 1.1
+            shadow  : false
+            hwaccel : false # crashes VirtualBox...
+            top     : -5
+            left    : 2
+        ).click((e) -> interrupt_session())
+
+    stop_cell_spinner = (cell) ->
+        cell.find(".salvus-running").spin(false).hide()
+
+
     execute_cell = (cell) ->
         worksheet_is_dirty()
         input_text = cell.data('editor').getValue()
@@ -627,7 +647,7 @@ $(() ->
         if input_text.trim() != ""
             # activity() -- looks bad and crashes chrome on linux hard.
             # # .activity(width:1.5, segments:14)
-            timer = setTimeout((() -> cell.find(".salvus-running").show()), 1000)
+            timer = setTimeout((() -> start_cell_spinner(cell)), 400)
 
             salvus_exec
                 input: input_text
@@ -635,7 +655,7 @@ $(() ->
                     append_cell_output_from_mesg(cell, mesg)
                     if mesg.done
                         clearTimeout(timer)
-                        cell.find(".salvus-running").hide()
+                        stop_cell_spinner(cell)
 
         next = cell.next()
         if next.length == 0

@@ -8066,6 +8066,8 @@ goal for now:
    [x] make it so disabled buttons don't do anything.
    [x] indicator when session restarts + countdown timer
 
+   [ ] jquery spinner -- might as well do it.
+
    [ ] tab completion
 
    [ ] mini-interacts

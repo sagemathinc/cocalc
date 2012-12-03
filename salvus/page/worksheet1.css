@@ -60,10 +60,9 @@ pre {
 }
 
 .salvus-running {
-    width:20ex;
-    padding-left:5px;    
-    color:#448;
-    text-decoration:blink;
+    width:1ex;
+    color:#080;
+    padding-left:1ex;
 }
 
 .salvus-prompt:hover {
