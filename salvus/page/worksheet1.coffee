@@ -652,7 +652,6 @@ $(() ->
     get_session = (cb) ->
         if persistent_session == null
             salvus_client.new_session
-                limits: {walltime:5}
                 timeout: 5
                 cb: (error, session) ->
                     if error
