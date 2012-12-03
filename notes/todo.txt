@@ -37,7 +37,7 @@
       is no way to see an input cell that turns to scroll.  One option -- 
   [ ] on mobile, tooltips suck
 
-  [ ] countdown session timer, with link to buy now.
+  [x] countdown session timer
   [ ] ability to use cursor keys to move between cells
       [ ] down arrow when on last line of compute moves to note
       [ ] down arrow on last line of note moves to next compute cell

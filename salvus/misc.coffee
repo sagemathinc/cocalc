@@ -16,6 +16,8 @@ exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length
 # modifies target in place, so that the properties of target are the
 # same as those of upper_bound, and each is <=.
 exports.min_object = (target, upper_bounds) ->
+    if not target?
+        target = {}
     for prop, val of upper_bounds
         target[prop] = if target.hasOwnProperty(prop) then target[prop] = Math.min(target[prop], upper_bounds[prop]) else upper_bounds[prop]
 

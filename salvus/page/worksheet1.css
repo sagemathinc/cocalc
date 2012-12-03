@@ -154,3 +154,8 @@ pre {
     overflow-x: auto;
 
 }
+
+.salvus-worksheet-countdown-timer {
+    padding: 1ex;
+    color: #888;
+}

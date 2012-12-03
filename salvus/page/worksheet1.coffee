@@ -595,6 +595,21 @@ $(() ->
                     output.append(templates.find(css_class_selector).clone().html(opts.value))
 
     ########################################
+    # Countdown timer until session expires
+    ########################################
+    
+    start_session_timer = (seconds) ->
+        console.log(seconds)
+        t = new Date()
+        t.setTime(t.getTime() + seconds*1000)
+        views.worksheet.find('.salvus-worksheet-countdown-timer').show().draggable().countdown('destroy').countdown
+            until      : t
+            compact    : true
+            layout     : '{hnn}{sep}{mnn}{sep}{snn}'
+            expiryText : "session killed (after #{seconds} seconds)"
+            onExpiry   : mark_session_as_dead
+
+    ########################################
     # Editing / Executing code
     ########################################
 
@@ -632,17 +647,23 @@ $(() ->
 
     persistent_session = null
 
+    mark_session_as_dead = () -> persistent_session = null
+
     get_session = (cb) ->
         if persistent_session == null
             salvus_client.new_session
-                limits: {walltime:600, cputime:60}
-                timeout: 2
+                limits: {walltime:5}
+                timeout: 5
                 cb: (error, session) ->
                     if error
                         cb(true, error)
                     else
                         persistent_session = session
                         cb(false, persistent_session)
+                        start_session_timer(session.limits.walltime)
+                        session.on("close", () ->
+                            mark_session_as_dead()
+                        )
         else
             cb(false, persistent_session)
 

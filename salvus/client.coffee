@@ -143,7 +143,7 @@ class exports.Connection extends EventEmitter
 
     new_session: (opts) ->
         opts = defaults opts,
-            limits  : required
+            limits  : {}
             timeout : 10          # how long until give up on getting a new session
             cb      : undefined   # cb(error, session)  if error is defined it is a string
 
