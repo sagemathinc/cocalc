@@ -272,7 +272,7 @@ $(() ->
     # }
     #
 
-    cell_to_plain_text = (cell) ->
+    cell_to_plain_text = (cell, prompt='sage: ') ->   # NOTE -- the prompt can't have dollar signs in it!
         r = ''
         note = client.html_to_text(cell.find(".salvus-cell-note").html()).trim()
         if note != ""
@@ -284,7 +284,10 @@ $(() ->
             r += '\n' + note + '\n\n'
         code = cell.data('editor').getValue().trim()
         if code != ''
-            r += '    sage: ' + code.replace(/\n\s/g,'\n    ...    ').replace(/\n[a-z]/g, '\n    sage:')
+            # The first regexp replaces a newline followed by a whitespace character by a newline followed by indented dots.
+            # The second regexp replaces a newline that is followed by non-whitespace by an indented prompt.
+            p = '\n    ' + prompt
+            r += '    sage: ' + code.replace(/\n\s/g,'\n    ...    ').replace(/\n(\S)(.*)/g, p+'$1$2')
         for o in cell.find(".salvus-cell-output").children()
             s = $(o)
             cls = s.attr('class').slice(7)

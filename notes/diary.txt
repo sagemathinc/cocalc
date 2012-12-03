@@ -8066,11 +8066,14 @@ goal for now:
    [x] make it so disabled buttons don't do anything.
    [x] indicator when session restarts + countdown timer
 
-   [ ] jquery spinner -- might as well do it.
+   [x] jquery spinner -- might as well do it.
 
+------
+
+Dec 3, 2012:
+============
    [ ] tab completion
-
-   [ ] mini-interacts
+   [ ] interacts
    [ ] multiple scratch worksheets... will be just like sage notebook!
 
 --------
