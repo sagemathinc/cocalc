@@ -45,7 +45,10 @@ def get_variable(var_uuid):
     namespace, name = variables[var_uuid]
     return namespace[name]
 
-def input_box(variable, namespace=None, from_str=None, default=None):
+def input_box(variable, label='', namespace=None, from_str=None, default=None, container_id=None):
+    if container_id is None:
+        container_id = uuid()
+        salvus.html("<span id='%s'></span>"%container_id)
 
     if namespace is None:
         namespace = salvus.namespace
@@ -73,13 +76,11 @@ def input_box(variable, namespace=None, from_str=None, default=None):
         def do_from_str(x): return str(x)
 
     def variable_changed_in_browser(val):
-        namespace.set_without_trigger(variable, do_from_str(val))
-
+        namespace.set(variable, do_from_str(val), do_not_trigger=[variable_changed_in_python])
     cb_uuid = register_callback(variable_changed_in_browser)
 
     def variable_changed_in_python(val):
-        salvus.execute_coffeescript("$('#%s').val('%s')"%(cb_uuid,val))
-
+        salvus.execute_coffeescript("$('#%s').find('input').val('%s')"%(cb_uuid,val))
     namespace.on('change', variable, variable_changed_in_python)
 
     def variable_deleted_in_python():
@@ -92,13 +93,17 @@ def input_box(variable, namespace=None, from_str=None, default=None):
     else:
         variable_changed_in_browser(namespace[variable])
 
-    salvus.execute_coffeescript("interact.input_box(cell:cell, cb_uuid:'%s', value:'%s')"%(cb_uuid, namespace[variable]))
+    # create the input box
+    salvus.execute_coffeescript("$('#%s').append(interact.input_box(data))"%container_id,
+              data = {'cb_uuid':cb_uuid, 'value':namespace[variable], 'label':label})
+
+    return container_id
 
 
 def checkbox(variable, label='', namespace=None, default=False, container_id=None):
     if container_id is None:
         container_id = uuid()
-        salvus.html("<div id='%s'></div>"%container_id)
+        salvus.html("<span id='%s'></span>"%container_id)
 
     default = bool(default)
 
@@ -127,6 +132,7 @@ def checkbox(variable, label='', namespace=None, default=False, container_id=Non
 
     def variable_deleted_in_python():
         variable_changed_in_python(False)
+
     namespace.on('del', variable, variable_deleted_in_python)
 
     if variable not in namespace:

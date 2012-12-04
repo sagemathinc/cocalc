@@ -691,10 +691,13 @@
             cell      : required
             cb_uuid   : required
             value     : ''
-        output = opts.cell.find(".salvus-cell-output").show()
-        box = templates.find(".interact-input-box").clone().attr('id', opts.cb_uuid).val(opts.value)
-        output.append(box)
-        box.on('change', () -> interact.call(cb_uuid:opts.cb_uuid, value:box.val()))
+            label     : undefined
+        box = templates.find(".interact-input-box").clone().attr('id', opts.cb_uuid)
+        input = box.find("input")
+        input.val(opts.value).on('change', () -> interact.call(cb_uuid:opts.cb_uuid, value:box.val()))
+        if opts.label?
+            box.find("span").html(opts.label)
+        return box
 
     interact.checkbox = (opts) ->
         opts = defaults opts,
