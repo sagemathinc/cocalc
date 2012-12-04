@@ -88,24 +88,19 @@ message(
     session_uuid : undefined
 )
 
-#
-# This message tells the client to execute the given Javascript code in the browser.
-# Of course, for safety, the client may choose to ignore this message.  If coffeescript
-# is set to true, then the code is assumed to be coffeescript and is first compiled
-# to Javascript.
+# This message tells the client to execute the given Javascript code
+# in the browser.  (For safety, the client may choose to ignore this
+# message.)  If coffeescript==true, then the code is assumed to be
+# coffeescript and is first compiled to Javascript.  This message is
+# "out of band", i.e., not meant to be part of any particular output
+# cell.  That is why there is no id key.
 
-# sage_server --> client 
+# sage_server --> hub --> client 
 message(
     event        : 'execute_javascript'
-    session_uuid : undefined
-    id           : undefined
+    session_uuid : undefined              # set by the hub, since sage_server doesn't (need to) know the session_uuid.
     code         : required
     coffeescript : false
-)
-
-message(
-    event : 'execute_javascript'
-
 )
 
 

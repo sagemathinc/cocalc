@@ -104,7 +104,7 @@ class Message(object):
     def execute_code(self, id, code, preparse=True):
         return self._new('execute_code', locals())
 
-    def execute_javascript(self, id, code, coffeescript=False):
+    def execute_javascript(self, code, coffeescript=False):
         return self._new('execute_javascript', locals())
 
     def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, obj=None, done=None):
@@ -219,6 +219,10 @@ class Salvus(object):
         self._conn.send(message.output(stdout=str(output), done=done, id=self._id))
     def stderr(self, output, done=False):
         self._conn.send(message.output(stderr=str(output), done=done, id=self._id))
+    def execute_javascript(self, code):
+        self._conn.send(message.execute_javascript(code))
+    def execute_coffeescript(self, code):
+        self._conn.send(message.execute_javascript(code, coffeescript=True))
 
 def execute(conn, id, code, preparse):
     # initialize the salvus output streams

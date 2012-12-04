@@ -788,21 +788,34 @@
     persistent_session = null
 
     mark_session_as_dead = () -> persistent_session = null
+    _get_session_queue = undefined
 
     get_session = (cb) ->
         if persistent_session == null
+            if _get_session_queue?
+                _get_sessin_queue.push(cb)
+                return
+            _get_session_queue = [cb]
             salvus_client.new_session
+                limits: {walltime:60}
                 timeout: 5
                 cb: (error, session) ->
                     if error
-                        cb(true, error)
+                        for cb in _get_session_queue
+                            cb(true, error)
+                        _get_session_queue = undefined
                     else
                         persistent_session = session
-                        cb(false, persistent_session)
                         start_session_timer(session.limits.walltime)
                         session.on("close", () ->
                             mark_session_as_dead()
                         )
+                        session.on("execute_javascript", (mesg) ->
+                            eval(if mesg.coffeescript then CoffeeScript.compile(mesg.code) else mesg.code)
+                        )
+                        for cb in _get_session_queue
+                            cb(false, persistent_session)
+                        _get_session_queue = undefined
         else
             cb(false, persistent_session)
 
@@ -1008,7 +1021,6 @@
 
      # TODO: the logic of this load scratch is unclear...
     load_scratch_worksheet = () ->
-
         if views.worksheet?
             return
         salvus_client.load_scratch_worksheet

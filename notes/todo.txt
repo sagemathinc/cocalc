@@ -1,3 +1,5 @@
+  [ ] ** limit number of sessions per user: **
+          - include something in GUI listing open sessions with easy "kill all"
 
   [ ] completion issues:
        * galaxy tab 8.9 -- always gives first completion

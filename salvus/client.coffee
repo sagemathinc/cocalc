@@ -12,6 +12,7 @@ class Session extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
     #    - 'close'  -- session's connection is closed/terminated
+    #    - 'execute_javascript' -- code that server wants client to run related to this session
     constructor: (opts) ->
         opts = defaults opts,
             conn         : required  # a Connection instance
@@ -56,6 +57,7 @@ class exports.Connection extends EventEmitter
     #    - 'connected'  -- succesfully established a connection; data is the protocol as a string
     #    - 'error'      -- called when an error occurs
     #    - 'output'     -- received some output for stateless execution (not in any session)
+    #    - 'execute_javascript' -- code that server wants client to run (not for a particular session)
     #    - 'ping'       -- a pong is received back; data is the round trip ping time
     #    - 'message'    -- any message is received
     #    - 'signed_in'  -- server pushes a succesful sign in to the client (e.g., due to
@@ -65,6 +67,7 @@ class exports.Connection extends EventEmitter
     #                      the project list is currently being displayed.
     #    - 'project_data_changed - sent when data about a specific project has changed,
     #                      e.g., title/description/settings/etc.
+
 
 
     constructor: (@url) ->
@@ -106,6 +109,11 @@ class exports.Connection extends EventEmitter
 
     handle_message: (mesg) ->
         switch mesg.event
+            when "execute_javascript"
+                if mesg.session_uuid?
+                    @_sessions[mesg.session_uuid].emit("execute_javascript", mesg)
+                else
+                    @emit("execute_javascript", mesg)
             when "output"
                 cb = @execute_callbacks[mesg.id]
                 if cb?

@@ -11,12 +11,12 @@
 }
 
 .salvus-input-cell-focus {
-    border: 3px solid #99f;
+    border: 2px solid #99f;
     box-shadow: 4px 4px 2px #bbf;
 }
 
 .salvus-input-cell-blur {
-    border: 1px solid #dedede;
+    border: 2px solid #f0f0f0;
 }
 
 .salvus-templates {
