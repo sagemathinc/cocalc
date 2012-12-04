@@ -700,10 +700,12 @@
         opts = defaults opts,
             cb_uuid : required
             value   : false
-        # TODO - debugging
-        console.log("making a checkbox")
-        checkbox = templates.find(".interact-checkbox").clone().attr('id', opts.cb_uuid).attr('checked', opts.value)
-        checkbox.on('change', () -> interact.call(cb_uuid:opts.cb_uuid, value:checkbox.attr('checked')))
+            label   : undefined
+        checkbox = templates.find(".interact-checkbox").clone().attr('id', opts.cb_uuid)
+        input = checkbox.find("input")
+        input.attr('checked', opts.value).on('change', () -> interact.call(cb_uuid:opts.cb_uuid, value:input.attr('checked')))
+        if opts.label?
+            checkbox.find("span").html(opts.label)
         return checkbox
 
 
@@ -809,7 +811,7 @@
                 return
             _get_session_queue = [cb]
             salvus_client.new_session
-                limits: {walltime:60}
+                limits: {walltime:3*60}
                 timeout: 20
                 cb: (error, session) ->
                     if error

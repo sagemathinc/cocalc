@@ -95,7 +95,7 @@ def input_box(variable, namespace=None, from_str=None, default=None):
     salvus.execute_coffeescript("interact.input_box(cell:cell, cb_uuid:'%s', value:'%s')"%(cb_uuid, namespace[variable]))
 
 
-def checkbox(variable, namespace=None, default=False, container_id=None):
+def checkbox(variable, label='', namespace=None, default=False, container_id=None):
     if container_id is None:
         container_id = uuid()
         salvus.html("<div id='%s'></div>"%container_id)
@@ -122,7 +122,7 @@ def checkbox(variable, namespace=None, default=False, container_id=None):
     cb_uuid = register_callback(variable_changed_in_browser)
 
     def variable_changed_in_python(val):
-        salvus.execute_coffeescript("$('#%s').attr('checked', data)"%cb_uuid, data=bool(val))
+        salvus.execute_coffeescript("$('#%s').find('input').attr('checked', data)"%cb_uuid, data=bool(val))
     namespace.on('change', variable, variable_changed_in_python)
 
     def variable_deleted_in_python():
@@ -135,7 +135,7 @@ def checkbox(variable, namespace=None, default=False, container_id=None):
         variable_changed_in_browser(namespace[variable])
 
     # create the checkbox.
-    salvus.execute_coffeescript("$('#%s').append(interact.checkbox(cb_uuid:'%s', value:data))"%(container_id, cb_uuid),
-                                data = namespace[variable])
+    salvus.execute_coffeescript("$('#%s').append(interact.checkbox(data))"%container_id,
+              data = {'cb_uuid':cb_uuid, 'value':namespace[variable], 'label':label})
 
     return container_id
