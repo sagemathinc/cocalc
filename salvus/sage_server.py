@@ -203,10 +203,54 @@ class OutputStream(object):
         self._f(self._buf, done=done)
         self._buf = ''
 
+
+# This will *have* to be re-done using Cython for speed.
+class Namespace(dict):
+    def __init__(self, x):
+        self._on_change = {}
+        self._on_del = {}
+        dict.__init__(self, x)
+
+    def on(self, event, x, f=None):
+        if event == 'change':
+            if f is None:
+                try:
+                    del self._on_change[x]
+                except KeyError:
+                    pass
+            else:
+                self._on_change[x] = f
+        elif event == 'del':
+            if f is None:
+                try:
+                    del self._on_del[x]
+                except KeyError:
+                    pass
+            else:
+                self._on_del[x] = f
+
+    def __setitem__(self, x, y):
+        dict.__setitem__(self, x, y)
+        if self._on_change.has_key(x):
+            self._on_change[x](y)
+
+    def __delitem__(self, x):
+        if self._on_del.has_key(x):
+            self._on_del[x]()
+        dict.__delitem__(self, x)
+
+    def set_without_trigger(self, x, y):
+        dict.__setitem__(self, x, y)
+
+namespace = Namespace({})
+
 class Salvus(object):
-    def __init__(self, conn, id):
+    Namespace = Namespace
+    
+    def __init__(self, conn, id, data=None):
         self._conn = conn
         self._id   = id
+        self.data = data
         self.namespace = namespace 
         namespace['salvus'] = self   # beware of circular ref?
 
@@ -227,9 +271,9 @@ class Salvus(object):
     def execute_coffeescript(self, code):
         self._conn.send(message.execute_javascript(code, coffeescript=True))
 
-def execute(conn, id, code, preparse):
+def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
-    salvus = Salvus(conn=conn, id=id)
+    salvus = Salvus(conn=conn, id=id, data=data)
 
     try:
         streams = (sys.stdout, sys.stderr)
@@ -271,7 +315,7 @@ def drop_privileges(id, home):
     os.environ['IPYTHON_DIR'] = home
     os.chdir(home)
 
-namespace = {}
+
 def session(conn, home, cputime, numfiles, vmem, uid):
     pid = os.getpid()
     if home is not None:
@@ -308,7 +352,7 @@ def session(conn, home, cputime, numfiles, vmem, uid):
             if event == 'terminate_session':
                 return
             elif event == 'execute_code':
-                execute(conn=conn, id=mesg['id'], code=mesg['code'], preparse=mesg['preparse'])
+                execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
             elif event == 'introspect':
                 introspect(conn=conn, id=mesg['id'],
                            text_before_cursor=mesg['text_before_cursor'],

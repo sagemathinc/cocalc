@@ -396,7 +396,7 @@
             return
         # 2. If there is not a non-whitespace character right before the cursor (on the same line), send a normal tab key.
         pos = editor.getCursor()
-        if pos.ch == 0 or editor.getRange({line:pos.line, ch:pos.ch-1}, pos).search(/\s/) != -1
+        if pos.ch == 0 or editor.getRange({line:pos.line, ch:pos.ch-1}, pos).search(/[\s|\)]/) != -1
             CodeMirror.commands.defaultTab(editor)
             return
         # 3. Otherwise, introspect.
@@ -680,8 +680,9 @@
             value   : required
         v = misc.to_json(opts.value)
         salvus_exec
-            input : "sage_salvus.call('#{opts.cb_uuid}', '#{misc.to_json(opts.value)}')"
-            cb : (mesg) ->
+            input : "sage_salvus.call('#{opts.cb_uuid}', salvus.data)"
+            data  : opts.value
+            cb    : (mesg) ->
                 # TODO - debugging
                 console.log(misc.to_json(mesg))
 
@@ -689,10 +690,11 @@
         opts = defaults opts,
             cell      : required
             cb_uuid   : required
+            value     : ''
         # TODO - debugging
         console.log("making an input box")
         output = opts.cell.find(".salvus-cell-output").show()
-        box = templates.find(".interact-input-box").clone()
+        box = templates.find(".interact-input-box").clone().attr('id', opts.cb_uuid).val(opts.value)
         output.append(box)
         box.on('change', () -> interact.call(cb_uuid:opts.cb_uuid, value:box.val()))
 
@@ -883,8 +885,9 @@
 
     salvus_exec = (opts) ->
         opts = defaults opts,
-            input: required
-            cb: required
+            input : required
+            data  : undefined
+            cb    : required
 
         get_session (error, s) ->
             if error
@@ -893,6 +896,7 @@
             else
                 s.execute_code
                     code        : opts.input
+                    data        : opts.data
                     cb          : opts.cb
                     preparse    : true
 

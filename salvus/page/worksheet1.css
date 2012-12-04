@@ -112,20 +112,20 @@ pre {
 }
 
 .salvus-cell-insert-before {
-    height:5px;
+    height:6px;
 }
 .salvus-cell-insert-before:hover {
-    border: 1px solid lightblue;
+    border:  2px solid #99f;
     background-color: lightyellow;
-    height:15px;
+    height:2px;
 }
 .salvus-cell-insert-after {
-    height:5px;
+    height:6px;
 }
 .salvus-cell-insert-after:hover {
-    border: 1px solid lightblue;
+    border: 2px solid #99f;
     background-color: lightyellow;
-    height:15px;
+    height:2px;
 }
 
 .salvus-completions {

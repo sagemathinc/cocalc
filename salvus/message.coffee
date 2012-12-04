@@ -68,6 +68,7 @@ message(
     event        : 'execute_code'
     id           : undefined
     code         : required
+    data         : undefined
     session_uuid : undefined
     preparse     : true
     allow_cache  : true

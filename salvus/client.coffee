@@ -31,12 +31,26 @@ class Session extends EventEmitter
     # If cb is given, it is called every time output for this particular code appears;
     # No matter what, you can always still listen in with the 'output' even, and note
     # the uuid, which is returned from this function.
-    execute_code: (opts={}) ->
-        opts = defaults(opts, code:defaults.required, cb:null, preparse:true)
+    execute_code: (opts) ->
+        opts = defaults opts,
+            code     : required
+            cb       : undefined
+            data     : undefined
+            preparse : true
+
         uuid = misc.uuid()
         if opts.cb?
             @conn.execute_callbacks[uuid] = opts.cb
-        @conn.send(message.execute_code(id:uuid, code:opts.code, session_uuid:@session_uuid, preparse:opts.preparse))
+
+        @conn.send(
+            message.execute_code
+                id   : uuid
+                code : opts.code
+                data : opts.data
+                session_uuid : @session_uuid
+                preparse : opts.preparse
+        )
+
         return uuid
 
     # default = SIGINT
