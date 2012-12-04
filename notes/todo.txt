@@ -185,3 +185,4 @@ Lower priority todo:
 
 
 
+  [ ] do not repeat same notification over and over again

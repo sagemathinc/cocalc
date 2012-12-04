@@ -8144,3 +8144,16 @@ cell.find("button").click () ->
    [ ] * interrupt button could be green, but change to yellow when code is running.
       * restart could be green, but change to yellow when a session is active.
 
+-----------------------
+
+Dec 4, 2012:
+============
+
+How is an interact <input> going to work, say:
+
+  - worry about "where" later.
+
+Input: a variable, which means -- namespace & name
+
+   - generate a uuid
+

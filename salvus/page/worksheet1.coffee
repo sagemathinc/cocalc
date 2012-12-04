@@ -793,12 +793,12 @@
     get_session = (cb) ->
         if persistent_session == null
             if _get_session_queue?
-                _get_sessin_queue.push(cb)
+                _get_session_queue.push(cb)
                 return
             _get_session_queue = [cb]
             salvus_client.new_session
                 limits: {walltime:60}
-                timeout: 5
+                timeout: 20
                 cb: (error, session) ->
                     if error
                         for cb in _get_session_queue
@@ -1023,8 +1023,10 @@
     load_scratch_worksheet = () ->
         if views.worksheet?
             return
+            
+        worksheet1.find(".salvus-worksheet-loading").show()
         salvus_client.load_scratch_worksheet
-            timeout: 10
+            timeout: 15
             cb: (error, data) ->
                 worksheet_view()
                 if views.worksheet?
@@ -1040,6 +1042,7 @@
                 worksheet_is_clean()
                 if not isMobile.any()
                     focus_editor_on_first_cell()
+                worksheet1.find(".salvus-worksheet-loading").hide()
 
     #salvus_client.once "connected", () ->
     #    load_scratch_worksheet()
