@@ -158,3 +158,10 @@ pre {
     padding: 1ex;
     color: #888;
 }
+
+.salvus-cell-stopwatch {
+    margin-left:-11ex;
+    position:absolute;
+    font-size:9pt;
+    padding:1px;
+}

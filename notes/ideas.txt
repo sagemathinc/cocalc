@@ -86,3 +86,4 @@
      "Measure students' understanding in real-time"
 
 
+[ ] nps but pretty -- https://mail.google.com/mail/u/0/?shva=1#inbox/13b5e9fdbed7c5f7

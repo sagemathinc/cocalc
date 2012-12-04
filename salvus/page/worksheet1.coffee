@@ -653,11 +653,25 @@ $(() ->
             hwaccel : false # crashes VirtualBox...
             top     : -5
             left    : 2
-        ).click((e) -> interrupt_session())
+        )
+
+    start_cell_stopwatch = (cell, start_milliseconds=0) ->
+        t = new Date()
+        t.setTime(t.getTime() - start_milliseconds)
+        cell.find(".salvus-cell-stopwatch").show().countdown('destroy').countdown(
+            since      : t
+            compact    : true
+            layout     : '{hnn}{sep}{mnn}{sep}{snn}'
+        ).click((e) -> interrupt_session(); remove_cell_stopwatch(cell))
 
     stop_cell_spinner = (cell) ->
         cell.find(".salvus-running").spin(false).hide()
 
+    stop_cell_stopwatch = (cell) ->
+        cell.find(".salvus-cell-stopwatch").countdown('pause')
+
+    remove_cell_stopwatch = (cell) -> 
+        cell.find(".salvus-cell-stopwatch").countdown('destroy').hide()
 
     execute_cell = (cell) ->
         worksheet_is_dirty()
@@ -665,11 +679,10 @@ $(() ->
         input = cell.find(".salvus-cell-input")
         output = cell.find(".salvus-cell-output").show()
         delete_cell_output(cell)
+        remove_cell_stopwatch(cell)
 
         if input_text.trim() != ""
-            # activity() -- looks bad and crashes chrome on linux hard.
-            # # .activity(width:1.5, segments:14)
-            timer = setTimeout((() -> start_cell_spinner(cell)), 400)
+            timer = setTimeout((() -> start_cell_spinner(cell); start_cell_stopwatch(cell,1000)), 1000)
 
             salvus_exec
                 input: input_text
@@ -678,6 +691,7 @@ $(() ->
                     if mesg.done
                         clearTimeout(timer)
                         stop_cell_spinner(cell)
+                        stop_cell_stopwatch(cell)
 
         next = cell.next()
         if next.length == 0

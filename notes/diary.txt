@@ -8072,11 +8072,15 @@ goal for now:
 
 Dec 3, 2012:
 ============
-   [ ] tab completion
-   [ ] interacts
-   [ ] multiple scratch worksheets... will be just like sage notebook!
+   [x] tab completion
 
-   [ ] countup timer about how long a computation is going (part of spinner stuff... and I think countdown has this feature?)
+   [x] countup timer about how long a computation has been going (part of spinner stuff... and I think countdown has this feature?)
+
+   [ ] multiple scratch worksheets...
+   [ ] interacts
+
+
+   [ ] potential execution issue  -- if session is interrupted, then some exec's will never get a mesg.done ?
 
 --------
 
