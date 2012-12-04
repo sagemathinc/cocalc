@@ -104,7 +104,7 @@ class Message(object):
     def execute_code(self, id, code, preparse=True):
         return self._new('execute_code', locals())
 
-    def execute_javascript(self, code, coffeescript=False):
+    def execute_javascript(self, code, data=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
     def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, obj=None, done=None):
@@ -211,36 +211,53 @@ class Namespace(dict):
         self._on_del = {}
         dict.__init__(self, x)
 
-    def on(self, event, x, f=None):
+    def on(self, event, x, f):
         if event == 'change':
-            if f is None:
-                try:
-                    del self._on_change[x]
-                except KeyError:
-                    pass
-            else:
-                self._on_change[x] = f
+            if x not in self._on_change:
+                self._on_change[x] = []
+            self._on_change[x].append(f)
         elif event == 'del':
-            if f is None:
-                try:
-                    del self._on_del[x]
-                except KeyError:
-                    pass
-            else:
-                self._on_del[x] = f
+            if x not in self._on_del:
+                self._on_del[x] = []
+            self._on_del[x].append(f)
+
+    def remove(self, event, x, f):
+        if event == 'change' and self._on_change.has_key(x):
+            v = self._on_change[x]
+            i = v.find(f)
+            if i != -1:
+                del v[i]
+            if len(v) == 0:
+                del self._on_change[x]
+        elif event == 'del' and self._on_del.has_key(x):
+            v = self._on_del[x]
+            i = v.find(f)
+            if i != -1:
+                del v[i]
+            if len(v) == 0:
+                del self._on_del[x]
 
     def __setitem__(self, x, y):
         dict.__setitem__(self, x, y)
         if self._on_change.has_key(x):
-            self._on_change[x](y)
+            for f in self._on_change[x]:
+                f(y)
 
     def __delitem__(self, x):
         if self._on_del.has_key(x):
-            self._on_del[x]()
+            for f in self._on_del[x]:
+                f()
         dict.__delitem__(self, x)
 
-    def set_without_trigger(self, x, y):
+    def set(self, x, y, do_not_trigger=None):
         dict.__setitem__(self, x, y)
+        if self._on_change.has_key(x):
+            if do_not_trigger is None:
+                do_not_trigger = []
+            for f in self._on_change[x]:
+                if f not in do_not_trigger:
+                    f(y)
+
 
 namespace = Namespace({})
 
@@ -266,10 +283,10 @@ class Salvus(object):
         self._conn.send(message.output(stdout=str(output), done=done, id=self._id))
     def stderr(self, output, done=False):
         self._conn.send(message.output(stderr=str(output), done=done, id=self._id))
-    def execute_javascript(self, code):
-        self._conn.send(message.execute_javascript(code))
-    def execute_coffeescript(self, code):
-        self._conn.send(message.execute_javascript(code, coffeescript=True))
+    def execute_javascript(self, code, data=None):
+        self._conn.send(message.execute_javascript(code, data=data))
+    def execute_coffeescript(self, code, data=None):
+        self._conn.send(message.execute_javascript(code, data=data, coffeescript=True))
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams

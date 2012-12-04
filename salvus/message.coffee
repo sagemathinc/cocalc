@@ -101,6 +101,7 @@ message(
     event        : 'execute_javascript'
     session_uuid : undefined              # set by the hub, since sage_server doesn't (need to) know the session_uuid.
     code         : required
+    data         : undefined
     coffeescript : false
 )
 

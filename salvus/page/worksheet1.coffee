@@ -691,12 +691,20 @@
             cell      : required
             cb_uuid   : required
             value     : ''
-        # TODO - debugging
-        console.log("making an input box")
         output = opts.cell.find(".salvus-cell-output").show()
         box = templates.find(".interact-input-box").clone().attr('id', opts.cb_uuid).val(opts.value)
         output.append(box)
         box.on('change', () -> interact.call(cb_uuid:opts.cb_uuid, value:box.val()))
+
+    interact.checkbox = (opts) ->
+        opts = defaults opts,
+            cb_uuid : required
+            value   : false
+        # TODO - debugging
+        console.log("making a checkbox")
+        checkbox = templates.find(".interact-checkbox").clone().attr('id', opts.cb_uuid).attr('checked', opts.value)
+        checkbox.on('change', () -> interact.call(cb_uuid:opts.cb_uuid, value:checkbox.attr('checked')))
+        return checkbox
 
 
     ########################################
@@ -712,7 +720,9 @@
             compact    : true
             layout     : '{hnn}{sep}{mnn}{sep}{snn}'
             expiryText : "session killed (after #{seconds} seconds)"
-            onExpiry   : mark_session_as_dead
+            onExpiry   : () ->
+                mark_session_as_dead()
+                alert_message(type:"info", message:"Sage session killed (after #{seconds} seconds).", block:true)
 
     delete_session_timer = () ->
         views.worksheet.find('.salvus-worksheet-countdown-timer').countdown('destroy').hide()
@@ -813,6 +823,8 @@
                             mark_session_as_dead()
                         )
                         session.on("execute_javascript", (mesg) ->
+                            if mesg.data?
+                                data = mesg.data
                             eval(if mesg.coffeescript then CoffeeScript.compile(mesg.code) else mesg.code)
                         )
                         for cb in _get_session_queue
@@ -1027,7 +1039,7 @@
     load_scratch_worksheet = () ->
         if views.worksheet?
             return
-            
+
         worksheet1.find(".salvus-worksheet-loading").show()
         salvus_client.load_scratch_worksheet
             timeout: 15

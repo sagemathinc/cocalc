@@ -92,4 +92,50 @@ def input_box(variable, namespace=None, from_str=None, default=None):
     else:
         variable_changed_in_browser(namespace[variable])
 
-    salvus.coffeescript("interact.input_box(cell:cell, cb_uuid:'%s', value:'%s')"%(cb_uuid, namespace[variable]))
+    salvus.execute_coffeescript("interact.input_box(cell:cell, cb_uuid:'%s', value:'%s')"%(cb_uuid, namespace[variable]))
+
+
+def checkbox(variable, namespace=None, default=False, container_id=None):
+    if container_id is None:
+        container_id = uuid()
+        salvus.html("<div id='%s'></div>"%container_id)
+
+    default = bool(default)
+
+    if namespace is None:
+        namespace = salvus.namespace
+    elif not isinstance(namespace, salvus.Namespace):
+        raise TypeError, "namespace must be of type salvus.Namespace."
+    if not isinstance(variable, str):
+        i = id(variable)
+        variable = None
+        for x, y in namespace.iteritems():
+            if id(y) == i:
+                if variable is not None:
+                    raise ValueError, "variable does not uniquely determine its name -- use a string instead"
+                variable = x
+        if variable is None:
+            raise ValueError, "variable does not determine its name -- use a string instead"
+
+    def variable_changed_in_browser(val):
+        namespace.set(variable, bool(val), do_not_trigger=[variable_changed_in_python])
+    cb_uuid = register_callback(variable_changed_in_browser)
+
+    def variable_changed_in_python(val):
+        salvus.execute_coffeescript("$('#%s').attr('checked', data)"%cb_uuid, data=bool(val))
+    namespace.on('change', variable, variable_changed_in_python)
+
+    def variable_deleted_in_python():
+        variable_changed_in_python(False)
+    namespace.on('del', variable, variable_deleted_in_python)
+
+    if variable not in namespace:
+        namespace[variable] = default
+    else:
+        variable_changed_in_browser(namespace[variable])
+
+    # create the checkbox.
+    salvus.execute_coffeescript("$('#%s').append(interact.checkbox(cb_uuid:'%s', value:data))"%(container_id, cb_uuid),
+                                data = namespace[variable])
+
+    return container_id
