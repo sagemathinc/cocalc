@@ -8073,11 +8073,19 @@ goal for now:
 Dec 3, 2012:
 ============
    [x] tab completion
+   [x] count-up timer about how long a computation has been going (part of spinner stuff... and I think countdown has this feature?)
 
-   [x] countup timer about how long a computation has been going (part of spinner stuff... and I think countdown has this feature?)
+
+   [ ] interacts:
+[ ] make a list of some controls:
+   - text input
+   - slider
+   - color selector
+[ ] make jquery plugins them:
+[ ] put it together
+[ ] layout designer?  -- use jquery draggable and save style coords?
 
    [ ] multiple scratch worksheets...
-   [ ] interacts
 
 
    [ ] potential execution issue  -- if session is interrupted, then some exec's will never get a mesg.done ?

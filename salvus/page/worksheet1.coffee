@@ -609,7 +609,13 @@ $(() ->
                     eval(opts.value)
                 else
                     eval(CoffeeScript.compile(opts.value))
-            else
+            when 'stdout', 'stderr'
+                last_output = output.find(":last-child")
+                if last_output.length > 0 and last_output.hasClass()
+                    last_output.text(last_output.text() + opts.value)
+                else
+                    output.append(templates.find(css_class_selector).clone().text(opts.value))
+            when 'html'
                 last_output = output.find(":last-child")
                 if last_output.length > 0 and last_output.hasClass()
                     last_output.html(last_output.html() + opts.value)
@@ -619,7 +625,7 @@ $(() ->
     ########################################
     # Countdown timer until session expires
     ########################################
-    
+
     start_session_timer = (seconds) ->
         #console.log(seconds)
         t = new Date()
@@ -670,7 +676,7 @@ $(() ->
     stop_cell_stopwatch = (cell) ->
         cell.find(".salvus-cell-stopwatch").countdown('pause')
 
-    remove_cell_stopwatch = (cell) -> 
+    remove_cell_stopwatch = (cell) ->
         cell.find(".salvus-cell-stopwatch").countdown('destroy').hide()
 
     execute_cell = (cell) ->

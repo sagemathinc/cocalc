@@ -164,4 +164,6 @@ pre {
     position:absolute;
     font-size:9pt;
     padding:1px;
+    color:#888;
+    background-color:#ccc;
 }
