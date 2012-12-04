@@ -8153,7 +8153,41 @@ How is an interact <input> going to work, say:
 
   - worry about "where" later.
 
-Input: a variable, which means -- namespace & name
-
+Input:
+  a variable, which means -- namespace & name
+  a control type and properties -- "input"
    - generate a uuid
+   - when variable is changed, send a message to browser to update the control
+   - when control is changed, send message to sage to update variable to match (but obviously shouldn't fire message back to browser!)
+   - when variable is changed in any way, fire any on-change events, which are calls to Python code.
+
+# start with this
+
+import sage_salvus
+a = 10
+ib = sage_salvus.input_box(variable='a', globals()) 
+
+a = 20
+ib.update()  # will cause control to change in browser
+
+# now change to 30 in browser
+print a
+# get 30
+
+def f(e):
+    salvus.execute_coffeescript("alert 'hi'")
+
+ib.on('change', f)
+
+
+
+
+
+m = interact.namespace()
+m['a'] = 5
+ib = interact.input_box(variable='a', namespace=m)
+m['a'] = 20
+
+
+
 

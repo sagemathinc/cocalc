@@ -4,7 +4,7 @@
 #                                                                                #
 ##################################################################################
 
-salvus_streams = None
+salvus = None
 
 
 import json
@@ -20,11 +20,11 @@ def register_callback(f):
     return cb_uuid
 
 def call(cb_uuid, value):
-    salvus_streams.obj(callbacks[cb_uuid](json.loads(value)))
+    salvus.obj(callbacks[cb_uuid](json.loads(value)))
 
-def input_box(cb):
+def input_box0(cb):
     cb_uuid = register_callback(cb)
-    salvus_streams.coffeescript("interact.input_box(cell:cell, cb_uuid:'%s')"%cb_uuid)
+    salvus.coffeescript("interact.input_box(cell:cell, cb_uuid:'%s')"%cb_uuid)
 
 
 ########################
@@ -45,3 +45,7 @@ def get_variable(var_uuid):
     namespace, name = variables[var_uuid]
     return namespace[name]
 
+def input_box(variable, namespace=None):
+    if namespace is None:
+        namespace = salvus.namespace
+    salvus.execute_coffeescript

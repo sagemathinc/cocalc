@@ -49,7 +49,7 @@
                         alert_message(type:"error", message:"Unable to start a Sage session in which to introspect.")
                         cb(true)
                     else
-                        session = s
+                            session = s
                         cb()
             (cb) ->
                 input = editor.getRange(from, to)
