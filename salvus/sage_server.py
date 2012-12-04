@@ -207,6 +207,9 @@ class Salvus(object):
     def __init__(self, conn, id):
         self._conn = conn
         self._id   = id
+        self.namespace = namespace 
+        namespace['salvus'] = self   # beware of circular ref?
+
     def javascript(self, code, done=False):
         self._conn.send(message.output(javascript=code, id=self._id, done=done))
     def coffeescript(self, code, done=False):
@@ -227,7 +230,6 @@ class Salvus(object):
 def execute(conn, id, code, preparse):
     # initialize the salvus output streams
     salvus = Salvus(conn=conn, id=id)
-    namespace['salvus'] = salvus
 
     try:
         streams = (sys.stdout, sys.stderr)
@@ -235,7 +237,7 @@ def execute(conn, id, code, preparse):
         sys.stderr = OutputStream(salvus.stderr)
         try:
             # initialize more salvus functionality
-            import sage_salvus; sage_salvus.salvus_streams = salvus
+            import sage_salvus; sage_salvus.salvus = salvus
             namespace['sage_salvus'] = sage_salvus
         except:
             traceback.print_exc()
@@ -317,6 +319,7 @@ def session(conn, home, cputime, numfiles, vmem, uid):
             pass
 
 def introspect(conn, id, text_before_cursor, text_after_cursor):
+    salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works.
     expr = text_before_cursor
     z = parsing.completions(text_before_cursor, namespace=namespace, docstring=False, preparse=True)
     completions = [expr + a for a in z['result']]
