@@ -8076,19 +8076,27 @@ Dec 3, 2012:
    [x] count-up timer about how long a computation has been going (part of spinner stuff... and I think countdown has this feature?)
 
 
-   [ ] interacts:
+   [ ] simple interacts:
+GOAL:
+
+@interact
+def f(n=(1..10), m=[1,2,3]):
+    print n, m
+
+
 [ ] make a list of some controls:
-   - text input
+
+   - input_box(default=None, label=None, type=None)
+
    - slider
    - color selector
 [ ] make jquery plugins them:
 [ ] put it together
 [ ] layout designer?  -- use jquery draggable and save style coords?
-
    [ ] multiple scratch worksheets...
-
-
    [ ] potential execution issue  -- if session is interrupted, then some exec's will never get a mesg.done ?
+
+
 
 --------
 

@@ -83,6 +83,7 @@ message(
     html         : undefined
     javascript   : undefined
     coffeescript : undefined
+    json         : undefined
     done         : false
     session_uuid : undefined
 )

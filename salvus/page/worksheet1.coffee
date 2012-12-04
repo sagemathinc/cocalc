@@ -1,5 +1,5 @@
 
-$(() ->
+(() ->
     async = require('async')
     misc = require('misc')
     client = require('client')
@@ -318,8 +318,11 @@ $(() ->
             switch cls
                 when 'javascript', 'coffeescript'
                     value = s.data('value')
-                else
+                when 'html'
                     value = s.html()
+                when 'stdout', 'stderr'
+                    value = s.text()
+                # other types are ignored -- e.g., interact data isn't saved
             output.push(class:cls, value:value)
         return {
             id     : cell.attr("id")
@@ -623,6 +626,32 @@ $(() ->
                     output.append(templates.find(css_class_selector).clone().html(opts.value))
 
     ########################################
+    # Interact controls
+    ########################################
+    interact = {}
+
+    interact.call = (opts) ->
+        opts = defaults opts,
+            cb_uuid : required
+            value   : required
+        v = misc.to_json(opts.value)
+        salvus_exec
+            input : "sage_salvus.call('#{opts.cb_uuid}', '#{misc.to_json(opts.value)}')"
+            cb : (mesg) ->
+                console.log(misc.to_json(mesg))
+
+    interact.input_box = (opts) ->
+        opts = defaults opts,
+            cell      : required
+            cb_uuid   : required
+        console.log("making an input box")
+        output = opts.cell.find(".salvus-cell-output").show()
+        box = templates.find(".interact-input-box").clone()
+        output.append(box)
+        box.on('change', () -> interact.call(cb_uuid:opts.cb_uuid, value:box.val()))
+
+
+    ########################################
     # Countdown timer until session expires
     ########################################
 
@@ -636,6 +665,9 @@ $(() ->
             layout     : '{hnn}{sep}{mnn}{sep}{snn}'
             expiryText : "session killed (after #{seconds} seconds)"
             onExpiry   : mark_session_as_dead
+
+    delete_session_timer = () ->
+        views.worksheet.find('.salvus-worksheet-countdown-timer').countdown('destroy').hide()
 
     ########################################
     # Editing / Executing code
@@ -735,6 +767,8 @@ $(() ->
     restart_session = () ->
         if persistent_session
             persistent_session.kill()
+            delete_session_timer()
+            mark_session_as_dead()
             alert_message(type:"success", message:"Restarted your Sage session.  (WARNING: Your variables are no longer defined.)")
             persistent_session = null
             views.worksheet.find(".salvus-running").hide()
@@ -926,7 +960,11 @@ $(() ->
         return false
     )
 
+     # TODO: the logic of this load scratch is unclear...
     load_scratch_worksheet = () ->
+
+        if views.worksheet?
+            return
         salvus_client.load_scratch_worksheet
             timeout: 10
             cb: (error, data) ->
@@ -945,9 +983,9 @@ $(() ->
                 if not isMobile.any()
                     focus_editor_on_first_cell()
 
-    salvus_client.once "connected", () ->
-        load_scratch_worksheet()
+    #salvus_client.once "connected", () ->
+    #    load_scratch_worksheet()
     salvus_client.on "signed_in", () ->
         load_scratch_worksheet()
 
-)
+)()
