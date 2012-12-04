@@ -31,9 +31,11 @@ def input_box(cb):
 
 variables = {}
 
-def register_variable(name, namespace):
-    var_uuid = uuid()
+def register_variable(name, namespace, var_uuid=None):
+    if var_uuid is None:
+        var_uuid = uuid()
     variables[var_uuid] = (namespace, name)
+    return var_uuid
 
 def set_variable(var_uuid, value):
     namespace, name = variables[var_uuid]

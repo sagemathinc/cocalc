@@ -606,12 +606,17 @@
         switch opts.class
             when 'javascript', 'coffeescript'
                 output.append(templates.find(css_class_selector).clone().data('value', opts.value))
-                # do it (!)
-                #console.log("eval'ing: #{opts.value}")
-                if opts.class == 'javascript'
-                    eval(opts.value)
-                else
-                    eval(CoffeeScript.compile(opts.value))
+                salvus =
+                    stdout : (value) -> append_cell_output(cell:cell, class:'stdout', value: value)
+                    stderr : (value) -> append_cell_output(cell:cell, class:'stderr', value: value)
+                    html   : (value) -> append_cell_output(cell:cell, class:'html', value: value)
+                try
+                    if opts.class == 'javascript'
+                        eval(opts.value)
+                    else
+                        eval(CoffeeScript.compile(opts.value))
+                catch e
+                    salvus.stderr("Error '#{e}' executing #{opts.class}: '#{opts.value}'")
             when 'stdout', 'stderr'
                 last_output = output.find(":last-child")
                 if last_output.length > 0 and last_output.hasClass()
@@ -630,6 +635,45 @@
     ########################################
     interact = {}
 
+    interact.register_variable = (opts) ->
+        opts = defaults opts,
+            name      : required
+            namespace : 'globals()'
+        var_uuid = uuid()
+        salvus_exec
+            input : "sage_salvus.register_variable('#{opts.name}', #{opts.namespace}, '#{var_uuid}')"
+        return var_uuid
+
+
+    interact.set_variable = (opts) ->
+        opts = defaults opts,
+            uuid : required
+            value    : required   # must be JSON-able
+        salvus_exec
+            input : "sage_salvus.set_variable('#{opts.uuid}', '#{misc.to_json(opts.value)}')"
+
+    interact.get_variable = (opts) ->  # only works if stored value is JSON-able
+        opts = defaults opts,
+            uuid    : required
+            cb      : required      # cb(error, value)
+        salvus_exec
+            input : "salvus.obj(sage_salvus.get_variable('#{opts.uuid}'))"
+            cb    : (mesg) ->
+                if mesg.obj?
+                    opts.cb(false, misc.from_json(mesg.obj))
+                else if mesg.stderr?
+                    opts.cb(true, mesg)
+
+    class InteractVariable
+        constructor: (opts) ->
+            @uuid = interact.register_variable(opts)
+        set: (value) ->
+            interact.set_variable(uuid: @uuid, value:value)
+        get: (cb) ->
+            interact.get_variable(uuid: @uuid, cb:cb)
+
+    interact.variable = (opts) -> new InteractVariable(opts)
+
     interact.call = (opts) ->
         opts = defaults opts,
             cb_uuid : required
@@ -638,12 +682,14 @@
         salvus_exec
             input : "sage_salvus.call('#{opts.cb_uuid}', '#{misc.to_json(opts.value)}')"
             cb : (mesg) ->
+                # TODO - debugging
                 console.log(misc.to_json(mesg))
 
     interact.input_box = (opts) ->
         opts = defaults opts,
             cell      : required
             cb_uuid   : required
+        # TODO - debugging
         console.log("making an input box")
         output = opts.cell.find(".salvus-cell-output").show()
         box = templates.find(".interact-input-box").clone()
