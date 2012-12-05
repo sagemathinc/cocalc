@@ -1,3 +1,4 @@
+close_scratch_worksheet = () -> 
 
 (() ->
     async = require('async')
@@ -680,7 +681,9 @@
                 if last_output.length > 0 and last_output.hasClass()
                     last_output.html(last_output.html() + opts.value)
                 else
-                    output.append(templates.find(css_class_selector).clone().html(opts.value))
+                    last_output = templates.find(css_class_selector).clone().html(opts.value)
+                    output.append(last_output)
+                last_output.find('.mathjax').mathjax()
 
     ########################################
     # Interact controls
@@ -1115,6 +1118,7 @@
                     activate_worksheet(views.worksheet)
                     set_worksheet_from_obj(obj)
                 worksheet_is_clean()
+                $("<div></div>").mathjax()
                 if not isMobile.any()
                     focus_editor_on_first_cell()
                 worksheet1.find(".salvus-worksheet-loading").hide()
@@ -1124,20 +1128,27 @@
     salvus_client.on "signed_in", () ->
         load_scratch_worksheet()
 
-
+    close_scratch_worksheet = () ->
+        if views.worksheet?
+            views.worksheet.remove()
+            delete views.worksheet
 
     ####################################################
     # MathJax jQuery plugin
     ####################################################
     $.fn.extend
-        mathjax: (opts) ->
+        mathjax: (opts={}) ->
             opts = defaults opts,
-                tex : required
+                tex : undefined
             @each () ->
-                element = $(this).hide().html("$${" + opts.tex + "}$$")
+                t = $(this)
+                t.removeClass("mathjax")
+                t.addClass("mathjax-rendered")
+                if opts.tex?
+                    tex = opts.tex
+                else
+                    tex = t.html()
+                element = t.hide().html("$${" + tex + "}$$")
                 MathJax.Hub.Typeset(element[0], () -> element.show())
-    output_div = $("<div>")
-    $(".mathjax-test").append(output_div)
-    $("#mathjax").on('change', (e) -> output_div.mathjax(tex:$("#mathjax").val()))
 
 )()

@@ -217,6 +217,9 @@
     # Explicit sign out
     ################################################
     sign_out = () ->
+
+        close_scratch_worksheet()
+
         # Send a message to the server that the user explicitly
         # requested to sign out.  The server can clean up resources
         # and invalidate the remember_me cookie for this client.
