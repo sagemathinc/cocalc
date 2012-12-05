@@ -1,33 +1,14 @@
+ [ ] downloading/uploading worksheets
+
+  [ ] password reset is broken
+
+  [ ] restart worksheet should delete all running cell indicators and timers
+
   [ ] ** limit number of sessions per user: **
           - include something in GUI listing open sessions with easy "kill all"
 
-  [ ] completion issues:
-       * galaxy tab 8.9 -- always gives first completion
-       * keyboard vanishes on ios and android after selection
-
   [ ] refactor worksheet1 code to a new object oriented structure, now that it is clear, and enough is done.
 
-  [ ] message when session times out, then restart it.... will happen only if user's browser is there!
-  [ ] tab completion
-      [x] page: determining where the cursor is
--     [x] page: putting the cursor back
-      [ ] sage_server: decide which type of introspection to do
-      [ ] sage_server: introspect completions
-      [ ] sage_server: introspect docstring
-      [ ] sage_server: introspect source code
-      [ ] page: display all introspects as alert_message for now...
-
-  [ ] tab completion optimization idea:
-       - cache completions for identifier... until next execute
-
--------------------------------
-
-  [ ] tab completion -- phase 2, after sorting out cell input editor
-      [ ] page: display list of completions and choose one
-      [ ] page: display a docstring (with Sphinx html formatting?)
-      [ ] page: display source code
-      [ ] page: dynamic syntax highlighting (given cursor control) ?
-  [ ] @interact foundations
   [ ] mathjax
   [ ] plots -- display using this? http://modeln.github.com/sDashboard/
   [ ] sign out must clear scratch worksheet.
@@ -133,6 +114,32 @@ DONE:
   [x] .html/text -- how to gets rid of newlines, html, etc... (but webkit doesn't) -- use https://github.com/tautologistics/node-htmlparser/
 
 
+  [x] completion issues:
+       * galaxy tab 8.9 -- always gives first completion
+       * keyboard vanishes on ios and android after selection
+
+  [x] message when session times out, then restart it.... will happen only if user's browser is there!
+  [x] tab completion
+      [x] page: determining where the cursor is
+-     [x] page: putting the cursor back
+      [x] sage_server: decide which type of introspection to do
+      [x] sage_server: introspect completions
+      [x] sage_server: introspect docstring
+      [x] sage_server: introspect source code
+      [x] page: display all introspects as alert_message for now...
+
+  [x] tab completion optimization idea:
+       - cache completions for identifier... until next execute
+
+-------------------------------
+
+  [x] tab completion -- phase 2, after sorting out cell input editor
+      [x] page: display list of completions and choose one
+      [x] page: display a docstring (with Sphinx html formatting?)
+      [x] page: display source code
+      [x] page: dynamic syntax highlighting (given cursor control) ?
+  [x] @interact foundations
+
 
 ---
 
@@ -152,10 +159,12 @@ Todo list until the next Salvus release
  
 
 Very high priority:
+  [x] tab completion
+  [x] a worksheet mode
 
-  [ ] tab completion
-
-  [ ] a worksheet mode
+  [ ] organize collection of worksheets
+  [ ] mathjax
+  [ ] graphics
 
 Lower priority todo:
 

@@ -8227,3 +8227,6 @@ An example where control-c/SIGINT won't interrupt:
 n=100; Q1092.<z>=CyclotomicField(1092); M=Matrix(Q1092,[[Q1092.zero_element() for i in range(n)] for j in range(n)])
 
 This reveals many issues -- e.g. -- timer vanishing is annoying.
+
+ [ ] mathjax usage -- run it on <div class="tex"> and <span class="tex"> in html output.  That's it.
+
