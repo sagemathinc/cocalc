@@ -39,9 +39,10 @@
 
     get_completions = (editor, cb) ->
         completions = []
-        to = editor.getCursor()
-        from   = {line:to.line, ch:0}
-        session = null
+        target      = undefined
+        to          = editor.getCursor()
+        from        = {line:to.line, ch:0}
+        session     = null
         async.series([
             (cb) ->
                 get_session (error, s) ->
@@ -53,36 +54,40 @@
                         cb()
             (cb) ->
                 line = editor.getRange({line:0,ch:0}, to)
+
                 session.introspect
                     line : line
                     cb : (error, mesg) ->
-                        console.log(misc.to_json(mesg))
                         if error
                             alert_message(type:"error", message:mesg.error)
                         else
                             completions = mesg.completions
+                            target = mesg.target
+                            from = {line:to.line, ch:to.ch-target.length}
                         cb()
-        ], () -> cb(completions:completions, from:from, to:to))
+        ], () -> cb(completions:completions, from:from, to:to, target:target))
 
     COMPLETIONS_SIZE = 20
     CodeMirror.commands.autocomplete = (editor) ->
         get_completions(editor, (result) ->        # code below based on simple-hint.js from the CodeMirror3 distribution
-            {from, to, completions} = result
+            {from, to, completions, target} = result
             if completions.length == 0
                 return
-            sel = $("<select>").css('width','auto')
-            complete = $("<div>").addClass("salvus-completions").append(sel)
-            for c in completions
-                sel.append($("<option>").text(c))
-            sel.find(":first").attr("selected", true)
-            sel.attr("size", Math.min(COMPLETIONS_SIZE, completions.length))
-            pos = editor.cursorCoords(from)
 
             insert = (str) ->
                 editor.replaceRange(str, from, to)
+
             if completions.length == 1
-                insert(completions[0])
+                insert(target + completions[0])
                 return
+
+            sel = $("<select>").css('width','auto')
+            complete = $("<div>").addClass("salvus-completions").append(sel)
+            for c in completions
+                sel.append($("<option>").html("<b>#{target}</b>#{c}"))
+            sel.find(":first").attr("selected", true)
+            sel.attr("size", Math.min(COMPLETIONS_SIZE, completions.length))
+            pos = editor.cursorCoords(from)
 
             complete.css
                 left : pos.left   + 'px'
@@ -110,7 +115,9 @@
                     setTimeout((() -> editor.focus()), 50)
 
             sel.blur(pick)
-            sel.dblclick(pick).click(pick)
+            sel.dblclick(pick)
+            if not IS_MOBILE  # do not do this on mobile, since it makes it unusable!
+                sel.click(pick)
             sel.keydown (event) ->
                 code = event.keyCode
                 switch code
@@ -674,7 +681,7 @@
             data  : opts.value
             cb    : (mesg) ->
                 # TODO - debugging
-                console.log(misc.to_json(mesg))
+                # console.log(misc.to_json(mesg))
 
     interact.input_box = (opts) ->
         opts = defaults opts,

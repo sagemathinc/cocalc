@@ -133,7 +133,7 @@ pre {
   position: absolute;
   z-index: 10;
   overflow: hidden;
-  box-shadow: 4px 4px 2px #bbf;
+  box-shadow: 8px 8px 4px #bbb;
   border: 3px solid #99f;
 }
 

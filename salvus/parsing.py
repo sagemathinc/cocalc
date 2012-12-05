@@ -197,7 +197,6 @@ def completions(code, namespace, docstring=False, preparse=True):
                             pass
                             # uncomment for debugging only
                             # traceback.print_exc()
-                    print "obj='%s'"%obj
                     O = eval(obj if not preparse else preparse_code(obj), namespace)
                 finally:
                     signal.signal(signal.SIGALRM, signal.SIG_IGN)

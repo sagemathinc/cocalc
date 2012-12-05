@@ -126,7 +126,8 @@ message
 message
     event       : 'introspect_completions'
     id          : undefined   # match id of 'introspect' message
-    completions : required    # a list of strings
+    target      : required    # 'Ellip'
+    completions : required    # ['sis', 'ticCurve', 'ticCurve_from_c4c6', ...]
 
 # hub --> client  (can be sent in response to introspect message)
 message

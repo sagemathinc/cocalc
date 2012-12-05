@@ -119,7 +119,7 @@ class Message(object):
         if done is not None: m['done'] = done
         return m
 
-    def introspect_completions(self, id, completions):
+    def introspect_completions(self, id, completions, target):
         m = self._new('introspect_completions', locals())
         m['id'] = id
         return m
@@ -380,8 +380,7 @@ def session(conn, home, cputime, numfiles, vmem, uid):
 def introspect(conn, id, line):
     salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works -- note that Salvus(...) modifies namespace.
     z = parsing.completions(line, namespace=namespace, docstring=False, preparse=True)
-    completions = [line + a for a in z['result']]
-    mesg = message.introspect_completions(id=id, completions=completions)
+    mesg = message.introspect_completions(id=id, completions=z['result'], target=z['target'])
     conn.send(mesg)
 
 def rmtree(path):
