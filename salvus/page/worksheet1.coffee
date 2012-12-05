@@ -56,7 +56,10 @@
 
                 session.introspect
                     line : line
+                    timeout: 1
                     cb : (error, mesg) ->
+                        if error
+                            session.interrupt()
                         if not error
                             mesg.from = {line:to.line, ch:to.ch-mesg.target.length}
                             mesg.to = to
@@ -428,7 +431,7 @@
         editor = cell.data('editor')
         introspect editor, (err, mesg) ->
             if err
-                alert_message(type:"error", message:mesg.error)
+                alert_message(type:"error", message:"Error during tab completion -- #{mesg.error}")
             else
                 switch mesg.event
                     when 'introspect_completions'

@@ -8084,19 +8084,6 @@ def f(n=(1..10), m=[1,2,3]):
     print n, m
 
 
-[ ] make a list of some controls:
-
-   - input_box(default=None, label=None, type=None)
-
-   - slider
-   - color selector
-[ ] make jquery plugins them:
-[ ] put it together
-[ ] layout designer?  -- use jquery draggable and save style coords?
-   [ ] multiple scratch worksheets...
-   [ ] potential execution issue  -- if session is interrupted, then some exec's will never get a mesg.done ?
-
-
 
 --------
 
@@ -8199,3 +8186,36 @@ Fix some issues I noticed with Simon in my office:
 
   xx - when tab completing, sage.schemes.ell[tab] fails.
   xx - when tab completing, width of list is too small, e.g., EllipticCurve[tab]
+---
+
+  [x] introspection -- finished showing source code and docstring...
+
+
+[ ] make a list of some controls:
+
+   - input_box(default=None, label=None, type=None)
+
+   - slider
+   - color selector
+[ ] make jquery plugins them:
+[ ] put it together
+[ ] layout designer?  -- use jquery draggable and save style coords?
+   [ ] multiple scratch worksheets...
+   [ ] potential execution issue  -- if session is interrupted, then some exec's will never get a mesg.done ?
+
+
+---------------
+
+Dec 4 at 10:30pm.
+----------------
+
+Purely functionality-wise, not worrying about code quality or beauty or bugs, what is left?
+
+  [ ] mathjax
+  [ ] interact
+  [ ] %modes
+  [ ] 2d graphics
+  [ ] 3d graphics
+  [ ] data/ -- attachements
+  [ ] print view
+
