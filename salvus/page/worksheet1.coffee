@@ -37,8 +37,7 @@
     # TODO: this does not work.
     views.edit.data('editor').on('gutterClick', CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder))
 
-    get_completions = (editor, cb) ->
-        completions = []
+    introspect = (editor, cb) ->
         target      = undefined
         to          = editor.getCursor()
         from        = {line:to.line, ch:0}
@@ -52,92 +51,117 @@
                     else
                             session = s
                         cb()
-            (cb) ->
+            (c) ->
                 line = editor.getRange({line:0,ch:0}, to)
 
                 session.introspect
                     line : line
                     cb : (error, mesg) ->
-                        console.log(misc.to_json(mesg))
-                        if error
-                            alert_message(type:"error", message:mesg.error)
-                        else
-                            completions = mesg.completions
-                            target = mesg.target
-                            from = {line:to.line, ch:to.ch-target.length}
-                        cb()
-        ], () -> cb(completions:completions, from:from, to:to, target:target))
+                        if not error
+                            mesg.from = {line:to.line, ch:to.ch-mesg.target.length}
+                            mesg.to = to
+                        cb(error, mesg)
+                        c()
+        ])
 
     COMPLETIONS_SIZE = 20
-    CodeMirror.commands.autocomplete = (editor) ->
-        get_completions(editor, (result) ->        # code below based on simple-hint.js from the CodeMirror3 distribution
-            {from, to, completions, target} = result
-            if completions.length == 0
+    editor_tab_complete = (editor, from, to, completions, target) ->
+        # code below based on simple-hint.js from the CodeMirror3 distribution
+        if completions.length == 0
+            return
+
+        insert = (str) ->
+            editor.replaceRange(str, from, to)
+
+        if completions.length == 1
+            insert(target + completions[0])
+            return
+
+        sel = $("<select>").css('width','auto')
+        complete = $("<div>").addClass("salvus-completions").append(sel)
+        for c in completions
+            sel.append($("<option>").text(target + c))
+        sel.find(":first").attr("selected", true)
+        sel.attr("size", Math.min(COMPLETIONS_SIZE, completions.length))
+        pos = editor.cursorCoords(from)
+
+        complete.css
+            left : pos.left   + 'px'
+            top  : pos.bottom + 'px'
+        $("body").append(complete)
+        # If we're at the edge of the screen, then we want the menu to appear on the left of the cursor.
+        winW = window.innerWidth or Math.max(document.body.offsetWidth, document.documentElement.offsetWidth)
+        if winW - pos.left < sel.attr("clientWidth")
+            complete.css(left: (pos.left - sel.attr("clientWidth")) + "px")
+        # Hide scrollbar
+        if completions.length <= COMPLETIONS_SIZE
+            complete.css(width: (sel.attr("clientWidth") - 1) + "px")
+
+        done = false
+        close = () ->
+            if done
                 return
+            done = true
+            complete.remove()
 
-            insert = (str) ->
-                editor.replaceRange(str, from, to)
+        pick = () ->
+            insert(sel.val())
+            close()
+            if not IS_MOBILE
+                setTimeout((() -> editor.focus()), 50)
 
-            if completions.length == 1
-                insert(target + completions[0])
-                return
-
-            sel = $("<select>").css('width','auto')
-            complete = $("<div>").addClass("salvus-completions").append(sel)
-            for c in completions
-                sel.append($("<option>").html("<b>#{target}</b>#{c}"))
-            sel.find(":first").attr("selected", true)
-            sel.attr("size", Math.min(COMPLETIONS_SIZE, completions.length))
-            pos = editor.cursorCoords(from)
-
-            complete.css
-                left : pos.left   + 'px'
-                top  : pos.bottom + 'px'
-            $("body").append(complete)
-            # If we're at the edge of the screen, then we want the menu to appear on the left of the cursor.
-            winW = window.innerWidth or Math.max(document.body.offsetWidth, document.documentElement.offsetWidth)
-            if winW - pos.left < sel.attr("clientWidth")
-                complete.css(left: (pos.left - sel.attr("clientWidth")) + "px")
-            # Hide scrollbar
-            if completions.length <= COMPLETIONS_SIZE
-                complete.css(width: (sel.attr("clientWidth") - 1) + "px")
-
-            done = false
-            close = () ->
-                if done
-                    return
-                done = true
-                complete.remove()
-
-            pick = () ->
-                insert(sel.val())
-                close()
-                if not IS_MOBILE
-                    setTimeout((() -> editor.focus()), 50)
-
-            sel.blur(pick)
-            sel.dblclick(pick)
-            if not IS_MOBILE  # do not do this on mobile, since it makes it unusable!
-                sel.click(pick)
-            sel.keydown (event) ->
-                code = event.keyCode
-                switch code
-                    when 13 # enter
-                        pick()
-                        return false
-                    when 27
+        sel.blur(pick)
+        sel.dblclick(pick)
+        if not IS_MOBILE  # do not do this on mobile, since it makes it unusable!
+            sel.click(pick)
+        sel.keydown (event) ->
+            code = event.keyCode
+            switch code
+                when 13 # enter
+                    pick()
+                    return false
+                when 27
+                    close()
+                    editor.focus()
+                    return false
+                else
+                    if code != 38 and code != 40 and code != 33 and code != 34 and not CodeMirror.isModifierKey(event)
                         close()
                         editor.focus()
-                        return false
-                    else
-                        if code != 38 and code != 40 and code != 33 and code != 34 and not CodeMirror.isModifierKey(event)
-                            close()
-                            editor.focus()
-                            # Pass to CodeMirror (e.g., backspace)
-                            editor.triggerOnKeyDown(event)
-            sel.focus()
+                        # Pass to CodeMirror (e.g., backspace)
+                        editor.triggerOnKeyDown(event)
+        sel.focus()
 
-        )
+    editor_show_docstring = (editor, from, to, docstring) ->
+        element = templates.find(".salvus-worksheet-docstring").clone()
+        element.find('span').text(docstring)
+        element.find('i').click(() -> element.remove())
+        pos = editor.cursorCoords(from)
+        element.css
+            left : pos.left   + 'px'
+            top  : pos.bottom + 'px'
+        $("body").append(element)
+        if IS_MOBILE
+            element.find('.salvus-popup-handle').hide()
+        else
+            element.draggable(handle:element.find('.salvus-popup-handle'))
+        element.focus()
+        return element
+
+    editor_show_source_code = (editor, from, to, source_code) ->
+        element = templates.find(".salvus-worksheet-source-code").clone()
+        element.find('span').text(source_code)
+        element.find('i').click(() -> element.remove())
+        pos = editor.cursorCoords(from)
+        element.css
+            left : pos.left   + 'px'
+            top  : pos.bottom + 'px'
+        $("body").append(element)
+        if IS_MOBILE
+            element.find('.salvus-popup-handle').hide()
+        else
+            element.draggable(handle:element.find('.salvus-popup-handle'))
+        return element
 
     activate_worksheet = (worksheet) ->
         # make the title and description notify when the worksheet is dirty.
@@ -401,7 +425,34 @@
         introspect_cell(cell)
 
     introspect_cell = (cell) ->
-        CodeMirror.commands.autocomplete(cell.data('editor'))
+        editor = cell.data('editor')
+        introspect editor, (err, mesg) ->
+            if err
+                alert_message(type:"error", message:mesg.error)
+            else
+                switch mesg.event
+                    when 'introspect_completions'
+                        editor_tab_complete(editor, mesg.from, mesg.to, mesg.completions, mesg.target)
+                    when 'introspect_docstring'
+                        cell_close_on_esc(cell, editor_show_docstring(editor, mesg.from, mesg.to, mesg.docstring))
+                    when 'introspect_source_code'
+                        cell_close_on_esc(cell, editor_show_source_code(editor, mesg.from, mesg.to, mesg.source_code))
+
+    ########################################
+    # Closing windows opened during introspection
+    ########################################
+    cell_close_on_esc = (cell, element) ->
+        v = cell.data('close_on_esc')
+        if element is undefined
+            if v?
+                for f in v
+                    f.remove()
+            cell.data('close_on_esc',[])
+        else
+            if v?
+                v.push(element)
+            else
+                cell.data('close_on_esc', [element])
 
     ########################################
     # Splitting/joining/deleting
@@ -853,6 +904,7 @@
         return views.worksheet.find(".salvus-cell").length
 
     delete_all_output = () ->
+        worksheet_is_dirty()
         for cell in views.worksheet.find(".salvus-cell")
             delete_cell_output($(cell))
 
@@ -939,6 +991,7 @@
                 throw CodeMirror.Pass
 
         "Esc"            : (editor) ->
+            cell_close_on_esc(editor.cell)
             interrupt_session()
 
         "Tab"            : (editor) ->

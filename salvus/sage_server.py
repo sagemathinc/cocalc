@@ -124,12 +124,12 @@ class Message(object):
         m['id'] = id
         return m
 
-    def introspect_docstring(self, id, docstring):
+    def introspect_docstring(self, id, docstring, target):
         m = self._new('introspect_docstring', locals())
         m['id'] = id
         return m
 
-    def introspect_source_code(self, id, source_code):
+    def introspect_source_code(self, id, source_code, target):
         m = self._new('introspect_source_code', locals())
         m['id'] = id
         return m
@@ -374,7 +374,7 @@ def session(conn, home, cputime, numfiles, vmem, uid):
                 introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
             else:
                 raise RuntimeError("invalid message '%s'"%mesg)
-        except KeyboardInterrupt:
+        except: # KeyboardInterrupt:
             pass
 
 def introspect(conn, id, line, preparse):
@@ -383,9 +383,9 @@ def introspect(conn, id, line, preparse):
     if z['get_completions']:
         mesg = message.introspect_completions(id=id, completions=z['result'], target=z['target'])
     elif z['get_help']:
-        mesg = message.introspect_docstring(id=id, docstring=z['result'])
+        mesg = message.introspect_docstring(id=id, docstring=z['result'], target=z['expr'])
     elif z['get_source']:
-        mesg = message.introspect_source_code(id=id, source_code=z['result'])
+        mesg = message.introspect_source_code(id=id, source_code=z['result'], target=z['expr'])
     conn.send(mesg)
 
 def rmtree(path):

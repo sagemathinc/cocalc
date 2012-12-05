@@ -171,3 +171,34 @@ pre {
     color:#888;
     background-color:#ccc;
 }
+
+.salvus-worksheet-docstring {
+    font-family: "Courier New";
+    background-color: #fffff3;
+    white-space: pre;
+    box-shadow: 8px 8px 4px #888;
+    z-index: 10;
+    width:100ex;
+    position:absolute;
+    opacity:0.95;
+    max-height:24em;
+    overflow:auto;
+}
+
+.salvus-worksheet-source-code {
+    font-family: "Courier New";
+    background-color: #fffff3;
+    white-space: pre;
+    box-shadow: 8px 8px 4px #888;
+    z-index: 10;
+    width:100ex;
+    position:absolute;
+    opacity:0.95;
+    max-height:24em;
+    overflow:auto;
+}
+
+.salvus-popup-handle {
+    background-color:#bbb;
+    border:1px solid black;
+}

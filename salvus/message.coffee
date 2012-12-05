@@ -134,12 +134,14 @@ message
 message
     event       : 'introspect_docstring'
     id          : undefined
+    target      : required
     docstring   : required
 
 # hub --> client
 message
     event       : 'introspect_source_code'
     id          : undefined
+    target      : required
     source_code : required
 
 
