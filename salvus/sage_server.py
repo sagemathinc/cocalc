@@ -264,6 +264,9 @@ namespace = Namespace({})
 class Salvus(object):
     Namespace = Namespace
 
+    def __repr__(self):
+        return ''
+
     def __init__(self, conn, id, data=None):
         self._conn = conn
         self._id   = id
@@ -273,20 +276,28 @@ class Salvus(object):
 
     def javascript(self, code, done=False):
         self._conn.send(message.output(javascript=code, id=self._id, done=done))
+        return self
     def coffeescript(self, code, done=False):
         self._conn.send(message.output(coffeescript=code, id=self._id, done=done))
+        return self
     def obj(self, obj, done=False):
         self._conn.send(message.output(obj=obj, id=self._id, done=done))
+        return self
     def html(self, html, done=False):
         self._conn.send(message.output(html=str(html), id=self._id, done=done))
+        return self
     def stdout(self, output, done=False):
         self._conn.send(message.output(stdout=str(output), done=done, id=self._id))
+        return self
     def stderr(self, output, done=False):
         self._conn.send(message.output(stderr=str(output), done=done, id=self._id))
+        return self
     def execute_javascript(self, code, data=None):
         self._conn.send(message.execute_javascript(code, data=data))
+        return self
     def execute_coffeescript(self, code, data=None):
         self._conn.send(message.execute_javascript(code, data=data, coffeescript=True))
+        return self
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
