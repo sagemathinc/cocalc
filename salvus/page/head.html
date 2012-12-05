@@ -40,6 +40,14 @@
   <!-- CoffeeScript in the browser --> 
   <script type="text/javascript" src="/coffeescript/coffee-script.js"></script>
 
+  <!-- MathJax -->
+  <script type="text/x-mathjax-config">
+    /* elements must be nonempty, though I really want empty! */
+    MathJax.Hub.Config({elements: [undefined], showProcessingMessages: false, messageStyle:"none" })
+  </script>
+  <script type="text/javascript" src="/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  </script>
+
   <!-- The Salvus library and its dependencies -->
   <script type="text/javascript" src="/salvus.js"></script>   
 

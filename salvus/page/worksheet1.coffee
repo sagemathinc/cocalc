@@ -815,7 +815,7 @@
             since      : t
             compact    : true
             layout     : '{hnn}{sep}{mnn}{sep}{snn}'
-        ).click((e) -> interrupt_session(); remove_cell_stopwatch(cell))
+        ).click((e) -> interrupt_session()) #; remove_cell_stopwatch(cell))
 
     stop_cell_spinner = (cell) ->
         cell.find(".salvus-running").spin(false).hide()
@@ -1123,5 +1123,28 @@
     #    load_scratch_worksheet()
     salvus_client.on "signed_in", () ->
         load_scratch_worksheet()
+
+
+
+    ####################################################
+    # MathJax jQuery plugin
+    ####################################################
+    math_out = undefined
+    mathjax = (element, tex) ->
+        element = $(element)
+        element.html("$${}$$").addClass("output")
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,element[0]])
+        MathJax.Hub.queue.Push(() ->
+          math_out = MathJax.Hub.getAllJax(element[0])[0]
+        )
+
+    output_div = $("<div>").hide()
+    $(".mathjax-test").append(output_div)
+    mathjax(output_div)
+    $("#mathjax").on('change', (e) ->
+        TeX = $("#mathjax").val()
+        console.log(TeX)
+        MathJax.Hub.queue.Push((()->output_div.hide()), ["Text",math_out,"\\displaystyle{"+TeX+"}"], (()->output_div.show()))
+    )
 
 )()

@@ -8203,7 +8203,7 @@ Fix some issues I noticed with Simon in my office:
    [ ] multiple scratch worksheets...
    [ ] potential execution issue  -- if session is interrupted, then some exec's will never get a mesg.done ?
 
-
+n
 ---------------
 
 Dec 4 at 10:30pm.
@@ -8219,3 +8219,11 @@ Purely functionality-wise, not worrying about code quality or beauty or bugs, wh
   [ ] data/ -- attachements
   [ ] print view
 
+Dec 5:
+--------
+
+An example where control-c/SIGINT won't interrupt:
+
+n=100; Q1092.<z>=CyclotomicField(1092); M=Matrix(Q1092,[[Q1092.zero_element() for i in range(n)] for j in range(n)])
+
+This reveals many issues -- e.g. -- timer vanishing is annoying.
