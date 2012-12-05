@@ -1129,22 +1129,15 @@
     ####################################################
     # MathJax jQuery plugin
     ####################################################
-    math_out = undefined
-    mathjax = (element, tex) ->
-        element = $(element)
-        element.html("$${}$$").addClass("output")
-        MathJax.Hub.Queue(["Typeset",MathJax.Hub,element[0]])
-        MathJax.Hub.queue.Push(() ->
-          math_out = MathJax.Hub.getAllJax(element[0])[0]
-        )
-
-    output_div = $("<div>").hide()
+    $.fn.extend
+        mathjax: (opts) ->
+            opts = defaults opts,
+                tex : required
+            @each () ->
+                element = $(this).hide().html("$${" + opts.tex + "}$$")
+                MathJax.Hub.Typeset(element[0], () -> element.show())
+    output_div = $("<div>")
     $(".mathjax-test").append(output_div)
-    mathjax(output_div)
-    $("#mathjax").on('change', (e) ->
-        TeX = $("#mathjax").val()
-        console.log(TeX)
-        MathJax.Hub.queue.Push((()->output_div.hide()), ["Text",math_out,"\\displaystyle{"+TeX+"}"], (()->output_div.show()))
-    )
+    $("#mathjax").on('change', (e) -> output_div.mathjax(tex:$("#mathjax").val()))
 
 )()
