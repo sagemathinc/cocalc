@@ -96,7 +96,7 @@ def strip_string_literals(code, state=None):
             new_code.append(code[start:q].replace('%', '%%'))
             start = q
             q += len(in_quote)
-    
+
     return "".join(new_code), literals, (in_quote, raw)
 
 def divide_into_blocks(code):
@@ -108,7 +108,7 @@ def divide_into_blocks(code):
         stop = i
         while i>=0 and len(code[i]) > 0 and code[i][0] in string.whitespace:
             i -= 1
-        # remove comments 
+        # remove comments
         for k, v in literals.iteritems():
             if v.startswith('#'):
                 literals[k] = ''
@@ -134,7 +134,7 @@ def divide_into_blocks(code):
             del blocks[i]
         else:
             i += 1
-            
+
     return blocks
 
 
@@ -145,10 +145,14 @@ def divide_into_blocks(code):
 # Keywords from http://docs.python.org/release/2.7.2/reference/lexical_analysis.html
 _builtin_completions = __builtins__.keys() + ['and', 'del', 'from', 'not', 'while', 'as', 'elif', 'global', 'or', 'with', 'assert', 'else', 'if', 'pass', 'yield', 'break', 'except', 'import', 'print', 'class', 'exec', 'in', 'raise', 'continue', 'finally', 'is', 'return', 'def', 'for', 'lambda', 'try']
 
-def completions(code, namespace, docstring=False, preparse=True):
+def introspect(code, namespace, preparse=True):
     result = []
     target = ''
     expr = ''
+
+    get_help = False
+    get_source = False
+    get_completions = True
     try:
         code0, literals, state = strip_string_literals(code)
         # TODO: this has to be replaced by using ast on preparsed version.  Not easy.
@@ -157,27 +161,24 @@ def completions(code, namespace, docstring=False, preparse=True):
             i += 1
         expr = code0[i:]%literals
         before_expr = code0[:i]%literals
-        if not docstring and '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
-            get_help = False
+        if '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
             target = expr
             j = len(expr)
             v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
         else:
             i = max([expr.rfind(s) for s in '?('])
-            if docstring and i == -1:
-                get_help = True
-                target = ''
-                obj = expr
+            if i >= 1 and i == len(expr)-1 and expr[i-1] == '?':
+                get_source = True; get_completions = False
+                target = expr[i+1:]
+                obj = expr[:i-1]
+            elif i == len(expr)-1:
+                get_help = True; get_completions = False
+                target = expr[i+1:]
+                obj = expr[:i]
             else:
-                if i == len(expr)-1:
-                    get_help = True
-                    target = expr[i+1:]
-                    obj = expr[:i]
-                else:
-                    get_help = False
-                    i = expr.rfind('.')
-                    target = expr[i+1:]
-                    obj = expr[:i]
+                i = expr.rfind('.')
+                target = expr[i+1:]
+                obj = expr[:i]
 
             if obj in namespace:
                 O = namespace[obj]
@@ -202,9 +203,11 @@ def completions(code, namespace, docstring=False, preparse=True):
                     signal.signal(signal.SIGALRM, signal.SIG_IGN)
             if get_help:
                 import sage.misc.sageinspect
-                result = eval('f(obj)', {'obj':O, 'f':sage.misc.sageinspect.sage_getdoc})
-
-            else:
+                result = eval('getdoc(O)', {'getdoc':sage.misc.sageinspect.sage_getdoc, 'O':O})
+            elif get_source:
+                import sage.misc.sageinspect
+                result = eval('getsource(O)', {'getsource':sage.misc.sageinspect.sage_getsource, 'O':O})
+            elif get_completions:
                 if O is not None:
                     v = dir(O)
                     if hasattr(O, 'trait_names'):
@@ -215,7 +218,7 @@ def completions(code, namespace, docstring=False, preparse=True):
                     v = [x[j:] for x in v if x.startswith(target)]
                 else:
                     v = []
-        if not get_help:
+        if get_completions:
             result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
     except Exception, msg:
         traceback.print_exc()
@@ -223,4 +226,4 @@ def completions(code, namespace, docstring=False, preparse=True):
         status = 'ok'
     else:
         status = 'ok'
-    return {'result':result, 'target':target, 'expr':expr, 'status':status, 'help':get_help}
+    return {'result':result, 'target':target, 'expr':expr, 'status':status, 'get_help':get_help, 'get_completions':get_completions, 'get_source':get_source}

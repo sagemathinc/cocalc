@@ -199,11 +199,13 @@ class exports.Connection extends EventEmitter
             line          : required
             timeout       :  3         # max time to wait in seconds before error
             session_uuid  :  required
+            preparse      : true
             cb            :  required  # pointless without a callback
 
         mesg = message.introspect
             line         : opts.line
             session_uuid : opts.session_uuid
+            preparse     : opts.preparse
 
         @call
             message : mesg

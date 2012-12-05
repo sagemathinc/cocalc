@@ -371,16 +371,21 @@ def session(conn, home, cputime, numfiles, vmem, uid):
             elif event == 'execute_code':
                 execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
             elif event == 'introspect':
-                introspect(conn=conn, id=mesg['id'], line=mesg['line'])
+                introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
             else:
                 raise RuntimeError("invalid message '%s'"%mesg)
         except KeyboardInterrupt:
             pass
 
-def introspect(conn, id, line):
+def introspect(conn, id, line, preparse):
     salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works -- note that Salvus(...) modifies namespace.
-    z = parsing.completions(line, namespace=namespace, docstring=False, preparse=True)
-    mesg = message.introspect_completions(id=id, completions=z['result'], target=z['target'])
+    z = parsing.introspect(line, namespace=namespace, preparse=preparse)
+    if z['get_completions']:
+        mesg = message.introspect_completions(id=id, completions=z['result'], target=z['target'])
+    elif z['get_help']:
+        mesg = message.introspect_docstring(id=id, docstring=z['result'])
+    elif z['get_source']:
+        mesg = message.introspect_source_code(id=id, source_code=z['result'])
     conn.send(mesg)
 
 def rmtree(path):

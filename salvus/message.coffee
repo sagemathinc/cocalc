@@ -121,6 +121,7 @@ message
     id                 : undefined
     session_uuid       : required
     line               : required
+    preparse           : true
 
 # hub --> client (can be sent in response to introspect message)
 message

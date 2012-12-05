@@ -58,6 +58,7 @@
                 session.introspect
                     line : line
                     cb : (error, mesg) ->
+                        console.log(misc.to_json(mesg))
                         if error
                             alert_message(type:"error", message:mesg.error)
                         else
