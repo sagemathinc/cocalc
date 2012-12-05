@@ -120,8 +120,7 @@ message
     event              : 'introspect'
     id                 : undefined
     session_uuid       : required
-    text_before_cursor : required
-    text_after_cursor  : undefined
+    line               : required
 
 # hub --> client (can be sent in response to introspect message)
 message

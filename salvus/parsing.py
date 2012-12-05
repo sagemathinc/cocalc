@@ -5,6 +5,7 @@ Code for parsing Sage code blocks sensibly.
 """
 
 import string
+import traceback
 
 def get_input(prompt):
     try:
@@ -156,8 +157,6 @@ def completions(code, namespace, docstring=False, preparse=True):
             i += 1
         expr = code0[i:]%literals
         before_expr = code0[:i]%literals
-        #sys.stderr.write('expr='+expr)
-        #sys.stderr.write('before_expr='+before_expr)            
         if not docstring and '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
             get_help = False
             target = expr
@@ -184,23 +183,24 @@ def completions(code, namespace, docstring=False, preparse=True):
                 O = namespace[obj]
             else:
                 O = None
-                # # the more dangerous eval.
-                # try:
-                #     import signal
-                #     def mysig(*args): raise KeyboardInterrupt
-                #     signal.signal(signal.SIGALRM, mysig)
-                #     signal.alarm(1)
-                #     import sage.all_cmdline
-                #     if before_expr.strip():
-                #         try:
-                #             exec (before_expr if not preparse else preparse_code(before_expr)) in namespace
-                #         except Exception, msg:
-                #             pass
-                #             # for debugging only
-                #             #traceback.print_exc()
-                #     O = eval(obj if not preparse else preparse_code(obj), namespace)
-                # finally:
-                #     signal.signal(signal.SIGALRM, signal.SIG_IGN)
+                # the more dangerous eval.
+                try:
+                    import signal
+                    def mysig(*args): raise KeyboardInterrupt
+                    signal.signal(signal.SIGALRM, mysig)
+                    signal.alarm(1)
+                    import sage.all_cmdline
+                    if before_expr.strip():
+                        try:
+                            exec (before_expr if not preparse else preparse_code(before_expr)) in namespace
+                        except Exception, msg:
+                            pass
+                            # uncomment for debugging only
+                            # traceback.print_exc()
+                    print "obj='%s'"%obj
+                    O = eval(obj if not preparse else preparse_code(obj), namespace)
+                finally:
+                    signal.signal(signal.SIGALRM, signal.SIG_IGN)
             if get_help:
                 import sage.misc.sageinspect
                 result = eval('f(obj)', {'obj':O, 'f':sage.misc.sageinspect.sage_getdoc})
@@ -219,7 +219,6 @@ def completions(code, namespace, docstring=False, preparse=True):
         if not get_help:
             result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
     except Exception, msg:
-        import traceback
         traceback.print_exc()
         result = []
         status = 'ok'

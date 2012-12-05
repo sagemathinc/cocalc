@@ -143,3 +143,7 @@ exports.substring_count = (string, subString, allowOverlapping) ->
         else
             break
     return n
+
+exports.max = (array) -> (array.reduce((a,b) -> Math.max(a, b)))
+
+exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))

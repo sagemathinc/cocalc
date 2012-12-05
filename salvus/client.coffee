@@ -196,22 +196,19 @@ class exports.Connection extends EventEmitter
     # introspection
     introspect: (opts) ->
         opts = defaults opts,
-            text_before_cursor: required
-            text_after_cursor:  undefined
-            timeout          :  3         # max time to wait in seconds before error
-            session_uuid     :  required
-            cb               :  required  # pointless without a callback
+            line          : required
+            timeout       :  3         # max time to wait in seconds before error
+            session_uuid  :  required
+            cb            :  required  # pointless without a callback
 
         mesg = message.introspect
-            text_before_cursor : opts.text_before_cursor
-            text_after_cursor  : opts.text_after_cursor
-            session_uuid       : opts.session_uuid
+            line         : opts.line
+            session_uuid : opts.session_uuid
 
         @call
             message : mesg
             timeout : opts.timeout
             cb      : opts.cb
-
 
     call: (opts={}) ->
         # This function:

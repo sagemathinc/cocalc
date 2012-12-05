@@ -52,21 +52,11 @@
                             session = s
                         cb()
             (cb) ->
-                input = editor.getRange(from, to)
-
-                # Adjust from and input to capture the whole identifier, possibly including a final open paren:
-                ch = to.ch-1
-                if input[ch] == '('
-                    ch -= 1
-                while ch >= 0 and input[ch].search(/[a-z|A-Z|0-9|_|\.]/) == 0
-                    ch -= 1
-                input = input.slice(ch+1)
-                from.ch = ch+1
-
+                line = editor.getRange({line:0,ch:0}, to)
                 session.introspect
-                    text_before_cursor : input
-                    text_after_cursor  : undefined  # TODO
+                    line : line
                     cb : (error, mesg) ->
+                        console.log(misc.to_json(mesg))
                         if error
                             alert_message(type:"error", message:mesg.error)
                         else
@@ -74,13 +64,13 @@
                         cb()
         ], () -> cb(completions:completions, from:from, to:to))
 
-    COMPLETIONS_SIZE = 13
+    COMPLETIONS_SIZE = 20
     CodeMirror.commands.autocomplete = (editor) ->
         get_completions(editor, (result) ->        # code below based on simple-hint.js from the CodeMirror3 distribution
             {from, to, completions} = result
             if completions.length == 0
                 return
-            sel = $("<select>")
+            sel = $("<select>").css('width','auto')
             complete = $("<div>").addClass("salvus-completions").append(sel)
             for c in completions
                 sel.append($("<option>").text(c))
@@ -120,7 +110,7 @@
                     setTimeout((() -> editor.focus()), 50)
 
             sel.blur(pick)
-            sel.dblclick(pick)
+            sel.dblclick(pick).click(pick)
             sel.keydown (event) ->
                 code = event.keyCode
                 switch code

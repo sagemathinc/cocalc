@@ -263,12 +263,12 @@ namespace = Namespace({})
 
 class Salvus(object):
     Namespace = Namespace
-    
+
     def __init__(self, conn, id, data=None):
         self._conn = conn
         self._id   = id
         self.data = data
-        self.namespace = namespace 
+        self.namespace = namespace
         namespace['salvus'] = self   # beware of circular ref?
 
     def javascript(self, code, done=False):
@@ -371,19 +371,16 @@ def session(conn, home, cputime, numfiles, vmem, uid):
             elif event == 'execute_code':
                 execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
             elif event == 'introspect':
-                introspect(conn=conn, id=mesg['id'],
-                           text_before_cursor=mesg['text_before_cursor'],
-                           text_after_cursor=mesg.get('text_after_cursor', None))
+                introspect(conn=conn, id=mesg['id'], line=mesg['line'])
             else:
                 raise RuntimeError("invalid message '%s'"%mesg)
         except KeyboardInterrupt:
             pass
 
-def introspect(conn, id, text_before_cursor, text_after_cursor):
-    salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works.
-    expr = text_before_cursor
-    z = parsing.completions(text_before_cursor, namespace=namespace, docstring=False, preparse=True)
-    completions = [expr + a for a in z['result']]
+def introspect(conn, id, line):
+    salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works -- note that Salvus(...) modifies namespace.
+    z = parsing.completions(line, namespace=namespace, docstring=False, preparse=True)
+    completions = [line + a for a in z['result']]
     mesg = message.introspect_completions(id=id, completions=completions)
     conn.send(mesg)
 

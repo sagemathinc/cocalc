@@ -8148,6 +8148,7 @@ cell.find("button").click () ->
 
 Dec 4, 2012:
 ============
+6am - 1pm, except for breakfast.
 
 How is an interact <input> going to work, say:
 
@@ -8191,3 +8192,10 @@ m['a'] = 20
 
 
 
+Dec 4 at 6:53pm:
+----------------
+
+Fix some issues I noticed with Simon in my office:
+
+  xx - when tab completing, sage.schemes.ell[tab] fails.
+  xx - when tab completing, width of list is too small, e.g., EllipticCurve[tab]
