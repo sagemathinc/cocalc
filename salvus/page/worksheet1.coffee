@@ -21,22 +21,45 @@ close_scratch_worksheet = () ->
         edit      : templates.find(".salvus-worksheet-edit").clone().hide().appendTo(page)
         text      : templates.find(".salvus-worksheet-text").clone().hide().appendTo(page)
 
-    views.edit.data('editor',
-        CodeMirror.fromTextArea(views.edit.find("textarea")[0],
-            lineNumbers  : true
-            indentUnit   : 4
-            tabSize      : 4
-            lineWrapping : false
-            matchBrackets: true
-            undoDepth    : 200
-            mode         : "javascript"
+    views.edit.data('editor', 
+        new JSONEditor(
+            views.edit.find(".salvus-worksheet-edit-jsoneditor")[0],
+            {change:() ->
+                views.edit.find('.btn').removeClass("disabled")
+                # Update formatter at most once every 2 seconds
+                formatter = views.edit.data('formatter')
+                if not formatter._planned_updated?
+                    formatter._planned_update = true
+                    setTimeout((() -> delete formatter._planned_update; formatter.set(views.edit.data('editor').get())), 2000)
+            }
+        )
+    )
+    views.edit.data('formatter',
+        new JSONFormatter(
+            views.edit.find(".salvus-worksheet-edit-jsonformatter")[0],
+            {change:() ->
+                views.edit.find('.btn').removeClass("disabled")
+                editor = views.edit.data('editor')
+                # Update editor at most once every 2 seconds
+                if not editor._planned_update?
+                    editor._planned_update = true
+                    setTimeout((() ->
+                        delete editor._planned_update
+                        error_box = views.edit.find(".salvus-worksheet-edit-error")
+                        try
+                            editor.set(views.edit.data('formatter').get())
+                            error_box.hide()
+                        catch err
+                            error_box.html($(err.message).html())
+                    ), 2000)
+            }
         )
     )
 
-    views.edit.data('editor').on('change', () -> views.edit.find('.btn').removeClass("disabled"))
 
+#    views.edit.data('editor').on('change', () -> views.edit.find('.btn').removeClass("disabled"))
     # TODO: this does not work.
-    views.edit.data('editor').on('gutterClick', CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder))
+#    views.edit.data('editor').on('gutterClick', CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder))
 
     introspect = (editor, cb) ->
         target      = undefined
@@ -1044,18 +1067,20 @@ close_scratch_worksheet = () ->
         $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
         show_view('edit')
         editor = views.edit.data('editor')
-        editor.refresh()
-        editor.setValue(JSON.stringify(worksheet_to_obj(), null, 4))
+        obj = worksheet_to_obj()
+        formatter = views.edit.data('formatter')
+        formatter.set(obj)
+        editor.set(obj)
         views.edit.find('.btn').addClass("disabled")
 
     edit_view_save_changes = () ->
-        value = views.edit.data('editor').getValue()
+        obj = views.edit.data('editor').get()
         try
-            obj = JSON.parse(value)
             set_worksheet_from_obj(obj)
             return true
         catch e
-            alert("Invalid JSON")
+            # TODO: use a bootstrap modal.
+            alert("There were errors setting the worksheet from the edited JSON object: #{e}")
             return false
 
     text_view = () ->

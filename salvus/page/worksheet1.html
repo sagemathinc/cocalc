@@ -74,12 +74,24 @@
 
     <div class="salvus-worksheet-edit span11">
       <div class="well">
-	<h2>Worksheet JSON object</h2>
-	<a href="#salvus-worksheet-edit-save" class="btn btn-large btn-success disabled">Keep changes</a>
-	<a href="#salvus-worksheet-edit-cancel" class="btn btn-large">Discard</a>
-	<hr>
-	<div class="salvus-worksheet-edit-box">
-	  <textarea></textarea>
+	<div class="row">
+	  <div class="span10 indent2">
+	    <h2>Edit Worksheet JSON object</h2>
+	    <span class="lighten">The underlying representation of the worksheet is as a JSON object, which you can edit directly here.</span>
+	    <br><br>
+	    <a href="#salvus-worksheet-edit-save" class="btn btn-large btn-success disabled">Keep changes</a>
+	    <a href="#salvus-worksheet-edit-cancel" class="btn btn-large">Discard</a>
+	    <br><br>
+	  </div>
+	</div>
+	<div class="row">
+	  <div class="salvus-worksheet-edit-jsoneditor well span10"></div>
+	</div>
+	<div class="row">
+	  <div class="salvus-worksheet-edit-error span10"></div>
+	</div>
+	<div class="row">
+	  <div class="salvus-worksheet-edit-jsonformatter well span10"></div>
 	</div>
       </div>
     </div>

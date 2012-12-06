@@ -209,12 +209,29 @@ pre {
 }
 
 
-.salvus-worksheet-edit-box {
+.salvus-worksheet-edit-jsoneditor {
     box-shadow: 8px 8px 4px #888;
     border: 1px solid black;
+    background-color:#fff;
+    height:400px; /* todo -- set dynamically */
+}
+
+.salvus-worksheet-edit-jsonformatter {
+    box-shadow: 8px 8px 4px #888;
+    border: 1px solid black;
+    background-color:#fff;
+    height:400px; /* todo -- set dynamically */
+}
+
+.salvus-worksheet-edit-error {
+    background-color:#fcc;
+    color: #800;
+    padding: 5px;
+    border: 1px solid #800;
 }
 
 .salvus-worksheet-text-text {
     box-shadow: 8px 8px 4px #888;
     border: 1px solid black;
 }
+

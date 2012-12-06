@@ -40,8 +40,8 @@ $("a[href='#feedback']").click((event) -> show_feedback_form(); return false;)
                     reset_feedback_form()
                 else
                     alert_message(type:"error", message: "Feedback reported, but return message was wrong #{JSON.stringify(mesg)}")
-            
+
         return false
 
-    
-)()    
+
+)()
