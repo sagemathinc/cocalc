@@ -26,7 +26,7 @@ close_scratch_worksheet = () ->
             views.edit.find(".salvus-worksheet-edit-jsoneditor")[0],
             {change:() ->
                 views.edit.find('.btn').removeClass("disabled")
-                # Update formatter at most once every 2 seconds
+               # Update formatter at most once every 2 seconds
                 formatter = views.edit.data('formatter')
                 if not formatter._planned_updated?
                     formatter._planned_update = true
@@ -1125,8 +1125,8 @@ close_scratch_worksheet = () ->
     worksheet1.find("a[href='#salvus-worksheet-edit-cancel']").button().click((e) -> worksheet_view(); return false)
     worksheet1.find("a[href='#salvus-worksheet-edit-save']").button().click((e) ->
         if edit_view_save_changes()
-            $(this).addClass('disabled')
-            worksheet_view()
+            views.edit.find('.btn').addClass("disabled")
+            worksheet_is_dirty()
         return false
     )
 
