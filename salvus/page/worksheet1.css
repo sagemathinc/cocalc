@@ -207,3 +207,14 @@ pre {
     background-color:#bbb;
     border:1px solid black;
 }
+
+
+.salvus-worksheet-edit-box {
+    box-shadow: 8px 8px 4px #888;
+    border: 1px solid black;
+}
+
+.salvus-worksheet-text-text {
+    box-shadow: 8px 8px 4px #888;
+    border: 1px solid black;
+}
