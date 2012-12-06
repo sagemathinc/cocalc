@@ -1,3 +1,7 @@
+[ ] ideas for vim editor based on codemirror -- https://mail.google.com/mail/u/0/?shva=1#starred/13b571ae98be4865
+
+[ ] some really good worksheet content to test conver https://mail.google.com/mail/u/0/?shva=1#starred/13b6d2b8233ef6e2
+
 [ ] list of json editors: http://stackoverflow.com/questions/998832/gui-based-or-web-based-json-editor-that-works-like-property-explorer
 
 [ ] html5/css3 feature detection: http://modernizr.com/
