@@ -689,8 +689,9 @@ close_scratch_worksheet = () ->
                     last_output = templates.find(css_class_selector).clone().html(opts.value)
                     output.append(last_output)
             when 'tex'
-                elt = $("<span>").addClass('salvus-tex').mathjax(tex:opts.value.tex, display:opts.value.display).data('value', opts.value)
+                elt = $("<span>").addClass('salvus-tex').text(opts.value.tex).data('value', opts.value)
                 output.append(elt)
+                elt.mathjax(tex:opts.value.tex, display:opts.value.display)
 
     ########################################
     # Interact controls
@@ -1158,8 +1159,8 @@ close_scratch_worksheet = () ->
                     tex = "$${#{tex}}$$"
                 else
                     tex = "\\({#{tex}}\\)"
-                element = t.hide().text(tex)
-                #MathJax.Hub.Typeset(element[0], () -> element.show())
-                MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0], () -> element.show()])
+                element = t.text(tex)
+                #MathJax.Hub.Typeset(element[0]) #, () -> element.show())
+                MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])#  , () -> element.show()])
 
 )()

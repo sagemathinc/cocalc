@@ -8228,5 +8228,10 @@ n=100; Q1092.<z>=CyclotomicField(1092); M=Matrix(Q1092,[[Q1092.zero_element() fo
 
 This reveals many issues -- e.g. -- timer vanishing is annoying.
 
- [ ] mathjax usage -- run it on <div class="tex"> and <span class="tex"> in html output.  That's it.
+ [x] mathjax usage -- run it on <div class="tex"> and <span class="tex"> in html output.  That's it...
+     or even better - have a message format. 
+
+Dec 6
+--------
+ [ ] BUG:  salvus.tex (Ell[tab]
 
