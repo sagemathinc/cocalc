@@ -76,18 +76,17 @@ message(
 
 # Output resulting from evaluating code that is displayed by the browser.
 # sage_server --> hub_i --> hub_j --> browser
-message(
+message
     event        : 'output'
-    id           : undefined
-    stdout       : undefined
-    stderr       : undefined
-    html         : undefined
-    javascript   : undefined
-    coffeescript : undefined
-    json         : undefined
-    done         : false
-    session_uuid : undefined
-)
+    id           : undefined   # the id for this particular computation
+    stdout       : undefined   # plain text stream
+    stderr       : undefined   # error text stream -- colored to indicate an error
+    html         : undefined   # arbitrary html stream
+    tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
+    javascript   : undefined   # javascript code evaluation stream -- see also 'execute_javascript' to run code that is not saved as part of the output
+    obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
+    done         : false       # the sequences of messages for a given code evaluation is done.
+    session_uuid : undefined   # the uuid of the session that produced this output
 
 # This message tells the client to execute the given Javascript code
 # in the browser.  (For safety, the client may choose to ignore this

@@ -348,6 +348,8 @@ close_scratch_worksheet = () ->
                     value = s.html()
                 when 'stdout', 'stderr'
                     value = s.text()
+                when 'tex'
+                    value = s.data('value')
                 # other types are ignored -- e.g., interact data isn't saved
             output.push(class:cls, value:value)
         return {
@@ -632,16 +634,16 @@ close_scratch_worksheet = () ->
                 cell  : cell
                 class : 'html'
                 value  : mesg.html
+        if mesg.tex?
+            append_cell_output
+                cell  : cell
+                class : 'tex'
+                value : mesg.tex
         if mesg.javascript?
             append_cell_output
                 cell  : cell
                 class : 'javascript'
                 value : mesg.javascript
-        if mesg.coffeescript?
-            append_cell_output
-                cell  : cell
-                class : 'coffeescript'
-                value : mesg.coffeescript
 
     append_cell_output = (opts) ->
         opts = defaults opts,
@@ -657,17 +659,20 @@ close_scratch_worksheet = () ->
         output = opts.cell.find(".salvus-cell-output").show()
         css_class_selector = ".salvus-#{opts.class}"
         switch opts.class
-            when 'javascript', 'coffeescript'
-                output.append(templates.find(css_class_selector).clone().data('value', opts.value))
+            when 'javascript'
+                if not opts.value.once? or not opts.value.once
+                    output.append(templates.find(css_class_selector).clone().data('value', opts.value))
                 salvus =
                     stdout : (value) -> append_cell_output(cell:cell, class:'stdout', value: value)
                     stderr : (value) -> append_cell_output(cell:cell, class:'stderr', value: value)
                     html   : (value) -> append_cell_output(cell:cell, class:'html', value: value)
+                    tex    : (value) -> append_cell_output(cell:cell, class:'tex', value:value)
+                worksheet = views.worksheet
                 try
-                    if opts.class == 'javascript'
-                        eval(opts.value)
+                    if opts.value.coffeescript
+                        eval(CoffeeScript.compile(opts.value.code))
                     else
-                        eval(CoffeeScript.compile(opts.value))
+                        eval(opts.value.code)
                 catch e
                     salvus.stderr("Error '#{e}' executing #{opts.class}: '#{opts.value}'")
             when 'stdout', 'stderr'
@@ -683,7 +688,9 @@ close_scratch_worksheet = () ->
                 else
                     last_output = templates.find(css_class_selector).clone().html(opts.value)
                     output.append(last_output)
-                last_output.find('.mathjax').mathjax()
+            when 'tex'
+                elt = $("<span>").addClass('salvus-tex').mathjax(tex:opts.value.tex, display:opts.value.display).data('value', opts.value)
+                output.append(elt)
 
     ########################################
     # Interact controls
@@ -1140,15 +1147,19 @@ close_scratch_worksheet = () ->
         mathjax: (opts={}) ->
             opts = defaults opts,
                 tex : undefined
+                display : false
             @each () ->
                 t = $(this)
-                t.removeClass("mathjax")
-                t.addClass("mathjax-rendered")
                 if opts.tex?
                     tex = opts.tex
                 else
                     tex = t.html()
-                element = t.hide().html("$${" + tex + "}$$")
-                MathJax.Hub.Typeset(element[0], () -> element.show())
+                if opts.display
+                    tex = "$${#{tex}}$$"
+                else
+                    tex = "\\({#{tex}}\\)"
+                element = t.hide().text(tex)
+                #MathJax.Hub.Typeset(element[0], () -> element.show())
+                MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0], () -> element.show()])
 
 )()

@@ -107,12 +107,13 @@ class Message(object):
     def execute_javascript(self, code, data=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, obj=None, done=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, obj=None, tex=None, done=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None: m['stdout'] = stdout
         if stderr is not None: m['stderr'] = stderr
         if html is not None: m['html'] = html
+        if tex is not None: m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
         if obj is not None: m['obj'] = json.dumps(obj)
@@ -274,30 +275,103 @@ class Salvus(object):
         self.namespace = namespace
         namespace['salvus'] = self   # beware of circular ref?
 
-    def javascript(self, code, done=False):
-        self._conn.send(message.output(javascript=code, id=self._id, done=done))
-        return self
-    def coffeescript(self, code, done=False):
-        self._conn.send(message.output(coffeescript=code, id=self._id, done=done))
-        return self
     def obj(self, obj, done=False):
         self._conn.send(message.output(obj=obj, id=self._id, done=done))
         return self
     def html(self, html, done=False):
         self._conn.send(message.output(html=str(html), id=self._id, done=done))
         return self
+    
+    def tex(self, obj, display=False, done=False):
+        """
+        Display obj nicely using TeX rendering.
+
+        INPUT:
+
+        - obj -- latex string or object that is automatically be converted to TeX
+        - display -- (default: False); if True, typeset as display math (so centered, etc.)
+        """
+        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj)
+        self._conn.send(message.output(tex={'tex':tex, 'display':display}, id=self._id, done=done))
+        return self
+
     def stdout(self, output, done=False):
-        self._conn.send(message.output(stdout=str(output), done=done, id=self._id))
+        """
+        Send the string output (or str(output) if output is not a
+        string) to the standard output stream of the compute cell.
+
+        INPUT:
+
+        - output -- string or object
+
+        """
+        stdout = output if isinstance(output, str) else str(output)
+        self._conn.send(message.output(stdout=stdout, done=done, id=self._id))
         return self
+
     def stderr(self, output, done=False):
-        self._conn.send(message.output(stderr=str(output), done=done, id=self._id))
+        """
+        Send the string output (or str(output) if output is not a
+        string) to the standard error stream of the compute cell.
+
+        INPUT:
+
+        - output -- string or object
+
+        """
+        stderr = output if isinstance(output, str) else str(output)
+        self._conn.send(message.output(stderr=stderr, done=done, id=self._id))
         return self
-    def execute_javascript(self, code, data=None):
-        self._conn.send(message.execute_javascript(code, data=data))
+
+    def javascript(self, code, once=True, coffeescript=False, done=False):
+        """
+        Execute the given Javascript code as part of the output
+        stream.  This same code will be executed (at exactly this
+        point in the output stream) every time the worksheet is
+        rendered.
+
+        INPUT:
+
+        - code -- a string
+        - once -- boolean (default: True); if True the Javascript is
+          only executed once, not every time the cell is loaded. This
+          is what you would use if you call salvus.stdout, etc.  Use
+          once=False, e.g., if you are using javascript to make a DOM
+          element draggable (say).
+        - coffeescript -- boolean (default: False); if True, the input
+          code is first converted from CoffeeScript to Javascript.
+
+        At least the following Javascript objects are defined in the
+        scope in which the code is evaluated::
+
+        - cell -- jQuery wrapper around the current compute cell
+        - salvus.stdout, salvus.stderr, salvus.html, salvus.tex -- all
+          allow you to write additional output to the cell
+        - worksheet - jQuery wrapper around the current worksheet DOM object
+
+        """
+        self._conn.send(message.output(javascript={'code':code, 'once':once, 'coffeescript':coffeescript}, id=self._id, done=done))
         return self
-    def execute_coffeescript(self, code, data=None):
-        self._conn.send(message.execute_javascript(code, data=data, coffeescript=True))
+
+    def coffeescript(self, *args, **kwds):
+        """
+        This is the same as salvus.javascript, but with coffeescript=True.
+        """
+        kwds['coffeescript'] = True
+        return self.javascript(*args, **kwds)
+
+    def execute_javascript(self, code, coffeescript=False, data=None):
+        """
+        """
+        self._conn.send(message.execute_javascript(code, coffeescript=coffeescript, data=data))
         return self
+
+    def execute_coffeescript(self, *args, **kwds):
+        """
+        This is the same as salvus.execute_javascript, but with coffeescript=True.
+        """
+        kwds['coffeescript'] = True
+        return self.execute_javascript(*args, **kwds)
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams

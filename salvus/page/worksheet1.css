@@ -100,6 +100,9 @@ pre {
 .salvus-html {
 }
 
+.salvus-tex {
+    color:#00a;
+}
 
 .salvus-worksheet-buttons {
 }
@@ -174,7 +177,7 @@ pre {
 
 .salvus-worksheet-docstring {
     font-family: "Courier New";
-    background-color: #fffff3;
+    background-color: #fffffa;
     white-space: pre;
     box-shadow: 8px 8px 4px #888;
     z-index: 10;
@@ -183,11 +186,12 @@ pre {
     opacity:0.95;
     max-height:30em;
     overflow:auto;
+    border: 1px solid black;
 }
 
 .salvus-worksheet-source-code {
     font-family: "Courier New";
-    background-color: #fffff3;
+    background-color: #fffffa;
     white-space: pre;
     box-shadow: 8px 8px 4px #888;
     z-index: 10;
@@ -196,6 +200,7 @@ pre {
     opacity:0.95;
     max-height:30em;
     overflow:auto;
+    border: 1px solid black;
 }
 
 .salvus-popup-handle {
