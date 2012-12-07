@@ -80,7 +80,7 @@ close_scratch_worksheet = () ->
 
                 session.introspect
                     line : line
-                    timeout: 1
+                    timeout: 3
                     cb : (error, mesg) ->
                         if error
                             session.interrupt()
@@ -960,6 +960,8 @@ close_scratch_worksheet = () ->
             focus_editor_on_first_cell()
 
     save_worksheet = (notify=false) ->
+        if not _worksheet_is_dirty
+            return
         salvus_client.save_scratch_worksheet
             data : misc.to_json(worksheet_to_obj())
             cb   : (error, msg) ->
@@ -971,7 +973,6 @@ close_scratch_worksheet = () ->
                 if not error
                     worksheet_is_clean()
 
-
     _worksheet_is_dirty = true
 
     worksheet_is_clean = () ->
@@ -980,9 +981,11 @@ close_scratch_worksheet = () ->
 
     worksheet_is_dirty = () ->
         _worksheet_is_dirty = true
+        setTimeout(save_worksheet, 30*1000)  # auto-save every 30 seconds
         worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('disabled')
 
 
+    # this is pretty useless
     window.onbeforeunload = (e=window.event) ->
         if _worksheet_is_dirty
             return "Your scratch worksheet is not saved."

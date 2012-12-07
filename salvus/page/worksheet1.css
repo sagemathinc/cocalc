@@ -1,6 +1,6 @@
 .CodeMirror {
     height:auto;
-    background-color: #ffffff;
+    background-color: #ffffe8;
 }
 
 .CodeMirror-scroll {
@@ -78,12 +78,13 @@ pre {
     height: auto;
     overflow-y: auto;
     overflow-x: auto;
-  /*  background-color:#f8f8f8; */
+    background-color:#f8f8f8;
+    border: 1px solid #f0f0f0;
 }
 
 .salvus-stdout {
     font-family: "Courier New";
-    color:#33a;
+    color:#11a;
     white-space: pre; 
 /*    white-space:pre-wrap;
     word-wrap: break-word;

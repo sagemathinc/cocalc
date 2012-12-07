@@ -8236,5 +8236,19 @@ Dec 6
 
  [x] json editor -- this looks good and is under very active development -- http://jsoneditoronline.org/; https://github.com/josdejong/jsoneditoronline
 
+ [ ] terminate sage session when websock dies
+ [ ] finish documenting salvus object in sage_server.py
+ [ ] document/refactor worksheet1.coffee (!)
+ [ ] slide show mode
+ [ ] mathjax in note field;  div class="math", "math-display" post processing.
+       * worksheet file support (graphics!)
+       * interact
+       * multiple scratch worksheets
+
  [ ] BUG:  salvus.tex (Ell[tab]
  [ ] mathjax -- can I cache the rendered html/css?
+ [ ] BUG: big gap in output when input is:
+for n in [1..10]:
+    salvus.stdout("\n%s: "%n)
+    salvus.tex(taylor(1/(1-x)^n,x,2))
+    
