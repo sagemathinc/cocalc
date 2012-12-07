@@ -1485,14 +1485,26 @@ exports.send_email = send_email = (opts={}) ->
 
 
 
+########################################
+# Blobs
+########################################
 
+save_blob = (uuid, blob, cb) ->
+    database.uuid_value_store(name:"blobs").set
+        uuid  : uuid
+        value : blob
+        ttl   : 60*10  # 10 minutes
+        cb    : cb
 
+get_blob = (uuid, cb) ->
+    database.uuid_value_store(name:"blobs").get
+        uuid : uuid
+        cb   : cb
 
 ########################################
 # Persistent Sage Sessions
 ########################################
 persistent_sage_sessions = {}
-
 
 SAGE_SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:3*60, vmem:2000, numfiles:1000, quota:128}
 
@@ -1512,20 +1524,27 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
         sage_conn = new sage.Connection(
             host:sage_server.host
             port:sage_server.port
-            recv:(m) ->
-                winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{to_safe_str(m)})")
-                switch m.event
-                    # DANGER: forwarding execute_javascript messages is a potential a security issue.
-                    when "output", "terminate_session", "execute_javascript"
-                        m.session_uuid = session_uuid  # tag with session uuid
-                        push_to_client(m)
-                    when "session_description"
-                        # record this for later use for signals:
-                        persistent_sage_sessions[session_uuid].pid = m.pid
-                        persistent_sage_sessions[session_uuid].account_id = account_id
-                        push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
+            recv:(type, m) ->
+                switch type
+                    when 'json'
+                        winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{to_safe_str(m)})")
+                        switch m.event
+                            # DANGER: forwarding execute_javascript messages is a potential a security issue.
+                            when "output", "terminate_session", "execute_javascript"
+                                m.session_uuid = session_uuid  # tag with session uuid
+                                push_to_client(m)
+                            when "session_description"
+                                # record this for later use for signals:
+                                persistent_sage_sessions[session_uuid].pid = m.pid
+                                persistent_sage_sessions[session_uuid].account_id = account_id
+                                push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
+                            else
+                                push_to_client(m)
+                    when 'blob'
+                        # TODO: should we use a callback so that we notify about whether or not this worked? We could...
+                        save_blob(m.uuid, m.blob)
                     else
-                        push_to_client(m)
+                        raise("unknown message type '#{type}'")
             cb: ->
                 winston.info("(hub) persistent_sage_conn -- connected.")
                 # send message to server requesting parameters for this session
@@ -1610,9 +1629,11 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
     sage_conn = new sage.Connection(
         host:host
         port:port
-        recv:(mesg) ->
+        recv:(type, mesg) ->
             winston.info("(hub) sage_conn -- received message #{to_safe_str(mesg)}")
-            output_message_callback(mesg)
+            if type == 'json'
+                output_message_callback(mesg)
+            # TODO: maybe should handle 'blob' type?
         cb: ->
             winston.info("(hub) sage_conn -- sage: connected.")
             sage_conn.send(message.start_session(limits:{walltime:5, cputime:5, numfiles:1000, vmem:2048}))

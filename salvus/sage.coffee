@@ -79,7 +79,7 @@ class exports.Connection
 
         @conn.on('error', (err) =>
             winston.error("sage connection error: #{err}")
-            @recv?(message.terminate_session(reason:"#{err}"))
+            @recv?('json', message.terminate_session(reason:"#{err}"))
         )
 
         @conn.on('data', (data) =>
@@ -101,7 +101,7 @@ class exports.Connection
                     mesg = @buf.slice(4, @buf_target_length)
                     s = mesg.toString()
                     #winston.info("(sage.coffee) received message: #{s}")
-                    @recv?(JSON.parse(s))
+                    @recv?('json', JSON.parse(s))
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1
                     if @buf.length == 0

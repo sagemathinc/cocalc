@@ -8251,6 +8251,10 @@ salvus.coffeescript("$('#mycolor3').colorpicker()", once=False)
   - add support to Salvus object in sage_server to send a file object message:
         - create a uuid.uuid4()
         - make message with file attribute
+
+ - [] sage.coffee -- send using new message format
+ 
+
   - add support to hub (and haproxy) so that this URL works:
            https://salv.us/files/filename?uuid=[the uuid]
     just stub it initially so that it always returns an image or a simple text file
