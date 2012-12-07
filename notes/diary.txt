@@ -8241,6 +8241,11 @@ Dec 6
 Somewhat surprisingly, this seems like the best one:  http://modcoder.org/?ptab=jquery&item=excolor
 The website isn't awesome, but it's MIT licensed, and it works solidly on iOS, android, and desktop unlike pretty much all the others!
 A fork is here: git://github.com/rjfranco/excolor.git
+Finally settled for bootstrap-colorpicker, and now this works:
+salvus.html("""
+<input id="mycolor3" name="mycolor" type="text" class="color-input" value="164,208,237" readonly="readonly"/>
+""")
+salvus.coffeescript("$('#mycolor3').colorpicker()", once=False)
 
  [ ] terminate sage session when websocket dies
  [ ] finish documenting salvus object in sage_server.py
