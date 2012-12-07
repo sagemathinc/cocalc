@@ -100,11 +100,14 @@ class exports.Connection
                     # read a new message from our buffer
                     type = @buf.slice(4, 5).toString()
                     mesg = @buf.slice(5, @buf_target_length)
-                    if type == 'j'     # JSON
-                        s = mesg.toString()
-                        @recv?('json', JSON.parse(s))
-                    else
-                        throw("unknown message type '#{type}'")
+                    switch type
+                        when 'j'   # JSON
+                            s = mesg.toString()
+                            @recv?('json', JSON.parse(s))
+                        when 'b'   # BLOB
+                            @recv?('blob', mesg)
+                        else
+                            throw("unknown message type '#{type}'")
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1
                     if @buf.length == 0
@@ -124,6 +127,12 @@ class exports.Connection
 
     send_json: (mesg) ->
         @_send('j' + JSON.stringify(mesg))
+
+    send_blob: (uuid, blob) ->
+        # TODO: is concat expensive and wasteful!?  -- easier to code
+        # this way, then rewrite by copying code from _send later once
+        # this works.
+        @_send(Buffer.concat([new Buffer('b'), blob]))
 
     # Close the connection with the server.  You probably instead want
     # to send_signal(...) using the module-level fucntion to kill the

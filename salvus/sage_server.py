@@ -52,6 +52,14 @@ class ConnectionJSON(object):
     def send_json(self, m):
         self._send('j' + json.dumps(m))
 
+    def send_blob(self, uuid, blob):
+        uuid = str(uuid)
+        assert len(uuid) == 36
+        self._send('b' + uuid + blob)
+
+    def send_file(self, uuid, filename):
+        self.send_blob(uuid, open(filename).read())  # TODO: could stream instead of reading into memory...
+
     def _recv(self, n):
         #print "_recv(%s)"%n
         for i in range(20): # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
@@ -79,7 +87,9 @@ class ConnectionJSON(object):
             s += t
 
         if s[0] == 'j':
-            return json.loads(s[1:])
+            return 'json', json.loads(s[1:])
+        elif s[0] == 'b':
+            return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
 
 class Message(object):
@@ -148,7 +158,7 @@ def client1(port, hostname):
     conn = ConnectionJSON(conn)
 
     conn.send_json(message.start_session())
-    mesg = conn.recv()
+    typ, mesg = conn.recv()
     pid = mesg['pid']
     print "PID = %s"%pid
 
@@ -160,7 +170,7 @@ def client1(port, hostname):
                 break
             conn.send_json(message.execute_code(code=code, id=id))
             while True:
-                mesg = conn.recv()
+                typ, mesg = conn.recv()
                 if mesg['event'] == 'terminate_session':
                     return
                 elif mesg['event'] == 'output':
@@ -281,7 +291,12 @@ class Salvus(object):
     def obj(self, obj, done=False):
         self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
         return self
-    
+
+    def file(self, filename, done=False):
+        file_uuid = uuid.uuidv4()
+        self._conn.send_file(file_uuid, filename)
+        self._conn.send(message.output(file={'filename':filename, 'uuid':file_uuid}))
+
     def html(self, html, done=False):
         self._conn.send_json(message.output(html=str(html), id=self._id, done=done))
         return self
@@ -452,7 +467,7 @@ def session(conn, home, cputime, numfiles, vmem, uid):
 
     while True:
         try:
-            mesg = conn.recv()
+            typ, mesg = conn.recv()
             #print 'INFO:child%s: received message "%s"'%(pid, mesg)
             event = mesg['event']
             if event == 'terminate_session':
@@ -553,7 +568,7 @@ def handle_session_term(signum, frame):
 
 def serve_connection(conn):
     conn = ConnectionJSON(conn)
-    mesg = conn.recv()
+    typ, mesg = conn.recv()
     if mesg['event'] == 'send_signal':
         if mesg['pid'] == 0:
             print "invalid signal mesg (pid=0)"
