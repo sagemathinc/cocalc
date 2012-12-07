@@ -8235,8 +8235,14 @@ Dec 6
 --------
 
  [x] json editor -- this looks good and is under very active development -- http://jsoneditoronline.org/; https://github.com/josdejong/jsoneditoronline
+ [ ] setup salvusmath twitter account, since I could easily live blog a lot about salvus.
 
- [ ] terminate sage session when websock dies
+ [ ] let's have some fun first! :-) -- color selector:
+Somewhat surprisingly, this seems like the best one:  http://modcoder.org/?ptab=jquery&item=excolor
+The website isn't awesome, but it's MIT licensed, and it works solidly on iOS, android, and desktop unlike pretty much all the others!
+A fork is here: git://github.com/rjfranco/excolor.git
+
+ [ ] terminate sage session when websocket dies
  [ ] finish documenting salvus object in sage_server.py
  [ ] document/refactor worksheet1.coffee (!)
  [ ] slide show mode
@@ -8251,4 +8257,4 @@ Dec 6
 for n in [1..10]:
     salvus.stdout("\n%s: "%n)
     salvus.tex(taylor(1/(1-x)^n,x,2))
-    
+
