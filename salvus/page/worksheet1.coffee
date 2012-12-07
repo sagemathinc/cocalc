@@ -728,15 +728,15 @@ close_scratch_worksheet = () ->
                 output.append(elt)
                 elt.mathjax(tex:opts.value.tex, display:opts.value.display)
             when 'file'
-                target = "/blobs/#{opts.value.filename}?uuid=#{opts.value.uuid}"
-                switch misc.filename_extension(opts.value.filename)
-                    when 'svg', 'png', 'gif', 'jpg'
-                        elt = $("<img src='#{target}'>")
-                    else
-                        # TODO: countdown timer or something
-                        elt = $("<a href='#{target}' target='_new'>#{opts.value.filename} (this temporary link expires in a minute)</a> ") 
-                output.append(elt)
-
+                if opts.value.show
+                    target = "/blobs/#{opts.value.filename}?uuid=#{opts.value.uuid}"
+                    switch misc.filename_extension(opts.value.filename)
+                        when 'svg', 'png', 'gif', 'jpg'
+                            elt = $("<img src='#{target}' class='salvus-output-img'>").draggable(zIndex:100)
+                        else
+                            # TODO: countdown timer or something
+                            elt = $("<a href='#{target}' target='_new'>#{opts.value.filename} (this temporary link expires in a minute)</a> ")
+                    output.append(elt)
 
     ########################################
     # Interact controls

@@ -8293,6 +8293,24 @@ def s(p):
     os.unlink('/tmp/a.svg')
 s(plot(sin(x^2), (x,-10,10), color='red', figsize=[8,4]))
 --
+def s(p, ext='svg'):
+    file = '/tmp/a.'+ext
+    p.save(file)
+    salvus.file(file)
+    os.unlink(file)
+for n in [1..5]:
+    f = sin(x^n)/x^n + cos(1/x)
+    salvus.tex(f)
+    salvus.stdout(": ")
+    s(plot(f, (x,1,3), figsize=[8,2], axes=False, frame=True), 'svg')
+    salvus.stdout('\n')
+--
+
+And embedding images in html:
+
+p = plot(sin,0,3).save('/tmp/a.svg')
+uuid = salvus.file('/tmp/a.svg', show=False)
+salvus.html('<h2>THIS: <img src="/blobs/tmp/a.svg?uuid=%s" width=300></h2>'%uuid)
 
  [ ] terminate sage session when websocket dies
  [ ] finish documenting salvus object in sage_server.py

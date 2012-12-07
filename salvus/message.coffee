@@ -85,7 +85,7 @@ message
     tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
     javascript   : undefined   # javascript code evaluation stream -- see also 'execute_javascript' to run code that is not saved as part of the output
     obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
-    file         : undefined   # used for passing a file -- is an object {filename:..., uuid:...}; the file is at https://salv.us/blobs/filename?uuid=[the uuid]
+    file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://salv.us/blobs/filename?uuid=[the uuid]
     done         : false       # the sequences of messages for a given code evaluation is done.
     session_uuid : undefined   # the uuid of the session that produced this output
 

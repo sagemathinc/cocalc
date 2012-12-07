@@ -292,10 +292,19 @@ class Salvus(object):
         self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
         return self
 
-    def file(self, filename, done=False):
+    def file(self, filename, show=True, done=False):
+        """
+        Sends a file to the browser and returns a uuid that can be
+        used to access the file (for up to 1 minute) at
+        /blobs/filename?uuid=the_uuid
+
+        If show is true (the default), the browser will show the file
+        as well, or provide a link to it.
+        """
         file_uuid = str(uuid.uuid4())
         self._conn.send_file(file_uuid, filename)
-        self._conn.send_json(message.output(id=self._id, file={'filename':filename, 'uuid':file_uuid}))
+        self._conn.send_json(message.output(id=self._id, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
+        return file_uuid
 
     def html(self, html, done=False):
         self._conn.send_json(message.output(html=str(html), id=self._id, done=done))

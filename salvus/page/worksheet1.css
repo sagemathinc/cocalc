@@ -82,6 +82,10 @@ pre {
     border: 1px solid #f0f0f0;
 }
 
+.salvus-output-img {
+    border: 1px solid #808080;
+}
+
 .salvus-stdout {
     font-family: "Courier New";
     color:#11a;
