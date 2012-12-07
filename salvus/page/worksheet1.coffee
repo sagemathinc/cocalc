@@ -349,13 +349,18 @@ close_scratch_worksheet = () ->
             r += '    sage: ' + code.replace(/\n\s/g,'\n    ...    ').replace(/\n(\S)(.*)/g, p+'$1$2')
         for o in cell.find(".salvus-cell-output").children()
             s = $(o)
-            cls = s.attr('class').slice(7)
-            switch cls
-                when 'javascript', 'coffeescript'
-                    value = "#{cls}: #{s.data('value').trim()}"
-                else
-                    value = s.text().trim()
-            r += '\n' + '    ' + value.replace(/\n/g, '\n    ')
+            cls = s.attr('class')
+            if cls?
+                # User might set the salvus-cell-output child in weird
+                # ways, so we just ignore any child without a class
+                # attribute (rather than crashing and failing to save!).
+                cls = cls.slice(7)
+                switch cls
+                    when 'javascript', 'coffeescript'
+                        value = "#{cls}: #{s.data('value').trim()}"
+                    else
+                        value = s.text().trim()
+                r += '\n' + '    ' + value.replace(/\n/g, '\n    ')
         return r
 
     cell_to_obj = (cell) ->
@@ -363,18 +368,20 @@ close_scratch_worksheet = () ->
         output = []
         for o in cell.find(".salvus-cell-output").children()
             s = $(o)
-            cls = s.attr('class').slice(7)
-            switch cls
-                when 'javascript', 'coffeescript'
-                    value = s.data('value')
-                when 'html'
-                    value = s.html()
-                when 'stdout', 'stderr'
-                    value = s.text()
-                when 'tex'
-                    value = s.data('value')
-                # other types are ignored -- e.g., interact data isn't saved
-            output.push(class:cls, value:value)
+            cls = s.attr('class')
+            if cls?  # User might set the salvus-cell-output child in weird ways, so we just ignore any child without a class
+                cls = cls.slice(7)
+                switch cls
+                    when 'javascript', 'coffeescript'
+                        value = s.data('value')
+                    when 'html'
+                        value = s.html()
+                    when 'stdout', 'stderr'
+                        value = s.text()
+                    when 'tex'
+                        value = s.data('value')
+                    # other types are ignored -- e.g., interact data isn't saved
+                output.push(class:cls, value:value)
         return {
             id     : cell.attr("id")
             note   : cell.find(".salvus-cell-note").html()
@@ -979,9 +986,13 @@ close_scratch_worksheet = () ->
         _worksheet_is_dirty = false
         worksheet1.find("a[href='#worksheet1-save_worksheet']").addClass("disabled")
 
+    _worksheet_autosave_timer_is_set = false
     worksheet_is_dirty = () ->
         _worksheet_is_dirty = true
-        setTimeout(save_worksheet, 30*1000)  # auto-save every 30 seconds
+        if not _worksheet_autosave_timer_is_set
+            _worksheet_autosave_timer_is_set = true
+            setTimeout((() -> _worksheet_autosave_timer_is_set=false; save_worksheet()), 30*1000)  # auto-save every 30 seconds
+
         worksheet1.find("a[href='#worksheet1-save_worksheet']").removeClass('disabled')
 
 
@@ -1066,11 +1077,13 @@ close_scratch_worksheet = () ->
             for cell in views.worksheet.find('.salvus-cell')
                 $(cell).data('editor').refresh()
 
+    _last_valid_worksheet_obj = undefined
     edit_view = () ->
         $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
         show_view('edit')
         editor = views.edit.data('editor')
         obj = worksheet_to_obj()
+        _last_valid_worksheet_obj = obj  # save the valid obj in case things go wrong parsing.
         formatter = views.edit.data('formatter')
         formatter.set(obj)
         editor.set(obj)
@@ -1083,6 +1096,8 @@ close_scratch_worksheet = () ->
             return true
         catch e
             # TODO: use a bootstrap modal.
+            if _last_valid_worksheet_obj?  # restore the last known good object
+                set_worksheet_from_obj(_last_valid_worksheet_obj)
             alert("There were errors setting the worksheet from the edited JSON object: #{e}")
             return false
 

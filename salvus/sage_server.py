@@ -107,7 +107,7 @@ class Message(object):
     def execute_javascript(self, code, data=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, obj=None, tex=None, done=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, obj=None, tex=None, file=None, done=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None: m['stdout'] = stdout
@@ -117,6 +117,7 @@ class Message(object):
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
         if obj is not None: m['obj'] = json.dumps(obj)
+        if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
         if done is not None: m['done'] = done
         return m
 
@@ -278,10 +279,11 @@ class Salvus(object):
     def obj(self, obj, done=False):
         self._conn.send(message.output(obj=obj, id=self._id, done=done))
         return self
+    
     def html(self, html, done=False):
         self._conn.send(message.output(html=str(html), id=self._id, done=done))
         return self
-    
+
     def tex(self, obj, display=False, done=False):
         """
         Display obj nicely using TeX rendering.

@@ -8235,9 +8235,8 @@ Dec 6
 --------
 
  [x] json editor -- this looks good and is under very active development -- http://jsoneditoronline.org/; https://github.com/josdejong/jsoneditoronline
- [ ] setup salvusmath twitter account, since I could easily live blog a lot about salvus.
-
- [ ] let's have some fun first! :-) -- color selector:
+ [x] setup salvusmath twitter account, since I could easily live blog a lot about salvus.
+ [x] let's have some fun first! :-) -- color selector:
 Somewhat surprisingly, this seems like the best one:  http://modcoder.org/?ptab=jquery&item=excolor
 The website isn't awesome, but it's MIT licensed, and it works solidly on iOS, android, and desktop unlike pretty much all the others!
 A fork is here: git://github.com/rjfranco/excolor.git
@@ -8247,12 +8246,45 @@ salvus.html("""
 """)
 salvus.coffeescript("$('#mycolor3').colorpicker()", once=False)
 
+ [ ] worksheet file support (graphics)-- the plan
+
+  - add support to Salvus object in sage_server to send a file object message:
+        - create a uuid.uuid4()
+        - make message with file attribute
+  - add support to hub (and haproxy) so that this URL works:
+           https://salv.us/files/filename?uuid=[the uuid]
+    just stub it initially so that it always returns an image or a simple text file
+  - in browser, add support for handling file output message, e.g.,
+    display it depending on mime type or extension or something (?)
+  - add support for a new message TYPE in various places:
+        * blob instead of JSON
+        * length (encoded as before)
+        * will have to have some special character to indicate message type now.
+  - make it so sage_server sends a blob message when sending a file object
+  - make it so when hub receives blob message, it stores it in cache -- also worry about size
+  - make it so hub also stores blobs in a uuid:value store in the
+    database; these should expire after some short amount of time; if
+    saved as part of a worksheet, they would get copied somewhere
+    else.
+  - use the above to implement display of static 2d plots...
+
+ [x] i wonder how hard svg rendering for 2d plots would be...
+Amusing demo using Rapael:
+s = """
+r = Raphael(cell.find(".salvus-cell-output").css('border','1px solid black').draggable()[0], 800, 100)
+circle = r.circle(50, 40, 5)
+"""
+for x in range(0,200):
+    s += 'r.circle(%s*10,10*%s+30, 3)\n'%(x,float(sin(x)))
+salvus.coffeescript(s)
+
+I just tried raphael for a while, hoping for its image reader support to work... it does NOT.
+
  [ ] terminate sage session when websocket dies
  [ ] finish documenting salvus object in sage_server.py
  [ ] document/refactor worksheet1.coffee (!)
  [ ] slide show mode
  [ ] mathjax in note field;  div class="math", "math-display" post processing.
-       * worksheet file support (graphics!)
        * interact
        * multiple scratch worksheets
 
