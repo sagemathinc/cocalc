@@ -36,7 +36,7 @@ LIMITS = {'cputime':60, 'walltime':60, 'vmem':2000, 'numfiles':1000, 'quota':128
 #log = logging.getLogger('sage_server')
 #log.setLevel(logging.INFO)
 
-# JSON Message wrapper around a connection
+# A tcp connection with support for sending various types of messages, especially JSON.
 class ConnectionJSON(object):
     def __init__(self, conn):
         assert not isinstance(conn, ConnectionJSON)
@@ -45,11 +45,12 @@ class ConnectionJSON(object):
     def close(self):
         self._conn.close()
 
-    def send(self, m):
-        #log.debug('send:pid=%s: "%s"', os.getpid(), m)    # todo -- waste of time
-        s = json.dumps(m)
+    def _send(self, s):
         length_header = struct.pack(">L", len(s))
         self._conn.send(length_header + s)
+
+    def send_json(self, m):
+        self._send('j' + json.dumps(m))
 
     def _recv(self, n):
         #print "_recv(%s)"%n
@@ -76,9 +77,10 @@ class ConnectionJSON(object):
             if len(t) == 0:
                 raise EOFError
             s += t
-        m = json.loads(s)
-        #log.debug('recv:pid=%s: "%s"', os.getpid(), m)  # todo -- remove
-        return m
+
+        if s[0] == 'j':
+            return json.loads(s[1:])
+        raise ValueError("unknown message type '%s'"%s[0])
 
 class Message(object):
     def _new(self, event, props={}):
@@ -145,7 +147,7 @@ def client1(port, hostname):
     conn.connect((hostname, int(port)))
     conn = ConnectionJSON(conn)
 
-    conn.send(message.start_session())
+    conn.send_json(message.start_session())
     mesg = conn.recv()
     pid = mesg['pid']
     print "PID = %s"%pid
@@ -156,7 +158,7 @@ def client1(port, hostname):
             code = parsing.get_input('sage [%s]: '%id)
             if code is None:  # EOF
                 break
-            conn.send(message.execute_code(code=code, id=id))
+            conn.send_json(message.execute_code(code=code, id=id))
             while True:
                 mesg = conn.recv()
                 if mesg['event'] == 'terminate_session':
@@ -175,11 +177,11 @@ def client1(port, hostname):
             conn2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             conn2.connect((hostname, int(port)))
             conn2 = ConnectionJSON(conn2)
-            conn2.send(message.send_signal(pid))
+            conn2.send_json(message.send_signal(pid))
             del conn2
             id += 1
 
-    conn.send(message.terminate_session())
+    conn.send_json(message.terminate_session())
     print "\nExiting Sage client."
 
 class OutputStream(object):
@@ -277,11 +279,11 @@ class Salvus(object):
         namespace['salvus'] = self   # beware of circular ref?
 
     def obj(self, obj, done=False):
-        self._conn.send(message.output(obj=obj, id=self._id, done=done))
+        self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
         return self
     
     def html(self, html, done=False):
-        self._conn.send(message.output(html=str(html), id=self._id, done=done))
+        self._conn.send_json(message.output(html=str(html), id=self._id, done=done))
         return self
 
     def tex(self, obj, display=False, done=False):
@@ -294,7 +296,7 @@ class Salvus(object):
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
         tex = obj if isinstance(obj, str) else self.namespace['latex'](obj)
-        self._conn.send(message.output(tex={'tex':tex, 'display':display}, id=self._id, done=done))
+        self._conn.send_json(message.output(tex={'tex':tex, 'display':display}, id=self._id, done=done))
         return self
 
     def stdout(self, output, done=False):
@@ -308,7 +310,7 @@ class Salvus(object):
 
         """
         stdout = output if isinstance(output, str) else str(output)
-        self._conn.send(message.output(stdout=stdout, done=done, id=self._id))
+        self._conn.send_json(message.output(stdout=stdout, done=done, id=self._id))
         return self
 
     def stderr(self, output, done=False):
@@ -322,7 +324,7 @@ class Salvus(object):
 
         """
         stderr = output if isinstance(output, str) else str(output)
-        self._conn.send(message.output(stderr=stderr, done=done, id=self._id))
+        self._conn.send_json(message.output(stderr=stderr, done=done, id=self._id))
         return self
 
     def javascript(self, code, once=True, coffeescript=False, done=False):
@@ -352,7 +354,7 @@ class Salvus(object):
         - worksheet - jQuery wrapper around the current worksheet DOM object
 
         """
-        self._conn.send(message.output(javascript={'code':code, 'once':once, 'coffeescript':coffeescript}, id=self._id, done=done))
+        self._conn.send_json(message.output(javascript={'code':code, 'once':once, 'coffeescript':coffeescript}, id=self._id, done=done))
         return self
 
     def coffeescript(self, *args, **kwds):
@@ -365,7 +367,7 @@ class Salvus(object):
     def execute_javascript(self, code, coffeescript=False, data=None):
         """
         """
-        self._conn.send(message.execute_javascript(code, coffeescript=coffeescript, data=data))
+        self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, data=data))
         return self
 
     def execute_coffeescript(self, *args, **kwds):
@@ -437,7 +439,7 @@ def session(conn, home, cputime, numfiles, vmem, uid):
         pass
 
     def handle_parent_sigquit(signum, frame):
-        conn.send(message.terminate_session())
+        conn.send_json(message.terminate_session())
         print "** Sage process killed by external SIGQUIT signal (time limit probably exceeded) **\n\n"
         sys.exit(0)
 
@@ -473,7 +475,7 @@ def introspect(conn, id, line, preparse):
         mesg = message.introspect_docstring(id=id, docstring=z['result'], target=z['expr'])
     elif z['get_source']:
         mesg = message.introspect_source_code(id=id, source_code=z['result'], target=z['expr'])
-    conn.send(mesg)
+    conn.send_json(mesg)
 
 def rmtree(path):
     if not path.startswith('/tmp/') or path.startswith('/var/') or path.startswith('/private/'):
@@ -579,7 +581,7 @@ def serve_connection(conn):
         C.monitor()
     else:
         # child
-        conn.send(message.session_description(os.getpid(), limits))
+        conn.send_json(message.session_description(os.getpid(), limits))
         session(conn, home, uid=uid,
                 cputime=limits.get('cputime', LIMITS['cputime']),
                 numfiles=limits.get('numfiles', LIMITS['numfiles']),

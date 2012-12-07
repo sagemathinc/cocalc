@@ -51,7 +51,7 @@ exports.send_control_message = (opts={}) ->
         host : opts.host
         port : opts.port
         cb   : ->
-            sage_control_conn.send(opts.mesg)
+            sage_control_conn.send_json(opts.mesg)
             sage_control_conn.close()
 
 exports.send_signal = (opts={}) ->
@@ -98,10 +98,13 @@ class exports.Connection
                         return  # have to wait for more data
                 if @buf_target_length <= @buf.length
                     # read a new message from our buffer
-                    mesg = @buf.slice(4, @buf_target_length)
-                    s = mesg.toString()
-                    #winston.info("(sage.coffee) received message: #{s}")
-                    @recv?('json', JSON.parse(s))
+                    type = @buf.slice(4, 5).toString()
+                    mesg = @buf.slice(5, @buf_target_length)
+                    if type == 'j'     # JSON
+                        s = mesg.toString()
+                        @recv?('json', JSON.parse(s))
+                    else
+                        throw("unknown message type '#{type}'")
                     @buf = @buf.slice(@buf_target_length)
                     @buf_target_length = -1
                     if @buf.length == 0
@@ -112,13 +115,15 @@ class exports.Connection
         @conn.on('end', -> winston.info("(sage.coffee) disconnected from sage server"))
 
     # send a message to sage_server
-    send: (mesg) ->
-        s = JSON.stringify(mesg)
+    _send: (s) ->
         #winston.info("(sage.coffee) send message: #{s}")
         buf = new Buffer(4)
         buf.writeInt32BE(s.length, 0)
         @conn.write(buf)
         @conn.write(s)
+
+    send_json: (mesg) ->
+        @_send('j' + JSON.stringify(mesg))
 
     # Close the connection with the server.  You probably instead want
     # to send_signal(...) using the module-level fucntion to kill the
@@ -131,9 +136,9 @@ class exports.Connection
 test = (n=1) ->
     message = require("message")
     cb = () ->
-        conn.send(message.start_session())
+        conn.send_json(message.start_session())
         for i in [1..n]
-            conn.send(message.execute_code(id:0,code:"factor(2012)"))
+            conn.send_json(message.execute_code(id:0,code:"factor(2012)"))
     tm = (new Date()).getTime()
     conn = new exports.Connection(
         {

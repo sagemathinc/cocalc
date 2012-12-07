@@ -1548,7 +1548,7 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
             cb: ->
                 winston.info("(hub) persistent_sage_conn -- connected.")
                 # send message to server requesting parameters for this session
-                sage_conn.send(mesg)
+                sage_conn.send_json(mesg)
         )
         # Save sage_conn object so that when the user requests evaluation of
         # code in the session with this id, we use this.
@@ -1584,7 +1584,7 @@ send_to_persistent_sage_session = (mesg, account_id) ->
             pid    : mesg.pid
             signal : mesg.signal
     else
-        session.conn.send(mesg)
+        session.conn.send_json(mesg)
 
 
 ##########################################
@@ -1636,10 +1636,10 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
             # TODO: maybe should handle 'blob' type?
         cb: ->
             winston.info("(hub) sage_conn -- sage: connected.")
-            sage_conn.send(message.start_session(limits:{walltime:5, cputime:5, numfiles:1000, vmem:2048}))
+            sage_conn.send_json(message.start_session(limits:{walltime:5, cputime:5, numfiles:1000, vmem:2048}))
             winston.info("(hub) sage_conn -- send: #{to_safe_str(input_mesg)}")
-            sage_conn.send(input_mesg)
-            sage_conn.send(message.terminate_session())
+            sage_conn.send_json(input_mesg)
+            sage_conn.send_json(message.terminate_session())
     )
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
