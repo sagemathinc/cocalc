@@ -73,6 +73,8 @@ exports.uuid = ->
         return v.toString(16);
     });`
 
+exports.is_valid_uuid_string = (uuid) -> /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
+
 # Return a very rough benchmark of the number of times f will run per second.
 exports.times_per_second = (f, max_time=5, max_loops=1000) ->
     # return number of times per second that f() can be called
@@ -147,3 +149,6 @@ exports.substring_count = (string, subString, allowOverlapping) ->
 exports.max = (array) -> (array.reduce((a,b) -> Math.max(a, b)))
 
 exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
+
+filename_extension_re = /(?:\.([^.]+))?$/
+exports.filename_extension = (filename) -> filename_extension_re.exec(filename)[1]

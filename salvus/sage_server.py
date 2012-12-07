@@ -25,9 +25,9 @@ For debugging:
 
 
 import json, os, resource, shutil, signal, socket, struct, sys, \
-       tempfile, time, traceback
+       tempfile, time, traceback, uuid
 
-import parsing
+import parsing, sage_salvus
 
 LIMITS = {'cputime':60, 'walltime':60, 'vmem':2000, 'numfiles':1000, 'quota':128}
 
@@ -293,9 +293,9 @@ class Salvus(object):
         return self
 
     def file(self, filename, done=False):
-        file_uuid = uuid.uuidv4()
+        file_uuid = str(uuid.uuid4())
         self._conn.send_file(file_uuid, filename)
-        self._conn.send(message.output(file={'filename':filename, 'uuid':file_uuid}))
+        self._conn.send_json(message.output(id=self._id, file={'filename':filename, 'uuid':file_uuid}))
 
     def html(self, html, done=False):
         self._conn.send_json(message.output(html=str(html), id=self._id, done=done))
@@ -402,7 +402,7 @@ def execute(conn, id, code, data, preparse):
         sys.stderr = OutputStream(salvus.stderr)
         try:
             # initialize more salvus functionality
-            import sage_salvus; sage_salvus.salvus = salvus
+            sage_salvus.salvus = salvus
             namespace['sage_salvus'] = sage_salvus
         except:
             traceback.print_exc()

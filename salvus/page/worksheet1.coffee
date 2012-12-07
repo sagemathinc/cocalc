@@ -674,6 +674,11 @@ close_scratch_worksheet = () ->
                 cell  : cell
                 class : 'javascript'
                 value : mesg.javascript
+        if mesg.file?
+            append_cell_output
+                cell  : cell
+                class : 'file'
+                value : mesg.file
 
     append_cell_output = (opts) ->
         opts = defaults opts,
@@ -722,6 +727,16 @@ close_scratch_worksheet = () ->
                 elt = $("<span>").addClass('salvus-tex').text(opts.value.tex).data('value', opts.value)
                 output.append(elt)
                 elt.mathjax(tex:opts.value.tex, display:opts.value.display)
+            when 'file'
+                target = "/blobs/#{opts.value.filename}?uuid=#{opts.value.uuid}"
+                switch misc.filename_extension(opts.value.filename)
+                    when 'svg', 'png', 'gif', 'jpg'
+                        elt = $("<img src='#{target}'>")
+                    else
+                        # TODO: countdown timer or something
+                        elt = $("<a href='#{target}' target='_new'>#{opts.value.filename} (this temporary link expires in a minute)</a> ") 
+                output.append(elt)
+
 
     ########################################
     # Interact controls

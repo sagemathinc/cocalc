@@ -105,7 +105,7 @@ class exports.Connection
                             s = mesg.toString()
                             @recv?('json', JSON.parse(s))
                         when 'b'   # BLOB
-                            @recv?('blob', mesg)
+                            @recv?('blob', {uuid:mesg.slice(0,36).toString(), blob:mesg.slice(36).toString()})
                         else
                             throw("unknown message type '#{type}'")
                     @buf = @buf.slice(@buf_target_length)

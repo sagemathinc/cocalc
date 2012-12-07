@@ -8246,7 +8246,7 @@ salvus.html("""
 """)
 salvus.coffeescript("$('#mycolor3').colorpicker()", once=False)
 
- [ ] worksheet file support (graphics)-- the plan
+ [x] worksheet file support (graphics)-- the plan
 
   - add support to Salvus object in sage_server to send a file object message:
         - create a uuid.uuid4()
@@ -8283,6 +8283,16 @@ for x in range(0,200):
 salvus.coffeescript(s)
 
 I just tried raphael for a while, hoping for its image reader support to work... it does NOT.
+
+
+WE HAVE 2d plots:
+
+def s(p):
+    p.save('/tmp/a.svg')
+    salvus.file('/tmp/a.svg')
+    os.unlink('/tmp/a.svg')
+s(plot(sin(x^2), (x,-10,10), color='red', figsize=[8,4]))
+--
 
  [ ] terminate sage session when websocket dies
  [ ] finish documenting salvus object in sage_server.py

@@ -21,6 +21,8 @@ http    = require('http')
 url     = require('url')
 {EventEmitter} = require('events')
 
+mime    = require('mime')
+
 # salvus libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
@@ -62,8 +64,8 @@ init_http_server = () ->
         if pathname != '/alive'
             winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
 
-        switch pathname
-            when "/cookies"
+        switch pathname.split('/')[1]
+            when "cookies"
                 cookies = new Cookies(req, res)
                 conn = clients[query.id]
                 if conn?
@@ -75,8 +77,25 @@ init_http_server = () ->
                         cookies.set(query.set, x.value, x.options)
                         conn.emit("set_cookie-#{query.set}")
                 res.end('')
-            when "/alive"
+            when "alive"
                 res.end('')
+            when "blobs"
+                console.log("serving a blob: #{misc.to_json(query)}")
+                if not query.uuid?
+                    res.writeHead(500, {'Content-Type':'text/plain'})
+                    res.end("internal error: #{error}")
+                    return
+                get_blob uuid:query.uuid, cb:(error, data) ->
+                    console.log("query got back: #{error}, #{misc.to_json(data)}")
+                    if error
+                        res.writeHead(500, {'Content-Type':'text/plain'})
+                        res.end("internal error: #{error}")
+                    else if not data?
+                        res.writeHead(404, {'Content-Type':'text/plain'})
+                        res.end("404 blob #{query.uuid} not found")
+                    else
+                        res.writeHead(200, {'Content-Type':mime.lookup(pathname)})
+                        res.end(data, 'utf-8')
             else
                 res.end('hub server')
 
@@ -123,8 +142,7 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        #winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
-        winston.debug("hub --> client: sending #{mesg.event}")
+        winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
         @conn.write(to_json(mesg))
 
     error_to_client: (opts) ->
@@ -1489,17 +1507,19 @@ exports.send_email = send_email = (opts={}) ->
 # Blobs
 ########################################
 
-save_blob = (uuid, blob, cb) ->
-    database.uuid_value_store(name:"blobs").set
-        uuid  : uuid
-        value : blob
-        ttl   : 60*10  # 10 minutes
-        cb    : cb
+save_blob = (opts) ->
+    opts = defaults opts,
+        uuid  : required
+        value : required
+        ttl   : undefined
+        cb    : undefined
+    database.uuid_value_store(name:"blobs").set(opts)
 
-get_blob = (uuid, cb) ->
-    database.uuid_value_store(name:"blobs").get
-        uuid : uuid
-        cb   : cb
+get_blob = (opts) ->
+    opts = defaults opts,
+        uuid : required
+        cb   : required
+    database.uuid_value_store(name:"blobs").get(opts)
 
 ########################################
 # Persistent Sage Sessions
@@ -1542,7 +1562,7 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
                                 push_to_client(m)
                     when 'blob'
                         # TODO: should we use a callback so that we notify about whether or not this worked? We could...
-                        save_blob(m.uuid, m.blob)
+                        save_blob(uuid:m.uuid, value:m.blob, ttl:60)  # deleted after 60 seconds
                     else
                         raise("unknown message type '#{type}'")
             cb: ->

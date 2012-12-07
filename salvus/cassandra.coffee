@@ -73,7 +73,11 @@ class UUIDValueStore
 
     set: (opts={}) ->
         opts = defaults(opts,  uuid:undefined, value:undefined, ttl:0, cb:undefined)
-        opts.uuid = uuid.v4() if not opts.uuid?
+        if not opts.uuid?
+            opts.uuid = uuid.v4()
+        else
+            if not misc.is_valid_uuid_string(opts.uuid)
+                throw "invalid uuid #{opts.uuid}"
         @cassandra.update(
             table:'uuid_value'
             where:{name:@opts.name, uuid:opts.uuid}
@@ -84,16 +88,26 @@ class UUIDValueStore
         return opts.uuid
 
     get: (opts={}) ->
-        opts = defaults(opts, uuid:undefined, cb:undefined)
+        opts = defaults opts,
+            uuid : required
+            cb   : required
+
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb("invalid uuid #{opts.uuid}")
+
         @cassandra.select(
             table:'uuid_value'
             columns:['value']
             where:{name:@opts.name, uuid:opts.uuid}
-            cb:(error, results) -> opts.cb?(error, if results.length == 1 then from_json(results[0][0]))
+            cb:(error, results) -> opts.cb(error, if results.length == 1 then from_json(results[0][0]))
         )
 
     delete: (opts={}) ->
-        opts = defaults(opts, uuid:undefined, cb:undefined)
+        opts = defaults opts,
+            uuid : required
+            cb   : undefined
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb?("invalid uuid #{opts.uuid}")
         @cassandra.delete(table:'uuid_value', where:{name:@opts.name, uuid:opts.uuid}, cb:opts.cb)
 
     delete_all: (opts={}) ->
