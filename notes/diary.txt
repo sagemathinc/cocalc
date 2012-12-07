@@ -8312,15 +8312,32 @@ p = plot(sin,0,3).save('/tmp/a.svg')
 uuid = salvus.file('/tmp/a.svg', show=False)
 salvus.html('<h2>THIS: <img src="/blobs/tmp/a.svg?uuid=%s" width=300></h2>'%uuid)
 
- [ ] terminate sage session when websocket dies
+-----
+
+Top priority goal for today:
+
+ [ ] BUG:  salvus.tex (Ell[tab]
+ [ ] terminate sage session when corresponding websocket connection dies
+ [ ] save scratch worksheet to a project
+ [ ] make project (as collection of worksheets for now) actually work
+ [ ] disable some settings stuff not supported:
+       - account upgrade
+       - submit key
+ [ ] add big "TEST WARNING" to top banner
+ [ ] re-deploy
+
+
+--
+Then...
+
+ [ ] make a uuid:blob store, which stores blobs instead of strings (varchar)
+ [ ] switch to using uuid:blob store in hub, and ensure that sending images works (need to change sage.coffee too).
  [ ] finish documenting salvus object in sage_server.py
  [ ] document/refactor worksheet1.coffee (!)
  [ ] slide show mode
  [ ] mathjax in note field;  div class="math", "math-display" post processing.
        * interact
        * multiple scratch worksheets
-
- [ ] BUG:  salvus.tex (Ell[tab]
  [ ] mathjax -- can I cache the rendered html/css?
  [ ] BUG: big gap in output when input is:
 for n in [1..10]:
