@@ -1,5 +1,5 @@
 ####################################################
-# 
+#
 # Test NodeJS TCP interface to a sage_server
 #
 # ASSUMPTION: there is a TCP sage server on localhost, port 6000
@@ -14,13 +14,14 @@ sage    = require('sage')
 message = require("message")
 
 exports.test_2plus2 = (test) ->
-    test.expect(7)
+    test.expect(10)
 
     pid = null
     conn = new sage.Connection
         host: HOST
         port: PORT
-        recv: (mesg) ->
+        recv: (type, mesg) ->
+            test.equal(type, 'json')
             switch mesg.event
                 when "session_description"
                     test.ok(mesg.pid?, "got back a pid")
@@ -39,4 +40,4 @@ exports.test_2plus2 = (test) ->
         cb: ->
             test.ok(true)  # connected
             conn.send(message.start_session(limits:{walltime:10}))
-            
+
