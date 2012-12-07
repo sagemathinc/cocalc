@@ -1,5 +1,5 @@
 ############################################################################
-# 
+#
 # sage.coffee -- TCP interface between NodeJS and a Sage server instance
 #
 # The TCP interface to the sage server is necessarily "weird" because
@@ -9,15 +9,15 @@
 # code can't be trusted, e.g., anything in the server can be
 # arbitrarily modified, all *control* messages, e.g., sending signals,
 # cleaning up, etc. absolutely require making a separate TCP connection.
-# 
+#
 # So:
 #
 #    1. Make a connection to the TCP server, which runs as root and
 #       forks on connection.
-# 
+#
 #    2. Create a new session, which drops privileges to a random clean
 #       user, and continues to listen on the TCP socket when not doing
-#       computations. 
+#       computations.
 #
 #    3. Send request-to-exec, etc., messages to the socket in (2)
 #       and get back output over (2).
@@ -35,7 +35,7 @@
 # Since control messages are much less frequent, this overhead is
 # acceptable.
 #
-############################################################################ 
+############################################################################
 
 net     = require('net')
 
@@ -60,7 +60,7 @@ exports.send_signal = (opts={}) ->
         host : opts.host
         port : opts.port
         mesg : message.send_signal(pid:opts.pid, signal:opts.signal)
-    
+
 
 class exports.Connection
     constructor: (options) ->
@@ -76,12 +76,12 @@ class exports.Connection
         @recv = options.recv  # send message to client
         @buf = null
         @buf_target_length = -1
-        
+
         @conn.on('error', (err) =>
             winston.error("sage connection error: #{err}")
             @recv?(message.terminate_session(reason:"#{err}"))
         )
-        
+
         @conn.on('data', (data) =>
             # read any new data into buf
             if @buf == null
@@ -126,11 +126,11 @@ class exports.Connection
     close: () ->
         @conn.end()
         @conn.destroy()
-        
+
 ###
 test = (n=1) ->
     message = require("message")
-    cb = () ->         
+    cb = () ->
         conn.send(message.start_session())
         for i in [1..n]
             conn.send(message.execute_code(id:0,code:"factor(2012)"))
