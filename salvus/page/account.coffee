@@ -76,7 +76,6 @@ account_settings = undefined
                 if error
                     alert_message(type:"error", message:error)
                 else
-                    account_settings.set_view()
                     alert_message(type:"info", message:"You have saved your settings.")
         )
 

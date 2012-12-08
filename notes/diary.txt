@@ -8321,13 +8321,14 @@ Top priority goal for today:
  [x] disable some settings stuff not supported (account upgrade); and generally clean up code
  [x] fix "forgot password" link
  [x] implement other evaluate keys
-
- [ ] change email address link is a bit wonky -- right when click "save", it changes it back in the gui, but it is actually changed (trying login).
+ [x] change email address link is a bit wonky -- right when click "save", it changes it back in the gui, but it is actually changed (trying login).
 
  [ ] make project (as collection of worksheets for now) actually work
  [ ] save scratch worksheet to a project
- [ ] re-deploy
 
+ [ ] deploy
+
+ [ ] code cleanup/refactoring
 
 --
 Then...
