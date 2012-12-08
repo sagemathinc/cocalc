@@ -8316,15 +8316,15 @@ salvus.html('<h2>THIS: <img src="/blobs/tmp/a.svg?uuid=%s" width=300></h2>'%uuid
 
 Top priority goal for today:
 
- [ ] terminate sage session when corresponding websocket connection dies
- [ ] save scratch worksheet to a project
+ [x] terminate sage session when corresponding websocket connection dies
+ [x] BUG:  salvus.tex (Ell[tab] --- but completion is pretty imperfect at present
  [ ] make project (as collection of worksheets for now) actually work
+ [ ] save scratch worksheet to a project
  [ ] disable some settings stuff not supported:
        - account upgrade
        - submit key
  [ ] add big "TEST WARNING" to top banner
- [ ] BUG:  salvus.tex (Ell[tab]
- [ ] search for bugs
+ [ ] systematically search for bugs(?)
  [ ] re-deploy
 
 

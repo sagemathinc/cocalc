@@ -65,6 +65,14 @@ close_scratch_worksheet = () ->
         target      = undefined
         to          = editor.getCursor()
         from        = {line:to.line, ch:0}
+
+        # DANGER: If we want tab completion to be much more aggressive
+        # we could instead do 'from = {line:0,ch:0}', since the code
+        # in sage_server.py support it.  However, the side effects
+        # that all code above completion line is evaluated (!)  is
+        # pretty disturbing to contemplate, and could be ridiculous if
+        # the input cell is large.  This doesn't scale.
+
         session     = null
         async.series([
             (cb) ->
@@ -922,7 +930,7 @@ close_scratch_worksheet = () ->
                 return
             _get_session_queue = [cb]
             salvus_client.new_session
-                limits: {walltime:3*60}
+                limits: {walltime:15*60}
                 timeout: 20
                 cb: (error, session) ->
                     if error

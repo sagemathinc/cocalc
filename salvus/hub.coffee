@@ -1548,9 +1548,9 @@ get_blob = (opts) ->
 ########################################
 persistent_sage_sessions = {}
 
-SAGE_SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:3*60, vmem:2000, numfiles:1000, quota:128}
+SAGE_SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
 
-SAGE_SESSION_LIMITS = {cputime:10*60, walltime:10*60, vmem:2000, numfiles:1000, quota:128}
+SAGE_SESSION_LIMITS = {cputime:10*60, walltime:15*60, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (mesg, account_id, client) ->
     winston.log('creating persistent sage session')

@@ -142,65 +142,152 @@ def divide_into_blocks(code):
 
 ############################################
 
+CHARS0 = string.ascii_letters + string.digits + '_'
+CHARS  = CHARS0 + '.'
+def guess_last_expression(obj):  # TODO: bad guess -- need to use a parser to go any further.
+    i = len(obj)-1
+    while i >= 0 and obj[i] in CHARS:
+        i -= 1
+    return obj[i+1:]
+
+def is_valid_identifier(target):
+    if len(target) == 0: return False
+    for x in target:
+        if x not in CHARS0:
+            return False
+    if target[0] not in string.ascii_letters + '_':
+        return False
+    return True
+
+
+
 # Keywords from http://docs.python.org/release/2.7.2/reference/lexical_analysis.html
 _builtin_completions = __builtins__.keys() + ['and', 'del', 'from', 'not', 'while', 'as', 'elif', 'global', 'or', 'with', 'assert', 'else', 'if', 'pass', 'yield', 'break', 'except', 'import', 'print', 'class', 'exec', 'in', 'raise', 'continue', 'finally', 'is', 'return', 'def', 'for', 'lambda', 'try']
 
 def introspect(code, namespace, preparse=True):
-    result = []
-    target = ''
-    expr = ''
+    """
+    INPUT:
 
-    get_help = False
-    get_source = False
-    get_completions = True
+    - code -- a string containing Sage (if preparse=True) or Python code.
+
+    - namespace -- a dictionary to complete in (we also complete using
+      builtins such as 'def', 'for', etc.
+
+    - preparse -- a boolean
+
+    OUTPUT:
+
+    An object: {'result':, 'target':, 'expr':, 'status':, 'get_help':, 'get_completions':, 'get_source':}
+    """
+    # result: the docstring, source code, or list of completions (at
+    # return, it might thus be either a list or a string)
+    result = []
+
+    # expr: the part of code that is used to do the completion, e.g.,
+    # for 'a = n.m.foo', expr would be 'n.m.foo'.  It can be more complicated,
+    # e.g., for '(2+3).foo.bar' it would be '(2+3).foo'.
+    expr   = ''
+
+    # target: for completions, target is the part of the code that we
+    # complete on in the namespace defined by the object right before
+    # it, e.g., for n.m.foo, the target is "foo".  target is the empty
+    # string for source code and docstrings.
+    target = ''
+
+    # When returning, exactly one of the following will be true:
+    get_help        = False      # getting docstring of something
+    get_source      = False      # getting source code of a function
+    get_completions = True       # getting completions of an identifier in some namespace
+
     try:
-        code0, literals, state = strip_string_literals(code)
-        # TODO: this has to be replaced by using ast on preparsed version.  Not easy.
+        # Strip all strings from the code, replacing them by template
+        # symbols; this makes parsing much easier.
+        code0, literals, state = strip_string_literals(code.strip())  # we strip, since trailing space could cause confusion below
+
+        # Move i so that it points to the start of the last expression in the code.
+        # (TODO: this should probably be replaced by using ast on preparsed version.  Not easy.)
         i = max([code0.rfind(t) for t in '\n;='])+1
         while i<len(code0) and code0[i] in string.whitespace:
             i += 1
-        expr = code0[i:]%literals
-        before_expr = code0[:i]%literals
-        if '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
-            target = expr
-            j = len(expr)
-            v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
-        else:
-            i = max([expr.rfind(s) for s in '?('])
-            if i >= 1 and i == len(expr)-1 and expr[i-1] == '?':
-                get_source = True; get_completions = False
-                target = expr[i+1:]
-                obj = expr[:i-1]
-            elif i == len(expr)-1:
-                get_help = True; get_completions = False
-                target = expr[i+1:]
-                obj = expr[:i]
-            else:
-                i = expr.rfind('.')
-                target = expr[i+1:]
-                obj = expr[:i]
 
-            if obj in namespace:
-                O = namespace[obj]
-            else:
-                O = None
-                # the more dangerous eval.
+        # Break the line in two pieces: before_expr | expr; we may
+        # need before_expr in order to evaluate and make sense of
+        # expr.  We also put the string literals back in, so that
+        # evaluation works.
+        expr        = code0[i:]%literals
+        before_expr = code0[:i]%literals
+
+        if '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
+            # Easy case: this is just completion on a simple identifier in the namespace.
+            get_help = False; get_completions = True; get_source = False
+            target = expr
+        else:
+            # Now for all of the other harder cases.
+            i = max([expr.rfind(s) for s in '?('])
+            if i >= 1 and i == len(expr)-1 and expr[i-1] == '?':  # expr ends in two ?? -- source code
+                get_source = True; get_completions = False; get_help = False
+                target = ""
+                obj    = expr[:i-1]
+            elif i == len(expr)-1:    # ends in ( or ? (but not ??) -- docstring
+                get_help = True; get_completions = False; get_source = False
+                target = ""
+                obj    = expr[:i]
+            else:  # completions (not docstrings or source)
+                get_help = False; get_completions = True; get_source = False
+                i      = expr.rfind('.')
+                target = expr[i+1:]
+                if target == '' or is_valid_identifier(target):
+                    obj    = expr[:i]
+                else:
+                    expr = guess_last_expression(target)
+                    i = expr.rfind('.')
+                    if i != -1:
+                        target = expr[i+1:]
+                        obj    = expr[:i]
+                    else:
+                        target = expr
+
+        if get_completions and target == expr:
+            j      = len(expr)
+            v      = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
+        else:
+
+            # We will try to evaluate
+            # obj.  This is danerous and a priori could take
+            # forever, so we spend at most 1 second doing this --
+            # if it takes longer a signal kills the evaluation.
+            # Obviously, this could in fact lock if
+            # non-interruptable code is called, which should be rare.
+
+            O = None
+            try:
+                import signal
+                def mysig(*args): raise KeyboardInterrupt
+                signal.signal(signal.SIGALRM, mysig)
+                signal.alarm(1)
+                import sage.all_cmdline
+                if before_expr.strip():
+                    try:
+                        exec (before_expr if not preparse else preparse_code(before_expr)) in namespace
+                    except Exception, msg:
+                        pass
+                        # uncomment for debugging only
+                        # traceback.print_exc()
+                # We first try to evaluate the part of the expression before the name
                 try:
-                    import signal
-                    def mysig(*args): raise KeyboardInterrupt
-                    signal.signal(signal.SIGALRM, mysig)
-                    signal.alarm(1)
-                    import sage.all_cmdline
-                    if before_expr.strip():
-                        try:
-                            exec (before_expr if not preparse else preparse_code(before_expr)) in namespace
-                        except Exception, msg:
-                            pass
-                            # uncomment for debugging only
-                            # traceback.print_exc()
                     O = eval(obj if not preparse else preparse_code(obj), namespace)
-                finally:
-                    signal.signal(signal.SIGALRM, signal.SIG_IGN)
+                except SyntaxError:
+                    # If that fails, we try on a subexpression.
+                    # TODO: This will not be needed when
+                    # this code is re-written to parse using an
+                    # AST, instead of using this lame hack.
+                    print "obj = ", obj
+                    obj = guess_last_expression(obj)
+                    print "obj = ", obj
+                    O = eval(obj if not preparse else preparse_code(obj), namespace)
+            finally:
+                signal.signal(signal.SIGALRM, signal.SIG_IGN)
+
             if get_help:
                 import sage.misc.sageinspect
                 result = eval('getdoc(O)', {'getdoc':sage.misc.sageinspect.sage_getdoc, 'O':O})
@@ -218,8 +305,10 @@ def introspect(code, namespace, preparse=True):
                     v = [x[j:] for x in v if x.startswith(target)]
                 else:
                     v = []
+
         if get_completions:
             result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
+
     except Exception, msg:
         traceback.print_exc()
         result = []
