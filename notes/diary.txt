@@ -8397,7 +8397,5 @@ Plan to do this:
  [x] Make a solid require module structure system.
  [x] worksheet.html/worksheet.css/worksheet.coffee
  [x] cell.html/cell.css/cell.coffee
- [ ] make page for testing this -- worksheet2.html
-
-
-(This shouldn't require internet!)
+ [x] make page for testing this -- worksheet2.html
+ [ ] 

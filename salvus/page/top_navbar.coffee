@@ -127,9 +127,9 @@ $("#projects").top_navbar
     label   : "Projects"
     close   : false
 
-$("#worksheet").top_navbar
-    id      : "worksheet"
-    label   : "Worksheet"
+$("#worksheet2").top_navbar
+    id      : "worksheet2"
+    label   : "Worksheet2"
     close   : false
 
 $("#worksheet1").top_navbar

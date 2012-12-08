@@ -26,6 +26,7 @@ cell.coffee
 worksheet.coffee
 
 worksheet1.coffee
+worksheet2.coffee
 
 project.coffee
 projects.coffee
