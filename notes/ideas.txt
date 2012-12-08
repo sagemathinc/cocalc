@@ -1,3 +1,5 @@
+[ ] create a note-taking mode for taking notes in lectures... what might it do.
+
 [ ] ideas for vim editor based on codemirror -- https://mail.google.com/mail/u/0/?shva=1#starred/13b571ae98be4865
 
 [ ] some really good worksheet content to test conver https://mail.google.com/mail/u/0/?shva=1#starred/13b6d2b8233ef6e2

@@ -8316,7 +8316,6 @@ salvus.html('<h2>THIS: <img src="/blobs/tmp/a.svg?uuid=%s" width=300></h2>'%uuid
 
 Top priority goal for today:
 
- [ ] BUG:  salvus.tex (Ell[tab]
  [ ] terminate sage session when corresponding websocket connection dies
  [ ] save scratch worksheet to a project
  [ ] make project (as collection of worksheets for now) actually work
@@ -8324,6 +8323,8 @@ Top priority goal for today:
        - account upgrade
        - submit key
  [ ] add big "TEST WARNING" to top banner
+ [ ] BUG:  salvus.tex (Ell[tab]
+ [ ] search for bugs
  [ ] re-deploy
 
 
@@ -8343,4 +8344,10 @@ Then...
 for n in [1..10]:
     salvus.stdout("\n%s: "%n)
     salvus.tex(taylor(1/(1-x)^n,x,2))
+ [ ] mathjax in note:
+       -- make it so typing "$" inserts a math mode span and puts cursor in it.
+       -- make it so <div> and <span> math get turned back to $$'s 
+       -- make to so span class math's get hit by jsmath
+       -- make it so when mathjax modifies something it saves original html
+       -- make it so worksheet save recovers original html
 

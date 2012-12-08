@@ -135,8 +135,8 @@ class exports.Connection
         @_send(Buffer.concat([new Buffer('b'), blob]))
 
     # Close the connection with the server.  You probably instead want
-    # to send_signal(...) using the module-level fucntion to kill the
-    # session, in most cases.
+    # to send_signal(...) using the module-level function to kill the
+    # session, in most cases, since this will leave the Sage process running. 
     close: () ->
         @conn.end()
         @conn.destroy()

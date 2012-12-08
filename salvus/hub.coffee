@@ -115,13 +115,35 @@ class Client extends EventEmitter
         # it is safe to carry out a given action.
         @account_id = undefined
 
+        # The persistent sage sessions that this client started.  For now,
+        # these are all terminated when the client disconnects.  Later on,
+        # a "pro feature" will be persistent sessions that remain open over
+        # a long period of time; those will be specially marked and not be
+        # deleted on disconnect.
+        @persistent_sage_session_uuids = []
+
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
         @check_for_remember_me()
 
         @conn.on("data", @handle_message_from_client)
-        @conn.on("close", () => delete clients[@conn.id])
+        @conn.on "close", () =>
+            for session_uuid in @persistent_sage_session_uuids
+                # TODO: there will be a special property to not delete certain of these later.
+                session = persistent_sage_sessions[session_uuid]
+                if session? and session.pid?
+                    pid     = session.pid; console.log("Killing session with pid=#{pid}")
+                    sage.send_signal
+                        host   : session.conn.host
+                        port   : session.conn.port
+                        pid    : session.pid
+                        signal : 9
+                    session.conn.close()
+            @persistent_sage_session_uuids = []
+
+            delete clients[@conn.id]
+
 
     check_for_remember_me: () =>
         @get_cookie
@@ -301,7 +323,7 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
-        create_persistent_sage_session(mesg, @account_id, @push_to_client)
+        create_persistent_sage_session(mesg, @account_id, @)
 
     mesg_send_signal: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
@@ -1530,7 +1552,7 @@ SAGE_SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:3*60, vmem:2000, num
 
 SAGE_SESSION_LIMITS = {cputime:10*60, walltime:10*60, vmem:2000, numfiles:1000, quota:128}
 
-create_persistent_sage_session = (mesg, account_id, push_to_client) ->
+create_persistent_sage_session = (mesg, account_id, client) ->
     winston.log('creating persistent sage session')
     # generate a uuid
     session_uuid = uuid.v4()
@@ -1552,14 +1574,14 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
                             # DANGER: forwarding execute_javascript messages is a potential a security issue.
                             when "output", "terminate_session", "execute_javascript"
                                 m.session_uuid = session_uuid  # tag with session uuid
-                                push_to_client(m)
+                                client.push_to_client(m)
                             when "session_description"
                                 # record this for later use for signals:
                                 persistent_sage_sessions[session_uuid].pid = m.pid
                                 persistent_sage_sessions[session_uuid].account_id = account_id
-                                push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
+                                client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
                             else
-                                push_to_client(m)
+                                client.push_to_client(m)
                     when 'blob'
                         # TODO: should we use a callback so that we notify about whether or not this worked? We could...
                         save_blob(uuid:m.uuid, value:m.blob, ttl:60)  # deleted after 60 seconds
@@ -1573,6 +1595,7 @@ create_persistent_sage_session = (mesg, account_id, push_to_client) ->
         # Save sage_conn object so that when the user requests evaluation of
         # code in the session with this id, we use this.
         persistent_sage_sessions[session_uuid] = {conn:sage_conn}
+        client.persistent_sage_session_uuids.push(session_uuid)
 
         winston.info("(hub) added #{session_uuid} to persistent sessions")
     )
