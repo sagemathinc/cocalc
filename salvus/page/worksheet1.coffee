@@ -1,4 +1,6 @@
-close_scratch_worksheet = () -> 
+close_scratch_worksheet = () ->
+
+load_scratch_worksheet = undefined
 
 (() ->
     async = require('async')
@@ -1052,7 +1054,7 @@ close_scratch_worksheet = () ->
         "Ctrl-Up"        : (editor) -> move_cell_up(editor.cell)
         "Ctrl-Down"      : (editor) -> move_cell_down(editor.cell)
         "Ctrl-Enter"     : (editor) -> execute_cell(editor.cell); focus_editor(insert_cell_after(editor.cell))
-        "Shift-Enter"    : (editor) -> execute_cell(editor.cell)
+        "Shift-Enter"    : (editor) -> execute_cell(editor.cell)  # TODO: also set explicitly in load_scratch_worksheet -- need to refactor
         "Up"             : (editor) ->
             if editor.getCursor().line == 0
                 focus_previous_cell(editor.cell)
@@ -1173,10 +1175,17 @@ close_scratch_worksheet = () ->
 
      # TODO: the logic of this load scratch is unclear...
     load_scratch_worksheet = () ->
+
+        # set keyboard shortcuts for cell editor
+        if account_settings.settings.evaluate_key == 'enter'
+            extraKeys['Enter'] = (editor) -> execute_cell(editor.cell)
+            delete extraKeys['Shift-Enter']
+
         if views.worksheet?
             return
 
         worksheet1.find(".salvus-worksheet-loading").show()
+
         salvus_client.load_scratch_worksheet
             timeout: 15
             cb: (error, data) ->
@@ -1199,8 +1208,8 @@ close_scratch_worksheet = () ->
 
     #salvus_client.once "connected", () ->
     #    load_scratch_worksheet()
-    salvus_client.on "signed_in", () ->
-        load_scratch_worksheet()
+    #salvus_client.on "signed_in", () ->
+    #    load_scratch_worksheet()
 
     close_scratch_worksheet = () ->
         if views.worksheet?

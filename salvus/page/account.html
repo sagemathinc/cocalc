@@ -128,14 +128,14 @@
 		<div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated.">Evaluate key</div>
 		<div class="row span3">
 		  <select id="account-settings-evaluate_key">
-		    <option value="shift-enter">Shift-Enter</option>
-		    <option value="control-enter">Control-Enter</option>
-		    <option value="enter">Enter</option>
+		    <option value="shift-enter">Shift-Enter (enter for newline)</option>
+		    <option value="enter">Enter (shift-enter for newline)</option>
 		  </select>
+		  <br><span class="lighten">(After saving this setting, you will have to refresh the page before it takes effect.)</span>
 		</div>
 		<br><br>
-		<div class="row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
-		<div class="row span3">
+		<div class="hide row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
+		<div class="hide row span3">
 		  <select id="account-settings-default_system">
 		    <option value="sage">Sage</option>
 		    <!--		  <option value="python">Python</option>

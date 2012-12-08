@@ -1,3 +1,7 @@
+
+# Make the account_settings object visible to the rest of the page.
+account_settings = undefined
+
 (() ->
     misc = require("misc")
     to_json = misc.to_json
@@ -197,17 +201,19 @@
     signed_in = (mesg) ->
         # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
         account_id = mesg.account_id
-        account_settings.load_from_server((error) ->
-            if not error
+        account_settings.load_from_server (error) ->
+            if error
+                alert_message(type:"error", message:error)
+            else
                 account_settings.set_view()
-        )
-
-        # change the view in the account page to the settings/sign out view
-        show_page("account-settings")
-        # change the navbar title from "Sign in" to "first_name last_name"
-        set_account_tab_label(true, mesg.first_name, mesg.last_name)
-        top_navbar.show_page_button("projects")
-        top_navbar.switch_to_page("worksheet")
+                # change the view in the account page to the settings/sign out view
+                show_page("account-settings")
+                # change the navbar title from "Sign in" to "first_name last_name"
+                set_account_tab_label(true, mesg.first_name, mesg.last_name)
+                top_navbar.show_page_button("projects")
+                top_navbar.switch_to_page("worksheet")
+                # Load the default worksheet (for now)
+                load_scratch_worksheet()
 
     # Listen for pushed sign_in events from the server.  This is one way that
     # the sign_in function above can be activated, but not the only way.

@@ -388,7 +388,7 @@ message
 message
     event : 'scratch_worksheet_loaded'
     id    : undefined
-    data  : required
+    data  : undefined   # undefined means there is no scratch worksheet yet
 
 ############################################
 # User Feedback
