@@ -8341,8 +8341,12 @@ Top priority goal for today:
 
  [ ] code cleanup/refactoring
 
+ [ ] bug -- not reloading settings means that the upper right username location is wrong
+
  [ ] deploy:
+      - enable tracking.coffee (and test?)
       - put my laptop on the vpn (?)
+      - switch to using index.js
 
 
 NEXT:

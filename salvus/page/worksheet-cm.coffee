@@ -1,4 +1,7 @@
 (() ->
+    {salvus_client} = require('salvus_client')
+    {top_navbar} = require('top_navbar')
+    {alert_message} = require('alerts')
     misc = require('misc')
     client = require('client')
     uuid = misc.uuid
@@ -10,9 +13,9 @@
 
     input_gutter = $("<div class='worksheet-cm-cell-gutter-marker'>&nbsp;sage: </div>")
     continue_gutter = $("<div class='worksheet-cm-cell-gutter-marker'>&nbsp;...</div>")
-    
+
     output_gutter = $("<div class='worksheet-cm-output-gutter'>&nbsp;</div>")
-    
+
     ######################################
     # activate control buttons
     ######################################
@@ -54,7 +57,7 @@
     editor.block_info = (line) ->
         if not line?
             line = editor.getCursor().line
-            
+
         # Return the block boundaries of the block that contains the given line.
         # The output is an object:
         result = {input:{from:{line:-1,ch:0}, to:{line:-1,ch:0}}, output:{from:{line:-1,ch:0}, to:{line:-1,ch:0}}}
@@ -155,12 +158,12 @@
     top_navbar.on "switch_from_page-worksheet-cm", () ->
         $(document).unbind("keydown", keydown_handler)
 
-    # this doesn't work yet. 
+    # this doesn't work yet.
     fix_error_line_numbers = (s, line) ->
         if "Error in lines " == s.slice(0,15)
             i = s.search('-')
             j = s.search('\n')
-            start = parseInt(s.slice(15,i)) 
+            start = parseInt(s.slice(15,i))
             end = parseInt(s.slice(i+1,j+1))
             console.log("start='#{start}'")
             console.log("end='#{end}'")

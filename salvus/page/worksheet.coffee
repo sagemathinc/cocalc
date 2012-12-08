@@ -15,8 +15,10 @@
 
 # Cell class
 class Cell
+    constructor: () ->
 
 # Worksheet class
 class Worksheet
+    constructor: () ->
 
 

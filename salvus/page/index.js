@@ -1,37 +1,33 @@
-$(function() {
-    feature.coffee
- 
-    misc_page.coffee
+##################################################
+# This is a template for the file static/index.js
+# List .coffee files on each line.   This is built by
+# salvus/salvus/gen_page.   Each coffeescript file
+# is automatically compiled, and wrapped as a 
+# modules with its name, which can be require'd.
+##################################################
 
-    connect_to_hub.coffee
+feature.coffee
 
-    tracking.coffee
+misc_page.coffee
 
-    top_navbar.coffee
+salvus_client.coffee
 
-    alerts.coffee
+tracking.coffee
 
-    account.coffee
-    feedback.coffee
+top_navbar.coffee
 
-    worksheet1.coffee
+alerts.coffee
 
-    /* TODO: I need a damned module system... but not yet. */
-    exports = {};
-    (function() {
-    worksheet.coffee
-    })();
-    worksheet0 = exports;
+account.coffee
 
-    worksheet-cm.coffee
+feedback.coffee
 
-    projects.coffee
-    project.coffee
+worksheet1.coffee
+worksheet.coffee
 
-    exit_confirmation.coffee
+project.coffee
+projects.coffee
 
-    last.coffee
+exit_confirmation.coffee
 
-    window.history.pushState("", "", "/")  /* get rid of # part of URL */
-
-})
+last.coffee

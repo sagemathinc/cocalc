@@ -1,34 +1,28 @@
-alert_message = null # exported globally
+defaults = require("misc").defaults
 
-(() ->
-    defaults = require("misc").defaults
+types = ['error', 'default', 'success', 'info']
 
-    types = ['error', 'default', 'success', 'info']
+$("#alert-templates").hide()
 
-    $("#alert-templates").hide()
+exports.alert_message = (opts={}) ->
+    opts = defaults opts,
+        type    : 'default'
+        message : defaults.required
+        block   : false
 
-    alert_message = (opts={}) ->
-        opts = defaults opts,
-            type    : 'default'
-            message : defaults.required
-            block   : false
+    if opts.type not in types
+        alert("Unknown alert_message type #{opts.type}.")
+        return
 
-        if opts.type not in types
-            alert("Unknown alert_message type #{opts.type}.")
-            return
+    c = $("#alert-templates .alert-#{opts.type}").clone()
 
-        c = $("#alert-templates .alert-#{opts.type}").clone()
+    if opts.block
+        c.addClass('alert-block')
+    c.find(".message").html(opts.message)
+    c.prependTo("#alert-messages")
+    c.click(() -> $(this).remove())
 
-        if opts.block
-            c.addClass('alert-block')
-        c.find(".message").html(opts.message)
-        c.prependTo("#alert-messages")
-        c.click(() -> $(this).remove())
-
-        setTimeout((()->c.remove()), 5000)
-
-)()
-
+    setTimeout((()->c.remove()), 5000)
 
 # for testing/development
 # alert_message(type:'error',   message:"This is an error")

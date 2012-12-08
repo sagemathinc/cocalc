@@ -5,14 +5,16 @@
 # work in Opera.  So Opera users could loose work...
 #
 # Also, this does not work on iOS.
-# 
+#
 ###
+
+{top_navbar} = require('top_navbar')
 
 window.onbeforeunload = (e=window.event) ->
     if top_navbar.have_unsaved_changes()
         #
         # TODO: we could instead just save everything at this point and return null
-        # 
+        #
         e.cancelBubble = true  # e.cancelBubble is supported by IE - this will kill the bubbling process.
         e.returnValue = 'Are you sure you want to leave this page?'
         if e.stopPropagation

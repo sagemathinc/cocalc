@@ -5,9 +5,14 @@
 set_evaluate_key = undefined # exported
 
 (() ->
+    misc_page = require('misc_page')
+    
+    {top_navbar} = require('top_navbar')
+    {salvus_client} = require('salvus_client')
+
     mswalltime = require("misc").mswalltime
 
-    persistent_session = null    
+    persistent_session = null
 
     session = (cb) ->
         if persistent_session == null
@@ -27,7 +32,7 @@ set_evaluate_key = undefined # exported
     $("#execute").click((event) -> execute_code())
 
     is_evaluate_key = misc_page.is_shift_enter
-    
+
     set_evaluate_key = (keyname) ->
         switch keyname
             when "shift_enter"
@@ -38,8 +43,8 @@ set_evaluate_key = undefined # exported
                 is_evaluate_key = misc_page.is_ctrl_enter
             else
                 is_evaluate_key = misc_page.is_shift_enter
-            
-    
+
+
 
     keydown_handler = (e) ->
         if is_evaluate_key(e)
@@ -62,7 +67,7 @@ set_evaluate_key = undefined # exported
 
     # Make a jQuery plugin for executing the code in a cell
     $.fn.extend
-        execute_cell: (opts) -> 
+        execute_cell: (opts) ->
             return @each () ->
                 cell = $(this)
                 # wrap input in sage-input
@@ -87,7 +92,7 @@ set_evaluate_key = undefined # exported
             r += mesg.stdout
             output.replaceWholeText(r))
 
-            
+
 
     # TODO: this won't work when code contains ''' -- replace by a more sophisticated message to the sage server
     eval_wrap = (input, system) -> 'print ' + system + ".eval(r'''" + input + "''')"
@@ -106,11 +111,11 @@ set_evaluate_key = undefined # exported
                     preparse = false
                     # nothing
                 else
-                    preparse = false                
+                    preparse = false
                     input = eval_wrap(input, system)
             s.execute_code
                 code        : input
                 cb          : cb
                 preparse    : preparse
-        
+
 )()

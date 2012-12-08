@@ -1,525 +1,527 @@
+############################################################
+# Account Settings
+############################################################
 
-# Make the account_settings object visible to the rest of the page.
-account_settings = undefined
+{top_navbar}    = require('top_navbar')
+{salvus_client} = require('salvus_client')
+{alert_message} = require('alerts')
+{IS_MOBILE}     = require("feature")
 
-(() ->
-    misc = require("misc")
-    to_json = misc.to_json
-    defaults = misc.defaults
-    required = defaults.required
+misc     = require("misc")
+to_json  = misc.to_json
+defaults = misc.defaults
+required = defaults.required
 
-
-
-    set_account_tab_label = (signed_in, first_name, last_name) ->
-        if signed_in
-            top_navbar.set_button_label("account", "#{first_name} #{last_name} (<a href='#sign_out'>Sign out</a>)")
-            #$("#account-item").find("a").html()
-            $("a[href='#sign_out']").click((event) ->
-                sign_out()
-                return false
-            )
-        else
-            top_navbar.set_button_label("account", "Sign in", "", false)
-
-    ################################################
-    # id of account client browser thinks it is signed in as
-    ################################################
-    account_id = undefined
-
-    top_navbar.on "switch_to_page-account", () ->
-        if not @account_id?
-            $("#sign_in-email").focus()
-
-
-
-    ################################################
-    # Page Switching Control
-    ################################################
-
-    focus =
-        'account-sign_in'         : 'sign_in-email'
-        'account-create_account'  : 'create_account-first_name'
-        'account-settings'        : ''
-
-    current_account_page = null
-    show_page = (p) ->
-        current_account_page = p
-        for page, elt of focus
-            if page == p
-                $("##{page}").show()
-                $("##{elt}").focus()
-            else
-                $("##{page}").hide()
-
-
-    show_page("account-sign_in")
-    #show_page("account-settings")
-
-    top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
-
-    $("a[href='#account-create_account']").click (event) ->
-        show_page("account-create_account")
-        return false
-
-    $("a[href='#account-sign_in']").click (event) ->
-        destroy_create_account_tooltips()
-        show_page("account-sign_in");
-        return false
-
-    ################################################
-    # Activate buttons
-    ################################################
-    $("#account-settings-change-settings-button").click (event) ->
-        account_settings.load_from_view()
-        account_settings.save_to_server(
-            cb : (error, mesg) ->
-                if error
-                    alert_message(type:"error", message:error)
-                else
-                    alert_message(type:"info", message:"You have saved your settings.")
+set_account_tab_label = (signed_in, first_name, last_name) ->
+    if signed_in
+        top_navbar.set_button_label("account", "#{first_name} #{last_name} (<a href='#sign_out'>Sign out</a>)")
+        #$("#account-item").find("a").html()
+        $("a[href='#sign_out']").click((event) ->
+            sign_out()
+            return false
         )
+    else
+        top_navbar.set_button_label("account", "Sign in", "", false)
 
-    $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
+################################################
+# id of account client browser thinks it is signed in as
+################################################
+account_id = undefined
 
-    $("#account-settings-tab").find("form").click((event) -> return false)
-
-
-    ################################################
-    # Tooltips
-    ################################################
-
-    enable_tooltips = () ->
-        if IS_MOBILE
-            # never enable on mobile -- they are totally broken
-            return
-        $("[rel=tooltip]").tooltip
-            delay: {show: 1000, hide: 100}
-            placement: 'right'
-
-    disable_tooltips = () ->
-        $("[rel=tooltip]").tooltip("destroy")
-
-    ################################################
-    # Account creation
-    ################################################
-
-    create_account_fields = ['first_name', 'last_name', 'email_address', 'password', 'agreed_to_terms']
-
-    destroy_create_account_tooltips = () ->
-        for field in create_account_fields
-            $("#create_account-#{field}").popover "destroy"
-
-    top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
-
-    $("#create_account-button").click((event) ->
-        destroy_create_account_tooltips()
-
-        opts = {}
-        for field in create_account_fields
-            opts[field] = $("#create_account-#{field}").val()
-            opts['agreed_to_terms'] = $("#create_account-agreed_to_terms").is(":checked") # special case
-            opts.cb = (error, mesg) ->
-                if error
-                    alert_message(type:"error", message: "There was an unexpected error trying to create a new account.  Please try again later.")
-                    return
-                switch mesg.event
-                    when "account_creation_failed"
-                        for key, val of mesg.reason
-                            $("#create_account-#{key}").popover(
-                                title:val
-                                trigger:"manual"
-                                placement:"left"
-                                template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
-                            ).popover("show")
-                    when "signed_in"
-                        alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
-                        signed_in(mesg)
-                    else
-                        # should never ever happen
-                        alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
-
-        salvus_client.create_account(opts)
-    )
-
-
-    # Enhance HTML element to display feedback about a choice of password
-    #     input   -- jQuery wrapped <input> element where password is typed
-    password_strength_meter = (input) ->
-        # TODO: move this html into account.html
-        display = $('<div class="progress progress-striped"><div class="bar"></div>&nbsp;<font size=-1></font></div>')
-        input.after(display)
-        colors = ['red', 'yellow', 'orange', 'lightgreen', 'green']
-        score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
-        input.bind('change keypress paste focus textInput input', () ->
-            result = zxcvbn(input.val(), ['salvus', 'salv.us'])
-            display.find(".bar").css("width", "#{13*(result.score+1)}%")
-            display.find("font").html(score[result.score])
-            display.css("background-color", colors[result.score])
-        )
-        return input
-
-    $.fn.extend
-        password_strength_meter: (options) ->
-            settings = {}
-            settings = $.extend settings, options
-            return @each () ->
-                password_strength_meter($(this))
-
-    $('.salvus-password-meter').password_strength_meter()
-
-    ################################################
-    # Sign in
-    ################################################
-
-    $("#sign_in-form").submit((event) -> sign_in(); return false)
-
-    $("#sign_in-button").click((event) -> sign_in(); return false)
-
-    sign_in = () ->
+top_navbar.on "switch_to_page-account", () ->
+    if not @account_id?
         $("#sign_in-email").focus()
-        salvus_client.sign_in
-            email_address : $("#sign_in-email").val()
-            password      : $("#sign_in-password").val()
-            remember_me   : $("#sign_in-remember_me").is(":checked")
-            timeout       : 10
-            cb            : (error, mesg) ->
-                if error
-                    alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
-                    return
-                switch mesg.event
-                    when 'sign_in_failed'
-                        alert_message(type:"error", message: mesg.reason)
-                    when 'signed_in'
-                        signed_in(mesg)
-                    when 'error'
-                        alert_message(type:"error", message: mesg.reason)
-                    else
-                        # should never ever happen
-                        alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
-    signed_in = (mesg) ->
-        # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
-        account_id = mesg.account_id
-        account_settings.load_from_server (error) ->
+
+
+################################################
+# Page Switching Control
+################################################
+
+focus =
+    'account-sign_in'         : 'sign_in-email'
+    'account-create_account'  : 'create_account-first_name'
+    'account-settings'        : ''
+
+current_account_page = null
+show_page = (p) ->
+    current_account_page = p
+    for page, elt of focus
+        if page == p
+            $("##{page}").show()
+            $("##{elt}").focus()
+        else
+            $("##{page}").hide()
+
+
+show_page("account-sign_in")
+#show_page("account-settings")
+
+top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
+
+$("a[href='#account-create_account']").click (event) ->
+    show_page("account-create_account")
+    return false
+
+$("a[href='#account-sign_in']").click (event) ->
+    destroy_create_account_tooltips()
+    show_page("account-sign_in");
+    return false
+
+################################################
+# Activate buttons
+################################################
+$("#account-settings-change-settings-button").click (event) ->
+    account_settings.load_from_view()
+    account_settings.save_to_server(
+        cb : (error, mesg) ->
             if error
                 alert_message(type:"error", message:error)
             else
-                account_settings.set_view()
-                # change the view in the account page to the settings/sign out view
-                show_page("account-settings")
-                # change the navbar title from "Sign in" to "first_name last_name"
-                set_account_tab_label(true, mesg.first_name, mesg.last_name)
-                #top_navbar.show_page_button("projects")
-                top_navbar.show_page_button("worksheet1")
-                top_navbar.switch_to_page("worksheet")
-                # Load the default worksheet (for now)
-                load_scratch_worksheet()
+                alert_message(type:"info", message:"You have saved your settings.")
+    )
 
-    # Listen for pushed sign_in events from the server.  This is one way that
-    # the sign_in function above can be activated, but not the only way.
-    salvus_client.on("signed_in", signed_in)
+$("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
 
-    ################################################
-    # Explicit sign out
-    ################################################
-    sign_out = () ->
+$("#account-settings-tab").find("form").click((event) -> return false)
 
-        close_scratch_worksheet()
 
-        # Send a message to the server that the user explicitly
-        # requested to sign out.  The server can clean up resources
-        # and invalidate the remember_me cookie for this client.
-        salvus_client.sign_out
-            timeout : 10
-            cb      : (error) ->
-                if error
-                    alert_message(type:"error", message:error)
+################################################
+# Tooltips
+################################################
+
+enable_tooltips = () ->
+    if IS_MOBILE
+        # never enable on mobile -- they are totally broken
+        return
+    $("[rel=tooltip]").tooltip
+        delay: {show: 1000, hide: 100}
+        placement: 'right'
+
+disable_tooltips = () ->
+    $("[rel=tooltip]").tooltip("destroy")
+
+################################################
+# Account creation
+################################################
+
+create_account_fields = ['first_name', 'last_name', 'email_address', 'password', 'agreed_to_terms']
+
+destroy_create_account_tooltips = () ->
+    for field in create_account_fields
+        $("#create_account-#{field}").popover "destroy"
+
+top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
+
+$("#create_account-button").click((event) ->
+    destroy_create_account_tooltips()
+
+    opts = {}
+    for field in create_account_fields
+        opts[field] = $("#create_account-#{field}").val()
+        opts['agreed_to_terms'] = $("#create_account-agreed_to_terms").is(":checked") # special case
+        opts.cb = (error, mesg) ->
+            if error
+                alert_message(type:"error", message: "There was an unexpected error trying to create a new account.  Please try again later.")
+                return
+            switch mesg.event
+                when "account_creation_failed"
+                    for key, val of mesg.reason
+                        $("#create_account-#{key}").popover(
+                            title:val
+                            trigger:"manual"
+                            placement:"left"
+                            template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
+                        ).popover("show")
+                when "signed_in"
+                    alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
+                    signed_in(mesg)
                 else
-                    set_account_tab_label(false)
-                    # Change the view in the account page to the "sign in" view.
-                    show_page("account-sign_in")
-                    #top_navbar.hide_page_button("projects")
-                    top_navbar.hide_page_button("worksheet1")
-                    top_navbar.hide_page_button("worksheet")
-                    # TODO: have to remove a bunch of other pages
+                    # should never ever happen
+                    alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
-                    top_navbar.switch_to_page("account")
-
-    ################################################
-    # Account settings
-    ################################################
-
-    class AccountSettings
-        load_from_server: (cb) ->
-            salvus_client.get_account_settings(account_id:account_id, cb:(error, settings_mesg) =>
-                if error
-                    alert_message(type:"error", message:"Error loading account settings - #{error}")
-                    @settings = 'error'
-                    cb(error)
-                    return
-
-                if settings_mesg.event != "account_settings"
-                    alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
-                    cb("invalid message")
-                    return
-
-                @settings = settings_mesg
-                delete @settings['id']
-                delete @settings['event']
-
-                cb()
-            )
+    salvus_client.create_account(opts)
+)
 
 
-        load_from_view: () ->
-            if not @settings? or @settings == "error"
-                return  # not logged in -- don't bother
+# Enhance HTML element to display feedback about a choice of password
+#     input   -- jQuery wrapped <input> element where password is typed
+password_strength_meter = (input) ->
+    # TODO: move this html into account.html
+    display = $('<div class="progress progress-striped"><div class="bar"></div>&nbsp;<font size=-1></font></div>')
+    input.after(display)
+    colors = ['red', 'yellow', 'orange', 'lightgreen', 'green']
+    score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
+    input.bind('change keypress paste focus textInput input', () ->
+        result = zxcvbn(input.val(), ['salvus', 'salv.us'])
+        display.find(".bar").css("width", "#{13*(result.score+1)}%")
+        display.find("font").html(score[result.score])
+        display.css("background-color", colors[result.score])
+    )
+    return input
 
-            for prop of @settings
-                element = $("#account-settings-#{prop}")
-                switch prop
-                    when 'email_maintenance', 'email_new_features', 'enable_tooltips'
-                        val = element.is(":checked")
-                    when 'connect_Github', 'connect_Google', 'connect_Dropbox'
-                        val = (element.val() == "unlink")
-                    else
-                        val = element.val()
-                @settings[prop] = val
+$.fn.extend
+    password_strength_meter: (options) ->
+        settings = {}
+        settings = $.extend settings, options
+        return @each () ->
+            password_strength_meter($(this))
 
-        set_view: () ->
-            if not @settings?
-                return  # not logged in -- don't bother
+$('.salvus-password-meter').password_strength_meter()
 
-            if @settings == 'error'
-                $("#account-settings-error").show()
+################################################
+# Sign in
+################################################
+
+$("#sign_in-form").submit((event) -> sign_in(); return false)
+
+$("#sign_in-button").click((event) -> sign_in(); return false)
+
+sign_in = () ->
+    $("#sign_in-email").focus()
+    salvus_client.sign_in
+        email_address : $("#sign_in-email").val()
+        password      : $("#sign_in-password").val()
+        remember_me   : $("#sign_in-remember_me").is(":checked")
+        timeout       : 10
+        cb            : (error, mesg) ->
+            if error
+                alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
+                return
+            switch mesg.event
+                when 'sign_in_failed'
+                    alert_message(type:"error", message: mesg.reason)
+                when 'signed_in'
+                    signed_in(mesg)
+                when 'error'
+                    alert_message(type:"error", message: mesg.reason)
+                else
+                    # should never ever happen
+                    alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
+
+signed_in = (mesg) ->
+    # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
+    account_id = mesg.account_id
+    account_settings.load_from_server (error) ->
+        if error
+            alert_message(type:"error", message:error)
+        else
+            account_settings.set_view()
+            # change the view in the account page to the settings/sign out view
+            show_page("account-settings")
+            # change the navbar title from "Sign in" to "first_name last_name"
+            set_account_tab_label(true, mesg.first_name, mesg.last_name)
+            #top_navbar.show_page_button("projects")
+            top_navbar.show_page_button("worksheet1")
+            top_navbar.switch_to_page("worksheet1")
+            require('worksheet1').load_scratch_worksheet()
+            top_navbar.show_page_button("worksheet")
+            # Load the default worksheet (for now)
+
+# Listen for pushed sign_in events from the server.  This is one way that
+# the sign_in function above can be activated, but not the only way.
+salvus_client.on("signed_in", signed_in)
+
+################################################
+# Explicit sign out
+################################################
+sign_out = () ->
+
+    require('worksheet1').close_scratch_worksheet()
+
+    # Send a message to the server that the user explicitly
+    # requested to sign out.  The server can clean up resources
+    # and invalidate the remember_me cookie for this client.
+    salvus_client.sign_out
+        timeout : 10
+        cb      : (error) ->
+            if error
+                alert_message(type:"error", message:error)
+            else
+                set_account_tab_label(false)
+                # Change the view in the account page to the "sign in" view.
+                show_page("account-sign_in")
+                #top_navbar.hide_page_button("projects")
+                top_navbar.hide_page_button("worksheet1")
+                top_navbar.hide_page_button("worksheet")
+                # TODO: have to remove a bunch of other pages
+
+                top_navbar.switch_to_page("account")
+
+################################################
+# Account settings
+################################################
+
+class AccountSettings
+    load_from_server: (cb) ->
+        salvus_client.get_account_settings(account_id:account_id, cb:(error, settings_mesg) =>
+            if error
+                alert_message(type:"error", message:"Error loading account settings - #{error}")
+                @settings = 'error'
+                cb(error)
                 return
 
-            set = (element, value) ->
-                # TODO: dumb and dangerous -- do better
-                element.val(value)
-                element.text(value)
-
-
-            $("#account-settings-error").hide()
-
-            for prop, value of @settings
-                element = $("#account-settings-#{prop}")
-                switch prop
-                    when 'enable_tooltips'
-                        element.attr('checked', value)
-                        if value
-                            enable_tooltips()
-                        else
-                            disable_tooltips()
-                    when 'email_maintenance', 'email_new_features'
-                        element.attr('checked', value)
-                    when 'evaluate_key'
-                        element.val(value)
-                        set_evaluate_key?(value)
-                    when 'default_system'
-                        element.val(value)
-                        $("#demo1-system").val(value)
-                        $("#demo2-system").val(value)
-                    when 'connect_Github', 'connect_Google', 'connect_Dropbox'
-                        set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
-                    when 'support_level'
-                        element.text(value)
-                        $("#feedback-support-level").text(value)
-                    else
-                        set(element, value)
-
-            set_account_tab_label(true, @settings.first_name, @settings.last_name)
-
-        # Store the properties that user can freely change to the backend database.
-        # The other properties only get saved by direct api calls that require additional
-        # information, e.g., password.   The setting in this object are saved; if you
-        # want to save the settings in view, you must first call load_from_view.
-        save_to_server: (opts) ->
-            opts = defaults opts,
-                cb       : required
-                password : undefined  # must be set, or all restricted settings are ignored by the server
-
-            if not @settings? or @settings == 'error'
-                opts.cb("There are no account settings to save.")
+            if settings_mesg.event != "account_settings"
+                alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
+                cb("invalid message")
                 return
-            salvus_client.save_account_settings
-                account_id : account_id
-                settings   : @settings
-                password   : opts.password
-                cb         : opts.cb
 
-    account_settings = new AccountSettings()
+            @settings = settings_mesg
+            delete @settings['id']
+            delete @settings['event']
 
-    ################################################
-    # Change Email Address
-    ################################################
+            cb()
+        )
 
-    change_email_address = $("#account-change_email_address")
 
-    $("a[href='#account-change_email_address']").click((event)->$('#account-change_email_address').modal('show'))  # should not be needed
+    load_from_view: () ->
+        if not @settings? or @settings == "error"
+            return  # not logged in -- don't bother
 
-    close_change_email_address = () ->
-        change_email_address.modal('hide').find('input').val('')
-        change_email_address.find(".account-error-text").hide()
+        for prop of @settings
+            element = $("#account-settings-#{prop}")
+            switch prop
+                when 'email_maintenance', 'email_new_features', 'enable_tooltips'
+                    val = element.is(":checked")
+                when 'connect_Github', 'connect_Google', 'connect_Dropbox'
+                    val = (element.val() == "unlink")
+                else
+                    val = element.val()
+            @settings[prop] = val
 
-    # When click in the cancel button on the change email address
-    # dialog, it is important to hide an error messages; also clear
-    # password.
-    change_email_address.find(".close").click((event) -> close_change_email_address())
-    $("#account-change_email_address_cancel_button").click((event)->close_change_email_address())
+    set_view: () ->
+        if not @settings?
+            return  # not logged in -- don't bother
 
-    change_email_address.on("shown", () -> $("#account-change_email_new_address").focus())
+        if @settings == 'error'
+            $("#account-settings-error").show()
+            return
 
-    # User clicked button to change the email address, so try to
-    # change it.
-    $("#account-change_email_address_button").click (event) ->
-        new_email_address = $("#account-change_email_new_address").val()
-        password = $("#account-change_email_password").val()
+        set = (element, value) ->
+            # TODO: dumb and dangerous -- do better
+            element.val(value)
+            element.text(value)
 
-        salvus_client.change_email
-            old_email_address : account_settings.settings.email_address
-            new_email_address : new_email_address
-            password          : password
-            account_id        : account_settings.settings.account_id
-            cb                : (error, mesg) ->
-                $("#account-change_email_address").find(".account-error-text").hide()
-                if error  # exceptional condition -- some sort of server or connection error
-                    alert_message(type:"error", message:error)
-                    close_change_email_address() # kill modal (since this is a weird error condition)
-                    return
+
+        $("#account-settings-error").hide()
+
+        for prop, value of @settings
+            element = $("#account-settings-#{prop}")
+            switch prop
+                when 'enable_tooltips'
+                    element.attr('checked', value)
+                    if value
+                        enable_tooltips()
+                    else
+                        disable_tooltips()
+                when 'email_maintenance', 'email_new_features'
+                    element.attr('checked', value)
+                when 'evaluate_key'
+                    element.val(value)
+                    set_evaluate_key?(value)
+                when 'default_system'
+                    element.val(value)
+                    $("#demo1-system").val(value)
+                    $("#demo2-system").val(value)
+                when 'connect_Github', 'connect_Google', 'connect_Dropbox'
+                    set(element, if value then "unlink" else "Connect to #{prop.slice(8)}")
+                when 'support_level'
+                    element.text(value)
+                    $("#feedback-support-level").text(value)
+                else
+                    set(element, value)
+
+        set_account_tab_label(true, @settings.first_name, @settings.last_name)
+
+    # Store the properties that user can freely change to the backend database.
+    # The other properties only get saved by direct api calls that require additional
+    # information, e.g., password.   The setting in this object are saved; if you
+    # want to save the settings in view, you must first call load_from_view.
+    save_to_server: (opts) ->
+        opts = defaults opts,
+            cb       : required
+            password : undefined  # must be set, or all restricted settings are ignored by the server
+
+        if not @settings? or @settings == 'error'
+            opts.cb("There are no account settings to save.")
+            return
+        salvus_client.save_account_settings
+            account_id : account_id
+            settings   : @settings
+            password   : opts.password
+            cb         : opts.cb
+
+account_settings = exports.account_settings = new AccountSettings()
+
+################################################
+# Change Email Address
+################################################
+
+change_email_address = $("#account-change_email_address")
+
+$("a[href='#account-change_email_address']").click((event)->$('#account-change_email_address').modal('show'))  # should not be needed
+
+close_change_email_address = () ->
+    change_email_address.modal('hide').find('input').val('')
+    change_email_address.find(".account-error-text").hide()
+
+# When click in the cancel button on the change email address
+# dialog, it is important to hide an error messages; also clear
+# password.
+change_email_address.find(".close").click((event) -> close_change_email_address())
+$("#account-change_email_address_cancel_button").click((event)->close_change_email_address())
+
+change_email_address.on("shown", () -> $("#account-change_email_new_address").focus())
+
+# User clicked button to change the email address, so try to
+# change it.
+$("#account-change_email_address_button").click (event) ->
+    new_email_address = $("#account-change_email_new_address").val()
+    password = $("#account-change_email_password").val()
+
+    salvus_client.change_email
+        old_email_address : account_settings.settings.email_address
+        new_email_address : new_email_address
+        password          : password
+        account_id        : account_settings.settings.account_id
+        cb                : (error, mesg) ->
+            $("#account-change_email_address").find(".account-error-text").hide()
+            if error  # exceptional condition -- some sort of server or connection error
+                alert_message(type:"error", message:error)
+                close_change_email_address() # kill modal (since this is a weird error condition)
+                return
+            if mesg.error
+                x = $("#account-change_email_address-#{mesg.error}")
+                if x.length == 0
+                    # this should not happen
+                    alert_message(type:"error", message:"Email change error: #{mesg.error}")
+                    close_change_email_address()
+                else
+                    x.show()
+                    if mesg.error == 'too_frequent' and mesg.ttl
+                        x.find("span").html(" #{mesg.ttl } seconds ")
+                        setTimeout((() -> x.hide()), mesg.ttl*1000)
+                    $("#account-change_email_password").val(password)
+            else
+                # success
+                $("#account-settings-email_address").html(new_email_address)
+                account_settings.settings.email_address = new_email_address
+                close_change_email_address()
+    return false
+
+################################################
+# Change password
+################################################
+
+change_password = $("#account-change_password")
+
+close_change_password = () ->
+    change_password.modal('hide').find('input').val('')
+    change_password.find(".account-error-text").hide()
+
+change_password.find(".close").click((event) -> close_change_password())
+$("#account-change_password-button-cancel").click((event)->close_change_password())
+change_password.on("shown", () -> $("#account-change_password-old_password").focus())
+
+$("a[href='#account-change_password']").click((event)->$('#account-change_password').modal('show'))  # should not be needed
+
+$("#account-change_password-button-submit").click (event) ->
+    salvus_client.change_password
+        email_address : account_settings.settings.email_address
+        old_password  : $("#account-change_password-old_password").val()
+        new_password  : $("#account-change_password-new_password").val()
+        cb : (error, mesg) ->
+            if error
+                $("#account-change_password-error").html("Error communicating with server: #{error}")
+            else
+                change_password.find(".account-error-text").hide()
                 if mesg.error
-                    x = $("#account-change_email_address-#{mesg.error}")
-                    if x.length == 0
-                        # this should not happen
-                        alert_message(type:"error", message:"Email change error: #{mesg.error}")
-                        close_change_email_address()
-                    else
+                    # display errors
+                    for key, val of mesg.error
+                        x = $("#account-change_password-error-#{key}")
+                        if x.length == 0
+                            x = $("#account-change_password-error")
+                        x.html(val)
                         x.show()
-                        if mesg.error == 'too_frequent' and mesg.ttl
-                            x.find("span").html(" #{mesg.ttl } seconds ")
-                            setTimeout((() -> x.hide()), mesg.ttl*1000)
-                        $("#account-change_email_password").val(password)
                 else
                     # success
-                    $("#account-settings-email_address").html(new_email_address)
-                    account_settings.settings.email_address = new_email_address
-                    close_change_email_address()
-        return false
+                    alert_message(type:"info", message:"You have changed your password.")
+                    close_change_password()
+    return false
 
-    ################################################
-    # Change password
-    ################################################
+################################################
+# Forgot your password?
+################################################
 
-    change_password = $("#account-change_password")
+forgot_password = $("#account-forgot_password")
+$("a[href='#account-forgot_password']").click((event) -> forgot_password.modal())
 
-    close_change_password = () ->
-        change_password.modal('hide').find('input').val('')
-        change_password.find(".account-error-text").hide()
+close_forgot_password = () ->
+    forgot_password.modal('hide').find('input').val('')
+    forgot_password.find(".account-error-text").hide()
 
-    change_password.find(".close").click((event) -> close_change_password())
-    $("#account-change_password-button-cancel").click((event)->close_change_password())
-    change_password.on("shown", () -> $("#account-change_password-old_password").focus())
+forgot_password.find(".close").click((event) -> close_forgot_password())
+$("#account-forgot_password-button-cancel").click((event)->close_forgot_password())
+forgot_password.on("shown", () -> $("#account-forgot_password-email_address").focus())
 
-    $("a[href='#account-change_password']").click((event)->$('#account-change_password').modal('show'))  # should not be needed
+$("#account-forgot_password-button-submit").click (event) ->
+    email_address = $("#account-forgot_password-email_address").val()
+    forgot_password.find(".account-error-text").hide()
+    salvus_client.forgot_password
+        email_address : email_address
+        cb : (error, mesg) ->
+            if error
+                alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
+            else if mesg.error
+                alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
+            else
+                alert_message(type:"info", message:"Salvus sent a password reset email message to #{email_address}.")
 
-    $("#account-change_password-button-submit").click (event) ->
-        salvus_client.change_password
-            email_address : account_settings.settings.email_address
-            old_password  : $("#account-change_password-old_password").val()
-            new_password  : $("#account-change_password-new_password").val()
-            cb : (error, mesg) ->
-                if error
-                    $("#account-change_password-error").html("Error communicating with server: #{error}")
+
+#################################################################
+# Page you get when you click "Forgot your password" email link and main page loads
+#################################################################
+forgot_password_reset = $("#account-forgot_password_reset")
+url_args = window.location.href.split("#")
+if url_args.length == 3 and url_args[1] == "forgot"
+    forget_password_reset_key = url_args[2]
+    forgot_password_reset.modal("show")
+
+close_forgot_password_reset = () ->
+    forgot_password_reset.modal('hide').find('input').val('')
+    forgot_password_reset.find(".account-error-text").hide()
+
+forgot_password_reset.find(".close").click((event) -> close_forgot_password_reset())
+$("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_password_reset())
+forgot_password_reset.on("shown", () -> $("#account-forgot_password_reset-new_password").focus())
+
+$("#account-forgot_password_reset-button-submit").click (event) ->
+    new_password = $("#account-forgot_password_reset-new_password").val()
+    forgot_password_reset.find(".account-error-text").hide()
+    salvus_client.reset_forgot_password
+        reset_code   : url_args[2]
+        new_password : new_password
+        cb : (error, mesg) ->
+            if error
+                $("#account-forgot_password_reset-error").html("Error communicating with server: #{error}").show()
+            else
+                if mesg.error
+                    $("#account-forgot_password_reset-error").html(mesg.error).show()
                 else
-                    change_password.find(".account-error-text").hide()
-                    if mesg.error
-                        # display errors
-                        for key, val of mesg.error
-                            x = $("#account-change_password-error-#{key}")
-                            if x.length == 0
-                                x = $("#account-change_password-error")
-                            x.html(val)
-                            x.show()
-                    else
-                        # success
-                        alert_message(type:"info", message:"You have changed your password.")
-                        close_change_password()
-        return false
-
-    ################################################
-    # Forgot your password?
-    ################################################
-
-    forgot_password = $("#account-forgot_password")
-    $("a[href='#account-forgot_password']").click((event) -> forgot_password.modal())
-
-    close_forgot_password = () ->
-        forgot_password.modal('hide').find('input').val('')
-        forgot_password.find(".account-error-text").hide()
-
-    forgot_password.find(".close").click((event) -> close_forgot_password())
-    $("#account-forgot_password-button-cancel").click((event)->close_forgot_password())
-    forgot_password.on("shown", () -> $("#account-forgot_password-email_address").focus())
-
-    $("#account-forgot_password-button-submit").click (event) ->
-        email_address = $("#account-forgot_password-email_address").val()
-        forgot_password.find(".account-error-text").hide()
-        salvus_client.forgot_password
-            email_address : email_address
-            cb : (error, mesg) ->
-                if error
-                    alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
-                else if mesg.error
-                    alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
-                else
-                    alert_message(type:"info", message:"Salvus sent a password reset email message to #{email_address}.")
-
-
-    #################################################################
-    # Page you get when you click "Forgot your password" email link and main page loads
-    #################################################################
-    forgot_password_reset = $("#account-forgot_password_reset")
-    url_args = window.location.href.split("#")
-    if url_args.length == 3 and url_args[1] == "forgot"
-        forget_password_reset_key = url_args[2]
-        forgot_password_reset.modal("show")
-
-    close_forgot_password_reset = () ->
-        forgot_password_reset.modal('hide').find('input').val('')
-        forgot_password_reset.find(".account-error-text").hide()
-
-    forgot_password_reset.find(".close").click((event) -> close_forgot_password_reset())
-    $("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_password_reset())
-    forgot_password_reset.on("shown", () -> $("#account-forgot_password_reset-new_password").focus())
-
-    $("#account-forgot_password_reset-button-submit").click (event) ->
-        new_password = $("#account-forgot_password_reset-new_password").val()
-        forgot_password_reset.find(".account-error-text").hide()
-        salvus_client.reset_forgot_password
-            reset_code   : url_args[2]
-            new_password : new_password
-            cb : (error, mesg) ->
-                if error
-                    $("#account-forgot_password_reset-error").html("Error communicating with server: #{error}").show()
-                else
-                    if mesg.error
-                        $("#account-forgot_password_reset-error").html(mesg.error).show()
-                    else
-                        # success
-                        alert_message(type:"info", message:'Your new password has been saved.')
-                        close_forgot_password_reset()
-                        window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
-        return false
+                    # success
+                    alert_message(type:"info", message:'Your new password has been saved.')
+                    close_forgot_password_reset()
+                    window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
+    return false
 
 
 
-    ################################################
-    # Upgrade account
-    ################################################
-    $("a[href='#account-settings-upgrade']").click (event) ->
-        alert_message(type:'error', message:"Only free accounts are currently available.")
-        return false
+################################################
+# Upgrade account
+################################################
+$("a[href='#account-settings-upgrade']").click (event) ->
+    alert_message(type:'error', message:"Only free accounts are currently available.")
+    return false
 
 
 
-)()
