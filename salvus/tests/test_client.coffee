@@ -47,7 +47,7 @@ exports.test_account_management = (test) ->
                     test.equal(mesg.reason.password?, false, "shouldn't get an error about the password")
                     cb()
             )
-        
+
         # Create a valid account
         (cb) ->
             conn.create_account(
@@ -72,7 +72,7 @@ exports.test_account_management = (test) ->
                 cb : (error, result) ->
                     test.ok(not error, "should be able to sign out")
                     cb()
-                
+
         # Sign out again should be an error, since we are not signed in.
         (cb) ->
             conn.sign_out
@@ -80,7 +80,7 @@ exports.test_account_management = (test) ->
                     test.ok(not error, "should not get comm error signing out")
                     test.equal(result.error, "Not signed in.", "should get an error signing out when already signed out")
                     cb()
-                
+
         # Create another valid account for testing
         (cb) ->
             conn.create_account
@@ -109,8 +109,8 @@ exports.test_account_management = (test) ->
                     test.equal(mesg.event, "sign_in_failed", "should get a sign_in_failed event")
                     cb()
             )
-            
-        
+
+
         # "Sign in to the account we just created -- now with the right password"
         (cb) ->
             conn.sign_in(
@@ -133,7 +133,7 @@ exports.test_account_management = (test) ->
                 old_password  : password
                 new_password  : new_password
                 cb            : (error, mesg) ->
-                    test.ok(not error, "should not get a communcations error when changing password") 
+                    test.ok(not error, "should not get a communcations error when changing password")
                     test.equal(mesg.event, 'changed_password', "should get a changed_password event")
                     test.equal(mesg.error, false, "should have the error property set to false")
                     cb()
@@ -151,7 +151,7 @@ exports.test_account_management = (test) ->
                     test.equal(mesg.email_address, email_address, "the email address upon sign_in should match")
                     cb()
             )
-            
+
     ], () -> test.done())
 
 exports.test_user_feedback = (test) ->
@@ -174,13 +174,13 @@ exports.test_user_feedback = (test) ->
                 password      : password
                 timeout       : 1
                 cb            : (error, results) -> cb()
-        (cb) -> 
+        (cb) ->
             conn.report_feedback
                 category : 'bug'
                 description: "there is a bug"
                 nps : 3
                 cb : (err, results) -> cb()
-        (cb) -> 
+        (cb) ->
             conn.report_feedback
                 category : 'idea'
                 description: "there is a bug"
@@ -193,7 +193,7 @@ exports.test_user_feedback = (test) ->
                     test.equal(results.length, 2, 'length of resulting feedback wrong #{results}')
                     cb()
     ], () -> test.done())
-    
+
 
 exports.test_conn = (test) ->
     test.expect(10)
@@ -214,7 +214,7 @@ exports.test_conn = (test) ->
                     test.equal(mesg.id, uuid, 'id should be the uuid'); cb()
             )
         (cb) ->
-            conn.on('ping', (tm) -> test.ok(tm<1); cb())
+            conn.once('ping', (tm) -> test.ok(tm<1); cb())
             conn.ping()
         # test the call mechanism for doing a simple ping/pong message back and forth
         (cb) ->
@@ -249,7 +249,7 @@ exports.test_session = (test) ->
                 password      : password
                 timeout       : 1
                 cb            : (error, results) -> test.ok(not error); cb()
-                
+
         # create a session that will time out after 5 seconds (just in case of failure)
         (cb) ->
             conn.new_session
@@ -263,7 +263,7 @@ exports.test_session = (test) ->
                         s = session
                         s.on("open", cb)
                         cb()
-                    
+
         (cb) ->
             # console.log("execute some code that will produce at least 2 output messages, and collect all messages")
             s.execute_code
@@ -272,8 +272,8 @@ exports.test_session = (test) ->
                     v.push(mesg)
                     if mesg.done
                         cb()
-                        
-        
+
+
         (cb) ->
             #console.log("make some checks on the messages")
             test.equal(v[0].stdout, '4\n', 'first output is 4')
@@ -294,11 +294,11 @@ exports.test_session = (test) ->
                 cb   : (mesg) ->
                     test.equal(mesg.stdout,'1\n','evaluate a silly expression without the Sage preparser')
                     cb()
-            
+
         (cb) ->
             #console.log("start a computation going, then interrupt it and do something else")
             s.execute_code(
-                code:'print(1);sys.stdout.flush();sleep(10)', 
+                code:'print(1);sys.stdout.flush();sleep(10)',
                 cb: (mesg) ->
                     #console.log("got #{JSON.stringify(mesg)}")
                     if not mesg.done
@@ -406,6 +406,6 @@ exports.test_project_management = (test) ->
                     test.ok(not error, "Setting project title should not result in comm error.")
                     test.equal(result.event, 'error', "Setting project title of other user should be an error.")
                     cb()
-        
-                    
+
+
     ], ()->test.done())

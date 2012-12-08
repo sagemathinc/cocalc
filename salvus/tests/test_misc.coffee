@@ -123,6 +123,10 @@ exports.test_pairs_to_obj = (test) ->
     test.deepEqual(misc.pairs_to_obj([['a',5], ['xyz','10']]), {a:5, xyz:'10'})
     test.done()
 
-                
-
-            
+exports.test_filename_extension = (test) ->
+    test.expect(4)
+    test.equal(misc.filename_extension('foo.txt'), 'txt')
+    test.equal(misc.filename_extension('a/b/c/foo.jpg'), 'jpg')
+    test.equal(misc.filename_extension('a/b/c/foo.ABCXYZ'), 'ABCXYZ')
+    test.equal(misc.filename_extension('a/b/c/foo'), undefined)
+    test.done()

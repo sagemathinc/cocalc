@@ -13,6 +13,7 @@ helenus   = require("helenus")
 async     = require("async")
 
 misc      = require("misc")
+a_uuid    = misc.uuid()
 
 database = null
 
@@ -28,7 +29,7 @@ exports.setUp = (cb) ->
         (cb) -> database = new cassandra.Salvus(keyspace:'test', cb:cb)
         (cb) -> conn.close(); cb()
     ], cb)
-        
+
 exports.tearDown = (cb) ->
     conn = null
     async.series([
@@ -50,7 +51,7 @@ exports.test_user_feedback = (test) ->
                 data        : {'sage_version':'5.4', 'hostname':'sage04'}
                 nps         : 9
                 cb          : (err, results) -> test.ok(not err); cb()
-        (cb) -> 
+        (cb) ->
             database.report_feedback
                 account_id  : 0
                 category        : 'bug'
@@ -58,7 +59,7 @@ exports.test_user_feedback = (test) ->
                 data        : {'sage_version':'5.5', 'hostname':'sage07'}
                 nps         : 7
                 cb          : (err, results) -> test.ok(not err); cb()
-        (cb) -> 
+        (cb) ->
             database.report_feedback
                 account_id  : 0
                 category        : 'idea'
@@ -66,8 +67,8 @@ exports.test_user_feedback = (test) ->
                 data        : {'sage_version':'5.4', 'hostname':'sage05'}
                 nps         : 5
                 cb          : (err, results) -> test.ok(not err); cb()
-        
-        (cb) -> 
+
+        (cb) ->
             database.report_feedback
                 account_id  : 1
                 category        : 'comment'
@@ -95,15 +96,15 @@ exports.test_user_feedback = (test) ->
                     test.deepEqual(results[0].data, {'sage_version':'5.4', 'hostname':'sage01'})
                     test.equal(results[0].description, 'So far this is pretty good.')
                     cb()
-                    
-        (cb) -> 
+
+        (cb) ->
             database.get_all_feedback_from_user
                 account_id : 0
                 cb : (err, results) ->
                     test.equal(results.length, 3, "should be 3 feedback form for user with account_id 0, but got #{results.length}")
                     cb()
-        
-        (cb) -> 
+
+        (cb) ->
             database.get_all_feedback_of_category
                 category : 'bug'
                 cb : (err, results) ->
@@ -121,7 +122,7 @@ exports.test_account_management = (test) ->
         last_name  : 'Math'
         email_address : 'salvusmath@gmail.com'
         password_hash : 'sha512$e0d3590cbe964b540cf6fa2713b4bbab$1$67fddb5643ef79ea092ccff9ea41575fc2c833fe7071c74dde50e04a3fc24af65dc130a13313de558dc2d7e1ed360c1f2fd8c690a2b61a28c89f90a28dae2401'  # salvus
-        
+
     async.series([
         # address starts out available
         (cb) ->
@@ -142,7 +143,7 @@ exports.test_account_management = (test) ->
                     cb()
             )
         # now the email address is no longer available
-        (cb) -> 
+        (cb) ->
             database.is_email_address_available(account.email_address, (error, result) ->
                 test.equal(result, false)
                 cb()
@@ -247,7 +248,7 @@ exports.test_key_value_store = (test) ->
         # test deleting what we just added
         (cb) -> kvs.delete(key:{abc:[1,2,3]}, cb:cb)
         (cb) -> kvs.get(key:{abc:[1,2,3]}, cb:(error,value) -> test.ok(value==undefined); cb(error))
-        # test ttl (time to live) 
+        # test ttl (time to live)
         (cb) -> kvs.set(key:1, value:2, cb:cb, ttl:1)
         # first it is there
         (cb) -> kvs.get(key:1, cb:(error,value) -> test.ok(value?); cb(error))
@@ -269,7 +270,7 @@ exports.test_key_value_store = (test) ->
 exports.test_uuid_value_store = (test) ->
     test.expect(8)
     uvs = database.uuid_value_store(name:'test')
-    uvs2 = database.uuid_value_store(name:'test2')    
+    uvs2 = database.uuid_value_store(name:'test2')
     uuid = null
     async.series([
         # test setting and getting a complicated object
@@ -279,11 +280,11 @@ exports.test_uuid_value_store = (test) ->
         (cb) -> uvs.delete(uuid:uuid, cb:cb)
         (cb) -> uvs.get(uuid:uuid, cb:(error,value) -> test.ok(value==undefined); cb(error))
         # test ttl (time to live)
-        (cb) -> uvs.set(uuid:0, value:2, ttl:1, cb:cb)
+        (cb) -> uvs.set(uuid:a_uuid, value:2, ttl:1, cb:cb)
         # first it is there
-        (cb) -> uvs.get(uuid:0, cb:(error,value) -> test.ok(value?); cb(error))
+        (cb) -> uvs.get(uuid:a_uuid, cb:(error,value) -> test.ok(value?); cb(error))
         # then it is gone
-        (cb) -> setTimeout((()->uvs.get(uuid:0, cb:(error,value) -> test.equal(value, undefined); cb(error))),  1100)
+        (cb) -> setTimeout((()->uvs.get(uuid:a_uuid, cb:(error,value) -> test.equal(value, undefined); cb(error))),  1100)
         # delete all records, and confirm they are gone
         (cb) -> uvs.delete_all(cb:cb)
         (cb) -> uvs.length(cb:(err,value) -> test.equal(value,0); cb(err))
@@ -297,6 +298,5 @@ exports.test_uuid_value_store = (test) ->
         (cb) -> uvs2.length(cb:(err,value) -> test.equal(value,1); cb(err))
     ],()->test.done())
 
-          
-        
-    
+
+
