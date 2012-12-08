@@ -292,6 +292,10 @@ class Client extends EventEmitter
     ################################################################
 
     handle_message_from_client: (data) =>
+        # TODO: THIS IS A QUICK anti-DOS measure for early testing
+        if data.length >= 10000000  # 10 MB
+            @push_to_client(message.error(error:"Messages are limited to 10MB.", id:mesg.id))
+
         try
             mesg = from_json(data)
         catch error
@@ -465,6 +469,10 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
             return
+
+        @error_to_client(id: mesg.id, error: "Project creation is temporarily disabled.")
+        return
+        
         project_id = uuid.v4()
         # create project in database
         database.create_project
@@ -1535,6 +1543,9 @@ save_blob = (opts) ->
         value : required
         ttl   : undefined
         cb    : undefined
+    if opts.value.length >= 10000000
+        # PRIMITIVE anti-DOS measure
+        return
     database.uuid_value_store(name:"blobs").set(opts)
 
 get_blob = (opts) ->
