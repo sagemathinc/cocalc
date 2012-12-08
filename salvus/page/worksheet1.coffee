@@ -1192,7 +1192,9 @@ load_scratch_worksheet = undefined
                 worksheet_view()
                 if views.worksheet?
                     views.worksheet.remove()
-                if error
+                if error # problem loading -- TODO: this may be a bad move
+                    views.worksheet = page.salvus_worksheet()
+                else if not data? # means there isn't a scratch worksheet yet
                     views.worksheet = page.salvus_worksheet()
                 else
                     obj = misc.from_json(data)

@@ -8323,12 +8323,30 @@ Top priority goal for today:
  [x] implement other evaluate keys
  [x] change email address link is a bit wonky -- right when click "save", it changes it back in the gui, but it is actually changed (trying login).
 
- [ ] make project (as collection of worksheets for now) actually work
- [ ] save scratch worksheet to a project
+ [x] put in some warnings/disclaimers.
+ [ ] anti DOS measures:
+      - limit size of anything that user can store in the database...: I'll just make one variable TOO_BIG for now...
+           settings -- 1mb
+           the scratch worksheet -- 50mb (?)
+           each blob -- 20mb (we have no way of notifying of error)
 
- [ ] deploy
+      ... actually, if we just give an error on ANY message that is longer than a certain length, we avoid having
+          to re-JSON, and we avoid having to list each unsafe thing.  For now, there is no way to fill up the database
+          using small messages (except by making many accounts, or projects, which I'll limit below).
+
+      - disable project creation
+
+      - limit number of sessions a given user can start -- 10 for now
+
+
+ [ ] deploy:
+      - put my laptop on the vpn (?)
 
  [ ] code cleanup/refactoring
+
+NEXT:
+ [ ] make project (as collection of worksheets for now) actually work
+ [ ] save scratch worksheet to a project
 
 --
 Then...

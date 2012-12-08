@@ -209,7 +209,7 @@ account_settings = undefined
                 show_page("account-settings")
                 # change the navbar title from "Sign in" to "first_name last_name"
                 set_account_tab_label(true, mesg.first_name, mesg.last_name)
-                top_navbar.show_page_button("projects")
+                #top_navbar.show_page_button("projects")
                 top_navbar.switch_to_page("worksheet")
                 # Load the default worksheet (for now)
                 load_scratch_worksheet()
@@ -237,7 +237,7 @@ account_settings = undefined
                     set_account_tab_label(false)
                     # Change the view in the account page to the "sign in" view.
                     show_page("account-sign_in")
-                    top_navbar.hide_page_button("projects")
+                    #top_navbar.hide_page_button("projects")
                     top_navbar.hide_page_button("worksheet")
                     # TODO: have to remove a bunch of other pages
 
