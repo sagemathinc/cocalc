@@ -444,6 +444,7 @@
     ################################################
 
     forgot_password = $("#account-forgot_password")
+    $("a[href='#account-forgot_password']").click((event) -> forgot_password.modal())
 
     close_forgot_password = () ->
         forgot_password.modal('hide').find('input').val('')

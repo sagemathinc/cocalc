@@ -1,3 +1,25 @@
+<!-- Forgot password: dialog to request email be sent (and token placed in database) -->
+
+<div class="modal hide" id="account-forgot_password" tabindex="-1" role="dialog" aria-hidden="true">
+  <form>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
+      <h3>Forgot your password?</h3>
+      Enter your email address to reset your password.
+      <div class="hide account-error-text" id="account-forgot_password-error"></div>
+    </div>
+    <div class="modal-body offset1">
+      <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
+      <input class="span4 offset1" type="email" placeholder="Email address" id="account-forgot_password-email_address">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
+      <button class="btn" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
+    </div>
+  </form>
+</div>
+
+
 <div class="container" id="account">
 
   <div class="row hide" id="account-sign_in">
@@ -24,7 +46,7 @@
 	<br>
 	<div class="row">
 	  <div class="span3 offset1">
-	    <a href="#account-forgot_password" data-toggle="modal">Forgot your password?</a>
+	    <a href="#account-forgot_password">Forgot your password?</a>
 	  </div>
 	</div>
       </form>
@@ -91,7 +113,7 @@
 		<div class="row span2">Password</div>
 		<div class="row span3">
 		  <a href="#account-change_password" data-toggle="modal">Change password</a><br>
-		  <a href="#account-forgot_password" data-toggle="modal">Forgot password</a>
+		  <a href="#account-forgot_password">Forgot password</a>
 		</div>
 	      </div>
 	      <br>
@@ -281,27 +303,6 @@
 </div>
 
 
-
-<!-- Forgot password: dialog to request email be sent (and token placed in database) -->
-
-<div class="modal hide" id="account-forgot_password" tabindex="-1" role="dialog" aria-hidden="true">
-  <form>
-    <div class="modal-header">
-      <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><font size=+3>×</font></button>
-      <h3>Forgot your password?</h3>
-      Enter your email address to reset your password.
-      <div class="hide account-error-text" id="account-forgot_password-error"></div>
-    </div>
-    <div class="modal-body offset1">
-      <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
-      <input class="span4 offset1" type="email" placeholder="Email address" id="account-forgot_password-email_address">
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
-      <button class="btn" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
-    </div>
-  </form>
-</div>
 
 
 <!-- Forgot password: reset -->
