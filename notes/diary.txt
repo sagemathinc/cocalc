@@ -8038,7 +8038,7 @@ tot=5:40 -- 9:30pm -- finished javascript/coffeescript functions:
 
 Dec 2, 2012
 starting at 6:35am.
-Not fucking around. 
+Not fucking around.
 
    [ ] edit mode that shows the underlying JSON object of the
        worksheet in a nicely presented way, and allows
@@ -8094,7 +8094,7 @@ def f(n=(1..10), m=[1,2,3]):
    [ ]  MOBILE ISSUE: codemirror has no vertical scrollbars...:
         solution -- add pager buttons.
 
-   [ ] idea for a way to implement "%auto". 
+   [ ] idea for a way to implement "%auto".
        have a control output type, e.g., mesg.control =
        with various commands (given as objects), e.g,.
               mesg.control = {on:"load", command:"execute_code"}
@@ -8111,7 +8111,7 @@ salvus.html("""
 <hr>
 """)
 salvus.coffeescript("""
-cell.find("button").click () -> 
+cell.find("button").click () ->
     salvus_exec
         input: "#{cell.find('#i1').val()} + #{cell.find('#i2').val()}"
         cb: (mesg) -> append_cell_output_from_mesg(cell, mesg)
@@ -8153,7 +8153,7 @@ Input:
 
 import sage_salvus
 a = 10
-ib = sage_salvus.input_box(variable='a', globals()) 
+ib = sage_salvus.input_box(variable='a', globals())
 
 a = 20
 ib.update()  # will cause control to change in browser
@@ -8229,7 +8229,7 @@ n=100; Q1092.<z>=CyclotomicField(1092); M=Matrix(Q1092,[[Q1092.zero_element() fo
 This reveals many issues -- e.g. -- timer vanishing is annoying.
 
  [x] mathjax usage -- run it on <div class="tex"> and <span class="tex"> in html output.  That's it...
-     or even better - have a message format. 
+     or even better - have a message format.
 
 Dec 6
 --------
@@ -8253,7 +8253,7 @@ salvus.coffeescript("$('#mycolor3').colorpicker()", once=False)
         - make message with file attribute
 
  - [] sage.coffee -- send using new message format
- 
+
 
   - add support to hub (and haproxy) so that this URL works:
            https://salv.us/files/filename?uuid=[the uuid]
@@ -8339,10 +8339,11 @@ Top priority goal for today:
       - limit number of sessions a given user can start -- 10 for now
 
 
+ [ ] code cleanup/refactoring
+
  [ ] deploy:
       - put my laptop on the vpn (?)
 
- [ ] code cleanup/refactoring
 
 NEXT:
  [ ] make project (as collection of worksheets for now) actually work
@@ -8366,8 +8367,31 @@ for n in [1..10]:
     salvus.tex(taylor(1/(1-x)^n,x,2))
  [ ] mathjax in note:
        -- make it so typing "$" inserts a math mode span and puts cursor in it.
-       -- make it so <div> and <span> math get turned back to $$'s 
+       -- make it so <div> and <span> math get turned back to $$'s
        -- make to so span class math's get hit by jsmath
        -- make it so when mathjax modifies something it saves original html
        -- make it so worksheet save recovers original html
 
+
+December 8, 2012
+------------------
+
+Today is going to be dedicated to code cleanup in worksheet1.coffee,
+without breaking anything, hopefully.
+
+Standard Editor Goals:
+   - make it so there can be many worksheets open at once -- make scope completely isolated
+   - easy to change keyboard shortcuts on the fly
+   - switch between modes
+   - sequence of edit actions, so can eventualy synchronize clients, database, etc. 
+   - global undo/redo
+
+Best to get this going now before things get too out of hand. 
+
+Plan to do this:
+
+ 1. Make a new minimal file worksheet.coffee
+ 2. Make a complete new page for it.
+ 3. Carry things over carefully.
+
+(This shouldn't require internet!)

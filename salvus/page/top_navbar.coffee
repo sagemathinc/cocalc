@@ -137,9 +137,14 @@ top_navbar = undefined
         label   : "Projects"
         close   : false
 
-    $("#worksheet1").top_navbar
+    $("#worksheet").top_navbar
         id      : "worksheet"
         label   : "Worksheet"
+        close   : false
+
+    $("#worksheet1").top_navbar
+        id      : "worksheet1"
+        label   : "Worksheet1"
         close   : false
 
     #$("#worksheet-cm").top_navbar
