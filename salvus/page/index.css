@@ -2,6 +2,7 @@ scratch.css
 worksheet1.css
 worksheet-cm.css
 
+cell.css
 worksheet.css
 
 account.css
@@ -10,7 +11,7 @@ project.css
 top_navbar.css
 
 
-.hide {  
+.hide {
     display:none;
 }
 
@@ -28,11 +29,11 @@ top_navbar.css
 
 /* workaround responsive bootstrap menu issue */
 body { padding-top:60px; }
-@media (max-width: 979px) { body { padding-top: 0px; } }  
+@media (max-width: 979px) { body { padding-top: 0px; } }
 
 
 /* so on iOS scroll-into-view modals work */
-@media (max-width: 480px)   
+@media (max-width: 480px)
 {
     .modal.fade.in {
         top: 10px;

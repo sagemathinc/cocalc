@@ -8394,8 +8394,10 @@ Best to get this going now before things get too out of hand.
 
 Plan to do this:
 
- 1. Make a new minimal file worksheet.coffee
- 2. Make a complete new page for it.
- 3. Carry things over carefully.
+ [x] Make a solid require module structure system.
+ [x] worksheet.html/worksheet.css/worksheet.coffee
+ [x] cell.html/cell.css/cell.coffee
+ [ ] make page for testing this -- worksheet2.html
+
 
 (This shouldn't require internet!)
