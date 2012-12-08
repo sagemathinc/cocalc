@@ -8318,13 +8318,12 @@ Top priority goal for today:
 
  [x] terminate sage session when corresponding websocket connection dies
  [x] BUG:  salvus.tex (Ell[tab] --- but completion is pretty imperfect at present
+ [ ] disable some settings stuff not supported (account upgrade); and generally clean up 
+ [ ] fix "forgot password" link
+ [ ] change email address link is a bit wonky -- right when click "save", it changes it back in the gui, but it is actually changed (trying login).
+ [ ] implement other evaluate keys
  [ ] make project (as collection of worksheets for now) actually work
  [ ] save scratch worksheet to a project
- [ ] disable some settings stuff not supported:
-       - account upgrade
-       - submit key
- [ ] add big "TEST WARNING" to top banner
- [ ] systematically search for bugs(?)
  [ ] re-deploy
 
 

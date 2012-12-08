@@ -2,7 +2,8 @@
 
   <div class="row hide" id="account-sign_in">
     <div class="span5">
-      <h3><font color="#0084aa">Salvus: online mathematical software</font></h3>
+      <h2><font color="#0084aa">Salvus</font></h2>
+      <h3> Online Mathematical Software</h3>
     </div>
     <div class="span4 well">
       <form id="sign_in-form">
@@ -58,7 +59,7 @@
   </div>
 
 
-  <div class="row hide" id="account-settings">
+  <div class="row span11 indent1 hide" id="account-settings">
 
     <div class="alert alert-error" id="account-settings-error">
       <button type="button" class="close" data-dismiss="alert">×</button>
@@ -68,15 +69,114 @@
     </div>
 
     <ul class="nav nav-tabs">
-      <li class="active"><a href="#account-info-tab" data-toggle="tab">Account info</a></li>
-      <li><a href="#account-settings-tab" data-toggle="tab">Settings</a></li>
+      <li class="active"><a href="#account-settings-tab" data-toggle="tab">Settings</a></li>
+      <!-- <li><a href="#account-info-tab" data-toggle="tab">Account info</a></li>-->
     </ul>
 
     <div class="tab-content">
-      <div class="tab-pane active" id="account-info-tab">
+      <div class="tab-pane active" id="account-settings-tab">
+	<form>
+	  <div class="row">
+	    <div class="span5 well">
+	      <div class="row">
+		<div class="row span2">First name</div>
+		<div class="row span3"><input class="span3" type="text" value="" id="account-settings-first_name"></div>
+	      </div>
+	      <div class="row">
+		<div class="row span2">Last name</div>
+		<div class="row span3"><input class="span3" type="text" value="" id="account-settings-last_name"></div>
+	      </div>
+	      <br>
+	      <div class="row">
+		<div class="row span2">Password</div>
+		<div class="row span3">
+		  <a href="#account-change_password" data-toggle="modal">Change password</a><br>
+		  <a href="#account-forgot_password" data-toggle="modal">Forgot password</a>
+		</div>
+	      </div>
+	      <br>
+	      <div class="row">
+		<div class="row span2">Email</div>
+		<div class="row span3"><span id="account-settings-email_address">foo</span> (<a href="#account-change_email_address" data-toggle="modal" >change</a>)</div>
+	      </div>
+	    </div>
 
+	    <div class="span5 well">
+	      <div class="row">
+		<div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated.">Evaluate key</div>
+		<div class="row span3">
+		  <select id="account-settings-evaluate_key">
+		    <option value="shift-enter">Shift-Enter</option>
+		    <option value="control-enter">Control-Enter</option>
+		    <option value="enter">Enter</option>
+		  </select>
+		</div>
+		<br><br>
+		<div class="row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
+		<div class="row span3">
+		  <select id="account-settings-default_system">
+		    <option value="sage">Sage</option>
+		    <!--		  <option value="python">Python</option>
+					  <option value="gp">Pari/GP</option>
+		    <option value="maxima">Maxima</option>
+		    <option value="gap">GAP</option> -->
+		  </select>
+		</div>
+	      </div>
+	    </div>
+
+	  </div>
+	  <div class="row">
+	    <div class="span5 well">
+	      <div class="row span5">
+		<label class="checkbox">
+		  <input type="checkbox" checked="checked" id="account-settings-enable_tooltips"  rel="tooltip" title="Show tooltips like this one?">Show tooltips
+		</label>
+		<label class="checkbox" >
+		  <input type="checkbox" checked="checked" id="account-settings-email_new_features"  rel="tooltip" title="Salvus sends email when we add new features.">Email me about new features
+		</label>
+		<label class="checkbox">
+		  <input type="checkbox" checked="checked" id="account-settings-email_maintenance"  rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">Email me about scheduled maintenance
+		</label>
+	      </div>
+	    </div>
+
+	    <!-- hide for now, since not implemented -->
+	    <div class="span5 offset1 well hide">
+	      <div class="row">
+		<div class="row span2" rel="tooltip" title="You can link your Salvus account with Github, so that a project can be synchronized with a Github repository.">Github</div>
+		<div class="row span3">
+		  <a id="account-settings-connect_Github" href=""></a>
+		</div>
+	      </div>
+	      <br>
+	      <div class="row">
+		<div class="row span2" rel="tooltip" title="You can link your Salvus account with Google, so that some of your Salvus files are stored in Google drive.">Google</div>
+		<div class="row span3">
+		  <a id="account-settings-connect_Google" href=""></a>
+		</div>
+	      </div>
+	      <br>
+	      <div class="row">
+		<div class="row span2" rel="tooltip" title="You can link your Salvus account with Dropbox, so that selected Salvus projects are mirrored to a Dropbox folder.">Dropbox</div>
+		<div class="row span3">
+		  <a id="account-settings-connect_Dropbox" href=""></a>
+		</div>
+	      </div>
+	    </div>
+	  </div>
+
+	  <div class="row span4">
+	      <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button">Change settings</button>
+	      <button class="pull-right btn" id="account-settings-cancel-changes-button">Cancel changes</button>
+	  </div>
+      </div>
+      </form>
+
+
+      <div class="tab-pane" id="account-info-tab">
 	<div class="row">
-	  <div class="span10 well">
+	  <div class="span10 well hide">
 	    <div class="row">
 	      <div class="row span3"   rel="tooltip" title="Your account type determines the limits on your Salvus account.  In addition to the free plan, other more powerful plans are available.">Account type</div>
 	      <div class="row span7"><strong id="account-settings-plan_name"></strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
@@ -111,108 +211,7 @@
 
       </div>
 
-      <div class="tab-pane" id="account-settings-tab">
-    <form>
-	<div class="row">
-	  <div class="span5 well">
-	    <div class="row">
-	      <div class="row span2">First name</div>
-	      <div class="row span3"><input class="span3" type="text" value="" id="account-settings-first_name"></div>
-	    </div>
-	    <div class="row">
-	      <div class="row span2">Last name</div>
-	      <div class="row span3"><input class="span3" type="text" value="" id="account-settings-last_name"></div>
-	    </div>
-	    <br>
-	    <div class="row">
-	      <div class="row span2">Password</div>
-	      <div class="row span3">
-		<a href="#account-change_password" data-toggle="modal">Change password</a><br>
-		<a href="#account-forgot_password" data-toggle="modal">Forgot password</a>
-	      </div>
-	    </div>
-	    <br>
-	    <div class="row">
-	      <div class="row span2">Email</div>
-	      <div class="row span3"><span id="account-settings-email_address">foo</span> (<a href="#account-change_email_address" data-toggle="modal" >change</a>)</div>
-	    </div>
-	  </div>
 
-	  <div class="span5 offset1 well">
-	    <div class="row">
-	      <div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated.">Evaluate key</div>
-	      <div class="row span3">
-		<select id="account-settings-evaluate_key">
-		  <option value="shift-enter">Shift-Enter</option>
-		  <option value="control-enter">Control-Enter</option>
-		  <option value="enter">Enter</option>
-		</select>
-	      </div>
-	      <br><br>
-	      <div class="row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
-	      <div class="row span3">
-		<select id="account-settings-default_system">
-		  <option value="sage">Sage</option>
-		  <option value="python">Python</option>
-		  <option value="gp">Pari/GP</option>
-		  <option value="maxima">Maxima</option>
-		  <option value="gap">GAP</option>
-		</select>
-	      </div>
-	    </div>
-	  </div>
-
-	</div>
-	<div class="row">
-	  <div class="span5 well">
-	    <div class="row span5">
-	      <label class="checkbox">
-		<input type="checkbox" checked="checked" id="account-settings-enable_tooltips"  rel="tooltip" title="Show tooltips like this one?">Show tooltips
-	      </label>
-	      <label class="checkbox" >
-		<input type="checkbox" checked="checked" id="account-settings-email_new_features"  rel="tooltip" title="Salvus sends email when we add new features.">Email me about new features
-	      </label>
-	      <label class="checkbox">
-		<input type="checkbox" checked="checked" id="account-settings-email_maintenance"  rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">Email me about scheduled maintenance
-	      </label>
-	    </div>
-	  </div>
-
-	  <!-- hide for now, since not implemented -->
-	  <div class="span5 offset1 well hide">
-	    <div class="row">
-	      <div class="row span2" rel="tooltip" title="You can link your Salvus account with Github, so that a project can be synchronized with a Github repository.">Github</div>
-	      <div class="row span3">
-		<a id="account-settings-connect_Github" href=""></a>
-	      </div>
-	    </div>
-	    <br>
-	    <div class="row">
-	      <div class="row span2" rel="tooltip" title="You can link your Salvus account with Google, so that some of your Salvus files are stored in Google drive.">Google</div>
-	      <div class="row span3">
-		<a id="account-settings-connect_Google" href=""></a>
-	      </div>
-	    </div>
-	    <br>
-	    <div class="row">
-	      <div class="row span2" rel="tooltip" title="You can link your Salvus account with Dropbox, so that selected Salvus projects are mirrored to a Dropbox folder.">Dropbox</div>
-	      <div class="row span3">
-		<a id="account-settings-connect_Dropbox" href=""></a>
-	      </div>
-	    </div>
-	  </div>
-	</div>
-
-	<div class="row">
-	  <div class="span3">
-	    <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button">Change settings</button>
-	  </div>
-	  <div class="span3">
-	    <button class="btn" id="account-settings-cancel-changes-button">Cancel changes</button>
-	  </div>
-	</div>
-      </div>
-      </form>
     </div>
   </div>
 
@@ -268,11 +267,11 @@
 	<input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
       </label>
       <br>
-	<div class="hide account-error-text" id="account-change_password-error-new_password"></div>
-	<label>
-	  <b class="big-only">New password</b>
-	  <input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
-	</label>
+      <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
+      <label>
+	<b class="big-only">New password</b>
+	<input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
+      </label>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
