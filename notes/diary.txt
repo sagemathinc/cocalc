@@ -8398,4 +8398,88 @@ Plan to do this:
  [x] worksheet.html/worksheet.css/worksheet.coffee
  [x] cell.html/cell.css/cell.coffee
  [x] make page for testing this -- worksheet2.html
- [ ] 
+ [ ] reading through worksheet1.coffee and figuring out *what* is there:
+
+- Worksheet
+  - views:
+    - worksheet
+    - json -- structured and plain text
+    - text
+  - code to build and activate
+  - lossy convert to plain text
+  - convert to json (not very lossy)
+  - convert from json
+  - is_dirty/clean
+  - change history: each change described on JSON object
+     - length
+     - undo
+     - redo
+  - cell manipulation:
+     - join cells
+     - split cells
+     - move cell up/down
+     - delete cell
+     - insert cell after/before
+     - delete all output
+     - show/hide all output
+     - delete all cells
+  - moving:
+     - cursor: there is always an active cell (like current email message in gmail)
+     - next cell
+     - previous cell
+  - timer (how long until killed)
+  - actions:
+     - execute all code
+     - interrupt all computations
+  - session:
+     - setting session: -- will use for code evaluation (could have one session and multiple worksheets on it, command lines, etc.)
+     - restart session
+
+- Cell
+  - introspect support:
+    - code to show tab completions
+    - code to show docstring
+    - code to show source code
+  - code to build and activate a cell using codemirror, etc.
+  - lossy convert to plain text
+  - convert to json (not very lossy)
+  - convert from json
+  - buttons/cell actions:
+    - tab
+    - autoindent
+    - evaluate input
+    - interrupt
+    - introspect
+    - delete output
+    - hide output
+    - delete all cell contents
+  - cell that contains a dom element
+  - refresh editor: called when cell unhidden -- needed by codemirror
+  - focus cell
+  - setting/appending-to note
+  - appending various types of output
+  - spinner: shows that code is running
+  - stopwatch: how long since submit / computing
+  - change history: each change described on JSON object
+     - length
+     - undo
+     - redo
+  - keyboard shortcuts/actions
+
+- Interact
+  - registering, setting, and getting variables
+  - InteractVariable
+  - calling sage function
+  - controls:
+     - input_box
+     - checkbox
+     ... and many more!
+
+
+General jQuery plugins:
+  - endow_contenteditable_with_change_event
+
+
+
+
+
