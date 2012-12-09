@@ -44,15 +44,20 @@ class Cell extends EventEmitter
         @element = cell_template.clone()
         @_initialize_note()
         @_initialize_code_editor()
+        @_initialize_output()
 
         @element.data("cell", @)
         $(@opts.element).replaceWith(@element)
 
         @refresh()
-        @_cm.setValue(@opts.editor_value)
+        @_editor.setValue(@opts.editor_value)
 
-    append_to: (e) ->
-        @element.append(e)
+
+    #######################################################################
+    #
+    # Private Methods
+    #
+    #######################################################################
 
     _initialize_note: () ->
         # make note fire change event when changed
@@ -78,8 +83,8 @@ class Cell extends EventEmitter
         )
 
     _initialize_code_editor: () ->
-        @_code_editor = @element.find(".salvus-cell-code-editor")
-        @_cm = CodeMirror.fromTextArea @_code_editor[0],
+        @_code_editor = @element.find(".salvus-cell-editor")
+        @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1
             autofocus       : false
             mode            : @opts.editor_mode
@@ -89,15 +94,80 @@ class Cell extends EventEmitter
             lineWrapping    : @opts.editor_line_wrapping
             undoDepth       : @opts.editor_undo_depth
             matchBrackets   : @opts.editor_match_brackets
-        $(@_cm.getWrapperElement()).addClass('salvus-cell-code-editor')
-        $(@_cm.getScrollerElement()).css('max-height' : @opts.editor_max_height)
+        $(@_editor.getWrapperElement()).addClass('salvus-cell-editor')
+        $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
+    _initialize_output: () ->
+        @_output = @element.find(".salvus-cell-output")
+        @_output.html(@opts.output_value)
+        @_output.css('max-height', @opts.output_max_height)
+        #if @opts.output_line_wrapping
+            # TODO
+
+
+    #######################################################################
+    #
+    # Public API
+    #
+    # Unless otherwise stated, these methods can be chained.
+    #
+    #######################################################################
+
+    append_to: (e) ->
+        @element.append(e)
+        return @
+
+    # Refresh the cell; this might be needed if you hide the DOM element
+    # that contains the editor, change it, then display it again.
     refresh: () ->
-        @_cm.refresh()
+        @_editor.refresh()
+        return @
 
-    select: () ->
-        $(@_cm.getWrapperElement()).addClass('salvus-cell-code-editor-selected')
+    # Mark the cell as selected or not selected
+    selected: (is_selected=true) ->
+        if is_selected
+            @element.addClass("salvus-cell-selected")
+        else
+            @element.removeClass("salvus-cell-selected")
+        return @
+        #$(@_editor.getWrapperElement()).addClass('salvus-cell-editor-selected')
 
+    # Show an individual component of the cell: cell.show("note"), cell.show("editor"), cell.show("output").
+    # Also, cell.show() will show the complete cell (not show each component) if it was hidden; this does
+    # not impact which components are hidden/shown.
+    show: (e) ->
+        if not e?
+            @element.show()
+            return
+        switch e
+            when 'note'
+                @_note.show()
+            when 'editor'
+                $(@_editor.getWrapperElement()).show()
+                @_editor.refresh()
+            when 'output'
+                @_output.show()
+            else
+                throw "unknown component #{e}"
+        return @
+
+    # Hide an individual component of the cell -- cell.hide("note"), cell.hide("editor"), cell.hide("output")
+    # Also, cell.hide() will hide the complete cell (not hide each component); this does not
+    # impact which individual components are hidden/shown.
+    hide: (e) ->
+        if not e?
+            @element.hide()
+            return
+        switch e
+            when 'note'
+                @_note.hide()
+            when 'editor'
+                $(@_editor.getWrapperElement()).hide()
+            when 'output'
+                @_output.hide()
+            else
+                throw "unknown component #{e}"
+        return @
 
 exports.Cell = Cell
 

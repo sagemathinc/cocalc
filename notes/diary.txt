@@ -8483,9 +8483,9 @@ General jQuery plugins:
 
 [ ] decide on more features for Cell, then implement and test:
     [x] cell -- put frame around
-    [ ] cell -- put note area in
-    [ ] cell -- put codemirror in
-    [ ] cell -- put output area in
+    [x] cell -- put note area in, with on('change')
+    [x] cell -- put codemirror in
+    [x] cell -- put output area in
     [ ] cell -- implement evaluate action
 
 

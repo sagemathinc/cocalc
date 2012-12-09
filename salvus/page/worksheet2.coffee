@@ -29,13 +29,16 @@ init = () ->
 
     d = $("<div>")
     testbox.append(d)
-    d.salvus_cell(editor_line_numbers:true, editor_value:"range(100)\ni=5\nb=7", editor_match_brackets:false)
+    d.salvus_cell(editor_line_numbers:true, editor_value:"range(100)\ni=5\nb=7", editor_match_brackets:false, output_value:"laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf<br>lasdjf<br>laksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlaksdf\nlasdjf\nlajsdfljasdlfkjaslkdfjalksdjflaksjdflkasjdflkjasdfjaskldfjaklsdjfklasjdfklasjdfkljaskdlf  jaksldjfklasjdfklasjdfkljasdlkfjasdfjasldfjasdfjasldkfj  alskdjflaksdjflkasjdflkasjdfkljaslkasjdflkjasdlkfjaskldfjkalsjd  fklasjdflkasjdfkljaskdlfjaskdfjaskljdfklasjdfkasdfkajskdfjaslkdfjaskl")
 
     c2 = d.data('cell')
-    c2.select()
+    c2.selected(true)
 
-    worksheet2.find(".worksheet2-cell1").salvus_cell()
+    worksheet2.find(".worksheet2-cell0").salvus_cell().data('cell').hide('editor')
+    worksheet2.find(".worksheet2-cell1").salvus_cell().data('cell').hide('note').selected()
     worksheet2.find(".worksheet2-cell2").salvus_cell()
+
+    worksheet2.find(".well-cell1").css('z-index',100).draggable()
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->

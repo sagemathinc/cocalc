@@ -11,8 +11,13 @@
 
 
 .salvus-cell {
-    border     : 1px solid black;  /* for development only */
+    border     : 1px solid grey;
     background : white;
+}
+
+.salvus-cell-selected {
+    border: 1px solid #99f;
+    box-shadow: 4px 4px 2px #bbf;
 }
 
 .salvus-cell-note {
@@ -23,12 +28,23 @@
     overflow-y       : auto;
 }
 
-.salvus-cell-code-editor {
+.salvus-cell-editor {
     min-height:1.5em;
     border: 2px solid #e0e0e0;
 }
 
-.salvus-cell-code-editor-selected {
-    border: 2px solid #99f;
-    box-shadow: 4px 4px 2px #bbf;
+.salvus-cell-output {
+    background-color:#f8f8f8;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.salvus-cell-output-stdout {
+    color       : #11a;
+    white-space : pre;
+}
+
+.salvus-cell-output-stderr {
+    color       : #a00;
+    white-space : pre;
 }
