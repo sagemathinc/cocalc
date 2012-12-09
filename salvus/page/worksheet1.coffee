@@ -246,7 +246,8 @@ activate_salvus_cell = (cell) ->
     ).on("change", (note) -> worksheet_is_dirty())
 
     ##how one could dynamically set something in css...
-    ##$(editor.getScrollerElement()).css('max-height', Math.floor($(window).height()/2))
+    #$(editor.getScrollerElement()).css('max-height', Math.floor($(window).height()/2))
+    $(editor.getScrollerElement()).css('max-height', "30em")
 
 
 

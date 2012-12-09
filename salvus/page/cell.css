@@ -1,25 +1,34 @@
-.salvus-cell {
-    border: 1px solid black;  /* for development only */
-    background: white;
-}
-
-
 .CodeMirror {
-    height:auto;
-    background-color: #ffffe8;
+    height           : auto;
+    background-color : #ffffe8;
 }
 
 .CodeMirror-scroll {
-  max-height: 30em;
-  height: auto;
-  overflow-y: hidden;
-  overflow-x: auto;
+    height     : auto;
+    overflow-y : hidden;
+    overflow-x : auto;
 }
 
 
+.salvus-cell {
+    border     : 1px solid black;  /* for development only */
+    background : white;
+}
+
 .salvus-cell-note {
-    background-color:#fff;
-    color:#333;
-    border: 1px solid white;
+    background-color : #fff;
+    color            : #333;
+    border           : 1px solid white;
+    min-height       : 1.5em;
+    overflow-y       : auto;
+}
+
+.salvus-cell-code-editor {
     min-height:1.5em;
+    border: 2px solid #e0e0e0;
+}
+
+.salvus-cell-code-editor-selected {
+    border: 2px solid #99f;
+    box-shadow: 4px 4px 2px #bbf;
 }
