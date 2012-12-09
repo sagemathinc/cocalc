@@ -7,7 +7,7 @@
 # imports
 {EventEmitter} = require('events')
 
-{filename_extension, required, defaults} = require('misc')
+{filename_extension, required, defaults, to_json} = require('misc')
 
 {local_diff} = require('misc_page')
 
@@ -173,13 +173,21 @@ class Cell extends EventEmitter
                 throw "unknown component #{e}"
         return @
 
-    # Append new output
+    # Append new output to one output stream of the cell
     append_output : (opts) ->
         opts = defaults opts,
             stream : required  # the output stream: 'stdout', 'stderr', 'html', 'tex', 'file', 'javascript'
-            value  : required
+            value  : required  # depends on the output stream:
+                            # stdout -- arbitrary text
+                            # stderr -- arbitrary text
+                            # html -- arbitrary valid html
+                            # tex -- {tex:'latex expression', display:true/false}   --  display math or inline math
+                            # file -- {filename:"...", uuid:"...", show:true/false}
+                            # javascript -- {code:"...", coffeescript:true/false}
         @emit("change", {output:opts})
-        e = templates.find(".salvus-cell-output-#{opts.stream}")
+        e = templates.find(".salvus-cell-output-#{opts.stream}").clone()
+        if e.length != 1
+            throw "ERROR -- missing template with class .salvus-cell-output-#{opts.stream}"
         @_output.append(e)
         switch opts.stream
             when 'stdout', 'stderr'
@@ -202,7 +210,21 @@ class Cell extends EventEmitter
                     eval(CoffeeScript.compile(opts.value.code))
                 else
                     eval(opts.value.code)
+            else
+                throw "unknown stream '#{opts.stream}'"
         return @
+
+    execute: (session) ->
+        session.execute_code
+            code     : @_editor.getValue()
+            preparse : true
+            cb       : (mesg) =>
+                @append_output(stream:'stdout',     value:mesg.stdout)     if mesg.stdout?
+                @append_output(stream:'stderr',     value:mesg.stderr)     if mesg.stderr?
+                @append_output(stream:'html',       value:mesg.html)       if mesg.html?
+                @append_output(stream:'tex',        value:mesg.tex)        if mesg.tex?
+                @append_output(stream:'file',       value:mesg.file)       if mesg.file?
+                @append_output(stream:'javascript', value:mesg.javascript) if mesg.javascript?
 
 exports.Cell = Cell
 

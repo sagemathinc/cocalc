@@ -8489,8 +8489,7 @@ General jQuery plugins:
     [x] cell -- editor on change
     [x] cell -- append_output
     [x] cell -- output on change
-
-    [ ] cell -- implement evaluate action
+    [x] cell -- implement execution of code in a given session
 
 
 
