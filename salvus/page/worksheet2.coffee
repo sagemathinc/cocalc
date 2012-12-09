@@ -24,6 +24,13 @@ init = () ->
     c.on "change", (m) ->
         console.log("change: #{to_json(m)}")
 
+    c.append_output(stream:'stdout', value:"hello there")
+    c.append_output(stream:'stderr', value:"<b>major error!</b>")
+    c.append_output(stream:'html', value:"<b><i>major error!</i></b>")
+    c.append_output(stream:'tex', value:{tex:"x^n+y^n=z^n", display:true})
+    c.append_output(stream:'file', value:{filename:"foo.png", uuid:"aslkdjf", show:true})
+    c.append_output(stream:'javascript', value:{code:"console.log('hi 1')"}).append_output(stream:'javascript', value:{code:"console.log 'hi 1'", coffeescript:true})
+
     testbox.append(c.element)
     c.refresh()
 

@@ -7,9 +7,10 @@
 # imports
 {EventEmitter} = require('events')
 
-{required, defaults} = require('misc')
+{filename_extension, required, defaults} = require('misc')
 
 {local_diff} = require('misc_page')
+
 
 
 # templates
@@ -170,6 +171,37 @@ class Cell extends EventEmitter
                 @_output.hide()
             else
                 throw "unknown component #{e}"
+        return @
+
+    # Append new output
+    append_output : (opts) ->
+        opts = defaults opts,
+            stream : required  # the output stream: 'stdout', 'stderr', 'html', 'tex', 'file', 'javascript'
+            value  : required
+        @emit("change", {output:opts})
+        e = templates.find(".salvus-cell-output-#{opts.stream}")
+        @_output.append(e)
+        switch opts.stream
+            when 'stdout', 'stderr'
+                e.text(opts.value)
+            when 'html'
+                e.html(opts.value)
+            when 'tex'
+                e.text(opts.value).data('value', opts.value).mathjax(tex: opts.value.tex, display:opts.value.display)
+            when 'file'
+                if opts.value.show
+                    target = "/blobs/#{opts.value.filename}?uuid=#{opts.value.uuid}"
+                    switch filename_extension(opts.value.filename)
+                        when 'svg', 'png', 'gif', 'jpg'
+                            e.append($("<img src='#{target}' class='salvus-cell-output-img'>"))
+                        else
+                            # TODO: countdown timer?
+                            e.append($("<a href='#{target}' target='_new'>#{opts.value.filename} (this temporary link expires in a minute)</a> "))
+            when 'javascript'
+                if opts.value.coffeescript
+                    eval(CoffeeScript.compile(opts.value.code))
+                else
+                    eval(opts.value.code)
         return @
 
 exports.Cell = Cell

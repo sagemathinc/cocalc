@@ -40,11 +40,19 @@
 }
 
 .salvus-cell-output-stdout {
+    font-family : "Courier New";
     color       : #11a;
     white-space : pre;
 }
 
 .salvus-cell-output-stderr {
+    font-family : "Courier New";
     color       : #a00;
     white-space : pre;
+}
+
+.salvus-cell-output-html {
+}
+
+.salvus-cell-output-tex {
 }
