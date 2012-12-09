@@ -2,3 +2,10 @@
     border: 1px solid black;  /* for development only */
     background: white;
 }
+
+.salvus-cell-note {
+    background-color:#fff;
+    color:#333;
+    border: 1px solid white;
+    min-height:1.5em;
+}
