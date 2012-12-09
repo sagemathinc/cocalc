@@ -37,18 +37,18 @@ pre {
     margin:0px;
 }
 
-.salvus-cell {
+.salvus-cell1 {
    /* border-top:1px dashed #ddd; */
 }
 
-.salvus-cell-note {
+.salvus-cell1-note {
     background-color:#fff;
     color:#333;
     border: 1px solid white;
     min-height:1.5em; 
 }
 
-.salvus-cell-note:hover {
+.salvus-cell1-note:hover {
     border: 1px dashed #999;
 }
 
@@ -68,10 +68,10 @@ pre {
 .salvus-prompt:hover {
 }
 
-.salvus-cell-input {
+.salvus-cell1-input {
 }
 
-.salvus-cell-output {
+.salvus-cell1-output {
     padding-left:30px;
     padding-top:3px;
     max-height: 30em;
@@ -119,18 +119,18 @@ pre {
    color:#888;
 }
 
-.salvus-cell-insert-before {
+.salvus-cell1-insert-before {
     height:6px;
 }
-.salvus-cell-insert-before:hover {
+.salvus-cell1-insert-before:hover {
     border:  2px solid #99f;
     background-color: lightyellow;
     height:2px;
 }
-.salvus-cell-insert-after {
+.salvus-cell1-insert-after {
     height:6px;
 }
-.salvus-cell-insert-after:hover {
+.salvus-cell1-insert-after:hover {
     border: 2px solid #99f;
     background-color: lightyellow;
     height:2px;
@@ -171,7 +171,7 @@ pre {
     color: #888;
 }
 
-.salvus-cell-stopwatch {
+.salvus-cell1-stopwatch {
     margin-left:-11ex;
     position:absolute;
     font-size:9pt;

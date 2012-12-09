@@ -8475,10 +8475,13 @@ Plan to do this:
      - checkbox
      ... and many more!
 
-
 General jQuery plugins:
   - endow_contenteditable_with_change_event
 
+
+[x] create very, very basic Cell class, jquery pluging, and test it on worksheet2.html page
+
+[ ] decide on more features for Cell, then implement and test.
 
 
 

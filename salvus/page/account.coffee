@@ -216,6 +216,7 @@ signed_in = (mesg) ->
             top_navbar.switch_to_page("worksheet1")
             require('worksheet1').load_scratch_worksheet()
             top_navbar.show_page_button("worksheet2")
+            top_navbar.switch_to_page("worksheet2")
             # Load the default worksheet (for now)
 
 # Listen for pushed sign_in events from the server.  This is one way that

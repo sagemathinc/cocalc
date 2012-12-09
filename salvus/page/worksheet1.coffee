@@ -212,11 +212,11 @@ activate_worksheet = (worksheet) ->
 
 activate_salvus_cell = (cell) ->
     # initialize the insert-cell bar
-    cell.find(".salvus-cell-insert-before").click((e) -> insert_cell_before(cell))
-    cell.find(".salvus-cell-insert-after").click((e) -> insert_cell_after(cell))
+    cell.find(".salvus-cell1-insert-before").click((e) -> insert_cell_before(cell))
+    cell.find(".salvus-cell1-insert-after").click((e) -> insert_cell_after(cell))
 
     # initialize the code editor
-    input = cell.find(".salvus-cell-input")
+    input = cell.find(".salvus-cell1-input")
     editor = CodeMirror.fromTextArea input[0],
         mode           : "python"
         lineNumbers    : false
@@ -242,7 +242,7 @@ activate_salvus_cell = (cell) ->
         worksheet_is_dirty()
 
     # setup the note part of the cell:
-    cell.find(".salvus-cell-note").endow_contenteditable_with_change_event(
+    cell.find(".salvus-cell1-note").endow_contenteditable_with_change_event(
     ).on("change", (note) -> worksheet_is_dirty())
 
     ##how one could dynamically set something in css...
@@ -253,7 +253,7 @@ activate_salvus_cell = (cell) ->
 salvus_cell = (opts={}) ->
     opts = defaults opts,
         id : undefined
-    cell = templates.find(".salvus-cell").clone().attr('id', if opts.id? then opts.id else uuid())
+    cell = templates.find(".salvus-cell1").clone().attr('id', if opts.id? then opts.id else uuid())
 
     activate_salvus_cell(cell)
     return cell
@@ -272,7 +272,7 @@ $.fn.extend
                     $this.trigger('change')
                 return $this)
 
-    salvus_worksheet: (opts) ->
+    salvus_worksheet1: (opts) ->
         # salvus_worksheet: appends a Salvus worksheet to each element of the jQuery
         # wrapped set; results in the last worksheet created as a
         # jQuery wrapped object.
@@ -284,7 +284,7 @@ $.fn.extend
             worksheet.append_salvus_cell()
         return worksheet
 
-    salvus_cell: (opts={}) ->
+    salvus_cell1: (opts={}) ->  # not used
         # Convert each element of the wrapped set into a salvus cell.
         # If the optional id is given, then the first cell created
         # will have that id attribute (the rest will be random).
@@ -292,7 +292,7 @@ $.fn.extend
             id: undefined
         @each () ->
             t = $(this)
-            if t.hasClass("salvus-cell")
+            if t.hasClass("salvus-cell1")
                 # this is already a Salvus Cell, so we activate its javascript
                 activate_salvus_cell(t)
             else
@@ -348,7 +348,7 @@ top_navbar.on "switch_from_page-scratch", () ->
 
 cell_to_plain_text = (cell, prompt='sage: ') ->   # NOTE -- the prompt can't have dollar signs in it!
     r = ''
-    note = client.html_to_text(cell.find(".salvus-cell-note").html()).trim()
+    note = client.html_to_text(cell.find(".salvus-cell1-note").html()).trim()
     if note != ""
         if note.length >= 2
             if note[note.length-1] != ':'
@@ -362,11 +362,11 @@ cell_to_plain_text = (cell, prompt='sage: ') ->   # NOTE -- the prompt can't hav
         # The second regexp replaces a newline that is followed by non-whitespace by an indented prompt.
         p = '\n    ' + prompt
         r += '    sage: ' + code.replace(/\n\s/g,'\n    ...    ').replace(/\n(\S)(.*)/g, p+'$1$2')
-    for o in cell.find(".salvus-cell-output").children()
+    for o in cell.find(".salvus-cell1-output").children()
         s = $(o)
         cls = s.attr('class')
         if cls?
-            # User might set the salvus-cell-output child in weird
+            # User might set the salvus-cell1-output child in weird
             # ways, so we just ignore any child without a class
             # attribute (rather than crashing and failing to save!).
             cls = cls.slice(7)
@@ -381,10 +381,10 @@ cell_to_plain_text = (cell, prompt='sage: ') ->   # NOTE -- the prompt can't hav
 cell_to_obj = (cell) ->
     cell   = $(cell)
     output = []
-    for o in cell.find(".salvus-cell-output").children()
+    for o in cell.find(".salvus-cell1-output").children()
         s = $(o)
         cls = s.attr('class')
-        if cls?  # User might set the salvus-cell-output child in weird ways, so we just ignore any child without a class
+        if cls?  # User might set the salvus-cell1-output child in weird ways, so we just ignore any child without a class
             cls = cls.slice(7)
             switch cls
                 when 'javascript', 'coffeescript'
@@ -399,7 +399,7 @@ cell_to_obj = (cell) ->
             output.push(class:cls, value:value)
     return {
         id     : cell.attr("id")
-        note   : cell.find(".salvus-cell-note").html()
+        note   : cell.find(".salvus-cell1-note").html()
         input  : cell.data("editor").getValue()
         output : output
         type   : "code"
@@ -408,7 +408,7 @@ cell_to_obj = (cell) ->
 obj_to_cell = (obj, cell) ->
     cell = $(cell)
     cell.attr("id", obj.id)
-    cell.find(".salvus-cell-note").html(obj.note)
+    cell.find(".salvus-cell1-note").html(obj.note)
     cell.data("editor").setValue(obj.input)
 
     for s in obj.output
@@ -424,13 +424,13 @@ worksheet_to_obj = () ->
         description : views.worksheet.find(".salvus-worksheet-description").html()
         cells       : []
     }
-    $.each(views.worksheet.find(".salvus-cell"), (key, cell) -> obj.cells.push(cell_to_obj(cell)))
+    $.each(views.worksheet.find(".salvus-cell1"), (key, cell) -> obj.cells.push(cell_to_obj(cell)))
     return obj
 
 set_worksheet_from_obj = (obj) ->
     views.worksheet.find(".salvus-worksheet-title").html(obj.title)
     views.worksheet.find(".salvus-worksheet-description").html(obj.description)
-    views.worksheet.find(".salvus-cell").remove()
+    views.worksheet.find(".salvus-cell1").remove()
     for cell_obj in obj.cells
         obj_to_cell(cell_obj, views.worksheet.append_salvus_cell()[0])
 
@@ -439,7 +439,7 @@ worksheet_to_plain_text = () ->
     r += 'Title: ' + views.worksheet.find(".salvus-worksheet-title").text() + '\n'
     r += 'Description: ' + views.worksheet.find(".salvus-worksheet-description").text()
     r += '\n-------------------------------------------------------------------------\n'
-    $.each(views.worksheet.find(".salvus-cell"), (key, cell) ->
+    $.each(views.worksheet.find(".salvus-cell1"), (key, cell) ->
         r += '\n' + cell_to_plain_text($(cell))
     )
     return r
@@ -516,7 +516,7 @@ join_cells = (cell) ->
         return
     worksheet_is_dirty()
     # 2. Copy note contents to end of note of cell above.
-    append_to_note(prev_cell, "<br>" + cell.find('.salvus-cell-note').html())
+    append_to_note(prev_cell, "<br>" + cell.find('.salvus-cell1-note').html())
     # 3. Copy input contents to end of input contents of cell above.
     editor = cell.data('editor')
     prev_editor = prev_cell.data('editor')
@@ -560,7 +560,7 @@ move_cell_down = (cell) ->
         focus_editor(cell)
 
 delete_cell_output = (cell) ->
-    cell.find(".salvus-cell-output").children().remove()
+    cell.find(".salvus-cell1-output").children().remove()
 
 delete_cell_contents = (opts) ->
     opts = defaults opts,
@@ -569,7 +569,7 @@ delete_cell_contents = (opts) ->
     delete_cell_output(opts.cell)
     opts.cell.data('editor').setValue('')
     if not opts.keep_note
-        opts.cell.find('.salvus-cell-note').html('')
+        opts.cell.find('.salvus-cell1-note').html('')
 
 delete_cell = (opts) ->
     opts = defaults opts,
@@ -580,21 +580,21 @@ delete_cell = (opts) ->
         delete_cell_contents(cell:opts.cell, keep_note:opts.keep_note)
         return
     cell = opts.cell
-    note = cell.find(".salvus-cell-note").html()
+    note = cell.find(".salvus-cell1-note").html()
     cell_above = cell.prev()
     cell_below = cell.next()
     if note != "" and opts.keep_note
         # TODO: use append_to_note above.
-        note_below = cell_below.find(".salvus-cell-note")
+        note_below = cell_below.find(".salvus-cell1-note")
         note_below.html(note + '<br>' + note_below.html())
     cell.remove()
-    if cell_above.length > 0 and cell_above.hasClass("salvus-cell")
+    if cell_above.length > 0 and cell_above.hasClass("salvus-cell1")
         focus_editor(cell_above)
-    else if cell_below.length > 0 and cell_below.hasClass("salvus-cell")
+    else if cell_below.length > 0 and cell_below.hasClass("salvus-cell1")
         focus_editor(cell_below)
     else
         new_cell = views.worksheet.append_salvus_cell()
-        new_cell.find(".salvus-cell-note").html(note)
+        new_cell.find(".salvus-cell1-note").html(note)
         focus_editor(new_cell)
 
 ########################################
@@ -603,20 +603,20 @@ delete_cell = (opts) ->
 
 next_cell = (cell) ->
     next = cell.next()
-    if next.hasClass("salvus-cell")
+    if next.hasClass("salvus-cell1")
         return next
     else
         return undefined
 
 previous_cell = (cell) ->
     prev = cell.prev()
-    if prev.hasClass("salvus-cell")
+    if prev.hasClass("salvus-cell1")
         return prev
     else
         return undefined
 
 containing_cell = (elt) ->
-    p = elt.parentsUntil(".salvus-cell")
+    p = elt.parentsUntil(".salvus-cell1")
     if p.length == 0
         return elt.parent()
     else
@@ -630,8 +630,8 @@ focus_editor = (cell) ->
     active_cell = last_active_cell = cell
 
 focus_editor_on_first_cell = () ->
-    views.worksheet.find(".salvus-cell:first")
-    focus_editor(views.worksheet.find(".salvus-cell:first"))
+    views.worksheet.find(".salvus-cell1:first")
+    focus_editor(views.worksheet.find(".salvus-cell1:first"))
 
 focus_next_cell = (cell) ->
     next = next_cell(cell)
@@ -660,7 +660,7 @@ insert_cell_after = (cell) ->
     return new_cell
 
 append_to_note = (cell, html) ->
-    note = cell.find(".salvus-cell-note")
+    note = cell.find(".salvus-cell1-note")
     note.html(note.html() + html)
 
 append_cell_output_from_mesg = (cell, mesg) ->
@@ -706,7 +706,7 @@ append_cell_output = (opts) ->
         return
 
     cell = opts.cell
-    output = opts.cell.find(".salvus-cell-output").show()
+    output = opts.cell.find(".salvus-cell1-output").show()
     css_class_selector = ".salvus-#{opts.class}"
     switch opts.class
         when 'javascript'
@@ -860,7 +860,7 @@ delete_session_timer = () ->
 ########################################
 
 execute_all = () ->
-    for cell in views.worksheet.find(".salvus-cell")
+    for cell in views.worksheet.find(".salvus-cell1")
         execute_cell($(cell))
 
 start_cell_spinner = (cell) ->
@@ -882,7 +882,7 @@ start_cell_spinner = (cell) ->
 start_cell_stopwatch = (cell, start_milliseconds=0) ->
     t = new Date()
     t.setTime(t.getTime() - start_milliseconds)
-    cell.find(".salvus-cell-stopwatch").show().countdown('destroy').countdown(
+    cell.find(".salvus-cell1-stopwatch").show().countdown('destroy').countdown(
         since      : t
         compact    : true
         layout     : '{hnn}{sep}{mnn}{sep}{snn}'
@@ -892,16 +892,16 @@ stop_cell_spinner = (cell) ->
     cell.find(".salvus-running").spin(false).hide()
 
 stop_cell_stopwatch = (cell) ->
-    cell.find(".salvus-cell-stopwatch").countdown('pause')
+    cell.find(".salvus-cell1-stopwatch").countdown('pause')
 
 remove_cell_stopwatch = (cell) ->
-    cell.find(".salvus-cell-stopwatch").countdown('destroy').hide()
+    cell.find(".salvus-cell1-stopwatch").countdown('destroy').hide()
 
 execute_cell = (cell) ->
     worksheet_is_dirty()
     input_text = cell.data('editor').getValue()
-    input = cell.find(".salvus-cell-input")
-    output = cell.find(".salvus-cell-output").show()
+    input = cell.find(".salvus-cell1-input")
+    output = cell.find(".salvus-cell1-output").show()
     delete_cell_output(cell)
     remove_cell_stopwatch(cell)
 
@@ -975,24 +975,24 @@ restart_session = () ->
         views.worksheet.find(".salvus-running").hide()
 
 number_of_cells = () ->
-    return views.worksheet.find(".salvus-cell").length
+    return views.worksheet.find(".salvus-cell1").length
 
 delete_all_output = () ->
     worksheet_is_dirty()
-    for cell in views.worksheet.find(".salvus-cell")
+    for cell in views.worksheet.find(".salvus-cell1")
         delete_cell_output($(cell))
 
 hide_all_output = () ->
-    views.worksheet.find(".salvus-cell-output").hide()
+    views.worksheet.find(".salvus-cell1-output").hide()
 
 show_all_output = () ->
-    views.worksheet.find(".salvus-cell-output").show()
+    views.worksheet.find(".salvus-cell1-output").show()
 
 clear_worksheet= () ->
     # TODO: confirmation, or better -- make it easy to undo last clear.... ?
     views.worksheet?.remove()
     worksheet_is_dirty()
-    views.worksheet = page.salvus_worksheet()
+    views.worksheet = page.salvus_worksheet1()
     if not IS_MOBILE
         focus_editor_on_first_cell()
 
@@ -1104,7 +1104,7 @@ worksheet_view = () ->
     $(".salvus-worksheet-buttons").find(".btn").removeClass('disabled')
     show_view('worksheet')
     if views.worksheet?
-        for cell in views.worksheet.find('.salvus-cell')
+        for cell in views.worksheet.find('.salvus-cell1')
             $(cell).data('editor').refresh()
 
 _last_valid_worksheet_obj = undefined
@@ -1198,9 +1198,9 @@ load_scratch_worksheet = exports.load_scratch_worksheet = () ->
             if views.worksheet?
                 views.worksheet.remove()
             if error # problem loading -- TODO: this may be a bad move
-                views.worksheet = page.salvus_worksheet()
+                views.worksheet = page.salvus_worksheet1()
             else if not data? # means there isn't a scratch worksheet yet
-                views.worksheet = page.salvus_worksheet()
+                views.worksheet = page.salvus_worksheet1()
             else
                 obj = misc.from_json(data)
                 views.worksheet = templates.find(".salvus-worksheet").clone()
