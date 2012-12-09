@@ -331,10 +331,11 @@ keydown_handler = (e) ->
         when 27 # escape = 27
             interrupt_session()
 
-top_navbar.on "switch_to_page-scratch", () ->
+top_navbar.on "switch_to_page-worksheet1", () ->
     $(document).keydown(keydown_handler)
+    worksheet_view()
 
-top_navbar.on "switch_from_page-scratch", () ->
+top_navbar.on "switch_from_page-worksheet1", () ->
     $(document).unbind("keydown", keydown_handler)
 
 ########################################

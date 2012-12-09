@@ -8490,9 +8490,30 @@ General jQuery plugins:
     [x] cell -- append_output
     [x] cell -- output on change
     [x] cell -- implement execution of code in a given session
-    [ ] illustrate executing code
+    [x] illustrate executing code
+
+Dec 9, 2012
+-------------
+
+I have about 6 hours to work today:
+
+       AIM: - deploy a new salvus by wednesday morning (for my talk)
+
+TONIGHT:
+
+ [ ] warm up: fix switching to worksheet1 page
+
+ [ ] make basic worksheet functionality
+ [ ] create slideshow.coffee/html/css with very basic functionality
+ [ ] more work on cell.*; worksheet.*; slideshow.*
+ [ ] create (vt100?) console.coffee/html/css with very basic functionality
+
+MAYBE?
 
 
 
 
 
+LATER:
+ [ ] fun warm up -- better icons: http://fortawesome.github.com/Font-Awesome/
+ [ ] upgrade bootstrap: http://blog.getbootstrap.com/2012/12/08/bootstrap-2-2-2-released/

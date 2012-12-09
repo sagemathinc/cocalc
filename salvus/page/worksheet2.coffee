@@ -14,7 +14,8 @@ worksheet2 = $("#worksheet2")
 init = () ->
 
     testbox = worksheet2.find(".salvus-worksheet2-testbox")
-
+    if testbox.html() != ''
+        return 
     c = new Cell
         element:$("<div>")
         editor_max_height:"auto"
