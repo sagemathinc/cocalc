@@ -25,12 +25,12 @@ worksheet1 = $("#worksheet1")
 templates = worksheet1.find(".salvus-templates")
 views =
     worksheet : undefined
-    edit      : templates.find(".salvus-worksheet-edit").clone().hide().appendTo(page)
-    text      : templates.find(".salvus-worksheet-text").clone().hide().appendTo(page)
+    edit      : templates.find(".salvus-worksheet1-edit").clone().hide().appendTo(page)
+    text      : templates.find(".salvus-worksheet1-text").clone().hide().appendTo(page)
 
 views.edit.data('editor',
     new JSONEditor(
-        views.edit.find(".salvus-worksheet-edit-jsoneditor")[0],
+        views.edit.find(".salvus-worksheet1-edit-jsoneditor")[0],
         {change:() ->
             views.edit.find('.btn').removeClass("disabled")
            # Update formatter at most once every 2 seconds
@@ -43,7 +43,7 @@ views.edit.data('editor',
 )
 views.edit.data('formatter',
     new JSONFormatter(
-        views.edit.find(".salvus-worksheet-edit-jsonformatter")[0],
+        views.edit.find(".salvus-worksheet1-edit-jsonformatter")[0],
         {change:() ->
             views.edit.find('.btn').removeClass("disabled")
             editor = views.edit.data('editor')
@@ -52,7 +52,7 @@ views.edit.data('formatter',
                 editor._planned_update = true
                 setTimeout((() ->
                     delete editor._planned_update
-                    error_box = views.edit.find(".salvus-worksheet-edit-error")
+                    error_box = views.edit.find(".salvus-worksheet1-edit-error")
                     try
                         editor.set(views.edit.data('formatter').get())
                         error_box.hide()
@@ -175,7 +175,7 @@ editor_tab_complete = (editor, from, to, completions, target) ->
     sel.focus()
 
 editor_show_docstring = (editor, from, to, docstring) ->
-    element = templates.find(".salvus-worksheet-docstring").clone()
+    element = templates.find(".salvus-worksheet1-docstring").clone()
     element.find('span').text(docstring)
     element.find('i').click(() -> element.remove())
     pos = editor.cursorCoords(from)
@@ -191,7 +191,7 @@ editor_show_docstring = (editor, from, to, docstring) ->
     return element
 
 editor_show_source_code = (editor, from, to, source_code) ->
-    element = templates.find(".salvus-worksheet-source-code").clone()
+    element = templates.find(".salvus-worksheet1-source-code").clone()
     element.find('span').text(source_code)
     element.find('i').click(() -> element.remove())
     pos = editor.cursorCoords(from)
@@ -279,7 +279,7 @@ $.fn.extend
         # jQuery wrapped object.
         worksheet = undefined
         @each () ->
-            worksheet = templates.find(".salvus-worksheet").clone()
+            worksheet = templates.find(".salvus-worksheet1").clone()
             $(this).append(worksheet)
             activate_worksheet(worksheet)
             worksheet.append_salvus_cell()
@@ -422,24 +422,24 @@ obj_to_cell = (obj, cell) ->
 worksheet_to_obj = () ->
     # jquery officially iterates through objects in DOM order, as of 1.3.2.
     obj = {
-        title       : views.worksheet.find(".salvus-worksheet-title").html()
-        description : views.worksheet.find(".salvus-worksheet-description").html()
+        title       : views.worksheet.find(".salvus-worksheet1-title").html()
+        description : views.worksheet.find(".salvus-worksheet1-description").html()
         cells       : []
     }
     $.each(views.worksheet.find(".salvus-cell1"), (key, cell) -> obj.cells.push(cell_to_obj(cell)))
     return obj
 
 set_worksheet_from_obj = (obj) ->
-    views.worksheet.find(".salvus-worksheet-title").html(obj.title)
-    views.worksheet.find(".salvus-worksheet-description").html(obj.description)
+    views.worksheet.find(".salvus-worksheet1-title").html(obj.title)
+    views.worksheet.find(".salvus-worksheet1-description").html(obj.description)
     views.worksheet.find(".salvus-cell1").remove()
     for cell_obj in obj.cells
         obj_to_cell(cell_obj, views.worksheet.append_salvus_cell()[0])
 
 worksheet_to_plain_text = () ->
     r = '-------------------------------------------------------------------------\n'
-    r += 'Title: ' + views.worksheet.find(".salvus-worksheet-title").text() + '\n'
-    r += 'Description: ' + views.worksheet.find(".salvus-worksheet-description").text()
+    r += 'Title: ' + views.worksheet.find(".salvus-worksheet1-title").text() + '\n'
+    r += 'Description: ' + views.worksheet.find(".salvus-worksheet1-description").text()
     r += '\n-------------------------------------------------------------------------\n'
     $.each(views.worksheet.find(".salvus-cell1"), (key, cell) ->
         r += '\n' + cell_to_plain_text($(cell))
@@ -845,7 +845,7 @@ start_session_timer = (seconds) ->
     #console.log(seconds)
     t = new Date()
     t.setTime(t.getTime() + seconds*1000)
-    views.worksheet.find('.salvus-worksheet-countdown-timer').show().draggable().countdown('destroy').countdown
+    views.worksheet.find('.salvus-worksheet1-countdown-timer').show().draggable().countdown('destroy').countdown
         until      : t
         compact    : true
         layout     : '{hnn}{sep}{mnn}{sep}{snn}'
@@ -855,7 +855,7 @@ start_session_timer = (seconds) ->
             alert_message(type:"info", message:"Sage session killed (after #{seconds} seconds).", block:true)
 
 delete_session_timer = () ->
-    views.worksheet.find('.salvus-worksheet-countdown-timer').countdown('destroy').hide()
+    views.worksheet.find('.salvus-worksheet1-countdown-timer').countdown('destroy').hide()
 
 ########################################
 # Editing / Executing code
@@ -1103,7 +1103,7 @@ show_view = (name) ->
             views[n]?.hide()
 
 worksheet_view = () ->
-    $(".salvus-worksheet-buttons").find(".btn").removeClass('disabled')
+    $(".salvus-worksheet1-buttons").find(".btn").removeClass('disabled')
     show_view('worksheet')
     if views.worksheet?
         for cell in views.worksheet.find('.salvus-cell1')
@@ -1111,7 +1111,7 @@ worksheet_view = () ->
 
 _last_valid_worksheet_obj = undefined
 edit_view = () ->
-    $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
+    $(".salvus-worksheet1-buttons").find(".btn").addClass('disabled')
     show_view('edit')
     editor = views.edit.data('editor')
     obj = worksheet_to_obj()
@@ -1134,9 +1134,9 @@ edit_view_save_changes = () ->
         return false
 
 text_view = () ->
-    $(".salvus-worksheet-buttons").find(".btn").addClass('disabled')
+    $(".salvus-worksheet1-buttons").find(".btn").addClass('disabled')
     show_view('text')
-    output = views.text.find(".salvus-worksheet-text-text")
+    output = views.text.find(".salvus-worksheet1-text-text")
     output.text(worksheet_to_plain_text())
     output.select_all()
 
@@ -1172,8 +1172,8 @@ worksheet1.find("a[href='#worksheet1-edit-view']").button().click((e) -> edit_vi
 worksheet1.find("a[href='#worksheet1-text-view']").button().click((e) -> text_view(); return false)
 
 # TODO: "are you sure?"
-worksheet1.find("a[href='#salvus-worksheet-edit-cancel']").button().click((e) -> worksheet_view(); return false)
-worksheet1.find("a[href='#salvus-worksheet-edit-save']").button().click((e) ->
+worksheet1.find("a[href='#salvus-worksheet1-edit-cancel']").button().click((e) -> worksheet_view(); return false)
+worksheet1.find("a[href='#salvus-worksheet1-edit-save']").button().click((e) ->
     if edit_view_save_changes()
         views.edit.find('.btn').addClass("disabled")
         worksheet_is_dirty()
@@ -1191,7 +1191,7 @@ load_scratch_worksheet = exports.load_scratch_worksheet = () ->
     if views.worksheet?
         return
 
-    worksheet1.find(".salvus-worksheet-loading").show()
+    worksheet1.find(".salvus-worksheet1-loading").show()
 
     salvus_client.load_scratch_worksheet
         timeout: 15
@@ -1205,7 +1205,7 @@ load_scratch_worksheet = exports.load_scratch_worksheet = () ->
                 views.worksheet = page.salvus_worksheet1()
             else
                 obj = misc.from_json(data)
-                views.worksheet = templates.find(".salvus-worksheet").clone()
+                views.worksheet = templates.find(".salvus-worksheet1").clone()
                 page.append(views.worksheet)
                 activate_worksheet(views.worksheet)
                 set_worksheet_from_obj(obj)
@@ -1213,7 +1213,7 @@ load_scratch_worksheet = exports.load_scratch_worksheet = () ->
             $("<div></div>").mathjax()
             if not IS_MOBILE
                 focus_editor_on_first_cell()
-            worksheet1.find(".salvus-worksheet-loading").hide()
+            worksheet1.find(".salvus-worksheet1-loading").hide()
 
 #salvus_client.once "connected", () ->
 #    load_scratch_worksheet()
