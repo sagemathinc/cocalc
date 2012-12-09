@@ -8490,6 +8490,8 @@ General jQuery plugins:
     [x] cell -- append_output
     [x] cell -- output on change
     [x] cell -- implement execution of code in a given session
+    [ ] illustrate executing code
+
 
 
 

@@ -40,6 +40,8 @@ class Cell extends EventEmitter
             output_line_wrapping  : false      # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
             output_value          : ""         # initial value of the output area (HTML)
 
+            session               : undefined  # a session -- needed to execute code in a cell
+
         @_note_change_timer_is_set = false
 
         @element = cell_template.clone()
@@ -84,6 +86,7 @@ class Cell extends EventEmitter
         )
 
     _initialize_code_editor: () ->
+        that = @
         @_code_editor = @element.find(".salvus-cell-editor")
         @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1
@@ -95,6 +98,7 @@ class Cell extends EventEmitter
             lineWrapping    : @opts.editor_line_wrapping
             undoDepth       : @opts.editor_undo_depth
             matchBrackets   : @opts.editor_match_brackets
+            extraKeys       : {'Shift-Enter': () -> that.execute()}
         $(@_editor.getWrapperElement()).addClass('salvus-cell-editor')
         $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
@@ -173,6 +177,9 @@ class Cell extends EventEmitter
                 throw "unknown component #{e}"
         return @
 
+    delete_output: () ->
+        @_output.html('')
+
     # Append new output to one output stream of the cell
     append_output : (opts) ->
         opts = defaults opts,
@@ -214,11 +221,12 @@ class Cell extends EventEmitter
                 throw "unknown stream '#{opts.stream}'"
         return @
 
-    execute: (session) ->
-        session.execute_code
+    execute: () ->
+        @opts.session.execute_code
             code     : @_editor.getValue()
             preparse : true
             cb       : (mesg) =>
+                @delete_output()
                 @append_output(stream:'stdout',     value:mesg.stdout)     if mesg.stdout?
                 @append_output(stream:'stderr',     value:mesg.stderr)     if mesg.stderr?
                 @append_output(stream:'html',       value:mesg.html)       if mesg.html?
