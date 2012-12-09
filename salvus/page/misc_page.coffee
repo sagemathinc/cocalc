@@ -18,7 +18,7 @@ $.fn.spin = (opts) ->
 
 
 exports.local_diff = (before, after) ->
-    # Return object 
+    # Return object
     #
     #    {pos:index_into_before, orig:"substring of before starting at pos", repl:"what to replace string by"}
     #
@@ -32,18 +32,18 @@ exports.local_diff = (before, after) ->
     while i < before.length and before[i] == after[i]
         i += 1
     # We now know that they differ at position i
-    from = before.slice(i)
-    to = after.slice(i)
+    orig = before.slice(i)
+    repl = after.slice(i)
 
-    # Delete the biggest string in common at the end of from and to.
+    # Delete the biggest string in common at the end of orig and repl.
     # This works well for local edits, which is what this command is
     # aimed at.
-    j = from.length - 1
-    d = to.length - from.length
-    while j >= 0 and d+j>=0 and from[j] == to[d+j]
+    j = orig.length - 1
+    d = repl.length - orig.length
+    while j >= 0 and d+j>=0 and orig[j] == repl[d+j]
         j -= 1
     # They differ at position j (resp., d+j)
-    from = from.slice(0, j+1)
-    to = to.slice(0, d+j+1)
-    return {pos:i, from:from, to:to}
+    orig = orig.slice(0, j+1)
+    repl = repl.slice(0, d+j+1)
+    return {pos:i, orig:orig, repl:repl}
 

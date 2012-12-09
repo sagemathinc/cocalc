@@ -97,6 +97,9 @@ class Cell extends EventEmitter
         $(@_editor.getWrapperElement()).addClass('salvus-cell-editor')
         $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
+        @_editor.on "change", (instance, changeObj) =>
+            @emit("change", {editor:changeObj})
+
     _initialize_output: () ->
         @_output = @element.find(".salvus-cell-output")
         @_output.html(@opts.output_value)

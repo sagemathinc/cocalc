@@ -21,8 +21,8 @@ init = () ->
         editor_line_wrapping: false
         editor_value : "for i in range(10):\n    print(i)"
 
-    #c.on "change", (m) ->
-    #    console.log("change: #{to_json(m)}")
+    c.on "change", (m) ->
+        console.log("change: #{to_json(m)}")
 
     testbox.append(c.element)
     c.refresh()

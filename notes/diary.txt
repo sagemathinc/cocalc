@@ -8486,6 +8486,8 @@ General jQuery plugins:
     [x] cell -- put note area in, with on('change')
     [x] cell -- put codemirror in
     [x] cell -- put output area in
+    [ ] cell -- editor on change
+    [ ] cell -- output on change
     [ ] cell -- implement evaluate action
 
 

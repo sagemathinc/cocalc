@@ -11,13 +11,13 @@
 
 
 .salvus-cell {
-    border     : 1px solid grey;
+    border     : 2px solid lightgrey;
     background : white;
 }
 
 .salvus-cell-selected {
-    border: 1px solid #99f;
-    box-shadow: 4px 4px 2px #bbf;
+    border: 2px solid #99f;
+    /* box-shadow: 4px 4px 2px #bbf; */
 }
 
 .salvus-cell-note {
