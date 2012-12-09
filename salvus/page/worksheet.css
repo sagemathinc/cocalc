@@ -1,0 +1,21 @@
+.salvus-worksheet {
+    border           : 1px solid #aaa;
+    background-color : #fff;
+    padding          : 10px;
+    margin           : 10px;
+    box-shadow       : 6px 6px 3px #888;
+    padding-bottom   : 25px;
+}
+
+.salvus-worksheet-cells {
+    border   : 1px solid #888;
+
+}
+
+.salvus-worksheet-title {
+}
+
+.salvus-worksheet-description {
+   color : #888;
+}
+

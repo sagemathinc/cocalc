@@ -4,6 +4,7 @@
 #
 
 {Cell} = require("cell")
+{Worksheet} = require("worksheet")
 {to_json} = require("misc")
 {salvus_client}    = require('salvus_client')
 
@@ -12,10 +13,31 @@
 worksheet2 = $("#worksheet2")
 
 init = () ->
-
     testbox = worksheet2.find(".salvus-worksheet2-testbox")
     if testbox.html() != ''
-        return 
+        return
+
+    ##################
+    # Worksheet tests
+    ##################
+    worksheet2_test_div = $("#worksheet2-test-worksheet")
+    ws1 = $("<div>ws1</div>")
+    worksheet2_test_div.append(ws1)
+    cell_opts =
+        output_line_wrapping : true
+        editor_line_numbers  : true
+        hide:['note']
+    w = new Worksheet(element: ws1, title:"Worksheet 1", description:"as obj directly",cell_opts:cell_opts)
+
+    ws2 = $("<div>ws2</div>")
+    worksheet2_test_div.append(ws2)
+    ws2.salvus_worksheet(title:"Worksheet 2", description:"via jQuery plugin")
+    ws2 = ws2.data('worksheet')
+
+
+    ##################
+    # Cell Tests
+    ##################
     c = new Cell
         element:$("<div>")
         editor_max_height:"auto"
@@ -45,11 +67,13 @@ init = () ->
 
 
     salvus_client.new_session
-        limits: {walltime:30}
+        limits: {walltime:60*15}
         cb : (err, session) ->
             if err
                 console.log("Error getting session")
             else
+                w.set_session(session)
+                ws2.set_session(session)
                 c3 = worksheet2.find(".worksheet2-cell1").salvus_cell(session:session, editor_value:"factor(2930239*27)").data('cell').hide('note').selected()
                 c3.execute(session)
 

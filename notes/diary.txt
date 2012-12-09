@@ -8501,7 +8501,7 @@ I have about 6 hours to work today:
 
 TONIGHT:
 
- [ ] warm up: fix switching to worksheet1 page
+ [x] warm up: fix switching to worksheet1 page
 
  [ ] make basic worksheet functionality
  [ ] create slideshow.coffee/html/css with very basic functionality

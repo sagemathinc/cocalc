@@ -21,7 +21,9 @@ cell_template = templates.find(".salvus-cell")
 class Cell extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
-            element               : required   # DOM element (or jquery wrapped element); this is replaced by the cell
+            element               : undefined   # DOM element (or jquery wrapped element); this is replaced by the cell
+
+            hide                  : undefined   # subarray of ['note','editor','output']; if given, hides the given components when the cell is created
 
             note_change_timer     : 250        # milliseconds interval between sending update change events about note
             note_max_height       : "auto"     # maximum height of note part of cell.
@@ -42,6 +44,9 @@ class Cell extends EventEmitter
 
             session               : undefined  # a session -- needed to execute code in a cell
 
+        if not opts.element?
+            opts.element = $("<div>")
+
         @_note_change_timer_is_set = false
 
         @element = cell_template.clone()
@@ -55,16 +60,20 @@ class Cell extends EventEmitter
         @refresh()
         @_editor.setValue(@opts.editor_value)
 
+        if @opts.hide?
+            for e in @opts.hide
+                @hide(e)
+
 
     #######################################################################
-    #
     # Private Methods
-    #
     #######################################################################
 
     _initialize_note: () ->
         # make note fire change event when changed
         @_note = @element.find(".salvus-cell-note")
+        if @opts.note_value != ""
+            @_note.html(@opts.note_value)
         @_note.css('max-height', @opts.note_max_height)
         that = @
         @_note.live('focus', ->
@@ -105,24 +114,23 @@ class Cell extends EventEmitter
         @_editor.on "change", (instance, changeObj) =>
             @emit("change", {editor:changeObj})
 
-    _initialize_output: () ->
+    _initialize_output: ->
         @_output = @element.find(".salvus-cell-output")
         @_output.html(@opts.output_value)
         @_output.css('max-height', @opts.output_max_height)
-        #if @opts.output_line_wrapping
-            # TODO
+        if @opts.output_line_wrapping
+            @_output_line_wrapping_on()
 
+    _output_line_wrapping_on: -> @_output.css({'white-space', 'pre-wrap', 'word-wrap':'break-word', 'overflow-wrap':'break-word'})
+    _output_line_wrapping_off: -> @_output.removeClass('white-space word-wrap overflow-wrap')
 
     #######################################################################
-    #
     # Public API
-    #
     # Unless otherwise stated, these methods can be chained.
-    #
     #######################################################################
 
     append_to: (e) ->
-        @element.append(e)
+        e.append(@element)
         return @
 
     # Refresh the cell; this might be needed if you hide the DOM element
@@ -130,6 +138,11 @@ class Cell extends EventEmitter
     refresh: () ->
         @_editor.refresh()
         return @
+
+    focus: ->
+        @selected()
+        @_editor.focus()
+        @_editor.refresh()
 
     # Mark the cell as selected or not selected
     selected: (is_selected=true) ->
@@ -221,7 +234,13 @@ class Cell extends EventEmitter
                 throw "unknown stream '#{opts.stream}'"
         return @
 
+    set_session: (session) ->
+        @opts.session = session
+
     execute: () ->
+        if not @opts.session
+            throw "Attempt to execute code on a cell whose session has not been set."
+        @emit('execute')
         @opts.session.execute_code
             code     : @_editor.getValue()
             preparse : true
