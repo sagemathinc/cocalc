@@ -1,6 +1,6 @@
 ######################################################
 #
-# A Cell
+# A Compute Cell
 #
 ######################################################
 
@@ -13,10 +13,17 @@ class Cell
         opts = defaults opts,
             element: required
             input  : ""
-        @element = cell_template.clone()
-        @element.data("Cell", @)
+        @_create_dom_element()
+        @element.data("cell", @)
         $(opts.element).replaceWith(@element)
         @set_input(opts.input)
+
+    append_to: (e) ->
+        @element.append(e)
+
+    _create_dom_element: () ->
+        e = cell_template.clone()
+        @element = e
 
     set_input: (input) ->
         @element.find(".salvus-cell-input").text(input)

@@ -8473,7 +8473,7 @@ Plan to do this:
   - controls:
      - input_box
      - checkbox
-     ... and many more!
+     ... and many 
 
 General jQuery plugins:
   - endow_contenteditable_with_change_event
@@ -8481,7 +8481,12 @@ General jQuery plugins:
 
 [x] create very, very basic Cell class, jquery pluging, and test it on worksheet2.html page
 
-[ ] decide on more features for Cell, then implement and test.
+[ ] decide on more features for Cell, then implement and test:
+    [x] cell -- put frame around
+    [ ] cell -- put note area in
+    [ ] cell -- put codemirror in
+    [ ] cell -- put output area in
+    [ ] cell -- implement evaluate action
 
 
 

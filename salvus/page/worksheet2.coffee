@@ -15,3 +15,4 @@ d = $("<div>")
 testbox.append(d)
 d.salvus_cell(input:"Hello 2")
 
+c2 = d.data('cell')
