@@ -19,6 +19,6 @@ testbox.append(c.element)
 
 d = $("<div>")
 testbox.append(d)
-d.salvus_cell()
+d.salvus_cell(line_numbers:true)
 
 c2 = d.data('cell')

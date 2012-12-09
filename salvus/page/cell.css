@@ -3,6 +3,20 @@
     background: white;
 }
 
+
+.CodeMirror {
+    height:auto;
+    background-color: #ffffe8;
+}
+
+.CodeMirror-scroll {
+  max-height: 30em;
+  height: auto;
+  overflow-y: hidden;
+  overflow-x: auto;
+}
+
+
 .salvus-cell-note {
     background-color:#fff;
     color:#333;

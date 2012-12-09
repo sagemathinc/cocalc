@@ -22,6 +22,13 @@ class Cell extends EventEmitter
         @opts = defaults opts,
             element           : required
             note_change_timer : 250   # 100 ms
+            line_numbers      : false
+            indent_unit       : 4
+            line_wrapping     : true
+            undo_depth        : 40
+            match_brackets    : true
+            input_max_height  : "30em"
+            output_max_height : "30em"
         @_note_change_timer_is_set = false
         @_create_dom_element()
         @element.data("cell", @)
@@ -31,11 +38,14 @@ class Cell extends EventEmitter
         @element.append(e)
 
     _create_dom_element: () ->
-        that = @
-        e = cell_template.clone()
+        @element = cell_template.clone()
+        @_initialize_note()
+        @_initialize_input()
 
+    _initialize_note: () ->
         # make note fire change event when changed
-        @_note = e.find(".salvus-cell-note")
+        @_note = @element.find(".salvus-cell-note")
+        that = @
         @_note.live('focus', ->
             $this = $(this)
             $this.data('before', $this.html())
@@ -54,10 +64,18 @@ class Cell extends EventEmitter
                 )
         )
 
-        @element = e
-
-    set_input: (input) ->
-        @element.find(".salvus-cell-input").text(input)
+    _initialize_input: () ->
+        @_input = @element.find(".salvus-cell-input")
+        @_cm = CodeMirror.fromTextArea @_input[0],
+            mode            : "python"
+            lineNumbers     : @opts.line_numbers
+            firstLineNumber : 1
+            indentUnit      : @opts.indent_unit
+            tabSize         : @opts.indent_unit
+            lineWrapping    : @opts.line_wrapping
+            undoDepth       : @opts.undo_depth
+            autofocus       : false
+            matchBrackets   : @opts.match_brackets
 
 exports.Cell = Cell
 
