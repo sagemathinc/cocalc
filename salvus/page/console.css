@@ -1,0 +1,16 @@
+.salvus-console {
+    border           : 1px solid #aaa;
+    background-color : #fff;
+    padding          : 10px;
+    margin           : 10px;
+    box-shadow       : 6px 6px 3px #888;
+    padding-bottom   : 25px;
+}
+
+.salvus-console-title {
+}
+
+.salvus-console-description {
+   color : #888;
+}
+

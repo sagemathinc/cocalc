@@ -76,14 +76,23 @@ init = () ->
                 ws2.set_session(session)
                 c3 = worksheet2.find(".worksheet2-cell1").salvus_cell(session:session, editor_value:"factor(2930239*27)").data('cell').hide('note').selected()
                 c3.execute(session)
-
-
-
+                for x in cell_slides
+                    x.set_session(session)
 
     worksheet2.find(".worksheet2-cell0").salvus_cell().data('cell').hide('editor')
     worksheet2.find(".worksheet2-cell2").salvus_cell()
 
     worksheet2.find(".well-cell1").css('z-index',100).draggable()
+
+
+    cell_slides = ($(x).data('cell') for x in $(".slide-cell").salvus_cell(editor_value:"\n"))
+    $('.deck-container').hide()
+
+    $('a[href="#deck-activate"]').click(() ->
+        $('body').children().hide()
+        $('.deck-container').show()
+        $.deck('.slide')
+    )
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->

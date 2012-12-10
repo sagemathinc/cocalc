@@ -8387,10 +8387,10 @@ Standard Editor Goals:
    - make it so there can be many worksheets open at once -- make scope completely isolated
    - easy to change keyboard shortcuts on the fly
    - switch between modes
-   - sequence of edit actions, so can eventualy synchronize clients, database, etc. 
+   - sequence of edit actions, so can eventualy synchronize clients, database, etc.
    - global undo/redo
 
-Best to get this going now before things get too out of hand. 
+Best to get this going now before things get too out of hand.
 
 Plan to do this:
 
@@ -8473,7 +8473,7 @@ Plan to do this:
   - controls:
      - input_box
      - checkbox
-     ... and many 
+     ... and many
 
 General jQuery plugins:
   - endow_contenteditable_with_change_event
@@ -8503,10 +8503,34 @@ TONIGHT:
 
  [x] warm up: fix switching to worksheet1 page
 
- [ ] make basic worksheet functionality
- [ ] create slideshow.coffee/html/css with very basic functionality
- [ ] more work on cell.*; worksheet.*; slideshow.*
+ [x] make basic worksheet functionality
+
+ [ ] create slideshow.coffee/html/css with very, very basic functionality:
+     Seems that deck.js is the way to go for slideshows --    https://github.com/imakewebthings/deck.js
+     Example of minimum of what my implementation must do: http://slidewiki.aksw.org/
+     Alternative: * reveal.js
+                  * online editor: http://www.rvl.io/
+     Reveal.js is actually *exciting*.  I could imagine using this to
+     work with mathematics and it could actually be really, really
+     *useful*, and frickin' amazing.
+     ... WAIT,
+     upon further evaluation, I just don't feel good about reveal.js -- the quality seems subpar; it's just gimicky.
+     Deck.js is better quality code.  And it's natively a jquery plugin.
+     Also, deck.js has excellent documentation, a nice plugin system, and the ability to
+     reveal bits of the page as you go ("strip-tease"), which I've never loved, but a lot of people do like.
+
+SASS style sheets:
+
+   sudo gem install sass
+
+OK, I just spent time looking through all the source code, css, etc.,
+of deck.js, and making sure it doesn't conflict with bootstrap.  I'm
+including it.
+
  [ ] create (vt100?) console.coffee/html/css with very basic functionality
+
+ [ ] more work on cell.*; worksheet.*; slideshow.*
+
 
 MAYBE?
 
