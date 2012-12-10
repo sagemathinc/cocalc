@@ -1,16 +1,18 @@
 COMPETITORS / RELATED:
 
+[ ] http://www.picloud.com/ -- python;
+
 [ ] http://www.coderun.com/ -- aimed at running web apps; not math.
 
 [ ] AppSoma: http://happysciencecoding.com/ -- this is similar to what I am
-    planning to do, but more limited... and more flexible.  
-    This exactly competes with what I want to do.  Ut oh!  But exciting as 
+    planning to do, but more limited... and more flexible.
+    This exactly competes with what I want to do.  Ut oh!  But exciting as
     a proof of concept.
 
     "run on your own recourses" -- like crashplan!
         http://appsoma.com/wiki/index.php?title=Apps
 
-[ ] Many listed here:  
+[ ] Many listed here:
       http://en.wikipedia.org/wiki/Comparison_of_JavaScript-based_source_code_editors#CodePress_powered
 
 [ ] http://pythonfiddle.com/ -- basically like math-less single cell server
