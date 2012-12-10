@@ -17,7 +17,7 @@
   </div>
   <div class="row">
     <div class="span2 well well-cell">
-      <span class="worksheet2-cell0"></span>
+      <span class="worksheet2-cell0" data-editor_value="range(100)"></span>
     </div>
     <div class="span4 well well-cell1">
       <span class="worksheet2-cell1"></span>
@@ -34,19 +34,21 @@
 <div class="deck-container well">
   <section class="slide">
     <h2>Try out Sage!</h2>
-    <div class="slide-cell">
+    <pre class="slide-cell">
+a=range(10)
+b=range(20)
+a+b
+</pre>
   </section>
 
   <section class="slide">
     <h2>Extensions</h2>
     <p>Core gives you basic slide functionality...</p>
     <ul>
-      <li class="slide">
-        <h3  class="well btn btn-success btn-large">deck.goto</h3>
-        <p>Adds a shortcut key to jump to any slide number...</p>
-      </li>
-      <li class="slide"><div class="slide-cell"></div></li>
-      <li class="slide"><div class="slide-cell"></div></li>
+      <li class="slide"><div class="slide-cell" data-output_value="5" data-note_value="Simple, <br><i><b>computation:</b></i>">2+3</div></li>
+      <li class="slide"><div class="slide-cell" data-output_value="14">a=2
+b=7
+a*b</div></li>
     </ul>
   </section>
 
@@ -74,6 +76,10 @@
   <section class="slide">
     <h1>Here</h1>
   </section>
+
+
+
+
 
   <!-- End slides. -->
 

@@ -7,7 +7,7 @@
 # imports
 {EventEmitter} = require('events')
 
-{filename_extension, required, defaults, to_json} = require('misc')
+{copy, filename_extension, required, defaults, to_json} = require('misc')
 
 {local_diff} = require('misc_page')
 
@@ -27,7 +27,7 @@ class Cell extends EventEmitter
 
             note_change_timer     : 250        # milliseconds interval between sending update change events about note
             note_max_height       : "auto"     # maximum height of note part of cell.
-            note_value            : ""         # initial value of the note (HTML)
+            note_value            : undefined  # initial value of the note (HTML)
 
             editor_mode           : "python"   # language mode of the input editor
             editor_line_numbers   : false      # whether to display line numbers in the input code editor
@@ -36,16 +36,24 @@ class Cell extends EventEmitter
             editor_undo_depth     : 40         # undo depth for code editor
             editor_match_brackets : true       # whether to do bracket matching in the code editor
             editor_max_height     : "20em"     # css maximum height of code editor (scroll bars appear beyond this)
-            editor_value          : ""         # initial value of the code editor (TEXT)
+            editor_value          : undefined  # initial value of the code editor (TEXT)
 
             output_max_height     : "20em"     # maximum height of output (scroll bars appear beyond this)
             output_line_wrapping  : false      # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
-            output_value          : ""         # initial value of the output area (HTML)
+            output_value          : undefined  # initial value of the output area (JSON)
 
             session               : undefined  # a session -- needed to execute code in a cell
 
-        if not opts.element?
-            opts.element = $("<div>")
+        if not @opts.element?
+            @opts.element = $("<div>")
+
+        e = $(@opts.element)
+
+        if not @opts.editor_value?
+            @opts.editor_value = e.text()
+
+        @opts.note_value = e.data('note_value') if not @opts.note_value?
+        @opts.output_value = e.data('output_value') if not @opts.output_value?
 
         @_note_change_timer_is_set = false
 
@@ -257,7 +265,8 @@ exports.Cell = Cell
 
 $.fn.extend
     salvus_cell: (opts={}) ->
-        @each () ->
-            opts.element = this
-            $(this).data('cell', new Cell(opts))
+        return @each () ->
+            opts0 = copy(opts)
+            opts0.element = this
+            $(this).data('cell', new Cell(opts0))
 

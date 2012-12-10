@@ -8527,12 +8527,16 @@ OK, I just spent time looking through all the source code, css, etc.,
 of deck.js, and making sure it doesn't conflict with bootstrap.  I'm
 including it.
 
- [ ] create (vt100?) console.coffee/html/css with very basic functionality
 
+ [ ] create (vt100?) console.coffee/html/css with very basic functionality
  [ ] more work on cell.*; worksheet.*; slideshow.*
 
+ [ ] implement a usable slideshow mode with plain text editor for my talk.
+Example source:
 
-MAYBE?
+<section class="slide">
+<div class="slide-cell" data-editor_value="range(10)"></div>
+</section>
 
 
 

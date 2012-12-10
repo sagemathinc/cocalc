@@ -1,3 +1,45 @@
+
+  <section class="slide">
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <ul>
+      <li class="slide">
+        <h3  class="well btn btn-success btn-large">deck.goto</h3>
+        <p>Adds a shortcut key to jump to any slide number...</p>
+      </li>
+      <li class="slide"><div class="slide-cell"></div></li>
+      <li class="slide"><div class="slide-cell"></div></li>
+    </ul>
+  </section>
+
+  <section class="slide">
+    <div class="slide-cell"></div>
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <h2>Extensions</h2>
+    <p>Core gives you basic slide functionality...</p>
+    <h2>Extensions</h2>
+  </section>
+
+  <section class="slide">
+    <h1>Here</h1>
+  </section>
+
+
+
+
     ###############################################################
     # jquery plugins for manipulating the contenteditable editor
     # in ways I need, using rangy mostly for cross-platform support

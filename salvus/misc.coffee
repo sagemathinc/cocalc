@@ -152,3 +152,33 @@ exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
 exports.filename_extension = (filename) -> filename_extension_re.exec(filename)[1]
+
+exports.copy = (obj) ->
+    r = {}
+    for x, y of obj
+        r[x] = y
+    return r
+
+# From http://coffeescriptcookbook.com/chapters/classes_and_objects/cloning
+exports.deep_copy = (obj) ->
+    if not obj? or typeof obj isnt 'object'
+        return obj
+
+    if obj instanceof Date
+        return new Date(obj.getTime())
+
+    if obj instanceof RegExp
+        flags = ''
+        flags += 'g' if obj.global?
+        flags += 'i' if obj.ignoreCase?
+        flags += 'm' if obj.multiline?
+        flags += 'y' if obj.sticky?
+        return new RegExp(obj.source, flags)
+
+    newInstance = new obj.constructor()
+
+    for key of obj
+        newInstance[key] = exports.clone obj[key]
+
+    return newInstance
+
