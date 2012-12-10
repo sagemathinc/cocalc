@@ -92,6 +92,7 @@ init = () ->
         $('body').children().hide()
         $('.deck-container').show()
         $.deck('.slide')
+        $.deck('enableScale')
     )
 
 {top_navbar}       = require('top_navbar')
