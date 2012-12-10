@@ -9,6 +9,7 @@ logs
 data/
 .#*
 node_modules
+*.sass-cache
 
 salvus/static/salvus/*.js
 salvus/static/index.js
