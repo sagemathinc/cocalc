@@ -88,6 +88,8 @@ init = () ->
     $('.deck-container').hide()
 
     $('a[href="#deck-activate"]').click(() ->
+        padding_top = $('body').css('padding-top')  # not 0 due to bootstrap menu
+        padding_top = $('body').css('padding-top', '0px')
         $('body').children().hide()
         $('.deck-container').show()
         $.deck('.slide')
