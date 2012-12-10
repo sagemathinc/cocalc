@@ -84,8 +84,7 @@ init = () ->
 
     worksheet2.find(".well-cell1").css('z-index',100).draggable()
 
-
-    cell_slides = ($(x).data('cell') for x in $(".slide-cell").salvus_cell(editor_value:"\n", editor_line_numbers:false))
+    cell_slides = ($(x).data('cell') for x in $(".slide-cell").salvus_cell(editor_value:"", editor_line_numbers:false, editor_line_wrapping:true))
     $('.deck-container').hide()
 
     $('a[href="#deck-activate"]').click(() ->

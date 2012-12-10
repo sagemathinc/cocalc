@@ -28,14 +28,14 @@
 }
 
 .salvus-cell-editor {
-    min-height:1.5em;
-    border: 2px solid #e0e0e0;
+    min-height       : 1.5em;
+    border           : 2px solid #e0e0e0;
 }
 
 .salvus-cell-output {
-    background-color:#f8f8f8;
-    overflow-y: auto;
-    overflow-x: auto;
+    background-color : #f8f8f8;
+    overflow-y       : auto;
+    overflow-x       : auto;
 }
 
 .salvus-cell-output-stdout {
