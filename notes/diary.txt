@@ -8531,15 +8531,34 @@ including it.
  [ ] create (vt100?) console.coffee/html/css with very basic functionality
  [ ] more work on cell.*; worksheet.*; slideshow.*
 
- [ ] implement a usable slideshow mode with plain text editor for my talk.
+ [ ] implement a usable slideshow mode with plain text editor (and easy file upload!) for my talk.
 Example source:
-
 <section class="slide">
 <div class="slide-cell" data-editor_value="range(10)"></div>
 </section>
 
+[x] WAIT -- before I go crazy with deck.js... maybe it just isn't exciting or
+deep!   Impress.js keeps popping back up. NO -- too hard to use.
+
+There is a nice free impress editor: https://github.com/tantaman/Strut
+-- but the license is *AGPL* so totally off limits.
+
+[ ] Make a quick slideshow editor page and corresponding support:
+  [ ] new page for using it: scratch_slideshow
+  [ ] save scratch worksheet in database
+  [ ] simple editor using codemirror
+  [ ] presentation mode
+
+[ ] Write my talk: see icerm2/talk/notes.txt
 
 
+
+
+[ ] Deploy new version?
+
+
+SOON:
+  [ ] busy signal in notebook title of webpage when computing.
 
 
 LATER:

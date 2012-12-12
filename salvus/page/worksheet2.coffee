@@ -20,6 +20,10 @@ init = () ->
     ##################
     # Worksheet tests
     ##################
+    #
+    #
+    $(".math-formula").mathjax(tex:"x^3 + y^3 = z^3")
+
     worksheet2_test_div = $("#worksheet2-test-worksheet")
     ws1 = $("<div>ws1</div>")
     worksheet2_test_div.append(ws1)
@@ -87,14 +91,19 @@ init = () ->
     cell_slides = ($(x).data('cell') for x in $(".slide-cell").salvus_cell(editor_line_numbers:false, editor_line_wrapping:true))
     $('.deck-container').hide()
 
-    $('a[href="#deck-activate"]').click(() ->
+    $('a[href="#deck-activate"]').click(load_slideshow)
+
+    load_slideshow = () ->
         padding_top = $('body').css('padding-top')  # not 0 due to bootstrap menu
         padding_top = $('body').css('padding-top', '0px')
         $('body').children().hide()
-        $('.deck-container').show()
+        #$('.deck-container').show()
+        $('.deck-worksheet2').remove()
+        $('.icerm-talk').show()
         $.deck('.slide')
         $.deck('enableScale')
-    )
+        
+    load_slideshow()
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->

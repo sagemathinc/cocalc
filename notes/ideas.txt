@@ -1,3 +1,7 @@
+[ ] "commercial online publishers are going to make bank because they
+are addressing the issues that scientists aren't."  In that case, I'm
+going to become a commercial publisher :-)
+
 [ ] Simon.js -- testing for javascript
 
 [ ] create a note-taking mode for taking notes in lectures... what might it do.
