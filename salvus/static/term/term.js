@@ -348,7 +348,7 @@ Terminal.prototype.open = function() {
     , div;
 
   this.element = document.createElement('div');
-  this.element.className = 'terminal';
+  this.element.className = 'salvus-console-terminal';
   this.children = [];
 
   for (; i < this.rows; i++) {
@@ -831,7 +831,7 @@ Terminal.prototype.refresh = function(start, end) {
         }
         if (data !== this.defAttr) {
           if (data === -1) {
-            out += '<span class="cursor">';
+            out += '<span class="salvus-console-cursor">';
           } else {
             out += '<span style="';
 

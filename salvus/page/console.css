@@ -15,8 +15,15 @@
    color : #888;
 }
 
-.salvus-console-terminal {
-    font-size: 10pt;
-    border: 1px solid black;
+ .salvus-console-terminal {
+     border: #fff solid 7px;
+     font-family: Courier, "Courier New", monospace;
+     font-size: 12px;
+     box-shadow: rgba(0, 0, 0, 0.8) 2px 2px 20px;
+}
+
+.salvus-console-cursor  {
+    color: #000;
+    background: #000;
 }
 

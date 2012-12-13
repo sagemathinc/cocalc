@@ -8565,7 +8565,13 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
 
      [x] integrate simple console code that actually creates a term.js and feeds it some bogus test data (all client side)
 
-     [ ] write code so sage_server.py process can spawn a node pty server
+     [ ] clean up css for term.js a little more.
+
+     [ ] write code so sage_server.py process can spawn a node pty server:
+          [ ] messages
+          [ ] handle messages in sage_server
+          [ ] handle messages in hub
+
      [ ] make it so hub proxy packets between sockjs client and pty server:
            add a new thing --  "console_session" to hub.
      [ ] make it so console can talk to a sage session (but just lines in, lines out)

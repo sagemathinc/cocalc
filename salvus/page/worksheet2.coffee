@@ -110,6 +110,7 @@ init_console = () ->
     c = e.data('console')
     console.log(c)
     c._term.write("hello world\nMMMM\b\bIIII\n")
+    c.element.focus()
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->
