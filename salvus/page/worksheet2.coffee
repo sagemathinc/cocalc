@@ -91,17 +91,17 @@ init = () ->
     cell_slides = ($(x).data('cell') for x in $(".slide-cell").salvus_cell(editor_line_numbers:false, editor_line_wrapping:true))
     $('.deck-container').hide()
 
-    $('a[href="#deck-activate"]').click(load_slideshow)
-
     load_slideshow = () ->
-        padding_top = $('body').css('padding-top')  # not 0 due to bootstrap menu
-        padding_top = $('body').css('padding-top', '0px')
+        console.log("loading slideshow")
+        padding_top = $('body').css('padding-top')  # this might not be 0 due to bootstrap menu, so we save it
+        $('body').css('padding-top', '0px')
         $('body').children().hide()
-        #$('.deck-container').show()
-        $('.deck-worksheet2').remove()
-        $('.icerm-talk').show()
-        $.deck('.slide')
-        $.deck('enableScale')
+        $('.deck-container').show()
+        console.log("showed deck container")
+        #$.deck('.slide')
+        #$.deck('enableScale')
+
+    $('.deck-activate').click(load_slideshow)
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () -> init()
