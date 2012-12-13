@@ -8559,6 +8559,7 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
 
 SOON:
   [ ] busy signal in notebook title of webpage when computing.
+  [ ] don't forget %cython mode. 
 
 
 LATER:

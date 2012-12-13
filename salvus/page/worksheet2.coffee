@@ -102,9 +102,6 @@ init = () ->
         $('.icerm-talk').show()
         $.deck('.slide')
         $.deck('enableScale')
-        
-    load_slideshow()
 
 {top_navbar}       = require('top_navbar')
-top_navbar.on "switch_to_page-worksheet2", () ->
-    init()
+top_navbar.on "switch_to_page-worksheet2", () -> init()

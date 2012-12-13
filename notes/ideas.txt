@@ -1,3 +1,18 @@
+[ ] worksheet a JSON structure --> lots of different *views* of this
+
+[ ] from icerm: https://docs.google.com/document/d/1vkOxdvjK9iHbReG7CQt5YfG8NG8BLktO_9wBrAmhxKY/edit
+
+[ ] a single worksheet should have multiple tabs
+
+[ ] knowles
+
+[ ] make link to download all of an output cell as a file.
+
+[ ] change "salvus.tex" say to "salvus.stream.tex".
+    * ipython has display.YouTubeVideo *
+    * display.HTML('<iframe >')
+    *
+
 [ ] "commercial online publishers are going to make bank because they
 are addressing the issues that scientists aren't."  In that case, I'm
 going to become a commercial publisher :-)

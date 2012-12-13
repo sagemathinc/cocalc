@@ -43,7 +43,7 @@
 LATER:
   [ ] user personal data repository that is big/scaled/fast/query-able and public.
   [ ] only set highlighted to false on cell on change
-  [ ] save state (open tab
+  [ ] save state (open tab)
   [ ] delete worksheet confirmation
   [ ] make worksheet1 (scratch worksheet) not do anything until user clicks an "i agree to terms of usage" checkbox;
       box does not come back so long as user local storage contains a worksheet.

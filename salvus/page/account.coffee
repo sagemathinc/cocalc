@@ -215,6 +215,7 @@ signed_in = (mesg) ->
             top_navbar.show_page_button("worksheet1")
             top_navbar.switch_to_page("worksheet1")
             require('worksheet1').load_scratch_worksheet()
+            #TEMPORARY -- for writing new cell/worksheet/etc. code
             top_navbar.show_page_button("worksheet2")
             top_navbar.switch_to_page("worksheet2")
             # Load the default worksheet (for now)
