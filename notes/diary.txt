@@ -8563,7 +8563,7 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
      [x] copy files over to static/ directory and checkin to repo
      [x] integrate very, very simple console.* notebook client with test page
 
-     [ ] integrate simple console code that actually creates a term.js and feeds it some bogus test data (all client side)
+     [x] integrate simple console code that actually creates a term.js and feeds it some bogus test data (all client side)
 
      [ ] write code so sage_server.py process can spawn a node pty server
      [ ] make it so hub proxy packets between sockjs client and pty server:

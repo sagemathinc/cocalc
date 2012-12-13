@@ -21,6 +21,10 @@ class Console extends EventEmitter
         @element.data("console", @)
         $(@opts.element).replaceWith(@element)
         @set_title(@opts.title)
+        @_term = new Terminal(80,10)
+        @_term.open()
+        @_term.element.className = "salvus-console-terminal"
+        @element.find(".salvus-console-terminal").replaceWith(@_term.element)
 
     #######################################################################
     # Private Methods

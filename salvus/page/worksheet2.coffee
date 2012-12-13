@@ -107,7 +107,9 @@ init_console = () ->
     console.log("init_console")
     e = $(".salvus-test-console")
     e.salvus_console(title:"A Test Console")
-    console.log(e.data('console'))
+    c = e.data('console')
+    console.log(c)
+    c._term.write("hello world\nMMMM\b\bIIII\n")
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->
