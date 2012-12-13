@@ -8565,7 +8565,26 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
 
      [x] integrate simple console code that actually creates a term.js and feeds it some bogus test data (all client side)
 
-     [ ] clean up css for term.js a little more.
+     [x] clean up css for term.js a little more.
+
+     [ ] after much reflection, I've decided that by far the easiest
+         *and* best thing to do is make another server like
+         sage_server.py called console_server.coffee.
+
+           PROS:
+            * it's a separate thing, so keeping it separate will avoid
+	      making sage_server.py way more complicated
+            * it can be a single process instead of a forking server,
+              since node is better at that approach
+            * should require writing very little code.
+            * easier to release as a separate project and use
+              elsewhere.  I.e., could be a good way to give people VM
+              access outside of the salvus project.  This is probably
+              the strongest pro.
+           CONS:
+            * added complexity, since extra port, extra process, and
+              duplication of code/policies between sage_server and
+              console_server.
 
      [ ] write code so sage_server.py process can spawn a node pty server:
           [ ] messages
@@ -8593,7 +8612,7 @@ SOON:
   [ ] rewrite the about page to just explain how to use it.  the page
   there right now was a fine BLOG post, but that's all it should be.
   [ ] busy signal in notebook title of webpage when computing.
-  [ ] don't forget %cython mode. 
+  [ ] don't forget %cython mode.
 
 
 LATER:
