@@ -24,6 +24,7 @@ feedback.coffee
 
 cell.coffee
 worksheet.coffee
+console.coffee
 
 worksheet1.coffee
 worksheet2.coffee

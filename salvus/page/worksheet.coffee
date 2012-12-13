@@ -15,7 +15,7 @@
 #
 
 {EventEmitter} = require('events')
-{filename_extension, required, defaults, to_json} = require('misc')
+{copy, filename_extension, required, defaults, to_json} = require('misc')
 
 {Cell} = require("cell")
 
@@ -95,6 +95,6 @@ exports.Worksheet = Worksheet
 $.fn.extend
     salvus_worksheet: (opts={}) ->
         @each () ->
-            console.log("HI")
-            opts.element = this
-            $(this).data('worksheet', new Worksheet(opts))
+            opts0 = copy(opts)
+            opts0.element = this
+            $(this).data('worksheet', new Worksheet(opts0))

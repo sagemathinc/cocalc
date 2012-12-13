@@ -8557,10 +8557,14 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
  [x] figure out what that console was: ANSWER -- tty.js
 
  [ ] write a salvus wishlist blog post.
+ [ ] tweet that I'm working on tty.js integration
 
  [ ] integrate tty.js into notebook:
-     [ ] copy files over to static/ directory
-     [ ] integrate very simple console.* notebook client
+     [x] copy files over to static/ directory and checkin to repo
+     [x] integrate very, very simple console.* notebook client with test page
+
+     [ ] integrate simple console code that actually creates a term.js and feeds it some bogus test data (all client side)
+
      [ ] write code so sage_server.py process can spawn a node pty server
      [ ] make it so hub proxy packets between sockjs client and pty server:
            add a new thing --  "console_session" to hub.
@@ -8570,6 +8574,8 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
      [ ] ability to resize console : Terminal has a resize method.
      [ ] tabs -- many sessions
      [ ] user-customizable colorscheme (!)
+     [ ] user-customizable font (and size)
+     [ ] user-customizable scrollback buffer size -- and scroll bars
      [ ] modify sage startup so that it turns on ipython command prompt colors
      [ ] dogfood -- stop using the command line -- always use this for my work/development!
 
