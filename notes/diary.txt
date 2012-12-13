@@ -8558,6 +8558,9 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
 
 
 SOON:
+
+  [ ] rewrite the about page to just explain how to use it.  the page
+  there right now was a fine BLOG post, but that's all it should be.
   [ ] busy signal in notebook title of webpage when computing.
   [ ] don't forget %cython mode. 
 

@@ -1,3 +1,13 @@
+[ ] note part of cell -- mode where it is protected/read only.
+"I'm imagining it as a cell-by-cell checkbox (perhaps check boxes hidden or hideable
+as a menu item?)  It's more as a gentle level of protection against a user of a worksheet
+accidentally deleting the written instructions, or modifying them without intending to."
+"all existing text boxes are read only (but uncheckable on a one-by-one basis)
+all existing text boxes are writeable (but checkable on a one-by-one basis)
+default behaviour is text boxes are writeable
+default behaviour is "once written once, text box is not writeable
+    (so that when I'm writing a project/final I can't screw up a previously set box accidentally)"
+
 [ ] worksheet a JSON structure --> lots of different *views* of this
 
 [ ] from icerm: https://docs.google.com/document/d/1vkOxdvjK9iHbReG7CQt5YfG8NG8BLktO_9wBrAmhxKY/edit
