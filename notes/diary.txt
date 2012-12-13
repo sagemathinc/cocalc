@@ -8543,22 +8543,41 @@ deep!   Impress.js keeps popping back up. NO -- too hard to use.
 There is a nice free impress editor: https://github.com/tantaman/Strut
 -- but the license is *AGPL* so totally off limits.
 
-[ ] Make a quick slideshow editor page and corresponding support:
+[ ] Make a slideshow editor page and corresponding support:
   [ ] new page for using it: scratch_slideshow
   [ ] save scratch worksheet in database
   [ ] simple editor using codemirror
   [ ] presentation mode
 
-[ ] Write my talk: see icerm2/talk/notes.txt
+[x] Write my talk: see icerm2/talk/notes.txt
 
 
+------------------------------------------------
 
+ [x] figure out what that console was: ANSWER -- tty.js
 
-[ ] Deploy new version?
+ [ ] write a salvus wishlist blog post.
 
+ [ ] integrate tty.js into notebook:
+     [ ] copy files over to static/ directory
+     [ ] integrate very simple console.* notebook client
+     [ ] write code so sage_server.py process can spawn a node pty server
+     [ ] make it so hub proxy packets between sockjs client and pty server:
+           add a new thing --  "console_session" to hub.
+     [ ] make it so console can talk to a sage session (but just lines in, lines out)
+     [ ] copy/paste/keyboard buttons
+     [ ] make title event set some html
+     [ ] ability to resize console : Terminal has a resize method.
+     [ ] tabs -- many sessions
+     [ ] user-customizable colorscheme (!)
+     [ ] modify sage startup so that it turns on ipython command prompt colors
+     [ ] dogfood -- stop using the command line -- always use this for my work/development!
+
+------------------------------------------------
 
 SOON:
 
+  [ ] Deploy new version? -- next week
   [ ] rewrite the about page to just explain how to use it.  the page
   there right now was a fine BLOG post, but that's all it should be.
   [ ] busy signal in notebook title of webpage when computing.
