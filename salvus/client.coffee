@@ -98,7 +98,9 @@ class exports.Connection extends EventEmitter
         #      "connected", "error", "close"
         # and returns a function to write raw data to the socket.
 
-        @_connect(@url, (data) => @emit("message", misc.from_json(data)))
+        @_connect @url, (data) =>
+            @emit("message", misc.from_json(data))
+
         @on("message", @handle_message)
 
         @_last_pong = misc.walltime()

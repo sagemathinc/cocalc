@@ -167,6 +167,9 @@ class Client extends EventEmitter
         winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
         @conn.write(to_json(mesg))
 
+    push_data_to_client: (data) ->
+        # TODO
+
     error_to_client: (opts) ->
         opts = defaults opts,
             id    : required
@@ -330,6 +333,8 @@ class Client extends EventEmitter
         switch mesg.type
             when 'sage'
                 create_persistent_sage_session(mesg, @account_id, @)
+            when 'console'
+                create_persistent_console_session(mesg, @account_id, @)
             else
                 @push_to_client(message.error(id:mesg.id, error:"Unknown message type '#{mesg.type}'"))
 
@@ -1643,6 +1648,22 @@ send_to_persistent_sage_session = (mesg, account_id) ->
             signal : mesg.signal
     else
         session.conn.send_json(mesg)
+
+########################################
+# Console Sessions
+########################################
+
+console_sessions = {}
+create_persistent_console_session = (mesg, account_id, client) ->
+    winston.log('creating a console session')
+    session_uuid = uuid.v4()
+
+    database.random_sage_server( cb:(error, sage_server) ->
+        console_conn = new console.Connection
+            host : sage_server.host
+            port : sage_server.port
+            recv : (data) ->
+                
 
 
 ##########################################
