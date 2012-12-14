@@ -8612,6 +8612,7 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
             It is prefixed to each message (encoded into 2 bytes).
             The client sees that prefix and uses it to route the message.
             Same for messages from client to hub (with same 2 bytes).
+This page is helpful: http://www.websocket.org/aboutwebsocket.html
 
      [ ] write code in hub to relay messages back and forth with new console session
      [ ] put code in worksheet2 and console to test an actual console session working (with fake other side)

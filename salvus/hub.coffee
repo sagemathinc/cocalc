@@ -1663,8 +1663,7 @@ create_persistent_console_session = (mesg, account_id, client) ->
             host : sage_server.host
             port : sage_server.port
             recv : (data) ->
-                
-
+    )
 
 ##########################################
 # Stateless Sage Sessions
