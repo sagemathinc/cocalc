@@ -115,4 +115,4 @@ init_console = () ->
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->
     #init()
-    init_console()
+    #init_console()

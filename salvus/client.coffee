@@ -167,10 +167,11 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             limits  : {}
             timeout : 10          # how long until give up on getting a new session
+            type    : "sage"      # "sage", "console"
             cb      : undefined   # cb(error, session)  if error is defined it is a string
 
         @call
-            message : message.start_session(limits:opts.limits)
+            message : message.start_session(limits:opts.limits, type:'sage')
             timeout : opts.timeout
             cb      : (error, reply) =>
                 if error

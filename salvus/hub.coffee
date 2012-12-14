@@ -327,7 +327,11 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
-        create_persistent_sage_session(mesg, @account_id, @)
+        switch mesg.type
+            when 'sage'
+                create_persistent_sage_session(mesg, @account_id, @)
+            else
+                @push_to_client(message.error(id:mesg.id, error:"Unknown message type '#{mesg.type}'"))
 
     mesg_send_signal: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?

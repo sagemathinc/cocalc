@@ -8589,22 +8589,31 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
 
 --------------------------------------------------
 
-     [ ] add messages for starting console_session (parallel to
+     [x] add messages for starting console_session (parallel to
          sage_session) -- generalize session message with
          "sage"/"console"/etc. type!
-     [ ] messages for sending/receiving raw data to/from session (maybe already have it)?
+     [x] protocol for sending/receiving raw data to/from session (maybe already have it) -- just use BLOB stuff already there.
      [ ] create new program --  "console_session.coffee" that can do one thing:
          accept multiple TCP connections and respond with "hello"
      [ ] extend to: read in a message length and the message, and echo back that message
              (factor out some code in sage.coffee?)
+     [ ] make console_session.coffee run as root and drop privileges to random user
      [ ] extend to: create pty.js object on new connection, and read/write
          everything from tcp connection to/from it; test on command line (?)
+     [ ] extend console_session.coffee, so one can choose which uid to use before dropping privileges
+     [ ] extend console_session.coffee, so can also send message to kill session
+     [ ] extend console_session.coffee, so have predetermined timeouts for all sessions for general robustness
+     [ ] extend console_session.coffee, to impose resource limits: ulimits
      [ ] put code in client to request console sessions
      [ ] write code in hub to handle creation of new console sessions
      [ ] write code in hub to relay messages back and forth with new console session
      [ ] put code in worksheet2 and console to test an actual console session working.
+     [ ] modify console so it gives back keyboard when looses focus.
      [ ] test having multiple consoles on same session
      [ ] put some tests in tests/test_client
+     [ ] admin.py -- add support for starting/stopping console_session.coffee (take care with firewall)
+
+
 
 
 

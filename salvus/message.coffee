@@ -28,6 +28,7 @@ message = (obj) ->
 # hub --> sage_server and browser --> hub
 message(
     event        : 'start_session'
+    type         : required           # "sage", "console";  later this could be "R", "octave", etc.
     id           : undefined
     limits       : undefined
 )
@@ -97,13 +98,12 @@ message
 # cell.  That is why there is no id key.
 
 # sage_server --> hub --> client
-message(
+message
     event        : 'execute_javascript'
     session_uuid : undefined              # set by the hub, since sage_server doesn't (need to) know the session_uuid.
     code         : required
     data         : undefined
     coffeescript : false
-)
 
 
 ############################################
