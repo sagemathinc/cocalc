@@ -8601,7 +8601,7 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
      [x] extend to: read in a message length and the message, and echo back that message
              (factor out some code in sage.coffee?)
          wait, we don't need this, since IO isn't buffered!
-     [ ] extend to: create pty.js object on new connection, and read/write
+     [x] extend to: create pty.js object on new connection, and read/write
          everything from tcp connection to/from it
      [ ] write code in hub to handle creation of new console sessions
      [ ] write code in hub to relay messages back and forth with new console session
