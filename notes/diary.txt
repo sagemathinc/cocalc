@@ -8567,7 +8567,7 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
 
      [x] clean up css for term.js a little more.
 
-     [ ] after much reflection, I've decided that by far the easiest
+     [x] after much reflection, I've decided that by far the easiest
          *and* best thing to do is make another server like
          sage_server.py called console_server.coffee.
 
@@ -8581,18 +8581,35 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
               elsewhere.  I.e., could be a good way to give people VM
               access outside of the salvus project.  This is probably
               the strongest pro.
+
            CONS:
             * added complexity, since extra port, extra process, and
               duplication of code/policies between sage_server and
               console_server.
 
-     [ ] write code so sage_server.py process can spawn a node pty server:
-          [ ] messages
-          [ ] handle messages in sage_server
-          [ ] handle messages in hub
+--------------------------------------------------
 
-     [ ] make it so hub proxy packets between sockjs client and pty server:
-           add a new thing --  "console_session" to hub.
+     [ ] add messages for starting console_session (parallel to
+         sage_session) -- generalize session message with
+         "sage"/"console"/etc. type!
+     [ ] messages for sending/receiving raw data to/from session (maybe already have it)?
+     [ ] create new program --  "console_session.coffee" that can do one thing:
+         accept multiple TCP connections and respond with "hello"
+     [ ] extend to: read in a message length and the message, and echo back that message
+             (factor out some code in sage.coffee?)
+     [ ] extend to: create pty.js object on new connection, and read/write
+         everything from tcp connection to/from it; test on command line (?)
+     [ ] put code in client to request console sessions
+     [ ] write code in hub to handle creation of new console sessions
+     [ ] write code in hub to relay messages back and forth with new console session
+     [ ] put code in worksheet2 and console to test an actual console session working.
+     [ ] test having multiple consoles on same session
+     [ ] put some tests in tests/test_client
+
+
+
+---------------------------------
+
      [ ] make it so console can talk to a sage session (but just lines in, lines out)
      [ ] copy/paste/keyboard buttons
      [ ] make title event set some html
