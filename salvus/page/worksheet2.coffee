@@ -104,9 +104,8 @@ init = () ->
 
     $('.deck-activate').click(load_slideshow)
 
-init_console = () ->
-    console.log("init_console")
-    e = $(".salvus-test-console")
+init_console = (elt) ->
+    elt = $(elt)
     salvus_client.new_session
         limits : {walltime:60*15}
         type : 'console'
@@ -114,11 +113,18 @@ init_console = () ->
             if err
                 console.log "Error starting console session: #{err}"
             else
-                e.salvus_console(title:"A Test Console", session:session)
-                c = e.data('console')
+                elt.salvus_console(title:"A Test Console", session:session)
+                c = elt.data('console')
                 c.element.focus()
+
+init_consoles = (elts) ->
+    console.log("init_consoles")
+    for elt in elts
+        init_console(elt)
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->
     #init()
-    init_console()
+    c = worksheet2.find(".salvus-test-console")
+    console.log(c.length)
+    init_consoles(c)

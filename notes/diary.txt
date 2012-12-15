@@ -8651,11 +8651,13 @@ I will try to be very careful at each step to not break things.
      [x] modify console_server: first read in a config message, send a response, then
            fork (create pty.js), drop privileges, and do everything else.
            I'll probably have to slightly change pty.js to drop privs -- NOPE, luckily!
+     [x] extend console_server, so one can choose which uid to use before dropping privileges
 
 NEXT UP:
 ------------
 
-     [ ] extend console_server, so one can choose which uid to use before dropping privileges
+     [x] test having two separate consoles in same page
+     [ ] test having two consoles jacked into the same session on same page (?)
      [ ] extend console_server, so can also send message to kill session
      [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
      [ ] extend console_server, to impose resource limits: ulimits

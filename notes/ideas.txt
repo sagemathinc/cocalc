@@ -1,3 +1,10 @@
+[ ] online collaborative latex editing: https://www.writelatex.com/
+    I can do way better, I think, on top of salv.us. But that's for a little later...
+    * "Have you considered the popular front-end languages like Markdown, org-mode or any of the plethora of formats that have translators to LaTeX?"
+    * http://news.ycombinator.com/item?id=4925244
+    * including external packages, etc.
+    * maybe send something besides png?  E.g., svg?  css?
+
 [ ] alternative FOSS emacs-like code editor: http://www.ymacs.org/
     Use for editing files in salvus.  We can have 3 (or maybe 4) options:
     NOTE: I just tried syntax highlihgting a 20,000-line document in ymacs and it died.  Hmm, so that is not scalable.
