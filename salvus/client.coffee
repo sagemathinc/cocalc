@@ -8,6 +8,13 @@ misc    = require("misc")
 defaults = misc.defaults
 required = defaults.required
 
+# JSON_CHANNEL is the channel used for JSON.  The hub imports this
+# file, so if this constant is ever changed (for some reason?), it
+# only has to be changed on this one line.  Moreover, channel
+# assignment in the hub is implemented *without* the assumption that
+# the JSON channel is '\u0000'.
+JSON_CHANNEL = '\u0000'
+
 class Session extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
@@ -15,19 +22,37 @@ class Session extends EventEmitter
     #    - 'execute_javascript' -- code that server wants client to run related to this session
     constructor: (opts) ->
         opts = defaults opts,
-            conn         : required  # a Connection instance
-            limits       : required  # object giving limits of session that we actually got
+            conn         : required    # a Connection instance
+            limits       : required    # object giving limits of session that we actually got
             session_uuid : required
+            data_channel : undefined   # optional extra channel that is used for raw data
 
         @start_time   = misc.walltime()
         @conn         = opts.conn
         @limits       = opts.limits
         @session_uuid = opts.session_uuid
+        @data_channel = opts.data_channel
         @emit("open")
 
     walltime: () ->
         return misc.walltime() - @start_time
 
+    handle_data: (data) ->
+        @emit("data", data)
+
+    write_data: (data) ->
+        @conn.write_data(@data_channel, data)
+
+###
+#
+# A Sage session, which links the client to a running Sage process;
+# provides extra functionality to kill/interrupt, etc.
+#
+#   Client <-- (sockjs) ---> Hub  <--- (tcp) ---> sage_server
+#
+###
+
+class SageSession extends Session
     # If cb is given, it is called every time output for this particular code appears;
     # No matter what, you can always still listen in with the 'output' even, and note
     # the uuid, which is returned from this function.
@@ -65,6 +90,18 @@ class Session extends EventEmitter
         opts.session_uuid = @session_uuid
         @conn.introspect(opts)
 
+###
+#
+# A Console session, which connects the client to a pty on a remote machine.
+#
+#   Client <-- (sockjs) ---> Hub  <--- (tcp) ---> console_server
+#
+###
+
+class ConsoleSession extends Session
+    kill: () ->
+        # TODO: implement this -- not yet clear
+
 class exports.Connection extends EventEmitter
     # Connection events:
     #    - 'connecting' -- trying to establish a connection
@@ -73,7 +110,8 @@ class exports.Connection extends EventEmitter
     #    - 'output'     -- received some output for stateless execution (not in any session)
     #    - 'execute_javascript' -- code that server wants client to run (not for a particular session)
     #    - 'ping'       -- a pong is received back; data is the round trip ping time
-    #    - 'message'    -- any message is received
+    #    - 'message'    -- emitted when a JSON message is received           on('message', (obj) -> ...)
+    #    - 'data'       -- emitted when raw data (not JSON) is received --   on('data, (id, data) -> )...
     #    - 'signed_in'  -- server pushes a succesful sign in to the client (e.g., due to
     #                      'remember me' functionality); data is the signed_in message.
     #    - 'project_list_updated' -- sent whenever the list of projects owned by this user
@@ -86,11 +124,14 @@ class exports.Connection extends EventEmitter
 
     constructor: (@url) ->
         @emit("connecting")
-        @_id_counter = 0
-        @_sessions = {}
-        @_new_sessions = {}
+        @_id_counter       = 0
+        @_sessions         = {}
+        @_new_sessions     = {}
+        @_data_handlers    = {}
         @execute_callbacks = {}
-        @call_callbacks = {}
+        @call_callbacks    = {}
+
+        @register_data_handler(JSON_CHANNEL, @handle_json_message)
 
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
@@ -99,9 +140,23 @@ class exports.Connection extends EventEmitter
         # and returns a function to write raw data to the socket.
 
         @_connect @url, (data) =>
-            @emit("message", misc.from_json(data))
+            if data.length > 0  # all messages must start with a channel; length 0 means nothing.
 
-        @on("message", @handle_message)
+                # Incoming messages are tagged with a single UTF-16
+                # character c (there are 65536 possibilities).  If
+                # that character is JSON_CHANNEL, the message is
+                # encoded as JSON and we handle it in the usual way.
+                # If the character is anything else, the raw data in
+                # the message is sent to an appropriate handler, if
+                # one has previously been registered.  The motivation
+                # is that we the ability to multiplex multiple
+                # sessions over a *single* SockJS connection, and it
+                # is absolutely critical that there is minimal
+                # overhead regarding the amount of data transfered --
+                # 1 character is minimal!
+                @_handle_data(data[0], data.slice(1))
+
+        @on("data", @handle_data)
 
         @_last_pong = misc.walltime()
         @_connected = false
@@ -116,14 +171,22 @@ class exports.Connection extends EventEmitter
         if @_connected and (@_last_ping - @_last_pong > 1.1*@_ping_check_interval/1000.0)
             @_fix_connection?()
 
+    # Send a JSON message to the hub server.
     send: (mesg) ->
+        @write_data(JSON_CHANNEL, misc.to_json(mesg))
+
+    # Send raw data via certain channel to the hub server.
+    write_data: (c, data) ->
         try
-            @_write(misc.to_json(mesg))
+            @_write(c + data)
         catch err
-            # this happens when trying to send and not connected
+            # TODO: this happens when trying to send and the client not connected
+            # We might save up messages in a local queue and keep retrying, for
+            # a sort of offline mode ?  I have not worked out how to handle this yet.
             #console.log(err)
 
-    handle_message: (mesg) ->
+    handle_json_data: (data) ->
+        mesg = misc.from_json(data)
         switch mesg.event
             when "execute_javascript"
                 if mesg.session_uuid?
@@ -159,7 +222,19 @@ class exports.Connection extends EventEmitter
             if f != null
                 f(null, mesg)
             delete @call_callbacks[id]
-            return
+
+        # Finally, give other listeners a chance to do something with this message.
+        @emit('message', mesg)
+
+    register_data_handler: (channel, h) ->
+        @_data_handlers[channel] = h
+
+    _handle_data: (channel, data) ->
+        f = @_data_handlers[channel]
+        if f?
+            f(data)
+        # give other listeners a chance to do something with this data.
+        @emit("data", channel, data)
 
     ping: () ->
         @_last_ping = misc.walltime()
@@ -173,7 +248,7 @@ class exports.Connection extends EventEmitter
             cb      : undefined   # cb(error, session)  if error is defined it is a string
 
         @call
-            message : message.start_session(limits:opts.limits, type:'sage')
+            message : message.start_session(limits:opts.limits, type:opts.type)
             timeout : opts.timeout
             cb      : (error, reply) =>
                 if error
@@ -182,8 +257,21 @@ class exports.Connection extends EventEmitter
                     if reply.event == 'error'
                         opts.cb(reply.error)
                     else if reply.event == "session_started"
-                        session = new Session(conn:@, limits:reply.limits, session_uuid:reply.session_uuid)
+                        session_opts =
+                            conn         : @
+                            limits       : reply.limits
+                            session_uuid : reply.session_uuid
+                            data_channel : reply.data_channel_id
+
+                        switch opts.type
+                            when 'sage'
+                                session = new SageSession(session_opts)
+                            when 'console'
+                                session = new ConsoleSession(session_opts)
+                            else
+                                opts.cb("Unknown session type: '#{opts.type}'")
                         @_sessions[reply.session_uuid] = session
+                        @register_data_handler(reply.data_channel_id, session.handle_data)
                         opts.cb(false, session)
                     else
                         opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")

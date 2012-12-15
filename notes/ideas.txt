@@ -1,3 +1,15 @@
+[ ] alternative FOSS emacs-like code editor: http://www.ymacs.org/
+    Use for editing files in salvus.  We can have 3 (or maybe 4) options:
+    NOTE: I just tried syntax highlihgting a 20,000-line document in ymacs and it died.  Hmm, so that is not scalable.
+    Codemirror and Ace work fine with 50,000 lines.  Ace seems faster.
+    Keep my eye on Adobe Brackets, which is based on codemirror: https://github.com/adobe/brackets
+    Whatever I do for editing full files, just make it easy to swap out/provide multiple alternatives!  Ymacs even if less scalable could be useful to some.
+    Ace Editor evidently switched 3 months ago to a BSD license from something more restrictive!!
+
+[ ] insert link will google for options and insert.  (images or links); david ketchinson idea
+
+[ ] google docs editor is very usable -- hide menus/show menus/search the menus; tooltips all give shortcut
+
 [ ] note part of cell -- mode where it is protected/read only.
 "I'm imagining it as a cell-by-cell checkbox (perhaps check boxes hidden or hideable
 as a menu item?)  It's more as a gentle level of protection against a user of a worksheet

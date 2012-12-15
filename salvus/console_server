@@ -3,4 +3,4 @@
 set -e
 
 echo "Running NodeJS server..."
-node node_modules/console_session.js $@
+node node_modules/console_server.js $@

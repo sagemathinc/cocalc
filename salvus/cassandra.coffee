@@ -426,7 +426,6 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults(opts,  cb:undefined)
         @running_sage_servers(cb:(error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res)))
 
-
     #####################################
     # User plans (what features they get)
     #####################################

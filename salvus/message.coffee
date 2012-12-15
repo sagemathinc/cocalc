@@ -35,10 +35,15 @@ message(
 
 # hub --> browser
 message(
-    event        : 'session_started'
-    id           : required
-    session_uuid : undefined
-    limits       : undefined
+    event           : 'session_started'
+    id              : required
+    session_uuid    : undefined
+    limits          : undefined
+    data_channel_id : undefined # The data_channel_id is a single UTF-16
+                                # character; this is used for
+                                # efficiently sending and receiving
+                                # non-JSON data (except channel
+                                # '\u0000', which is JSON).
 )
 
 # sage_server --> hub

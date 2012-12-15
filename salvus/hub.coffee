@@ -30,6 +30,7 @@ defaults = misc.defaults; required = defaults.required
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client_lib = require("client")
+JSON_CHANNEL = client_lib.JSON_CHANNEL
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -107,6 +108,8 @@ init_http_server = () ->
 #############################################################
 class Client extends EventEmitter
     constructor: (@conn) ->
+        @_data_handlers = {JSON_CHANNEL:@handle_json_message_from_client}
+
         @ip_address = @conn.remoteAddress
 
         # The variable account_id is either undefined or set to the
@@ -127,7 +130,7 @@ class Client extends EventEmitter
 
         @check_for_remember_me()
 
-        @conn.on("data", @handle_message_from_client)
+        @conn.on("data", @handle_data_from_client)
         @conn.on "close", () =>
             for session_uuid in @persistent_sage_session_uuids
                 # TODO: there will be a special property to not delete certain of these later.
@@ -165,10 +168,10 @@ class Client extends EventEmitter
     #######################################################
     push_to_client: (mesg) =>
         winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
-        @conn.write(to_json(mesg))
+        @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
-    push_data_to_client: (data) ->
-        # TODO
+    push_data_to_client: (channel, data) ->
+        @conn.write(JSON_CHANNEL, data)
 
     error_to_client: (opts) ->
         opts = defaults opts,
@@ -282,6 +285,46 @@ class Client extends EventEmitter
         else
             opts.cb()
 
+    ######################################################################
+    #
+    # SockJS only supports one connection between the client and
+    # server, so we multiplex multiple channels over the same
+    # connection.  There is one base channel for JSON messages called
+    # JSON_CHANNEL, which themselves can be routed to different
+    # callbacks, etc., by the client code.  There are 16^4-1 other
+    # channels, which are for sending raw data.  The raw data messages
+    # are prepended with a UTF-16 character that identifies the
+    # channel.  The channel character is random (which might be more
+    # secure), and there is no relation between the channels for two
+    # distinct clients.
+    #
+    ######################################################################
+
+    handle_data_from_client: (data) ->
+        # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
+        # extreme... we shall see.  It prevents a number of attacks,
+        # e.g., users storing a multi-gigabyte worksheet title,
+        # etc..., which would (and will) otherwise require care with
+        # every single thing we store.
+        if data.length >= 10000000  # 10 MB
+            @push_to_client(message.error(error:"Messages are limited to 10MB.", id:mesg.id))
+
+        channel = data[0]
+        h = @_data_handlers[channel]
+        if h?
+            h(data.slice(1))
+        else
+            winston.error("unable to handle data due on an unknown channel: '#{channel}'")
+
+    register_data_handler: (h) ->
+        # generate a random channel character that isn't already taken
+        while true
+            channel = String.fromCharCode(Math.random()*65536)
+            if not @_data_handlers[channel]?
+                break
+        @_data_handlers[channel] = h
+        return channel
+
     ################################################################
     # Message handling functions:
     #
@@ -294,25 +337,19 @@ class Client extends EventEmitter
     # is used to implement the relevant functionality.
     ################################################################
 
-    handle_message_from_client: (data) =>
-        # TODO: THIS IS A QUICK anti-DOS measure for early testing
-        if data.length >= 10000000  # 10 MB
-            @push_to_client(message.error(error:"Messages are limited to 10MB.", id:mesg.id))
-
+    handle_json_message_from_client: (data) ->
         try
             mesg = from_json(data)
         catch error
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
-
         if mesg.event != 'ping'
             winston.debug("client --> hub: #{to_safe_str(mesg)}")
-
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
         else
-            @push_to_client(message.error(error:"Salvus server does not know how to handle the #{mesg.event} event.", id:mesg.id))
+            @push_to_client(message.error(error:"The Salvus hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
 
     ######################################################
     # Messages: Sage compute sessions and code execution
@@ -1653,15 +1690,16 @@ send_to_persistent_sage_session = (mesg, account_id) ->
 # Console Sessions
 ########################################
 
+# TODO
 console_sessions = {}
 create_persistent_console_session = (mesg, account_id, client) ->
     winston.log('creating a console session')
     session_uuid = uuid.v4()
 
-    database.random_sage_server( cb:(error, sage_server) ->
+    database.random_console_server( cb:(error, console_server) ->
         console_conn = new console.Connection
-            host : sage_server.host
-            port : sage_server.port
+            host : console_server.host
+            port : console_server.port
             recv : (data) ->
     )
 

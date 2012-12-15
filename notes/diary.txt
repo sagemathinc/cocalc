@@ -8603,8 +8603,9 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
          wait, we don't need this, since IO isn't buffered!
      [x] extend to: create pty.js object on new connection, and read/write
          everything from tcp connection to/from it; test with telnet
+
      [ ] write code in hub to handle creation of new console sessions
-         [ ] I need to come up with an efficient way of tagging messages (2 bytes):
+         [x] Come up with an efficient way of tagging messages (2 bytes):
               0x00 = JSON message
               0x01, ..., = keys into an object; when message received, it gets that object plus the raw data.
             Each console session will get an id number >= 1.
@@ -8612,7 +8613,22 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
             It is prefixed to each message (encoded into 2 bytes).
             The client sees that prefix and uses it to route the message.
             Same for messages from client to hub (with same 2 bytes).
-This page is helpful: http://www.websocket.org/aboutwebsocket.html
+            This page is helpful: http://www.websocket.org/aboutwebsocket.html
+         [x] Add code to do the above to client/message:
+                The message back after creating a new console_session
+                will contain an id; the id is a javascript string of
+                length 1.
+                There are 16^4 = 65536 possible 1 UTF-16 character
+                javascript strings, so plenty of room for a given hub
+                to store sessions.
+                If code is \u0000, then message gets handled with JSON and goes through usual routing.
+                If code is any other character, then message gets handled as raw data via a registered handler, if there is one.
+                That's it.
+         [x] add to hub
+         [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
+         [ ] modify database.random_sage_server to be random_session_server(...) and take type
+         [ ] modify admin.py and cassandra.py to use new database schema
+         [ ] in client, implement ConsoleSession.kill
 
      [ ] write code in hub to relay messages back and forth with new console session
      [ ] put code in worksheet2 and console to test an actual console session working (with fake other side)
