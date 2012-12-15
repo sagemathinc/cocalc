@@ -8657,7 +8657,7 @@ NEXT UP:
 ------------
 
      [x] test having two separate consoles in same page
-     [ ] test having two consoles jacked into the same session on same page (?)
+     [x] test having two consoles jacked into the same session on same page (?)
      [ ] extend console_server, so can also send message to kill session
      [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
      [ ] extend console_server, to impose resource limits: ulimits

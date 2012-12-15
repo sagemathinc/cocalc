@@ -122,9 +122,24 @@ init_consoles = (elts) ->
     for elt in elts
         init_console(elt)
 
+init_consoles2 = (elts) ->
+    salvus_client.new_session
+        limits : {walltime:60*15}
+        type : 'console'
+        cb : (err, session) ->
+            if err
+                console.log "Error starting console session: #{err}"
+            else
+                for elt in elts
+                    elt = $(elt)
+                    elt.salvus_console(title:"A Test Console", session:session)
+                    c = elt.data('console')
+                    c.element.focus()
+
+
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->
     #init()
     c = worksheet2.find(".salvus-test-console")
     console.log(c.length)
-    init_consoles(c)
+    init_consoles2(c)
