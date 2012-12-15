@@ -8625,6 +8625,9 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
                 If code is any other character, then message gets handled as raw data via a registered handler, if there is one.
                 That's it.
          [x] add to hub
+Pushing to remote *branch* on github:
+      git push -u origin console
+
          [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
          [ ] modify database.random_sage_server to be random_session_server(...) and take type
          [ ] modify admin.py and cassandra.py to use new database schema

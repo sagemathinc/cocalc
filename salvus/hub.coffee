@@ -108,7 +108,8 @@ init_http_server = () ->
 #############################################################
 class Client extends EventEmitter
     constructor: (@conn) ->
-        @_data_handlers = {JSON_CHANNEL:@handle_json_message_from_client}
+        @_data_handlers = {}
+        @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
         @ip_address = @conn.remoteAddress
 
@@ -171,7 +172,7 @@ class Client extends EventEmitter
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
-        @conn.write(JSON_CHANNEL, data)
+        @conn.write(JSON_CHANNEL + data)
 
     error_to_client: (opts) ->
         opts = defaults opts,
@@ -300,7 +301,7 @@ class Client extends EventEmitter
     #
     ######################################################################
 
-    handle_data_from_client: (data) ->
+    handle_data_from_client: (data) =>
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
         # e.g., users storing a multi-gigabyte worksheet title,
@@ -309,7 +310,13 @@ class Client extends EventEmitter
         if data.length >= 10000000  # 10 MB
             @push_to_client(message.error(error:"Messages are limited to 10MB.", id:mesg.id))
 
+        if data.length == 0
+            winston.error("EMPTY DATA MESSAGE -- ignoring!")
+            return
+
         channel = data[0]
+        console.log("channel = '#{channel}' = '#{channel.charCodeAt(0)}' (length = #{channel.length})")
+        console.log("@_data_handlers = #{misc.to_json(@_data_handlers)}")
         h = @_data_handlers[channel]
         if h?
             h(data.slice(1))
@@ -337,7 +344,7 @@ class Client extends EventEmitter
     # is used to implement the relevant functionality.
     ################################################################
 
-    handle_json_message_from_client: (data) ->
+    handle_json_message_from_client: (data) =>
         try
             mesg = from_json(data)
         catch error

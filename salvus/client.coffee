@@ -14,6 +14,7 @@ required = defaults.required
 # assignment in the hub is implemented *without* the assumption that
 # the JSON channel is '\u0000'.
 JSON_CHANNEL = '\u0000'
+exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 
 class Session extends EventEmitter
     # events:
@@ -131,7 +132,7 @@ class exports.Connection extends EventEmitter
         @execute_callbacks = {}
         @call_callbacks    = {}
 
-        @register_data_handler(JSON_CHANNEL, @handle_json_message)
+        @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
@@ -140,6 +141,7 @@ class exports.Connection extends EventEmitter
         # and returns a function to write raw data to the socket.
 
         @_connect @url, (data) =>
+            console.log("got '#{data}' of length #{data.length}")
             if data.length > 0  # all messages must start with a channel; length 0 means nothing.
 
                 # Incoming messages are tagged with a single UTF-16
@@ -154,9 +156,15 @@ class exports.Connection extends EventEmitter
                 # is absolutely critical that there is minimal
                 # overhead regarding the amount of data transfered --
                 # 1 character is minimal!
-                @_handle_data(data[0], data.slice(1))
 
-        @on("data", @handle_data)
+                channel = data[0]
+                data    = data.slice(1)
+                console.log("channel = #{channel}, data = #{data}")
+
+                @_handle_data(channel, data)
+
+                # give other listeners a chance to do something with this data.
+                @emit("data", channel, data)
 
         @_last_pong = misc.walltime()
         @_connected = false
@@ -176,16 +184,16 @@ class exports.Connection extends EventEmitter
         @write_data(JSON_CHANNEL, misc.to_json(mesg))
 
     # Send raw data via certain channel to the hub server.
-    write_data: (c, data) ->
+    write_data: (channel, data) ->
         try
-            @_write(c + data)
+            @_write(channel + data)
         catch err
             # TODO: this happens when trying to send and the client not connected
             # We might save up messages in a local queue and keep retrying, for
             # a sort of offline mode ?  I have not worked out how to handle this yet.
             #console.log(err)
 
-    handle_json_data: (data) ->
+    handle_json_data: (data) =>
         mesg = misc.from_json(data)
         switch mesg.event
             when "execute_javascript"
@@ -233,8 +241,6 @@ class exports.Connection extends EventEmitter
         f = @_data_handlers[channel]
         if f?
             f(data)
-        # give other listeners a chance to do something with this data.
-        @emit("data", channel, data)
 
     ping: () ->
         @_last_ping = misc.walltime()
