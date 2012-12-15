@@ -8631,8 +8631,11 @@ Pushing to remote *branch* on github:
 I'm going to get some vegan food now, then finish this in my hotel (until 2am!)
 
      [x] put code in worksheet2 and console to test an actual console session working: with totally fake hub side
+     [x] hub <--(tcp)--> console_server, with console_server just echoing.
+     [x] console_server -- actually use a tty
 
-     [ ] write code in hub to relay messages back and forth with new console server
+OK, at this point I have a nice proof of concept demo. The speed is acceptable. 
+Now it is time to be very disciplined at do as much of the below as I can in 2 hours!
 
      [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
      [ ] modify database.random_sage_server to be random_session_server(...) and take type
@@ -8654,6 +8657,14 @@ I'm going to get some vegan food now, then finish this in my hotel (until 2am!)
 
 
      [ ] bug I noticed -- the checkboxes in account settings are *STUCK*!
+
+     [x] safari desktop seems to connect to salvus and not use
+         websockets...?  However, it *does* use websockets to the
+         currently deployed stable code.  I think it's been like this
+         a way. I don't know why. It's why the console seems slow
+         there.  SOLUTION: This is 100% because I was using 192.xxx
+         etc., instead of https://salv.us and setting /etc/hosts.
+         Doing that completely fixed the issue.
 
 ---------------------------------
 

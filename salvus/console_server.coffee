@@ -4,8 +4,8 @@ pty = require 'pty.js'
 server = net.createServer (socket) ->
     opts =
         name : 'xterm'
-        cols : 80
-        rows : 10
+        rows : 20
+        cols : 100
         cwd  : process.env.HOME
 
     term = pty.fork('bash', [], opts)
@@ -14,7 +14,6 @@ server = net.createServer (socket) ->
         term.write data
 
     term.on 'data', (data) ->
-        console.log(data)
         socket.write data
 
 server.listen 8124, () -> console.log 'listening on port 8124'

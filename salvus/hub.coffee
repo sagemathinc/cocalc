@@ -1701,11 +1701,15 @@ create_persistent_console_session = (mesg, account_id, client) ->
     winston.log('creating a console session')
     session_uuid = uuid.v4()
     channel = undefined  # so can be used below in fake_handler
-    fake_handler = (data) ->
-        # simple echo server
-        client.push_data_to_client(channel, data)
-    channel = client.register_data_handler(fake_handler)
-    client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:mesg.limits, data_channel:channel))
+
+    net = require('net')
+    console_session = net.connect {port:8124}, () ->
+        # relay data from client to console_session:
+        channel = client.register_data_handler((data) -> console_session.write(data))
+        # relay data from console_session to client
+        console_session.on('data', (data) -> client.push_data_to_client(channel, data))
+        # inform client of successful connection
+        client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:mesg.limits, data_channel:channel))
 
     #database.random_console_server( cb:(error, console_server) ->
     #    console_conn = new console.Connection
