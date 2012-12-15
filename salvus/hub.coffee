@@ -1697,6 +1697,7 @@ send_to_persistent_sage_session = (mesg, account_id) ->
 
 # TODO
 console_sessions = {}
+
 create_persistent_console_session = (mesg, account_id, client) ->
     winston.log('creating a console session')
     session_uuid = uuid.v4()

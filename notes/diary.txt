@@ -8636,18 +8636,33 @@ I'm going to get some vegan food now, then finish this in my hotel (until 2am!)
 
 OK, at this point I have a nice proof of concept demo. The speed is acceptable.
 Now it is time to be very disciplined at do as much of the below as I can in 2 hours!
-I will try to be very careful at each step to not break things. 
+I will try to be very careful at each step to not break things.
+
+     [x] make console_server forks and drop privileges to user 3333 if run as root
+         -- I do *NOT* know how to do this...
+         first, dropping privs is easy..., so test.
+         Figured it out!
+
+     [x] console_server.coffee:
+             - a server class
+             - a client class
+         and switch to using that.
+
+     [x] modify console_server: first read in a config message, send a response, then
+           fork (create pty.js), drop privileges, and do everything else.
+           I'll probably have to slightly change pty.js to drop privs -- NOPE, luckily!
+
+NEXT UP:
+------------
+
+     [ ] extend console_server, so one can choose which uid to use before dropping privileges
+     [ ] extend console_server, so can also send message to kill session
+     [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
+     [ ] extend console_server, to impose resource limits: ulimits
 
      [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
      [ ] modify database.random_sage_server to be random_session_server(...) and take type
      [ ] modify admin.py and cassandra.py to use new database schema
-     [ ] modify console_server: first read in a config message, send a response, then
-           fork (create pty.js), drop privileges, and do everything else.
-           I'll probably have to slightly change pty.js to drop privs
-     [ ] extend console_server, so one can choose which uid to use before dropping privileges
-     [ ] extend console_server, so can also send message to kill server
-     [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
-     [ ] extend console_server, to impose resource limits: ulimits
 
      [ ] modify console so it gives back keyboard when looses focus.
      [ ] test having multiple consoles on same server
