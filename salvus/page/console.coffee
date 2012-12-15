@@ -14,7 +14,7 @@ class Console extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
-            session     : undefined   # a console_session or a sage_session
+            session     : required   # a console_session
             title       : ""
 
         @element = console_template.clone()
@@ -25,6 +25,13 @@ class Console extends EventEmitter
         @_term.open()
         @_term.element.className = "salvus-console-terminal"
         @element.find(".salvus-console-terminal").replaceWith(@_term.element)
+
+        @_session = opts.session
+
+        @_term.on    'data',  (data) => @_session.write_data(data)
+        @_term.on    'title',(title) => @set_title(title)
+        @_session.on 'data',  (data) => @_term.write(data)
+
 
     #######################################################################
     # Private Methods

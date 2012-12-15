@@ -38,7 +38,7 @@ class Session extends EventEmitter
     walltime: () ->
         return misc.walltime() - @start_time
 
-    handle_data: (data) ->
+    handle_data: (data) =>
         @emit("data", data)
 
     write_data: (data) ->
@@ -235,10 +235,12 @@ class exports.Connection extends EventEmitter
     register_data_handler: (channel, h) ->
         @_data_handlers[channel] = h
 
-    _handle_data: (channel, data) ->
+    _handle_data: (channel, data) =>
         f = @_data_handlers[channel]
         if f?
             f(data)
+        #else
+            #console.log("Error -- missing channel #{channel} for data #{data}.  @_data_handlers = #{misc.to_json(@_data_handlers)}")
 
     ping: () ->
         @_last_ping = misc.walltime()
@@ -265,7 +267,7 @@ class exports.Connection extends EventEmitter
                             conn         : @
                             limits       : reply.limits
                             session_uuid : reply.session_uuid
-                            data_channel : reply.data_channel_id
+                            data_channel : reply.data_channel
 
                         switch opts.type
                             when 'sage'
@@ -275,7 +277,7 @@ class exports.Connection extends EventEmitter
                             else
                                 opts.cb("Unknown session type: '#{opts.type}'")
                         @_sessions[reply.session_uuid] = session
-                        @register_data_handler(reply.data_channel_id, session.handle_data)
+                        @register_data_handler(reply.data_channel, session.handle_data)
                         opts.cb(false, session)
                     else
                         opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")

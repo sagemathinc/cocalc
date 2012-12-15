@@ -72,9 +72,10 @@ init = () ->
 
     salvus_client.new_session
         limits: {walltime:60*15}
+        type: 'sage'
         cb : (err, session) ->
             if err
-                console.log("Error getting session")
+                console.log "Error getting session: #{err}"
             else
                 w.set_session(session)
                 ws2.set_session(session)
@@ -106,13 +107,18 @@ init = () ->
 init_console = () ->
     console.log("init_console")
     e = $(".salvus-test-console")
-    e.salvus_console(title:"A Test Console")
-    c = e.data('console')
-    console.log(c)
-    c._term.write("hello world\nMMMM\b\bIIII\n")
-    c.element.focus()
+    salvus_client.new_session
+        limits : {walltime:60*15}
+        type : 'console'
+        cb : (err, session) ->
+            if err
+                console.log "Error starting console session: #{err}"
+            else
+                e.salvus_console(title:"A Test Console", session:session)
+                c = e.data('console')
+                c.element.focus()
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->
     #init()
-    #init_console()
+    init_console()

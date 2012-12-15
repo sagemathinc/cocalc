@@ -8626,31 +8626,34 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
                 That's it.
          [x] add to hub
 Pushing to remote *branch* on github:
-      git push -u origin console
+     git push -u origin console
 
-         [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
-         [ ] modify database.random_sage_server to be random_session_server(...) and take type
-         [ ] modify admin.py and cassandra.py to use new database schema
-         [ ] in client, implement ConsoleSession.kill
+I'm going to get some vegan food now, then finish this in my hotel (until 2am!)
 
-     [ ] write code in hub to relay messages back and forth with new console session
-     [ ] put code in worksheet2 and console to test an actual console session working (with fake other side)
-     [ ] modify console_session: first read in a config message, send a response, then
+     [x] put code in worksheet2 and console to test an actual console session working: with totally fake hub side
+
+     [ ] write code in hub to relay messages back and forth with new console server
+
+     [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
+     [ ] modify database.random_sage_server to be random_session_server(...) and take type
+     [ ] modify admin.py and cassandra.py to use new database schema
+     [ ] in client, implement ConsoleServer.kill
+
+     [ ] modify console_server: first read in a config message, send a response, then
            fork (create pty.js), drop privileges, and do everything else.
            I'll probably have to slightly change pty.js to drop privs
-     [ ] make console_session run as root and drop privileges to random user
-     [ ] extend console_session, so one can choose which uid to use before dropping privileges
-     [ ] extend console_session, so can also send message to kill session
-     [ ] extend console_session, so have predetermined timeouts for all sessions for general robustness
-     [ ] extend console_session, to impose resource limits: ulimits
+     [ ] make console_server run as root and drop privileges to random user
+     [ ] extend console_server, so one can choose which uid to use before dropping privileges
+     [ ] extend console_server, so can also send message to kill server
+     [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
+     [ ] extend console_server, to impose resource limits: ulimits
      [ ] modify console so it gives back keyboard when looses focus.
-     [ ] test having multiple consoles on same session
+     [ ] test having multiple consoles on same server
      [ ] make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
      [ ] admin.py -- add support for starting/stopping console_session (take care with firewall)
 
 
-
-
+     [ ] bug I noticed -- the checkboxes in account settings are *STUCK*!
 
 ---------------------------------
 

@@ -81,13 +81,13 @@ init_http_server = () ->
             when "alive"
                 res.end('')
             when "blobs"
-                console.log("serving a blob: #{misc.to_json(query)}")
+                #console.log("serving a blob: #{misc.to_json(query)}")
                 if not query.uuid?
                     res.writeHead(500, {'Content-Type':'text/plain'})
                     res.end("internal error: #{error}")
                     return
                 get_blob uuid:query.uuid, cb:(error, data) ->
-                    console.log("query got back: #{error}, #{misc.to_json(data)}")
+                    #console.log("query got back: #{error}, #{misc.to_json(data)}")
                     if error
                         res.writeHead(500, {'Content-Type':'text/plain'})
                         res.end("internal error: #{error}")
@@ -172,7 +172,7 @@ class Client extends EventEmitter
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
-        @conn.write(JSON_CHANNEL + data)
+        @conn.write(channel + data)
 
     error_to_client: (opts) ->
         opts = defaults opts,
@@ -315,13 +315,11 @@ class Client extends EventEmitter
             return
 
         channel = data[0]
-        console.log("channel = '#{channel}' = '#{channel.charCodeAt(0)}' (length = #{channel.length})")
-        console.log("@_data_handlers = #{misc.to_json(@_data_handlers)}")
         h = @_data_handlers[channel]
         if h?
             h(data.slice(1))
         else
-            winston.error("unable to handle data due on an unknown channel: '#{channel}'")
+            winston.error("unable to handle data on an unknown channel: '#{channel}'")
 
     register_data_handler: (h) ->
         # generate a random channel character that isn't already taken
@@ -1702,13 +1700,19 @@ console_sessions = {}
 create_persistent_console_session = (mesg, account_id, client) ->
     winston.log('creating a console session')
     session_uuid = uuid.v4()
+    channel = undefined  # so can be used below in fake_handler
+    fake_handler = (data) ->
+        # simple echo server
+        client.push_data_to_client(channel, data)
+    channel = client.register_data_handler(fake_handler)
+    client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:mesg.limits, data_channel:channel))
 
-    database.random_console_server( cb:(error, console_server) ->
-        console_conn = new console.Connection
-            host : console_server.host
-            port : console_server.port
-            recv : (data) ->
-    )
+    #database.random_console_server( cb:(error, console_server) ->
+    #    console_conn = new console.Connection
+    #        host : console_server.host
+    #        port : console_server.port
+    #        recv : (data) ->
+    #)
 
 ##########################################
 # Stateless Sage Sessions
