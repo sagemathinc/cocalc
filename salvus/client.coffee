@@ -141,7 +141,6 @@ class exports.Connection extends EventEmitter
         # and returns a function to write raw data to the socket.
 
         @_connect @url, (data) =>
-            console.log("got '#{data}' of length #{data.length}")
             if data.length > 0  # all messages must start with a channel; length 0 means nothing.
 
                 # Incoming messages are tagged with a single UTF-16
@@ -159,7 +158,6 @@ class exports.Connection extends EventEmitter
 
                 channel = data[0]
                 data    = data.slice(1)
-                console.log("channel = #{channel}, data = #{data}")
 
                 @_handle_data(channel, data)
 
