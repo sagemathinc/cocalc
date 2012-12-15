@@ -1703,7 +1703,7 @@ create_persistent_console_session = (mesg, account_id, client) ->
     channel = undefined  # so can be used below in fake_handler
 
     net = require('net')
-    console_session = net.connect {port:8124}, () ->
+    console_session = net.connect {port:8124, host:'localhost'}, () ->
         # relay data from client to console_session:
         channel = client.register_data_handler((data) -> console_session.write(data))
         # relay data from console_session to client

@@ -8634,26 +8634,41 @@ I'm going to get some vegan food now, then finish this in my hotel (until 2am!)
      [x] hub <--(tcp)--> console_server, with console_server just echoing.
      [x] console_server -- actually use a tty
 
-OK, at this point I have a nice proof of concept demo. The speed is acceptable. 
+OK, at this point I have a nice proof of concept demo. The speed is acceptable.
 Now it is time to be very disciplined at do as much of the below as I can in 2 hours!
+I will try to be very careful at each step to not break things. 
 
      [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
      [ ] modify database.random_sage_server to be random_session_server(...) and take type
      [ ] modify admin.py and cassandra.py to use new database schema
-     [ ] in client, implement ConsoleServer.kill
-
      [ ] modify console_server: first read in a config message, send a response, then
            fork (create pty.js), drop privileges, and do everything else.
            I'll probably have to slightly change pty.js to drop privs
-     [ ] make console_server run as root and drop privileges to random user
      [ ] extend console_server, so one can choose which uid to use before dropping privileges
      [ ] extend console_server, so can also send message to kill server
      [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
      [ ] extend console_server, to impose resource limits: ulimits
+
      [ ] modify console so it gives back keyboard when looses focus.
      [ ] test having multiple consoles on same server
+
      [ ] make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
      [ ] admin.py -- add support for starting/stopping console_session (take care with firewall)
+
+     [ ] in client, implement ConsoleServer.kill
+
+     [ ] tabs
+     [ ] copy/paste/keyboard buttons
+     [ ] ability to resize console : Terminal has a resize method
+     [ ] user-customizable colorscheme (!)
+     [ ] user-customizable font (and size); keyboard shortcut to change font size
+     [ ] user-customizable scrollback buffer size -- and scroll bars
+     [ ] modify sage startup so that it turns on ipython command prompt colors
+
+     [ ] dogfood -- stop using the command line -- always use this for my work/development!
+
+
+---------
 
 
      [ ] bug I noticed -- the checkboxes in account settings are *STUCK*!
@@ -8668,16 +8683,6 @@ Now it is time to be very disciplined at do as much of the below as I can in 2 h
 
 ---------------------------------
 
-     [ ] make it so console can talk to a sage session (but just lines in, lines out)
-     [ ] copy/paste/keyboard buttons
-     [ ] make title event set some html
-     [ ] ability to resize console : Terminal has a resize method.
-     [ ] tabs -- many sessions
-     [ ] user-customizable colorscheme (!)
-     [ ] user-customizable font (and size)
-     [ ] user-customizable scrollback buffer size -- and scroll bars
-     [ ] modify sage startup so that it turns on ipython command prompt colors
-     [ ] dogfood -- stop using the command line -- always use this for my work/development!
 
 ------------------------------------------------
 
