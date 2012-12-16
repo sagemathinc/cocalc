@@ -939,7 +939,7 @@ get_session = (cb) ->
             return
         _get_session_queue = [cb]
         salvus_client.new_session
-            limits: {walltime:15*60}
+            limits: {}
             timeout: 20
             cb: (error, session) ->
                 if error

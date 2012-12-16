@@ -34,7 +34,7 @@ message(
 )
 
 # hub --> browser
-message(
+message
     event         : 'session_started'
     id            : required
     session_uuid  : undefined
@@ -44,7 +44,20 @@ message(
                               # efficiently sending and receiving
                               # non-JSON data (except channel
                               # '\u0000', which is JSON).
-)
+
+
+# client --> hub
+message
+    event        : 'connect_to_session'
+    id           : undefined
+    type         : required
+    session_uuid : required
+
+message
+    event         : 'session_connected'
+    id            : required
+    data_channel  : undefined  # used for certain types of sessions
+
 
 # sage_server --> hub
 message(

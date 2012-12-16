@@ -246,12 +246,37 @@ class exports.Connection extends EventEmitter
         @_last_ping = misc.walltime()
         @send(message.ping())
 
+    connect_to_session: (opts) ->
+        opts = defaults opts,
+            type         : required
+            session_uuid : required
+            timeout      : 10
+            cb           : required
+        @call
+            message : message.connect_to_session(session_uuid: opts.session_uuid, type:opts.type)
+            timeout : opts.timeout
+            cb      : (error, reply) =>
+                if error
+                    opts.cb(error); return
+                switch reply.event
+                    when 'error'
+                        opts.cb(reply.error)
+                    when 'session_connected'
+                        @_create_session_object
+                            type         : opts.type
+                            limits       : {}  # TODO
+                            session_uuid : opts.session_uuid
+                            data_channel : reply.data_channel
+                            cb           : opts.cb
+                    else
+                        opts.cb("Unknown event (='#{reply.event}') in response to connect_to_session message.")
+
     new_session: (opts) ->
         opts = defaults opts,
             limits  : {}
             timeout : 10          # how long until give up on getting a new session
             type    : "sage"      # "sage", "console"
-            cb      : undefined   # cb(error, session)  if error is defined it is a string
+            cb      : required    # cb(error, session)  if error is defined it is a string
 
         @call
             message : message.start_session(limits:opts.limits, type:opts.type)
@@ -263,24 +288,40 @@ class exports.Connection extends EventEmitter
                     if reply.event == 'error'
                         opts.cb(reply.error)
                     else if reply.event == "session_started"
-                        session_opts =
-                            conn         : @
+                        @_create_session_object
+                            type         : opts.type
                             limits       : reply.limits
                             session_uuid : reply.session_uuid
                             data_channel : reply.data_channel
-
-                        switch opts.type
-                            when 'sage'
-                                session = new SageSession(session_opts)
-                            when 'console'
-                                session = new ConsoleSession(session_opts)
-                            else
-                                opts.cb("Unknown session type: '#{opts.type}'")
-                        @_sessions[reply.session_uuid] = session
-                        @register_data_handler(reply.data_channel, session.handle_data)
-                        opts.cb(false, session)
+                            cb           : opts.cb
                     else
                         opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")
+
+
+    _create_session_object: (opts) =>
+        opts = defaults opts,
+            type         : required
+            limits       : required
+            session_uuid : required
+            data_channel : undefined
+            cb           : required
+
+        session_opts =
+            conn         : @
+            limits       : opts.limits
+            session_uuid : opts.session_uuid
+            data_channel : opts.data_channel
+
+        switch opts.type
+            when 'sage'
+                session = new SageSession(session_opts)
+            when 'console'
+                session = new ConsoleSession(session_opts)
+            else
+                opts.cb("Unknown session type: '#{opts.type}'")
+        @_sessions[opts.session_uuid] = session
+        @register_data_handler(opts.data_channel, session.handle_data)
+        opts.cb(false, session)
 
     execute_code: (opts={}) ->
         opts = defaults(opts, code:defaults.required, cb:null, preparse:true, allow_cache:true)

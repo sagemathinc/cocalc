@@ -426,6 +426,32 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults(opts,  cb:undefined)
         @running_sage_servers(cb:(error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res)))
 
+
+    running_session_servers: (opts) ->
+        opts = defaults opts,
+            cb   : required
+            type : required
+        if opts.type == 'sage'
+            @select
+                table:'sage_servers'
+                columns:['address']
+                where:{running:true}
+                # TODO: we hardcoded 6000 for now
+                cb:(error, results) -> opts.cb(error, {host:x[0], port:6000} for x in results)
+        else if opts.type == 'console'
+            opts.cb(false, [{host:'localhost', port:8124}])
+        else
+            opts.cb("Unknown session type '#{opts.type}'")
+
+    # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)
+    random_running_session_server: (opts) ->
+        opts = defaults opts,
+            cb   : required
+            type : required
+        @running_session_servers
+            type : opts.type
+            cb   : (error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
+
     #####################################
     # User plans (what features they get)
     #####################################

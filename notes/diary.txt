@@ -8658,13 +8658,21 @@ NEXT UP:
 
      [x] test having two separate consoles in same page
      [x] test having two consoles jacked into the same session on same page (?)
-     [ ] extend console_server, so can also send message to kill session
-     [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
-     [ ] extend console_server, to impose resource limits: ulimits
+
+
+     [x] implement proper console session allocation and connection to
+         existing sessions in the hub, assuming relevant function
+         cassandra.coffee is implemented.
+
+     [ ] proper handling of connection closing on all relevant sides
 
      [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
      [ ] modify database.random_sage_server to be random_session_server(...) and take type
-     [ ] modify admin.py and cassandra.py to use new database schema
+     [ ] modify cassandra.py to use new database schema
+
+     [ ] extend console_server, so can also send message to kill session
+     [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
+     [ ] extend console_server, to impose resource limits: ulimits
 
      [ ] modify console so it gives back keyboard when looses focus.
      [ ] test having multiple consoles on same server

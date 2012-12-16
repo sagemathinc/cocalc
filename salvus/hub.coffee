@@ -376,9 +376,20 @@ class Client extends EventEmitter
             when 'sage'
                 create_persistent_sage_session(mesg, @account_id, @)
             when 'console'
-                create_persistent_console_session(mesg, @account_id, @)
+                create_persistent_console_session(mesg, @)
             else
                 @push_to_client(message.error(id:mesg.id, error:"Unknown message type '#{mesg.type}'"))
+
+    mesg_connect_to_session: (mesg) =>
+        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
+            return
+        switch mesg.type
+            when 'console'
+                connect_to_existing_console_session(mesg, @)
+            else
+                # TODO
+                @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
 
     mesg_send_signal: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
@@ -1612,7 +1623,7 @@ persistent_sage_sessions = {}
 
 SAGE_SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
 
-SAGE_SESSION_LIMITS = {cputime:10*60, walltime:15*60, vmem:2000, numfiles:1000, quota:128}
+SAGE_SESSION_LIMITS = {cputime:10*60, walltime:30*60, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (mesg, account_id, client) ->
     winston.log('creating persistent sage session')
@@ -1624,7 +1635,9 @@ create_persistent_sage_session = (mesg, account_id, client) ->
     else
         misc.min_object(mesg.limits, SAGE_SESSION_LIMITS_NOT_LOGGED_IN)  # TODO
     database.random_sage_server( cb:(error, sage_server) ->
-        # TODO: deal with case when there are no sage servers -- or when error is set !
+        if error
+            client.push_to_client(message.error(id:mesg.id, error:error))
+            return
         sage_conn = new sage.Connection(
             host:sage_server.host
             port:sage_server.port
@@ -1698,26 +1711,38 @@ send_to_persistent_sage_session = (mesg, account_id) ->
 # TODO
 console_sessions = {}
 
-create_persistent_console_session = (mesg, account_id, client) ->
-    winston.log('creating a console session')
-    session_uuid = uuid.v4()
-    channel = undefined  # so can be used below in fake_handler
-
-    net = require('net')
-    console_session = net.connect {port:8124, host:'localhost'}, () ->
-        # relay data from client to console_session:
+connect_to_existing_console_session = (mesg, client) ->
+    #
+    # TODO: actually do something to make sure user is allowed to make this connection!
+    #
+    console_session = console_sessions[mesg.session_uuid]
+    if not console_session?
+        # TODO: check in database for sessions on other nodes
+        client.push_to_client(message.error(id:mesg.id, error:"There is no known console session with id #{mesg.session_uuid}."))
+    else
         channel = client.register_data_handler((data) -> console_session.write(data))
-        # relay data from console_session to client
-        console_session.on('data', (data) -> client.push_data_to_client(channel, data))
-        # inform client of successful connection
-        client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:mesg.limits, data_channel:channel))
+        console_session.on("data", (data) -> client.push_data_to_client(channel, data))
+        client.push_to_client(message.session_connected(id:mesg.id, data_channel:channel))
 
-    #database.random_console_server( cb:(error, console_server) ->
-    #    console_conn = new console.Connection
-    #        host : console_server.host
-    #        port : console_server.port
-    #        recv : (data) ->
-    #)
+create_persistent_console_session = (mesg, client) ->
+    winston.log('creating a console session for user with account_id #{account_id}')
+    session_uuid = uuid.v4()
+    net = require('net')
+    database.random_running_session_server(type:'console', cb:(error, console_server) ->
+        if error
+            client.push_to_client(message.error(id:mesg.id, error:error))
+            return
+        console_session = net.connect {port:console_server.port, host:console_server.host}, () ->
+            # relay data from client to console_session:
+            channel = client.register_data_handler((data) -> console_session.write(data))
+            # relay data from console_session to client
+            console_session.on('data', (data) -> client.push_data_to_client(channel, data))
+            # store the console_session, so other clients can potentially tune in
+            # TODO: also store something in database
+            console_sessions[session_uuid] = console_session
+            # inform client of successful connection
+            client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:mesg.limits, data_channel:channel))
+    )
 
 ##########################################
 # Stateless Sage Sessions
