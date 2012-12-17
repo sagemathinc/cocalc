@@ -48,6 +48,10 @@ makedirs = (path, uid, gid, cb) ->
     ])
 
 start_session = (socket, mesg) ->
+    if not mesg.limits? or not mesg.limits.walltime?
+        socket.write_mesg('json', message.error(id:mesg.id, error:"mesg.limits.walltime *must* be defined"))
+        return
+
     console.log("start_session #{to_json(mesg)}")
     opts = defaults mesg.params,
         home    : required
@@ -76,11 +80,13 @@ start_session = (socket, mesg) ->
             # Fork of a child process that drops privileges and does all further work to handle a connection.
             child = child_process.fork(__dirname + '/console_server_child.js', [])
             # Send the pid of the child back
-            socket.write_mesg('json', {pid:child.pid})
+            socket.write_mesg('json', message.session_description({pid:child.pid, limits:mesg.limits}))
             # Disable use of the socket for sending/receiving messages.
             misc_node.disable_mesg(socket)
             # Give the socket to the child, along with the options
             child.send(opts, socket)
+            # No session lives forever -- set a timer to kill the spawned child
+            setTimeout((() -> child.kill('SIGKILL')), mesg.limits.walltime*1000)
             console.log("PARENT: forked off child to handle it")
 
 handle_client = (socket, mesg) ->

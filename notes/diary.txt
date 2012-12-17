@@ -8680,15 +8680,15 @@ NEXT UP:
          messages.
      [x] make console_server send a response message containing the pid of the process it spawned.
 
-
-     [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
-     [ ] extend console_server, to impose resource limits: ulimits
+     [x] console: extend console_server, so have predetermined timeouts for all servers for general robustness
+     [ ] extend console_server, to impose resource limits: ulimits - cputime, number of files, etc.
      [ ] proper handling of connection closing on all relevant sides
           ([ ] when console_server fails, give good error message (instead of timeout)?)
      [ ] make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
 
 
 UI stuff
+     [ ] countdown timer limits.walltime
      [ ] modify console so it gives back keyboard when looses focus.
      [ ] tabs
      [ ] copy/paste/keyboard buttons

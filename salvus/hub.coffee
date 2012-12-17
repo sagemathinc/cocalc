@@ -1803,6 +1803,18 @@ create_persistent_console_session = (client, mesg) ->
             console_session.once 'mesg', (type, resp) ->
                 misc_node.disable_mesg(console_session)
 
+                if resp.event == 'error'
+                    # did not start session; pass error on to client and throw away.
+                    client.push_to_client(resp)
+                    delete compute_sessions[session_uuid]
+                    delete console_sessions[session_uuid]
+                    return
+
+                if resp.event != 'session_description'
+                    # THIS could only happen if there is a serious bug.
+                    client.push_to_client(message.error(id:mesg.id, error:"Internal error creating a new console session; got weird mesg='#{to_json(resp)}'.  Please report."))
+                    return
+
                 console_session.pid = resp.pid
                 console.log("PID = ", console_session.pid)
 
