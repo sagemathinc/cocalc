@@ -330,7 +330,7 @@ class Client extends EventEmitter
         if h?
             h(data.slice(1))
         else
-            winston.error("unable to handle data on an unknown channel: '#{channel}'")
+            winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
 
     register_data_handler: (h) ->
         # generate a random channel character that isn't already taken
@@ -1742,8 +1742,9 @@ create_persistent_console_session = (mesg, client) ->
             return
         console_session = net.connect {port:console_server.port, host:console_server.host}, () ->
             # send session configuration:
-            console.log("********* PARAMS = #{to_json(mesg.params)}")
-            #TODO: console_session.write(to_json(params:mesg.params, limits:mesg.limits) + '\u0000')
+            console.log("********* mesg = #{to_json(mesg)}")
+
+            console_session.write(to_json(mesg) + '\u0000')
 
             # relay data from client to console_session:
             channel = client.register_data_handler((data) -> console_session.write(data))
@@ -1752,8 +1753,13 @@ create_persistent_console_session = (mesg, client) ->
             # store the console_session, so other clients can potentially tune in
             # TODO: also store something in database
             console_sessions[session_uuid] = console_session
-            # inform client of successful connection
-            client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:mesg.limits, data_channel:channel))
+
+            resp = message.session_started
+                id           : mesg.id
+                session_uuid : session_uuid
+                limits       : mesg.limits
+                data_channel : channel
+            client.push_to_client(resp)
     )
 
 ##########################################

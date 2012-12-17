@@ -25,19 +25,18 @@ message = (obj) ->
 # Sage session management; executing code
 #############################################
 
-# hub --> sage_server and browser --> hub
-message(
+# hub --> sage_server&console_server and browser --> hub
+message
     event        : 'start_session'
     type         : required           # "sage", "console";  later this could be "R", "octave", etc.
     params       : undefined          # extra parameters that control the type of session
     id           : undefined
     limits       : undefined
-)
 
 # hub --> browser
 message
     event         : 'session_started'
-    id            : required
+    id            : undefined
     session_uuid  : undefined
     limits        : undefined
     data_channel  : undefined # The data_channel is a single UTF-16
@@ -60,31 +59,33 @@ message
     data_channel  : undefined  # used for certain types of sessions
 
 
-# sage_server --> hub
-message(
+# sage_server&console_server --> hub
+message
     event  : 'session_description'
     pid    : required
     limits : undefined
-)
 
 # browser --> hub --> session servers
-message(
+message
     event        : 'send_signal'
+    id           : undefined
     session_uuid : undefined   # from browser-->hub this must be set
     pid          : undefined   # from hub-->sage_server this must be set
     signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
-)
+
+message
+    event        : 'signal_sent'
+    id           : required
 
 # browser <----> hub <--> sage_server
-message(
+message
     event        : 'terminate_session'
     session_uuid : undefined
     reason       : undefined
     done         : true
-)
 
 # browser --> hub --> sage_server
-message(
+message
     event        : 'execute_code'
     id           : undefined
     code         : required
@@ -92,7 +93,6 @@ message(
     session_uuid : undefined
     preparse     : true
     allow_cache  : true
-)
 
 # Output resulting from evaluating code that is displayed by the browser.
 # sage_server --> hub_i --> hub_j --> browser
@@ -169,23 +169,21 @@ message
 # Ping/pong
 #############################################
 # browser --> hub
-message(
+message
     event   : 'ping'
     id      : undefined
-)
 
 # hub --> browser;   sent in response to a ping
-message(
+message
     event   : 'pong'
     id      : undefined
-)
 
 ############################################
 # Account Management
 #############################################
 
 # client --> hub
-message(
+message
     event          : 'create_account'
     id             : undefined
     first_name     : required
@@ -193,42 +191,37 @@ message(
     email_address  : required
     password       : required
     agreed_to_terms: required
-)
 
 # hub --> client
-message (
+message
     event          : 'account_creation_failed'
     id             : required
     reason         : required
-)
 
 # client <--> hub
-message(
+message
     event          : 'email_address_availability'
     id             : undefined
     email_address  : required
     is_available   : undefined
-)
 
 # client --> hub
-message(
+message
     id             : undefined
     event          : 'sign_in'
     email_address  : required
     password       : required
     remember_me    : false
-)
 
 # client --> hub
-message(
+message
     id             : undefined
     event          : 'sign_in_failed'
     email_address  : required
     reason         : required
-)
 
 # hub --> client; sent in response to either create_account or log_in
-message(
+message
     event          : 'signed_in'
     id             : undefined     # message uuid
     account_id     : required      # uuid of user's account
@@ -236,40 +229,32 @@ message(
     last_name      : required      # user's last name
     email_address  : required      # address they just signed in using
     remember_me    : required      # true if sign in accomplished via remember_me cookie; otherwise, false.
-)
-
 
 # client --> hub
-message(
+message
     event          : 'sign_out'
     id             : undefined
-)
 
 # hub --> client
-message(
+message
     event          : 'signed_out'
     id             : undefined
-)
-
 
 # client --> hub
-message(
+message
     event          : 'change_password'
     id             : undefined
     email_address  : required
     old_password   : required
     new_password   : required
-)
-
 
 # hub --> client
 # if error is true, that means the password was not changed; would
 # happen if password is wrong (message:'invalid password').
-message(
+message
     event          : 'changed_password'
     id             : undefined
     error          : undefined
-)
 
 # client --> hub: "please send a password reset email"
 message
@@ -296,22 +281,20 @@ message
     error         : false
 
 # client --> hub
-message(
+message
     event             : 'change_email_address'
     id                : undefined
     account_id        : required
     old_email_address : required
     new_email_address : required
     password          : required
-)
 
 # hub --> client
-message(
+message
     event               : 'changed_email_address'
     id                  : undefined
     error               : false  # some other error
     ttl                 : undefined   # if user is trying to change password too often, this is time to wait
-)
 
 
 ############################################
@@ -319,11 +302,10 @@ message(
 #############################################
 
 # client --> hub
-message(
+message
     event          : "get_account_settings"
     id             : undefined
     account_id     : required
-)
 
 # settings that require the password in the message (so user must
 # explicitly retype password to change these):

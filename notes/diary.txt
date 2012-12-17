@@ -8699,7 +8699,7 @@ NEXT UP:
 VERY SOON:
 
      [ ] project = git bundle in database of limited size, etc. 
-
+     [ ] add signal_sent reply to sage_server.py (message.signal_sent)
 
 ---------
 

@@ -1,3 +1,12 @@
+            # buf = null
+            # console_session.on('data', (data) ->
+            #     if buf == null
+            #         buf = data
+            #     else
+            #         buf = Buffer.concat([buf, data])
+            #     if buf[buf.length-1].toString() = '\u0000'
+            #         client.push_to_client(from_json(buf[buf.length-1].toString()))
+            # inform client of successful connection
 
 #################################################
 # HTML parsing functionality -- probably move

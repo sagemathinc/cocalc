@@ -1,4 +1,5 @@
-pty = require 'pty.js'
+pty      = require 'pty.js'
+message  = require 'message'
 {defaults, required} = require 'misc'
 
 process.on 'message', (opts, socket) ->
@@ -25,7 +26,7 @@ process.on 'message', (opts, socket) ->
         env  : {HOME:opts.home, PATH:opts.path}
 
     term = pty.fork(opts.command, opts.args, term_opts)
-
+    
     socket.on 'data', (data) ->
         term.write data
 
