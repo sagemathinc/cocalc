@@ -19,16 +19,6 @@ CREATE TABLE sage_servers (
 
 CREATE INDEX ON sage_servers (running);
 
-//PROPOSED, but maybe bogus!?
-//CREATE TABLE session_servers (
-//    address varchar PRIMARY KEY,
-//    port    int     PRIMARY KEY,
-//    type    varchar,
-//    running boolean
-//);
-//CREATE INDEX ON session_servers (running);
-
-
 CREATE TABLE services (
     service_id uuid PRIMARY KEY,
     name varchar,

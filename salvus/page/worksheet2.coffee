@@ -107,10 +107,12 @@ init = () ->
 
 init_console = (elt) ->
     elt = $(elt)
+    settings = require('account').account_settings.settings
+    username = "#{settings.first_name} #{settings.last_name}"
     salvus_client.new_session
         limits : {walltime:60*15}
         type : 'console'
-        params : {'command':'python'}
+        params : {command:'bash', args:['--norc'], ps1:"#{username}:\\w\\$ "}
         cb : (err, session) ->
             if err
                 console.log "Error starting console session: #{err}"

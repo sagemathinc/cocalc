@@ -1735,7 +1735,18 @@ create_persistent_console_session = (mesg, client) ->
     winston.log('creating a console session for user with account_id #{account_id}')
     session_uuid = uuid.v4()
     net = require('net')
+
+    if not mesg.params?
+        mesg.params = {}
+
+    # Cap limits on the console session.
     client.cap_session_limits(mesg.limits)
+    # Determine the home directory
+    # TODO: when we have projects this will be /tmp/project-id; for now use session_uuid
+    # home is a relative path under wherever the console_server has been configured to store home dirs
+    if not mesg.params.home?
+        mesg.params.home = session_uuid
+
     database.random_running_session_server(type:'console', cb:(error, console_server) ->
         if error
             client.push_to_client(message.error(id:mesg.id, error:error))

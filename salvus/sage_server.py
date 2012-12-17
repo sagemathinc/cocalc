@@ -592,7 +592,7 @@ def serve_connection(conn):
 
     # start a session
     home = tempfile.mkdtemp() if whoami == 'root' else None
-    uid = (os.getpid() % 5000) + 5000
+    uid = (os.getpid() % 5000) + 5000   # TODO: just for testing; hub/db will have to assign and track this!
     pid = os.fork()
     limits = mesg.get('limits', {})
     if pid:
