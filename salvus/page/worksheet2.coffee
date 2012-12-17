@@ -73,6 +73,7 @@ init = () ->
     salvus_client.new_session
         limits: {walltime:60*15}
         type: 'sage'
+        params : {'command':'python'}
         cb : (err, session) ->
             if err
                 console.log "Error getting session: #{err}"
@@ -109,6 +110,7 @@ init_console = (elt) ->
     salvus_client.new_session
         limits : {walltime:60*15}
         type : 'console'
+        params : {'command':'python'}
         cb : (err, session) ->
             if err
                 console.log "Error starting console session: #{err}"
@@ -127,6 +129,7 @@ init_consoles = (elts) ->
 init_consoles2 = (elts) ->
     salvus_client.new_session
         limits : {walltime:60*15}
+        params : {'command':'python'}
         type : 'console'
         cb : (err, session) ->
             if err
@@ -142,8 +145,9 @@ init_consoles2 = (elts) ->
 init_consoles3 = (elts) ->
     salvus_client.new_session
         limits : {walltime:60*15}
-        type : 'console'
-        cb : (err, session) ->
+        type   : 'console'
+        params : {'command':'python'}
+        cb     : (err, session) ->
             if err
                 console.log "Error starting console session: #{err}"
             else

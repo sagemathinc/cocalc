@@ -26,7 +26,7 @@ mime    = require('mime')
 # salvus libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
-defaults = misc.defaults; required = defaults.required
+{defaults, required} = require 'misc'
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client_lib = require("client")
@@ -163,6 +163,17 @@ class Client extends EventEmitter
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
+
+    #######################################################
+    # Capping resource limits; client can request anything.
+    # We cap what they get based on the account type, etc...
+    # This functions *modifies* the limits object in place.
+    #######################################################
+    cap_session_limits: (limits) ->
+        if @account_id?  # logged in
+            misc.min_object(limits, SESSION_LIMITS)  # TODO
+        else
+            misc.min_object(limits, SESSION_LIMITS_NOT_LOGGED_IN)  # TODO
 
     #######################################################
     # Pushing messages to this particular connected client
@@ -374,7 +385,7 @@ class Client extends EventEmitter
             return
         switch mesg.type
             when 'sage'
-                create_persistent_sage_session(mesg, @account_id, @)
+                create_persistent_sage_session(mesg, @)
             when 'console'
                 create_persistent_console_session(mesg, @)
             else
@@ -1621,19 +1632,15 @@ get_blob = (opts) ->
 ########################################
 persistent_sage_sessions = {}
 
-SAGE_SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
+SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
 
-SAGE_SESSION_LIMITS = {cputime:10*60, walltime:30*60, vmem:2000, numfiles:1000, quota:128}
+SESSION_LIMITS = {cputime:10*60, walltime:30*60, vmem:2000, numfiles:1000, quota:128}
 
-create_persistent_sage_session = (mesg, account_id, client) ->
+create_persistent_sage_session = (mesg, client) ->
     winston.log('creating persistent sage session')
     # generate a uuid
     session_uuid = uuid.v4()
-    # cap limits
-    if account_id?
-        misc.min_object(mesg.limits, SAGE_SESSION_LIMITS)  # TODO
-    else
-        misc.min_object(mesg.limits, SAGE_SESSION_LIMITS_NOT_LOGGED_IN)  # TODO
+    client.cap_session_limits(mesg.limits)
     database.random_sage_server( cb:(error, sage_server) ->
         if error
             client.push_to_client(message.error(id:mesg.id, error:error))
@@ -1653,7 +1660,7 @@ create_persistent_sage_session = (mesg, account_id, client) ->
                             when "session_description"
                                 # record this for later use for signals:
                                 persistent_sage_sessions[session_uuid].pid = m.pid
-                                persistent_sage_sessions[session_uuid].account_id = account_id
+                                persistent_sage_sessions[session_uuid].account_id = client.account_id
                                 client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
                             else
                                 client.push_to_client(m)
@@ -1728,11 +1735,16 @@ create_persistent_console_session = (mesg, client) ->
     winston.log('creating a console session for user with account_id #{account_id}')
     session_uuid = uuid.v4()
     net = require('net')
+    client.cap_session_limits(mesg.limits)
     database.random_running_session_server(type:'console', cb:(error, console_server) ->
         if error
             client.push_to_client(message.error(id:mesg.id, error:error))
             return
         console_session = net.connect {port:console_server.port, host:console_server.host}, () ->
+            # send session configuration:
+            console.log("********* PARAMS = #{to_json(mesg.params)}")
+            #TODO: console_session.write(to_json(params:mesg.params, limits:mesg.limits) + '\u0000')
+
             # relay data from client to console_session:
             channel = client.register_data_handler((data) -> console_session.write(data))
             # relay data from console_session to client

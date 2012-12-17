@@ -1,3 +1,5 @@
+[ ] OMFG graph editor: http://mbostock.github.com/d3/talk/20111116/force-collapsible.html
+
 [ ] online collaborative latex editing: https://www.writelatex.com/
     I can do way better, I think, on top of salv.us. But that's for a little later...
     * "Have you considered the popular front-end languages like Markdown, org-mode or any of the plethora of formats that have translators to LaTeX?"

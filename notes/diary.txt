@@ -8273,7 +8273,7 @@ salvus.coffeescript("$('#mycolor3').colorpicker()", once=False)
   - use the above to implement display of static 2d plots...
 
  [x] i wonder how hard svg rendering for 2d plots would be...
-Amusing demo using Rapael:
+Amusing demo using Raphael:
 s = """
 r = Raphael(cell.find(".salvus-cell-output").css('border','1px solid black').draggable()[0], 800, 100)
 circle = r.circle(50, 40, 5)
@@ -8664,15 +8664,19 @@ NEXT UP:
          existing sessions in the hub, assuming relevant function
          cassandra.coffee is implemented.
 
-     [ ] proper handling of connection closing on all relevant sides
-
-     [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
-     [ ] modify database.random_sage_server to be random_session_server(...) and take type
-     [ ] modify cassandra.py to use new database schema
+     [ ] console -- can I specify command, e.g., "emacs", "vim", "bash", "sage"?
+         YES, so make this part of the message spec, etc. 
+         and have the option of doing special things for different things.
 
      [ ] extend console_server, so can also send message to kill session
      [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
      [ ] extend console_server, to impose resource limits: ulimits
+     [ ] proper handling of connection closing on all relevant sides
+     [ ] when console_server fails, give good error message (instead of timeout)?
+
+     [ ] modify database schema to have "session_servers" and have a type column, which can be sage or console or whatever.
+     [ ] modify database.random_sage_server to be random_session_server(...) and take type
+     [ ] modify cassandra.py to use new database schema
 
      [ ] modify console so it gives back keyboard when looses focus.
      [ ] test having multiple consoles on same server
@@ -8691,6 +8695,10 @@ NEXT UP:
      [ ] modify sage startup so that it turns on ipython command prompt colors
 
      [ ] dogfood -- stop using the command line -- always use this for my work/development!
+
+VERY SOON:
+
+     [ ] project = git bundle in database of limited size, etc. 
 
 
 ---------

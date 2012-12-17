@@ -1,25 +1,30 @@
 pty = require 'pty.js'
+{defaults, required} = require 'misc'
 
 process.on 'message', (opts, socket) ->
     if opts.gid?
         process.setgid(opts.gid)
+        delete opts.gid
     if opts.uid?
         process.setuid(opts.uid)
-    if opts.HOME?
-        cwd = opts.HOME
-    else
-        cwd = process.env.HOME
-    rows = if opts.rows? then opts.rows else 24
-    cols = if opts.cols? then opts.cols else 80
+        delete opts.uid
 
-    opts =
+    opts = defaults opts,
+        home    : process.env.HOME
+        path    : '/usr/local/bin:/usr/bin:/bin'
+        rows    : 24
+        cols    : 80
+        command : '/bin/bash'
+        args    : []
+
+    term_opts =
         name : 'xterm'
-        rows : rows
-        cols : cols
-        cwd  : cwd
-        env  : {HOME:cwd}
+        rows : opts.rows
+        cols : opts.cols
+        cwd  : opts.cwd
+        env  : {HOME:opts.home, PATH:opts.path}
 
-    term = pty.fork('bash', [], opts)
+    term = pty.fork(opts.command, opts.args, term_opts)
 
     socket.on 'data', (data) ->
         term.write data

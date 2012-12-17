@@ -29,6 +29,7 @@ message = (obj) ->
 message(
     event        : 'start_session'
     type         : required           # "sage", "console";  later this could be "R", "octave", etc.
+    params       : undefined          # extra parameters that control the type of session
     id           : undefined
     limits       : undefined
 )
@@ -66,7 +67,7 @@ message(
     limits : undefined
 )
 
-# browser --> hub --> sage_server
+# browser --> hub --> session servers
 message(
     event        : 'send_signal'
     session_uuid : undefined   # from browser-->hub this must be set

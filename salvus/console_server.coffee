@@ -17,7 +17,7 @@ server = net.createServer (socket) ->
     console.log("PARENT: received connection")
     cp = child_process.fork(__dirname + '/console_server_child.js', [])
     console.log("PARENT: forked off child to handle it")
-    opts = {HOME:'/tmp/x/', rows:20, cols:140}
+    opts = {home:'/tmp/x/', rows:20, cols:80, command:'/bin/bash', path:process.env.PATH}
     if process.getuid() == 0  # root
         console.log("running as root, so forking with reduced privileges")
         opts.uid = Math.floor(2000 + Math.random()*1000)
