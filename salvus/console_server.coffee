@@ -15,6 +15,7 @@ fs             = require 'fs'
 net            = require 'net'
 child_process  = require 'child_process'
 message        = require 'message'
+{read_until_null} = require 'misc_node'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
@@ -74,6 +75,9 @@ start_session = (socket, mesg) ->
         else
             # Fork of a child process that drops privileges and does all further work to handle a connection.
             child = child_process.fork(__dirname + '/console_server_child.js', [])
+            # Send the pid of the child back
+            socket.write(child.pid + '\u0000')
+            # Give the socket to the child, along with the options
             child.send(opts, socket)
             console.log("PARENT: forked off child to handle it")
 
@@ -103,14 +107,9 @@ handle_client = (socket, mesg) ->
 server = net.createServer (socket) ->
     console.log("PARENT: received connection")
     # Receive a single control message, which is a JSON object terminated by null.
-    buf = null
-    socket.on 'data', (data) ->
-        console.log("RECEIVED: #{data}")
-        buf = if buf == null then data else Buffer.concat([buf, data])
-        if buf[buf.length-1] == 0
-            # We have received one complete message, so we handle it.
-            socket.removeAllListeners 'data'
-            handle_client(socket, from_json(buf.slice(0,buf.length-1).toString()))
-
+    read_until_null(socket, (result, extra_data) ->
+        console.log("... and read #{result}, #{extra_data}")
+        handle_client(socket, from_json(result.toString()))
+    )
 
 server.listen 8124, () -> console.log 'listening on port 8124'

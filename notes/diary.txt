@@ -8669,8 +8669,14 @@ NEXT UP:
          and have the option of doing special things for different things.
      [x] test having multiple consoles on same server
 
-     [ ] in client, implement ConsoleServer.kill
-     [ ] extend console_server, so can also send message to kill session
+     [x] in client, implement ConsoleServer.kill
+     [x] extend console_server, so can also send message to kill session
+
+     [ ] factor the code out from sage.coffee for sending length
+         prefixed messages over TCP and use *only* that for sending
+         messages.
+     [ ] make console_server send a response message containing the pid of the process it spawned.
+
      [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
      [ ] extend console_server, to impose resource limits: ulimits
      [ ] proper handling of connection closing on all relevant sides

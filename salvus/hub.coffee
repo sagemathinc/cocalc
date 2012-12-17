@@ -33,6 +33,8 @@ cass    = require("cassandra")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
+{read_until_null} = require 'misc_node'
+
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
 from_json = misc.from_json
@@ -1794,19 +1796,23 @@ create_persistent_console_session = (client, mesg) ->
 
             # Send session configuration
             console_session.write(to_json(mesg) + '\u0000')
-            # Wait until we get back session creation message (which has the pid!)
+            # Get back pid of child:
+            read_until_null console_session, (result, extra_data) ->
+                console_session.pid = result.toString()
+                console.log("PID = ", console_session.pid)
+                console_session.write(extra_data)  # might get past the null by accident
 
-            # Relay data from client to console_session
-            channel = client.register_data_handler((data) -> console_session.write(data))
-            # relay data from console_session to client
-            console_session.on('data', (data) -> client.push_data_to_client(channel, data))
+                # Relay data from client to console_session
+                channel = client.register_data_handler((data) -> console_session.write(data))
+                # relay data from console_session to client
+                console_session.on('data', (data) -> client.push_data_to_client(channel, data))
 
-            resp = message.session_started
-                id           : mesg.id
-                session_uuid : session_uuid
-                limits       : mesg.limits
-                data_channel : channel
-            client.push_to_client(resp)
+                resp = message.session_started
+                    id           : mesg.id
+                    session_uuid : session_uuid
+                    limits       : mesg.limits
+                    data_channel : channel
+                client.push_to_client(resp)
     )
 
 ##########################################
