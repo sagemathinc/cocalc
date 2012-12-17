@@ -8625,8 +8625,11 @@ There is a nice free impress editor: https://github.com/tantaman/Strut
                 If code is any other character, then message gets handled as raw data via a registered handler, if there is one.
                 That's it.
          [x] add to hub
+
 Pushing to remote *branch* on github:
      git push -u origin console
+Getting from branch:
+     git checkout --track origin/console
 
 I'm going to get some vegan food now, then finish this in my hotel (until 2am!)
 
@@ -8675,6 +8678,8 @@ NEXT UP:
      [ ] factor the code out from sage.coffee for sending length
          prefixed messages over TCP and use *only* that for sending
          messages.
+
+
      [ ] make console_server send a response message containing the pid of the process it spawned.
 
      [ ] extend console_server, so have predetermined timeouts for all servers for general robustness
@@ -8727,6 +8732,8 @@ ADMIN:
 
 other:
      [ ] add signal_sent reply to sage_server.py (message.signal_sent)
+     [ ] add option to all these session servers that is a hard limit on the max number of spawned sessions;
+         if exceeded, then they automatically kill off oldest ones.   EASY and could massively save ass.
 
 ---------
 

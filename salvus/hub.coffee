@@ -1647,6 +1647,7 @@ save_blob = (opts) ->
     if opts.value.length >= 10000000
         # PRIMITIVE anti-DOS measure
         return
+    opts.value = opts.value.toString()  # TODO -- temporary for testing until I make a better DB TABLE!!!!
     database.uuid_value_store(name:"blobs").set(opts)
 
 get_blob = (opts) ->
