@@ -83,13 +83,22 @@ handle_client = (socket, mesg) ->
             when 'start_session'
                 start_session(socket, mesg)
             when 'send_signal'
-                process.kill(mesg.pid, mesg.signal)
+                switch mesg.signal
+                    when 2
+                        signal = 'SIGINT'
+                    when 3
+                        signal = 'SIGQUIT'
+                    when 9
+                        signal = 'SIGKILL'
+                    else
+                        throw("only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
+                process.kill(mesg.pid, signal)
                 socket.write(to_json(message.signal_sent(id:mesg.id)))
             else
                 err = message.error(id:mesg.id, error:"Console server received an invalid mesg type '#{mesg.event}'")
                 socket.write(to_json(err))
     catch e
-        console.log("ERROR: #{e} handling message #{to_json(mesg)}")
+        console.log("ERROR: '#{e}' handling message '#{to_json(mesg)}'")
 
 server = net.createServer (socket) ->
     console.log("PARENT: received connection")

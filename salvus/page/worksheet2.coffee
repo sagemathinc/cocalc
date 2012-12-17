@@ -120,6 +120,7 @@ init_console = (elt) ->
                 elt.salvus_console(title:"A Test Console", session:session)
                 c = elt.data('console')
                 c.element.focus()
+                c.element.append($("<a class='btn'>KILL</a>").click(() -> session.kill()))
 
 # each with different session
 init_consoles = (elts) ->

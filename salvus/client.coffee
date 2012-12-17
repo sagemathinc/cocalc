@@ -44,6 +44,14 @@ class Session extends EventEmitter
     write_data: (data) ->
         @conn.write_data(@data_channel, data)
 
+    # default = SIGINT
+    interrupt: () ->
+        @conn.send(message.send_signal(session_uuid:@session_uuid, signal:2))
+
+    kill: () ->
+        @emit("close")
+        @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
+
 ###
 #
 # A Sage session, which links the client to a running Sage process;
@@ -79,14 +87,6 @@ class SageSession extends Session
 
         return uuid
 
-    # default = SIGINT
-    interrupt: () ->
-        @conn.send(message.send_signal(session_uuid:@session_uuid, signal:2))
-
-    kill: () ->
-        @emit("close")
-        @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
-
     introspect: (opts) ->
         opts.session_uuid = @session_uuid
         @conn.introspect(opts)
@@ -100,8 +100,7 @@ class SageSession extends Session
 ###
 
 class ConsoleSession extends Session
-    kill: () ->
-        # TODO: implement this -- not yet clear
+    # nothing special yet
 
 class exports.Connection extends EventEmitter
     # Connection events:

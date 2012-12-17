@@ -17,9 +17,10 @@
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # node.js -- builtin libraries
-http    = require('http')
-url     = require('url')
-{EventEmitter} = require('events')
+net     = require 'net'
+http    = require 'http'
+url     = require 'url'
+{EventEmitter} = require 'events'
 
 mime    = require('mime')
 
@@ -366,6 +367,21 @@ class Client extends EventEmitter
             handler(mesg)
         else
             @push_to_client(message.error(error:"The Salvus hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
+    ######################################################
+    # Permission to send a message to a named compute session.
+    ######################################################
+    check_permission: (mesg) ->
+        if not mesg.session_uuid?
+            return true
+        session = compute_sessions[mesg.session_uuid]
+        if not session?
+            @push_to_client(message.error(id:mesg.id, error:"Unknown compute session #{mesg.session_uuid}."))
+            return false
+        # TODO: make this more flexible later
+        if session.account_id != @account_id
+            @push_to_client(message.error(id:mesg.id, error:"You are not allowed to access compute session #{mesg.session_uuid}."))
+            return false
+        return true
 
     ######################################################
     # Messages: Sage compute sessions and code execution
@@ -374,8 +390,10 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to execute code."))
             return
+        if not @check_permission(mesg)
+            return
         if mesg.session_uuid?
-            send_to_persistent_sage_session(mesg, @account_id)
+            send_to_persistent_sage_session(mesg)
         else
             stateless_sage_exec(mesg, @push_to_client)
 
@@ -385,9 +403,9 @@ class Client extends EventEmitter
             return
         switch mesg.type
             when 'sage'
-                create_persistent_sage_session(mesg, @)
+                create_persistent_sage_session(@, mesg)
             when 'console'
-                create_persistent_console_session(mesg, @)
+                create_persistent_console_session(@, mesg)
             else
                 @push_to_client(message.error(id:mesg.id, error:"Unknown message type '#{mesg.type}'"))
 
@@ -397,7 +415,7 @@ class Client extends EventEmitter
             return
         switch mesg.type
             when 'console'
-                connect_to_existing_console_session(mesg, @)
+                connect_to_existing_console_session(@, mesg)
             else
                 # TODO
                 @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
@@ -406,7 +424,14 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
             return
-        send_to_persistent_sage_session(mesg, @account_id)
+        if not @check_permission(mesg)
+            return
+        if console_sessions[mesg.session_uuid]?
+            send_to_persistent_console_session(mesg)
+        else if persistent_sage_sessions[mesg.session_uuid]?
+            send_to_persistent_sage_session(mesg)
+        else
+            @push_to_client(message.error(id:mesg.id, error:"Unknown session #{mesg.session_uuid}"))
 
     ######################################################
     # Message: Introspections
@@ -418,8 +443,9 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
             return
-
-        send_to_persistent_sage_session(mesg, @account_id)
+        if not @check_permission(mesg)
+            return
+        send_to_persistent_sage_session(mesg)
 
     ######################################################
     # Messages: Keeping client connected
@@ -1628,6 +1654,11 @@ get_blob = (opts) ->
     database.uuid_value_store(name:"blobs").get(opts)
 
 ########################################
+# Compute Sessions (of various types)
+########################################
+compute_sessions = {}
+
+########################################
 # Persistent Sage Sessions
 ########################################
 persistent_sage_sessions = {}
@@ -1636,7 +1667,7 @@ SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles
 
 SESSION_LIMITS = {cputime:10*60, walltime:30*60, vmem:2000, numfiles:1000, quota:128}
 
-create_persistent_sage_session = (mesg, client) ->
+create_persistent_sage_session = (client, mesg) ->
     winston.log('creating persistent sage session')
     # generate a uuid
     session_uuid = uuid.v4()
@@ -1677,20 +1708,17 @@ create_persistent_sage_session = (mesg, client) ->
         # Save sage_conn object so that when the user requests evaluation of
         # code in the session with this id, we use this.
         persistent_sage_sessions[session_uuid] = {conn:sage_conn}
+        compute_sessions[session_uuid] = persistent_sage_sessions[session_uuid]
         client.persistent_sage_session_uuids.push(session_uuid)
 
         winston.info("(hub) added #{session_uuid} to persistent sessions")
     )
 
-send_to_persistent_sage_session = (mesg, account_id) ->
+send_to_persistent_sage_session = (mesg) ->
     winston.debug("send_to_persistent_sage_session(#{to_safe_str(mesg)})")
 
     session_uuid = mesg.session_uuid
     session = persistent_sage_sessions[session_uuid]
-    if session.account_id != account_id
-        winston.info("(hub) attempt by account #{account_id} to execute code in session #{session_uuid} that it does not own.   This can only be the result of a bug or hack.")
-        return
-
     if not session?
         winston.error("TODO -- session #{mesg.session_uuid} does not exist")
         return
@@ -1718,7 +1746,13 @@ send_to_persistent_sage_session = (mesg, account_id) ->
 # TODO
 console_sessions = {}
 
-connect_to_existing_console_session = (mesg, client) ->
+send_to_persistent_console_session = (mesg) ->
+    {host, port, pid} = console_sessions[mesg.session_uuid]
+    mesg.pid = pid
+    socket = net.connect {host:host, port:port}, () ->
+        socket.write(to_json(mesg) + '\u0000')
+
+connect_to_existing_console_session = (client, mesg) ->
     #
     # TODO: actually do something to make sure user is allowed to make this connection!
     #
@@ -1731,10 +1765,9 @@ connect_to_existing_console_session = (mesg, client) ->
         console_session.on("data", (data) -> client.push_data_to_client(channel, data))
         client.push_to_client(message.session_connected(id:mesg.id, data_channel:channel))
 
-create_persistent_console_session = (mesg, client) ->
+create_persistent_console_session = (client, mesg) ->
     winston.log('creating a console session for user with account_id #{account_id}')
     session_uuid = uuid.v4()
-    net = require('net')
 
     if not mesg.params?
         mesg.params = {}
@@ -1752,18 +1785,21 @@ create_persistent_console_session = (mesg, client) ->
             client.push_to_client(message.error(id:mesg.id, error:error))
             return
         console_session = net.connect {port:console_server.port, host:console_server.host}, () ->
-            # send session configuration:
-            console.log("********* mesg = #{to_json(mesg)}")
+            # store the console_session, so other clients can potentially tune in (TODO: also store something in database)
+            console_session.port = console_server.port
+            console_session.host = console_server.host
+            console_session.account_id = client.account_id
+            console_sessions[session_uuid] = console_session
+            compute_sessions[session_uuid] = console_session
 
+            # Send session configuration
             console_session.write(to_json(mesg) + '\u0000')
+            # Wait until we get back session creation message (which has the pid!)
 
-            # relay data from client to console_session:
+            # Relay data from client to console_session
             channel = client.register_data_handler((data) -> console_session.write(data))
             # relay data from console_session to client
             console_session.on('data', (data) -> client.push_data_to_client(channel, data))
-            # store the console_session, so other clients can potentially tune in
-            # TODO: also store something in database
-            console_sessions[session_uuid] = console_session
 
             resp = message.session_started
                 id           : mesg.id
