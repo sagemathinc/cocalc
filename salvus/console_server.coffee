@@ -15,7 +15,7 @@ fs             = require 'fs'
 net            = require 'net'
 child_process  = require 'child_process'
 message        = require 'message'
-{read_until_null} = require 'misc_node'
+misc_node      = require 'misc_node'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
@@ -76,7 +76,9 @@ start_session = (socket, mesg) ->
             # Fork of a child process that drops privileges and does all further work to handle a connection.
             child = child_process.fork(__dirname + '/console_server_child.js', [])
             # Send the pid of the child back
-            socket.write(child.pid + '\u0000')
+            socket.write_mesg('json', {pid:child.pid})
+            # Disable use of the socket for sending/receiving messages.
+            misc_node.disable_mesg(socket)
             # Give the socket to the child, along with the options
             child.send(opts, socket)
             console.log("PARENT: forked off child to handle it")
@@ -97,19 +99,21 @@ handle_client = (socket, mesg) ->
                     else
                         throw("only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
                 process.kill(mesg.pid, signal)
-                socket.write(to_json(message.signal_sent(id:mesg.id)))
+                socket.write_mesg('json', message.signal_sent(id:mesg.id))
             else
                 err = message.error(id:mesg.id, error:"Console server received an invalid mesg type '#{mesg.event}'")
-                socket.write(to_json(err))
+                socket.write_mesg('json', err)
     catch e
         console.log("ERROR: '#{e}' handling message '#{to_json(mesg)}'")
 
 server = net.createServer (socket) ->
     console.log("PARENT: received connection")
     # Receive a single control message, which is a JSON object terminated by null.
-    read_until_null(socket, (result, extra_data) ->
-        console.log("... and read #{result}, #{extra_data}")
-        handle_client(socket, from_json(result.toString()))
-    )
+    misc_node.enable_mesg(socket)
+    socket.on 'mesg', (type, mesg) ->
+        console.log("received control mesg #{mesg}")
+        handle_client(socket, mesg)
+
+
 
 server.listen 8124, () -> console.log 'listening on port 8124'

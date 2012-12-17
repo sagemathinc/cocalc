@@ -74,11 +74,6 @@ exports.enable_mesg = enable_mesg = (socket) ->
 
 # Stop watching data stream for messages and delete the write_mesg function.
 exports.disable_mesg = (socket) ->
-    if self._listen_for_mesg?
-        socket.removeListener('data', self._listen_for_mesg)
-        delete self._listen_for_mesg
-
-# TODO: remove
-exports.read_until_null = () ->
-
-
+    if socket._listen_for_mesg?
+        socket.removeListener('data', socket._listen_for_mesg)
+        delete socket._listen_for_mesg

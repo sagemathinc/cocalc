@@ -33,7 +33,7 @@ cass    = require("cassandra")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
-{read_until_null} = require 'misc_node'
+misc_node = require 'misc_node'
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -1753,7 +1753,8 @@ send_to_persistent_console_session = (mesg) ->
     {host, port, pid} = console_sessions[mesg.session_uuid]
     mesg.pid = pid
     socket = net.connect {host:host, port:port}, () ->
-        socket.write(to_json(mesg) + '\u0000')
+        misc_node.enable_mesg(socket)
+        socket.write_mesg('json', mesg)
 
 connect_to_existing_console_session = (client, mesg) ->
     #
@@ -1796,12 +1797,14 @@ create_persistent_console_session = (client, mesg) ->
             compute_sessions[session_uuid] = console_session
 
             # Send session configuration
-            console_session.write(to_json(mesg) + '\u0000')
-            # Get back pid of child:
-            read_until_null console_session, (result, extra_data) ->
-                console_session.pid = result.toString()
+            misc_node.enable_mesg(console_session)
+            console_session.write_mesg('json', mesg)
+            # Get back pid of child
+            console_session.once 'mesg', (type, resp) ->
+                misc_node.disable_mesg(console_session)
+
+                console_session.pid = resp.pid
                 console.log("PID = ", console_session.pid)
-                console_session.write(extra_data)  # might get past the null by accident
 
                 # Relay data from client to console_session
                 channel = client.register_data_handler((data) -> console_session.write(data))
