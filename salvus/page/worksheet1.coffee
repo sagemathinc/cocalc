@@ -852,7 +852,7 @@ start_session_timer = (seconds) ->
         expiryText : "session killed (after #{seconds} seconds)"
         onExpiry   : () ->
             mark_session_as_dead()
-            alert_message(type:"info", message:"Sage session killed (after #{seconds} seconds).", block:true)
+            alert_message(type:"info", message:"Sage session killed (after #{seconds} seconds).")
 
 delete_session_timer = () ->
     views.worksheet.find('.salvus-worksheet1-countdown-timer').countdown('destroy').hide()

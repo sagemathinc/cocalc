@@ -8688,7 +8688,7 @@ NEXT UP:
 
 
 UI stuff
-     [ ] countdown timer limits.walltime
+--> (10min) [x] countdown timer limits.walltime
      [ ] modify console so it gives back keyboard when looses focus.
      [ ] tabs
      [ ] copy/paste/keyboard buttons

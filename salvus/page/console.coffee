@@ -5,6 +5,7 @@
 ###########################################
 
 {EventEmitter} = require('events')
+{alert_message} = require('alerts')
 {copy, filename_extension, required, defaults, to_json} = require('misc')
 
 templates        = $("#salvus-console-templates")
@@ -32,10 +33,22 @@ class Console extends EventEmitter
         @_term.on    'title',(title) => @set_title(title)
         @_session.on 'data',  (data) => @_term.write(data)
 
+        @_start_session_timer(opts.session.limits.walltime)
+
 
     #######################################################################
     # Private Methods
     #######################################################################
+    _start_session_timer: (seconds) ->
+        t = new Date()
+        t.setTime(t.getTime() + seconds*1000)
+        @element.find(".salvus-console-countdown").show().draggable().countdown('destroy').countdown
+            until      : t
+            compact    : true
+            layout     : '{hnn}{sep}{mnn}{sep}{snn}'
+            expiryText : "Console session killed (after #{seconds} seconds)"
+            onExpiry   : () ->
+                alert_message(type:"info", message:"Console session killed (after #{seconds} seconds).")
 
     #######################################################################
     # Public API
