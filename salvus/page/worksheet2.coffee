@@ -110,7 +110,7 @@ init_console = (elt) ->
     settings = require('account').account_settings.settings
     username = "#{settings.first_name} #{settings.last_name}"
     salvus_client.new_session
-        limits : {walltime:5*60}
+        limits : {}
         type : 'console'
         params : {command:'bash', args:['--norc'], ps1:"#{username}:\\w\\$ "}
         cb : (err, session) ->
@@ -119,8 +119,6 @@ init_console = (elt) ->
             else
                 elt.salvus_console(title:"A Test Console", session:session)
                 c = elt.data('console')
-                c.element.focus()
-                c.element.append($("<a class='btn'>KILL</a>").click(() -> session.kill()))
                 #c.element.draggable()
 
 # each with different session
@@ -143,7 +141,6 @@ init_consoles2 = (elts) ->
                     elt = $(elt)
                     elt.salvus_console(title:"A Test Console", session:session)
                     c = elt.data('console')
-                    c.element.focus()
 
 # use "connect_to_session"
 init_consoles3 = (elts) ->
@@ -166,7 +163,6 @@ init_consoles3 = (elts) ->
                                 elt = $(elt)
                                 elt.salvus_console(title:"A Test Console", session:session2)
                                 c = elt.data('console')
-                                c.element.focus()
 
 {top_navbar}       = require('top_navbar')
 top_navbar.on "switch_to_page-worksheet2", () ->
@@ -174,3 +170,7 @@ top_navbar.on "switch_to_page-worksheet2", () ->
     c = worksheet2.find(".salvus-test-console")
     console.log(c.length)
     init_consoles(c)
+
+top_navbar.on "switch_from_page-worksheet2", () ->
+    for X in worksheet2.find(".salvus-console")
+        $(X).data('console').blur()

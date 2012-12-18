@@ -22,7 +22,7 @@ class Console extends EventEmitter
         @element.data("console", @)
         $(@opts.element).replaceWith(@element)
         @set_title(@opts.title)
-        @_term = new Terminal(100,20)
+        @_term = new Terminal(80,20)
         @_term.open()
         @_term.element.className = "salvus-console-terminal"
         @element.find(".salvus-console-terminal").replaceWith(@_term.element)
@@ -35,6 +35,14 @@ class Console extends EventEmitter
 
         @_start_session_timer(opts.session.limits.walltime)
 
+        t = @element.find(".salvus-console-textarea")
+        t.on('focus', () => @focus())
+        t.on('blur', () => @blur())
+
+        #t.css('width', $(@_term.element).css('width'))
+        #t.css('height', $(@_term.element).css('height'))
+
+        @element.draggable(handle:@element.find('.salvus-console-title'))
 
     #######################################################################
     # Private Methods
@@ -54,6 +62,10 @@ class Console extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    blur : () => @_term.blur()
+
+    focus : () => @_term.focus()
 
     set_title: (title) ->
         @element.find(".salvus-console-title").text(title)

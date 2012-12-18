@@ -295,7 +295,7 @@ Terminal.geometry = [80, 24];
 Terminal.cursorBlink = false;
 Terminal.visualBell = false;
 Terminal.popOnBell = false;
-Terminal.scrollback = 1000;
+Terminal.scrollback = 5000;
 Terminal.screenKeys = false;
 Terminal.programFeatures = false;
 Terminal.debug = false;
@@ -305,6 +305,16 @@ Terminal.debug = false;
  */
 
 Terminal.focus = null;
+
+Terminal.prototype.blur = function() {
+  if (Terminal.focus !== this) return;
+  if (Terminal.focus) {
+    Terminal.focus.cursorState = 0;
+    Terminal.focus.refresh(Terminal.focus.y, Terminal.focus.y);
+    if (Terminal.focus.sendFocus) Terminal.focus.send('\x1b[O');
+  }
+  Terminal.focus = undefined;
+}
 
 Terminal.prototype.focus = function() {
   if (Terminal.focus === this) return;
@@ -325,6 +335,22 @@ Terminal.prototype.focus = function() {
 Terminal.bindKeys = function() {
   if (Terminal.focus) return;
 
+  on(document, 'keydown', function(ev) {
+    if (typeof Terminal.focus === 'object') {
+      return Terminal.focus.keyDown(ev);
+    }
+  }, true);
+
+  on(document, 'keypress', function(ev) {
+    if (typeof Terminal.focus === 'object') {
+      return Terminal.focus.keyPress(ev);
+    }
+  }, true);
+};
+
+/*Terminal.bindKeys = function() {
+  if (Terminal.focus) return;
+
   // We could put an "if (Terminal.focus)" check
   // here, but it shouldn't be necessary.
   on(document, 'keydown', function(ev) {
@@ -337,6 +363,7 @@ Terminal.bindKeys = function() {
     return Terminal.focus.keyPress(ev);
   }, true);
 };
+*/
 
 /**
  * Open Terminal

@@ -1,6 +1,6 @@
 .salvus-console {
     border           : 1px solid #aaa;
-    background-color : #fff;
+    background-color : #e8e8e8;
     padding          : 10px;
     margin           : 10px;
     box-shadow       : 6px 6px 3px #888;
@@ -15,11 +15,11 @@
    color : #888;
 }
 
- .salvus-console-terminal {
-     border: #fff solid 7px;
+.salvus-console-terminal {
+     border: 1px solid orange;
      font-family: Courier, "Courier New", monospace;
      font-size: 13px;
-     box-shadow: rgba(0, 0, 0, 0.8) 2px 2px 20px;
+     padding: 5px;
 }
 
 .salvus-console-cursor  {
@@ -30,6 +30,11 @@
 .salvus-console-countdown {
     padding: 1ex;
     color: #888;
+}
+
+.salvus-console-textarea {
+    position:absolute;
+    opacity:.3;
 }
 
 
