@@ -61,7 +61,7 @@ def run(args, maxtime=10, verbose=True):
     """
     if args and isinstance(args[0], list):
         return '\n'.join([str(run(a, maxtime=maxtime,verbose=verbose)) for a in args])
-    
+
     args = [str(x) for x in args]
     def timeout(*a):
         raise KeyboardInterrupt("running '%s' took more than %s seconds, so killed"%(' '.join(args), maxtime))
@@ -83,14 +83,14 @@ def run(args, maxtime=10, verbose=True):
 class SH(object):
     def __getitem__(self, args):
         return run([args] if isinstance(args, str) else list(args))
-sh = SH()    
+sh = SH()
 
 def process_status(pid, run):
     """
     Return the status of a process, obtained using the ps command.
     The run option is used to run the command (so it could run on
     a remote machine).  The result is a dictionary; it is empty if
-    the given process is not running. 
+    the given process is not running.
     """
     fields = ['%cpu', '%mem', 'etime', 'pid', 'start', 'cputime', 'rss', 'vsize']
     v = run(['ps', '-p', str(int(pid)), '-o', ' '.join(fields)], verbose=False).splitlines()
@@ -118,7 +118,7 @@ def init_data_directory():
         if not os.path.exists(path):
             os.makedirs(path)
         restrict(path)
-    
+
     #log.info("ensuring that PATH starts with programs in DATA directory")
     os.environ['PATH'] = os.path.join(DATA, 'local/bin/') + ':' + os.environ['PATH']
 
@@ -137,7 +137,7 @@ def system(args):
     """
     if args and isinstance(args[0], list):
         return sum([system(a) for a in args])
-    
+
     c = ' '.join([str(x) for x in args])
     log.info("running '%s' via system", c)
     return os.system(c)
@@ -181,7 +181,7 @@ def is_running(pid):
         return True
     except OSError:
         return False
-            
+
 ########################################
 # Component: named collection of Process objects
 ########################################
@@ -199,10 +199,10 @@ class Component(object):
 
     def _procs_with_id(self, ids):
         return [p for p in self._processes if ids is None or p.id() in ids]
-        
+
     def start(self, ids=None):
         return [p.start() for p in self._procs_with_id(ids)]
-                
+
     def stop(self, ids=None):
         return [p.stop() for p in self._procs_with_id(ids)]
 
@@ -260,7 +260,7 @@ class Process(object):
             except IOError: # no file
                 self._pids[file] = None
         return self._pids[file]
-    
+
     def pid(self):
         return self._read_pid(self._pidfile)
 
@@ -271,7 +271,7 @@ class Process(object):
         # TODO: temporarily disabled -- they do no real good anyways.
         return
         if self._monitor_database and self._logfile:
-            run([PYTHON, 'monitor.py', '--logfile', self._logfile, 
+            run([PYTHON, 'monitor.py', '--logfile', self._logfile,
                  '--pidfile', self._monitor_pidfile, '--interval', LOG_INTERVAL,
                  '--database_nodes', self._monitor_database,
                  '--target_pidfile', self._pidfile,
@@ -296,7 +296,7 @@ class Process(object):
 
     def _pre_start(self):
         pass # overload to add extra config steps before start
-    
+
     def start(self):
         if self.is_running(): return
         self._pids = {}
@@ -307,7 +307,7 @@ class Process(object):
             else:
                 print run(self._start_cmd)
         print self._start_monitor()
-        
+
     def stop(self):
         pid = self.pid()
         if pid is None: return
@@ -326,7 +326,7 @@ class Process(object):
                 break
             print "waiting for %s to terminate"%pid
             time.sleep(0.5)
-        
+
         self._pids = {}
 
     def reload(self):
@@ -376,7 +376,7 @@ class Nginx(Process):
 
     def __repr__(self):
         return "Nginx process %s"%self._id
-        
+
 ####################
 # Stunnel
 ####################
@@ -388,7 +388,7 @@ class Stunnel(Process):
         self._stunnel_conf = os.path.join(DATA, 'stunnel-%s.conf'%id)
         self._accept_port = accept_port
         self._connect_port = connect_port
-        Process.__init__(self, id, name='stunnel', port=accept_port, 
+        Process.__init__(self, id, name='stunnel', port=accept_port,
                          monitor_database = monitor_database,
                          logfile    = logfile,
                          pidfile    = pidfile,
@@ -405,7 +405,7 @@ class Stunnel(Process):
         conf = conf.substitute(logfile=self._logfile, pidfile=self._pidfile,
                                accept_port=self._accept_port, connect_port=self._connect_port)
         writefile(filename=self._stunnel_conf, content=conf)
-        
+
     def __repr__(self):
         return "Stunnel process %s"%self._id
 
@@ -413,14 +413,14 @@ class Stunnel(Process):
 # HAproxy
 ####################
 class Haproxy(Process):
-    def __init__(self, id=0, 
+    def __init__(self, id=0,
                  sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=HAPROXY_PORT,  # port that stunnel sends decrypted traffic to
-                 insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site 
+                 insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers=None,   # list of ip addresses
                  hub_servers=None, # list of ip addresses
-                 monitor_database=None,  
+                 monitor_database=None,
                  conf_file='conf/haproxy.conf'):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
@@ -438,7 +438,7 @@ class Haproxy(Process):
 
         if insecure_redirect_port:
             insecure_redirect = Template(
-"""                
+"""
 frontend unsecured *:$port
     redirect location https://$sitename
 """).substitute(port=insecure_redirect_port, sitename=sitename)
@@ -452,16 +452,16 @@ frontend unsecured *:$port
             hub_servers=hub_servers,
             insecure_redirect=insecure_redirect
             )
-        
+
         haproxy_conf = 'haproxy-%s.conf'%id
         target_conf = os.path.join(DATA, haproxy_conf)
         writefile(filename=target_conf, content=conf)
         Process.__init__(self, id, name='haproxy', port=accept_proxy_port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database = monitor_database,
-                         start_using_system = True, 
+                         start_using_system = True,
                          start_cmd = ['HAPROXY_LOGFILE='+logfile, os.path.join(BIN, 'haproxy'), '-D', '-f', target_conf, '-p', pidfile])
-        
+
     def _parse_pidfile(self, contents):
         return int(contents.splitlines()[0])
 
@@ -508,7 +508,7 @@ class Sage(Process):
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
         Process.__init__(self, id, name='sage', port=port,
                          pidfile    = pidfile,
-                         logfile = logfile, monitor_database=monitor_database, 
+                         logfile = logfile, monitor_database=monitor_database,
                          start_cmd  = ['sage', '--python', 'sage_server.py',
                                        '-p', port, '--address', address,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
@@ -518,7 +518,7 @@ class Sage(Process):
 
     def port(self):
         return self._port
-        
+
 ########################################
 # Cassandra database server
 ########################################
@@ -544,7 +544,7 @@ class Cassandra(Process):
         if topology:
             kwds['endpoint_snitch'] = 'org.apache.cassandra.locator.PropertyFileSnitch'
             kwds['class_name'] = 'org.apache.cassandra.locator.SimpleSeedProvider'
-        
+
         for name in os.listdir(conf_template_path):
             r = open(os.path.join(conf_template_path, name)).read()
             r = r.replace('/var/log/cassandra', log_path)
@@ -561,9 +561,9 @@ class Cassandra(Process):
                     r = r[:i] + '%s: %s'%(k,v) + r[j+i:]
 
             elif topology and name == 'cassandra-topology.properties':
-                
+
                 r = topology
-            
+
             writefile(filename=os.path.join(conf_path, name), content=r)
 
         pidfile = os.path.join(PIDS, 'cassandra-%s.pid'%id)
@@ -573,7 +573,7 @@ class Cassandra(Process):
                          start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile],
                          monitor_database=monitor_database)
 
-    
+
 ##############################################
 # A Virtual Machine
 ##############################################
@@ -581,7 +581,7 @@ class Vm(Process):
     def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine'):
         """
         INPUT:
-        
+
             - ip_address -- ip_address machine gets on the VPN
             - hostname -- hostname to set on the machine itself (if
               not given, sets to something based on the ip address)
@@ -609,11 +609,11 @@ class Vm(Process):
         start_cmd = [PYTHON, 'vm.py', '-d', '--ip_address', ip_address,
                      '--pidfile', pidfile, '--logfile', logfile,
                      '--vcpus', vcpus, '--ram', ram,
-                     '--vnc', vnc, 
+                     '--vnc', vnc,
                      '--vm_type', vm_type, '--base', base] + \
                      (['--disk', disk] if self._disk else []) + \
                      (['--hostname', self._hostname] if self._hostname else [])
-        
+
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,
                          start_cmd = start_cmd,
@@ -633,17 +633,17 @@ class Sagenb(Process):
         logfile = os.path.join(LOGS, 'sagenb-%s.log'%port)
         Process.__init__(self, id, name='sage', port=port,
                          pidfile = pidfile,
-                         logfile = logfile, 
-                         monitor_database = monitor_database, 
-                         start_cmd  = [PYTHON, 'sagenb_server.py', '--daemon', 
-                                       '--path', path, 
-                                       '--port', port, 
+                         logfile = logfile,
+                         monitor_database = monitor_database,
+                         start_cmd  = [PYTHON, 'sagenb_server.py', '--daemon',
+                                       '--path', path,
+                                       '--port', port,
                                        '--address', address,
                                        '--pool_size', pool_size,
-                                       '--pidfile', pidfile, 
+                                       '--pidfile', pidfile,
                                        '--logfile', logfile]
                          )
-        
+
 
 
 ########################################
@@ -654,7 +654,7 @@ def ping(hostname, count=3, timeout=2):
     """
     Try to ping hostname count times, timing out if we do not
     finishing after timeout seconds.
-    
+
     Return False if the ping fails.  If the ping succeeds, return
     (min, average, max) ping times in milliseconds.
     """
@@ -683,7 +683,7 @@ def tinc_conf(ip_address):
     if os.path.exists(TARGET):
         print "deleting '%s'"%TARGET
         shutil.rmtree(TARGET)
-        
+
     for path in [TARGET,  'data/local/var/run']:  # .../run used for pidfile
         if not os.path.exists(path):
             os.makedirs(path)
@@ -731,14 +731,14 @@ Subnet = %s/32"""%(external_ip, ip_address))
     print sh['git', 'add', os.path.join('conf/tinc_hosts', hostname)]
     print sh['git', 'commit', '-a', '-m', 'tinc config for %s'%hostname]
     print sh['git', 'push', gitaddr]
-        
+
     print "To join the vpn on startup,"
     print "add this line to /etc/rc.local:\n"
     print "  nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd"
     print "You *must* also pull the git repo on"
     print "at least one of the ConnectTo machines to connect."
 
-    
+
 ########################################
 # Grouped collection of hosts
 # See the files conf/hosts* for examples.
@@ -803,13 +803,13 @@ class Hosts(object):
     """
     Defines a set of hosts on a network and provides convenient tools
     for running commands on them using ssh.
-    """ 
+    """
     def __init__(self, hosts_file, username=whoami):
         self._ssh = {}
         self._username = username
         self._password = None
         self._ip_addresses, self._canonical_hostnames = parse_hosts_file(hosts_file)
-        
+
     def __getitem__(self, hostname):
         """
         Return list of dinstinct ip_address matching the given hostname.  If the hostname
@@ -864,7 +864,7 @@ class Hosts(object):
         x = callable(address, **kwds)
         log.info(x)
         return x
-    
+
     def map(self, callable, hostname, parallel=True, **kwds):
         # needed before parallel
         self.password()
@@ -905,7 +905,7 @@ class Hosts(object):
             print v['stderr'],
             print
         return result
-    
+
     def _exec_command(self, command, hostname, sudo, timeout, wait):
         start = time.time()
         ssh = self.ssh(hostname, timeout=timeout)
@@ -957,7 +957,7 @@ class Hosts(object):
             # very important to re-enable the firewall, no matter what!
         finally:
             self(hostname,'ufw --force enable', sudo=True, timeout=120)
-        
+
 
     def apt_install(self, hostname, pkg):
         # EXAMPLE:   hosts.apt_install('cassandra', 'openjdk-7-jre')
@@ -965,7 +965,7 @@ class Hosts(object):
             return self(hostname, 'ufw --force disable && apt-get -y --force-yes install %s'%pkg, sudo=True, timeout=120)
         finally:
             self(hostname,'ufw --force enable', sudo=True, timeout=120)
-        
+
 
     def reboot(self, hostname):
         return self(hostname, 'reboot -h now', sudo=True, timeout=5)
@@ -987,7 +987,7 @@ class Hosts(object):
 
     #########################################################
     # SFTP support
-    #########################################################    
+    #########################################################
     def put(self, hostname, local_filename, remote_filename=None, timeout=5):
         if remote_filename is None:
             remote_filename = local_filename
@@ -1030,7 +1030,7 @@ class Hosts(object):
             from stat import S_ISDIR
             if not S_ISDIR(sftp.stat(path).st_mode):
                 raise IOError("remote '%s' (on %s) exists and is not a path"%(path, hostname))
-        
+
 
     def mkdir(self, hostname, path, timeout=10, mode=0o40700):  # default mode is restrictive=user only, on general principle.
         for hostname in self[hostname]:
@@ -1072,11 +1072,11 @@ class Services(object):
             restrict = set(self._hosts[query])
             return sum([[(h, dict(opts) if copy else opts) for h in self._hosts[query] if h in restrict]
                                for query, opts in self._services[service]], [])
-        
+
         self._options = dict([(service, hostopts(service)) for service in self._ordered_service_names])
 
         ##########################################
-        # Programatically fill in extra options to the list 
+        # Programatically fill in extra options to the list
         ##########################################
         # CASSANDRA options
         if 'cassandra' in self._options:
@@ -1108,7 +1108,7 @@ class Services(object):
         # HUB options
         if 'hub' in self._options:
             for address, o in self._options['hub']:
-                # very important: set to listen only on our VPN. 
+                # very important: set to listen only on our VPN.
                 o['address'] = address
 
         # SAGE options
@@ -1123,7 +1123,7 @@ class Services(object):
         if 'sagenb' in self._options:
             for address, o in self._options['sagenb']:
                 o['address'] = address
-            
+
         # VM options
         if 'vm' in self._options:
             for address, o in self._options['vm']:
@@ -1187,26 +1187,26 @@ class Services(object):
                     print msg
             elif action == 'stop':
                 log.info("Recording Sage server STOP in Cassandra")
-                try:                
+                try:
                     cassandra.record_that_sage_server_stopped(address)
                 except RuntimeError, msg:
                     print msg
 
         return (address, self._hosts.hostname(address), options, ret)
-        
+
     def _action(self, service, action, host, opts, wait, parallel):
         if service not in self._services:
             raise ValueError("unknown service '%s'"%service)
 
 
         name = service.capitalize()
-        db_string = "" if (name=='Sage' or not hasattr(self, '_cassandra')) else ",monitor_database='%s'"%(','.join(self._cassandra))        
+        db_string = "" if (name=='Sage' or not hasattr(self, '_cassandra')) else ",monitor_database='%s'"%(','.join(self._cassandra))
         v = self._hostopts(service, host, opts)
 
         self._hosts.password()  # can't get password in thread
 
         w = [((name, action, address, options, db_string, wait),{}) for address, options in v]
-        
+
         if parallel:
             return misc.thread_map(self._do_action, w)
         else:
@@ -1265,7 +1265,7 @@ class Services(object):
             action = 'start'
         if action == "stop":
             commands = []
-        elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn, 
+        elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn,
             commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
                         ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['hub admin']]+
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
@@ -1279,12 +1279,12 @@ class Services(object):
     def _all(self, callable, reverse=False):
         names = self._ordered_service_names
         return dict([(s, callable(s)) for s in (reversed(names) if reverse else names)])
-                
+
     def start(self, service, host='all', wait=True, parallel=False, **opts):
         if service == 'all':
             return self._all(lambda x: self.start(x, host=host, wait=wait, **opts), reverse=False)
         return self._action(service, 'start', host, opts, wait=wait, parallel=parallel)
-        
+
     def stop(self, service, host='all', wait=True, parallel=False, **opts):
         if service == 'all':
             return self._all(lambda x: self.stop(x, host=host, wait=wait, **opts), reverse=True)
@@ -1335,7 +1335,7 @@ class Services(object):
             # TODO: this is horrible
             if 'vm' in self._services:
                 v = [X[1] for X in self.status('vm',parallel=True) if 'cputime' in X[3].items()[0][1]['stdout']]
-                if v: 
+                if v:
                     print "Waiting to terminate: %s"%(', '.join(v))
                 else:
                     break
