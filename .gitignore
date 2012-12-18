@@ -8,6 +8,7 @@ logs
 *.sobj
 data/
 .#*
+\#*
 node_modules
 *.sass-cache
 

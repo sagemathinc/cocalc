@@ -1,5 +1,2 @@
 #!/usr/bin/env bash
-
-set -e
-
 node node_modules/console_server.js $@

@@ -1,8 +1,2 @@
 #!/usr/bin/env bash
-
-set -e
-
-./make_coffee
-
-echo "Running NodeJS server..."
 node node_modules/hub.js $@

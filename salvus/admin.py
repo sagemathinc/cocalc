@@ -471,7 +471,7 @@ frontend unsecured *:$port
 # Hub
 ####################
 class Hub(Process):
-    def __init__(self, id=0, address='', port=HUB_PORT, tcp_port=HUB_TCP_PORT,
+    def __init__(self, id=0, host='', port=HUB_PORT, tcp_port=HUB_TCP_PORT,
                  monitor_database=None, keyspace='salvus', debug=False):
         self._port = port
         pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
@@ -486,7 +486,7 @@ class Hub(Process):
                                       '--port', port,
                                       '--tcp_port', tcp_port,
                                       '--keyspace', keyspace,
-                                      '--address', address,
+                                      '--host', host,
                                       '--database_nodes', monitor_database,
                                       '--pidfile', pidfile,
                                       '--logfile', logfile] + extra,
@@ -502,7 +502,7 @@ class Hub(Process):
 ####################
 
 class Sage(Process):
-    def __init__(self, id=0, address='', port=SAGE_PORT, monitor_database=None, debug=True):
+    def __init__(self, id=0, host='', port=SAGE_PORT, monitor_database=None, debug=True):
         self._port = port
         pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
         logfile = os.path.join(LOGS, 'sage-%s.log'%id)
@@ -510,11 +510,10 @@ class Sage(Process):
                          pidfile    = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
                          start_cmd  = ['sage', '--python', 'sage_server.py',
-                                       '-p', port, '--address', address,
+                                       '-p', port, '--host', host,
                                        '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
                          start_using_system = True,  # since daemon mode currently broken
                          service = ('sage', port))
-
 
     def port(self):
         return self._port
@@ -1107,18 +1106,18 @@ class Services(object):
 
         # HUB options
         if 'hub' in self._options:
-            for address, o in self._options['hub']:
+            for host, o in self._options['hub']:
                 # very important: set to listen only on our VPN.
-                o['address'] = address
+                o['host'] = host
 
         # SAGE options
         if 'sage' in self._options:
-            for address, o in self._options['sage']:
+            for host, o in self._options['sage']:
                 # very, very important: set to listen only on our VPN!  There is an attack where a local user
-                # can bind to a more specific address and same port on a machine, and intercept all trafic.
+                # can bind to a more specific host and same port on a machine, and intercept all trafic.
                 # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
                 # By binding on a specific ip address, we prevent this.
-                o['address'] = address
+                o['host'] = host
 
         if 'sagenb' in self._options:
             for address, o in self._options['sagenb']:

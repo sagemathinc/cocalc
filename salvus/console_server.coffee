@@ -125,7 +125,7 @@ handle_client = (socket, mesg) ->
 
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"
-    # Receive a single control message, which is a JSON object terminated by null.
+    # Receive a single message:
     misc_node.enable_mesg(socket)
     socket.on 'mesg', (type, mesg) ->
         winston.debug "received control mesg #{mesg}"
@@ -133,7 +133,7 @@ server = net.createServer (socket) ->
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    server.listen program.port, () -> winston.info "listening on port #{program.port}"
+    server.listen program.port, program.host, () -> winston.info "listening on port #{program.port}"
 
 # daemonize it
 
@@ -144,6 +144,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 6001)', parseInt, 6001)
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/console_server.pid")', String, "data/pids/console_server.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/console_server.log")', String, "data/logs/console_server.log")
+    .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")   # important for security reasons to prevent user binding more specific host attack
     .parse(process.argv)
 
 if program._name == 'console_server.js'
@@ -152,7 +153,6 @@ if program._name == 'console_server.js'
         winston.error "Uncaught exception: " + err
         if console? and console.trace?
             console.trace()
-
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
 

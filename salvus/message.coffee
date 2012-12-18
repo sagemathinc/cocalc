@@ -22,6 +22,15 @@ message = (obj) ->
         defaults(opts, obj)
 
 ############################################
+# Compute server messages
+#############################################
+
+message
+    event            : 'compute_server_status'
+    running_children : undefined    # list of child process names (e.g., 'sage_server', 'console_server', 'project_server') that are running
+
+
+############################################
 # Sage session management; executing code
 #############################################
 

@@ -6,7 +6,7 @@ sage_server.py -- unencrypted forking TCP server that can run as root,
 
 For debugging:
 
-       sage --python sage_server.py -p 6000 --address 127.0.0.1
+       sage --python sage_server.py -p 6000 --host 127.0.0.1
 
 """
 
@@ -611,12 +611,12 @@ def serve_connection(conn):
                 numfiles=limits.get('numfiles', LIMITS['numfiles']),
                 vmem=limits.get('vmem', LIMITS['vmem']))
 
-def serve(port, address):
+def serve(port, host):
     #log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((address, port))
-    print 'Sage server %s:%s'%(address, port)
+    s.bind((host, port))
+    print 'Sage server %s:%s'%(host, port)
 
     signal.signal(signal.SIGCHLD, handle_session_term)
 
@@ -659,7 +659,7 @@ def serve(port, address):
         #s.shutdown(0)
         s.close()
 
-def serve2(port, address):
+def serve2(port, host):
     # this approach SUCKS: zombies, zombies; the socket can't be reused.
     import sage.all
     exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
@@ -674,19 +674,19 @@ def serve2(port, address):
 
     class ForkingTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
         pass
-    S = ForkingTCPServer((address, port), Handler)
+    S = ForkingTCPServer((host, port), Handler)
     S.serve_forever()
 
 
-def run_server(port, address, pidfile, logfile):
+def run_server(port, host, pidfile, logfile):
     if pidfile:
         open(pidfile,'w').write(str(os.getpid()))
     if logfile:
         #log.addHandler(logging.FileHandler(logfile))
         pass
-    #log.info("port=%s, address=%s, pidfile='%s', logfile='%s'", port, address, pidfile, logfile)
+    #log.info("port=%s, host=%s, pidfile='%s', logfile='%s'", port, host, pidfile, logfile)
     try:
-        serve(port, address)
+        serve(port, host)
     finally:
         if pidfile:
             os.unlink(pidfile)
@@ -700,8 +700,8 @@ if __name__ == "__main__":
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
-    parser.add_argument("--address", dest="address", type=str, default='',
-                        help="address of interface to bind to")
+    parser.add_argument("--host", dest="host", type=str, default='',
+                        help="host interface to bind to")
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
                         help="store pid in this file")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
@@ -739,7 +739,7 @@ if __name__ == "__main__":
     pidfile = os.path.abspath(args.pidfile) if args.pidfile else ''
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
 
-    main = lambda: run_server(port=args.port, address=args.address, pidfile=pidfile, logfile=logfile)
+    main = lambda: run_server(port=args.port, host=args.host, pidfile=pidfile, logfile=logfile)
     if args.daemon:
         import daemon
         with daemon.DaemonContext():

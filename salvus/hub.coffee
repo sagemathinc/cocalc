@@ -1917,7 +1917,7 @@ exports.start_server = start_server = () ->
     database = new cass.Salvus(hosts:program.database_nodes.split(','), keyspace:program.keyspace)
     init_sockjs_server()
     init_stateless_exec()
-    http_server.listen(program.port)
+    http_server.listen(program.port, program.host)
     winston.info("Started hub. HTTP port #{program.port}; TCP port #{program.tcp_port}; keyspace #{program.keyspace}")
 
 #############################################
@@ -1927,7 +1927,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
     .option('-t, --tcp_port <n>', 'tcp port to listen on from other tornado servers (default: 5001)', parseInt, 5001)
     .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
-    .option('--address [string]', 'address of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
+    .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')

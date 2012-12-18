@@ -8688,7 +8688,7 @@ NEXT UP:
             console_servers and sage_servers...?  actually, no, since
             user may just reconnect!
 
-     [ ] (22 min) console: make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
+     [x] (22 min) console: make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
 
 
 UI stuff
@@ -8710,8 +8710,10 @@ ADMIN:
          Also, fix the ports for the above services statically to be
          6000, 6001, 6002, so db schema is simple.
 
-	[ ] make a file compute_servers.py that starts up the various servers AND
-             restricts permissions on salvus source code etc.
+-->	[x] (took a very long 2h8m!!) make a file compute_server.? that starts up the various servers AND
+             restricts permissions on salvus source code etc.;
+            This took a while, since I also made a skeleton for project_server, and did a lot of other refactoring.
+
         [ ] modify database schema to have "compute_servers"
         [ ] modify database.random_sage_server to be random_session_server(...) and take type
         [ ] modify cassandra.py to use new database schema
