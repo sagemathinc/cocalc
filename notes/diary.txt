@@ -8691,7 +8691,8 @@ NEXT UP:
      [x] (22 min) console: make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
 
 
-UI stuff
+UI stuff:
+
      [x] (10min) countdown timer limits.walltime
      [ ] modify console so it gives back keyboard when looses focus.
      [ ] make it possible to get a keyboard on mobile.
@@ -8703,8 +8704,9 @@ UI stuff
      [ ] user-customizable scrollback buffer size -- and scroll bars
      [ ] modify sage startup so that it turns on ipython command prompt colors
 
+
 ADMIN:
-     [ ] from point of view of admin, instead of sage_server, console_server, project_server, etc.
+     [x] from point of view of admin, instead of sage_server, console_server, project_server, etc.
          being different services, just make them all started/stopped by one simple service
                         compute_server
          Also, fix the ports for the above services statically to be
@@ -8721,6 +8723,10 @@ ADMIN:
     	   [x] modify admin.py to use new thing
            [x] modify deployment scripts
 
+     [x] use winston logging in console_server*
+
+
+NEXT:
 
      [ ] Make another component called "project_server" and move some functionality
          from console_server there?  It would do the following:
@@ -8734,12 +8740,8 @@ ADMIN:
                 - commit all (=snapshot) a project path
                 - create git bundle from path and send it to hub
                 - lxc management if I use lxc.
-
           [ ] project = git bundle in database of limited size, etc.
 
-     [ ] use winston logging in console_server*
-
-other:
      [ ] add signal_sent reply to sage_server.py (message.signal_sent)
      [ ] add option to all these session servers that is a hard limit on the max number of spawned sessions;
          if exceeded, then they automatically kill off oldest ones.   EASY and could massively save ass.
