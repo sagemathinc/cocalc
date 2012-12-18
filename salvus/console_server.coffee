@@ -63,6 +63,10 @@ start_session = (socket, mesg) ->
         path    : process.env.PATH
         cwd     : undefined          # starting PATH -- default is computed below
 
+    opts.cputime  = mesg.limits.cputime
+    opts.vmem     = mesg.limits.vmem
+    opts.numfiles = mesg.limits.numfiles
+
     if process.getuid() == 0  # root
         console.log("running as root, so forking with reduced privileges")
         opts.uid = Math.floor(2000 + Math.random()*1000)  # TODO: just for testing; hub/database will *have* to assign this soon
