@@ -13,11 +13,11 @@ IMPORTANT MAINTENANCE NOTES:
       careful.  In practive, the code in cassandra.coffee is what is
       actually mainly *used* by Salvus (via the hub).
 
-    * The actual is defined in db_schema.cql  
-      
+    * The actual is defined in db_schema.cql
+
 
 (c) William Stein, University of Washington, 2012
-      
+
 """
 
 
@@ -74,7 +74,7 @@ pool = {}
 def connect(keyspace=None, use_cache=True):
     if keyspace is None:
         keyspace = KEYSPACE
-    if use_cache and pool.has_key(keyspace):  
+    if use_cache and pool.has_key(keyspace):
         return pool[keyspace]
     for i in range(len(NODES)):
         try:
@@ -112,10 +112,10 @@ def cursor_execute(query, param_dict=None, keyspace=None, timeout=1):
             print msg
             cur = cursor(keyspace=keyspace, use_cache=False)
             cur.execute(query, param_dict)
-    finally: 
+    finally:
         signal.signal(signal.SIGALRM, signal.SIG_IGN)
     return cur
-       
+
 
 def keyspace_exists(con, keyspace):
     try:
@@ -144,17 +144,6 @@ def init_salvus_schema(keyspace=None):
                     print msg
                     print cql
 
-                    
-        
-        ## create_sessions_table(cursor)
-        ## create_key_value_table(cursor)
-        ## create_stateless_exec_table(cursor)
-        ## create_services_table(cursor)
-        ## create_status_table(cursor)
-        ## create_log_table(cursor)
-        ## create_sage_servers_table(cursor)
-        ## create_account_tables(cursor)
-        ## create_plans_table(cursor)
 
 ##############################
 # Conversion to and from JSON
@@ -165,7 +154,7 @@ def to_json(x):
 
 def from_json(x):
     return json.loads(x)
-        
+
 
 ##########################################################################
 # Base class for wrapper objects around database objects
@@ -174,11 +163,11 @@ class DBObject(object):
     def __repr__(self):
         return '<%s: %s>'%(str(type(self)).split('.')[-1].split("'")[0], self.__dict__)
 
-        
+
 ##########################################################################
 # Account Plans -- free, pro, banned, etc.
 # We keep a timestamp with each, so that the definition of "free" can
-# change easily over time. 
+# change easily over time.
 ##########################################################################
 class Plans(DBObject):
     """
@@ -217,13 +206,13 @@ free2.number_of_accounts_with_this_plan()
     def plan(self, plan_id):
         """Return the plan with the given id."""
         return Plan(plan_id)
-    
+
     def newest_plan(self, name):
         """Return newest plan in database with this name, or return None if there are none with this name."""
         c = cursor_execute("SELECT plan_id FROM newest_plans WHERE name = :name", {'name':name}).fetchone()
         if c is not None:
             return Plan(c[0])
-        
+
 class Plan(DBObject):
     """
     A specific account plan.
@@ -251,10 +240,10 @@ class Plan(DBObject):
     def number_of_accounts_with_this_plan(self):
         return cursor_execute("SELECT COUNT(*) FROM accounts WHERE plan_id = :plan_id",
                        {'plan_id':self.plan_id}).fetchone()[0]
-                       
-        
+
+
 ##########################################################################
-# User Accounts 
+# User Accounts
 ##########################################################################
 
 class Accounts(DBObject):
@@ -262,13 +251,13 @@ class Accounts(DBObject):
     Collection of all user accounts.
 
 accounts = cassandra.Accounts(); a = accounts.create_account(); a.username = 'salvus'; a.save()
-  
+
     """
     def create_account(self):
         account = Account(uuid.uuid4())
         account.save()
         return account
-        
+
     def account_from_id(self, account_id):
         """Return the account with given id."""
         return Account(account_id)
@@ -297,7 +286,7 @@ accounts = cassandra.Accounts(); a = accounts.create_account(); a.username = 'sa
         """1 week: n = 60*60*24*7"""
         return set([x[0] for x in cursor_execute("SELECT account_id FROM account_events WHERE time >= :time",
                                    {'time':Time(_time.time()-n)})])
-    
+
 
 class Account(DBObject):
     """A specific user account."""
@@ -371,7 +360,7 @@ class Account(DBObject):
         cursor_execute("DELETE FROM account_events WHERE account_id = :account_id", {'account_id':self.account_id})
         cursor_execute("DELETE FROM auths WHERE account_id = :account_id", {'account_id':self.account_id})
         cursor_execute("DELETE FROM accounts WHERE account_id = :account_id", {'account_id':self.account_id})
-    
+
 
 ##########################################################################
 # Auth -- third party authentication data linked to an account
@@ -382,7 +371,7 @@ class Auth(DBObject):
         self.provider = provider
         self.login_name = login_name
         self.info = info
-        
+
     def save(self):
         cursor_execute("UPDATE auths SET info = :info WHERE account_id = :account_id AND provider = :provider AND login_name = :login_name",
                        {'info':to_json(self.info), 'login_name':self.login_name, 'provider':self.provider, 'account_id':self.account_id})
@@ -394,17 +383,17 @@ class Auth(DBObject):
 # agree to terms of use, pay money, etc.) for a user.  This is meant to
 # never have anything deleted from it.
 ##########################################################################
-        
+
 class AccountEvent(DBObject):
     """Simple wrapper class for an event."""
     def __init__(self, account_id=None, time=None, event=None, value=None):
         self.account_id = account_id
         self.time = Time(time); self.event = event; self.value = value
-                
+
     def save(self):
         cursor_execute("UPDATE account_events SET event = :event, value = :value WHERE account_id = :account_id AND time = :time",
                        {'account_id':self.account_id, 'time':self.time, 'event':self.event, 'value':to_json(self.value)})
-                
+
 
 
 ##########################################################################
@@ -437,7 +426,7 @@ class UUIDValueStore(object):
 
     def delete_all(self):
         cursor_execute("DELETE FROM uuid_value WHERE name = :name", {'name':self._name})
-        
+
 
 ##########################################################################
 # JSON key : JSON value  store
@@ -451,7 +440,7 @@ class KeyValueStore(object):
 
     def _to_json(self, x):
         return json.dumps(x, separators=(',',':'))
-        
+
     def __getitem__(self, key):
         c = cursor_execute("SELECT value FROM key_value WHERE name = :name AND key = :key LIMIT 1",
                            {'name':self._name, 'key':to_json(key)}).fetchone()
@@ -466,14 +455,14 @@ class KeyValueStore(object):
     def set(self, key, value, ttl=0):
         cursor_execute("UPDATE key_value USING TTL :ttl SET value = :value WHERE name = :name and key = :key",
                        {'value':to_json(value), 'name':self._name, 'key':to_json(key), 'ttl':ttl})
-        
+
     def __delitem__(self, key):
         cursor_execute("DELETE FROM key_value WHERE name = :name AND key = :key",
                        {'name':self._name, 'key':to_json(key)})
 
     def delete_all(self):
         cursor_execute("DELETE FROM key_value WHERE name = :name", {'name':self._name})
-         
+
 
 
 ##########################################################################
@@ -485,15 +474,15 @@ class StatelessExec(object):
         return sha.sha(input).hexdigest()
 
     def __getitem__(self, input):
-        c = cursor_execute("SELECT output FROM stateless_exec WHERE input=:input LIMIT 1", 
+        c = cursor_execute("SELECT output FROM stateless_exec WHERE input=:input LIMIT 1",
                  {'input':input}).fetchone()
         if c is not None and len(c) > 0 and c[0] == input:
             return cPickle.loads(str(c[1]))
-        
+
     def __setitem__(self, input, output):
         cursor_execute("UPDATE stateless_exec SET output = :output WHERE input = :input",
                        {'input':input, 'output':cPickle.dumps(output)})
-    
+
 
 ##########################################################################
 # Sage servers
@@ -508,9 +497,9 @@ def record_that_sage_server_started(address):
 
 def record_that_sage_server_stopped(address):
     cursor().execute("UPDATE sage_servers SET running = 'false' WHERE address= :address", {'address':address})
-    
-    
-    
+
+
+
 
 
 def tokens(n):
