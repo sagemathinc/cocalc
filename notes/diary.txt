@@ -8710,14 +8710,17 @@ ADMIN:
          Also, fix the ports for the above services statically to be
          6000, 6001, 6002, so db schema is simple.
 
--->	[x] (took a very long 2h16m!!) make a file compute_server.? that starts up the various servers AND
+	[x] (took a very long 2h16m!!) make a file compute_server.? that starts up the various servers AND
              restricts permissions on salvus source code etc.;
             This took a while, since I also made a skeleton for project_server, and did a lot of other refactoring.
 
-        [ ] modify database schema to have "compute_servers"
-        [ ] modify database.random_sage_server to be random_session_server(...) and take type
-        [ ] modify cassandra.py to use new database schema
-	[ ] modify admin.py to use new thing
+        [x] (53mins) update db related things:
+           [x]  modify database schema to have "compute_servers"
+           [x] modify database.random_sage_server to be random_session_server(...) and take type
+           [x] modify cassandra.py to use new database schema
+    	   [x] modify admin.py to use new thing
+           [x] modify deployment scripts
+
 
      [ ] Make another component called "project_server" and move some functionality
          from console_server there?  It would do the following:

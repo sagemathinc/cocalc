@@ -10,6 +10,13 @@
 # (c) William Stein, University of Washington
 #
 #########################################################################
+#
+
+COMPUTE_SERVER_PORTS =
+    compute : 5999
+    sage    : 6000
+    console : 6001
+    project : 6002
 
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
@@ -413,43 +420,24 @@ class exports.Salvus extends exports.Cassandra
 
 
     #####################################
-    # Managing network services
+    # Managing compute servers
     #####################################
-    running_sage_servers: (opts={}) ->
-        opts = defaults(opts,  cb:undefined)
-        @select(table:'sage_servers', columns:['address'], where:{running:true}, cb:(error, results) ->
-            # TODO: we hardcoded 6000 for now
-            opts.cb(error, {host:x[0], port:6000} for x in results)
+    running_compute_servers: (opts={}) ->
+        opts = defaults opts,
+            cb   : required
+            type : required    # 'sage', 'console', 'project', 'compute'
+        @select(table:'compute_servers', columns:['host'], where:{running:true}, cb:(error, results) ->
+            opts.cb(error, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type]} for x in results)
         )
 
-    random_sage_server: (opts={}) -> # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)
-        opts = defaults(opts,  cb:undefined)
-        @running_sage_servers(cb:(error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res)))
-
-
-    running_session_servers: (opts) ->
+    random_compute_server: (opts={}) -> # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)
         opts = defaults opts,
             cb   : required
             type : required
-        if opts.type == 'sage'
-            @select
-                table:'sage_servers'
-                columns:['address']
-                where:{running:true}
-                cb:(error, results) -> opts.cb(error, {host:x[0], port:6000} for x in results)
-        else if opts.type == 'console'
-            opts.cb(false, [{host:'localhost', port:6001}])
-        else
-            opts.cb("Unknown session type '#{opts.type}'")
-
-    # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)
-    random_running_session_server: (opts) ->
-        opts = defaults opts,
-            cb   : required
-            type : required
-        @running_session_servers
+        @running_compute_servers
             type : opts.type
             cb   : (error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
+
 
     #####################################
     # User plans (what features they get)

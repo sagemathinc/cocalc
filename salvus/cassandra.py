@@ -485,21 +485,19 @@ class StatelessExec(object):
 
 
 ##########################################################################
-# Sage servers
+# Compute servers
 ##########################################################################
 
-from admin import SAGE_PORT
-def get_sage_servers():
-    return [(address[0], SAGE_PORT) for address in cursor_execute("SELECT address FROM sage_servers WHERE running='true'")]
+from admin import COMPUTE_SERVER_PORTS
 
-def record_that_sage_server_started(address):
-    cursor().execute("UPDATE sage_servers SET running = 'true' WHERE address = :address", {'address':address})
+def running_compute_servers(type):
+    return [(host[0], COMPUTE_SERVER_PORTS[type]) for host in cursor_execute("SELECT host FROM compute_servers WHERE running='true'")]
 
-def record_that_sage_server_stopped(address):
-    cursor().execute("UPDATE sage_servers SET running = 'false' WHERE address= :address", {'address':address})
+def record_that_compute_server_started(host):
+    cursor().execute("UPDATE compute_servers SET running = 'true' WHERE host = :host", {'host':host})
 
-
-
+def record_that_compute_server_stopped(host):
+    cursor().execute("UPDATE compute_servers SET running = 'false' WHERE host= :host", {'host':host})
 
 
 def tokens(n):

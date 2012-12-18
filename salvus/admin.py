@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Administration and Launch control of sagews components
+Administration and Launch control of salvus components
 """
 
 ####################
@@ -30,15 +30,21 @@ BASE = 'salvus/salvus/'
 
 LOG_INTERVAL = 6
 
-GIT_REPO='git@combinat1.salv.us:.'
+GIT_REPO='git@combinat1.salv.us:.'   # TODO
 
 whoami = os.environ['USER']
 
 # Default ports
 HAPROXY_PORT = 8000
 NGINX_PORT   = 8080
-SAGE_PORT    = 6000  # also used in cassandra.py and sage_server.py
-CONSOLE_PORT = 6001  # also used in cassandra.py and console_server.coffee
+
+COMPUTE_SERVER_PORTS = {
+    'compute' : 5999,
+    'sage'    : 6000,
+    'console' : 6001,
+    'project' : 6002
+}
+
 
 HUB_PORT = 5000
 HUB_TCP_PORT = 5001
@@ -217,7 +223,7 @@ class Component(object):
 
 
 ########################################
-# Process: a daemon process that implements part of sagews
+# Process: a daemon process
 ########################################
 
 class Process(object):
@@ -498,22 +504,23 @@ class Hub(Process):
 
 
 ####################
-# Sage
+# Compute Server
 ####################
 
-class Sage(Process):
-    def __init__(self, id=0, host='', port=SAGE_PORT, monitor_database=None, debug=True):
+class Compute(Process):
+    def __init__(self, id=0, host=''):
+        port=COMPUTE_SERVER_PORTS['compute']
         self._port = port
-        pidfile = os.path.join(PIDS, 'sage-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'sage-%s.log'%id)
-        Process.__init__(self, id, name='sage', port=port,
-                         pidfile    = pidfile,
-                         logfile = logfile, monitor_database=monitor_database,
-                         start_cmd  = ['sage', '--python', 'sage_server.py',
-                                       '-p', port, '--host', host,
-                                       '--pidfile', pidfile, '--logfile', logfile, '2>/dev/null', '1>/dev/null', '&'],
-                         start_using_system = True,  # since daemon mode currently broken
-                         service = ('sage', port))
+        Process.__init__(self, id,
+                         name        = 'compute',
+                         port        = port,
+                         pidfile     = os.path.join(PIDS, 'compute_server.pid'),
+                         logfile     = os.path.join(LOGS, 'compute_server.log'),
+                         start_cmd   = ['compute_server', 'start'],
+                         stop_cmd    = ['compute_server', 'stop'],
+                         reload_cmd  = ['compute_server', 'restart'],
+                         service     = ('compute', port)
+        )
 
     def port(self):
         return self._port
@@ -1110,13 +1117,17 @@ class Services(object):
                 # very important: set to listen only on our VPN.
                 o['host'] = host
 
-        # SAGE options
-        if 'sage' in self._options:
-            for host, o in self._options['sage']:
-                # very, very important: set to listen only on our VPN!  There is an attack where a local user
-                # can bind to a more specific host and same port on a machine, and intercept all trafic.
-                # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
-                # By binding on a specific ip address, we prevent this.
+        # COMPUTE options
+        if 'compute' in self._options:
+            for host, o in self._options['compute']:
+                # Very, very important: set to listen only on our VPN!
+                # There is rumored to be an attack where a local user
+                # can bind to a more specific host and same port on a
+                # machine, and intercept all trafic.  This would mean
+                # they could effectively man-in-the-middle take over a
+                # node.  By binding on a specific ip address, we
+                # prevent this possibility.  I haven't tried this, so
+                # I'm not 100% sure.
                 o['host'] = host
 
         if 'sagenb' in self._options:
@@ -1128,8 +1139,6 @@ class Services(object):
             for address, o in self._options['vm']:
                 # very, very important: set to listen only on our VPN!  There is an attack where a local user
                 # can bind to a more specific address and same port on a machine, and intercept all trafic.
-                # For Sage this would mean they could effectively man-in-the-middle take over a sage node.
-                # By binding on a specific ip address, we prevent this.
                 if 'ip_address' not in o:
                     addresses = self._hosts[o['hostname']]
                     if len(addresses) != 1:
@@ -1172,22 +1181,22 @@ class Services(object):
 
         ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
 
-        if name == "Sage":
+        if name == "Compute":
             # TODO: put in separate function
-            log.info("Starting Sage firewall")
-            self.sage_firewall(address, action)
-            log.info("Recording Sage server in Cassandra")
+            log.info("Starting compute firewall")
+            self.compute_firewall(address, action)
+            log.info("Recording compute server in Cassandra")
             import cassandra
             if action in ['start', 'restart']:
-                log.info("Recording Sage server START in Cassandra")
+                log.info("Recording Compute server START in Cassandra")
                 try:
-                    cassandra.record_that_sage_server_started(address)
+                    cassandra.record_that_compute_server_started(address)
                 except RuntimeError, msg:
                     print msg
             elif action == 'stop':
-                log.info("Recording Sage server STOP in Cassandra")
+                log.info("Recording Compute server STOP in Cassandra")
                 try:
-                    cassandra.record_that_sage_server_stopped(address)
+                    cassandra.record_that_compute_server_stopped(address)
                 except RuntimeError, msg:
                     print msg
 
@@ -1199,7 +1208,7 @@ class Services(object):
 
 
         name = service.capitalize()
-        db_string = "" if (name=='Sage' or not hasattr(self, '_cassandra')) else ",monitor_database='%s'"%(','.join(self._cassandra))
+        db_string = "" if (name=='Compute' or not hasattr(self, '_cassandra')) else ",monitor_database='%s'"%(','.join(self._cassandra))
         v = self._hostopts(service, host, opts)
 
         self._hosts.password()  # can't get password in thread
@@ -1259,14 +1268,14 @@ class Services(object):
             raise ValueError("unknown action '%s'"%action)
         return self._hosts.ufw(hostname, commands)
 
-    def sage_firewall(self, hostname, action):
+    def compute_firewall(self, hostname, action):
         if action == "restart":
             action = 'start'
         if action == "stop":
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn,
             commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
-                        ['allow proto tcp from %s to any port %s'%(ip, SAGE_PORT) for ip in self._hosts['hub admin']]+
+                        ['allow proto tcp from %s to any port %s'%(ip, y[1]) for ip in self._hosts['hub admin'] for y in COMPUTE_SERVER_PORTS.iteritems()]+
                         ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
                         )
         elif action == 'status':
@@ -1319,8 +1328,8 @@ class Services(object):
         for service in ['haproxy','nginx','hub']:
             log.info(" ** Starting %s", service)
             self.start(service, parallel=True, wait=False)
-        log.info(" ** Starting sage")
-        self.start('sage', parallel=False, wait=False)
+        log.info(" ** Starting compute")
+        self.start('compute', parallel=False, wait=False)
 
     def stop_system(self):
         if 'cassandra' in self._services:

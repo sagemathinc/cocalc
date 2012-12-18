@@ -1675,7 +1675,7 @@ create_persistent_sage_session = (client, mesg) ->
     # generate a uuid
     session_uuid = uuid.v4()
     client.cap_session_limits(mesg.limits)
-    database.random_sage_server( cb:(error, sage_server) ->
+    database.random_compute_server(type: 'sage', cb:(error, sage_server) ->
         if error
             client.push_to_client(message.error(id:mesg.id, error:error))
             return
@@ -1786,7 +1786,7 @@ create_persistent_console_session = (client, mesg) ->
     if not mesg.params.home?
         mesg.params.home = session_uuid
 
-    database.random_running_session_server(type:'console', cb:(error, console_server) ->
+    database.random_compute_server(type:'console', cb:(error, console_server) ->
         if error
             client.push_to_client(message.error(id:mesg.id, error:error))
             return
@@ -1898,7 +1898,7 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
 
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec_nocache #{to_safe_str(input_mesg)}")
-    database.random_sage_server( cb:(err, sage_server) ->
+    database.random_compute_server(type:'sage', cb:(err, sage_server) ->
         if sage_server?
             stateless_exec_using_server(input_mesg, output_message_callback, sage_server.host, sage_server.port)
         else

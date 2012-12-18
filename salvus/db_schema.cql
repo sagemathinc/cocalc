@@ -12,12 +12,12 @@ CREATE TABLE key_value (
      PRIMARY KEY(name, key)
 );
 
-CREATE TABLE sage_servers (
-    address varchar PRIMARY KEY,
+CREATE TABLE compute_servers (
+    host varchar PRIMARY KEY,
     running boolean
 );
 
-CREATE INDEX ON sage_servers (running);
+CREATE INDEX ON compute_servers (running);
 
 CREATE TABLE services (
     service_id uuid PRIMARY KEY,

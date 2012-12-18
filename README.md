@@ -4,12 +4,12 @@ Salvus
 Website
 -------
 
-   * [salvusmath.com](http://salvusmath.com)
+   * [salv.us](https://salv.us)
 
 Author
 ------
 
-   * William Stein
+   * William Stein, University of Washington
 
 Copyright
 ---------
@@ -17,10 +17,14 @@ Copyright
    * This code is *not* released under any license; in particular,
      this codebase is not "open source".
 
-   * My intention is to assign the copyright of this source code to
-     the University of Washington during Summer 2012.
+   * Copyright, University of Washington.
 
-   * Dependencies are open source.
+   * All dependencies are open source.
+   * Every dependency of the core of Salvus itself is licensed under
+     BSD, Apache, MIT, or a similar non-viral license -- absolutely no
+     GPL, LGPL, AGPL, etc.
+   * However various things that communicate over the network with the
+     core, sit on the edge, may be GPL'd, e.g., Stunnel, Sage, etc.
 
 Dependencies
 ------------
@@ -30,6 +34,7 @@ Python
 
    * python-daemon -- http://pypi.python.org/pypi/python-daemon/; Python license, and will go into Python eventually
    * paramiko -- http://www.lag.net/paramiko/; ssh2 implementation in python
+   * cql -- interface to Cassandra database
 
 Javascript/CSS/HTML
 -------------------
@@ -39,10 +44,11 @@ Javascript/CSS/HTML
    * codemirror2 -- http://codemirror.net/; basically MIT license
    * jquery activity indicator -- MIT license
    * SockJS
+   * and many, many more!
 
 NodeJS
 ------
-   * ?
+   * Dozens of modules; see build.py
 
 Database
 --------
@@ -50,51 +56,49 @@ Database
 
 Used as a separate process (no library linking)
 -----------------------------------------------
-   * tinc -- VPN software -- http://www.tinc-vpn.org/; GPL v2+; 
+   * tinc -- VPN software -- http://www.tinc-vpn.org/; GPL v2+;
    * Git -- http://git-scm.com/; GPL v2
    * Sage -- http://sagemath.org/; GPL v3+;  this is linked by sage_server.py, which thus must be GPL'd
-  
+
 
 ARCHITECTURE
 ------------
-
-  * VPN -- use tinc to connect all computers at all sites into one
-           unified network address space with secure communication, no
-           single points of failure, and fast communication between
-           nodes on the same subnet.
-  * SSL -- stunnel
-  * Browers -- Javascript client library that runs in web browser
-  * HAProxy load balancer 
-  * Cassandra database
-  * Sage server -- forking socket server running as part of SAGE
-  * Hub -- written in NodeJS; SockJS server; connects with Sage server, Cassandra DB, other hubs, and user clients
-  * Static HTTP server -- Nginx 
-  * Log watchers -- lightweight process; periodically moves contents of logfiles to database
+  * VPN           :    tinc, connects all computers at all sites into one unified network address space with secure communication
+  * SSL           :    stunnel
+  * Client        : javascript client library that runs in web browser
+  * Load balancer : haproxy
+  * Database      : Cassandra -- distributed, NoSQL, fault tolerant; this is the *only* longterm non-stateless part of the system
+  * Compute       : VM's running some TCP servers (e.g., sage, console, projects, python3, R, etc.)
+  * Hub           : written in Node; Sock.js server; connects with *everything* -- compute servers, Cassandra DB, other hubs, and clients.
+  * HTTP server   : nginx
+  * Log           :  (?) lightweight process; periodically moves contents of logfiles to database
+  * Admin         : python program that uses paramiko to start/stop everything
+  * Private Cloud : (mostly) kvm virtual machines in various places
 
 
 Diagram
 -------
 <pre>
-   Client    Client    Client   Client   Client  Client
+   Client    Client    Client   Client  ...
      /|\
       |
-   https://salv.us (stunnel)    sockjs
-      | 
-      |    
-     \|/ 
- HAProxy Load Balancers ........                                Control       Control     (monitor and control system)
+   https://salv.us (stunnel, sock.js)
+      |
+      |
+     \|/
+ HAProxy load balancers ........                      Admin     (monitor and control system)
  /|\       /|\      /|\      /|\
-  |         |        |        |                                                
-  |http1.1  |        |        |                                     
   |         |        |        |
- \|/       \|/      \|/      \|/                                      
- Hub<----> Hub<---->Hub<---> Hub  <--------------------------->   Cassandra <--> Cassandra  <--> Cassandra ...
-           /|\      /|\      /|\                                         
+  |http1.1  |        |        |
+  |         |        |        |
+ \|/       \|/      \|/      \|/
+ Hub<----> Hub<---->Hub<---> Hub  <----------->   Cassandra <--> Cassandra  <--> Cassandra ...
+           /|\      /|\      /|\
             |        |        |
-   ---------|        |        | tcp
+   ---------|        |        | (tcp)
    |                 |        |
    |                 |        |
   \|/               \|/       \|/
- SageServer   SageServer  SageServer   SageServer ...
+ Compute          Compute  Compute   Compute ...
 
 </pre>
