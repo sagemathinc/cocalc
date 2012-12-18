@@ -8688,7 +8688,7 @@ NEXT UP:
             console_servers and sage_servers...?  actually, no, since
             user may just reconnect!
 
-     [ ] make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
+     [ ] (22 min) console: make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
 
 
 UI stuff

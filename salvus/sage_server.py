@@ -694,8 +694,8 @@ def run_server(port, address, pidfile, logfile):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run Sage server")
-    parser.add_argument("-p", dest="port", type=int, default=0,
-                        help="port to listen on (default: 0 = determined by operating system)")
+    parser.add_argument("-p", dest="port", type=int, default=6000,
+                        help="port to listen on (default: 6000); give 0 to autogenerate")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,

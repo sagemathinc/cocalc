@@ -42,7 +42,7 @@ class Console extends EventEmitter
     _start_session_timer: (seconds) ->
         t = new Date()
         t.setTime(t.getTime() + seconds*1000)
-        @element.find(".salvus-console-countdown").show().draggable().countdown('destroy').countdown
+        @element.find(".salvus-console-countdown").show().countdown('destroy').countdown
             until      : t
             compact    : true
             layout     : '{hnn}{sep}{mnn}{sep}{snn}'

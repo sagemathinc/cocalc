@@ -121,6 +121,7 @@ init_console = (elt) ->
                 c = elt.data('console')
                 c.element.focus()
                 c.element.append($("<a class='btn'>KILL</a>").click(() -> session.kill()))
+                #c.element.draggable()
 
 # each with different session
 init_consoles = (elts) ->

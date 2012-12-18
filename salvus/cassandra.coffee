@@ -436,10 +436,9 @@ class exports.Salvus extends exports.Cassandra
                 table:'sage_servers'
                 columns:['address']
                 where:{running:true}
-                # TODO: we hardcoded 6000 for now
                 cb:(error, results) -> opts.cb(error, {host:x[0], port:6000} for x in results)
         else if opts.type == 'console'
-            opts.cb(false, [{host:'localhost', port:8124}])
+            opts.cb(false, [{host:'localhost', port:6001}])
         else
             opts.cb("Unknown session type '#{opts.type}'")
 

@@ -8,6 +8,10 @@
 #   * the client, which e.g. gets imported by hub and used
 #     for communication between hub and the server daemon.
 #
+# For local debugging, run this way, since it gives better stack traces.
+#
+#         make_coffee && echo "require('console_server').start_server()" | coffee
+#
 #################################################################
 
 async          = require 'async'
@@ -16,6 +20,7 @@ net            = require 'net'
 child_process  = require 'child_process'
 message        = require 'message'
 misc_node      = require 'misc_node'
+winston        = require 'winston'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
@@ -52,7 +57,7 @@ start_session = (socket, mesg) ->
         socket.write_mesg('json', message.error(id:mesg.id, error:"mesg.limits.walltime *must* be defined"))
         return
 
-    console.log("start_session #{to_json(mesg)}")
+    winston.info "start_session #{to_json(mesg)}"
     opts = defaults mesg.params,
         home    : required
         rows    : 24
@@ -68,7 +73,7 @@ start_session = (socket, mesg) ->
     opts.numfiles = mesg.limits.numfiles
 
     if process.getuid() == 0  # root
-        console.log("running as root, so forking with reduced privileges")
+        winston.debug "running as root, so forking with reduced privileges"
         opts.uid = Math.floor(2000 + Math.random()*1000)  # TODO: just for testing; hub/database will *have* to assign this soon
         opts.gid = opts.uid
 
@@ -79,7 +84,7 @@ start_session = (socket, mesg) ->
         opts.cwd = opts.home
     makedirs opts.home, opts.uid, opts.gid, (err) ->
         if err
-            console.log("ERROR: #{err}")  # no way to report error further... yet
+            winston.error "ERROR: #{err}" # no way to report error further... yet
         else
             # Fork of a child process that drops privileges and does all further work to handle a connection.
             child = child_process.fork(__dirname + '/console_server_child.js', [])
@@ -91,7 +96,7 @@ start_session = (socket, mesg) ->
             child.send(opts, socket)
             # No session lives forever -- set a timer to kill the spawned child
             setTimeout((() -> child.kill('SIGKILL')), mesg.limits.walltime*1000)
-            console.log("PARENT: forked off child to handle it")
+            winston.info "PARENT: forked off child to handle it"
 
 handle_client = (socket, mesg) ->
     try
@@ -109,21 +114,45 @@ handle_client = (socket, mesg) ->
                     else
                         throw("only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
                 process.kill(mesg.pid, signal)
-                socket.write_mesg('json', message.signal_sent(id:mesg.id))
+                if mesg.id?
+                    socket.write_mesg('json', message.signal_sent(id:mesg.id))
             else
-                err = message.error(id:mesg.id, error:"Console server received an invalid mesg type '#{mesg.event}'")
+                if mesg.id?
+                    err = message.error(id:mesg.id, error:"Console server received an invalid mesg type '#{mesg.event}'")
                 socket.write_mesg('json', err)
     catch e
-        console.log("ERROR: '#{e}' handling message '#{to_json(mesg)}'")
+        winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
 
 server = net.createServer (socket) ->
-    console.log("PARENT: received connection")
+    winston.debug "PARENT: received connection"
     # Receive a single control message, which is a JSON object terminated by null.
     misc_node.enable_mesg(socket)
     socket.on 'mesg', (type, mesg) ->
-        console.log("received control mesg #{mesg}")
+        winston.debug "received control mesg #{mesg}"
         handle_client(socket, mesg)
 
+# Start listening for connections on the socket.
+exports.start_server = start_server = () ->
+    server.listen program.port, () -> winston.info "listening on port #{program.port}"
+
+# daemonize it
+
+program = require('commander')
+daemon  = require("start-stop-daemon")
+
+program.usage('[start/stop/restart/status] [options]')
+    .option('-p, --port <n>', 'port to listen on (default: 6001)', parseInt, 6001)
+    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/console_server.pid")', String, "data/pids/console_server.pid")
+    .option('--logfile [string]', 'write log to this file (default: "data/logs/console_server.log")', String, "data/logs/console_server.log")
+    .parse(process.argv)
+
+if program._name == 'console_server.js'
+    # run as a server/daemon (otherwise, is being imported as a library)
+    process.addListener "uncaughtException", (err) ->
+        winston.error "Uncaught exception: " + err
+        if console? and console.trace?
+            console.trace()
+
+    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
 
-server.listen 8124, () -> console.log 'listening on port 8124'

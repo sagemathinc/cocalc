@@ -37,7 +37,8 @@ whoami = os.environ['USER']
 # Default ports
 HAPROXY_PORT = 8000
 NGINX_PORT   = 8080
-SAGE_PORT    = 6000  # also used in cassandra.py.
+SAGE_PORT    = 6000  # also used in cassandra.py and sage_server.py
+CONSOLE_PORT = 6001  # also used in cassandra.py and console_server.coffee
 
 HUB_PORT = 5000
 HUB_TCP_PORT = 5001
