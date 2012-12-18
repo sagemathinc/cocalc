@@ -8710,7 +8710,7 @@ ADMIN:
          Also, fix the ports for the above services statically to be
          6000, 6001, 6002, so db schema is simple.
 
--->	[x] (took a very long 2h8m!!) make a file compute_server.? that starts up the various servers AND
+-->	[x] (took a very long 2h16m!!) make a file compute_server.? that starts up the various servers AND
              restricts permissions on salvus source code etc.;
             This took a while, since I also made a skeleton for project_server, and did a lot of other refactoring.
 

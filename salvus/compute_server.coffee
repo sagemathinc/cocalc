@@ -38,9 +38,10 @@ server = net.createServer (socket) ->
             else
                 socket.write(message.error("Unknown message event '#{mesg.event}'"))
 
+PATH = require('path').resolve(__dirname + '/../..')
 restrict_permissions = () ->
     # Just in case we mess up in preparing the VM, it's good to ensure our source code doesn't leak.
-    child_process.spawn('chmod', ['-R', 'og-rwx', "#{process.env.HOME}/salvus"])
+    child_process.spawn('chmod', ['-R', 'og-rwx', "#{PATH}"])
 
 
 ###########################################################################################################
