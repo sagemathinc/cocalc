@@ -122,12 +122,9 @@ class Client extends EventEmitter
         # it is safe to carry out a given action.
         @account_id = undefined
 
-        # The persistent sage sessions that this client started.  For now,
-        # these are all terminated when the client disconnects.  Later on,
-        # a "pro feature" will be persistent sessions that remain open over
-        # a long period of time; those will be specially marked and not be
-        # deleted on disconnect.
-        @persistent_sage_session_uuids = []
+        # The persistent sessions that this client started.
+        # TODO: For now,these are all terminated when the client disconnects. 
+        @compute_session_uuids = []
 
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
@@ -136,18 +133,21 @@ class Client extends EventEmitter
 
         @conn.on("data", @handle_data_from_client)
         @conn.on "close", () =>
-            for session_uuid in @persistent_sage_session_uuids
+            for session_uuid in @compute_session_uuids
+                console.log("KILLING -- #{session_uuid}?")
                 # TODO: there will be a special property to not delete certain of these later.
-                session = persistent_sage_sessions[session_uuid]
-                if session? and session.pid?
-                    pid     = session.pid; console.log("Killing session with pid=#{pid}")
-                    sage.send_signal
-                        host   : session.conn.host
-                        port   : session.conn.port
-                        pid    : session.pid
-                        signal : 9
-                    session.conn.close()
-            @persistent_sage_session_uuids = []
+                session = compute_sessions[session_uuid]
+                if session? and session.kill?
+                    console.log("Actually killing -- #{session_uuid}")
+                    session.kill()
+                    # pid     = session.pid; console.log("Killing session with pid=#{pid}")
+                    # sage.send_signal
+                    #     host   : session.conn.host
+                    #     port   : session.conn.port
+                    #     pid    : session.pid
+                    #     signal : 9
+                    # session.conn.close()
+            @compute_session_uuids = []
 
             delete clients[@conn.id]
 
@@ -1679,6 +1679,7 @@ create_persistent_sage_session = (client, mesg) ->
         if error
             client.push_to_client(message.error(id:mesg.id, error:error))
             return
+        kill_message = undefined
         sage_conn = new sage.Connection(
             host:sage_server.host
             port:sage_server.port
@@ -1695,6 +1696,11 @@ create_persistent_sage_session = (client, mesg) ->
                                 # record this for later use for signals:
                                 persistent_sage_sessions[session_uuid].pid = m.pid
                                 persistent_sage_sessions[session_uuid].account_id = client.account_id
+                                kill_message =
+                                    host   : sage_server.host
+                                    port   : sage_server.port
+                                    pid    : m.pid
+                                    signal : 9
                                 client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
                             else
                                 client.push_to_client(m)
@@ -1710,9 +1716,15 @@ create_persistent_sage_session = (client, mesg) ->
         )
         # Save sage_conn object so that when the user requests evaluation of
         # code in the session with this id, we use this.
-        persistent_sage_sessions[session_uuid] = {conn:sage_conn}
-        compute_sessions[session_uuid] = persistent_sage_sessions[session_uuid]
-        client.persistent_sage_session_uuids.push(session_uuid)
+        session =
+            conn : sage_conn
+            kill : () ->
+                if kill_message?
+                    sage.send_signal(kill_message)
+                sage_conn.close()
+        persistent_sage_sessions[session_uuid] = session
+        compute_sessions[session_uuid] = session
+        client.compute_session_uuids.push(session_uuid)
 
         winston.info("(hub) added #{session_uuid} to persistent sessions")
     )
@@ -1799,7 +1811,10 @@ create_persistent_console_session = (client, mesg) ->
             console_session.host = console_server.host
             console_session.account_id = client.account_id
             console_sessions[session_uuid] = console_session
+
             compute_sessions[session_uuid] = console_session
+            
+            client.compute_session_uuids.push(session_uuid)
 
             # Send session configuration
             misc_node.enable_mesg(console_session)
@@ -1821,6 +1836,8 @@ create_persistent_console_session = (client, mesg) ->
                     return
 
                 console_session.pid = resp.pid
+                kill_mesg = message.send_signal(session_uuid:session_uuid, pid:console_session.pid, signal:9)
+                console_session.kill = () -> send_to_persistent_console_session(kill_mesg)
 
                 # Relay data from client to console_session
                 channel = client.register_data_handler((data) ->

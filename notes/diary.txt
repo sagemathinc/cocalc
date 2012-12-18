@@ -8690,15 +8690,16 @@ NEXT UP:
 
      [x] (22 min) console: make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
 
+     [ ] (25 min) make it so browser disconnect kills corresponding sessions... for now, since we have no way to reconnect anyways.
 
 UI stuff:
 
      [x] (10min) countdown timer limits.walltime
+ -->  +5  [ ] copy/paste/keyboard buttons
      [ ] modify console so it gives back keyboard when looses focus.
+     [ ] ability to resize console : Terminal has a resize method
      [ ] make it possible to get a keyboard on mobile.
      [ ] tabs
-     [ ] copy/paste/keyboard buttons
-     [ ] ability to resize console : Terminal has a resize method
      [ ] user-customizable colorscheme (!)
      [ ] user-customizable font (and size); keyboard shortcut to change font size
      [ ] user-customizable scrollback buffer size -- and scroll bars
