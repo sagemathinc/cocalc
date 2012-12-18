@@ -43,3 +43,8 @@ process.on 'message', (opts, socket) ->
     term.on 'data', (data) ->
         socket.write data
 
+    socket.on 'end', () ->
+        # If the hub connection dies, there is no point in
+        # letting this process continue running, since it can't send
+        # its output anywhere.  So we terminate.
+        process.exit(1)

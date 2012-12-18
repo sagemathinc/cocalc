@@ -8681,15 +8681,20 @@ NEXT UP:
      [x] make console_server send a response message containing the pid of the process it spawned.
 
      [x] console: extend console_server, so have predetermined timeouts for all servers for general robustness
-     [ ] (33 min) extend console_server, to impose resource limits: ulimits - cputime, number of files, etc.
-     [ ] proper handling of connection closing on all relevant sides
+     [x] (33 min) extend console_server, to impose resource limits: ulimits - cputime, number of files, etc.
+     [x] (19 min) proper handling of connection closing on all relevant sides
           ([ ] when console_server fails, give good error message (instead of timeout)?)
+          - when client sockjs terminates, kill corresponding
+            console_servers and sage_servers...?  actually, no, since
+            user may just reconnect!
+
      [ ] make console_session be a daemon with command line parameters (e.g., the port, auto-restart, like hub).
 
 
 UI stuff
      [x] (10min) countdown timer limits.walltime
      [ ] modify console so it gives back keyboard when looses focus.
+     [ ] make it possible to get a keyboard on mobile.
      [ ] tabs
      [ ] copy/paste/keyboard buttons
      [ ] ability to resize console : Terminal has a resize method
@@ -8734,6 +8739,10 @@ other:
      [ ] add option to all these session servers that is a hard limit on the max number of spawned sessions;
          if exceeded, then they automatically kill off oldest ones.   EASY and could massively save ass.
 
+
+I'm also setting up a new machine to run salvus:
+
+   apt-get install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs git zlib1g-dev openjdk-7-jre
 ---------
 
 

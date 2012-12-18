@@ -110,7 +110,7 @@ init_console = (elt) ->
     settings = require('account').account_settings.settings
     username = "#{settings.first_name} #{settings.last_name}"
     salvus_client.new_session
-        limits : {walltime:60*5}  # 5 minutes, for testing
+        limits : {walltime:5*60}
         type : 'console'
         params : {command:'bash', args:['--norc'], ps1:"#{username}:\\w\\$ "}
         cb : (err, session) ->

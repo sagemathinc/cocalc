@@ -1764,6 +1764,8 @@ connect_to_existing_console_session = (client, mesg) ->
     if not console_session?
         # TODO: check in database for sessions on other nodes
         client.push_to_client(message.error(id:mesg.id, error:"There is no known console session with id #{mesg.session_uuid}."))
+    else if console_session.closed
+        client.push_to_client(message.error(id:mesg.id, error:"Cannot connect to session with id #{mesg.session_uuid} since it has already closed."))
     else
         channel = client.register_data_handler((data) -> console_session.write(data))
         console_session.on("data", (data) -> client.push_data_to_client(channel, data))
@@ -1790,6 +1792,9 @@ create_persistent_console_session = (client, mesg) ->
             return
         console_session = net.connect {port:console_server.port, host:console_server.host}, () ->
             # store the console_session, so other clients can potentially tune in (TODO: also store something in database)
+            console_session.closed = false
+            console_session.on('end', ()->console_session.closed = true)
+
             console_session.port = console_server.port
             console_session.host = console_server.host
             console_session.account_id = client.account_id
@@ -1816,10 +1821,15 @@ create_persistent_console_session = (client, mesg) ->
                     return
 
                 console_session.pid = resp.pid
-                console.log("PID = ", console_session.pid)
 
                 # Relay data from client to console_session
-                channel = client.register_data_handler((data) -> console_session.write(data))
+                channel = client.register_data_handler((data) ->
+                    if console_session.closed
+                        client.push_data_to_client(channel, "Session closed. ")
+                    else
+                        console_session.write(data)
+                )
+
                 # relay data from console_session to client
                 console_session.on('data', (data) -> client.push_data_to_client(channel, data))
 
