@@ -37,4 +37,18 @@
     opacity:.3; */
 }
 
+.salvus-console-focus {
+    border : 3px solid blue;
+}
+
+.salvus-console-blur {
+    border : 3px solid grey;
+    opacity : .7;
+}
+
+.salvus-console-red {
+    color:#008;
+    font-weight:bold;
+    border-top:1px dashed grey;
+}
 

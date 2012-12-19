@@ -105,6 +105,22 @@ init = () ->
 
     $('.deck-activate').click(load_slideshow)
 
+init_console_sage = (elt) ->
+    elt = $(elt)
+    settings = require('account').account_settings.settings
+    username = "#{settings.first_name} #{settings.last_name}"
+    salvus_client.new_session
+        limits : {}
+        type : 'console'
+        params : {command:'sage', args:[], ps1:"#{username}:\\w\\$ "}
+        cb : (err, session) ->
+            if err
+                console.log "Error starting console session: #{err}"
+            else
+                elt.salvus_console(title:"Sage Console", session:session, cols:110, rows:40, highlight_mode:'python')
+                c = elt.data('console')
+                #c.element.draggable()
+
 init_console = (elt) ->
     elt = $(elt)
     settings = require('account').account_settings.settings
@@ -117,7 +133,7 @@ init_console = (elt) ->
             if err
                 console.log "Error starting console session: #{err}"
             else
-                elt.salvus_console(title:"A Test Console", session:session, cols:110)
+                elt.salvus_console(title:"A Test Console", session:session, cols:110, rows:40)
                 c = elt.data('console')
                 #c.element.draggable()
 
@@ -125,7 +141,7 @@ init_console = (elt) ->
 init_consoles = (elts) ->
     console.log("init_consoles")
     for elt in elts
-        init_console(elt)
+        init_console_sage(elt)
 
 # all with same session
 init_consoles2 = (elts) ->

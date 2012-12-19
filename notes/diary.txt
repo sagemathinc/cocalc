@@ -8720,8 +8720,16 @@ I'm going to try to plugin codemirror and see what happens.
          ---> actually, instead, just write codemirror renderer.
 
             - if works nicely, see if color, etc., can be controlled.
+              YES!
 
+[x] showing images works!
 
+[x] need a VERY clear "i am focused" for the terminal.
+[x] make it possible to get a keyboard on mobile.
+
+[ ] mobile works, ... except on my phone.
+
+[ ] can copy/paste be done?! -- copy yes
 
 -------
 
@@ -8729,15 +8737,14 @@ I'm going to try to plugin codemirror and see what happens.
      [ ] copy/paste/keyboard buttons
  -->     [ ] modify console so it gives back keyboard when looses focus. -- sort of...
      [ ] ability to resize console : Terminal has a resize method
-     [ ] make it possible to get a keyboard on mobile.
      [ ] tab
-     [ ] scrollbars
-
-LATER
+     [ ] scroll on mobile
      [ ] user-customizable colorscheme (!)
      [ ] user-customizable font (and size); keyboard shortcut to change font size
      [ ] user-customizable scrollback buffer size -- and scroll bars
      [ ] modify sage startup so that it turns on ipython command prompt colors
+     [ ] save a complete command line session
+     [ ] turn command line session into a worksheet
 
 
 ADMIN:
