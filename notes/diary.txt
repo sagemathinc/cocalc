@@ -8695,6 +8695,13 @@ NEXT UP:
 UI stuff:
 
      [x] (10min) countdown timer limits.walltime
+
+I am *NOT* happy with the terminal renderer and input system.
+I'm going to try to plugin codemirror and see what happens.
+
+     [x] (5 min--easy!) upgrade to codemirror 3.0 -- officially released!
+
+
      [ ] copy/paste/keyboard buttons
  -->     [ ] modify console so it gives back keyboard when looses focus. -- sort of...
      [ ] ability to resize console : Terminal has a resize method
