@@ -129,6 +129,7 @@ init_console = (elt) ->
         limits : {}
         type : 'console'
         params : {command:'bash', args:['--norc'], ps1:"#{username}:\\w\\$ "}
+        #params : {command:'emacs', args:['-nw']}
         cb : (err, session) ->
             if err
                 console.log "Error starting console session: #{err}"
@@ -141,7 +142,8 @@ init_console = (elt) ->
 init_consoles = (elts) ->
     console.log("init_consoles")
     for elt in elts
-        init_console_sage(elt)
+        #init_console_sage(elt)
+        init_console(elt)
 
 # all with same session
 init_consoles2 = (elts) ->

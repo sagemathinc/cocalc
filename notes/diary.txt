@@ -8727,25 +8727,46 @@ I'm going to try to plugin codemirror and see what happens.
 [x] need a VERY clear "i am focused" for the terminal.
 [x] make it possible to get a keyboard on mobile.
 
-[ ] mobile works, ... except on my phone.
-
-[ ] can copy/paste be done?! -- copy yes
 
 -------
+ 
 
+     [x] (1:42) when clicking on codemirror put cursor in right spot
+attempt 1: readOnly:'nocursor';    would mostly work on desktop, but kills mobile device keyboard!
+ Got it in a surprising way!
 
-     [ ] copy/paste/keyboard buttons
+-->     [ ] mobile works, ... except on my nexus4.
+
+     * There is a long very recent thread about this *BUG* in chrome mobile: http://code.google.com/p/chromium/issues/detail?id=118639
+     * It's also an issue in firefox on nexus4.
+
+My idea for now: 
+
+     If on Android Chrome (not the older browser!?), install an editor on change handler.  
+          When updating output buffer it does nothing.
+          Otherwise, it sends all text it gets directly over the wire.
+          See what happens.
+
+     [ ] fix setting title
+     [ ] scroll buttons (for mobile)
+     [ ] too much output crashes it right now. 
+     [ ] everything doubled on first login -- ok with autologin.
+     [ ] automatic shell resize -- .bashrc?
+     [ ] can copy/paste be done?! -- copy yes
+     [ ] add escape codes that allow for embedding images or any other html as output.
  -->     [ ] modify console so it gives back keyboard when looses focus. -- sort of...
      [ ] ability to resize console : Terminal has a resize method
-     [ ] tab
-     [ ] scroll on mobile
      [ ] user-customizable colorscheme (!)
      [ ] user-customizable font (and size); keyboard shortcut to change font size
      [ ] user-customizable scrollback buffer size -- and scroll bars
      [ ] modify sage startup so that it turns on ipython command prompt colors
      [ ] save a complete command line session
      [ ] turn command line session into a worksheet
+     [ ] clear indicator back to client when the terminal session exits
+     [ ] tabs
 
+
+     [ ] I got an email from david cervone about ways to optimize my use of mathjax...
 
 ADMIN:
      [x] from point of view of admin, instead of sage_server, console_server, project_server, etc.

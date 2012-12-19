@@ -332,6 +332,7 @@ Terminal.prototype.focus = function() {
  * Global Events for key handling
  */
 
+
 Terminal.bindKeys = function() {
   if (Terminal.focus) return;
 
@@ -1990,6 +1991,7 @@ Terminal.prototype.writeln = function(data) {
 Terminal.prototype.keyDown = function(ev) {
   var key;
 
+/*    log("keydown: " + ev); */
   switch (ev.keyCode) {
     // backspace
     case 8:

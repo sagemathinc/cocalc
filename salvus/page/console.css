@@ -22,9 +22,45 @@
      padding: 5px;
 }
 
-.salvus-console-cursor  {
-    color: #000;
-    background: #000;
+.salvus-console-cursor-blur  {
+   border:1px solid grey;
+   border-radius: 3px;
+}
+
+.salvus-console-cursor-focus  {
+  -webkit-animation: salvus-cursor-blink 1.3s linear 0s infinite;
+  -moz-animation: salvus-cursor-blink 1.3s linear 0s infinite;
+  -ms-animation: salvus-cursor-blink 1.3s linear 0s infinite;
+  -o-animation: salvus-cursor-blink 1.3s linear 0s infinite;
+  background: #000; color:#fff;  /* Fallback for browsers without animation support */
+}
+
+@-webkit-keyframes salvus-cursor-blink {
+  0%   { background: #000; color:#fff; }
+  40%  { background: #000; color:#fff; }
+  50%  { background: #fff; color:#000; }
+  90%  { background: #fff; color:#000; }
+}
+
+@-moz-keyframes salvus-cursor-blink {
+  0%   { background: #000; color:#fff; }
+  40%  { background: #000; color:#fff; }
+  50%  { background: #fff; color:#000; }
+  90%  { background: #fff; color:#000; }
+}
+
+@-ms-keyframes salvus-cursor-blink {
+  0%   { background: #000; color:#fff; }
+  40%  { background: #000; color:#fff; }
+  50%  { background: #fff; color:#000; }
+  90%  { background: #fff; color:#000; }
+}
+
+@-o-keyframes salvus-cursor-blink {
+  0%   { background: #000; color:#fff; }
+  40%  { background: #000; color:#fff; }
+  50%  { background: #fff; color:#000; }
+  90%  { background: #fff; color:#000; }
 }
 
 .salvus-console-countdown {
@@ -33,22 +69,15 @@
 }
 
 .salvus-console-textarea {
-/*    position:absolute;
-    opacity:.3; */
 }
 
 .salvus-console-focus {
-    border : 3px solid blue;
+    background-color: #ffffe8;
+    border : 2px solid #99f;
+    box-shadow: 4px 4px 2px #bbf;
 }
 
 .salvus-console-blur {
-    border : 3px solid grey;
-    opacity : .7;
-}
-
-.salvus-console-red {
-    color:#008;
-    font-weight:bold;
-    border-top:1px dashed grey;
+    border : 2px solid lightgrey;
 }
 

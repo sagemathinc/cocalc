@@ -11,10 +11,13 @@
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
 
+isANDROID = require('feature').isMobile.Android()
+
 custom_renderer = (terminal, start, end) ->
     width = terminal.cols
     if terminal.editor?
         e = terminal.editor
+        e._rendering = true
         y = start
         out = ''
         while y <= end
@@ -26,14 +29,16 @@ custom_renderer = (terminal, start, end) ->
 
         #terminal.editor.replaceRange(out, {line:start,ch:0}, {line:end+1,ch:0})
         e.replaceRange(out, {line:start+terminal.ydisp,ch:0}, {line:end+1+terminal.ydisp,ch:0})
-        cursor_pos = {line:terminal.y+terminal.ydisp, ch:terminal.x}
-        e.setCursor(cursor_pos)
-        e.scrollIntoView(cursor_pos)
-
-        # proof that we have total control over text output
-        # e.markText({line:end+terminal.ydisp,ch:0}, {line:end+1+terminal.ydisp,ch:0}, {className:'salvus-console-red'})
-
-        # try showing an image
+        cp1 = {line:terminal.y+terminal.ydisp, ch:terminal.x}
+        cp2 = {line:cp1.line, ch:cp1.ch+1}
+        if terminal.salvus_console.is_focused
+            e.markText(cp1, cp2, {className:'salvus-console-cursor-focus'})
+        else
+            e.markText(cp1, cp2, {className:'salvus-console-cursor-blur'})
+        e.scrollIntoView(cp1)
+        e._rendering = false
+        
+        # showing an image
         #e.addLineWidget(end+terminal.ydisp, $("<img width=50 src='http://vertramp.org/2012-10-12b.png'>")[0])
 
 
@@ -45,14 +50,16 @@ class Console extends EventEmitter
             title       : ""
             rows        : 24
             cols        : 80
-            highlight_mode : 'shell'
+            highlight_mode : 'none'  # use "none" for just standard xterm colors
 
+        @is_focused = false
         @element = console_template.clone()
         @element.data("console", @)
         $(@opts.element).replaceWith(@element)
         @set_title(@opts.title)
         @_term = new Terminal(@opts.cols,@opts.rows)
         @_term.custom_renderer = custom_renderer
+        @_term.salvus_console = @
         @_term.open()
         @_term.element.className = "salvus-console-terminal"
         @element.find(".salvus-console-terminal").replaceWith(@_term.element)
@@ -62,29 +69,57 @@ class Console extends EventEmitter
         @_session = opts.session
 
         @_term.on    'data',  (data) => @_session.write_data(data)
-        @_term.on    'title',(title) => @set_title(title)
+        @_term.on    'title', (title) => @set_title(title)
         @_session.on 'data',  (data) => @_term.write(data)
 
         @_start_session_timer(opts.session.limits.walltime)
 
         t = @element.find(".salvus-console-textarea")
-        @_term.editor = CodeMirror.fromTextArea t[0],
-            lineNumbers:true
-            lineWrapping:false
-            readOnly:true
-            mode:@opts.highlight_mode   # to turn off, can just use non-existent mode name
-            matchBrackets:true
+        editor = @_term.editor = CodeMirror.fromTextArea t[0],
+            lineNumbers   : false
+            lineWrapping  : false
+            mode          : @opts.highlight_mode   # to turn off, can just use non-existent mode name
+        editor._rendering = false
 
-        e = $(@_term.editor.getScrollerElement())
+        e = $(editor.getScrollerElement())
         e.css('height', "#{@opts.rows+1}em")
         e.css('background', '#fff')
 
-        @_term.editor.on('focus', () => @focus())
-        @_term.editor.on('blur', () => @blur())
-        @_term.editor.setValue(("\n" for i in [1...@opts.rows-1]).join(""))
+        editor.on('focus', () => @focus())
+        editor.on('blur', () => @blur())
+
+        console.log('x15')
+        #$(editor.getWrapperElement()).on('click', () => @focus())
+        #
+        #
+        console.log($(editor.getWrapperElement()).find('.CodeMirror-cursor').length)
+        $(editor.getScrollerElement()).find('.CodeMirror-cursor').css('border-left','0px solid red')
+
+        #that = @
+        #$(editor.getWrapperElement()).on('click', () => setTimeout((() -> that._refresh_cursor()), 10))
+        #$(editor.getScrollerElement()).on('click', () => setTimeout((() -> that._refresh_cursor()), 10))
 
         @element.draggable(handle:@element.find('.salvus-console-title'))
         @blur()
+
+        # Hack to workaround the "insane" way in which Android Chrome doesn't work: http://code.google.com/p/chromium/issues/detail?id=118639
+        if isANDROID
+            that = @
+            editor.on('change', (ed, changeObj) ->
+                cp = that._term.y+that._term.ydisp
+                if not ed._rendering and that.is_focused
+                    that._session.write_data(changeObj.text)
+                    ed._rendering = true
+                    log(to_json(changeObj))
+                    #log(changeObj.from.line)
+                    #log(that._term.ydisp)
+                    #ed.markText(changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1}, {className:'hide'})
+                    ed.replaceRange("", changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1})
+                    ed.setCursor({line:cp+1,ch:0})
+                    ed.scrollIntoView({line:cp,ch:0})
+                    ed._rendering = false
+            )
+
 
     #######################################################################
     # Private Methods
@@ -106,22 +141,22 @@ class Console extends EventEmitter
     #######################################################################
 
     blur : () =>
+        @is_focused = false
         @_term.blur()
-        if @_term.editor?
-            $(@_term.editor.getWrapperElement()).removeClass('salvus-console-focus').addClass('salvus-console-blur')
+        editor = @_term.editor
+        if editor?
+            e = $(editor.getWrapperElement())
+            e.removeClass('salvus-console-focus').addClass('salvus-console-blur')
+            e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
     focus : () =>
+        @is_focused = true
         @_term.focus()
-        e = @_term.editor
-        if e?
-            $(e.getWrapperElement()).addClass('salvus-console-focus').removeClass('salvus-console-blur')
-
-            # This doesn't do anything useful in practice.
-            pos = {line:@_term.y+@_term.ydisp, ch:@_term.x}
-            console.log(pos)
-            if pos.line? and pos.ch?
-                e.setCursor(pos)
-                e.scrollIntoView(pos)
+        editor = @_term.editor
+        if editor?
+            e = $(editor.getWrapperElement())
+            e.addClass('salvus-console-focus').removeClass('salvus-console-blur')
+            e.find(".salvus-console-cursor-blur").removeClass("salvus-console-cursor-blur").addClass("salvus-console-cursor-focus")
 
     set_title: (title) ->
         @element.find(".salvus-console-title").text(title)
