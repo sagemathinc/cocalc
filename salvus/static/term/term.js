@@ -804,7 +804,14 @@ Terminal.prototype.destroy = function() {
 // Next 14 bits: a mask for misc. flags:
 //   1=bold, 2=underline, 4=inverse
 
+
 Terminal.prototype.refresh = function(start, end) {
+
+  if (typeof this.custom_renderer !== "undefined" && this.custom_renderer !== null) {
+      this.custom_renderer(this, start, end);
+      return
+  }
+
   var x
     , y
     , i

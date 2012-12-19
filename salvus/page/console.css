@@ -1,6 +1,6 @@
 .salvus-console {
     border           : 1px solid #aaa;
-    background-color : #e8e8e8;
+    background-color : #eaeaea;
     padding          : 10px;
     margin           : 10px;
     box-shadow       : 6px 6px 3px #888;
@@ -33,8 +33,8 @@
 }
 
 .salvus-console-textarea {
-    position:absolute;
-    opacity:.3;
+/*    position:absolute;
+    opacity:.3; */
 }
 
 

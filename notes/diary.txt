@@ -8700,6 +8700,30 @@ I am *NOT* happy with the terminal renderer and input system.
 I'm going to try to plugin codemirror and see what happens.
 
      [x] (5 min--easy!) upgrade to codemirror 3.0 -- officially released!
+     [x] (1 min) figure out if my mod to term.js broken emacs in a term...
+         NO -- it's something else.
+
+     [x] (8 min) try at least to fix that weird issue with term.js where emacs won't work.
+            - download and try their demo
+            - modify css, html to be mine
+            - could be some weird corruption caused by my multiplexing, e.g., maybe null bytes...?
+         It is *just* that emacs goes boom if there are only 20 rows and I had it set at 80x20.
+         Changing to 24 rows and it works fine.
+     [ ] Codemirror testing process:
+[x]            - figure out the data structure used by term.js for the internal rep of xterm
+- this.lines is an array of length the number of visible rows
+- this.lines[i] is an array of arrays of size 2; each is  [data, ch]
+  where ch is the actual character and data encodes extra properties (color, etc.).
+[x]            - read all code where that structure is changed
+[x]            - put in console.log's so as to understand it.
+            - try setting corresponding entries in an additional codemirror as echo
+         ---> actually, instead, just write codemirror renderer.
+
+            - if works nicely, see if color, etc., can be controlled.
+
+
+
+-------
 
 
      [ ] copy/paste/keyboard buttons
