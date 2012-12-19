@@ -8668,7 +8668,7 @@ NEXT UP:
          cassandra.coffee is implemented.
 
      [x] console -- can I specify command, e.g., "emacs", "vim", "bash", "sage"?
-         YES, so make this part of the message spec, etc. 
+         YES, so make this part of the message spec, etc.
          and have the option of doing special things for different things.
      [x] test having multiple consoles on same server
 
@@ -8729,27 +8729,26 @@ I'm going to try to plugin codemirror and see what happens.
 
 
 -------
- 
+
 
      [x] (1:42) when clicking on codemirror put cursor in right spot
 attempt 1: readOnly:'nocursor';    would mostly work on desktop, but kills mobile device keyboard!
  Got it in a surprising way!
 
--->     [ ] mobile works, ... except on my nexus4.
-
+-->     [x] (3:18min) mobile works, ... except on my nexus4.
      * There is a long very recent thread about this *BUG* in chrome mobile: http://code.google.com/p/chromium/issues/detail?id=118639
      * It's also an issue in firefox on nexus4.
-
-My idea for now: 
-
-     If on Android Chrome (not the older browser!?), install an editor on change handler.  
+My idea for now:
+     If on Android Chrome (not the older browser!?), install an editor on change handler.
           When updating output buffer it does nothing.
           Otherwise, it sends all text it gets directly over the wire.
           See what happens.
+     ... somehow, I got it all to work.
+
 
      [ ] fix setting title
      [ ] scroll buttons (for mobile)
-     [ ] too much output crashes it right now. 
+     [ ] too much output crashes it right now.
      [ ] everything doubled on first login -- ok with autologin.
      [ ] automatic shell resize -- .bashrc?
      [ ] can copy/paste be done?! -- copy yes

@@ -17,7 +17,6 @@ custom_renderer = (terminal, start, end) ->
     width = terminal.cols
     if terminal.editor?
         e = terminal.editor
-        e._rendering = true
         y = start
         out = ''
         while y <= end
@@ -36,8 +35,7 @@ custom_renderer = (terminal, start, end) ->
         else
             e.markText(cp1, cp2, {className:'salvus-console-cursor-blur'})
         e.scrollIntoView(cp1)
-        e._rendering = false
-        
+
         # showing an image
         #e.addLineWidget(end+terminal.ydisp, $("<img width=50 src='http://vertramp.org/2012-10-12b.png'>")[0])
 
@@ -76,28 +74,19 @@ class Console extends EventEmitter
 
         t = @element.find(".salvus-console-textarea")
         editor = @_term.editor = CodeMirror.fromTextArea t[0],
-            lineNumbers   : false
+            lineNumbers   : true
             lineWrapping  : false
             mode          : @opts.highlight_mode   # to turn off, can just use non-existent mode name
-        editor._rendering = false
 
         e = $(editor.getScrollerElement())
-        e.css('height', "#{@opts.rows+1}em")
+        e.css('height', "#{@opts.rows+0.4}em")
         e.css('background', '#fff')
 
         editor.on('focus', () => @focus())
         editor.on('blur', () => @blur())
 
-        console.log('x15')
-        #$(editor.getWrapperElement()).on('click', () => @focus())
-        #
-        #
-        console.log($(editor.getWrapperElement()).find('.CodeMirror-cursor').length)
+        # Hide codemirror's own cursor.
         $(editor.getScrollerElement()).find('.CodeMirror-cursor').css('border-left','0px solid red')
-
-        #that = @
-        #$(editor.getWrapperElement()).on('click', () => setTimeout((() -> that._refresh_cursor()), 10))
-        #$(editor.getScrollerElement()).on('click', () => setTimeout((() -> that._refresh_cursor()), 10))
 
         @element.draggable(handle:@element.find('.salvus-console-title'))
         @blur()
@@ -105,20 +94,18 @@ class Console extends EventEmitter
         # Hack to workaround the "insane" way in which Android Chrome doesn't work: http://code.google.com/p/chromium/issues/detail?id=118639
         if isANDROID
             that = @
-            editor.on('change', (ed, changeObj) ->
-                cp = that._term.y+that._term.ydisp
-                if not ed._rendering and that.is_focused
-                    that._session.write_data(changeObj.text)
-                    ed._rendering = true
-                    log(to_json(changeObj))
-                    #log(changeObj.from.line)
-                    #log(that._term.ydisp)
-                    #ed.markText(changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1}, {className:'hide'})
-                    ed.replaceRange("", changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1})
-                    ed.setCursor({line:cp+1,ch:0})
-                    ed.scrollIntoView({line:cp,ch:0})
-                    ed._rendering = false
-            )
+            handle_android_change = (ed, changeObj) ->
+                #log(to_json(changeObj))
+                s = changeObj.text.join('\n')
+                if changeObj.origin == 'input' and s.length > 0
+                    that._session.write_data(s)
+                    # relaceRange causes a hang if you type "ls[backspace]" right on load.
+                    # Thus we use markText instead.
+                    #ed.replaceRange("", changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1})
+                    ed.markText(changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1}, className:"hide")
+                if changeObj.next?
+                    handle_android_change(ed, changeObj.next)
+            editor.on('change', handle_android_change)
 
 
     #######################################################################

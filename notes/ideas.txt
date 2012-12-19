@@ -1,3 +1,7 @@
+[ ] I could easily install the "compute_server" on *any* computer
+anywhere... and let certain users access their own infrastructure
+through salvus.... for a fee.  This would scale up a lot.
+
 [ ] tex commutative diagram support for mathjax: http://sonoisa.github.com/xyjax/xyjax.html
 
 [ ] OMFG graph editor: http://mbostock.github.com/d3/talk/20111116/force-collapsible.html
