@@ -8794,7 +8794,6 @@ CRAZY idea:
 
      [x] everything doubled on first login -- ok with autologin.; or with two on same page.
 
-
      [ ] clear indicator back to client when the terminal session exits
      [ ] tabs
 
@@ -8834,14 +8833,17 @@ ADMIN:
 
 NEXT:
 
+     [x] Database uuid:blob store -- need for transfering files anyways, but will also
+         need for storing database.
+     [ ] Try out my uuid:blob store in hub to see how/if it works!
+
      [ ] Make another component called "project_server" and move some functionality
          from console_server there?  It would do the following:
                 - set quota for a uid/gid
                 - create /tmp/salvus/project_uuid path (home dir)
-                - worries about /tmp/salvus/project_uuid permissions -- restrict them!
-                - give error on not-enough resources, which will
-                  causes hub to try another random server and report
-                  in a log.
+                - worry about /tmp/salvus/project_uuid permissions: restrict them!
+                - give error on not-enough resources, which could
+                  causes hub to try another server and report issue to database
                 - receive a git bundle and extract it (asynchronously)
                 - commit all (=snapshot) a project path
                 - create git bundle from path and send it to hub

@@ -18,13 +18,15 @@ top_navbar.coffee
 
 alerts.coffee
 
-account.coffee
 
 feedback.coffee
 
 cell.coffee
 worksheet.coffee
 console.coffee
+
+# must come after cell.coffee
+account.coffee
 
 worksheet1.coffee
 worksheet2.coffee

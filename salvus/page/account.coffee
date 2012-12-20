@@ -526,4 +526,28 @@ $("a[href='#account-settings-upgrade']").click (event) ->
     return false
 
 
+################################################
+# Active the single cell
+################################################
+
+$("#account").find(".account-cell0").salvus_cell
+    note_value          : "Write Sage code &dArr;"
+    editor_line_numbers : true
+    editor_value        : "\n"
+    editor_max_height   : "10em"
+
+elt = $("#account").find(".account-console0")
+if not elt.data('initialized')
+    elt.data('initialized',true)
+    salvus_client.new_session
+        limits : {}
+        type : 'console'
+        params : {command:'bash', args:['--norc'], ps1:"salvus:\\w\\$ "}
+        cb : (err, session) ->
+            if err
+                console.log "Error starting console session: #{err}"
+            else
+                elt.salvus_console(title:"Salvus test console", session:session, cols:50, rows:10)
+                c = elt.data('console')
+
 

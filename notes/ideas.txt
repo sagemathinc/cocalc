@@ -1,3 +1,5 @@
+[ ] diagram library/web app -- http://www.jgraph.com/; very impressive javascript implementation; also very expensive.
+
 [ ] I could easily install the "compute_server" on *any* computer
 anywhere... and let certain users access their own infrastructure
 through salvus.... for a fee.  This would scale up a lot.

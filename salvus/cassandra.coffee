@@ -70,79 +70,102 @@ exports.create_schema = (conn, cb) ->
 
 
 
-class UUIDValueStore
-    # c = new (require("cassandra").Salvus)(); s = c.uuid_value_store('sage'); u = c.uuid_value_store('user')
-    # s.set(uuid:4, value:{host:'localhost', port:5000}, ttl:30, cb:console.log)
-    # u.set(uuid:7, value:{host:'localhost', port:5000})
-    # u.get(uuid:7, cb:console.log)
-    constructor: (@cassandra, opts={}) ->
-        @opts = defaults(opts,  name:'default')
-
-    set: (opts={}) ->
-        opts = defaults(opts,  uuid:undefined, value:undefined, ttl:0, cb:undefined)
+class UUIDStore
+    set: (opts) ->
+        opts = defaults opts,
+            uuid  : undefined
+            value : undefined
+            ttl   : 0
+            cb    : undefined
         if not opts.uuid?
             opts.uuid = uuid.v4()
         else
             if not misc.is_valid_uuid_string(opts.uuid)
                 throw "invalid uuid #{opts.uuid}"
-        @cassandra.update(
-            table:'uuid_value'
-            where:{name:@opts.name, uuid:opts.uuid}
-            set:{value:to_json(opts.value)}
-            ttl:opts.ttl
-            cb:opts.cb
-        )
+        @cassandra.update
+            table : @_table
+            where : {name:@opts.name, uuid:opts.uuid}
+            set   : {value:@_to_db(opts.value)}
+            ttl   : opts.ttl
+            cb    : opts.cb
         return opts.uuid
 
-    get: (opts={}) ->
+    get: (opts) ->
         opts = defaults opts,
             uuid : required
             cb   : required
-
         if not misc.is_valid_uuid_string(opts.uuid)
             opts.cb("invalid uuid #{opts.uuid}")
+        @cassandra.select
+            table   : @_table
+            columns : ['value']
+            where   : {name:@opts.name, uuid:opts.uuid}
+            cb      : (error, results) =>
+                opts.cb(error, if results.length == 1 then @_from_db(results[0][0]))
 
-        @cassandra.select(
-            table:'uuid_value'
-            columns:['value']
-            where:{name:@opts.name, uuid:opts.uuid}
-            cb:(error, results) -> opts.cb(error, if results.length == 1 then from_json(results[0][0]))
-        )
-
-    delete: (opts={}) ->
+    delete: (opts) ->
         opts = defaults opts,
             uuid : required
             cb   : undefined
         if not misc.is_valid_uuid_string(opts.uuid)
             opts.cb?("invalid uuid #{opts.uuid}")
-        @cassandra.delete(table:'uuid_value', where:{name:@opts.name, uuid:opts.uuid}, cb:opts.cb)
+        @cassandra.delete
+            table : @_table
+            where : {name:@opts.name, uuid:opts.uuid}
+            cb    : opts.cb
 
     delete_all: (opts={}) ->
         opts = defaults(opts,  cb:undefined)
-        @cassandra.delete(table:'uuid_value', where:{name:@opts.name}, cb:opts.cb)
+        @cassandra.delete
+            table : @_table
+            where : {name:@opts.name}
+            cb    : opts.cb
 
     length: (opts={}) ->
         opts = defaults(opts,  cb:undefined)
-        @cassandra.count(table:'uuid_value', where:{name:@opts.name}, cb:opts.cb)
+        @cassandra.count
+            table : @_table
+            where : {name:@opts.name}
+            cb    : opts.cb
 
     all: (opts={}) ->
         opts = defaults(opts,  cb:required)
-        @cassandra.select(
-            table:'uuid_value'
-            columns:['uuid', 'value']
-            where:{name:@opts.name},
-            cb:(err, results) ->
+        @cassandra.select
+            table   : @_table
+            columns : ['uuid', 'value']
+            where   : {name:@opts.name},
+            cb      : (err, results) ->
                 obj = {}
                 for r in results
-                    obj[r[0]] = from_json(r[1])
-                opts.cb(err, obj))
+                    obj[r[0]] = @_from_db(r[1])
+                opts.cb(err, obj)
+
+class UUIDValueStore extends UUIDStore
+    # c = new (require("cassandra").Salvus)(keyspace:'test'); s = c.uuid_value_store(name:'sage'); u = c.uuid_value_store(name:'user')
+    # uid = s.set(value:{host:'localhost', port:5000}, ttl:30, cb:console.log)
+    # uid = u.set(value:{host:'localhost', port:5000})
+    # u.get(uuid:uid, cb:console.log)
+    constructor: (@cassandra, opts={}) ->
+        @opts = defaults(opts,  name:required)
+        @_table = 'uuid_value'
+        @_to_db = to_json
+        @_from_db = from_json
+
+class UUIDBlobStore extends UUIDStore
+    # c = new (require("cassandra").Salvus)(keyspace:'test'); s = c.uuid_blob_store(name:'test')
+    # s.set(value:'foo', ttl:300, cb:console.log)
+    constructor: (@cassandra, opts={}) ->
+        @opts     = defaults(opts, name:required)
+        @_table   = 'uuid_blob'
+        @_to_db   = (x) -> x
+        @_from_db = (x) -> x
 
 class KeyValueStore
     #   c = new (require("cassandra").Salvus)(); d = c.key_value_store('test')
     #   d.set(key:[1,2], value:[465, {abc:123, xyz:[1,2]}], ttl:5)
     #   d.get(key:[1,2], console.log)   # but call it again in > 5 seconds and get nothing...
     constructor: (@cassandra, opts={}) ->
-        @opts = defaults(opts,  name:'default')
+        @opts = defaults(opts,  name:required)
 
     set: (opts={}) ->
         opts = defaults opts,
@@ -368,6 +391,9 @@ class exports.Cassandra extends EventEmitter
 
     uuid_value_store: (opts={}) -> # uuid_value_store(name:"the name")
         new UUIDValueStore(@, opts)
+
+    uuid_blob_store: (opts={}) -> # uuid_blob_store(name:"the name")
+        new UUIDBlobStore(@, opts)
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->

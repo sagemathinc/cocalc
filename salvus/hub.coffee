@@ -1647,14 +1647,13 @@ save_blob = (opts) ->
     if opts.value.length >= 10000000
         # PRIMITIVE anti-DOS measure
         return
-    opts.value = opts.value.toString()  # TODO -- temporary for testing until I make a better DB TABLE!!!!
-    database.uuid_value_store(name:"blobs").set(opts)
+    database.uuid_blob_store(name:"blobs").set(opts)
 
 get_blob = (opts) ->
     opts = defaults opts,
         uuid : required
         cb   : required
-    database.uuid_value_store(name:"blobs").get(opts)
+    database.uuid_blob_store(name:"blobs").get(opts)
 
 ########################################
 # Compute Sessions (of various types)

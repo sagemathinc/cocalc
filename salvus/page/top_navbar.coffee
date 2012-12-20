@@ -118,7 +118,7 @@ $.fn.extend
 
 $("#about").top_navbar
     id      : "about"
-    label   : "Salvus&trade;"
+    label   : "About Salvus&trade;"
     close   : false
 
 $("#projects").top_navbar

@@ -1,3 +1,10 @@
+CREATE TABLE uuid_blob (
+     name varchar,
+     uuid uuid,
+     value blob,
+     PRIMARY KEY(name, uuid)
+);
+
 CREATE TABLE uuid_value (
      name varchar,
      uuid uuid,
