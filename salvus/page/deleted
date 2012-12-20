@@ -1,3 +1,14 @@
+        if IS_ANDROID
+            submit = (ev) =>
+                alert(ev.keyCode)
+                if ev.keyCode == 13
+                    @.session.write_data(@mobile_target.val())
+                    @mobile_target.val('')
+                else
+                    return false
+            $(document).on('keydown',submit).on('keypress',submit)
+        else
+            @terminal.focus()
 
         # 2. Mark special styles of the output text:
         #  THIS IS INSANELY SLOW/USELESS

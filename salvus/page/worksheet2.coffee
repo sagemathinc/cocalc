@@ -134,7 +134,7 @@ init_console = (elt) ->
             if err
                 console.log "Error starting console session: #{err}"
             else
-                elt.salvus_console(title:"A Test Console", session:session, cols:80, rows:30)
+                elt.salvus_console(title:"A Test Console", session:session, cols:90, rows:24)
                 c = elt.data('console')
                 #c.element.draggable()
 

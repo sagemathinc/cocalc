@@ -19,8 +19,13 @@
    color : #888;
 }
 
+.salvus-console-for-mobile {
+    position:absolute;
+    opacity:0;
+    color:#fff;
+}
+
 .salvus-console-terminal {
-     border: 1px solid orange;
      font-family: Courier, "Courier New", monospace;
      font-size: 13px;
      line-height: 115%;

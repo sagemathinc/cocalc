@@ -4,6 +4,16 @@
 #
 ###########################################
 
+
+# Extend jQuery.fn with our new method
+$.extend $.fn,
+  # Name of our method & one argument (the parent selector)
+  hasParent: (p) ->
+    # Returns a subset of items using jQuery.filter
+    @filter ->
+      # Return truthy/falsey based on presence in parent
+      $(p).find(this).length
+
 {EventEmitter} = require('events')
 {alert_message} = require('alerts')
 {copy, filename_extension, required, defaults, to_json} = require('misc')
@@ -12,7 +22,6 @@ templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
 
 feature = require 'feature'
-IS_ANDROID = feature.isMobile.Android()
 IS_MOBILE = feature.IS_MOBILE
 
 codemirror_renderer = (start, end) ->
@@ -55,14 +64,16 @@ class Console extends EventEmitter
             rows        : 24
             cols        : 80
             highlight_mode : 'none'
-            renderer    : 'codemirror'   # options -- 'codemirror' (syntax highlighting, better mobile support), 'ttyjs' (color)
+            renderer    : 'auto'   # options -- 'auto' (best for device); 'codemirror' (mobile support), 'ttyjs' (xterm-color!)
             draggable   : false
 
-        @opts.renderer = 'ttyjs'
+        if @opts.renderer == 'auto'
+            if IS_MOBILE
+                @opts.renderer = 'codemirror'
+            else
+                @opts.renderer = 'ttyjs'
 
         # On mobile, only codemirror works right now...
-        if IS_MOBILE
-             @opts.renderer = 'codemirror'
 
         # The is_focused variable keeps track of whether or not the
         # editor is focused.  This impacts the cursor, at least.
@@ -146,7 +157,7 @@ class Console extends EventEmitter
         @terminal.custom_renderer = codemirror_renderer
         t = @element.find(".salvus-console-textarea")
         editor = @terminal.editor = CodeMirror.fromTextArea t[0],
-            lineNumbers   : true
+            lineNumbers   : false
             lineWrapping  : false
             indentUnit    : 0  # seems to have no impact (not what I want...)
             mode          : @opts.highlight_mode   # to turn off, can just use non-existent mode name
@@ -164,8 +175,8 @@ class Console extends EventEmitter
         # Hacks to workaround the "insane" way in which Android Chrome
         # doesn't work:
         # http://code.google.com/p/chromium/issues/detail?id=118639
-        if IS_ANDROID
-            handle_android_change = (ed, changeObj) ->
+        if IS_MOBILE
+            handle_mobile_change = (ed, changeObj) ->
                 s = changeObj.text.join('\n')
                 if changeObj.origin == 'input' and s.length > 0
                     that.session.write_data(s)
@@ -174,11 +185,10 @@ class Console extends EventEmitter
                     #ed.replaceRange("", changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1})
                     ed.markText(changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1}, className:"hide")
                 if changeObj.next?
-                    handle_android_change(ed, changeObj.next)
-            editor.on('change', handle_android_change)
+                    handle_mobile_change(ed, changeObj.next)
+            editor.on('change', handle_mobile_change)
 
-        # Buttons
-        if IS_MOBILE
+            # Buttons
             @element.find(".salvus-console-up").click () ->
                 vp = editor.getViewport()
                 editor.scrollIntoView({line:vp.from - 1, ch:0})
@@ -193,6 +203,31 @@ class Console extends EventEmitter
         # Give it our style; there is one in term.js (upstream), but it is named in a too-generic way.
         @terminal.element.className = "salvus-console-terminal"
         @element.find(".salvus-console-terminal").replaceWith(@terminal.element)
+        ter = $(@terminal.element)
+        ter.on('click', () => @focus())
+        # Focus/blur handler.
+
+        if IS_MOBILE  # so keyboard appears
+            if @opts.renderer == 'ttyjs'
+                @mobile_target = @element.find(".salvus-console-for-mobile")
+                @mobile_target.css('width', ter.css('width'))
+                @mobile_target.css('height', ter.css('height'))
+                $(document).on('click', (e) =>
+                    t = $(e.target)
+                    if t[0]==@mobile_target[0] or t.hasParent($(@terminal.element)).length > 0
+                        @focus()
+                    else
+                        @blur()
+                )
+        else
+            $(document).on('click', (e) =>
+                t = $(e.target)
+                if t.hasParent($(@terminal.element)).length > 0
+                    @focus()
+                else
+                    @blur()
+            )
+
 
     _start_session_timer: (seconds) ->
         t = new Date()
@@ -213,6 +248,7 @@ class Console extends EventEmitter
     blur : () =>
         @is_focused = false
         @terminal.blur()
+        $(@terminal.element).removeClass('salvus-console-focus').addClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?
             e = $(editor.getWrapperElement())
@@ -221,7 +257,9 @@ class Console extends EventEmitter
 
     focus : () =>
         @is_focused = true
-        @terminal.focus()
+        if not IS_MOBILE
+            @terminal.focus()
+        $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?
             e = $(editor.getWrapperElement())
