@@ -116,6 +116,9 @@ class Console extends EventEmitter
             else
                 throw("Unknown renderer '#{@opts.renderer}'")
 
+        # Initialize buttons
+        @_init_buttons()
+
         # delete scroll buttons except on mobile
         if not IS_MOBILE
             @element.find(".salvus-console-up").hide()
@@ -179,7 +182,14 @@ class Console extends EventEmitter
             handle_mobile_change = (ed, changeObj) ->
                 s = changeObj.text.join('\n')
                 if changeObj.origin == 'input' and s.length > 0
-                    that.session.write_data(s)
+                    if that._next_ctrl
+                        that._next_ctrl = false
+                        that.terminal.keyDown(keyCode:s[0].toUpperCase().charCodeAt(0), ctrlKey:true, shiftKey:false)
+                        s = s.slice(1)
+                        that.element.find(".salvus-console-control").removeClass('btn-warning').addClass('btn-info')
+
+                    if s.length > 0
+                        that.session.write_data(s)
                     # relaceRange causes a hang if you type "ls[backspace]" right on load.
                     # Thus we use markText instead.
                     #ed.replaceRange("", changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1})
@@ -191,19 +201,6 @@ class Console extends EventEmitter
             @mobile_keydown = (ev) =>
                 if ev.keyCode == 8
                     @terminal.keyDown(ev)
-
-            # Buttons
-            @element.find(".salvus-console-up").click () ->
-                vp = editor.getViewport()
-                editor.scrollIntoView({line:vp.from - 1, ch:0})
-
-            @element.find(".salvus-console-down").click () ->
-                vp = editor.getViewport()
-                editor.scrollIntoView({line:vp.to, ch:0})
-
-            @element.find(".salvus-console-tab").click () =>
-                @focus()
-                @terminal.keyDown(keyCode:9, shiftKey:false)
 
     _init_ttyjs: () ->
         # Create the terminal DOM objects -- only needed for this renderer
@@ -236,6 +233,32 @@ class Console extends EventEmitter
                     @blur()
             )
 
+    _init_buttons: () ->
+        editor = @terminal.editor
+
+        # Buttons
+        @element.find(".salvus-console-up").click () ->
+            vp = editor.getViewport()
+            editor.scrollIntoView({line:vp.from - 1, ch:0})
+
+        @element.find(".salvus-console-down").click () ->
+            vp = editor.getViewport()
+            editor.scrollIntoView({line:vp.to, ch:0})
+
+        if IS_MOBILE
+            @element.find(".salvus-console-tab").show().click (e) =>
+                @focus()
+                @terminal.keyDown(keyCode:9, shiftKey:false)
+
+            @_next_ctrl = false
+            @element.find(".salvus-console-control").show().click (e) =>
+                @focus()
+                @_next_ctrl = true
+                $(e.target).removeClass('btn-info').addClass('btn-warning')
+
+            @element.find(".salvus-console-esc").show().click (e) =>
+                @focus()
+                @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
 
     _start_session_timer: (seconds) ->
         t = new Date()

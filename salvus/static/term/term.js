@@ -2021,7 +2021,6 @@ Terminal.prototype.writeln = function(data) {
 
 Terminal.prototype.keyDown = function(ev) {
   var key;
-
 /*    log("keydown: " + ev); */
   switch (ev.keyCode) {
     // backspace
