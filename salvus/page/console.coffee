@@ -59,7 +59,10 @@ class Console extends EventEmitter
             draggable   : false
 
         @opts.renderer = 'ttyjs'
-        #@opts.renderer = 'codemirror'
+
+        # On mobile, only codemirror works right now...
+        if IS_MOBILE
+             @opts.renderer = 'codemirror'
 
         # The is_focused variable keeps track of whether or not the
         # editor is focused.  This impacts the cursor, at least.

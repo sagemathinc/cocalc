@@ -8782,16 +8782,15 @@ CRAZY idea:
 
 ----
 
-    [ ] display the mode (and make easy to change)
-    [ ] display the renderer (and make easy to change)
-    [ ] on android, force codemirror mode...
+     [x] (3.5min) on mobile, force codemirror mode...
+     [ ] style on blur/focus of ttyjs mode.
 
+     [ ] everything doubled on first login -- ok with autologin.
      [ ] add escape codes that allow for embedding images or any other html as output.
 
      [ ] scrolling messes up input on chrome mobile
      [ ] more than a page of output makes cursor vanish.
      [ ] too much output crashes it right now, e.g.,
-     [ ] everything doubled on first login -- ok with autologin.
      [ ] automatic shell resize -- .bashrc?
      [ ] can copy/paste be done?! -- copy yes
      [ ] ability to resize console : Terminal has a resize method
