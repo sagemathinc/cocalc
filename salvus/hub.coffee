@@ -1641,7 +1641,7 @@ exports.send_email = send_email = (opts={}) ->
 save_blob = (opts) ->
     opts = defaults opts,
         uuid  : required
-        value : required
+        value : required   # NOTE: value *must* be a Buffer.
         ttl   : undefined
         cb    : undefined
     if opts.value.length >= 10000000

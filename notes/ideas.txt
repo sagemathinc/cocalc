@@ -6,6 +6,8 @@ through salvus.... for a fee.  This would scale up a lot.
 
 [ ] tex commutative diagram support for mathjax: http://sonoisa.github.com/xyjax/xyjax.html
 
+[ ] audio ?
+
 [ ] OMFG graph editor: http://mbostock.github.com/d3/talk/20111116/force-collapsible.html
 
 [ ] online collaborative latex editing: https://www.writelatex.com/

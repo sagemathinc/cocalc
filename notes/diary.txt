@@ -8835,7 +8835,7 @@ NEXT:
 
      [x] Database uuid:blob store -- need for transfering files anyways, but will also
          need for storing database.
-     [ ] Try out my uuid:blob store in hub to see how/if it works!
+-->     [ ] Try out my uuid:blob store in hub to see how/if it works!
 
      [ ] Make another component called "project_server" and move some functionality
          from console_server there?  It would do the following:

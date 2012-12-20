@@ -141,7 +141,7 @@ class UUIDStore
                 opts.cb(err, obj)
 
 class UUIDValueStore extends UUIDStore
-    # c = new (require("cassandra").Salvus)(keyspace:'test'); s = c.uuid_value_store(name:'sage'); u = c.uuid_value_store(name:'user')
+    # c = new (require("cassandra").Salvus)(keyspace:'test'); s = c.uuid_value_store(name:'sage')
     # uid = s.set(value:{host:'localhost', port:5000}, ttl:30, cb:console.log)
     # uid = u.set(value:{host:'localhost', port:5000})
     # u.get(uuid:uid, cb:console.log)
@@ -153,12 +153,13 @@ class UUIDValueStore extends UUIDStore
 
 class UUIDBlobStore extends UUIDStore
     # c = new (require("cassandra").Salvus)(keyspace:'test'); s = c.uuid_blob_store(name:'test')
-    # s.set(value:'foo', ttl:300, cb:console.log)
+    # b = new Buffer("hi\u0000there"); uuid = s.set(value:b, ttl:300, cb:console.log)
+    # s.get(uuid: uuid, cb:(e,r) -> console.log(r))
     constructor: (@cassandra, opts={}) ->
         @opts     = defaults(opts, name:required)
         @_table   = 'uuid_blob'
-        @_to_db   = (x) -> x
-        @_from_db = (x) -> x
+        @_to_db   = (x) -> x.toString('hex')
+        @_from_db = (x) -> new Buffer(x, 'hex')
 
 class KeyValueStore
     #   c = new (require("cassandra").Salvus)(); d = c.key_value_store('test')
