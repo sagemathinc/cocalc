@@ -11,25 +11,47 @@
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
 
-isANDROID = require('feature').isMobile.Android()
+feature = require 'feature'
+IS_ANDROID = feature.isMobile.Android()
+IS_MOBILE = feature.IS_MOBILE
 
 custom_renderer = (terminal, start, end) ->
-    width = terminal.cols
     if terminal.editor?
+        width = terminal.cols
         e = terminal.editor
+
+        # 1. Set the output text
         y = start
         out = ''
         while y <= end
             row = y + terminal.ydisp
             ln = this.lines[row]
-            out += (ln[j][1] for j in [0...width]).join('') + '\n'
-            #console.log("setLine(#{y},'#{r}'")
+            out += (ln[i][1] for i in [0...width]).join('') + '\n'
             y++
-
-        #terminal.editor.replaceRange(out, {line:start,ch:0}, {line:end+1,ch:0})
         e.replaceRange(out, {line:start+terminal.ydisp,ch:0}, {line:end+1+terminal.ydisp,ch:0})
+
+        # 2. Mark special styles of the output text
+        y = start
+        m = 0
+        while y <= end
+            row = y + terminal.ydisp
+            ln = this.lines[row]
+            for i in [0...width]
+                data = ln[i][0]
+                if data != terminal.defAttr
+                    m += 1
+                    if m > 30
+                        break
+                    e.markText({line:row, ch:i}, {line:row, ch:i+1}, {className:'special'})
+                    console.log('marking some text')
+            y++
+        console.log("DONE MARKING")
+
+        # 3. Render the cursor
         cp1 = {line:terminal.y+terminal.ydisp, ch:terminal.x}
         cp2 = {line:cp1.line, ch:cp1.ch+1}
+        if e.getRange(cp1, cp2).length == 0
+            e.replaceRange(" ", cp1, cp2)
         if terminal.salvus_console.is_focused
             e.markText(cp1, cp2, {className:'salvus-console-cursor-focus'})
         else
@@ -67,7 +89,7 @@ class Console extends EventEmitter
         @_session = opts.session
 
         @_term.on    'data',  (data) => @_session.write_data(data)
-        @_term.on    'title', (title) => @set_title(title)
+        @_term.on    'title', ((title) => console.log("TITLE!"); @set_title(title))
         @_session.on 'data',  (data) => @_term.write(data)
 
         @_start_session_timer(opts.session.limits.walltime)
@@ -91,9 +113,10 @@ class Console extends EventEmitter
         @element.draggable(handle:@element.find('.salvus-console-title'))
         @blur()
 
+        that = @
+
         # Hack to workaround the "insane" way in which Android Chrome doesn't work: http://code.google.com/p/chromium/issues/detail?id=118639
-        if isANDROID
-            that = @
+        if IS_ANDROID
             handle_android_change = (ed, changeObj) ->
                 #log(to_json(changeObj))
                 s = changeObj.text.join('\n')
@@ -106,6 +129,19 @@ class Console extends EventEmitter
                 if changeObj.next?
                     handle_android_change(ed, changeObj.next)
             editor.on('change', handle_android_change)
+
+        # Buttons
+        if IS_MOBILE
+            @element.find(".salvus-console-up").click () ->
+                vp = editor.getViewport()
+                editor.scrollIntoView({line:vp.from - 1, ch:0})
+
+            @element.find(".salvus-console-down").click () ->
+                vp = editor.getViewport()
+                editor.scrollIntoView({line:vp.to, ch:0})
+        else
+            @element.find(".salvus-console-up").hide()
+            @element.find(".salvus-console-down").hide()
 
 
     #######################################################################

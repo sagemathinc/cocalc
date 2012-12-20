@@ -8744,16 +8744,27 @@ My idea for now:
           Otherwise, it sends all text it gets directly over the wire.
           See what happens.
      ... somehow, I got it all to work.
+     [x] modify console so it gives back keyboard when looses focus. -- sort of...
+
+     [x] (25 min due to DISTRACTION) fix setting title -- it is already fixed fine.
+     [x] (36min) simple scroll buttons (for mobile one)
+
+     [x] (20 min) try to implement xterm special classes -- colors, reverse video, etc.
+         naive approach is VASTLY TOO SLOW!
+
+-->  [ ] change term.js so it *directly* modifies codemirror as it reads output from the wire.
+Start by modifying this one line:
+                   this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
 
 
-     [ ] fix setting title
-     [ ] scroll buttons (for mobile)
-     [ ] too much output crashes it right now.
+     [ ] add escape codes that allow for embedding images or any other html as output.
+
+     [ ] scrolling messes up input on chrome mobile
+     [ ] more than a page of output makes cursor vanish.
+     [ ] too much output crashes it right now, e.g., 
      [ ] everything doubled on first login -- ok with autologin.
      [ ] automatic shell resize -- .bashrc?
      [ ] can copy/paste be done?! -- copy yes
-     [ ] add escape codes that allow for embedding images or any other html as output.
- -->     [ ] modify console so it gives back keyboard when looses focus. -- sort of...
      [ ] ability to resize console : Terminal has a resize method
      [ ] user-customizable colorscheme (!)
      [ ] user-customizable font (and size); keyboard shortcut to change font size
