@@ -866,7 +866,7 @@ Terminal.prototype.refresh = function(start, end) {
         }
         if (data !== this.defAttr) {
           if (data === -1) {
-            out += '<span class="salvus-console-cursor">';
+            out += '<span class="salvus-console-cursor-focus">';
           } else {
             out += '<span style="';
 

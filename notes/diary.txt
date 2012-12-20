@@ -8778,10 +8778,13 @@ CRAZY idea:
      This would impact copy/paste.   NO.
 
 
-  --> [ ]  Change to fully support both rendering options; for color you have to use term.js's builtin one.
+  -[x] (1 hour) Change to fully support both rendering options; for color you have to use term.js's builtin one.
 
 ----
 
+    [ ] display the mode (and make easy to change)
+    [ ] display the renderer (and make easy to change)
+    [ ] on android, force codemirror mode...
 
      [ ] add escape codes that allow for embedding images or any other html as output.
 

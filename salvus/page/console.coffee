@@ -16,7 +16,6 @@ IS_ANDROID = feature.isMobile.Android()
 IS_MOBILE = feature.IS_MOBILE
 
 codemirror_renderer = (start, end) ->
-    console.log(start, end)
     terminal = @
     if terminal.editor?
         width = terminal.cols
@@ -56,8 +55,11 @@ class Console extends EventEmitter
             rows        : 24
             cols        : 80
             highlight_mode : 'none'
-            renderer    : 'codemirror'   # options -- 'codemirror' (syntax highlighting, better mobile support), 'xterm' (color)
+            renderer    : 'codemirror'   # options -- 'codemirror' (syntax highlighting, better mobile support), 'ttyjs' (color)
             draggable   : false
+
+        @opts.renderer = 'ttyjs'
+        #@opts.renderer = 'codemirror'
 
         # The is_focused variable keeps track of whether or not the
         # editor is focused.  This impacts the cursor, at least.
@@ -87,19 +89,23 @@ class Console extends EventEmitter
 
         that = @
 
-
         # Select the renderer
         switch @opts.renderer
             when 'codemirror'
                 # NOTE: the codemirror renderer depends on the xterm one being defined...
-                @_init_xterm()
+                @_init_ttyjs()
                 $(@terminal.element).hide()
                 @_init_codemirror()
-            when 'xterm'
-                @_init_xterm()
+            when 'ttyjs'
+                @_init_ttyjs()
                 $(@terminal.element).show()
             else
                 throw("Unknown renderer '#{@opts.renderer}'")
+
+        # delete scroll buttons except on mobile
+        if not IS_MOBILE
+            @element.find(".salvus-console-up").hide()
+            @element.find(".salvus-console-down").hide()
 
         # Store the remote session, which is a connection to a HUB
         # that is in turn connected to a console_server.
@@ -137,9 +143,9 @@ class Console extends EventEmitter
         @terminal.custom_renderer = codemirror_renderer
         t = @element.find(".salvus-console-textarea")
         editor = @terminal.editor = CodeMirror.fromTextArea t[0],
-            lineNumbers   : true
+            lineNumbers   : false
             lineWrapping  : false
-            indentUnit    : 0
+            indentUnit    : 0  # seems to have no impact (not what I want...)
             mode          : @opts.highlight_mode   # to turn off, can just use non-existent mode name
 
         e = $(editor.getScrollerElement())
@@ -157,7 +163,6 @@ class Console extends EventEmitter
         # http://code.google.com/p/chromium/issues/detail?id=118639
         if IS_ANDROID
             handle_android_change = (ed, changeObj) ->
-                #log(to_json(changeObj))
                 s = changeObj.text.join('\n')
                 if changeObj.origin == 'input' and s.length > 0
                     that.session.write_data(s)
@@ -178,11 +183,8 @@ class Console extends EventEmitter
             @element.find(".salvus-console-down").click () ->
                 vp = editor.getViewport()
                 editor.scrollIntoView({line:vp.to, ch:0})
-        else
-            @element.find(".salvus-console-up").hide()
-            @element.find(".salvus-console-down").hide()
 
-    _init_xterm: () ->
+    _init_ttyjs: () ->
         # Create the terminal DOM objects -- only needed for this renderer
         @terminal.open()
         # Give it our style; there is one in term.js (upstream), but it is named in a too-generic way.
@@ -232,7 +234,6 @@ exports.Console = Console
 $.fn.extend
     salvus_console: (opts={}) ->
         @each () ->
-            console.log("HI!")
             opts0 = copy(opts)
             opts0.element = this
             $(this).data('console', new Console(opts0))
