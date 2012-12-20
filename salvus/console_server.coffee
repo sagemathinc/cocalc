@@ -76,12 +76,16 @@ start_session = (socket, mesg) ->
         winston.debug "running as root, so forking with reduced privileges"
         opts.uid = Math.floor(2000 + Math.random()*1000)  # TODO: just for testing; hub/database will *have* to assign this soon
         opts.gid = opts.uid
+        opts.home = "/tmp/salvus/#{opts.home}"
+    else
+        opts.home = process.env.HOME
+        opts.cwd = opts.home
+
+    if not opts.cwd?
+        opts.cwd = opts.home
 
     # If opts.home does not exist, create it and set the right
     # permissions before dropping privileges:
-    opts.home = "/tmp/salvus/#{opts.home}"
-    if not opts.cwd?
-        opts.cwd = opts.home
     makedirs opts.home, opts.uid, opts.gid, (err) ->
         if err
             winston.error "ERROR: #{err}" # no way to report error further... yet

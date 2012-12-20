@@ -24,12 +24,17 @@ process.on 'message', (opts, socket) ->
         vmem    : required  # limit on virtual memory (in megabytes)  POSIX rlimit name: 'as' (address space)
         numfiles: required  # limit on number of file descriptors     POSIX rlimit name: 'nofile'
 
+    if opts.gid? or opts.uid?
+        env = {HOME:opts.home, PATH:opts.path, PS1:opts.ps1}
+    else
+        env = process.env
+
     term_opts =
         name : 'xterm-color'   # do *NOT* use just "xterm"!
         rows : opts.rows
         cols : opts.cols
         cwd  : opts.cwd
-        env  : {HOME:opts.home, PATH:opts.path, PS1:opts.ps1}
+        env  : env
 
     setrlimit 'cpu',    {soft:opts.cputime,  hard:opts.cputime}
     setrlimit 'as',     {soft:opts.vmem*1000000,     hard:opts.vmem*1000000}
