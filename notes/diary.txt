@@ -8753,15 +8753,33 @@ My idea for now:
          naive approach is VASTLY TOO SLOW!
 
 -->  [ ] change term.js so it *directly* modifies codemirror as it reads output from the wire.
-Start by modifying this one line:
+         [x] (7min) Refactor code involving this one line and test
                    this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
+             Success.
+         [x] (17min) Monkey patch function call that we factored out and turn off current rendering.  What happens?  Appraise.
+             It is INSANELY SLOW!
+         [ ] (?) Can it be made fast or not?
+             As far as I can tell... NO.
+
+OK, now what?
+Options:
+
+   - try same strategy, but with ace editor?
+      - is it possible to set color?  it definitely does not look like it.
+         - download, try demo
+         - try javascripting large number of modifications.
+   - keep trying with codemirror; maybe I can think hard and
+     circumvent all the stuff that takes a long time.
+
+
+
 
 
      [ ] add escape codes that allow for embedding images or any other html as output.
 
      [ ] scrolling messes up input on chrome mobile
      [ ] more than a page of output makes cursor vanish.
-     [ ] too much output crashes it right now, e.g., 
+     [ ] too much output crashes it right now, e.g.,
      [ ] everything doubled on first login -- ok with autologin.
      [ ] automatic shell resize -- .bashrc?
      [ ] can copy/paste be done?! -- copy yes

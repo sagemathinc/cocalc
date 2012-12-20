@@ -15,7 +15,17 @@ feature = require 'feature'
 IS_ANDROID = feature.isMobile.Android()
 IS_MOBILE = feature.IS_MOBILE
 
+custom_setchar = (x, y, attr, ch) ->
+    @.lines[y][x] = [attr, ch];
+    if @.editor?
+        c = @.editor.lineCount()
+        while y >= c
+            ch = '\n' + ch
+            c += 1
+        @.editor.replaceRange(ch, {line:y, ch:x}, {line:y, ch:x+1})
+
 custom_renderer = (terminal, start, end) ->
+    console.log(start+terminal.ydisp, end+terminal.ydisp)
     if terminal.editor?
         width = terminal.cols
         e = terminal.editor
@@ -31,21 +41,21 @@ custom_renderer = (terminal, start, end) ->
         e.replaceRange(out, {line:start+terminal.ydisp,ch:0}, {line:end+1+terminal.ydisp,ch:0})
 
         # 2. Mark special styles of the output text
-        y = start
-        m = 0
-        while y <= end
-            row = y + terminal.ydisp
-            ln = this.lines[row]
-            for i in [0...width]
-                data = ln[i][0]
-                if data != terminal.defAttr
-                    m += 1
-                    if m > 30
-                        break
-                    e.markText({line:row, ch:i}, {line:row, ch:i+1}, {className:'special'})
-                    console.log('marking some text')
-            y++
-        console.log("DONE MARKING")
+        # y = start
+        # m = 0
+        # while y <= end
+        #     row = y + terminal.ydisp
+        #     ln = this.lines[row]
+        #     for i in [0...width]
+        #         data = ln[i][0]
+        #         if data != terminal.defAttr
+        #             m += 1
+        #             if m > 30
+        #                 break
+        #             e.markText({line:row, ch:i}, {line:row, ch:i+1}, {className:'special'})
+        #             console.log('marking some text')
+        #     y++
+        # console.log("DONE MARKING")
 
         # 3. Render the cursor
         cp1 = {line:terminal.y+terminal.ydisp, ch:terminal.x}
@@ -70,7 +80,7 @@ class Console extends EventEmitter
             title       : ""
             rows        : 24
             cols        : 80
-            highlight_mode : 'none'  # use "none" for just standard xterm colors
+            highlight_mode : 'python'
 
         @is_focused = false
         @element = console_template.clone()
@@ -78,7 +88,9 @@ class Console extends EventEmitter
         $(@opts.element).replaceWith(@element)
         @set_title(@opts.title)
         @_term = new Terminal(@opts.cols,@opts.rows)
+
         @_term.custom_renderer = custom_renderer
+
         @_term.salvus_console = @
         @_term.open()
         @_term.element.className = "salvus-console-terminal"

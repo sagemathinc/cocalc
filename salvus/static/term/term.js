@@ -1018,6 +1018,10 @@ Terminal.prototype.scrollDisp = function(disp) {
   this.refresh(0, this.rows - 1);
 };
 
+Terminal.prototype.setchar = function(x, y, attr, ch) {
+    this.lines[y][x] = [attr, ch];
+}
+
 Terminal.prototype.write = function(data) {
   var l = data.length
     , i = 0
@@ -1108,7 +1112,8 @@ Terminal.prototype.write = function(data) {
                   this.scroll();
                 }
               }
-              this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
+              /* this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch]; */
+              this.setchar(this.x, this.y + this.ybase, this.curAttr, ch);
               this.x++;
               this.updateRange(this.y);
             }
