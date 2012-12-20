@@ -25,7 +25,7 @@ process.on 'message', (opts, socket) ->
         numfiles: required  # limit on number of file descriptors     POSIX rlimit name: 'nofile'
 
     term_opts =
-        name : 'xterm'
+        name : 'xterm-color'   # do *NOT* use just "xterm"!
         rows : opts.rows
         cols : opts.cols
         cwd  : opts.cwd

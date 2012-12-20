@@ -26,7 +26,7 @@ codemirror_renderer = (start, end) ->
         out = ''
         while y <= end
             row = y + terminal.ydisp
-            ln = this.lines[row]
+            ln = terminal.lines[row]
             out += (ln[i][1] for i in [0...width]).join('') + '\n'
             y++
         e.replaceRange(out, {line:start+terminal.ydisp,ch:0}, {line:end+1+terminal.ydisp,ch:0})
@@ -146,7 +146,7 @@ class Console extends EventEmitter
         @terminal.custom_renderer = codemirror_renderer
         t = @element.find(".salvus-console-textarea")
         editor = @terminal.editor = CodeMirror.fromTextArea t[0],
-            lineNumbers   : false
+            lineNumbers   : true
             lineWrapping  : false
             indentUnit    : 0  # seems to have no impact (not what I want...)
             mode          : @opts.highlight_mode   # to turn off, can just use non-existent mode name

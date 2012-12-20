@@ -8784,11 +8784,13 @@ CRAZY idea:
 
      [x] (5min) console: on mobile, force codemirror mode...
      [x] (10min) console: way too much space between lines in ttyjs mode.
-     [ ] clear is just plain implemented wrong in term.js
+
+     [x] (1h 25 minutes!) console - underlining after running emacs -- style is corrupted
 
      [ ] no way to unfocus ttyjs mode yet (by clicking outside)
+
+
      [ ] style on blur/focus of ttyjs mode.
-     
 
 
      [ ] everything doubled on first login -- ok with autologin.
