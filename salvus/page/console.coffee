@@ -201,6 +201,10 @@ class Console extends EventEmitter
                 vp = editor.getViewport()
                 editor.scrollIntoView({line:vp.to, ch:0})
 
+            @element.find(".salvus-console-tab").click () =>
+                @focus()
+                @terminal.keyDown(keyCode:9, shiftKey:false)
+
     _init_ttyjs: () ->
         # Create the terminal DOM objects -- only needed for this renderer
         @terminal.open()
@@ -218,7 +222,7 @@ class Console extends EventEmitter
                 @mobile_target.css('height', ter.css('height'))
                 $(document).on('click', (e) =>
                     t = $(e.target)
-                    if t[0]==@mobile_target[0] or t.hasParent($(@terminal.element)).length > 0
+                    if t[0]==@mobile_target[0] or t.hasParent($(@element)).length > 0
                         @focus()
                     else
                         @blur()
