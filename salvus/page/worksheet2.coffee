@@ -107,6 +107,9 @@ init = () ->
 
 init_console_sage = (elt) ->
     elt = $(elt)
+    if elt.data('initialized')
+        return
+    elt.data('initialized',true)
     settings = require('account').account_settings.settings
     username = "#{settings.first_name} #{settings.last_name}"
     salvus_client.new_session
@@ -123,6 +126,9 @@ init_console_sage = (elt) ->
 
 init_console = (elt) ->
     elt = $(elt)
+    if elt.data('initialized')
+        return
+    elt.data('initialized',true)
     settings = require('account').account_settings.settings
     username = "#{settings.first_name} #{settings.last_name}"
     salvus_client.new_session

@@ -8789,20 +8789,17 @@ CRAZY idea:
 
      [x] (2h 14min) -- console - slight improvement to copy/paste -- don't intercept control-c/command-c etc. -- make a button for control-c.
 
--->     [ ] no way to unfocus ttyjs mode yet (by clicking outside)
+     [x] no way to unfocus ttyjs mode yet (by clicking outside)
+     [x] style on blur/focus of ttyjs mode.
 
-     [ ] style on blur/focus of ttyjs mode.
+     [x] everything doubled on first login -- ok with autologin.; or with two on same page.
 
 
-     [ ] everything doubled on first login -- ok with autologin.;
-         or with two on same page.
-     [ ] add escape codes that allow for embedding images or any other html as output.
+     [ ] clear indicator back to client when the terminal session exits
+     [ ] tabs
 
-     [ ] scrolling messes up input on chrome mobile
-     [ ] more than a page of output makes cursor vanish.
-     [ ] too much output crashes it right now, e.g.,
+LATER
      [ ] automatic shell resize -- .bashrc?
-     [ ] can copy/paste be done?! -- copy yes
      [ ] ability to resize console : Terminal has a resize method
      [ ] user-customizable colorscheme (!)
      [ ] user-customizable font (and size); keyboard shortcut to change font size
@@ -8810,8 +8807,6 @@ CRAZY idea:
      [ ] modify sage startup so that it turns on ipython command prompt colors
      [ ] save a complete command line session
      [ ] turn command line session into a worksheet
-     [ ] clear indicator back to client when the terminal session exits
-     [ ] tabs
 
 
      [ ] I got an email from david cervone about ways to optimize my use of mathjax...
