@@ -15,22 +15,14 @@ feature = require 'feature'
 IS_ANDROID = feature.isMobile.Android()
 IS_MOBILE = feature.IS_MOBILE
 
-custom_setchar = (x, y, attr, ch) ->
-    @.lines[y][x] = [attr, ch];
-    if @.editor?
-        c = @.editor.lineCount()
-        while y >= c
-            ch = '\n' + ch
-            c += 1
-        @.editor.replaceRange(ch, {line:y, ch:x}, {line:y, ch:x+1})
-
-custom_renderer = (terminal, start, end) ->
-    console.log(start+terminal.ydisp, end+terminal.ydisp)
+codemirror_renderer = (start, end) ->
+    console.log(start, end)
+    terminal = @
     if terminal.editor?
         width = terminal.cols
         e = terminal.editor
 
-        # 1. Set the output text
+        # Set the output text
         y = start
         out = ''
         while y <= end
@@ -40,24 +32,7 @@ custom_renderer = (terminal, start, end) ->
             y++
         e.replaceRange(out, {line:start+terminal.ydisp,ch:0}, {line:end+1+terminal.ydisp,ch:0})
 
-        # 2. Mark special styles of the output text
-        # y = start
-        # m = 0
-        # while y <= end
-        #     row = y + terminal.ydisp
-        #     ln = this.lines[row]
-        #     for i in [0...width]
-        #         data = ln[i][0]
-        #         if data != terminal.defAttr
-        #             m += 1
-        #             if m > 30
-        #                 break
-        #             e.markText({line:row, ch:i}, {line:row, ch:i+1}, {className:'special'})
-        #             console.log('marking some text')
-        #     y++
-        # console.log("DONE MARKING")
-
-        # 3. Render the cursor
+        # Render the cursor
         cp1 = {line:terminal.y+terminal.ydisp, ch:terminal.x}
         cp2 = {line:cp1.line, ch:cp1.ch+1}
         if e.getRange(cp1, cp2).length == 0
@@ -80,60 +55,112 @@ class Console extends EventEmitter
             title       : ""
             rows        : 24
             cols        : 80
-            highlight_mode : 'python'
+            highlight_mode : 'none'
+            renderer    : 'codemirror'   # options -- 'codemirror' (syntax highlighting, better mobile support), 'xterm' (color)
+            draggable   : false
 
+        # The is_focused variable keeps track of whether or not the
+        # editor is focused.  This impacts the cursor, at least.
         @is_focused = false
+
+        # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
+
+        # Record on the DOM element a reference to the console
+        # instance, which is useful for client code.
         @element.data("console", @)
+
+        # Actually put the DOM element into the (likely visible) DOM
+        # in the place specified by the client.
         $(@opts.element).replaceWith(@element)
+
+        # Set the initial title, though of course the term can change
+        # this via certain escape codes.
         @set_title(@opts.title)
-        @_term = new Terminal(@opts.cols,@opts.rows)
 
-        @_term.custom_renderer = custom_renderer
+        # Create the new Terminal object -- this is defined in
+        # static/term.js -- it's a nearly complete implemenation of
+        # the xterm protocol.
+        @terminal = new Terminal(@opts.cols, @opts.rows)
+        # this is needed by the custom renderer, if it is used.
+        @terminal.salvus_console = @
 
-        @_term.salvus_console = @
-        @_term.open()
-        @_term.element.className = "salvus-console-terminal"
-        @element.find(".salvus-console-terminal").replaceWith(@_term.element)
+        that = @
 
-        $(@_term.element).hide()
 
-        @_session = opts.session
+        # Select the renderer
+        switch @opts.renderer
+            when 'codemirror'
+                # NOTE: the codemirror renderer depends on the xterm one being defined...
+                @_init_xterm()
+                $(@terminal.element).hide()
+                @_init_codemirror()
+            when 'xterm'
+                @_init_xterm()
+                $(@terminal.element).show()
+            else
+                throw("Unknown renderer '#{@opts.renderer}'")
 
-        @_term.on    'data',  (data) => @_session.write_data(data)
-        @_term.on    'title', ((title) => console.log("TITLE!"); @set_title(title))
-        @_session.on 'data',  (data) => @_term.write(data)
+        # Store the remote session, which is a connection to a HUB
+        # that is in turn connected to a console_server.
+        @session = opts.session
 
+        # Plug the remote session into the terminal.
+
+        # The user types in the terminal, so we send the text to the remote server:
+        @terminal.on 'data',  (data) => @session.write_data(data)
+
+        # The terminal receives a 'set my title' message.
+        @terminal.on 'title', (title) => @set_title(title)
+
+        # The remote server sends data back to us to display:
+        @session.on 'data',  (data) => @terminal.write(data)
+
+
+        #########################
+
+        # Start the countdown timer, which shows how long this session will last.
         @_start_session_timer(opts.session.limits.walltime)
 
+        # Set the entire console to be draggable.
+        if @opts.draggable
+            @element.draggable(handle:@element.find('.salvus-console-title'))
+
+        @blur()
+
+
+    #######################################################################
+    # Private Methods
+    #######################################################################
+    _init_codemirror: () ->
+        that = @
+        @terminal.custom_renderer = codemirror_renderer
         t = @element.find(".salvus-console-textarea")
-        editor = @_term.editor = CodeMirror.fromTextArea t[0],
+        editor = @terminal.editor = CodeMirror.fromTextArea t[0],
             lineNumbers   : true
             lineWrapping  : false
+            indentUnit    : 0
             mode          : @opts.highlight_mode   # to turn off, can just use non-existent mode name
 
         e = $(editor.getScrollerElement())
         e.css('height', "#{@opts.rows+0.4}em")
         e.css('background', '#fff')
 
-        editor.on('focus', () => @focus())
-        editor.on('blur', () => @blur())
+        editor.on('focus', that.focus)
+        editor.on('blur', that.blur)
 
         # Hide codemirror's own cursor.
-        $(editor.getScrollerElement()).find('.CodeMirror-cursor').css('border-left','0px solid red')
+        $(editor.getScrollerElement()).find('.CodeMirror-cursor').css('border', '0px')
 
-        @element.draggable(handle:@element.find('.salvus-console-title'))
-        @blur()
-
-        that = @
-
-        # Hack to workaround the "insane" way in which Android Chrome doesn't work: http://code.google.com/p/chromium/issues/detail?id=118639
+        # Hacks to workaround the "insane" way in which Android Chrome
+        # doesn't work:
+        # http://code.google.com/p/chromium/issues/detail?id=118639
         if IS_ANDROID
             handle_android_change = (ed, changeObj) ->
                 #log(to_json(changeObj))
                 s = changeObj.text.join('\n')
                 if changeObj.origin == 'input' and s.length > 0
-                    that._session.write_data(s)
+                    that.session.write_data(s)
                     # relaceRange causes a hang if you type "ls[backspace]" right on load.
                     # Thus we use markText instead.
                     #ed.replaceRange("", changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1})
@@ -155,10 +182,13 @@ class Console extends EventEmitter
             @element.find(".salvus-console-up").hide()
             @element.find(".salvus-console-down").hide()
 
+    _init_xterm: () ->
+        # Create the terminal DOM objects -- only needed for this renderer
+        @terminal.open()
+        # Give it our style; there is one in term.js (upstream), but it is named in a too-generic way.
+        @terminal.element.className = "salvus-console-terminal"
+        @element.find(".salvus-console-terminal").replaceWith(@terminal.element)
 
-    #######################################################################
-    # Private Methods
-    #######################################################################
     _start_session_timer: (seconds) ->
         t = new Date()
         t.setTime(t.getTime() + seconds*1000)
@@ -177,8 +207,8 @@ class Console extends EventEmitter
 
     blur : () =>
         @is_focused = false
-        @_term.blur()
-        editor = @_term.editor
+        @terminal.blur()
+        editor = @terminal.editor
         if editor?
             e = $(editor.getWrapperElement())
             e.removeClass('salvus-console-focus').addClass('salvus-console-blur')
@@ -186,8 +216,8 @@ class Console extends EventEmitter
 
     focus : () =>
         @is_focused = true
-        @_term.focus()
-        editor = @_term.editor
+        @terminal.focus()
+        editor = @terminal.editor
         if editor?
             e = $(editor.getWrapperElement())
             e.addClass('salvus-console-focus').removeClass('salvus-console-blur')

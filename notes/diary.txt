@@ -8771,8 +8771,16 @@ Options:
    - keep trying with codemirror; maybe I can think hard and
      circumvent all the stuff that takes a long time.
 
+CRAZY idea:
+   - codemirror has a markText... replacedWith option, which can be used
+     to replace a range of text with a DOM element.
+     Maybe I can use exactly that to display each row since no editing is needed.
+     This would impact copy/paste.   NO.
 
 
+  --> [ ]  Change to fully support both rendering options; for color you have to use term.js's builtin one.
+
+----
 
 
      [ ] add escape codes that allow for embedding images or any other html as output.

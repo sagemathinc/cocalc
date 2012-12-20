@@ -117,7 +117,7 @@ init_console_sage = (elt) ->
             if err
                 console.log "Error starting console session: #{err}"
             else
-                elt.salvus_console(title:"Sage Console", session:session, cols:100, rows:24, highlight_mode:'python')
+                elt.salvus_console(title:"Sage Console", session:session, cols:100, rows:40, highlight_mode:'python')
                 c = elt.data('console')
                 #c.element.draggable()
 
@@ -134,7 +134,7 @@ init_console = (elt) ->
             if err
                 console.log "Error starting console session: #{err}"
             else
-                elt.salvus_console(title:"A Test Console", session:session, cols:100, rows:24)
+                elt.salvus_console(title:"A Test Console", session:session, cols:100, rows:40)
                 c = elt.data('console')
                 #c.element.draggable()
 

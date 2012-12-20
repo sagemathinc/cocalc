@@ -809,7 +809,7 @@ Terminal.prototype.destroy = function() {
 Terminal.prototype.refresh = function(start, end) {
 
   if (typeof this.custom_renderer !== "undefined" && this.custom_renderer !== null) {
-      this.custom_renderer(this, start, end);
+      this.custom_renderer(start, end);
       return
   }
 

@@ -1,4 +1,24 @@
 
+        # 2. Mark special styles of the output text:
+        #  THIS IS INSANELY SLOW/USELESS
+        # y = start
+        # m = 0
+        # while y <= end
+        #     row = y + terminal.ydisp
+        #     ln = this.lines[row]
+        #     for i in [0...width]
+        #         data = ln[i][0]
+        #         if data != terminal.defAttr
+        #             m += 1
+        #             if m > 30
+        #                 break
+        #             e.markText({line:row, ch:i}, {line:row, ch:i+1}, {className:'special'})
+        #             console.log('marking some text')
+        #     y++
+        # console.log("DONE MARKING")
+
+
+
   <section class="slide">
     <h2>Extensions</h2>
     <p>Core gives you basic slide functionality...</p>
