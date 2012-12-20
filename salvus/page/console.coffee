@@ -188,6 +188,10 @@ class Console extends EventEmitter
                     handle_mobile_change(ed, changeObj.next)
             editor.on('change', handle_mobile_change)
 
+            @mobile_keydown = (ev) =>
+                if ev.keyCode == 8
+                    @terminal.keyDown(ev)
+
             # Buttons
             @element.find(".salvus-console-up").click () ->
                 vp = editor.getViewport()
@@ -247,6 +251,9 @@ class Console extends EventEmitter
 
     blur : () =>
         @is_focused = false
+        if IS_MOBILE
+            $(document).off('keydown', @mobile_keydown)
+
         @terminal.blur()
         $(@terminal.element).removeClass('salvus-console-focus').addClass('salvus-console-blur')
         editor = @terminal.editor
@@ -257,8 +264,11 @@ class Console extends EventEmitter
 
     focus : () =>
         @is_focused = true
-        if not IS_MOBILE
+        if IS_MOBILE
+            $(document).on('keydown', @mobile_keydown)
+        else
             @terminal.focus()
+
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?
