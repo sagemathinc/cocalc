@@ -8787,6 +8787,8 @@ CRAZY idea:
 
      [x] (1h 25 minutes!) console - underlining after running emacs -- style is corrupted
 
+     [x] (2h 14min) -- console - slight improvement to copy/paste -- don't intercept control-c/command-c etc. -- make a button for control-c.
+
      [ ] no way to unfocus ttyjs mode yet (by clicking outside)
 
 

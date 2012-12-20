@@ -332,17 +332,43 @@ Terminal.prototype.focus = function() {
  * Global Events for key handling
  */
 
+function getSelectionHtml() { /* from http://stackoverflow.com/questions/5222814/window-getselection-return-html */
+    var html = "";
+    if (typeof window.getSelection != "undefined") {
+        var sel = window.getSelection();
+        if (sel.rangeCount) {
+            var container = document.createElement("div");
+            for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+                container.appendChild(sel.getRangeAt(i).cloneContents());
+            }
+            html = container.innerHTML;
+        }
+    } else if (typeof document.selection != "undefined") {
+        if (document.selection.type == "Text") {
+            html = document.selection.createRange().htmlText;
+        }
+    }
+    return html;
+}
 
 Terminal.bindKeys = function() {
   if (Terminal.focus) return;
-
   on(document, 'keydown', function(ev) {
+    if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
+      return false;
+    }
+    if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 86 && getSelectionHtml() != "") {  // paste
+      return false;
+    }
     if (typeof Terminal.focus === 'object') {
       return Terminal.focus.keyDown(ev);
     }
   }, true);
 
   on(document, 'keypress', function(ev) {
+    if (ev.metaKey) {
+	return false ;
+    }
     if (typeof Terminal.focus === 'object') {
       return Terminal.focus.keyPress(ev);
     }
