@@ -8752,13 +8752,13 @@ My idea for now:
      [x] (20 min) try to implement xterm special classes -- colors, reverse video, etc.
          naive approach is VASTLY TOO SLOW!
 
--->  [ ] change term.js so it *directly* modifies codemirror as it reads output from the wire.
+-->  [x] change term.js so it *directly* modifies codemirror as it reads output from the wire.
          [x] (7min) Refactor code involving this one line and test
                    this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
              Success.
          [x] (17min) Monkey patch function call that we factored out and turn off current rendering.  What happens?  Appraise.
              It is INSANELY SLOW!
-         [ ] (?) Can it be made fast or not?
+         [x] (?) Can it be made fast or not?
              As far as I can tell... NO.
 
 OK, now what?
@@ -8796,8 +8796,6 @@ CRAZY idea:
 
      [ ] clear indicator back to client when the terminal session exits
      [ ] tabs
-
-LATER
      [ ] automatic shell resize -- .bashrc?
      [ ] ability to resize console : Terminal has a resize method
      [ ] user-customizable colorscheme (!)
@@ -8807,7 +8805,7 @@ LATER
      [ ] save a complete command line session
      [ ] turn command line session into a worksheet
 
-
+LATER:
      [ ] I got an email from david cervone about ways to optimize my use of mathjax...
 
 ADMIN:
@@ -8835,8 +8833,9 @@ NEXT:
 
      [x] Database uuid:blob store -- need for transfering files anyways, but will also
          need for storing database.
--->     [ ] Try out my uuid:blob store in hub to see how/if it works!
+-->     [x] Try out my uuid:blob store in hub to see how/if it works!
 
+--> 
      [ ] Make another component called "project_server" and move some functionality
          from console_server there?  It would do the following:
                 - set quota for a uid/gid
