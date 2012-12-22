@@ -1,3 +1,13 @@
+[ ] from harald, keyboard shortcuts -- "no, maybe through some 3rd
+    party extensions. but there is one shortcut which is valid for all
+    of them: "?" which pops up a nice overview :-) i searched a bit
+    ,there seems to be even an ecosystem of tools, that help you
+    learning the shortcuts. e.g. keyrocket for gmail:
+    https://chrome.google.com/webstore/detail/keyrocket-for-gmail/dmocchgkijnbjdjkmlglaemjhhdiobbp?hl=en-US
+    ... http://www.veodin.com/keyrocket/ or something similar for
+    salvus!?  but i guess, that's not high on your priority list, but
+    interesting nontheless that such tools exist."
+
 [ ] diagram library/web app -- http://www.jgraph.com/; very impressive javascript implementation; also very expensive.
 
 [ ] I could easily install the "compute_server" on *any* computer
