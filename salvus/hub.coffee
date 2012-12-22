@@ -571,9 +571,9 @@ class Client extends EventEmitter
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
             return
 
-        @error_to_client(id: mesg.id, error: "Project creation is temporarily disabled.")
-        return
-        
+        #@error_to_client(id: mesg.id, error: "Project creation is temporarily disabled.")
+        #return
+
         project_id = uuid.v4()
         # create project in database
         database.create_project

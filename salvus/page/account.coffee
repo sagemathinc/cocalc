@@ -211,7 +211,7 @@ signed_in = (mesg) ->
             show_page("account-settings")
             # change the navbar title from "Sign in" to "first_name last_name"
             set_account_tab_label(true, mesg.first_name, mesg.last_name)
-            #top_navbar.show_page_button("projects")
+            top_navbar.show_page_button("projects")
             top_navbar.show_page_button("worksheet1")
             top_navbar.switch_to_page("worksheet1")
             require('worksheet1').load_scratch_worksheet()
