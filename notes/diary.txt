@@ -8849,6 +8849,197 @@ NEXT:
                 - lxc management if I use lxc.
           [ ] project = git bundle in database of limited size, etc.
 
+(excellent git bundle tutorial: http://git-scm.com/2010/03/10/bundles.html)
+
+
+If I store the repo as a *sequence* of bundles instead of a single
+one, then some things might scale better:
+
+    - checkout is more complicated, and maybe takes a little longer
+      (prob not much)
+
+    - saving is easy -- just save a tiny bundle (using a tag)
+
+    - even a huge repo would be releatively easy to store as several
+      small ones that get spread around the distributed DB
+
+    - extracting would mean sending a series of files and extracting
+      them in order.
+
+    - extracting happens rarely in practice, but saving would be very
+      common.
+
+    - given the way cassandra works with compaction, this is probably
+      massively better.
+
+
+[ ] TASK: Give a complete working example that does all this:
+
+1. Creating a simple minimal repo with 2 branches
+mkdir repo; cd repo
+git init
+echo "" > .gitignore
+git add .gitignore
+git commit -m 'init'
+git branch snapshots
+git checkout snapshots
+echo "foo" > bar
+git add bar
+git commit -m 'added a file to snapshots'
+git checkout master
+echo "bar" > foo
+git add foo
+git commit -m "a foo to master"
+
+2. Bundle it up with both branch (--all): 0.bundle
+
+git bundle create ~/tmp/0.bundle --all
+
+3. Extract it elsewhere (with all branches present -- requires small script to automate)
+
+# we will make use of this script -- "~/tmp/pull_all" -- to get *all* the branches:
+#!/bin/bash
+for branch in `git branch -a | grep remotes | grep -v HEAD | grep -v master`; do
+    git branch --track ${branch##*/} $branch
+    git tag -f last $branch
+done
+
+# OK, here it is:
+
+git clone ~/tmp/0.bundle repo2
+cd repo2
+~/tmp/pull_all
+
+4. Make changes to both branch
+
+git mv foo foo2
+git commit -a -m "move a file"
+git checkout snapshots
+git mv bar bar2
+git commit -a -m "move a file too"
+
+5. Make another bundle with the new commits: 1.bundle
+
+git bundle create ../1.bundle last..master last..snapshots
+
+# or?
+
+git bundle create ../1.bundle ^last --all
+
+
+6. Recreate repo from just 0.bundle and 1.bundle with both branches present
+
+git clone ~/tmp/0.bundle repo3
+cd repo3
+~/tmp/pull_all
+
+
+
+7. Make commits to both branches
+
+8. Make another bundle with the new commits: 2.bundle
+
+9. Recreate repo from 0.bundle, 1.bundle, and 2.bundle with both branches.
+
+
+
+HINTS
+
+
+1. Make bundle
+   (must make in a nonempty repo)
+
+Tag branches:
+      git tag -f last-save master
+
+Bundle repo (all branches):
+
+      git bundle create file.bundle --all
+
+(only takes about 3 seconds on the full salvus history!)
+
+2. Extract the bundle:
+
+      git clone file.bundle dest_path
+
+Then run this script to get *all* the branches:
+
+#!/bin/bash
+for branch in `git branch -a | grep remotes | grep -v HEAD | grep -v master`; do
+    git branch --track ${branch##*/} $branch
+done
+
+
+---
+
+====================================================================
+
+I'm going to figure this out for the master branch only... for now.
+
+[ ] TASK: Give a complete working example that does all this:
+
+1. Creating a simple minimal repo with 1 master branch
+mkdir repo; cd repo
+git init
+echo "" > .gitignore
+git add .gitignore
+git commit -m 'init'
+
+2. Bundle it up with both branch (--all): 0.bundle
+
+git bundle create ~/tmp/0.bundle master --all
+
+3. Extract it elsewhere (with all branches present -- requires small script to automate)
+
+git clone ~/tmp/0.bundle repo2
+cd repo2
+git tag -f last
+
+4. Make change
+
+echo "bar" > foo
+git add --all
+git commit -a -m "made a file"
+
+5. Make another bundle with the new commits: 1.bundle
+
+git bundle create ~/tmp/1.bundle last..master
+
+6. Recreate repo from just 0.bundle and 1.bundle with both branches present
+
+git clone ~/tmp/0.bundle repo3
+cd repo3
+git pull ~/tmp/1.bundle master
+git tag -f last
+
+7. Make another commit
+echo "bar2" > foo
+git commit -a -m "modified file"
+
+8. Make another bundle with the new commit: 2.bundle
+git bundle create ~/tmp/2.bundle last..master
+
+9. Recreate repo from 0.bundle, 1.bundle, and 2.bundle with both branches.
+git clone ~/tmp/0.bundle repo4
+cd repo4
+git pull ~/tmp/1.bundle master
+git pull ~/tmp/2.bundle master
+
+
+
+* USING git from node: http://stackoverflow.com/questions/5955891/has-anyone-implemented-a-git-clone-or-interface-library-using-nodejs
+
+    * maybe this is best:  https://github.com/sentientwaffle/gift
+    * Actually *this* is probably best for now:
+
+sys = require 'sys'
+{exec} = require 'child_process'
+exec "git status", (error, stdout, stderr) -> sys.puts(stdout)
+
+================================================================
+
+----
+
      [ ] add signal_sent reply to sage_server.py (message.signal_sent)
      [ ] add option to all these session servers that is a hard limit on the max number of spawned sessions;
          if exceeded, then they automatically kill off oldest ones.   EASY and could massively save ass.
