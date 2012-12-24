@@ -204,7 +204,8 @@ CREATE TABLE successful_sign_ins (
 
 
 ////////////////////////////////////////////
-// Projects
+// Projects -- see the appropriate section
+// of message.coffee for how projects work.
 ////////////////////////////////////////////
 
 CREATE TABLE projects (
@@ -212,16 +213,27 @@ CREATE TABLE projects (
      account_id       uuid,          // id of the owner of this project
      title            varchar,
      description      varchar,
-     public           boolean,       // whether or not the project is visible to everybody in the world
-     last_edited      timestamp,
-     content          blob,          // binary data of the project, e.g., git bundle, etc.
+     public           boolean,  // whether or not the project is visible to everybody in the world
+     last_edited      timestamp,// timestamp of last save of the project
+     files            varchar,  // JSON object showing all files in the project (see message.coffee for format)
+     bundles          varchar,  // bundles: an ordered JSON array of uuid's of git bundles that are stored in the bundles table
 );
+
 CREATE INDEX ON projects(account_id);
+
+// select * from bundles where project_id=0 order by number;
+
+CREATE TABLE bundles (
+     project_id  uuid,
+     number      int ,
+     bundle      blob,
+     PRIMARY KEY (project_id, number)
+);
 
 CREATE TABLE project_users (
      project_id       uuid,
      account_id       uuid,
-     mode             varchar,        // 'owner' (all powerful), 'collaborator' (read write), 'viewer' (read only)
+     mode             varchar,        // 'owner' (all powerful), 'collaborator' (read/write), 'viewer' (read only)
      PRIMARY KEY (project_id, account_id)
 );
 

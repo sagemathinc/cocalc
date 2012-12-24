@@ -447,6 +447,12 @@ message
 #
 # Project Server <---> Hub interaction
 #
+#   * The database stores a files object (with the file tree) and a
+#     sequence of git bundles that when pulled together give the
+#     complete history of the of the repository.  Total disk usage per
+#     project is limited by hard/soft disk quota, and includes the
+#     space taken by the revision history (the .git directory).
+#
 #   * A project should only be opened by at most one project_server at
 #     any given time (not implemented: if this is violated then we'll
 #     merge the resulting conflicting repo's.)
@@ -466,30 +472,36 @@ message
 # prepare to receive one (as a sequence of blob messages) from a hub.
 # hub --> project_server
 message
-    event   : 'open_project'
-    id      : required
-    timeout : required       # time in seconds; if the project_server
+    event        : 'open_project'
+    id           : required
+    uuid         : required  # uuid of the project, which impacts
+                             # where project is extracted, etc.
+    bundle_uuids : required  # list of uuids (as strings); these will
+                             # be sent as blob's; if length 0, makes a
+                             # new repo with empty .gitignore.
+    quota        : required  # maximum amount of disk space this project can use.
+                             # This is an object {soft:..., hard:...}; it is implemented
+                             # using the unix disk quota system.
+    idle_timeout : required  # a time in seconds; if the project_server
                              # does not receive any messages related
                              # to this project for this many seconds,
                              # then it does the same thing as when
                              # receiving a 'close_project' message.
-    uuid    : required       # uuid of the project, which impacts
-                             # where project is extracted, etc.
-    uuids   : required       # list of uuids (as strings); these will
-                             # be sent as blob's; if length 0, makes a
-                             # new repo with empty .gitignore.
 
-# This message is sent by the project_server to the hub once all
-# bundles that define a project have been received and unbundled.
+# A project_server sends this message to the hub once the projet_server
+# has received and unbundled all bundles that define a project.
 # project_server --> hub
 message
     event : 'project_opened'
     id    : required
-    uid   : required   # UNIX user id used for file permissions,
-                       # quota, all processes spawned for this project
+    uid   : required   # UNIX user id used for file permissions, the
+                       # disk quota, and all processes spawned for
+                       # this project.  Hub will store this in
+                       # database, since it is needed to start various
+                       # types of compute processes.
 
 # A hub sends this message to a project_server to request that the
-# project_server save a snapshot of the project.  On success, the
+# project_server save a snapshot of this project.  On success, the
 # project_server will respond by sending a project_saved message and a
 # (possibly empty) sequence of bundles (as blobs identified by
 # uuid's).
@@ -497,6 +509,7 @@ message
 message
     event : 'save_project'
     id    : required
+    uuid  : required    # uuid of a project
 
 # This message is sent to a hub by a project_server when the
 # project_servers creates a new snapshot of the project in response to
@@ -505,13 +518,20 @@ message
 # project_server --> hub
 message
     event : 'project_saved'
-    id    : required
-    uuid  : required
+    id    : required       # message id, which matches the save_project message
+    uuid  : required       # uuid that identifies blob with the bundle
+    files : required       # object that describes the current tree of files in the project:
+                           #   keys are file/directory names
+                           #   values: for a file, value is last_mod_time, description, changelog message
+                           #           for a directory, value is object
+    log   : required       # the git revision log history
 
 # This message is sent from a hub back to a project_server when the
 # hub has *successfully* saved the corresponding update to the project
 # into the database. When the project_server receives this message, it
-# updates the tag in the repo.
+# updates the tag in the repo.  The project_server only allows one
+# hub to do a project_save at a time, and gives an error if any other
+# hub tries to save at the same time.
 # hub --> project_server
 message
     event : 'project_saved_to_db'
