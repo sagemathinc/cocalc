@@ -476,7 +476,7 @@ message
     id           : required
     uuid         : required  # uuid of the project, which impacts
                              # where project is extracted, etc.
-    bundle_uuids : required  # list of uuids (as strings); these will
+    bundles      : required  # object with keys the uuids (as strings) and values all null; these will
                              # be sent as blob's; if length 0, makes a
                              # new repo with empty .gitignore.
     quota        : required  # maximum amount of disk space this project can use.

@@ -21,29 +21,52 @@ misc           = require 'misc'
 
 ######################################################
 # Creating and working with project repositories
-
-
-
-
-
-
-
-
+#    --> See message.coffee for how projects work. <--
 ######################################################
+
+# The first step in opening in opening a project is waiting for all of
+# the bundle blobs.
+open_project = (socket, mesg) ->
+    n = misc.len(mesg.bundles)
+    if n == 0
+        open_project2(socket, mesg)
+    else
+        recv_bundles = (type, m) ->
+            if type == 'blob' and mesg.bundles[m.uuid]?
+                mesg.bundles[mesg.uuid] = m.blob
+                n -= 1
+                if n <= 0
+                    socket.removeListener 'mesg', recv_bundles
+                    open_project2(socket, mesg)
+        socket.on 'mesg', recv_bundles
+
+# Now that we have the bundle blobs, we extract the project.
+open_project2 = (socket, mesg) ->
+    # Choose a random unused uid for this project:
+    uid = new_uid()
+    # Create home directory:   '/home/uid/project_uuid'
+    path = create_home_directory(uid)
+    # Populate the home directory using the bundles
+    #extra_bundles_to
+
+save_project = (socket, mesg) ->
+
+close_project = (socket, mesg) ->
+
 
 server = net.createServer (socket) ->
     misc_node.enable_mesg(socket)
     socket.on 'mesg', (type, mesg) ->
-        switch type
-            when 'json'
-                switch mesg.event
-                    when 'extract_project'  # TODO!
-                        null
-                    else
-                        socket.write(message.error("Unknown message event '#{mesg.event}'"))
-            when 'blob'
-                # TODO
-                null
+        if type == 'json' # other types are handled elsewhere
+            switch mesg.event
+                when 'open_project'
+                    open_project(socket, mesg)
+                when 'save_project'
+                    save_project(socket, mesg)
+                when 'close_project'
+                    close_project(socket, mesg)
+                else
+                    socket.write(message.error("Unknown message event '#{mesg.event}'"))
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
