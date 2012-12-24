@@ -442,9 +442,108 @@ message
 
 
 
+
+###################################################################################
+#
+# Project Server <---> Hub interaction
+#
+#   * A project should only be opened by at most one project_server at
+#     any given time (not implemented: if this is violated then we'll
+#     merge the resulting conflicting repo's.)
+#
+#   * Which project_server (host, port) that has a project opened is
+#     stored in the database.
+#
+#   * If a hub cannot connect to a given project server, the hub
+#     assigns a new project_server for the project and opens the
+#     project on the new project_server.  (The error also gets logged
+#     to the database.)  All hubs will use this new project server
+#     henceforth.
+#
+###################################################################################
+
+# This message causes the project_server to create a new project or
+# prepare to receive one (as a sequence of blob messages) from a hub.
+# hub --> project_server
+message
+    event   : 'open_project'
+    id      : required
+    timeout : required       # time in seconds; if the project_server
+                             # does not receive any messages related
+                             # to this project for this many seconds,
+                             # then it does the same thing as when
+                             # receiving a 'close_project' message.
+    uuid    : required       # uuid of the project, which impacts
+                             # where project is extracted, etc.
+    uuids   : required       # list of uuids (as strings); these will
+                             # be sent as blob's; if length 0, makes a
+                             # new repo with empty .gitignore.
+
+# This message is sent by the project_server to the hub once all
+# bundles that define a project have been received and unbundled.
+# project_server --> hub
+message
+    event : 'project_opened'
+    id    : required
+    uid   : required   # UNIX user id used for file permissions,
+                       # quota, all processes spawned for this project
+
+# A hub sends this message to a project_server to request that the
+# project_server save a snapshot of the project.  On success, the
+# project_server will respond by sending a project_saved message and a
+# (possibly empty) sequence of bundles (as blobs identified by
+# uuid's).
+# hub --> project_server
+message
+    event : 'save_project'
+    id    : required
+
+# This message is sent to a hub by a project_server when the
+# project_servers creates a new snapshot of the project in response to
+# a save_project message.  The project_server does *not* move the tag
+# yet though; that must wait for a project_saved_to_db message.
+# project_server --> hub
+message
+    event : 'project_saved'
+    id    : required
+    uuid  : required
+
+# This message is sent from a hub back to a project_server when the
+# hub has *successfully* saved the corresponding update to the project
+# into the database. When the project_server receives this message, it
+# updates the tag in the repo.
+# hub --> project_server
+message
+    event : 'project_saved_to_db'
+    id    : required   # id of message (matches project_saved message above)
+
+#
+# A hub sends this message to the project_server to request that the
+# project_server close the project.  If there are any unsaved
+# modifications to files, the project_server will first send a
+# project_saved message and wait for ack on that.  Once that is sorted
+# out, it will finally send a project_closed message.
+#
+# hub --> project_server
+message
+    event : 'close_project'
+    id    : required
+    uuid  : required
+
+# A project_server sends this message in response to a close_project
+# message, once all files have actually been cleaned up, all relevant
+# processes killed, etc.
+#
+# project_server --> hub
+message
+    event : 'project_closed'
+    id    : required     # id of message (matches close_project message above)
+    uuid  : required     # uuid of the project
+
+
 ############################################
 # Projects
-#############################################
+############################################
 
 
 # client --> hub

@@ -18,8 +18,18 @@ message        = require 'message'
 misc_node      = require 'misc_node'
 misc           = require 'misc'
 
-# The child process objects are stored here.  The keys are 'sage_server', 'console_server', 'project_server', etc.
-children = {}
+
+######################################################
+# Creating and working with project repositories
+
+
+
+
+
+
+
+
+######################################################
 
 server = net.createServer (socket) ->
     misc_node.enable_mesg(socket)
