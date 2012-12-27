@@ -1,3 +1,18 @@
+
+    
+    uid = misc.randint(1100, 4294967294)
+    fs.exists("/home/#{uid}", (exists) ->
+        if exists
+            choose_uid(cb)  # This recursion won't blow stack, since
+                            # it is highly unlikely to ever happen.
+        else
+            cmd = "useradd -u #{uid} -g #{uid} -m -U #{project_uuid}"
+            path = "/home/#{project_uuid}"
+            fs.mkdir(, , () ->
+                fs.chown(
+
+--------------------------
+
             # buf = null
             # console_session.on('data', (data) ->
             #     if buf == null

@@ -13,6 +13,9 @@ exports.merge = (dest, objs ...) ->
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
 
+# Returns a random integer in the range, inclusive (like in Python)
+exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
+
 # modifies target in place, so that the properties of target are the
 # same as those of upper_bound, and each is <=.
 exports.min_object = (target, upper_bounds) ->

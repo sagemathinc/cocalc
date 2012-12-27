@@ -448,8 +448,8 @@ message
 # Project Server <---> Hub interaction
 #
 #   * The database stores a files object (with the file tree) and a
-#     sequence of git bundles that when pulled together give the
-#     complete history of the of the repository.  Total disk usage per
+#     sequence of git bundles that when combined together give the
+#     complete history of the repository.  Total disk usage per
 #     project is limited by hard/soft disk quota, and includes the
 #     space taken by the revision history (the .git directory).
 #
@@ -457,32 +457,34 @@ message
 #     any given time (not implemented: if this is violated then we'll
 #     merge the resulting conflicting repo's.)
 #
-#   * Which project_server (host, port) that has a project opened is
-#     stored in the database.
-#
-#   * If a hub cannot connect to a given project server, the hub
-#     assigns a new project_server for the project and opens the
-#     project on the new project_server.  (The error also gets logged
-#     to the database.)  All hubs will use this new project server
-#     henceforth.
+#   * Which project_server that has a project opened is stored in the
+#     database.  If a hub cannot connect to a given project server,
+#     the hub assigns a new project_server for the project and opens
+#     the project on the new project_server.  (The error also gets
+#     logged to the database.)  All hubs will use this new project
+#     server henceforth.
 #
 ###################################################################################
 
-# This message causes the project_server to create a new project or
-# prepare to receive one (as a sequence of blob messages) from a hub.
+# The open_project message causes the project_server to create a new
+# project or prepare to receive one (as a sequence of blob messages)
+# from a hub.
+#
 # hub --> project_server
 message
     event        : 'open_project'
     id           : required
-    uuid         : required  # uuid of the project, which impacts
+    project_uuid : required  # uuid of the project, which impacts
                              # where project is extracted, etc.
-    bundles      : required  # object with keys the uuids (as strings) and values all null; these will
-                             # be sent as blob's; if length 0, makes a
-                             # new repo with empty .gitignore.
-    quota        : required  # maximum amount of disk space this project can use.
-                             # This is an object {soft:..., hard:...}; it is implemented
+    bundles      : required  # Object with keys the uuids (as
+                             # strings) and values all null; these
+                             # will be sent as blob's; if length 0,
+                             # makes a new repo with empty .gitignore.
+    quota        : required  # Maximum amount of disk space this
+                             # project can use.  This is an object
+                             # {soft:..., hard:...}; it is implemented
                              # using the unix disk quota system.
-    idle_timeout : required  # a time in seconds; if the project_server
+    idle_timeout : required  # A time in seconds; if the project_server
                              # does not receive any messages related
                              # to this project for this many seconds,
                              # then it does the same thing as when

@@ -14,17 +14,45 @@ program        = require 'commander'
 daemon         = require 'start-stop-daemon'
 net            = require 'net'
 
+async          = require 'async'
+
 message        = require 'message'
 misc_node      = require 'misc_node'
 misc           = require 'misc'
-
 
 ######################################################
 # Creating and working with project repositories
 #    --> See message.coffee for how projects work. <--
 ######################################################
 
-# The first step in opening in opening a project is waiting for all of
+# Choose a random unused unix UID, where unused means by definition
+# that /home/UID does not exist.  We then create that directory and
+# call cb with it.  There is once in a billion years possibility of a
+# race condition, so we do not worry about it.  Our uid is a random
+# number between 1100 and 2^32-2=4294967294.
+
+create_user = (cb) ->
+    uid = misc.randint(1100, 4294967294)
+    fs.exists("/home/#{uid}", (exists) ->
+        if exists
+            create_user(cb)  # This recursion won't blow stack, since
+                             # it is highly unlikely to ever happen.
+        else
+            cmd = "useradd -U -m #{project_uuid}"
+#            fs.mkdir(, , () ->
+#                fs.chown(
+#`    child_process.exec("useradd -U -m #{project_uuid}", (error, stdout, stderr) ->cb())
+
+delete_user = (project_uuid, cb) ->
+    async.series([
+        (c) -> child_process.exec("deluser --remove-all-files #{project_uuid}", (error, stdout, stderr) -> c())
+        (c) -> child_process.exec("delgroup #{project_uuid}", ((error, stdout, stderr) -> cb(); c()))
+    ])
+
+extract_bundles = (bundles, path, cb) ->
+
+
+# The first step in opening a project is waiting to receive all of
 # the bundle blobs.
 open_project = (socket, mesg) ->
     n = misc.len(mesg.bundles)
@@ -33,7 +61,7 @@ open_project = (socket, mesg) ->
     else
         recv_bundles = (type, m) ->
             if type == 'blob' and mesg.bundles[m.uuid]?
-                mesg.bundles[mesg.uuid] = m.blob
+                mesg.bundles[m.uuid] = m.blob
                 n -= 1
                 if n <= 0
                     socket.removeListener 'mesg', recv_bundles
@@ -42,12 +70,15 @@ open_project = (socket, mesg) ->
 
 # Now that we have the bundle blobs, we extract the project.
 open_project2 = (socket, mesg) ->
-    # Choose a random unused uid for this project:
-    uid = new_uid()
-    # Create home directory:   '/home/uid/project_uuid'
-    path = create_home_directory(uid)
-    # Populate the home directory using the bundles
-    #extra_bundles_to
+    user_id = null
+    async.series([
+        # Create a user with username the project_uuid and random user id.
+        (cb) -> create_user(mesg.project_uuid, cb)
+        # Extract the bundles into the home directory.
+        (cb) -> extract_bundles(mesg.bundles, "/home/#{mesg.project_uuid}", cb)
+        # Send message back to hub that project is opened and ready to go.
+        TODO
+    ])
 
 save_project = (socket, mesg) ->
 

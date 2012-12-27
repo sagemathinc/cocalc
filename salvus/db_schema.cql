@@ -215,8 +215,10 @@ CREATE TABLE projects (
      description      varchar,
      public           boolean,  // whether or not the project is visible to everybody in the world
      last_edited      timestamp,// timestamp of last save of the project
-     files            varchar,  // JSON object showing all files in the project (see message.coffee for format)
+     files            varchar,  // (json) file tree in the current version of the project (see message.coffee for format)
      bundles          varchar,  // bundles: an ordered JSON array of uuid's of git bundles that are stored in the bundles table
+     host             varchar,  // the host that has the project open (if it is open)
+     user_id          int,      // UNIX user id for open project
 );
 
 CREATE INDEX ON projects(account_id);
@@ -227,6 +229,7 @@ CREATE TABLE bundles (
      project_id  uuid,
      number      int ,
      bundle      blob,
+     files       varchar,  // fire tree in this version of the project (see message.coffee for format)
      PRIMARY KEY (project_id, number)
 );
 
