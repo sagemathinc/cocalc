@@ -1,3 +1,22 @@
+<    
+# Choose a random unused unix UID, where unused means by definition
+# that /home/UID does not exist.  We then create that directory and
+# call cb with it.  There is once in a billion years possibility of a
+# race condition, so we do not worry about it.  Our uid is a random
+# number between 1100 and 2^32-2=4294967294.
+
+create_user = (cb) ->
+    uid = misc.randint(1100, 4294967294)
+    fs.exists("/home/#{uid}", (exists) ->
+        if exists
+            create_user(cb)  # This recursion won't blow stack, since
+                             # it is highly unlikely to ever happen.
+        else
+            cmd = "useradd -U -m #{project_uuid}"
+    )
+#            fs.mkdir(, , () ->
+#                fs.chown(
+#`    child_process.exec("useradd -U -m #{project_uuid}", (error, stdout, stderr) ->cb())
 
     
     uid = misc.randint(1100, 4294967294)

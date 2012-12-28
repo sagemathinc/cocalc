@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+#
+# usage:
+#  $ diffbundler new repo bundle-dir  # creates a new bundle that includes the commits missing from bundle-dir (NOTE: bundle-dir must not exist!)
+#  $ diffbundler update repo bundle-dir # equivalent to new
+#  $ diffbundler extract bundle-dir out-dir   # extracts the bundles into a repository in out-dir
+#
+#  by Andrew Ohana, 2012.
+#
+
+# used to remove spaces
+RND_STR="$(tr -dc "[:alpha:]" < /dev/urandom | head -c 16)"
+
+debundle () {
+  SRC="$(readlink -f "$1")"
+  DST="$(readlink -f "$2")"
+  mkdir -p "$DST"
+  cd "$DST"
+  git init > /dev/null
+  git checkout -b "$RND_STR" 2> /dev/null
+
+  for BUNDLE in $(ls $SRC | sed 's/\ \ */\n/g' | sort -n); do
+    BUNDLE="$SRC/$BUNDLE"
+    git bundle unbundle "$BUNDLE" > /dev/null
+    for REF in $(git bundle list-heads "$BUNDLE" | sed "s/\ /${RND_STR}/g"); do
+      REF="$(sed "s/${RND_STR}/\ /g" <<< "$REF")"
+      REF_NAME="${REF##* }"
+      REF_SHA="${REF%% *}"
+      if [ "$REF_NAME" == HEAD ]; then
+        HEAD="$(git bundle list-heads "$BUNDLE" | grep "$REF_SHA" | grep -v HEAD | head -1)"
+        if [ -z "$HEAD" ]; then
+          # detached HEAD
+          HEAD="$REF_SHA"
+        else
+          REF_NAME="${HEAD##$REF_SHA refs/heads/}"
+          if [ "$REF_NAME" == "$HEAD" ]; then
+            # HEAD is pointing to a tag, so it is detached
+            HEAD="$REF_SHA"
+          else
+            HEAD="$REF_NAME"
+          fi
+        fi
+      else
+        if [[ "$REF_NAME" == "refs/heads/"* ]]; then
+          REF_NAME="${REF_NAME##refs/heads/}"
+          git branch -f "$REF_NAME" "$REF_SHA"
+        elif [[ "$REF_NAME" == "refs/tags/"* ]]; then
+          REF_NAME="${REF_NAME##refs/tags/}"
+          git tag -f "$REF_NAME" "$REF_SHA" > /dev/null
+        fi
+      fi
+    done
+  done
+
+  if [ -n "$HEAD" ]; then
+    git checkout "$HEAD"
+  fi
+}
+
+newbundle () {
+  SRC="$(readlink -f "$1")"
+  DST="$(readlink -f "$2")"
+  cd "$SRC"
+
+  if [ -d "$DST" ]; then
+    LAST_BUNDLE="$(ls "$DST" | sed 's/\ \ */\n/g' | sort -n | tail -1)"
+    NEW_BUNDLE="$DST/$(expr "$(sed 's/\.bundle$//' <<< "$LAST_BUNDLE")" + 1).bundle"
+    LAST_BUNDLE="$DST/$LAST_BUNDLE"
+    OLD_SHAS="$(git bundle list-heads $LAST_BUNDLE | cut -d' ' -f1)"
+    ARG=""
+    for REF in $(git show-ref --head | sed "s/\ /${RND_STR}/g"); do
+      REF="$(sed "s/${RND_STR}/\ /g" <<< "$REF")"
+      REF_NAME="${REF##* refs/heads/}"
+      REF_SHA="${REF%% *}"
+      for OLD_SHA in $OLD_SHAS; do
+        TMP_MERGE_BASE="$(git merge-base $OLD_SHA $REF_SHA)"
+        TMP_MIN="$(git rev-list $TMP_MERGE_BASE..$REF_SHA| wc -l)"
+        if [ -z "$MIN" ]; then
+          MERGE_BASE="$TMP_MERGE_BASE"
+          MIN="$TMP_MIN"
+        elif [ "$TMP_MIN" -lt "$MIN" ]; then
+          MERGE_BASE="$TMP_MERGE_BASE"
+          MIN="$TMP_MIN"
+        fi
+      done
+      MIN=
+      if [ "$MERGE_BASE" != "$REF_SHA" ]; then
+        ARG="$ARG $MERGE_BASE..$REF_NAME"
+      fi
+    done
+  else
+    mkdir -p "$DST"
+    NEW_BUNDLE="$DST/0.bundle"
+    ARG="--all"
+  fi
+  if [ -n "$ARG" ]; then
+    git bundle create "$NEW_BUNDLE" $ARG
+  fi
+}
+
+if [ "$1" == new ]; then
+  newbundle $2 $3
+fi
+
+if [ "$1" == update ]; then
+  newbundle $2 $3
+fi
+
+if [ "$1" == extract ]; then
+  debundle $2 $3
+fi

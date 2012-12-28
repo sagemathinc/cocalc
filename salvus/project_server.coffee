@@ -24,33 +24,48 @@ misc           = require 'misc'
 # Creating and working with project repositories
 #    --> See message.coffee for how projects work. <--
 ######################################################
+#
 
-# Choose a random unused unix UID, where unused means by definition
-# that /home/UID does not exist.  We then create that directory and
-# call cb with it.  There is once in a billion years possibility of a
-# race condition, so we do not worry about it.  Our uid is a random
-# number between 1100 and 2^32-2=4294967294.
+username = (project_uuid) -> project_uuid.replace(/-/g,'')
 
-create_user = (cb) ->
-    uid = misc.randint(1100, 4294967294)
-    fs.exists("/home/#{uid}", (exists) ->
-        if exists
-            create_user(cb)  # This recursion won't blow stack, since
-                             # it is highly unlikely to ever happen.
-        else
-            cmd = "useradd -U -m #{project_uuid}"
-#            fs.mkdir(, , () ->
-#                fs.chown(
-#`    child_process.exec("useradd -U -m #{project_uuid}", (error, stdout, stderr) ->cb())
+create_user = (username, cb) ->
+    child_process.exec("useradd -U -m #{username}", ((err, stdout, stderr) -> cb(err)))
 
-delete_user = (project_uuid, cb) ->
+delete_user = (username, cb) ->
     async.series([
-        (c) -> child_process.exec("deluser --remove-all-files #{project_uuid}", (error, stdout, stderr) -> c())
-        (c) -> child_process.exec("delgroup #{project_uuid}", ((error, stdout, stderr) -> cb(); c()))
-    ])
+        (c) ->
+            child_process.exec("deluser --remove-all-files #{username}", ((error, stdout, stderr) -> c()))
+        (c) ->
+            child_process.exec("delgroup #{username}", ((error, stdout, stderr) -> cb(); c()))
+    ], cb)
 
 extract_bundles = (bundles, path, cb) ->
+    bundle_path = "#{path}/.git/bundles"
 
+    # Create the bundle path and write the bundle files to disk
+    tasks = [
+        (c) -> fs.mkdir("#{path}/.git", c),
+        (c) -> fs.mkdir("#{path}/.git/bundles", c)
+    ]
+    n = 0
+    for uuid, content of bundles
+        tasks.push((c) -> fs.writeFile("#{bundle_path}/#{n}.bundle", content, c))
+        n += 1
+
+    async.series(tasks, (err) ->
+        if err
+            cb(err)
+        else
+            # Now the bundle files are all in place.  Make the repository.
+            if n == 0
+                # There were no bundles at all, so we make a new git repo.
+                cmd = "cd #{path} && git init && touch .gitignore && git add .gitignore && git commit -a -m 'Initial version.'"
+                child_process.exec(cmd, (err, stdout, stderr) -> cb(err))
+            else
+                # There were bundles -- extract them.
+                child_process.exec "diffbundler extract #{bundle_path} #{path}",
+                    (err, stdout, stderr) -> cb(err)
+    )
 
 # The first step in opening a project is waiting to receive all of
 # the bundle blobs.
@@ -70,15 +85,19 @@ open_project = (socket, mesg) ->
 
 # Now that we have the bundle blobs, we extract the project.
 open_project2 = (socket, mesg) ->
-    user_id = null
+    uname = username(mesg.project_uuid)
     async.series([
-        # Create a user with username the project_uuid and random user id.
-        (cb) -> create_user(mesg.project_uuid, cb)
+        # Create a user with username the project_uuid (with dashes removed)
+        (cb) -> create_user(uname, cb)
         # Extract the bundles into the home directory.
-        (cb) -> extract_bundles(mesg.bundles, "/home/#{mesg.project_uuid}", cb)
-        # Send message back to hub that project is opened and ready to go.
-        TODO
-    ])
+        (cb) -> extract_bundles(mesg.bundles, "/home/#{uname}", cb)
+    ], (err, results) ->
+        if err
+            socket.write_mesg(message.error(id:mesg.id, error:err))
+        else
+            # Send message back to hub that project is opened and ready to go.
+            socket.write_mesg(message.project_opened(id:mesg.id))
+    )
 
 save_project = (socket, mesg) ->
 

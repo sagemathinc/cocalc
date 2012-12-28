@@ -8976,7 +8976,7 @@ done
 
 I'm going to figure this out for the master branch only... for now.
 
-[ ] TASK: Give a complete working example that does all this:
+[x] TASK: Give a complete working example that does all this:
 
 1. Creating a simple minimal repo with 1 master branch
 mkdir repo; cd repo
@@ -9069,8 +9069,8 @@ I'm also setting up a new machine to run salvus:
 SOON:
 
   [ ] Deploy new version? -- next week
-  [ ] rewrite the about page to just explain how to use it.  the page
-  there right now was a fine BLOG post, but that's all it should be.
+  [x] rewrite the about page to just explain how to use it.  the page
+      there right now was a fine BLOG post, but that's all it should be.
   [ ] busy signal in notebook title of webpage when computing.
   [ ] don't forget %cython mode.
 
@@ -9078,3 +9078,36 @@ SOON:
 LATER:
  [ ] fun warm up -- better icons: http://fortawesome.github.com/Font-Awesome/
  [ ] upgrade bootstrap: http://blog.getbootstrap.com/2012/12/08/bootstrap-2-2-2-released/
+
+================================================================
+
+Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
+
+--> [x] (23 min) database returns localhost for compute server in case nothing defined.
+
+[ ] project_server:
+    [x] (7min) create_user (in project_server) --
+    [x] (1min) delete_user (in project_server)
+    [x] (8min) finish open_project
+    [x] (1:06) extract_bundles (see code from andrew)
+    [ ] save_project
+    [ ] close_project
+
+[ ] hub:
+    [ ] open_project:
+          - check in db if open already
+          - if open already, return location
+          - if not, record start open in db, choose machine, connect, grab bundles from DB, send, record successful opening in database.
+          -
+    [ ] save_project
+    [ ] close_project
+    [ ] open_file
+    [ ] save_file
+
+[ ] client:
+    [ ] open console on a project
+    [ ] browse files in a project
+    [ ] edit file
+    [ ] save file
+
+

@@ -496,11 +496,6 @@ message
 message
     event : 'project_opened'
     id    : required
-    uid   : required   # UNIX user id used for file permissions, the
-                       # disk quota, and all processes spawned for
-                       # this project.  Hub will store this in
-                       # database, since it is needed to start various
-                       # types of compute processes.
 
 # A hub sends this message to a project_server to request that the
 # project_server save a snapshot of this project.  On success, the

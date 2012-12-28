@@ -1,3 +1,7 @@
+[ ] interacts, from jason:  https://mail.google.com/mail/u/0/?shva=1#inbox/13be165887dec055
+   "And here's a version that uses underscore.js's throttle function to give better interactivity (by not overwhelming the server with update requests):
+http://aleph.sagemath.org/?q=42838fa4-2d54-406d-bea3-7ed531f96312&lang=sage"
+
 [ ] from harald, keyboard shortcuts -- "no, maybe through some 3rd
     party extensions. but there is one shortcut which is valid for all
     of them: "?" which pops up a nice overview :-) i searched a bit
