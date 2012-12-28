@@ -252,6 +252,7 @@ class exports.Cassandra extends EventEmitter
             keyspace : undefined
             timeout  : 3000
 
+        @keyspace = opts.keyspace
         console.log("keyspace = #{opts.keyspace}")
         @conn = new helenus.ConnectionPool(
             hosts     :  opts.hosts
@@ -449,15 +450,24 @@ class exports.Salvus extends exports.Cassandra
     #####################################
     # Managing compute servers
     #####################################
+    # if keyspace is test, and there are no compute servers, returns
+    # 'localhost' no matter what, since often when testing we don't
+    # put an entry in the database.
     running_compute_servers: (opts={}) ->
         opts = defaults opts,
             cb   : required
             type : required    # 'sage', 'console', 'project', 'compute'
-        @select(table:'compute_servers', columns:['host'], where:{running:true}, cb:(error, results) ->
-            opts.cb(error, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type]} for x in results)
+        @select(table:'compute_servers', columns:['host'], where:{running:true}, cb:(error, results) =>
+            console.log("HI! #{JSON.stringify(results)}")
+            if results.length == 0 and @keyspace == 'test'
+                opts.cb(error, [{host:'localhost', port:COMPUTE_SERVER_PORTS[opts.type]}])
+            else
+                opts.cb(error, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type]} for x in results)
         )
 
-    random_compute_server: (opts={}) -> # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)
+    # cb(error, random running sage server) or if there are no running
+    # sage servers, then cb(undefined)
+    random_compute_server: (opts={}) ->
         opts = defaults opts,
             cb   : required
             type : required
