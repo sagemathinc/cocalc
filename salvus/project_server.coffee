@@ -27,6 +27,7 @@ misc           = require 'misc'
 #
 
 username = (project_uuid) -> project_uuid.replace(/-/g,'')
+userpath = (project_uuid) -> "/home/#{username(mesg.project_uuid)}"
 
 create_user = (username, cb) ->
     child_process.exec("useradd -U -m #{username}", ((err, stdout, stderr) -> cb(err)))
@@ -40,6 +41,9 @@ delete_user = (username, cb) ->
     ], cb)
 
 extract_bundles = (bundles, path, cb) ->
+    #
+    # TODO: worry about file permissions!
+    # 
     bundle_path = "#{path}/.git/bundles"
 
     # Create the bundle path and write the bundle files to disk
@@ -86,11 +90,12 @@ open_project = (socket, mesg) ->
 # Now that we have the bundle blobs, we extract the project.
 open_project2 = (socket, mesg) ->
     uname = username(mesg.project_uuid)
+    path = userpath(mesg.project_uuid)
     async.series([
         # Create a user with username the project_uuid (with dashes removed)
         (cb) -> create_user(uname, cb)
         # Extract the bundles into the home directory.
-        (cb) -> extract_bundles(mesg.bundles, "/home/#{uname}", cb)
+        (cb) -> extract_bundles(mesg.bundles, path, cb)
     ], (err, results) ->
         if err
             socket.write_mesg(message.error(id:mesg.id, error:err))
@@ -99,7 +104,33 @@ open_project2 = (socket, mesg) ->
             socket.write_mesg(message.project_opened(id:mesg.id))
     )
 
+commit_all = (path, cb) ->
+    # TODO: better commit message; maybe always do this in a snapshot branch, etc...?
+    child_process.exec("git add && git commit -a -m 'snapshot'", cb)
+
+#TODO -- this is ** HARD:-) **  
 save_project = (socket, mesg) ->
+    path    = userpath(mesg.project_uuid)
+    bundles = "#{path}/.git/bundles"
+    resp = message.project_saved(id:mesg.id, files:[], log:[])
+    commit_all(path, (err) ->
+        if err
+            socket.write_mesg(message.error(id:mesg.id), error:err)
+        else
+            child_process.exec("diffbundler update #{path} #{bundles}",
+                (err, stdout, stderr) ->
+                    if err
+                        socket.write_mesg(message.error(id:mesg.id), error:err)
+                    else
+                        to_send = {}
+                        n = mesg.starting_bundle_number
+                        fs.exists("#{bundles}/#{n}.bundle", (exists) ->
+                            fs.readFile("#{bundles}/#{n}.bundle", (err, data) ->
+                                uuid = misc.uuid()
+                                to_send[uuid] = data
+                                resp.bundle_uuids[n] = uuid
+
+            )
 
 close_project = (socket, mesg) ->
 

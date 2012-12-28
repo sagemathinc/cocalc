@@ -499,34 +499,32 @@ message
 
 # A hub sends this message to a project_server to request that the
 # project_server save a snapshot of this project.  On success, the
-# project_server will respond by sending a project_saved message and a
-# (possibly empty) sequence of bundles (as blobs identified by
-# uuid's).
+# project_server will respond by sending a project_saved message and
+# all bundles n.bundle for n >= starting_bundle_number.
 # hub --> project_server
 message
-    event : 'save_project'
-    id    : required
-    uuid  : required    # uuid of a project
+    event                  : 'save_project'
+    id                     : required
+    project_uuid           : required    # uuid of a project
+    starting_bundle_number : required
 
 # This message is sent to a hub by a project_server when the
 # project_servers creates a new snapshot of the project in response to
-# a save_project message.  The project_server does *not* move the tag
-# yet though; that must wait for a project_saved_to_db message.
+# a save_project message.
 # project_server --> hub
 message
-    event : 'project_saved'
-    id    : required       # message id, which matches the save_project message
-    uuid  : required       # uuid that identifies blob with the bundle
-    files : required       # object that describes the current tree of files in the project:
+    event         : 'project_saved'
+    id            : required       # message id, which matches the save_project message
+    bundle_uuids  : required       # {bundle_number:uuid, bundle_number:uuid, ...} -- bundles are sent as blobs
+    files         : required       # object that describes the current tree of files in the project:
                            #   keys are file/directory names
                            #   values: for a file, value is last_mod_time, description, changelog message
                            #           for a directory, value is object
-    log   : required       # the git revision log history
+    log           : required       # the git revision log history
 
 # This message is sent from a hub back to a project_server when the
 # hub has *successfully* saved the corresponding update to the project
-# into the database. When the project_server receives this message, it
-# updates the tag in the repo.  The project_server only allows one
+# into the database.   The project_server only allows one
 # hub to do a project_save at a time, and gives an error if any other
 # hub tries to save at the same time.
 # hub --> project_server
