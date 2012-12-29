@@ -9093,13 +9093,19 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
     [x] (27min) save_project
     [x] (7min) close_project
     [x] (34min) disk quotas when creating user
--->    [ ] read over/document
+    [x] (30min) read over/document
+    [x] (54min) get_files and logs
+    [ ] parsing files object -- external script that converts to JSON format?
+    [ ] parsing logs -- make an external script that gets the log in JSON format, so async
 
 [ ] hub:
     [ ] open_project:
           - check in db if open already
           - if open already, return location
-          - if not, record start open in db, choose machine, connect, grab bundles from DB, send, record successful opening in database.
+          - if not, record start open in db, choose machine, connect,
+            grab bundles from DB, send, record successful opening in
+            database.
+
     [ ] save_project
     [ ] close_project
     [ ] open_file

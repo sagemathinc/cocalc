@@ -215,7 +215,8 @@ CREATE TABLE projects (
      description      varchar,
      public           boolean,  // whether or not the project is visible to everybody in the world
      last_edited      timestamp,// timestamp of last save of the project
-     files            varchar,  // (json) file tree in the current version of the project (see message.coffee for format)
+     files            varchar,  // (JSON) file tree for each branch (see message.coffee for format)
+     logs             varchar,  // (JSON) logs for each branch
      bundles          varchar,  // bundles: an ordered JSON array of uuid's of git bundles that are stored in the bundles table
      host             varchar,  // the host that has the project open (if it is open)
      user_id          int,      // UNIX user id for open project
@@ -229,7 +230,6 @@ CREATE TABLE bundles (
      project_id  uuid,
      number      int ,
      bundle      blob,
-     files       varchar,  // fire tree in this version of the project (see message.coffee for format)
      PRIMARY KEY (project_id, number)
 );
 

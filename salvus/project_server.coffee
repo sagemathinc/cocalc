@@ -210,19 +210,67 @@ get_branches = (path, cb) ->
                             current_branch = branch
             cb(false, {branches:branches, current_branch:current_branch})
 
-# Obtain the file lists for all the branches in the repo at this point.
-get_files = (path, cb) ->
-    cb({}) # TODO
+# Obtain the file lists and logs for all the branches in the repo.
+get_files_and_logs = (path, cb) ->
+    branches = undefined
+    current_branch = undefined
+    files = {}
+    logs  = {}
+    async.series([
+        # Get the branches and the current branch
+        (cb) ->
+            get_branches(path, (err, r) ->
+                if err
+                    cb(err)
+                else
+                    branches       = r.branches
+                    current_branch = r.current_branch
+                    if not branches? or not current_branch?
+                        cb("Error getting branches of git repo.")
+                    else
+                        cb()
 
-# Obtain the log for all the branches in the repo at this point.
-get_logs = (path, cb) ->
-    cb({}) # TODO
+        # Get the list of all files in each branch
+        (cb) ->
+            tasks = []
+            for branch in branches
+                tasks.push((cb) ->
+                    child_process.exec("cd #{path} && git ls-tree --name-only --full-tree -r #{branch}", (err, stdout, stderr) ->
+                        if err
+                            cb(err)
+                        else
+                            files[branch] = file_list_to_tree(stdout.split('\n'))
+                            cb()
+                )
+            async.series(tasks, cb)
+
+        # Get the log for each branch
+        (cb) ->
+            tasks = []
+            for branch in branches
+                tasks.push((cb) ->
+                    child_process.exec("cd #{path} && git log #{branch}", (err, stdout, stderr) ->
+                        if err
+                            cb(err)
+                        else
+                            logs[branch] = parse_text_log(stdout)
+                            cb()
+                )
+            async.series(tasks, cb)
+
+    ], (err) ->
+        if err
+            cb(err)
+        else
+            cb(false, {branches:branches, current_branch:current_branch, files:files, logs:logs})
+    )
+
 
 # Save the project
 save_project = (socket, mesg) ->
     path     = userpath(mesg.project_uuid)
     bundles  = "#{path}/.git/bundles"
-    resp     = message.project_saved(id:mesg.id, files:{}, log:{})
+    resp     = message.project_saved(id:mesg.id, files:{}, logs:{}, branches:null, current_branch:null)
 
     tasks    = []
     async.series([
@@ -255,29 +303,13 @@ save_project = (socket, mesg) ->
                     cb()
             )
 
+        # Obtain the branches, logs, and file lists for the repo.
         (cb) ->
-            get_branches(path, (err, b) -.
-                if err
-                    cb(err)
-                else
-                    branches = b
-
-        # Obtain the file lists for all the branches in the repo at
-        # this point.
-        (cb) ->
-            get_files(path, (err, files) ->
-                if err
-                    cb(err)
-                else
-                    resp.files = files
-
-        # Obtain the log for all the branches in the repo at this point.
-        (cb) ->
-            get_logs(path, (err, logs) ->
-                if err
-                    cb(err)
-                else
-                    resp.logs = logs
+            get_files_and_logs(path, (err, result) ->
+                resp.files = result.files
+                resp.logs = result.logs
+                resp.branches = result.branches
+                resp.current_branch = result.current_branch
 
         # Read and send the bundle files
         (cb) ->
