@@ -508,6 +508,7 @@ message
     id                     : required
     project_uuid           : required    # uuid of a project
     starting_bundle_number : required
+    commit_mesg            : required    # the commit message
 
 # This message is sent to a hub by a project_server when the
 # project_servers creates a new snapshot of the project in response to

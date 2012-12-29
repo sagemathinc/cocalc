@@ -45,7 +45,7 @@ create_user = (username, quota, cb) ->  # quota = {disk:{soft:megabytes, hard:me
         # Create the user
         (cb) ->
             child_process.exec("useradd -U -m #{username}", cb)
-        # Set the quota
+        # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
             if not quota.disk?
                 cb("disk space quota must be specified")
@@ -61,11 +61,11 @@ create_user = (username, quota, cb) ->  # quota = {disk:{soft:megabytes, hard:me
                 cb("inode space hard quota must be specified")
             else
                 # Everything is specified
-                disk_soft = parseInt(quota.disk.soft)
-                disk_hard = parseInt(quota.disk.hard)
+                disk_soft  = parseInt(quota.disk.soft)
+                disk_hard  = parseInt(quota.disk.hard)
                 inode_soft = parseInt(quota.inode.soft)
                 inode_hard = parseInt(quota.inode.hard)
-                # Ensure it is valid
+                # Ensure it is valid -- parseInt could result in NaN, which is not >0:
                 if not disk_soft > 0
                     cb("disk soft quota must be positive")
                     disk_soft = megabytes_to_blocks(disk_soft)
@@ -76,51 +76,69 @@ create_user = (username, quota, cb) ->  # quota = {disk:{soft:megabytes, hard:me
                     cb("inode soft quota must be positive")
                 elif not inode_hard > 0
                     cb("inode hard quota must be positive")
-            cmd = "setquota -u #{username} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
-            child_process.exec(cmd, cb)
+                else
+                    # Everything is good, let's do it!
+                    cmd = "setquota -u #{username} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
+                    child_process.exec(cmd, cb)
     ], cb)
 
+# Delete the given UNIX user, corresponding group, and all files they own.
 delete_user = (username, cb) ->
+    if username.length != 36  # a sanity check to avoid accidentally deleting all my files!
+        cb(true)
+        return
+
     async.series([
-        (c) ->
-            child_process.exec("deluser --remove-all-files #{username}", ((error, stdout, stderr) -> c()))
-        (c) ->
-            child_process.exec("delgroup #{username}", ((error, stdout, stderr) -> cb(); c()))
+        # Delete the UNIX user and their files.
+        (cb) ->
+            child_process.exec("deluser --remove-all-files #{username}", cb)
+        # Delete the group
+        (cb) ->
+            child_process.exec("delgroup #{username}", cb)
     ], cb)
 
+# Kill all processes running as a given user.
 killall_user = (username, cb) ->
     child_process.exec("killall -s 9 -u #{username}", cb)
 
-extract_bundles = (bundles, path, cb) ->
-    #
-    # TODO: worry about file permissions!
-    #
-    bundle_path = "#{path}/.git/bundles"
+# Given an in-memory object "bundles" containing (in order) the
+# possibly empty collection of bundles that define a git repo, extract
+# it to the repo_path, which must not already exist.
+extract_bundles = (username, bundles, repo_path, cb) ->
+    bundle_path = "#{repo_path}/.git/bundles"
 
     # Create the bundle path and write the bundle files to disk
     tasks = [
-        (c) -> fs.mkdir("#{path}/.git", c),
-        (c) -> fs.mkdir("#{path}/.git/bundles", c)
+        (c) -> fs.mkdir("#{repo_path}/.git", c),
+        (c) -> fs.mkdir("#{repo_path}/.git/bundles", c)
     ]
+
+    # Write the bundle files to disk.
     n = 0
     for uuid, content of bundles
         tasks.push((c) -> fs.writeFile("#{bundle_path}/#{n}.bundle", content, c))
         n += 1
 
-    async.series(tasks, (err) ->
-        if err
-            cb(err)
+    # Now the bundle files are all in place.  Make the repository.
+    tasks.push((c) ->
+        if n == 0
+            # There were no bundles at all, so we make a new git repo.
+            cmd = "cd #{repo_path} && git init && touch .gitignore && git add .gitignore && git commit -a -m 'Initial version.'"
+            child_process.exec(cmd, c)
         else
-            # Now the bundle files are all in place.  Make the repository.
-            if n == 0
-                # There were no bundles at all, so we make a new git repo.
-                cmd = "cd #{path} && git init && touch .gitignore && git add .gitignore && git commit -a -m 'Initial version.'"
-                child_process.exec(cmd, (err, stdout, stderr) -> cb(err))
-            else
-                # There were bundles -- extract them.
-                child_process.exec "diffbundler extract #{bundle_path} #{path}",
-                    (err, stdout, stderr) -> cb(err)
+            # There were bundles -- extract them.
+            child_process.exec("diffbundler extract #{bundle_path} #{repo_path}", c)
     )
+
+    # Change the repo so all files are owned by the given user,
+    # read/write-able by that user, and not visible to anybody else.
+    tasks.push((c) ->
+        child_process.exec("chown -R #{username} #{repo_path} && chmod u+rw -R #{repo_path} && chmod og-rwx -R #{repo_path}", c)
+    )
+
+    # Actually do all of the tasks laid out above.
+    async.series(tasks, cb)
+
 
 # The first step in opening a project is waiting to receive all of
 # the bundle blobs.
@@ -129,11 +147,14 @@ open_project = (socket, mesg) ->
     if n == 0
         open_project2(socket, mesg)
     else
+        # Create a function that listens on the socket for blobs that
+        # are marked with one of the uuid's described in the mesg.
         recv_bundles = (type, m) ->
             if type == 'blob' and mesg.bundles[m.uuid]?
                 mesg.bundles[m.uuid] = m.blob
                 n -= 1
                 if n <= 0
+                    # We've received all blobs, so remove the listener.
                     socket.removeListener 'mesg', recv_bundles
                     open_project2(socket, mesg)
         socket.on 'mesg', recv_bundles
@@ -141,12 +162,15 @@ open_project = (socket, mesg) ->
 # Now that we have the bundle blobs, we extract the project.
 open_project2 = (socket, mesg) ->
     uname = username(mesg.project_uuid)
-    path = userpath(mesg.project_uuid)
+    path  = userpath(mesg.project_uuid)
+
     async.series([
         # Create a user with username the project_uuid (with dashes removed)
-        (cb) -> create_user(uname, mesg.quota, cb)
+        (cb) ->
+            create_user(uname, mesg.quota, cb)
         # Extract the bundles into the home directory.
-        (cb) -> extract_bundles(mesg.bundles, path, cb)
+        (cb) ->
+            extract_bundles(uname, mesg.bundles, path, cb)
     ], (err, results) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
@@ -155,26 +179,47 @@ open_project2 = (socket, mesg) ->
             socket.write_mesg('json', message.project_opened(id:mesg.id))
     )
 
-commit_all = (path, cb) ->
-    # TODO: better commit message; maybe always do this in a snapshot branch, etc...?
-    child_process.exec("git add && git commit -a -m 'snapshot'", cb)
+# Commit all changes to files in the project, plus add all new files
+# that are not .gitignore'd to the current branch, whatever it may be.
+commit_all = (username, userpath, commit_mesg, cb) ->
+    commit_file = "#{userpath}/.git/COMMIT_MESG"
+    async.series([
+        (cb) ->
+            fs.writeFile(commit_file, commit_mesg, cb)
+        (cb) ->
+            cmd = "su - #{username} -c 'cd && git add && git commit -a -F #{commit_file}'"
+            child_process.exec(cmd, cb)
+    ], cb)
 
+
+# Obtain all branches in this repo.
+get_branches = (path, cb) ->
+    
+
+# Obtain the file lists for all the branches in the repo at this point.
+get_files = (path, cb) ->
+
+# Obtain the log for all the branches in the repo at this point.
+get_logs = (path, cb) ->
+
+
+# Save the project
 save_project = (socket, mesg) ->
-    path    = userpath(mesg.project_uuid)
-    bundles = "#{path}/.git/bundles"
-    resp    = message.project_saved(id:mesg.id, files:[], log:[])
+    path     = userpath(mesg.project_uuid)
+    bundles  = "#{path}/.git/bundles"
+    resp     = message.project_saved(id:mesg.id, files:{}, log:{})
 
-    tasks = []
+    tasks    = []
     async.series([
         # Commit all changes
-        (cb) -> commit_all(path, cb)
+        (cb) -> commit_all(username(mesg.project_uuid), path, mesg.commit_mesg, cb)
 
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
         (cb) -> child_process.exec("diffbundler update #{path} #{bundles}", cb)
 
-        # Determine which bundle files to send -- we may send some
-        # even if none were created this time.
+        # Determine which bundle files to send.  We may send some even
+        # if none were created, due to the hub not being totally up to date.
         (cb) ->
             fs.readdir(bundles, (err, files) ->
                 if err
@@ -195,12 +240,39 @@ save_project = (socket, mesg) ->
                     cb()
             )
 
+        (cb) ->
+            get_branches(path, (err, b) -.
+                if err
+                    cb(err)
+                else
+                    branches = b
+
+        # Obtain the file lists for all the branches in the repo at
+        # this point.
+        (cb) ->
+            get_files(path, (err, files) ->
+                if err
+                    cb(err)
+                else
+                    resp.files = files
+
+        # Obtain the log for all the branches in the repo at this point.
+        (cb) ->
+            get_logs(path, (err, logs) ->
+                if err
+                    cb(err)
+                else
+                    resp.logs = logs
+
         # Read and send the bundle files
-        (cb) -> async.series(tasks, cb)
+        (cb) ->
+            async.series(tasks, cb)
 
     ], (err) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id), error:err)
+        else
+            socket.write_mesg('json', resp)
     )
 
 close_project = (socket, mesg) ->
