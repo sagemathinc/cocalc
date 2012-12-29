@@ -307,6 +307,8 @@ save_project = (socket, mesg) ->
             socket.write_mesg('json', resp)
     )
 
+# Close the given project, which involves killing all processes of
+# this user and deleting all of their associated files.
 close_project = (socket, mesg) ->
     uname = username(mesg.project_uuid)
     async.series([
@@ -325,12 +327,14 @@ close_project = (socket, mesg) ->
             socket.write_mesg('json', message.project_closed(id:mesg.id))
     )
 
+# Read a file in the given project.  This will result in an error if
+# the readFile function files, e.g., if the file doesn't exist or the
+# project isn't even open.  The read file is sent over socket as a blob.
 read_file_from_project = (socket, mesg) ->
-    path = "#{userpath(mesg.project_uuid)}/#{mesg.path}"
     data = undefined
     async.series([
         (cb) ->
-            fs.readFile(path, (err, _data) ->
+            fs.readFile("#{userpath(mesg.project_uuid)}/#{mesg.path}", (err, _data) ->
                 data = _data
                 cb(err)
             )
@@ -344,18 +348,31 @@ read_file_from_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
+# Write a file to the project
 write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
+    if mesg.path.indexOf('..') != -1
+        # a sanity check, since we write the file as root first, and something bad could sneak in.
+        socket.write_mesg('json', message.error(id:mesg.id, error:'path must not contain ..'))
+        return
+    # Listen for the blob containg the actual content that we will write.
     write_file = (type, value) ->
         if type == 'blob' and value.uuid == data_uuid
             socket.removeListener(write_file)
             path = "#{userpath(mesg.project_uuid)}/#{mesg.path}"
-            fs.writeFile(path, value.blob, (err) ->
+            async.series([
+                (cb) ->
+                    fs.writeFile(path, value.blob, cb)
+                # Finally, set the permissions on the file to the correct user (instead of root)
+                (cb) ->
+                    child_process.exec("chown #{username(mesg.project_uuid)}. #{path}", cb)
+            ], (err) ->
                 if err
                     socket.write_mesg('json', message.error(id:mesg.id, error:err))
                 else
                     socket.write_mesg('json', message.file_written_to_project(id:mesg.id))
             )
+
     socket.on 'mesg', write_file
 
 server = net.createServer (socket) ->
