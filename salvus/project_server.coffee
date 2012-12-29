@@ -320,8 +320,43 @@ close_project = (socket, mesg) ->
 
     ], (err) ->
         if err
-            socket.write_mesg('json', message.error(id:mesg.id), error:err)
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+        else
+            socket.write_mesg('json', message.project_closed(id:mesg.id))
     )
+
+read_file_from_project = (socket, mesg) ->
+    path = "#{userpath(mesg.project_uuid)}/#{mesg.path}"
+    data = undefined
+    async.series([
+        (cb) ->
+            fs.readFile(path, (err, _data) ->
+                data = _data
+                cb(err)
+            )
+        (cb) ->
+            uuid = misc.uuid()
+            socket.write_mesg('json', message.file_read_from_project(id:mesg.id, data_uuid:uuid))
+            socket.write_mesg('blob', {uuid:uuid, blob:data})
+            cb()
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+    )
+
+write_file_to_project = (socket, mesg) ->
+    data_uuid = mesg.data_uuid
+    write_file = (type, value) ->
+        if type == 'blob' and value.uuid == data_uuid
+            socket.removeListener(write_file)
+            path = "#{userpath(mesg.project_uuid)}/#{mesg.path}"
+            fs.writeFile(path, value.blob, (err) ->
+                if err
+                    socket.write_mesg('json', message.error(id:mesg.id, error:err))
+                else
+                    socket.write_mesg('json', message.file_written_to_project(id:mesg.id))
+            )
+    socket.on 'mesg', write_file
 
 server = net.createServer (socket) ->
     misc_node.enable_mesg(socket)
@@ -334,6 +369,10 @@ server = net.createServer (socket) ->
                     save_project(socket, mesg)
                 when 'close_project'
                     close_project(socket, mesg)
+                when 'read_file_from_project'
+                    read_file_from_project(socket, mesg)
+                when 'write_file_to_project'
+                    write_file_to_project(socket, mesg)
                 else
                     socket.write(message.error("Unknown message event '#{mesg.event}'"))
 

@@ -9097,15 +9097,17 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
     [x] (54min) get_files and logs
     [x] (41min) parsing files object -- external script that converts to JSON format? and
         parsing logs -- make an external script that gets the log in JSON format, so async
+    [x] (15min) read/write file to project
 
 [ ] hub:
+    [x] (20min) function stubs
     [ ] open_project:
           - check in db if open already
           - if open already, return location
           - if not, record start open in db, choose machine, connect,
             grab bundles from DB, send, record successful opening in
             database.
-
+    [ ] get_project_host
     [ ] save_project
     [ ] close_project
     [ ] open_file

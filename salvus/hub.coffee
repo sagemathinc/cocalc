@@ -638,37 +638,6 @@ class Client extends EventEmitter
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
 
-project_is_owned_by = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        account_id : required
-        cb : required         # input: (error, result) where if defined result is true or false
-
-    database.count
-        table : 'projects'
-        where : {project_id: opts.project_id, account_id: opts.account_id}
-        cb : (error, n) ->
-            if error
-                opts.cb(error)
-            else
-                opts.cb(false, n==1)
-
-    database.select
-        table   : 'projects'
-        columns : ['account_id']
-        where   : {project_id : opts.project_id}
-        cb : (error, result) ->
-            if error
-                opts.cb(error, false)
-            else
-                if result.length == 0
-                    opts.cb("There is no project with id #{mesg.project_id}.", false)
-                else
-                    if result[0][0] != opts.account_id
-                        opts.cb(false, false)  # not an error -- just account_id does not own it.
-                    else:
-                        opts.cb(false, true)
-
 
 
 ##############################
@@ -775,6 +744,92 @@ push_to_clients = (opts) ->
 
 
     ])
+
+
+##############################
+# Working with projects
+##############################
+
+projects =
+    # Open the project on some host if it is not already opened.
+    open: (opts) ->
+        opts = defaults opts,
+            project_uuid : required
+            cb           : required   # cb(err, host_on_which_project_opened)
+
+    # Return the host that is currently hosting the project or null if the
+    # project is not currently on any host.
+    get_host: (opts) ->
+        opts = defaults opts,
+            project_uuid : required
+            cb           : required   # cb(err, host)
+
+    save_project: (opts) ->
+        opts = defaults opts,
+            project_uuid : required
+            cb           : required   # cb(err) -- indicates when done
+
+
+    close_project: (opts) ->
+        opts = defaults opts,
+            project_uuid : required
+            cb           : required   # cb(err) -- indicates when done
+
+    # Read a file from a project into memory on the hub.  This is
+    # used, e.g., for client-side editing, worksheets, etc.
+    # This does not touch the database; it loads the live from on
+    # the compute node.
+    read_file: (opts) ->
+        opts = defaults opts,
+            project_uuid : required
+            filename     : required
+            cb           : required   # cb(err, content_of_file_as_a_buffer)
+
+    # Write a file to a compute node.  This is used when saving during
+    # client-side editing, for worksheets, etc.  This does not touch
+    # the database -- it only impacts the files on the compute node.
+    write_file: (opts) ->
+        opts = defaults opts,
+            project_uuid : required
+            filename     : required
+            data         : required
+            cb           : required   # cb(err)  -- indicates when done
+
+
+########################################
+# Permissions related to projects
+########################################
+project_is_owned_by = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required         # input: (error, result) where if defined result is true or false
+
+    database.count
+        table : 'projects'
+        where : {project_id: opts.project_id, account_id: opts.account_id}
+        cb : (error, n) ->
+            if error
+                opts.cb(error)
+            else
+                opts.cb(false, n==1)
+
+    database.select
+        table   : 'projects'
+        columns : ['account_id']
+        where   : {project_id : opts.project_id}
+        cb : (error, result) ->
+            if error
+                opts.cb(error, false)
+            else
+                if result.length == 0
+                    opts.cb("There is no project with id #{mesg.project_id}.", false)
+                else
+                    if result[0][0] != opts.account_id
+                        opts.cb(false, false)  # not an error -- just account_id does not own it.
+                    else:
+                        opts.cb(false, true)
+
 
 
 ########################################

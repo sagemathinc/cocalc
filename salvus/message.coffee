@@ -546,9 +546,9 @@ message
 #
 # hub --> project_server
 message
-    event : 'close_project'
-    id    : required
-    uuid  : required
+    event         : 'close_project'
+    id            : required
+    project_uuid  : required
 
 # A project_server sends this message in response to a close_project
 # message, once all files have actually been cleaned up, all relevant
@@ -558,13 +558,41 @@ message
 message
     event : 'project_closed'
     id    : required     # id of message (matches close_project message above)
-    uuid  : required     # uuid of the project
+
+# This is sent by the hub to request that the hub read a file from a project.
+# hub --> project_server
+message
+    event        : 'read_file_from_project'
+    id           : required
+    project_uuid : required
+    path         : required
+
+# Sent by the project_server when it finishes reading the file from disk.
+# project_server --> hub
+message
+    event        : 'file_read_from_project'
+    id           : required
+    data_uuid    : required  # project_server sends the raw data of file as a blob with this uuid.
+
+# Write a file to a project.
+# hub --> project_server
+message
+    event        : 'write_file_to_project'
+    id           : required
+    project_uuid : required
+    path         : required
+    data_uuid    : required  # hub sends raw data as a blob with this uuid.
+
+# Sent by project_server to confirm successful write of the file to the project.
+# project_server --> hub
+message
+    event        : 'file_written_to_project'
+    id           : required
 
 
 ############################################
 # Projects
 ############################################
-
 
 # client --> hub
 message
