@@ -1,0 +1,26 @@
+#!/usr/bin/env python
+
+import json, os
+
+branches = [x.split()[-1] for x in os.popen("git branch").read().splitlines()]
+
+logs = {}
+
+for branch in branches:
+    v = []
+    for entry in ('\n' + os.popen("git log " + branch).read()).split('\ncommit '):
+        i = entry.find('\n')
+        commit = entry[:i].strip()
+        if not commit:
+            continue
+        entry = entry[i+1:]
+        i = entry.find('\n')
+        author = entry[7:i].strip()
+        entry = entry[i+1:].strip()
+        i = entry.find('\n')
+        date = entry[7:i].strip()
+        message = entry[i+1:].strip()
+        v.append({'commit':commit, 'author':author, 'date':date, 'message':message})
+    logs[branch] = v
+
+print json.dumps(logs,  separators=(',',':'))

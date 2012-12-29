@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+import json, os
+
+branches = [x.split()[-1] for x in os.popen("git branch").read().splitlines()]
+
+files = {}
+
+def set_file(obj, components, commit):
+    if len(components) == 1:
+        obj[components[0]] = commit
+    else:
+        if not obj.has_key(components[0]):
+            obj[components[0]] = {}
+        set_file(obj[components[0]], components[1:], commit) # recurse
+
+
+for branch in branches:
+    d = {}
+    files[branch] = d
+    for f in os.popen("git ls-tree --full-tree -r " + branch).read().splitlines():
+        _, _, commit, name = f.split()
+        set_file(d, name.split('/'), commit)
+
+print json.dumps(files,  separators=(',',':'))

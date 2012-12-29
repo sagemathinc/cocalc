@@ -518,12 +518,12 @@ message
     event          : 'project_saved'
     id             : required       # message id, which matches the save_project message
     bundle_uuids   : required       # {bundle_number:uuid, bundle_number:uuid, ...} -- bundles are sent as blobs
-    files          : required       # object that describes the current tree of files in the project:
+    files          : required       # JSON *string* the current tree of files in the project:
                            # top level keys are branch names, then
                            #   keys are file/directory names
                            #   values: for a file, value is last_mod_time, description, changelog message
                            #           for a directory, value is object
-    logs           : required      # the git revision log histories; top level keys are branch names;
+    logs           : required      # JSON *string*: git revision log histories; top level keys are branch names;
                                    # each is a list of objects {commit:?, author:?, date:?, description:?}
     branches       : required
     current_branch : required

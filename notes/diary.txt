@@ -9095,8 +9095,8 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
     [x] (34min) disk quotas when creating user
     [x] (30min) read over/document
     [x] (54min) get_files and logs
-    [ ] parsing files object -- external script that converts to JSON format?
-    [ ] parsing logs -- make an external script that gets the log in JSON format, so async
+    [x] (41min) parsing files object -- external script that converts to JSON format? and
+        parsing logs -- make an external script that gets the log in JSON format, so async
 
 [ ] hub:
     [ ] open_project:

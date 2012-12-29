@@ -232,32 +232,17 @@ get_files_and_logs = (path, cb) ->
 
         # Get the list of all files in each branch
         (cb) ->
-            tasks = []
-            for branch in branches
-                tasks.push((cb) ->
-                    child_process.exec("cd #{path} && git ls-tree --name-only --full-tree -r #{branch}", (err, stdout, stderr) ->
-                        if err
-                            cb(err)
-                        else
-                            files[branch] = file_list_to_tree(stdout.split('\n'))
-                            cb()
-                )
-            async.series(tasks, cb)
+            child_process.exec("cd #{path} && gitfiles", (err, stdout, stderr) ->
+                files = stdout
+                cb(err)
+            )
 
         # Get the log for each branch
         (cb) ->
-            tasks = []
-            for branch in branches
-                tasks.push((cb) ->
-                    child_process.exec("cd #{path} && git log #{branch}", (err, stdout, stderr) ->
-                        if err
-                            cb(err)
-                        else
-                            logs[branch] = parse_text_log(stdout)
-                            cb()
-                )
-            async.series(tasks, cb)
-
+            child_process.exec("cd #{path} && gitlogs", (err, stdout, stderr) ->
+                logs = stdout
+                cb(err)
+            )
     ], (err) ->
         if err
             cb(err)
