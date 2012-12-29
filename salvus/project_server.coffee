@@ -24,13 +24,61 @@ misc           = require 'misc'
 # Creating and working with project repositories
 #    --> See message.coffee for how projects work. <--
 ######################################################
-#
 
-username = (project_uuid) -> project_uuid.replace(/-/g,'')
+
+# Username associated to a given project id:
+username = (project_uuid) -> project_uuid.replace(/-/g,'_')
+
+# Path to home directory of that user:
 userpath = (project_uuid) -> "/home/#{username(mesg.project_uuid)}"
 
-create_user = (username, cb) ->
-    child_process.exec("useradd -U -m #{username}", ((err, stdout, stderr) -> cb(err)))
+# salvus@cassandra01:~$  sudo dumpe2fs -h /dev/mapper/salvus--base-root|grep "Block size:"
+# [sudo] password for salvus:
+# dumpe2fs 1.42 (29-Nov-2011)
+# Block size:               4096
+BLOCK_SIZE = 4096   # units = bytes; This is used by the quota command via the conversion below.
+megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
+
+# Create new UNIX user with given name and quota, then do cb(err).
+create_user = (username, quota, cb) ->  # quota = {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hode:num}}
+    async.series([
+        # Create the user
+        (cb) ->
+            child_process.exec("useradd -U -m #{username}", cb)
+        # Set the quota
+        (cb) ->
+            if not quota.disk?
+                cb("disk space quota must be specified")
+            else if not quota.disk.soft?
+                cb("disk space soft quota must be specified")
+            else if not quota.disk.hard?
+                cb("disk space hard quota must be specified")
+            if not quota.inode?
+                cb("inode space quota must be specified")
+            else if not quota.inode.soft?
+                cb("inode space soft quota must be specified")
+            else if not quota.inode.hard?
+                cb("inode space hard quota must be specified")
+            else
+                # Everything is specified
+                disk_soft = parseInt(quota.disk.soft)
+                disk_hard = parseInt(quota.disk.hard)
+                inode_soft = parseInt(quota.inode.soft)
+                inode_hard = parseInt(quota.inode.hard)
+                # Ensure it is valid
+                if not disk_soft > 0
+                    cb("disk soft quota must be positive")
+                    disk_soft = megabytes_to_blocks(disk_soft)
+                elif not disk_hard > 0
+                    cb("disk hard quota must be positive")
+                    disk_hard = megabytes_to_blocks(disk_hard)
+                elif not inode_soft > 0
+                    cb("inode soft quota must be positive")
+                elif not inode_hard > 0
+                    cb("inode hard quota must be positive")
+            cmd = "setquota -u #{username} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
+            child_process.exec(cmd, cb)
+    ], cb)
 
 delete_user = (username, cb) ->
     async.series([
@@ -40,10 +88,13 @@ delete_user = (username, cb) ->
             child_process.exec("delgroup #{username}", ((error, stdout, stderr) -> cb(); c()))
     ], cb)
 
+killall_user = (username, cb) ->
+    child_process.exec("killall -s 9 -u #{username}", cb)
+
 extract_bundles = (bundles, path, cb) ->
     #
     # TODO: worry about file permissions!
-    # 
+    #
     bundle_path = "#{path}/.git/bundles"
 
     # Create the bundle path and write the bundle files to disk
@@ -93,7 +144,7 @@ open_project2 = (socket, mesg) ->
     path = userpath(mesg.project_uuid)
     async.series([
         # Create a user with username the project_uuid (with dashes removed)
-        (cb) -> create_user(uname, cb)
+        (cb) -> create_user(uname, mesg.quota, cb)
         # Extract the bundles into the home directory.
         (cb) -> extract_bundles(mesg.bundles, path, cb)
     ], (err, results) ->
@@ -153,7 +204,20 @@ save_project = (socket, mesg) ->
     )
 
 close_project = (socket, mesg) ->
+    uname = username(mesg.project_uuid)
+    async.series([
+        # Kill all processes that the user is running.
+        (cb) ->
+            killall_user(uname, cb)
 
+        # Delete the user and all associated files.
+        (cb) ->
+            delete_user(uname, cb)
+
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id), error:err)
+    )
 
 server = net.createServer (socket) ->
     misc_node.enable_mesg(socket)

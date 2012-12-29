@@ -480,10 +480,11 @@ message
                              # strings) and values all null; these
                              # will be sent as blob's; if length 0,
                              # makes a new repo with empty .gitignore.
-    quota        : required  # Maximum amount of disk space this
+    quota        : required  # Maximum amount of disk space/inodes this
                              # project can use.  This is an object
-                             # {soft:..., hard:...}; it is implemented
-                             # using the unix disk quota system.
+                             #
+                             #    {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hode:num}}
+                             #
     idle_timeout : required  # A time in seconds; if the project_server
                              # does not receive any messages related
                              # to this project for this many seconds,

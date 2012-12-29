@@ -9091,14 +9091,15 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
     [x] (8min) finish open_project
     [x] (1:06) extract_bundles (see code from andrew)
     [x] (27min) save_project
-    [ ] close_project
+    [x] (7min) close_project
+    [x] (34min) disk quotas when creating user
+-->    [ ] read over/document
 
 [ ] hub:
     [ ] open_project:
           - check in db if open already
           - if open already, return location
           - if not, record start open in db, choose machine, connect, grab bundles from DB, send, record successful opening in database.
-          -
     [ ] save_project
     [ ] close_project
     [ ] open_file
