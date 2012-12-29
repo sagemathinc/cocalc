@@ -194,14 +194,29 @@ commit_all = (username, userpath, commit_mesg, cb) ->
 
 # Obtain all branches in this repo.
 get_branches = (path, cb) ->
-    
+    child_process.exec("cd #{path} && git branch --no-color", (err, stdout, stderr) ->
+        if err
+            cb(err)
+        else
+            branches = []
+            current_branch = 'master'
+            for m in stdout.split('\n')
+                t = m.split(' ')
+                if t.length > 0
+                    branch = t[t.length-1]
+                    if branch.length > 0
+                        branches.push(branch)
+                        if t[0] == '*'
+                            current_branch = branch
+            cb(false, {branches:branches, current_branch:current_branch})
 
 # Obtain the file lists for all the branches in the repo at this point.
 get_files = (path, cb) ->
+    cb({}) # TODO
 
 # Obtain the log for all the branches in the repo at this point.
 get_logs = (path, cb) ->
-
+    cb({}) # TODO
 
 # Save the project
 save_project = (socket, mesg) ->

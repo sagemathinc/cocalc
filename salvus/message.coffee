@@ -519,10 +519,12 @@ message
     id            : required       # message id, which matches the save_project message
     bundle_uuids  : required       # {bundle_number:uuid, bundle_number:uuid, ...} -- bundles are sent as blobs
     files         : required       # object that describes the current tree of files in the project:
+                           # top level keys are branch names, then
                            #   keys are file/directory names
                            #   values: for a file, value is last_mod_time, description, changelog message
                            #           for a directory, value is object
-    log           : required       # the git revision log history
+    logs           : required      # the git revision log histories; top level keys are branch names.
+    branches       : required # object: {branches:[...], current_branch:'string'}
 
 # This message is sent from a hub back to a project_server when the
 # hub has *successfully* saved the corresponding update to the project
