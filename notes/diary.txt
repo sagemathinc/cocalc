@@ -9090,7 +9090,7 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
     [x] (1min) delete_user (in project_server)
     [x] (8min) finish open_project
     [x] (1:06) extract_bundles (see code from andrew)
---> (when get back)    [ ] save_project
+    [x] (27min) save_project
     [ ] close_project
 
 [ ] hub:

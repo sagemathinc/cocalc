@@ -98,39 +98,59 @@ open_project2 = (socket, mesg) ->
         (cb) -> extract_bundles(mesg.bundles, path, cb)
     ], (err, results) ->
         if err
-            socket.write_mesg(message.error(id:mesg.id, error:err))
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
         else
             # Send message back to hub that project is opened and ready to go.
-            socket.write_mesg(message.project_opened(id:mesg.id))
+            socket.write_mesg('json', message.project_opened(id:mesg.id))
     )
 
 commit_all = (path, cb) ->
     # TODO: better commit message; maybe always do this in a snapshot branch, etc...?
     child_process.exec("git add && git commit -a -m 'snapshot'", cb)
 
-#TODO -- this is ** HARD:-) **  
 save_project = (socket, mesg) ->
     path    = userpath(mesg.project_uuid)
     bundles = "#{path}/.git/bundles"
-    resp = message.project_saved(id:mesg.id, files:[], log:[])
-    commit_all(path, (err) ->
-        if err
-            socket.write_mesg(message.error(id:mesg.id), error:err)
-        else
-            child_process.exec("diffbundler update #{path} #{bundles}",
-                (err, stdout, stderr) ->
-                    if err
-                        socket.write_mesg(message.error(id:mesg.id), error:err)
-                    else
-                        to_send = {}
-                        n = mesg.starting_bundle_number
-                        fs.exists("#{bundles}/#{n}.bundle", (exists) ->
-                            fs.readFile("#{bundles}/#{n}.bundle", (err, data) ->
-                                uuid = misc.uuid()
-                                to_send[uuid] = data
-                                resp.bundle_uuids[n] = uuid
+    resp    = message.project_saved(id:mesg.id, files:[], log:[])
 
+    tasks = []
+    async.series([
+        # Commit all changes
+        (cb) -> commit_all(path, cb)
+
+        # If necessary (e.g., there were changes) create an additional
+        # bundle containing these changes
+        (cb) -> child_process.exec("diffbundler update #{path} #{bundles}", cb)
+
+        # Determine which bundle files to send -- we may send some
+        # even if none were created this time.
+        (cb) ->
+            fs.readdir(bundles, (err, files) ->
+                if err
+                    cb(err)
+                else
+                    n = mesg.starting_bundle_number
+                    while "#{n}.bundle" in files
+                        uuid = misc.uuid()
+                        resp.bundle_uuids[n] = uuid
+                        tasks.push((c) -> fs.readFile("#{n}.bundle", ((err, data) ->
+                            if err
+                                c(err)
+                            else
+                                socket.write_mesg('blob', {uuid:uuid, blob:data})
+                                c()
+                        )))
+                        n += 1
+                    cb()
             )
+
+        # Read and send the bundle files
+        (cb) -> async.series(tasks, cb)
+
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id), error:err)
+    )
 
 close_project = (socket, mesg) ->
 

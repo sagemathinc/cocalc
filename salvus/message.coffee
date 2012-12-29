@@ -534,10 +534,9 @@ message
 
 #
 # A hub sends this message to the project_server to request that the
-# project_server close the project.  If there are any unsaved
-# modifications to files, the project_server will first send a
-# project_saved message and wait for ack on that.  Once that is sorted
-# out, it will finally send a project_closed message.
+# project_server close the project.  This immediately deletes all files
+# and clears up all resources allocated for this project.  So make
+# sure to send a save_project message first!
 #
 # hub --> project_server
 message
