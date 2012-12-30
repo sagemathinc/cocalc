@@ -18,6 +18,9 @@ COMPUTE_SERVER_PORTS =
     console : 6001
     project : 6002
 
+MIN_SCORE = 5
+MAX_SCORE = 5
+
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
@@ -457,24 +460,33 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             cb   : required
             type : required    # 'sage', 'console', 'project', 'compute'
-        @select(table:'compute_servers', columns:['host'], where:{running:true}, cb:(error, results) =>
-            console.log("HI! #{JSON.stringify(results)}")
+        @select(table:'compute_servers', columns:['host','score'], where:{running:true}, cb:(error, results) =>
             if results.length == 0 and @keyspace == 'test'
                 opts.cb(error, [{host:'localhost', port:COMPUTE_SERVER_PORTS[opts.type]}])
             else
-                opts.cb(error, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type]} for x in results)
+                opts.cb(error, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type], score:x[1]} for x in results)
         )
 
     # cb(error, random running sage server) or if there are no running
     # sage servers, then cb(undefined)
     random_compute_server: (opts={}) ->
         opts = defaults opts,
-            cb   : required
-            type : required
+            cb        : required
+            type      : required
+            min_score : MIN_SCORE
         @running_compute_servers
             type : opts.type
-            cb   : (error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
+            cb   : (error, res) ->
+                res = (x for x in res if x.score >= opts.min_score)
+                opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
 
+    # Adjust the score on a compute server
+    score_compute_server: (opts) ->
+        opts = defaults opts,
+            host : required
+            cb   : required
+            delta: required
+        @cql("UPDATE compute_servers SET score = score + ? WHERE host = ?", [opts.delta, opts.host], opts.cb)
 
     #####################################
     # User plans (what features they get)

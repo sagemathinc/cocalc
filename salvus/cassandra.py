@@ -494,11 +494,10 @@ def running_compute_servers(type):
     return [(host[0], COMPUTE_SERVER_PORTS[type]) for host in cursor_execute("SELECT host FROM compute_servers WHERE running='true'")]
 
 def record_that_compute_server_started(host):
-    cursor().execute("UPDATE compute_servers SET running = 'true' WHERE host = :host", {'host':host})
+    cursor().execute("UPDATE compute_servers SET running = 'true' AND score=0 WHERE host = :host", {'host':host})
 
 def record_that_compute_server_stopped(host):
-    cursor().execute("UPDATE compute_servers SET running = 'false' WHERE host= :host", {'host':host})
-
+    cursor().execute("UPDATE compute_servers SET running = 'false' AND score=0 WHERE host= :host", {'host':host})
 
 def tokens(n):
     RING_SIZE = 2**127

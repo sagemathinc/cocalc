@@ -750,51 +750,135 @@ push_to_clients = (opts) ->
 # Working with projects
 ##############################
 
-projects =
-    # Open the project on some host if it is not already opened.
-    open: (opts) ->
-        opts = defaults opts,
-            project_uuid : required
-            cb           : required   # cb(err, host_on_which_project_opened)
+class Projects
+    constructor: (@project_uuid) ->
+
+    ##############################################
+    # Database state stuff
+    ##############################################
+    _choose_new_host: (cb) ->
+        # For now we just choose host at random.  In the long run, we
+        # may experiment with more subtle load balancing algorithms,
+        # and possibly take into account properties of the project.
+        database.random_compute_server(type:'project', cb:(err, host) ->
+            if err
+                cb(err)
+            else if not host?
+                cb("No project servers are currently available.")
+            else
+                cb(false, host)
+        )
+
+    @_minus_one_host: (host, cb) ->
+        database.score_compute_server(host:host, cb:cb, delta:-1)
+
+    @_plus_one_host: (host, cb) ->
+        database.score_compute_server(host:host, cb:cb, delta:+1)
+
 
     # Return the host that is currently hosting the project or null if the
     # project is not currently on any host.
-    get_host: (opts) ->
-        opts = defaults opts,
-            project_uuid : required
-            cb           : required   # cb(err, host)
+    host: (cb) ->
+        database.get_project_host(@project_uuid, cb)
 
-    save_project: (opts) ->
-        opts = defaults opts,
-            project_uuid : required
-            cb           : required   # cb(err) -- indicates when done
+    # Open the project on some host if it is not already opened.
+    open: (cb) ->   # cb(err, host)
+        host = undefined
+        async.series([
+            # First, we check in the database to see if the project is
+            # already opened on a compute server, and if so, return
+            # that host.
+            (c) =>
+                @host @project_uuid, (err, host) ->
+                    if err
+                        if cb?
+                            cb(err)
+                        c(true) # done
+                    else if host?  # TODO!! -- undefined or null or '' when not opened?!
+                        # open already, so return the location
+                        if cb?
+                            cb(false, host)
+                        c(true) # done
+                    else
+                        c()
+
+            # We choose a project server host.
+            (c) =>
+                @_choose_new_host (err, h) ->
+                    if err
+                        c(err)
+                    else
+                        host = h
+                        c()
+
+            # Open the project on that host
+            (c) ->
+                @_open_on_host host, (err) =>
+                    if err
+                        # Downvote this host, and try again.
+                        @_minus_one_host(host, (err) =>
+                            if err
+                                # This is serious -- if we can't even connect to the database
+                                # to flag a host as down, then there is no point in going on.
+                                cb(err)
+                                cb(true)
+                            else
+                                # Try again.  This will not lead to infinite recursion since each
+                                # time it is called, we just successfully flagged a host as down
+                                # in the database, and eventually we'll run out of hosts.
+                                @open(cb)
+                                c()
+                        )
+                    else
+                        # Finally, got it!
+                        cb(false, host)
+                        c()
+        ])
+
+    # This is called by open once we determine that project is actually not
+    # opened and also we determine on which host we plan to open the project.
+    _open_on_host: (host, cb) ->
+        socket = undefined
+        async.series([
+            # Create a connection to the project server.
+            (c) ->
+                socket = net.connect {host:host, port:database.COMPUTE_SERVER_PORTS.project}, () ->
+                    # connected
+                    misc_node.enable_mesg(socket)
+                    c() # to the next step
+                socket.once 'error', (err) ->
+                    if err == 'ECONNREFUSED'
+                        # An error occured connecting -- this likely
+                        # means that the relevant project server is down.
+                        c(true)
+
+            # Send open_project mesg,
+            (c) ->
+
+            # Get each bundle blob from the database and send it to the project_server.
+            (c) ->
+
+            # TODO -- SOMEWHERE HERE VOTE THIS HOST UP, SINCE IT JUST WORKED
+        ], cb)
+
+    save: (cb) -> # cb(err) -- indicates when done
 
 
-    close_project: (opts) ->
-        opts = defaults opts,
-            project_uuid : required
-            cb           : required   # cb(err) -- indicates when done
+    close: (cb) ->  # cb(err) -- indicates when done
 
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.
     # This does not touch the database; it loads the live from on
     # the compute node.
-    read_file: (opts) ->
-        opts = defaults opts,
-            project_uuid : required
-            filename     : required
-            cb           : required   # cb(err, content_of_file_as_a_buffer)
+    read_file: (filename, cb) ->   # cb(err, content_of_file_as_a_buffer)
 
     # Write a file to a compute node.  This is used when saving during
     # client-side editing, for worksheets, etc.  This does not touch
     # the database -- it only impacts the files on the compute node.
-    write_file: (opts) ->
-        opts = defaults opts,
-            project_uuid : required
-            filename     : required
-            data         : required
-            cb           : required   # cb(err)  -- indicates when done
+    write_file: (filename, data, cb) -> # cb(err)  -- indicates when done
 
+
+projects = new Projects()
 
 ########################################
 # Permissions related to projects

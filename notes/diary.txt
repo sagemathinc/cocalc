@@ -9101,10 +9101,10 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
 
 [ ] hub:
     [x] (20min) function stubs
-    [ ] open_project:
+-->    [ ] open_project:
           - check in db if open already
           - if open already, return location
-          - if not, record start open in db, choose machine, connect,
+             - if not, record start open in db, choose machine, connect,
             grab bundles from DB, send, record successful opening in
             database.
     [ ] get_project_host
@@ -9112,6 +9112,9 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
     [ ] close_project
     [ ] open_file
     [ ] save_file
+
+[ ] database:
+    [x] database.get_project_host
 
 [ ] client:
     [ ] open console on a project

@@ -21,7 +21,8 @@ CREATE TABLE key_value (
 
 CREATE TABLE compute_servers (
     host varchar PRIMARY KEY,
-    running boolean
+    running boolean,
+    score counter
 );
 
 CREATE INDEX ON compute_servers (running);
