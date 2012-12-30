@@ -839,6 +839,7 @@ class Projects
     # opened and also we determine on which host we plan to open the project.
     _open_on_host: (host, cb) ->
         socket = undefined
+        id     = misc.uuid() # used to tag communication with the project server
         async.series([
             # Create a connection to the project server.
             (c) ->
@@ -853,7 +854,17 @@ class Projects
                         c(true)
 
             # Send open_project mesg,
-            (c) ->
+            (c) =>
+                projects = ?
+
+                mesg_open_project = messages.open_project
+                    id           : id
+                    project_uuid : @project_uuid
+                    bundles      : bundles
+                    quota        : DEFAULT_PROJECT_QUOTA
+                    idle_timeout : DEFAULT_PROJECT_IDLE_TIMEOUT
+
+                socket.write_mesg 'json', mesg_open_project
 
             # Get each bundle blob from the database and send it to the project_server.
             (c) ->
