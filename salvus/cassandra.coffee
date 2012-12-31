@@ -841,6 +841,24 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(false, results)
 
+    # Returns the largest index of any bundle associated with the
+    # given project, or -1 if there are no bundles yet.
+    largest_project_bundle_index: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @cql("select number from project_bundles where project_id=? order by number desc limit 1",
+             [opts.project_id],
+             (err, results) ->
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb(err, -1)
+                    else
+                        opts.cb(err, results[0].get('number')) # TODO: make sure this is right!!
+        )
+
     get_project_bundles: (opts) ->
         opts = defaults opts,
             project_id : required

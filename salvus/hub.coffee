@@ -775,6 +775,31 @@ class Projects
     @_plus_one_host: (host, cb) ->
         database.score_compute_server(host:host, cb:cb, delta:+1)
 
+    _connect: (host, cb) ->
+        if @_socket? and @_socket.host == host
+            cb(false, @_socket.socket)
+            return
+        socket = net.connection {host:host, port:database.COMPUTE_SERVER_PORTS.project}, () =>
+            # connected
+            misc_node.enable_mesg(socket)
+            @_socket = {host:host, socket:socket}   # cache connection for later
+            cb(false, socket)
+        socket.once 'error', (err) =>
+            if err == 'ECONNREFUSED'
+                # An error occured connecting -- this suggests
+                # that the relevant project server is down.
+                cb(err)
+
+        # Make sure not to cache the socket in case anything goes wrong with it.
+        socket.once 'close'
+            if @_socket?
+                delete @_socket
+        socket.once 'end'
+            if @_socket?
+                delete @_socket
+        socket.once 'timeout'
+            if @_socket?
+                delete @_socket
 
     # Return the host that is currently hosting the project or null if the
     # project is not currently on any host.
@@ -841,24 +866,21 @@ class Projects
     # opened and also we determine on which host we plan to open the project.
     _open_on_host: (host, cb) ->
         socket  = undefined
-        id      = misc.uuid() # used to tag communication with the project server
+        id      = uuid.v4()   # used to tag communication with the project server
         bundles = undefined
         async.series([
             # Create a connection to the project server.
-            (c) ->
-                socket = net.connect {host:host, port:database.COMPUTE_SERVER_PORTS.project}, () ->
-                    # connected
-                    misc_node.enable_mesg(socket)
-                    c() # to the next step
-                socket.once 'error', (err) ->
-                    if err == 'ECONNREFUSED'
-                        # An error occured connecting -- this likely
-                        # means that the relevant project server is down.
-                        c(true)
+            (c) =>
+                @_connect host, (err, s) ->
+                    if err
+                        c(err)
+                    else
+                        socket = s
+                        c()
 
             # Get each bundle blob from the database in preparation to send it to the project_server.
-            (c) ->
-                database.get_project_bundles project_id:project_id, cb:(err, result) ->
+            (c) =>
+                database.get_project_bundles project_id:@project_id, cb:(err, result) ->
                     if err
                         c(err)
                     else
@@ -891,21 +913,99 @@ class Projects
             # (having received all blobs) or failure (something went wrong).
             (c) ->
                 socket.on 'mesg', (type, mesg) ->
-                    if type != 'json'
-                        c("Received a message of type '#{type}' but expected a 'json' message.")
-                    else if mesg.event == 'error'
-                        # something went wrong...
-                        c(mesg.error)
-                    else if mesg.event != 'project_opened'
-                        c("Expected a 'project_opened' message, but got a '#{mesg.event}' message instead.")
-                    else
-                        # finally, got it.
-                        c()
+                    if type == 'json' and mesg.id == id
+                        switch mesg.event
+                            when 'error'
+                                # something went wrong...
+                                c(mesg.error)
+                            when 'project_opened'
+                                # finally, got it.
+                                c()
+                            else
+                                c("Expected a 'project_opened' message, but got a '#{mesg.event}' message instead.")
         ], cb)
 
-    save: (cb) -> # cb(err) -- indicates when done
+    # Save the project to the database.  This involves saving at least
+    # zero (!) bundles to the project_bundles table.
+    save: (commit_mesg, cb) -> # cb(err) -- indicates when done
+        id = uuid.v4() # used to tag communication with the project server
+
+        save_mesg = message.save_project
+            id                     : id
+            project_id             : @project_id
+            starting_bundle_number : 0  # will get changed below
+            commit_mesg            : commit_mesg
+
+        socket = undefined
+        host   = undefined
+
+        async.series([
+            # Determine which project_server is hosting this project.
+            # If none, then there is nothing further to do.
+            (c) =>
+                database.get_project_host project_id:@project_id, cb: (err, h) ->
+                    if err
+                        c(true, err)
+                    else
+                        if not h?
+                            c(true)
+                        host = h
+
+            # Find the index of the largest bundle that we already have in the database
+            (c) =>
+                database.largest_project_bundle_index(project_id: @project_id, cb: (err, n) ->
+                    if err
+                        c(true, err)
+                    else
+                        save_mesg.starting_bundle_number = n + 1
+                        c()
+
+            # Connect to the project server that is hosting this project right now.
+            (c) =>
+                @_connect host, (err, s) ->
+                    if err
+                        c(true, err)
+                    else
+                        socket = s
+                        c()
+
+            # Send message to project server requesting that it save the the project
+            # and send back to us any bundles that are created.
+            (c) =>
+                socket.write_mesg('json', save_mesg)
+
+            # Listen for bundles, find out how many bundles to expect and receive the bundles themselves
+            (c) =>
+                bundle_uuids = undefined
+                remaining_bundles = undefined
+                socket.on 'mesg', (type, mesg) ->
+                    switch type
+                         when 'json'
+                            if mesg.id == id
+                                switch mesg.event
+                                    case 'error'
+                                        c(true, mesg.error)
+                                    case 'project_saved'
+                                        bundle_uuids      = mesg.bundle_uuids
+                                        remaining_bundles = misc.len(bundles)
+                                        # TODO: save files/logs/branches/current_branch
+                        when 'blob'
+                            if bundle_uuids? and bundle_uuids[mesg.uuid]?
+                                database.store_project_bundle(project_id:@project_id, number:bundle_uuids[mesg.uuid], bundle:mesg.blob, cb:(err) ->
+                                    if err
+                                        c(true, err)
+                                    else
+                                        remaining_bundles -= 1
+                                        if remaining_bundles == 0
+                                            # done -- received and *saved* all bundles to the database successfully
+                                            c()
+                                )
+
+        ], (dummy, err) -> cb(err))
 
 
+    # Close the project.  This does *NOT* save the project first; it
+    # just immediately kills all processes and clears all disk space.
     close: (cb) ->  # cb(err) -- indicates when done
 
     # Read a file from a project into memory on the hub.  This is

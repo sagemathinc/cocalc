@@ -277,7 +277,7 @@ save_project = (socket, mesg) ->
                     n = mesg.starting_bundle_number
                     while "#{n}.bundle" in files
                         uuid = misc.uuid()
-                        resp.bundle_uuids[n] = uuid
+                        resp.bundle_uuids[uuid] = n
                         tasks.push((c) -> fs.readFile("#{n}.bundle", ((err, data) ->
                             if err
                                 c(err)

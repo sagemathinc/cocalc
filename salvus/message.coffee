@@ -516,7 +516,7 @@ message
 message
     event          : 'project_saved'
     id             : required       # message id, which matches the save_project message
-    bundle_uuids   : required       # {bundle_number:uuid, bundle_number:uuid, ...} -- bundles are sent as blobs
+    bundle_uuids   : required       # {uuid:bundle_number, uuid:bundle_number, ...} -- bundles are sent as blobs
     files          : required       # JSON *string* the current tree of files in the project:
                            # top level keys are branch names, then
                            #   keys are file/directory names

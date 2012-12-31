@@ -224,7 +224,7 @@ CREATE TABLE projects (
 
 CREATE INDEX ON projects(account_id);
 
-// select * from bundles where project_id=0 order by number;
+// select * from project_bundles where project_id=0 order by number;
 
 CREATE TABLE project_bundles (
      project_id  uuid,
