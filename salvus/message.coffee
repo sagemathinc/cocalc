@@ -474,11 +474,10 @@ message
 message
     event        : 'open_project'
     id           : required
-    project_uuid : required  # uuid of the project, which impacts
+    project_id   : required  # uuid of the project, which impacts
                              # where project is extracted, etc.
-    bundles      : required  # Object with keys the uuids (as
-                             # strings) and values all null; these
-                             # will be sent as blob's; if length 0,
+    bundle_uuids : required  # Array of uuid's of the bundles that
+                             # will be sent as blobs; if length 0,
                              # makes a new repo with empty .gitignore.
     quota        : required  # Maximum amount of disk space/inodes this
                              # project can use.  This is an object
@@ -506,7 +505,7 @@ message
 message
     event                  : 'save_project'
     id                     : required
-    project_uuid           : required    # uuid of a project
+    project_id             : required    # uuid of a project
     starting_bundle_number : required
     commit_mesg            : required    # the commit message
 
@@ -548,7 +547,7 @@ message
 message
     event         : 'close_project'
     id            : required
-    project_uuid  : required
+    project_id    : required
 
 # A project_server sends this message in response to a close_project
 # message, once all files have actually been cleaned up, all relevant
@@ -564,7 +563,7 @@ message
 message
     event        : 'read_file_from_project'
     id           : required
-    project_uuid : required
+    project_id   : required
     path         : required
 
 # Sent by the project_server when it finishes reading the file from disk.
@@ -579,7 +578,7 @@ message
 message
     event        : 'write_file_to_project'
     id           : required
-    project_uuid : required
+    project_id   : required
     path         : required
     data_uuid    : required  # hub sends raw data as a blob with this uuid.
 

@@ -751,7 +751,7 @@ push_to_clients = (opts) ->
 ##############################
 
 class Projects
-    constructor: (@project_uuid) ->
+    constructor: (@project_id) ->
 
     ##############################################
     # Database state stuff
@@ -779,7 +779,7 @@ class Projects
     # Return the host that is currently hosting the project or null if the
     # project is not currently on any host.
     host: (cb) ->
-        database.get_project_host(@project_uuid, cb)
+        database.get_project_host(@project_id, cb)
 
     # Open the project on some host if it is not already opened.
     open: (cb) ->   # cb(err, host)
@@ -789,7 +789,7 @@ class Projects
             # already opened on a compute server, and if so, return
             # that host.
             (c) =>
-                @host @project_uuid, (err, host) ->
+                @host @project_id, (err, host) ->
                     if err
                         if cb?
                             cb(err)
@@ -832,14 +832,17 @@ class Projects
                     else
                         # Finally, got it!
                         cb(false, host)
+                        # Upvote this host, since it worked.
+                        @_plus_one_host(host)
                         c()
         ])
 
     # This is called by open once we determine that project is actually not
     # opened and also we determine on which host we plan to open the project.
     _open_on_host: (host, cb) ->
-        socket = undefined
-        id     = misc.uuid() # used to tag communication with the project server
+        socket  = undefined
+        id      = misc.uuid() # used to tag communication with the project server
+        bundles = undefined
         async.series([
             # Create a connection to the project server.
             (c) ->
@@ -853,23 +856,51 @@ class Projects
                         # means that the relevant project server is down.
                         c(true)
 
+            # Get each bundle blob from the database in preparation to send it to the project_server.
+            (c) ->
+                database.get_project_bundles project_id:project_id, cb:(err, result) ->
+                    if err
+                        c(err)
+                    else
+                        # bundles is an array of Buffers
+                        bundles = result
+                        # Make a corresponding list of temporary
+                        # uuid's that will be used when sending the
+                        # bundles.
+                        bundles.uuids = (uuid.v4() for i in [0...bundles.length])
+                        c()
+
             # Send open_project mesg,
             (c) =>
-                projects = ?
-
                 mesg_open_project = messages.open_project
                     id           : id
-                    project_uuid : @project_uuid
-                    bundles      : bundles
+                    project_id   : @project_id
+                    bundle_uuids : bundles.uuids
                     quota        : DEFAULT_PROJECT_QUOTA
                     idle_timeout : DEFAULT_PROJECT_IDLE_TIMEOUT
-
                 socket.write_mesg 'json', mesg_open_project
+                c()
 
-            # Get each bundle blob from the database and send it to the project_server.
+            # Starting sending the bundles as blobs
             (c) ->
+                for i in [0...bundles.length]
+                    socket.write_mesg 'blob', {uuid:bundles.uuids[i],blob:bundles[i]}
+                c()
 
-            # TODO -- SOMEWHERE HERE VOTE THIS HOST UP, SINCE IT JUST WORKED
+            # Wait for the project server to respond with success
+            # (having received all blobs) or failure (something went wrong).
+            (c) ->
+                socket.on 'mesg', (type, mesg) ->
+                    if type != 'json'
+                        c("Received a message of type '#{type}' but expected a 'json' message.")
+                    else if mesg.event == 'error'
+                        # something went wrong...
+                        c(mesg.error)
+                    else if mesg.event != 'project_opened'
+                        c("Expected a 'project_opened' message, but got a '#{mesg.event}' message instead.")
+                    else
+                        # finally, got it.
+                        c()
         ], cb)
 
     save: (cb) -> # cb(err) -- indicates when done

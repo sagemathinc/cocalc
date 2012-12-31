@@ -27,10 +27,10 @@ misc           = require 'misc'
 
 
 # Username associated to a given project id:
-username = (project_uuid) -> project_uuid.replace(/-/g,'_')
+username = (project_id) -> project_id.replace(/-/g,'_')
 
 # Path to home directory of that user:
-userpath = (project_uuid) -> "/home/#{username(mesg.project_uuid)}"
+userpath = (project_id) -> "/home/#{username(mesg.project_id)}"
 
 # salvus@cassandra01:~$  sudo dumpe2fs -h /dev/mapper/salvus--base-root|grep "Block size:"
 # [sudo] password for salvus:
@@ -143,6 +143,7 @@ extract_bundles = (username, bundles, repo_path, cb) ->
 # The first step in opening a project is waiting to receive all of
 # the bundle blobs.
 open_project = (socket, mesg) ->
+    mesg.bundles = misc.pairs_to_obj( (u,null) for u in mesg.bundle_uuids )
     n = misc.len(mesg.bundles)
     if n == 0
         open_project2(socket, mesg)
@@ -161,11 +162,11 @@ open_project = (socket, mesg) ->
 
 # Now that we have the bundle blobs, we extract the project.
 open_project2 = (socket, mesg) ->
-    uname = username(mesg.project_uuid)
-    path  = userpath(mesg.project_uuid)
+    uname = username(mesg.project_id)
+    path  = userpath(mesg.project_id)
 
     async.series([
-        # Create a user with username the project_uuid (with dashes removed)
+        # Create a user with username the project_id (with dashes removed)
         (cb) ->
             create_user(uname, mesg.quota, cb)
         # Extract the bundles into the home directory.
@@ -253,14 +254,14 @@ get_files_and_logs = (path, cb) ->
 
 # Save the project
 save_project = (socket, mesg) ->
-    path     = userpath(mesg.project_uuid)
+    path     = userpath(mesg.project_id)
     bundles  = "#{path}/.git/bundles"
     resp     = message.project_saved(id:mesg.id, files:{}, logs:{}, branches:null, current_branch:null)
 
     tasks    = []
     async.series([
         # Commit all changes
-        (cb) -> commit_all(username(mesg.project_uuid), path, mesg.commit_mesg, cb)
+        (cb) -> commit_all(username(mesg.project_id), path, mesg.commit_mesg, cb)
 
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
@@ -310,7 +311,7 @@ save_project = (socket, mesg) ->
 # Close the given project, which involves killing all processes of
 # this user and deleting all of their associated files.
 close_project = (socket, mesg) ->
-    uname = username(mesg.project_uuid)
+    uname = username(mesg.project_id)
     async.series([
         # Kill all processes that the user is running.
         (cb) ->
@@ -334,7 +335,7 @@ read_file_from_project = (socket, mesg) ->
     data = undefined
     async.series([
         (cb) ->
-            fs.readFile("#{userpath(mesg.project_uuid)}/#{mesg.path}", (err, _data) ->
+            fs.readFile("#{userpath(mesg.project_id)}/#{mesg.path}", (err, _data) ->
                 data = _data
                 cb(err)
             )
@@ -359,13 +360,13 @@ write_file_to_project = (socket, mesg) ->
     write_file = (type, value) ->
         if type == 'blob' and value.uuid == data_uuid
             socket.removeListener(write_file)
-            path = "#{userpath(mesg.project_uuid)}/#{mesg.path}"
+            path = "#{userpath(mesg.project_id)}/#{mesg.path}"
             async.series([
                 (cb) ->
                     fs.writeFile(path, value.blob, cb)
                 # Finally, set the permissions on the file to the correct user (instead of root)
                 (cb) ->
-                    child_process.exec("chown #{username(mesg.project_uuid)}. #{path}", cb)
+                    child_process.exec("chown #{username(mesg.project_id)}. #{path}", cb)
             ], (err) ->
                 if err
                     socket.write_mesg('json', message.error(id:mesg.id, error:err))

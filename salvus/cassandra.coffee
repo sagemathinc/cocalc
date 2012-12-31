@@ -484,7 +484,7 @@ class exports.Salvus extends exports.Cassandra
     score_compute_server: (opts) ->
         opts = defaults opts,
             host : required
-            cb   : required
+            cb   : undefined
             delta: required
         @cql("UPDATE compute_servers SET score = score + ? WHERE host = ?", [opts.delta, opts.host], opts.cb)
 
@@ -841,8 +841,23 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(false, results)
 
+    get_project_bundles: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
 
-
+        @select
+            table      : 'project_bundles'
+            columns    : ['number', 'bundle']
+            where      : { project_id:opts.project_id }
+            cb         : (err, results) ->
+                if err
+                    opts.cb(err)
+                else
+                    v = []
+                    for r in results
+                        v[r[0]] = r[1]
+                    opts.cb(err, v)
 
 
 array_of_strings_to_cql_list = (a) ->

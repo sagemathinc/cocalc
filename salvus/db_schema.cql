@@ -218,7 +218,6 @@ CREATE TABLE projects (
      last_edited      timestamp,// timestamp of last save of the project
      files            varchar,  // (JSON) file tree for each branch (see message.coffee for format)
      logs             varchar,  // (JSON) logs for each branch
-     bundles          varchar,  // bundles: an ordered JSON array of uuid's of git bundles that are stored in the bundles table
      host             varchar,  // the host that has the project open (if it is open)
      user_id          int,      // UNIX user id for open project
 );
@@ -227,7 +226,7 @@ CREATE INDEX ON projects(account_id);
 
 // select * from bundles where project_id=0 order by number;
 
-CREATE TABLE bundles (
+CREATE TABLE project_bundles (
      project_id  uuid,
      number      int ,
      bundle      blob,
