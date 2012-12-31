@@ -580,7 +580,7 @@ message
     id           : required
     project_id   : required
     path         : required
-    data_uuid    : required  # hub sends raw data as a blob with this uuid.
+    data_uuid    : required  # hub sends raw data as a blob with this uuid immediately.
 
 # Sent by project_server to confirm successful write of the file to the project.
 # project_server --> hub

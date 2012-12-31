@@ -411,18 +411,18 @@ class exports.Salvus extends exports.Cassandra
     # here.  This is something we will actually look at.
     #####################################
     log: (opts={}) ->
-        opts = defaults(opts,
+        opts = defaults opts,
             event : required    # string
             value : required    # object (will be JSON'd)
             ttl   : undefined
             cb    : undefined
-        )
-        @update(
+
+        @update
             table :'central_log'
             set   : {event:opts.event, value:to_json(opts.value)}
             where : {'time':now()}
             cb    : opts.cb
-        )
+
 
     get_log: (opts={}) ->
         opts = defaults(opts,
@@ -437,7 +437,7 @@ class exports.Salvus extends exports.Cassandra
         # @select yet, and I don't want to spend a lot of time on this
         # right now. maybe just write query using CQL.
 
-        @select(
+        @select
             table   : 'central_log'
             where   : where
             columns : ['time', 'event', 'value']
@@ -446,7 +446,6 @@ class exports.Salvus extends exports.Cassandra
                     cb(error)
                 else
                     cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
-        )
 
 
 
@@ -497,7 +496,7 @@ class exports.Salvus extends exports.Cassandra
             cb      : required
         @select
             table  : 'plans'
-            where  : {'plan_id':opts.plan_id}
+            where  : {plan_id:opts.plan_id}
             columns: ['plan_id', 'name', 'description', 'price', 'current', 'stateless_exec_limits',
                       'session_limit', 'storage_limit', 'max_session_time', 'ram_limit', 'support_level']
             objectify: true
@@ -724,6 +723,49 @@ class exports.Salvus extends exports.Cassandra
     #############
     # Projects
     ############
+
+    get_project_host: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @select
+            table   : 'projects'
+            where   : {project_id: opts.project_id}
+            columns : ['host']
+            cb : (err, results) ->
+                if err
+                    opts.cb(err)
+                else if results.length == 0
+                    opts.cb("There is no project with ID #{opts.project_id}.")  # error
+                else
+                    opts.cb(false, results[0][0])
+
+    set_project_host: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            host       : undefined   # undefined is meaningful, and means "not on a host"
+            cb         : required
+        @update
+            table : 'projects'
+            set   :
+                host : opts.host
+            where :
+                project_id : opts.project_id
+            cb    : opts.cb
+
+    is_project_being_opened: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @uuid_value_store(name:'project_open_lock').get(uuid:opts.project_id, cb:opts.cb)
+
+    lock_project_for_opening: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            ttl        : required
+            cb         : required
+        @uuid_value_store(name:'project_open_lock').set(uuid:opts.project_id, value:null, ttl:opts.ttl, cb:opts.cb)
+
     create_project: (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -817,7 +859,7 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'files', 'logs', 'branches', 'current_branch']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->
@@ -876,6 +918,44 @@ class exports.Salvus extends exports.Cassandra
                     for r in results
                         v[r[0]] = r[1]
                     opts.cb(err, v)
+
+    save_project_bundle: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            number     : required
+            bundle     : required
+            cb         : required
+
+        @update
+            table      : 'project_bundles'
+            set        :
+                bundle : opts.bundle
+            where      :
+                project_id : opts.project_id
+                number     : opts.number
+            cb         : opts.cb
+
+    save_project_meta : (opts) ->
+        opts = defaults opts,
+            project_id : required
+            files      : required   # string -- already in JSON format (extract explicitly by client)
+            logs       : required   # string -- already in JSON format (extract explicitly by client)
+            branches   : required   # list of strings (explicitly JSON)
+            current_branch : required  # string
+            cb         : required
+
+        @update
+            table      : 'projects'
+            set        :
+                files    : opts.files
+                logs     : opts.logs
+                branches : opts.branches
+                current_branch : opts.current_branch
+                last_edited : now()
+            where      :
+                project_id : opts.project_id
+            json       : ['current_branch']
+            cb         : opts.cb
 
 
 array_of_strings_to_cql_list = (a) ->

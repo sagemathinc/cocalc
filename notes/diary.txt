@@ -9101,19 +9101,19 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
 
 [ ] hub:
     [x] (20min) function stubs
--->    [ ] (1h:42min spent) open_project:
+-->    [x] (1h:42min spent) open_project:
           - check in db if open already
           - if open already, return location
              - if not, record start open in db, choose machine, connect,
             grab bundles from DB, send, record successful opening in
             database.
-    [ ] get_project_host
-    [ ] save_project
-    [ ] close_project
-    [ ] open_file
-    [ ] save_file
+    [x] get_project_host
+    [x] save_project
+    [x] close_project
+    [x] open_file
+    [x] save_file
 
-[ ] database:
+[x] database:
     [x] database.get_project_host
 
 [ ] client:

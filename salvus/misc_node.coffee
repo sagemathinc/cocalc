@@ -25,6 +25,10 @@
 # data is just a JSON-able object.  When type='blob', data={uuid:..., blob:...};
 # since every blob is tagged with a uuid.
 
+{defaults, required} = require 'misc'
+
+message = require 'message'
+
 exports.enable_mesg = enable_mesg = (socket) ->
     socket._buf = null
     socket._buf_target_length = -1
@@ -71,6 +75,29 @@ exports.enable_mesg = enable_mesg = (socket) ->
                 send(Buffer.concat([new Buffer('b'), new Buffer(data.uuid), new Buffer(data.blob)]))
             else
                 throw("unknown message type '#{type}'")
+
+    # Wait until we receive exactly *one* message of the given type
+    # with the given id, then call the callback with that message.
+    # (If the type is 'blob', with the given uuid.)
+    socket.recv_mesg = (opts) ->
+        opts = defaults opts,
+            type    : required
+            id      : required      # or uuid
+            cb      : required      # called with cb(mesg)
+            timeout : undefined
+
+        f = socket.on 'mesg', (type, mesg) ->
+            if type == opts.type and ((type == 'json' and mesg.id == opts.id) or (type=='blob' and mesg.uuid=opts.id))
+                socket.removeListener(f)
+                opts.cb(mesg)
+
+        if opts.timeout?
+            timeout = () ->
+                if socket? and f in socket.listeners('mesg')
+                    socket.removeListener(f)
+                    opts.cb(message.error(error:"Timed out after #{opts.timeout} seconds."))
+            setTimeout(timeout, opts.timeout*1000)
+            
 
 # Stop watching data stream for messages and delete the write_mesg function.
 exports.disable_mesg = (socket) ->
