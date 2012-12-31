@@ -9116,10 +9116,33 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
 [x] database:
     [x] database.get_project_host
 
+
+Next steps:
+
+[ ] read through message code related to projects
+[ ] read through project_server code
+[ ] read through new hub code
+[ ] get everything to compile
+[ ] get everything to start up
+[ ] write
+
 [ ] client:
-    [ ] open console on a project
+    [ ] open project (so get list of files, logs, branches, etc.)
+        -- some testing in unit tests
+    [ ] save file
+        -- some testing in unit tests
+    [ ] save project
+        -- some testing in unit tests
+    [ ] read file
+        -- some testing in unit tests
+    [ ] open session on project (bit of new code in hub)
+        -- some testing in unit tests
+
+[ ] gui page client:
     [ ] browse files in a project
     [ ] edit file
-    [ ] save file
+    [ ] open console on a project
+    [ ] open worksheet on a project
+
 
 
