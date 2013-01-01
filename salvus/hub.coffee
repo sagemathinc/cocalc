@@ -822,6 +822,12 @@ class Project
     _lock_for_opening: (ttl, cb) ->    # cb(err)
         database.lock_project_for_opening(project:id:@project_id, ttl:ttl, cb:cb)
 
+    _is_being_saved: (cb) ->    # cb(err, is_being_opened)
+        database.is_project_being_saved(project_id:@project_id, cb:cb)
+
+    _lock_for_saving: (ttl, cb) ->    # cb(err)
+        database.lock_project_for_saving(project:id:@project_id, ttl:ttl, cb:cb)
+
     # Open the project (if necessary) and get a working socket connection to the project_server.
     socket: (cb) ->     # cb(err, socket)
         host   = undefined
@@ -881,8 +887,8 @@ class Project
                          c(true)
                     else
                         # Not open, not being opened, let's get on it!
-                        # The 10 below is a timeout in seconds, after which our lock self-destructs.
-                        @_lock_for_opening(10, c)
+                        # The 15 below is a timeout in seconds, after which our lock self-destructs.
+                        @_lock_for_opening(15, c)
 
             # We choose a project server host.
             (c) =>
@@ -1015,6 +1021,17 @@ class Project
         recv_bundles = undefined
 
         async.series([
+            # If project is already locked for saving (by this or
+            # another hub), return an error.
+            (c) =>
+                @_is_being_saved (err,is_being_saved) =>
+                    if err
+                        c(true, err)
+                    else if is_being_saved
+                        c(true, "Project can be saved at most once every 30 seconds.")
+                    else
+                        @_lock_for_saving(30, c)
+
             # Determine which project_server is hosting this project.
             # If none, then there is nothing further to do.
             (c) =>
@@ -1085,7 +1102,6 @@ class Project
                     project_id     : @project_id
                     files          : project_saved_mesg.files
                     logs           : project_saved_mesg.logs
-                    branches       : project_saved_mesg.branches
                     current_branch : project_saved_mesg.current_branch
                     cb             : (err) ->
                         if err
@@ -1095,7 +1111,8 @@ class Project
 
         ], (dummy, err) ->
             socket.removeListener(recv_bundles)
-            cb(err)
+            if cb?
+                cb(err)
         )
 
     # Close the project.  This does *NOT* save the project first; it

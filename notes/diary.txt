@@ -9119,7 +9119,7 @@ Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
 
 Next steps:
 
-[ ] write "create_new_project" in hub
+[x] write "create_new_project" in hub
 
 [ ] read through message code related to projects
 [ ] read through project_server code

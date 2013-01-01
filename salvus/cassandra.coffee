@@ -765,6 +765,19 @@ class exports.Salvus extends exports.Cassandra
             cb         : required
         @uuid_value_store(name:'project_open_lock').set(uuid:opts.project_id, value:null, ttl:opts.ttl, cb:opts.cb)
 
+    is_project_being_saved: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @uuid_value_store(name:'project_save_lock').get(uuid:opts.project_id, cb:opts.cb)
+
+    lock_project_for_saving: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            ttl        : required
+            cb         : required
+        @uuid_value_store(name:'project_save_lock').set(uuid:opts.project_id, value:null, ttl:opts.ttl, cb:opts.cb)
+
     create_project: (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -789,6 +802,7 @@ class exports.Salvus extends exports.Cassandra
                         public      : opts.public
                         quota       : opts.quota
                         idle_timeout: opts.idle_timeout
+                        current_branch : 'master'
                     where : {project_id: opts.project_id}
                     json  : ['quota']
                     cb    : (error, result) ->
@@ -863,7 +877,7 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'files', 'logs', 'branches', 'current_branch']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'files', 'logs', 'current_branch']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->
@@ -961,7 +975,6 @@ class exports.Salvus extends exports.Cassandra
             project_id : required
             files      : required   # string -- already in JSON format (extract explicitly by client)
             logs       : required   # string -- already in JSON format (extract explicitly by client)
-            branches   : required   # list of strings (explicitly JSON)
             current_branch : required  # string
             cb         : required
 
@@ -970,7 +983,6 @@ class exports.Salvus extends exports.Cassandra
             set        :
                 files    : opts.files
                 logs     : opts.logs
-                branches : opts.branches
                 current_branch : opts.current_branch
                 last_edited : now()
             where      :

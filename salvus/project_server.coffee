@@ -256,7 +256,7 @@ get_files_and_logs = (path, cb) ->
 save_project = (socket, mesg) ->
     path     = userpath(mesg.project_id)
     bundles  = "#{path}/.git/bundles"
-    resp     = message.project_saved(id:mesg.id, files:{}, logs:{}, branches:null, current_branch:null)
+    resp     = message.project_saved(id:mesg.id, files:{}, logs:{}, current_branch:null)
 
     tasks    = []
     async.series([
@@ -294,7 +294,6 @@ save_project = (socket, mesg) ->
             get_files_and_logs(path, (err, result) ->
                 resp.files = result.files
                 resp.logs = result.logs
-                resp.branches = result.branches
                 resp.current_branch = result.current_branch
 
         # Read and send the bundle files
