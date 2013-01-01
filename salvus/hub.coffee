@@ -1131,6 +1131,7 @@ class Project
                         if not h?      # not currently hosted somewhere, so "done" but no error.
                             c(true)
                         host = h
+                        c()
 
             # Connect to the project server that is hosting this project right now.
             (c) =>
@@ -1180,6 +1181,7 @@ class Project
                         c(err)
                     else
                         socket = _socket
+                        c()
             (c) =>
                 socket.write_mesg('json', message.read_file_from_project(id:id, project_id:@project_id, path:path))
                 socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
@@ -1217,6 +1219,7 @@ class Project
                         c(err)
                     else
                         socket = _socket
+                        c()
             (c) =>
                 mesg = message.write_file_from_project
                     id         : id
@@ -1241,6 +1244,61 @@ class Project
             else
                 cb(false, data)
         )
+
+    make_directory: (path, cb) ->
+        socket = undefined
+        id = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err, _socket) ->
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+            (c) =>
+                m = message.make_directory_in_project(id:id, project_id:@project_id, path:path)
+                socket.write_mesg('json', m)
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'directory_made_in_project'
+                            c()
+                        when 'error'
+                            c(mesg.error)
+                        else
+                            c("Unexpected message type '#{mesg.event}'")
+        ], cb)
+
+    # Move a file or directory
+    move_file: (src, dest, cb) ->
+        socket = undefined
+        id = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err,_socket) ->
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+            (c) =>
+                m = message.move_file_in_project
+                    id         : id
+                    project_id : @project_id
+                    src        : src
+                    dest       : dest
+                socket.write_mesg 'json', m
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'file_moved_in_project'
+                            c()
+                        when 'error'
+                            c(mesg.error)
+                        else
+                            c("Unexpected message type '#{mesg.event}'")
+        ], cb)
 
 projects = new Projects()
 

@@ -105,6 +105,3 @@ exports.disable_mesg = (socket) ->
         socket.removeListener('data', socket._listen_for_mesg)
         delete socket._listen_for_mesg
 
-
-
-

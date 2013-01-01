@@ -44,6 +44,18 @@ userpath = (project_id) ->
         throw "invalid project id #{project_id}"
     return "/home/#{username(mesg.project_id)}"
 
+# Verify that path really describes something that would be a
+# directory under userpath, rather than some evil hack.
+verify_that_path_is_valid = (project_id, path, cb) ->
+    fs.realpath path, (err, resolvedPath) ->
+        if err
+            cb(err)
+        p = userpath(project_id)
+        if resolvedPath.slice(0,p.length) != p
+            cb("path (=#{path}) must resolve to a directory or file under #{p}")
+        else
+            cb()
+
 # salvus@cassandra01:~$  sudo dumpe2fs -h /dev/mapper/salvus--base-root|grep "Block size:"
 # [sudo] password for salvus:
 # dumpe2fs 1.42 (29-Nov-2011)
@@ -129,8 +141,8 @@ extract_bundles = (username, bundles, repo_path, cb) ->
 
     # Create the bundle path and write the bundle files to disk
     tasks = [
-        (c) -> fs.mkdir("#{repo_path}/.git", c),
-        (c) -> fs.mkdir("#{repo_path}/.git/bundles", c)
+        (c) -> fs.mkdir("#{repo_path}/.git", 0o700, c),
+        (c) -> fs.mkdir("#{repo_path}/.git/bundles", 0o700, c)
     ]
 
     # Write the bundle files to disk.
@@ -157,7 +169,7 @@ extract_bundles = (username, bundles, repo_path, cb) ->
     # make them not visible to any other user that happens to be have
     # a project running on this particular host virtual machine.
     tasks.push((c) ->
-        child_process.exec("chown -R #{username} #{repo_path} && chmod u+rw -R #{repo_path} && chmod og-rwx -R #{repo_path}", c)
+        child_process.exec("chown -R #{username}. #{repo_path} && chmod u+rw -R #{repo_path} && chmod og-rwx -R #{repo_path}", c)
     )
 
     # Do all of the tasks laid out above.
@@ -389,22 +401,10 @@ read_file_from_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
-# Ensure the containing directory exists and is owned by the given user.
-ensure_containing_directory_exists(path, user, cb) ->
-
-    TODO -- code in misc_node; needs to make dir as the given user, with restricted permissions
-    USING child_process is too dangerous here since a weird-filename-injection-attack is a possible threat.
-
-    misc_node.mkdirp_as_user(path.split('/').slice(0,-1).join('/'), user)
-    child_process.exec("su - #{user} -c 'mkdir -p \"#{dir}\"'", cb)
-
 # Write a file to the project
 write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
-    if mesg.path.indexOf('..') != -1
-        # a sanity check, since we write the file as root first, and something bad could sneak in.
-        socket.write_mesg('json', message.error(id:mesg.id, error:'path must not contain ..'))
-        return
+
     if mesg.path[mesg.path.length-1] == '/'
         socket.write_mesg('json', message.error(id:mesg.id, error:'path must be a filename, not a directory name (it must not end in "/")'))
         return
@@ -415,13 +415,13 @@ write_file_to_project = (socket, mesg) ->
             path = "#{userpath(mesg.project_id)}/#{mesg.path}"
             user = username(mesg.project_id)
             async.series([
-                (cb) ->
-                    ensure_containing_directory_exists(path, user, cb)
-                (cb) ->
-                    fs.writeFile(path, value.blob, cb)
+                (c) ->
+                    verify_that_path_is_valid(mesg.project_id, mesg.path, c)
+                (c) ->
+                    fs.writeFile(path, value.blob, c)
                 # Finally, set the permissions on the file to the correct user (instead of root)
-                (cb) ->
-                    child_process.exec("chown #{user}. #{path}", cb)
+                (c) ->
+                    child_process.exec("chown #{user}. #{path}", c)
             ], (err) ->
                 if err
                     socket.write_mesg('json', message.error(id:mesg.id, error:err))
@@ -430,6 +430,49 @@ write_file_to_project = (socket, mesg) ->
             )
 
     socket.on 'mesg', write_file
+
+make_directory_in_project = (socket, mesg) ->
+    user = username(mesg.project_id)
+    async.series([
+        (c) ->
+            verify_that_path_is_valid(mesg.project_id, mesg.path, c)
+        (c) ->
+            fs.mkdir(mesg.path, 0o700, c)
+        (c) ->
+            # Git does not record the existence of empty directories,
+            # so we add an empty .gitignore file to the newly created
+            # directory.
+            fs.writeFile("#{mesg.path}/.gitignore", "", c)
+        (c) ->
+            # This would be better if I knew an easy way to figure out the
+            # uid and gid of the user:  fs.chown(mesg.path, uid, gid)
+            child_process.exec('chown -R #{user}. #{mesg.path}', c)
+        (c) ->
+            socket.write_mesg('json', message.directory_made_in_project(id:mesg.id))
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+    )
+
+move_file_in_project = (socket, mesg) ->
+    user = username(mesg.project_id)
+    async.series([
+        (c) ->
+            verify_that_path_is_valid(mesg.project_id, mesg.src, c)
+        (c) ->
+            verify_that_path_is_valid(mesg.project_id, mesg.dest, c)
+        (c) ->
+            child_process.exec("su - #{user} -c 'git mv \"#{src}\" \"#{dest}\"'", c)
+        (c) ->
+            socket.write_mesg('json', message.file_moved_in_project(id:mesg.id))
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+    )
+
+
+
+
 
 server = net.createServer (socket) ->
     misc_node.enable_mesg(socket)
@@ -446,6 +489,10 @@ server = net.createServer (socket) ->
                     read_file_from_project(socket, mesg)
                 when 'write_file_to_project'
                     write_file_to_project(socket, mesg)
+                when 'make_directory_in_project'
+                    make_directory_in_project(socket, mesg)
+                when 'move_file_in_project'
+                    move_file_in_project(socket, mesg)
                 else
                     socket.write(message.error("Unknown message event '#{mesg.event}'"))
 
