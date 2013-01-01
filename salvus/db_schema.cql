@@ -223,6 +223,8 @@ CREATE TABLE projects (
      current_branch   varchar,  // string
      host             varchar,  // the host that has the project open (if it is open)
      user_id          int,      // UNIX user id for open project
+     quota            varchar,  // (JSON) {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
+     idle_timeout     int,      // timeout in seconds until the project is killed if there is no activity.
 );
 
 CREATE INDEX ON projects(account_id);

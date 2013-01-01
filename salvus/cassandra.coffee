@@ -10,7 +10,6 @@
 # (c) William Stein, University of Washington
 #
 #########################################################################
-#
 
 COMPUTE_SERVER_PORTS =
     compute : 5999
@@ -900,6 +899,23 @@ class exports.Salvus extends exports.Cassandra
                     else
                         opts.cb(err, results[0].get('number')) # TODO: make sure this is right!!
         )
+
+    get_project_open_info: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @select
+            table      : 'projects'
+            columns    : ['quota', 'idle_timeout']
+            json       : ['quota']
+            objectify  : true
+            cb         : (err, results) ->
+                if err
+                    cb(err)
+                else if results.length == 0
+                    cb("No project in the database with id #{project_id}")
+                else
+                    cb(false, results[0])
 
     get_project_bundles: (opts) ->
         opts = defaults opts,

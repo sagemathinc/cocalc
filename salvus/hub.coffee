@@ -12,7 +12,6 @@
 #         make_coffee && echo "require('hub').start_server()" | coffee
 #
 ##############################################################################
-#
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
@@ -750,7 +749,11 @@ push_to_clients = (opts) ->
 # Working with projects
 ##############################
 
-class Projects
+create_new_project = (opts) ->
+    opts = defaults opts,
+        TODO ####
+
+class Project
     constructor: (@project_id) ->
 
     ##############################################
@@ -918,6 +921,9 @@ class Projects
         socket  = undefined
         id      = uuid.v4()   # used to tag communication with the project server
         bundles = undefined
+        quota   = undefined
+        idle_timeout = undefined
+
         async.series([
             # Create a connection to the project server.
             (c) =>
@@ -928,7 +934,8 @@ class Projects
                         socket = s
                         c()
 
-            # Get each bundle blob from the database in preparation to send it to the project_server.
+            # Get each bundle blob from the database in preparation to
+            # send it to the project_server.
             (c) =>
                 database.get_project_bundles project_id:@project_id, cb:(err, result) ->
                     if err
@@ -942,14 +949,22 @@ class Projects
                         bundles.uuids = (uuid.v4() for i in [0...bundles.length])
                         c()
 
-            # Send open_project mesg,
+            # Get meta information about the project that is needed to open the project
+            (c) =>
+                database.get_project_open_info project_id:@project_id, cb:(err, result) ->
+                    if err
+                        c(err)
+                    else
+                        {quota, idle_timeout} = result
+
+            # Send open_project mesg
             (c) =>
                 mesg_open_project = messages.open_project
                     id           : id
                     project_id   : @project_id
                     bundle_uuids : bundles.uuids
-                    quota        : DEFAULT_PROJECT_QUOTA
-                    idle_timeout : DEFAULT_PROJECT_IDLE_TIMEOUT
+                    quota        : quota
+                    idle_timeout : idle_timeout
                 socket.write_mesg 'json', mesg_open_project
                 c()
 

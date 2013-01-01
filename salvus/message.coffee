@@ -8,7 +8,6 @@
 # consistency, defaults, and avoid errors from typos, etc.
 #
 ###
-#
 
 misc     = require('misc')
 defaults = misc.defaults
@@ -482,7 +481,7 @@ message
     quota        : required  # Maximum amount of disk space/inodes this
                              # project can use.  This is an object
                              #
-                             #    {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hode:num}}
+                             #    {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
                              #
     idle_timeout : required  # A time in seconds; if the project_server
                              # does not receive any messages related
