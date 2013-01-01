@@ -47,14 +47,25 @@ userpath = (project_id) ->
 # Verify that path really describes something that would be a
 # directory under userpath, rather than some evil hack.
 verify_that_path_is_valid = (project_id, path, cb) ->
+    if not path?
+        cb("path is undefined")
+        return
+
     fs.realpath path, (err, resolvedPath) ->
         if err
             cb(err)
         p = userpath(project_id)
         if resolvedPath.slice(0,p.length) != p
             cb("path (=#{path}) must resolve to a directory or file under #{p}")
+        # TODO: I do *not* like this one bit.
+        else if ';' in resolvedPath
+            cb("path contains suspicious character -- semicolon")
+        else if '"' in resolvedPath
+            cb("path contains suspicious character -- double quote")
+        else if "'" in resolvedPath
+            cb("path contains suspicious character -- single quote")
         else
-            cb()
+            cb(false, resolvedPath)
 
 # salvus@cassandra01:~$  sudo dumpe2fs -h /dev/mapper/salvus--base-root|grep "Block size:"
 # [sudo] password for salvus:
@@ -406,8 +417,12 @@ write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
 
     if mesg.path[mesg.path.length-1] == '/'
-        socket.write_mesg('json', message.error(id:mesg.id, error:'path must be a filename, not a directory name (it must not end in "/")'))
+        errmesg = message.error
+            id    : mesg.id
+            error : 'path must be a filename, not a directory name (it must not end in "/")'
+        socket.write_mesg('json', errmesg)
         return
+
     # Listen for the blob containg the actual content that we will write.
     write_file = (type, value) ->
         if type == 'blob' and value.uuid == data_uuid
@@ -416,7 +431,12 @@ write_file_to_project = (socket, mesg) ->
             user = username(mesg.project_id)
             async.series([
                 (c) ->
-                    verify_that_path_is_valid(mesg.project_id, mesg.path, c)
+                    verify_that_path_is_valid mesg.project_id, mesg.path, (err, realpath) ->
+                        if err
+                            c(err)
+                        else
+                            mesg.path = realpath
+                            c()
                 (c) ->
                     fs.writeFile(path, value.blob, c)
                 # Finally, set the permissions on the file to the correct user (instead of root)
@@ -428,14 +448,18 @@ write_file_to_project = (socket, mesg) ->
                 else
                     socket.write_mesg('json', message.file_written_to_project(id:mesg.id))
             )
-
     socket.on 'mesg', write_file
 
 make_directory_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
         (c) ->
-            verify_that_path_is_valid(mesg.project_id, mesg.path, c)
+            verify_that_path_is_valid mesg.project_id, mesg.path, (err, realpath) ->
+                if err
+                    c(err)
+                else
+                    mesg.path = realpath
+                    c()
         (c) ->
             fs.mkdir(mesg.path, 0o700, c)
         (c) ->
@@ -444,8 +468,8 @@ make_directory_in_project = (socket, mesg) ->
             # directory.
             fs.writeFile("#{mesg.path}/.gitignore", "", c)
         (c) ->
-            # This would be better if I knew an easy way to figure out the
-            # uid and gid of the user:  fs.chown(mesg.path, uid, gid)
+            # It would be better if I knew an easy way to figure out the
+            # uid and gid of the user, and could use: fs.chown(mesg.path, uid, gid)
             child_process.exec('chown -R #{user}. #{mesg.path}', c)
         (c) ->
             socket.write_mesg('json', message.directory_made_in_project(id:mesg.id))
@@ -458,11 +482,21 @@ move_file_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
         (c) ->
-            verify_that_path_is_valid(mesg.project_id, mesg.src, c)
+            verify_that_path_is_valid mesg.project_id, mesg.src, (err, realpath) ->
+                if err
+                    c(err)
+                else
+                    mesg.src = realpath
+                    c()
         (c) ->
-            verify_that_path_is_valid(mesg.project_id, mesg.dest, c)
+            verify_that_path_is_valid mesg.project_id, mesg.dest, (err, realpath) ->
+                if err
+                    c(err)
+                else
+                    mesg.dest = realpath
+                    c()
         (c) ->
-            child_process.exec("su - #{user} -c 'git mv \"#{src}\" \"#{dest}\"'", c)
+            child_process.exec("su - #{user} -c 'git mv \"#{mesg.src}\" \"#{mesg.dest}\"'", c)
         (c) ->
             socket.write_mesg('json', message.file_moved_in_project(id:mesg.id))
     ], (err) ->
@@ -470,6 +504,25 @@ move_file_in_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
+
+remove_file_in_project = (socket, mesg) ->
+    user = username(mesg.project_id)
+    async.series([
+        (c) ->
+            verify_that_path_is_valid mesg.project_id, mesg.path, (err, realpath) ->
+                if err
+                    c(err)
+                else
+                    mesg.path = realpath
+                    c()
+        (c) ->
+            child_process.exec("su - #{user} -c 'git rm -rf \"#{mesg.path}\"'", c)
+        (c) ->
+            socket.write_mesg('json', message.file_removed_in_project(id:mesg.id))
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+    )
 
 
 
@@ -493,6 +546,8 @@ server = net.createServer (socket) ->
                     make_directory_in_project(socket, mesg)
                 when 'move_file_in_project'
                     move_file_in_project(socket, mesg)
+                when 'remove_file_in_project'
+                    remove_file_in_project(socket, mesg)
                 else
                     socket.write(message.error("Unknown message event '#{mesg.event}'"))
 
