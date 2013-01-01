@@ -37,7 +37,8 @@ NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
-    'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix'
+    'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
+    'mkdirp'
     ]
 
 PYTHON_PACKAGES = [

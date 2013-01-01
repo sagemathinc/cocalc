@@ -97,10 +97,14 @@ exports.enable_mesg = enable_mesg = (socket) ->
                     socket.removeListener(f)
                     opts.cb(message.error(error:"Timed out after #{opts.timeout} seconds."))
             setTimeout(timeout, opts.timeout*1000)
-            
+
 
 # Stop watching data stream for messages and delete the write_mesg function.
 exports.disable_mesg = (socket) ->
     if socket._listen_for_mesg?
         socket.removeListener('data', socket._listen_for_mesg)
         delete socket._listen_for_mesg
+
+
+
+

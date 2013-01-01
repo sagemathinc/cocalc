@@ -2,7 +2,7 @@
 #
 # project_server
 #
-# For local debugging, run this way, since it gives better stack traces.
+# For local debugging, run this way (as root), since it gives better stack traces:
 #
 #         make_coffee && echo "require('project_server').start_server()" | coffee
 #
@@ -20,17 +20,29 @@ message        = require 'message'
 misc_node      = require 'misc_node'
 misc           = require 'misc'
 
+{defaults, required} = misc
+
 ######################################################
 # Creating and working with project repositories
 #    --> See message.coffee for how projects work. <--
 ######################################################
 
+# The username associated to a given project id is just the
+# string of the uuid, but with -'s replaced by _'s so we
+# obtain a valid unix account name.
+username = (project_id) ->
+    if '..' in project_id
+        # a sanity check -- this should never ever be allowed to happen, ever.
+        throw "invalid project id #{project_id}"
+    project_id.replace(/-/g,'_')
 
-# Username associated to a given project id:
-username = (project_id) -> project_id.replace(/-/g,'_')
-
-# Path to home directory of that user:
-userpath = (project_id) -> "/home/#{username(mesg.project_id)}"
+# The path to the home directory of the user associated with
+# the given project_id.
+userpath = (project_id) ->
+    if '..' in project_id
+        # a sanity check -- this should never ever be allowed to happen, ever.
+        throw "invalid project id #{project_id}"
+    return "/home/#{username(mesg.project_id)}"
 
 # salvus@cassandra01:~$  sudo dumpe2fs -h /dev/mapper/salvus--base-root|grep "Block size:"
 # [sudo] password for salvus:
@@ -40,14 +52,16 @@ BLOCK_SIZE = 4096   # units = bytes; This is used by the quota command via the c
 megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 
 # Create new UNIX user with given name and quota, then do cb(err).
-create_user = (username, quota, cb) ->  # quota = {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hode:num}}
+create_user = (username, quota, cb) ->    # quota = {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
     async.series([
         # Create the user
         (cb) ->
             child_process.exec("useradd -U -m #{username}", cb)
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
-            if not quota.disk?
+            if not quota?
+                cb("quota must be specified")
+            else if not quota.disk?
                 cb("disk space quota must be specified")
             else if not quota.disk.soft?
                 cb("disk space soft quota must be specified")
@@ -65,7 +79,8 @@ create_user = (username, quota, cb) ->  # quota = {disk:{soft:megabytes, hard:me
                 disk_hard  = parseInt(quota.disk.hard)
                 inode_soft = parseInt(quota.inode.soft)
                 inode_hard = parseInt(quota.inode.hard)
-                # Ensure it is valid -- parseInt could result in NaN, which is not >0:
+                # If some input is not valid, parseInt will be NaN,
+                # which is not >0, hence will be detected below:
                 if not disk_soft > 0
                     cb("disk soft quota must be positive")
                     disk_soft = megabytes_to_blocks(disk_soft)
@@ -83,16 +98,16 @@ create_user = (username, quota, cb) ->  # quota = {disk:{soft:megabytes, hard:me
     ], cb)
 
 # Delete the given UNIX user, corresponding group, and all files they own.
-delete_user = (username, cb) ->
+delete_user_36 = (username, cb) ->
     if username.length != 36  # a sanity check to avoid accidentally deleting all my files!
-        cb(true)
+        cb("delete_user -- the username (='#{username}') must be exactly 36 characters long")
         return
 
     async.series([
         # Delete the UNIX user and their files.
         (cb) ->
             child_process.exec("deluser --remove-all-files #{username}", cb)
-        # Delete the group
+        # Delete the UNIX group (same as the user -- this is Linux).
         (cb) ->
             child_process.exec("delgroup #{username}", cb)
     ], cb)
@@ -101,11 +116,16 @@ delete_user = (username, cb) ->
 killall_user = (username, cb) ->
     child_process.exec("killall -s 9 -u #{username}", cb)
 
-# Given an in-memory object "bundles" containing (in order) the
-# possibly empty collection of bundles that define a git repo, extract
-# it to the repo_path, which must not already exist.
+# Given an in-memory object bundles containing (in order) the possibly
+# empty collection of bundles that define a git repo, extract each
+# bundle to the repo_path, which must *not* already exist.
 extract_bundles = (username, bundles, repo_path, cb) ->
     bundle_path = "#{repo_path}/.git/bundles"
+
+    # Below we create a sequence of tasks, then do them all at the end
+    # with a call to async.series.  We do this, rather than defining
+    # the tasks in place, because the number of tasks depends on the
+    # number of bundles.
 
     # Create the bundle path and write the bundle files to disk
     tasks = [
@@ -131,23 +151,27 @@ extract_bundles = (username, bundles, repo_path, cb) ->
             child_process.exec("diffbundler extract #{bundle_path} #{repo_path}", c)
     )
 
-    # Change the repo so all files are owned by the given user,
-    # read/write-able by that user, and not visible to anybody else.
+    # At this point everything is owned by root (the project_server),
+    # so we change the repo so all files are owned by the given user,
+    # and read/write-able by that user.  For security reasons, we also
+    # make them not visible to any other user that happens to be have
+    # a project running on this particular host virtual machine.
     tasks.push((c) ->
         child_process.exec("chown -R #{username} #{repo_path} && chmod u+rw -R #{repo_path} && chmod og-rwx -R #{repo_path}", c)
     )
 
-    # Actually do all of the tasks laid out above.
+    # Do all of the tasks laid out above.
     async.series(tasks, cb)
 
-
-# The first step in opening a project is waiting to receive all of
-# the bundle blobs.
+# Open the project described by the given mesg, which was sent over
+# the socket.
 open_project = (socket, mesg) ->
-    mesg.bundles = misc.pairs_to_obj( (u,null) for u in mesg.bundle_uuids )
+    # The first step in opening a project is to wait to receive all of
+    # the bundle blobs.  We do the extract step below in _open_project2.
+    mesg.bundles = misc.pairs_to_obj( (u, null) for u in mesg.bundle_uuids )
     n = misc.len(mesg.bundles)
     if n == 0
-        open_project2(socket, mesg)
+        _open_project2(socket, mesg)
     else
         # Create a function that listens on the socket for blobs that
         # are marked with one of the uuid's described in the mesg.
@@ -158,11 +182,12 @@ open_project = (socket, mesg) ->
                 if n <= 0
                     # We've received all blobs, so remove the listener.
                     socket.removeListener 'mesg', recv_bundles
-                    open_project2(socket, mesg)
+                    _open_project2(socket, mesg)
         socket.on 'mesg', recv_bundles
 
-# Now that we have the bundle blobs, we extract the project.
-open_project2 = (socket, mesg) ->
+# Part 2 of opening a project: create user, extract bundles, write
+# back response message.
+_open_project2 = (socket, mesg) ->
     uname = username(mesg.project_id)
     path  = userpath(mesg.project_id)
 
@@ -183,15 +208,20 @@ open_project2 = (socket, mesg) ->
 
 # Commit all changes to files in the project, plus add all new files
 # that are not .gitignore'd to the current branch, whatever it may be.
-commit_all = (username, userpath, commit_mesg, cb) ->
-    commit_file = "#{userpath}/.git/COMMIT_MESG"
+commit_all = (opts) ->
+    opts = defaults opts,
+        user        : required
+        path        : required
+        commit_mesg : required
+        cb          : required
+    commit_file = "#{opts.user}/.git/COMMIT_MESG"
     async.series([
         (cb) ->
-            fs.writeFile(commit_file, commit_mesg, cb)
+            fs.writeFile(commit_file, opts.commit_mesg, cb)
         (cb) ->
-            cmd = "su - #{username} -c 'cd && git add && git commit -a -F #{commit_file}'"
+            cmd = "su - #{opts.user} -c 'cd && git add && git commit -a -F #{commit_file}'"
             child_process.exec(cmd, cb)
-    ], cb)
+    ], opts.cb)
 
 
 # Obtain all branches in this repo.
@@ -201,7 +231,7 @@ get_branches = (path, cb) ->
             cb(err)
         else
             branches = []
-            current_branch = 'master'
+            current_branch = 'master'   # the default; gets changed below
             for m in stdout.split('\n')
                 t = m.split(' ')
                 if t.length > 0
@@ -234,14 +264,14 @@ get_files_and_logs = (path, cb) ->
 
         # Get the list of all files in each branch
         (cb) ->
-            child_process.exec("cd #{path} && gitfiles", (err, stdout, stderr) ->
+            child_process.exec("cd '#{path}' && gitfiles", (err, stdout, stderr) ->
                 files = stdout
                 cb(err)
             )
 
         # Get the log for each branch
         (cb) ->
-            child_process.exec("cd #{path} && gitlogs", (err, stdout, stderr) ->
+            child_process.exec("cd '#{path}' && gitlogs", (err, stdout, stderr) ->
                 logs = stdout
                 cb(err)
             )
@@ -252,24 +282,32 @@ get_files_and_logs = (path, cb) ->
             cb(false, {branches:branches, current_branch:current_branch, files:files, logs:logs})
     )
 
-
 # Save the project
 save_project = (socket, mesg) ->
     path     = userpath(mesg.project_id)
     bundles  = "#{path}/.git/bundles"
-    resp     = message.project_saved(id:mesg.id, files:{}, logs:{}, current_branch:null)
+    resp     = message.project_saved
+        id    : mesg.id
+        files : {master:{}}
+        logs  : {master:{}}
+        current_branch : 'master'
 
     tasks    = []
     async.series([
         # Commit all changes
-        (cb) -> commit_all(username(mesg.project_id), path, mesg.commit_mesg, cb)
+        (cb) -> commit_all
+            user        : username(mesg.project_id)
+            path        : path
+            commit_mesg : mesg.commit_mesg
+            cb          : cb
 
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
         (cb) -> child_process.exec("diffbundler update #{path} #{bundles}", cb)
 
         # Determine which bundle files to send.  We may send some even
-        # if none were created, due to the hub not being totally up to date.
+        # if none were created, due to the database not being totally
+        # up to date.
         (cb) ->
             fs.readdir(bundles, (err, files) ->
                 if err
@@ -277,15 +315,17 @@ save_project = (socket, mesg) ->
                 else
                     n = mesg.starting_bundle_number
                     while "#{n}.bundle" in files
-                        uuid = misc.uuid()
-                        resp.bundle_uuids[uuid] = n
-                        tasks.push((c) -> fs.readFile("#{n}.bundle", ((err, data) ->
-                            if err
-                                c(err)
-                            else
-                                socket.write_mesg('blob', {uuid:uuid, blob:data})
-                                c()
-                        )))
+                        id = uuid.v4()
+                        resp.bundle_uuids[id] = n
+                        tasks.push((c) ->
+                            fs.readFile("#{n}.bundle", (err, data) ->
+                                if err
+                                    c(err)
+                                else
+                                    socket.write_mesg('blob', {uuid:id, blob:data})
+                                    c()
+                            )
+                        )
                         n += 1
                     cb()
             )
@@ -303,7 +343,7 @@ save_project = (socket, mesg) ->
 
     ], (err) ->
         if err
-            socket.write_mesg('json', message.error(id:mesg.id), error:err)
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
         else
             socket.write_mesg('json', resp)
     )
@@ -319,7 +359,7 @@ close_project = (socket, mesg) ->
 
         # Delete the user and all associated files.
         (cb) ->
-            delete_user(uname, cb)
+            delete_user_36(uname, cb)
 
     ], (err) ->
         if err
@@ -329,30 +369,33 @@ close_project = (socket, mesg) ->
     )
 
 # Read a file in the given project.  This will result in an error if
-# the readFile function files, e.g., if the file doesn't exist or the
-# project isn't even open.  The read file is sent over socket as a blob.
+# the readFile function fails, e.g., if the file doesn't exist or the
+# project is not open.  We send the read file over the socket as a
+# blob message.
 read_file_from_project = (socket, mesg) ->
     data = undefined
     async.series([
         (cb) ->
-            fs.readFile("#{userpath(mesg.project_id)}/#{mesg.path}", (err, _data) ->
+            fs.readFile "#{userpath(mesg.project_id)}/#{mesg.path}", (err, _data) ->
                 data = _data
                 cb(err)
-            )
         (cb) ->
-            uuid = misc.uuid()
-            socket.write_mesg('json', message.file_read_from_project(id:mesg.id, data_uuid:uuid))
-            socket.write_mesg('blob', {uuid:uuid, blob:data})
+            id = uuid.v4()
+            socket.write_mesg('json', message.file_read_from_project(id:mesg.id, data_uuid:id))
+            socket.write_mesg('blob', {uuid:id, blob:data})
             cb()
     ], (err) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
-# Ensure the containing directory exists by doing "mkdir -p" as the
-# given user.
+# Ensure the containing directory exists and is owned by the given user.
 ensure_containing_directory_exists(path, user, cb) ->
-    dir = path.split('/').slice(0,-1).join('/')
+
+    TODO -- code in misc_node; needs to make dir as the given user, with restricted permissions
+    USING child_process is too dangerous here since a weird-filename-injection-attack is a possible threat.
+
+    misc_node.mkdirp_as_user(path.split('/').slice(0,-1).join('/'), user)
     child_process.exec("su - #{user} -c 'mkdir -p \"#{dir}\"'", cb)
 
 # Write a file to the project

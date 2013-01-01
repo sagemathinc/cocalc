@@ -48,33 +48,42 @@ Javascript/CSS/HTML
 
 NodeJS
 ------
-   * Dozens of modules; see build.py
+   * Many, many npm modules; see build.py
 
 Database
 --------
-   * Cassandra -- apache licensed
+   * Cassandra -- Apache licensed
 
-Used as a separate process (no library linking)
------------------------------------------------
-   * tinc -- VPN software -- http://www.tinc-vpn.org/; GPL v2+;
-   * Git -- http://git-scm.com/; GPL v2
-   * Sage -- http://sagemath.org/; GPL v3+;  this is linked by sage_server.py, which thus must be GPL'd
+There are some GPL'd componenents of the overall system, but
+each runs as a separate process, not linking as a library into
+the new Salvus code.
+--------------------------------------------------------------
 
+   * Linux -- OS -- Salvus is only designed to be run on Linux.  I
+              developed Salvus on OS X for a while, but gave up at
+              some point, since a Linux private cloud is the
+              deployment target; GPL v2.
+   * tinc  -- VPN software -- http://www.tinc-vpn.org/; GPL v2+
+   * Git   -- http://git-scm.com/; GPL v2
+   * Sage  -- http://sagemath.org/; GPL v3+; this is linked by
+              sage_server.py, which thus must be GPL'd
 
 ARCHITECTURE
 ------------
-  * VPN           :    tinc, connects all computers at all sites into one unified network address space with secure communication
-  * SSL           :    stunnel
+  * VPN           : tinc, connects all computers at all sites into one
+                    unified network address space with secure communication
+  * SSL           : stunnel
   * Client        : javascript client library that runs in web browser
-  * Load balancer : haproxy
-  * Database      : Cassandra -- distributed, NoSQL, fault tolerant; this is the *only* longterm non-stateless part of the system
-  * Compute       : VM's running some TCP servers (e.g., sage, console, projects, python3, R, etc.)
-  * Hub           : written in Node; Sock.js server; connects with *everything* -- compute servers, Cassandra DB, other hubs, and clients.
-  * HTTP server   : nginx
-  * Log           :  (?) lightweight process; periodically moves contents of logfiles to database
-  * Admin         : python program that uses paramiko to start/stop everything
+  * Load balancer : HAproxy
+  * Database      : Cassandra -- distributed, NoSQL, fault tolerant; this is
+                    the *only* longterm non-stateless part of the system
+  * Compute       : VM's running some TCP servers (e.g., sage, console, projects,
+                    python3, R, etc.); provides short-term state.
+  * Hub           : written in Node; Sock.js server; connects with *everything* --
+                    compute servers, Cassandra DB, other hubs, and clients.
+  * HTTP server   : Nginx static http
+  * Admin         : Python program that uses paramiko to start/stop everything
   * Private Cloud : (mostly) kvm virtual machines in various places
-
 
 Diagram
 -------
