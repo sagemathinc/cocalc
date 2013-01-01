@@ -123,6 +123,7 @@ extract_bundles = (username, bundles, repo_path, cb) ->
     tasks.push((c) ->
         if n == 0
             # There were no bundles at all, so we make a new git repo.
+            # TODO: need a salvus .gitignore template, e.g., ignore all dot files in $HOME.
             cmd = "cd #{repo_path} && git init && touch .gitignore && git add .gitignore && git commit -a -m 'Initial version.'"
             child_process.exec(cmd, c)
         else
@@ -348,6 +349,12 @@ read_file_from_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
+# Ensure the containing directory exists by doing "mkdir -p" as the
+# given user.
+ensure_containing_directory_exists(path, user, cb) ->
+    dir = path.split('/').slice(0,-1).join('/')
+    child_process.exec("su - #{user} -c 'mkdir -p \"#{dir}\"'", cb)
+
 # Write a file to the project
 write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
@@ -355,17 +362,23 @@ write_file_to_project = (socket, mesg) ->
         # a sanity check, since we write the file as root first, and something bad could sneak in.
         socket.write_mesg('json', message.error(id:mesg.id, error:'path must not contain ..'))
         return
+    if mesg.path[mesg.path.length-1] == '/'
+        socket.write_mesg('json', message.error(id:mesg.id, error:'path must be a filename, not a directory name (it must not end in "/")'))
+        return
     # Listen for the blob containg the actual content that we will write.
     write_file = (type, value) ->
         if type == 'blob' and value.uuid == data_uuid
             socket.removeListener(write_file)
             path = "#{userpath(mesg.project_id)}/#{mesg.path}"
+            user = username(mesg.project_id)
             async.series([
+                (cb) ->
+                    ensure_containing_directory_exists(path, user, cb)
                 (cb) ->
                     fs.writeFile(path, value.blob, cb)
                 # Finally, set the permissions on the file to the correct user (instead of root)
                 (cb) ->
-                    child_process.exec("chown #{username(mesg.project_id)}. #{path}", cb)
+                    child_process.exec("chown #{user}. #{path}", cb)
             ], (err) ->
                 if err
                     socket.write_mesg('json', message.error(id:mesg.id, error:err))

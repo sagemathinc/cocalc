@@ -446,6 +446,10 @@ message
 #
 # Project Server <---> Hub interaction
 #
+# These messages are mainly focused on working with individual projects.
+#
+# Architecture:
+#
 #   * The database stores a files object (with the file tree), logs
 #     (of each branch) and a sequence of git bundles that when
 #     combined together give the complete history of the repository.
@@ -565,7 +569,9 @@ message
 
 # The write_file_to_project message is sent from the hub to the
 # project_server to tell the project_server to write a file to a
-# project.
+# project.  If the path includes directories that don't exists,
+# they are automatically created (this is in fact the only way
+# to make a new directory).
 # hub --> project_server
 message
     event        : 'write_file_to_project'
@@ -574,15 +580,15 @@ message
     path         : required
     data_uuid    : required  # hub sends raw data as a blob with this uuid immediately.
 
-# Sent by project_server to confirm successful write of the file to the project.
+# The file_written_to_project message is sent by a project_server to
+# confirm successful write of the file to the project.
 # project_server --> hub
 message
     event        : 'file_written_to_project'
     id           : required
 
-
 ############################################
-# Projects
+# Managing multiple projects
 ############################################
 
 # client --> hub
@@ -618,11 +624,9 @@ message
     project_id : required
     data       : required     # an object; sets the fields in this object, and leaves alone the rest
 
-# hub --> client
-#
 # When project data is changed by one client, the following is sent to
 # all clients that have access to this project (owner or collaborator).
-#
+# hub --> client
 message
     event      : 'project_data_updated'
     id         : undefined
