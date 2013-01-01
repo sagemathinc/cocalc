@@ -770,8 +770,10 @@ class exports.Salvus extends exports.Cassandra
             project_id  : required
             account_id  : required  # owner
             title       : required
-            description : undefined
+            description : undefined  # optional
             public      : required
+            quota       : required
+            idle_timeout: required
             cb          : undefined
 
         async.series([
@@ -785,7 +787,10 @@ class exports.Salvus extends exports.Cassandra
                         last_edited : now()
                         description : opts.description
                         public      : opts.public
+                        quota       : opts.quota
+                        idle_timeout: opts.idle_timeout
                     where : {project_id: opts.project_id}
+                    json  : ['quota']
                     cb    : (error, result) ->
                         if error
                             opts.cb(error)

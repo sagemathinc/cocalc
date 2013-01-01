@@ -48,6 +48,12 @@ uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
+# defaults
+# TEMPORARY until we flesh out the account types
+DEFAULTS =
+    quota        : {disk:{soft:128, hard:256}, inode:{soft:4096, hard:8192}}
+    idle_timeout : 3600
+
 # module scope variables:
 http_server        = null
 database           = null
@@ -581,6 +587,8 @@ class Client extends EventEmitter
             title       : mesg.title
             description : mesg.description
             public      : mesg.public
+            quota       : DEFAULTS.quota   # TODO -- account based
+            idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
             cb          : (error, result) =>
                 if error
                     @error_to_client(id: mesg.id, error: "Failed to insert new project into the database.")
@@ -748,10 +756,6 @@ push_to_clients = (opts) ->
 ##############################
 # Working with projects
 ##############################
-
-create_new_project = (opts) ->
-    opts = defaults opts,
-        TODO ####
 
 class Project
     constructor: (@project_id) ->
