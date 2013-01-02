@@ -775,13 +775,14 @@ class Project
         # we may experiment with other load balancing algorithms, and
         # take into account properties of the project itself.  For
         # example, we will have an "infinite uptime" option.
-        database.random_compute_server type:'project', cb:(err, host) ->
+        database.random_compute_server type:'project', cb:(err, hostinfo) ->
+            #console.log("*** #{err}, #{misc.to_json(hostinfo)}")
             if err
                 cb(err)
-            else if not host?
+            else if not hostinfo?
                 cb("No project servers are currently available.")
             else
-                cb(false, host)
+                cb(false, hostinfo.host)
 
     _minus_one_host: (host, cb) ->
         database.score_compute_server(host:host, cb:cb, delta:-1)
@@ -794,8 +795,8 @@ class Project
             cb(false, @_socket.socket)
             return
 
-        socket = net.connect {host:host.host, port:host.port}, () =>
-            console.log("!! connected")
+        socket = net.connect {host:host, port:cass.COMPUTE_SERVER_PORTS.project}, () =>
+            console.log("!! connected to #{misc.to_json(host)}")
             # connected
             misc_node.enable_mesg(socket)
             # We cache the connection for later.  We only cache a
@@ -923,6 +924,12 @@ class Project
             (c) =>
                 @_open_on_host host, (err) =>
                     if err
+                        if host == 'localhost' or host == '127.0.0.1'
+                            # debugging mode -- just give up instantly.
+                            cb(err)
+                            c(true)
+                            return
+
                         # Downvote this host, and try again.
                         @_minus_one_host(host, (err) =>
                             if err
@@ -968,6 +975,7 @@ class Project
             # Get each bundle blob from the database in preparation to
             # send it to the project_server.
             (c) =>
+                #console.log("getting bundles from db...")
                 database.get_project_bundles project_id:@project_id, cb:(err, result) ->
                     if err
                         c(err)
@@ -982,15 +990,18 @@ class Project
 
             # Get meta information about the project that is needed to open the project.
             (c) =>
+                #console.log("Get meta information about the project that is needed to open the project.")
                 database.get_project_open_info project_id:@project_id, cb:(err, result) ->
                     if err
                         c(err)
                     else
                         {quota, idle_timeout} = result
+                        c()
 
             # Send open_project mesg.
             (c) =>
-                mesg_open_project = messages.open_project
+                #console.log("Send open_project mesg")
+                mesg_open_project = message.open_project
                     id           : id
                     project_id   : @project_id
                     bundle_uuids : bundles.uuids
@@ -1001,6 +1012,7 @@ class Project
 
             # Starting sending the bundles as blobs.
             (c) ->
+                #console.log("start sending bundles as blobs")
                 for i in [0...bundles.length]
                     socket.write_mesg 'blob', {uuid:bundles.uuids[i],blob:bundles[i]}
                 c()
@@ -1008,6 +1020,7 @@ class Project
             # Wait for the project server to respond with success
             # (having received all blobs) or failure (something went wrong).
             (c) ->
+                #console.log("Wait for the project server to respond")
                 socket.recv_mesg id:id, type:'json', timeout:30, cb:(mesg) ->
                     switch mesg.event
                         when 'error'
@@ -1134,7 +1147,7 @@ class Project
                             c()
 
         ], (dummy, err) ->
-            socket.removeListener(recv_bundles)
+            socket.removeListener('mesg', recv_bundles)
             if cb?
                 cb(err)
         )

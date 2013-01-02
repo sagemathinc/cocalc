@@ -34,6 +34,8 @@ misc           = require 'misc'
 
 {defaults, required} = misc
 
+possibly_open_projects = {}
+
 ######################################################
 # Creating and working with project repositories
 #    --> See message.coffee for how projects work. <--
@@ -46,7 +48,7 @@ username = (project_id) ->
     if '..' in project_id
         # a sanity check -- this should never ever be allowed to happen, ever.
         throw "invalid project id #{project_id}"
-    project_id.replace(/-/g,'_')
+    return project_id.replace(/-/g,'')
 
 # The path to the home directory of the user associated with
 # the given project_id.
@@ -86,10 +88,14 @@ megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 # Create new UNIX user with given name and quota, then do cb(err).
 #     quota = {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
 create_user = (username, quota, cb) ->
+    console.log("create_user(#{username}, #{misc.to_json(quota)})")
     async.series([
         # Create the user
         (cb) ->
-            child_process.exec("useradd -U -m #{username}", cb)
+            console.log("useradd -U -m #{username}")
+            child_process.exec "useradd -U -m #{username}", (err, stdout, stderr) ->
+                console.log(err, stdout, stderr)
+                cb(err)
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
             try
@@ -111,15 +117,15 @@ create_user = (username, quota, cb) ->
     ], cb)
 
 # Delete the given UNIX user, corresponding group, and all files they own.
-delete_user_36 = (username, cb) ->
-    if username.length != 36  # a sanity check to avoid accidentally deleting a non-salvus user!
-        cb("delete_user -- the username (='#{username}') must be exactly 36 characters long")
+delete_user_32 = (username, cb) ->
+    if username.length != 32  # a sanity check to avoid accidentally deleting a non-salvus user!
+        cb("delete_user -- the username (='#{username}') must be exactly 32 characters long")
         return
 
     async.series([
         # Delete the UNIX user and their files.
         (cb) ->
-            child_process.exec("deluser --remove-all-files #{username}", cb)
+            child_process.exec("deluser --remove-home #{username}", cb)
         # Delete the UNIX group (same as the user -- this is Linux).
         (cb) ->
             child_process.exec("delgroup #{username}", cb)
@@ -127,7 +133,8 @@ delete_user_36 = (username, cb) ->
 
 # Kill all processes running as a given user.
 killall_user = (username, cb) ->
-    child_process.exec("killall -s 9 -u #{username}", cb)
+    child_process.exec "killall -s 9 -u #{username}", (err, stdout, stderr) ->
+        cb(err)
 
 # Given an object called 'bundles' containing (in order) the possibly
 # empty collection of bundles that define a git repo, extract each
@@ -192,6 +199,9 @@ events = {}
 events.open_project = (socket, mesg) ->
     # The first step in opening a project is to wait to receive all of
     # the bundle blobs.  We do the extract step below in _open_project2.
+
+    possibly_open_projects[mesg.project_id] = true
+
     mesg.bundles = misc.pairs_to_obj( [u, null] for u in mesg.bundle_uuids )
     n = misc.len(mesg.bundles)
     if n == 0
@@ -212,8 +222,10 @@ events.open_project = (socket, mesg) ->
 # Part 2 of opening a project: create user, extract bundles, write
 # back response message.
 _open_project2 = (socket, mesg) ->
+    console.log("_open_project2")
     uname = username(mesg.project_id)
     path  = userpath(mesg.project_id)
+    console.log("uname=#{uname}, path=#{path}")
 
     async.series([
         # Create a user with username the project_id (with dashes removed)
@@ -367,23 +379,26 @@ events.save_project = (socket, mesg) ->
             socket.write_mesg('json', response)
     )
 
+cleanup = (uname, cb) ->
+    console.log('0')
+    async.series([
+        (cb) ->
+            console.log('a')
+            killall_user(uname, cb)
+        (cb) ->
+            console.log('b')
+            delete_user_32(uname, cb)
+    ], cb)
+
 # Close the given project, which involves killing all processes of
 # this user and deleting all of their associated files.
 events.close_project = (socket, mesg) ->
-    uname = username(mesg.project_id)
-    async.series([
-        # Kill all processes that the user is running.
-        (cb) ->
-            killall_user(uname, cb)
-        # Delete the user and all associated files.
-        (cb) ->
-            delete_user_36(uname, cb)
-    ], (err) ->
+    cleanup username(mesg.project_id), (err) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
         else
+            delete possibly_open_projects[mesg.project_id]
             socket.write_mesg('json', message.project_closed(id:mesg.id))
-    )
 
 # Read a file located in the given project.  This will result in an
 # error if the readFile function fails, e.g., if the file doesn't
@@ -547,6 +562,13 @@ server = net.createServer (socket) ->
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
     server.listen program.port, program.host, () -> winston.info "listening on port #{program.port}"
+
+process.on 'SIGINT', () ->
+    for project_id, dummy of possibly_open_projects
+        uname = username(project_id)
+        killall_user uname
+        delete_user_32 uname
+    process.exit()
 
 program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 6002)', parseInt, 6002)

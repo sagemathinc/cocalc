@@ -499,10 +499,10 @@ class exports.Salvus extends exports.Cassandra
             cb    : undefined
         new_score = undefined
         async.series([
-            (cb) ->
+            (cb) =>
                 @select
                     table   : 'compute_servers'
-                    columns : 'score'
+                    columns : ['score']
                     where   : {host:opts.host}
                     cb      : (err, results) ->
                         if err
@@ -512,7 +512,7 @@ class exports.Salvus extends exports.Cassandra
                             cb("No compute server '#{opts.host}'")
                         new_score = results[0][0] + opts.delta
                         cb()
-            (cb) ->
+            (cb) =>
                 if new_score >= MIN_SCORE and new_score <= MAX_SCORE
                     @update
                         table : 'compute_servers'

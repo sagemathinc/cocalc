@@ -86,15 +86,16 @@ exports.enable_mesg = enable_mesg = (socket) ->
             cb      : required      # called with cb(mesg)
             timeout : undefined
 
-        f = socket.on 'mesg', (type, mesg) ->
+        f = (type, mesg) ->
             if type == opts.type and ((type == 'json' and mesg.id == opts.id) or (type=='blob' and mesg.uuid=opts.id))
-                socket.removeListener(f)
+                socket.removeListener('mesg', f)
                 opts.cb(mesg)
+        socket.on 'mesg', f
 
         if opts.timeout?
             timeout = () ->
                 if socket? and f in socket.listeners('mesg')
-                    socket.removeListener(f)
+                    socket.removeListener('mesg', f)
                     opts.cb(message.error(error:"Timed out after #{opts.timeout} seconds."))
             setTimeout(timeout, opts.timeout*1000)
 
