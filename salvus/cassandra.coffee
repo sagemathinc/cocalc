@@ -897,7 +897,6 @@ class exports.Salvus extends exports.Cassandra
                             opts.cb(error)
                             cb(true)
                         else
-                            console.log("!! projects=#{misc.to_json(projects)}, results=#{misc.to_json(results)}")
                             if projects.length > 0
                                 for i in [0...projects.length]
                                     results[i].mode = projects[i].mode
