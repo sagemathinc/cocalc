@@ -9122,11 +9122,15 @@ Next steps:
 [x] write "create_new_project" in hub
 
 [x] read through message code related to projects
-[ ] read through project_server code
-[ ] read through new hub code
-[ ] get everything to compile
+
+[x] read through project_server code
+[ ] read through hub project_server-related code
+
+[ ] get everything to compile (coffeescript)
 [ ] get everything to start up
-[ ] write
+[ ] write very simple client code to use it a little and corresponding hub code to tie it together
+
+Then:
 
 [ ] client:
     [ ] open project (so get list of files, logs, branches, etc.)
@@ -9146,5 +9150,6 @@ Next steps:
     [ ] open console on a project
     [ ] open worksheet on a project
 
-
+[ ] swap in andrew ohana's new bundler
+[ ] set the current branch on opening project (maybe)?
 

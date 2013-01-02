@@ -8,6 +8,18 @@
 #
 #######################################################################
 
+# SECURITY NOTE: This server, which runs as root, is probably the most
+# susceptible to shell injection attacks of anything in Salvus.  Such
+# an attack should not be devestating, because this server only runs
+# in an untrusted VM with no state on which users are already allowed
+# to run arbitrary code.  The VM is firewalled in that it can't access
+# the database.  The only information of value on the VM is:
+#
+#      (1) The source code of salvus (which is protected by copyright, and
+#          I plan to open source it someday).
+#      (2) Ephemeral data from other random projects.
+# 
+
 child_process  = require 'child_process'
 winston        = require 'winston'
 program        = require 'commander'
@@ -39,13 +51,12 @@ username = (project_id) ->
 # The path to the home directory of the user associated with
 # the given project_id.
 userpath = (project_id) ->
-    if '..' in project_id
-        # a sanity check -- this should never ever be allowed to happen, ever.
-        throw "invalid project id #{project_id}"
-    return "/home/#{username(mesg.project_id)}"
+    return "/home/#{username(project_id)}"
 
 # Verify that path really describes something that would be a
-# directory under userpath, rather than some evil hack.
+# directory under userpath, rather than a shell injection attack.
+BAD_SHELL_INJECTION_CHARS = '<>|,;$&"\''
+
 verify_that_path_is_valid = (project_id, path, cb) ->
     if not path?
         cb("path is undefined")
@@ -54,18 +65,16 @@ verify_that_path_is_valid = (project_id, path, cb) ->
     fs.realpath path, (err, resolvedPath) ->
         if err
             cb(err)
+            return
         p = userpath(project_id)
         if resolvedPath.slice(0,p.length) != p
             cb("path (=#{path}) must resolve to a directory or file under #{p}")
-        # TODO: I do *not* like this one bit.
-        else if ';' in resolvedPath
-            cb("path contains suspicious character -- semicolon")
-        else if '"' in resolvedPath
-            cb("path contains suspicious character -- double quote")
-        else if "'" in resolvedPath
-            cb("path contains suspicious character -- single quote")
-        else
-            cb(false, resolvedPath)
+            return
+        for x in BAD_SHELL_INJECTION_CHARS
+            if x in resolvedPath
+                cb("path contains suspicious character -- '#{x}'")
+                return
+        cb(false, resolvedPath)
 
 # salvus@cassandra01:~$  sudo dumpe2fs -h /dev/mapper/salvus--base-root|grep "Block size:"
 # [sudo] password for salvus:
@@ -75,54 +84,35 @@ BLOCK_SIZE = 4096   # units = bytes; This is used by the quota command via the c
 megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 
 # Create new UNIX user with given name and quota, then do cb(err).
-create_user = (username, quota, cb) ->    # quota = {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
+#     quota = {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
+create_user = (username, quota, cb) ->
     async.series([
         # Create the user
         (cb) ->
             child_process.exec("useradd -U -m #{username}", cb)
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
-            if not quota?
-                cb("quota must be specified")
-            else if not quota.disk?
-                cb("disk space quota must be specified")
-            else if not quota.disk.soft?
-                cb("disk space soft quota must be specified")
-            else if not quota.disk.hard?
-                cb("disk space hard quota must be specified")
-            if not quota.inode?
-                cb("inode space quota must be specified")
-            else if not quota.inode.soft?
-                cb("inode space soft quota must be specified")
-            else if not quota.inode.hard?
-                cb("inode space hard quota must be specified")
-            else
-                # Everything is specified
+            try
                 disk_soft  = parseInt(quota.disk.soft)
                 disk_hard  = parseInt(quota.disk.hard)
                 inode_soft = parseInt(quota.inode.soft)
                 inode_hard = parseInt(quota.inode.hard)
-                # If some input is not valid, parseInt will be NaN,
-                # which is not >0, hence will be detected below:
-                if not disk_soft > 0
-                    cb("disk soft quota must be positive")
-                    disk_soft = megabytes_to_blocks(disk_soft)
-                elif not disk_hard > 0
-                    cb("disk hard quota must be positive")
-                    disk_hard = megabytes_to_blocks(disk_hard)
-                elif not inode_soft > 0
-                    cb("inode soft quota must be positive")
-                elif not inode_hard > 0
-                    cb("inode hard quota must be positive")
-                else
-                    # Everything is good, let's do it!
-                    cmd = "setquota -u #{username} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
-                    child_process.exec(cmd, cb)
+            catch err
+                cb("Invalid quota specification: #{quota}")
+                return
+            # If some input is not valid, parseInt will be NaN,
+            # which is not >0, hence will be detected below:
+            if not (disk_soft > 0 and disk_hard > 0 and inode_soft > 0 and inode_hard > 0)
+                cb("Invalid quota specification: #{quota}")
+            else
+                # Everything is good, let's do it!
+                cmd = "setquota -u #{username} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
+                child_process.exec(cmd, cb)
     ], cb)
 
 # Delete the given UNIX user, corresponding group, and all files they own.
 delete_user_36 = (username, cb) ->
-    if username.length != 36  # a sanity check to avoid accidentally deleting all my files!
+    if username.length != 36  # a sanity check to avoid accidentally deleting a non-salvus user!
         cb("delete_user -- the username (='#{username}') must be exactly 36 characters long")
         return
 
@@ -139,21 +129,24 @@ delete_user_36 = (username, cb) ->
 killall_user = (username, cb) ->
     child_process.exec("killall -s 9 -u #{username}", cb)
 
-# Given an in-memory object bundles containing (in order) the possibly
+# Given an object called 'bundles' containing (in order) the possibly
 # empty collection of bundles that define a git repo, extract each
 # bundle to the repo_path, which must *not* already exist.
+#
+# NOTE: This object is entirely in memory, which potentially imposes
+# memory/size constraints.
 extract_bundles = (username, bundles, repo_path, cb) ->
-    bundle_path = "#{repo_path}/.git/bundles"
+    bundle_path = "#{repo_path}/.git/salvus"
 
     # Below we create a sequence of tasks, then do them all at the end
     # with a call to async.series.  We do this, rather than defining
     # the tasks in place, because the number of tasks depends on the
     # number of bundles.
 
-    # Create the bundle path and write the bundle files to disk
+    # Create the bundle path and write the bundle files to disk.
     tasks = [
         (c) -> fs.mkdir("#{repo_path}/.git", 0o700, c),
-        (c) -> fs.mkdir("#{repo_path}/.git/bundles", 0o700, c)
+        (c) -> fs.mkdir("#{repo_path}/.git/salvus", 0o700, c)
     ]
 
     # Write the bundle files to disk.
@@ -165,8 +158,8 @@ extract_bundles = (username, bundles, repo_path, cb) ->
     # Now the bundle files are all in place.  Make the repository.
     tasks.push((c) ->
         if n == 0
-            # There were no bundles at all, so we make a new git repo.
-            # TODO: need a salvus .gitignore template, e.g., ignore all dot files in $HOME.
+            # There were no bundles at all, so we make a new empty git repo.
+            # TODO: need a salvus .gitignore template, e.g., maybe ignore all dot files in $HOME.
             cmd = "cd #{repo_path} && git init && touch .gitignore && git add .gitignore && git commit -a -m 'Initial version.'"
             child_process.exec(cmd, c)
         else
@@ -177,10 +170,10 @@ extract_bundles = (username, bundles, repo_path, cb) ->
     # At this point everything is owned by root (the project_server),
     # so we change the repo so all files are owned by the given user,
     # and read/write-able by that user.  For security reasons, we also
-    # make them not visible to any other user that happens to be have
-    # a project running on this particular host virtual machine.
+    # make them not visible to any other user that happens to have
+    # a project running on this particular virtual machine.
     tasks.push((c) ->
-        child_process.exec("chown -R #{username}. #{repo_path} && chmod u+rw -R #{repo_path} && chmod og-rwx -R #{repo_path}", c)
+        child_process.exec("chown -R #{username}. #{repo_path} && chmod u+rw,og-rwx -R #{repo_path}", c)
     )
 
     # Do all of the tasks laid out above.
@@ -245,7 +238,7 @@ commit_all = (opts) ->
         path        : required
         commit_mesg : required
         cb          : required
-    commit_file = "#{opts.user}/.git/COMMIT_MESG"
+    commit_file = "#{opts.user}/.git/salvus/COMMIT_MESG"
     async.series([
         (cb) ->
             fs.writeFile(commit_file, opts.commit_mesg, cb)
@@ -292,15 +285,13 @@ get_files_and_logs = (path, cb) ->
                         cb("Error getting branches of git repo.")
                     else
                         cb()
-
-        # Get the list of all files in each branch
+        # Get the list of all files in each branch, as a JSON string
         (cb) ->
             child_process.exec("cd '#{path}' && gitfiles", (err, stdout, stderr) ->
                 files = stdout
                 cb(err)
             )
-
-        # Get the log for each branch
+        # Get the log for each branch, as a JSON string
         (cb) ->
             child_process.exec("cd '#{path}' && gitlogs", (err, stdout, stderr) ->
                 logs = stdout
@@ -316,8 +307,8 @@ get_files_and_logs = (path, cb) ->
 # Save the project
 events.save_project = (socket, mesg) ->
     path     = userpath(mesg.project_id)
-    bundles  = "#{path}/.git/bundles"
-    resp     = message.project_saved
+    bundles  = "#{path}/.git/salvus"
+    response = message.project_saved
         id    : mesg.id
         files : {master:{}}
         logs  : {master:{}}
@@ -337,36 +328,35 @@ events.save_project = (socket, mesg) ->
         (cb) -> child_process.exec("diffbundler update #{path} #{bundles}", cb)
 
         # Determine which bundle files to send.  We may send some even
-        # if none were created, due to the database not being totally
-        # up to date.
+        # if none were created just now, due to the database not being
+        # totally up to date, which could happen if some component
+        # (hub, database, network, project_server) died at a key
+        # moment during a previous save.
         (cb) ->
-            fs.readdir(bundles, (err, files) ->
+            fs.readdir bundles, (err, files) ->
                 if err
                     cb(err)
                 else
                     n = mesg.starting_bundle_number
                     while "#{n}.bundle" in files
                         id = uuid.v4()
-                        resp.bundle_uuids[id] = n
-                        tasks.push((c) ->
-                            fs.readFile("#{n}.bundle", (err, data) ->
+                        response.bundle_uuids[id] = n
+                        tasks.push (c) ->
+                            fs.readFile "#{n}.bundle", (err, data) ->
                                 if err
                                     c(err)
                                 else
-                                    socket.write_mesg('blob', {uuid:id, blob:data})
+                                    socket.write_mesg 'blob', {uuid:id, blob:data}
                                     c()
-                            )
-                        )
                         n += 1
                     cb()
-            )
 
         # Obtain the branches, logs, and file lists for the repo.
         (cb) ->
-            get_files_and_logs(path, (err, result) ->
-                resp.files = result.files
-                resp.logs = result.logs
-                resp.current_branch = result.current_branch
+            get_files_and_logs path, (err, result) ->
+                response.files          = result.files
+                response.logs           = result.logs
+                response.current_branch = result.current_branch
 
         # Read and send the bundle files
         (cb) ->
@@ -376,7 +366,7 @@ events.save_project = (socket, mesg) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
         else
-            socket.write_mesg('json', resp)
+            socket.write_mesg('json', response)
     )
 
 # Close the given project, which involves killing all processes of
@@ -387,11 +377,9 @@ events.close_project = (socket, mesg) ->
         # Kill all processes that the user is running.
         (cb) ->
             killall_user(uname, cb)
-
         # Delete the user and all associated files.
         (cb) ->
             delete_user_36(uname, cb)
-
     ], (err) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
@@ -399,37 +387,40 @@ events.close_project = (socket, mesg) ->
             socket.write_mesg('json', message.project_closed(id:mesg.id))
     )
 
-# Read a file in the given project.  This will result in an error if
-# the readFile function fails, e.g., if the file doesn't exist or the
-# project is not open.  We send the read file over the socket as a
-# blob message.
+# Read a file located in the given project.  This will result in an
+# error if the readFile function fails, e.g., if the file doesn't
+# exist or the project is not open.  We then send the resulting file
+# over the socket as a blob message.
 events.read_file_from_project = (socket, mesg) ->
     data = undefined
     async.series([
+        # Check that the file is valid (in the user's directory).
+        (cb) ->
+            verify_that_path_is_valid mesg.project_id, mesg.path, (err, realpath) ->
+                if err
+                    cb(err)
+                else
+                    mesg.path = realpath
+                    cb()
+        # Read the file into memory.
         (cb) ->
             fs.readFile "#{userpath(mesg.project_id)}/#{mesg.path}", (err, _data) ->
                 data = _data
                 cb(err)
+        # Send the file as a blob back to the hub.
         (cb) ->
             id = uuid.v4()
-            socket.write_mesg('json', message.file_read_from_project(id:mesg.id, data_uuid:id))
-            socket.write_mesg('blob', {uuid:id, blob:data})
+            socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id)
+            socket.write_mesg 'blob', {uuid:id, blob:data}
             cb()
     ], (err) ->
         if err
-            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+            socket.write_mesg 'json', message.error(id:mesg.id, error:err)
     )
 
 # Write a file to the project
 events.write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
-
-    if mesg.path[mesg.path.length-1] == '/'
-        errmesg = message.error
-            id    : mesg.id
-            error : 'path must be a filename, not a directory name (it must not end in "/")'
-        socket.write_mesg('json', errmesg)
-        return
 
     # Listen for the blob containg the actual content that we will write.
     write_file = (type, value) ->
@@ -447,17 +438,18 @@ events.write_file_to_project = (socket, mesg) ->
                             c()
                 (c) ->
                     fs.writeFile(path, value.blob, c)
-                # Finally, set the permissions on the file to the correct user (instead of root)
+                # Set the permissions on the file to the correct user (instead of root)
                 (c) ->
-                    child_process.exec("chown #{user}. #{path}", c)
+                    child_process.exec "chown #{user}. #{path}", c
             ], (err) ->
                 if err
-                    socket.write_mesg('json', message.error(id:mesg.id, error:err))
+                    socket.write_mesg 'json', message.error(id:mesg.id,error:err)
                 else
-                    socket.write_mesg('json', message.file_written_to_project(id:mesg.id))
+                    socket.write_mesg 'json', message.file_written_to_project(id:mesg.id)
             )
     socket.on 'mesg', write_file
 
+# Make a new directory in the project.
 make_directory_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
@@ -478,14 +470,16 @@ make_directory_in_project = (socket, mesg) ->
         (c) ->
             # It would be better if I knew an easy way to figure out the
             # uid and gid of the user, and could use: fs.chown(mesg.path, uid, gid)
-            child_process.exec('chown -R #{user}. #{mesg.path}', c)
+            child_process.exec('chown #{user}. #{mesg.path}', c)
         (c) ->
-            socket.write_mesg('json', message.directory_made_in_project(id:mesg.id))
+            socket.write_mesg 'json', message.directory_made_in_project(id:mesg.id)
     ], (err) ->
         if err
-            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+            socket.write_mesg 'json', message.error(id:mesg.id, error:err)
     )
 
+# Move a file (or directory) from one point to another in the project,
+# using the proper git command.
 events.move_file_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
@@ -512,6 +506,7 @@ events.move_file_in_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
+# Delete a file from the project, using the proper git command.
 events.remove_file_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
@@ -531,12 +526,21 @@ events.remove_file_in_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
+####################################################################
+#
+# The TCP Socket server, which listens for incoming connections and
+# messages and calls the appropriate event handler.
+#
+# We do not use SSL, because that is handled by our VPN.
+#
+####################################################################
 server = net.createServer (socket) ->
-    misc_node.enable_mesg(socket)
-    socket.on 'mesg', (type, mesg) ->
-        if type == 'json' # other types are handled elsewhere
+    misc_node.enable_mesg(socket)  # enable sending/receiving json, blob, etc. messages over this socket.
+    socket.on 'mesg', (type, mesg) ->   # handle json messages
+        if type == 'json' # other types are handled elsewhere in event code.
             handler = events[mesg.event]
             if handler?
+                winston.debug("Handling message: #{misc.to_json(mesg)}")
                 handler(socket, mesg)
             else
                 socket.write(message.error("Unknown message event '#{mesg.event}'"))
@@ -549,7 +553,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 6002)', parseInt, 6002)
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/project_server.pid")', String, "data/pids/project_server.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/project_server.log")', String, "data/logs/project_server.log")
-    .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")   # important for security reasons to prevent user binding more specific host attack
+    .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")   # important for security reasons to prevent the user-binding-to-a-more-specific-host attack
     .parse(process.argv)
 
 if program._name == 'project_server.js'

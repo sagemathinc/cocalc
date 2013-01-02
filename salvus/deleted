@@ -1,3 +1,10 @@
+    if mesg.path[mesg.path.length-1] == '/'
+        errmesg = message.error
+            id    : mesg.id
+            error : 'path must be a filename, not a directory name (it must not end in "/")'
+        socket.write_mesg('json', errmesg)
+        return
+
 <    
 # Choose a random unused unix UID, where unused means by definition
 # that /home/UID does not exist.  We then create that directory and
