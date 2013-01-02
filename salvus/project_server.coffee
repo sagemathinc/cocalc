@@ -186,9 +186,17 @@ extract_bundles = (username, bundles, repo_path, cb) ->
     # Do all of the tasks laid out above.
     async.series(tasks, cb)
 
+########################################################################
+# Event Handlers -- these handle various messages as documented
+# in the file "message.coffee".  The function foo handles the message
+# event foo.
+########################################################################
+
+events = {}
+
 # Open the project described by the given mesg, which was sent over
 # the socket.
-open_project = (socket, mesg) ->
+events.open_project = (socket, mesg) ->
     # The first step in opening a project is to wait to receive all of
     # the bundle blobs.  We do the extract step below in _open_project2.
     mesg.bundles = misc.pairs_to_obj( (u, null) for u in mesg.bundle_uuids )
@@ -306,7 +314,7 @@ get_files_and_logs = (path, cb) ->
     )
 
 # Save the project
-save_project = (socket, mesg) ->
+events.save_project = (socket, mesg) ->
     path     = userpath(mesg.project_id)
     bundles  = "#{path}/.git/bundles"
     resp     = message.project_saved
@@ -373,7 +381,7 @@ save_project = (socket, mesg) ->
 
 # Close the given project, which involves killing all processes of
 # this user and deleting all of their associated files.
-close_project = (socket, mesg) ->
+events.close_project = (socket, mesg) ->
     uname = username(mesg.project_id)
     async.series([
         # Kill all processes that the user is running.
@@ -395,7 +403,7 @@ close_project = (socket, mesg) ->
 # the readFile function fails, e.g., if the file doesn't exist or the
 # project is not open.  We send the read file over the socket as a
 # blob message.
-read_file_from_project = (socket, mesg) ->
+events.read_file_from_project = (socket, mesg) ->
     data = undefined
     async.series([
         (cb) ->
@@ -413,7 +421,7 @@ read_file_from_project = (socket, mesg) ->
     )
 
 # Write a file to the project
-write_file_to_project = (socket, mesg) ->
+events.write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
 
     if mesg.path[mesg.path.length-1] == '/'
@@ -478,7 +486,7 @@ make_directory_in_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
-move_file_in_project = (socket, mesg) ->
+events.move_file_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
         (c) ->
@@ -504,8 +512,7 @@ move_file_in_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
-
-remove_file_in_project = (socket, mesg) ->
+events.remove_file_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
         (c) ->
@@ -524,32 +531,15 @@ remove_file_in_project = (socket, mesg) ->
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
     )
 
-
-
-
 server = net.createServer (socket) ->
     misc_node.enable_mesg(socket)
     socket.on 'mesg', (type, mesg) ->
         if type == 'json' # other types are handled elsewhere
-            switch mesg.event
-                when 'open_project'
-                    open_project(socket, mesg)
-                when 'save_project'
-                    save_project(socket, mesg)
-                when 'close_project'
-                    close_project(socket, mesg)
-                when 'read_file_from_project'
-                    read_file_from_project(socket, mesg)
-                when 'write_file_to_project'
-                    write_file_to_project(socket, mesg)
-                when 'make_directory_in_project'
-                    make_directory_in_project(socket, mesg)
-                when 'move_file_in_project'
-                    move_file_in_project(socket, mesg)
-                when 'remove_file_in_project'
-                    remove_file_in_project(socket, mesg)
-                else
-                    socket.write(message.error("Unknown message event '#{mesg.event}'"))
+            handler = events[mesg.event]
+            if handler?
+                handler(socket, mesg)
+            else
+                socket.write(message.error("Unknown message event '#{mesg.event}'"))
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
