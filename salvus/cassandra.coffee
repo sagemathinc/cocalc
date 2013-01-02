@@ -457,11 +457,12 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             cb   : required
             type : required    # 'sage', 'console', 'project', 'compute', etc.
+            min_score : MIN_SCORE
 
         @select
             table   : 'compute_servers'
             columns : ['host', 'score']
-            where   : {running:true}
+            where   : {running:true, score:{'>':opts.min_score}}
             cb      : (err, results) =>
                 if results.length == 0 and @keyspace == 'test'
                     # This is used when testing the compute servers
@@ -482,7 +483,6 @@ class exports.Salvus extends exports.Cassandra
         @running_compute_servers
             type : opts.type
             cb   : (error, res) ->
-                res = (x for x in res if x.score > MIN_SCORE)
                 opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
 
     # Adjust the score on a compute server.  It's possible that two

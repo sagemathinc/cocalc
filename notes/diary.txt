@@ -9128,8 +9128,8 @@ Next steps:
 [x] read through project_server - database code
 
 
-[ ] get everything to compile (coffeescript)
-[ ] get everything to start up
+[x] get everything to compile (coffeescript)
+[x] get everything to start up
 [ ] write very simple client code to use it a little and corresponding hub code to tie it together
 
 Then:

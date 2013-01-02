@@ -1364,8 +1364,6 @@ class Project
                             c("Unexpected message type '#{mesg.event}'")
         ], cb)
 
-projects = new Projects()
-
 ########################################
 # Permissions related to projects
 ########################################
