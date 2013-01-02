@@ -9124,7 +9124,9 @@ Next steps:
 [x] read through message code related to projects
 
 [x] read through project_server code
-[ ] read through hub project_server-related code
+[x] read through hub project_server-related code
+[x] read through project_server - database code
+
 
 [ ] get everything to compile (coffeescript)
 [ ] get everything to start up

@@ -764,35 +764,43 @@ class Project
     # Database state stuff
     ##############################################
     _choose_new_host: (cb) ->
-        # For now we just choose host at random.  In the long run, we
-        # may experiment with more subtle load balancing algorithms,
-        # and possibly take into account properties of the project.
-        database.random_compute_server(type:'project', cb:(err, host) ->
+        # For now we just choose a host at random.  In the long run,
+        # we may experiment with other load balancing algorithms, and
+        # take into account properties of the project itself.  For
+        # example, we will have an "infinite uptime" option.
+        database.random_compute_server type:'project', cb:(err, host) ->
             if err
                 cb(err)
             else if not host?
                 cb("No project servers are currently available.")
             else
                 cb(false, host)
-        )
 
-    @_minus_one_host: (host, cb) ->
+    _minus_one_host: (host, cb) ->
         database.score_compute_server(host:host, cb:cb, delta:-1)
 
-    @_plus_one_host: (host, cb) ->
+    _plus_one_host: (host, cb) ->
         database.score_compute_server(host:host, cb:cb, delta:+1)
 
     _connect: (host, cb) ->
         if @_socket? and @_socket.host == host
             cb(false, @_socket.socket)
             return
+
         socket = net.connection {host:host, port:database.COMPUTE_SERVER_PORTS.project}, () =>
             # connected
             misc_node.enable_mesg(socket)
-            @_socket = {host:host, socket:socket}   # cache connection for later
+            # We cache the connection for later.  We only cache a
+            # connection to *one* host, since a project is only
+            # supposed to ever be hosted on one compute server.
+            @_socket = {host:host, socket:socket}
             cb(false, socket)
 
-        socket.setMaxListeners(50)
+        # There are numerous actions that require adding a listener to
+        # the socket, sending blobs, then removing it.  Since many of
+        # these could happen simultaneously, I'm upping the max
+        # listeners a bit, just in case.
+        socket.setMaxListeners(30)
 
         socket.once 'error', (err) =>
             if err == 'ECONNREFUSED'
@@ -811,8 +819,9 @@ class Project
             if @_socket?
                 delete @_socket
 
-    # Determines the host that is currently hosting the project or null if the
-    # project is not currently on any host.
+    # Returns the host that is currently hosting the project
+    # (according to the database) or null if the project is not
+    # currently on any host.
     get_host: (cb) ->    # cb(err, host)
         database.get_project_host(project_id:@project_id, cb:cb)
 
@@ -854,7 +863,10 @@ class Project
                 cb(false, socket)
         )
 
-    # Open the project on some host if it is not already opened or being opened by this or another hub
+    # Open the project on some host if it is not already opened. If it
+    # is currently being opened by this or another hub, we return an
+    # error.  (The client can choose to show some sort of notification
+    # and retry after waiting a moment.)
     open: (cb) ->   # cb(err, host)
         host = undefined
         async.series([
@@ -892,11 +904,11 @@ class Project
 
             # We choose a project server host.
             (c) =>
-                @_choose_new_host (err, h) ->
+                @_choose_new_host (err, _host) ->
                     if err
                         c(err)
                     else
-                        host = h
+                        host = _host
                         c()
 
             # Open the project on that host
@@ -909,7 +921,7 @@ class Project
                                 # This is serious -- if we can't even connect to the database
                                 # to flag a host as down, then there is no point in going on.
                                 cb(err)
-                                cb(true)
+                                c(true)
                             else
                                 # Try again.  This will not lead to infinite recursion since each
                                 # time it is called, we just successfully flagged a host as down
@@ -925,8 +937,9 @@ class Project
                         c()
         ])
 
-    # This is called by open once we determine that project is actually not
-    # opened and also we determine on which host we plan to open the project.
+    # This is called by 'open' once we determine that the project is
+    # not already opened, and also we determine on which host we plan
+    # to open the project.
     _open_on_host: (host, cb) ->
         socket  = undefined
         id      = uuid.v4()   # used to tag communication with the project server
@@ -935,7 +948,7 @@ class Project
         idle_timeout = undefined
 
         async.series([
-            # Create a connection to the project server.
+            # Get a connection to the project server.
             (c) =>
                 @_connect host, (err, s) ->
                     if err
@@ -959,7 +972,7 @@ class Project
                         bundles.uuids = (uuid.v4() for i in [0...bundles.length])
                         c()
 
-            # Get meta information about the project that is needed to open the project
+            # Get meta information about the project that is needed to open the project.
             (c) =>
                 database.get_project_open_info project_id:@project_id, cb:(err, result) ->
                     if err
@@ -967,7 +980,7 @@ class Project
                     else
                         {quota, idle_timeout} = result
 
-            # Send open_project mesg
+            # Send open_project mesg.
             (c) =>
                 mesg_open_project = messages.open_project
                     id           : id
@@ -978,7 +991,7 @@ class Project
                 socket.write_mesg 'json', mesg_open_project
                 c()
 
-            # Starting sending the bundles as blobs
+            # Starting sending the bundles as blobs.
             (c) ->
                 for i in [0...bundles.length]
                     socket.write_mesg 'blob', {uuid:bundles.uuids[i],blob:bundles[i]}
@@ -1015,10 +1028,10 @@ class Project
             starting_bundle_number : 0  # will get changed below
             commit_mesg            : commit_mesg
 
-        socket = undefined
-        host   = undefined
+        socket             = undefined
+        host               = undefined
         project_saved_mesg = undefined
-        recv_bundles = undefined
+        recv_bundles       = undefined
 
         async.series([
             # If project is already locked for saving (by this or
@@ -1035,7 +1048,7 @@ class Project
             # Determine which project_server is hosting this project.
             # If none, then there is nothing further to do.
             (c) =>
-                database.get_project_host project_id:@project_id, cb: (err, h) ->
+                database.get_project_host project_id:@project_id, cb:(err, h) ->
                     if err
                         c(true, err)
                     else
@@ -1045,7 +1058,7 @@ class Project
 
             # Find the index of the largest bundle that we already have in the database
             (c) =>
-                database.largest_project_bundle_index(project_id: @project_id, cb: (err, n) ->
+                database.largest_project_bundle_index project_id:@project_id, cb:(err, n) ->
                     if err
                         c(true, err)
                     else
@@ -1061,15 +1074,18 @@ class Project
                         socket = s
                         c()
 
-            # Send message to project server requesting that it save the the project
-            # and send back to us any bundles that are created.
+            # Send message to project server requesting that it save
+            # the the project and send back to us any bundle(s) that
+            # it creates when saving the project.
             (c) =>
                 socket.write_mesg 'json', save_mesg
 
-            # Listen for bundles, find out how many bundles to expect and receive the bundles.
+            # Listen for bundles, find out how many bundles to expect
+            # and receive the bundles.
             (c) =>
-                bundle_uuids = undefined
+                bundle_uuids      = undefined
                 remaining_bundles = undefined
+
                 recv_bundles = (type, mesg) =>
                     switch type
                          when 'json'
@@ -1079,8 +1095,8 @@ class Project
                                         c(true, mesg.error)
                                     case 'project_saved'
                                         project_saved_mesg = mesg
-                                        bundle_uuids      = mesg.bundle_uuids
-                                        remaining_bundles = misc.len(bundles)
+                                        bundle_uuids       = mesg.bundle_uuids
+                                        remaining_bundles  = misc.len(bundles)
                         when 'blob'
                             if bundle_uuids? and bundle_uuids[mesg.uuid]?
                                 database.save_project_bundle
@@ -1142,9 +1158,15 @@ class Project
                         socket = s
                         c()
 
+            # Put a lock, so nobody tries to save or open this project while we are closing.
+            # 15 seconds should be plenty of time.
+            (c) =>
+                @_lock_for_opening(15, c)
+                @_lock_for_saving(15, c)
+
             # Send the close message
             (c) =>
-                socket.write_mesg('json', message.close_project(id: id, project_id: @project_id)
+                socket.write_mesg 'json', message.close_project(id: id, project_id: @project_id)
                 c()
 
             # And wait for response from server
@@ -1156,25 +1178,29 @@ class Project
                         when 'project_closed'
                             c() # successfully closed project
 
-            # Store in the database that the project is not allocated on
-            # any host.
+            # Store in the database that the project is not allocated
+            # on any host.
             (c) =>
-                database.set_project_host(project_id:@project_id, host:undefined, cb:((err) -> c(false, err)))
+                database.set_project_host
+                    project_id : @project_id
+                    host       : undefined
+                    cb         : (err) -> c(false, err)
 
         ], (dummy, err) -> cb(err))
 
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does
     # not pull the file from the database; instead, it loads it live
-    # from on the project_server node.
+    # from the project_server virtual machine.
     read_file: (path, data, cb) -> # cb(err)  -- indicates when done
-        socket = undefined
-        id     = uuid.v4()
-
-        data_uuid = undefined
+        socket    = undefined
+        id        = uuid.v4()
         data      = undefined
+        data_uuid = undefined
 
         async.series([
+            # Get a socket connection to the project host.  This will open
+            # the project if it isn't already opened.
             (c) =>
                 @socket (err, _socket) ->
                     if err
@@ -1183,7 +1209,7 @@ class Project
                         socket = _socket
                         c()
             (c) =>
-                socket.write_mesg('json', message.read_file_from_project(id:id, project_id:@project_id, path:path))
+                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:@project_id, path:path)
                 socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
                     switch mesg.event
                         when 'error'
@@ -1191,11 +1217,14 @@ class Project
                         when 'file_read_from_project'
                             data_uuid = mesg.data_uuid
                             c()
+                        else
+                            c("Unknown mesg event '#{mesg.event}'")
 
             (c) =>
-                socket.recv_mesg type: 'blob', id:data_uuid, timeout:15, cb:(_data) ->
+                socket.recv_mesg type: 'blob', id:data_uuid, timeout:10, cb:(_data) ->
                     data = _data
                     c()
+
         ], (err) ->
             if err
                 cb(err)
@@ -1204,9 +1233,10 @@ class Project
         )
 
     # Write a file to a compute node.  This is used when saving during
-    # client-side editing, for worksheets, etc.  This does not change
-    # the project bundles in the database -- it only impacts the files
-    # on the compute node.
+    # client-side editing, for worksheets, etc.  This does not
+    # directly change anything in the database -- it only impacts the
+    # files on the compute node.  This does not trigger a save (which
+    # would change the database).
     write_file: (path, data, cb) ->   # cb(err, content_of_file_as_a_buffer)
         socket    = undefined
         id        = uuid.v4()
@@ -1226,8 +1256,8 @@ class Project
                     project_id : @project_id
                     path       : path
                     data_uuid  : data_uuid
-                socket.write_mesg('json', mesg)
-                socket.write_mesg('blob', data)
+                socket.write_mesg 'json', mesg
+                socket.write_mesg 'blob', data
 
             (c) =>
                 socket.recv_mesg type: 'json', id:id, timeout:10, cb:(mesg) ->
@@ -1247,7 +1277,7 @@ class Project
 
     make_directory: (path, cb) ->
         socket = undefined
-        id = uuid.v4()
+        id     = uuid.v4()
         async.series([
             (c) =>
                 @socket (err, _socket) ->
@@ -1256,8 +1286,11 @@ class Project
                     else
                         socket = _socket
             (c) =>
-                m = message.make_directory_in_project(id:id, project_id:@project_id, path:path)
-                socket.write_mesg('json', m)
+                m = message.make_directory_in_project
+                    id         : id
+                    project_id : @project_id
+                    path       : path
+                socket.write_mesg 'json', m
                 c()
             (c) =>
                 socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
@@ -1273,14 +1306,15 @@ class Project
     # Move a file or directory
     move_file: (src, dest, cb) ->
         socket = undefined
-        id = uuid.v4()
+        id     = uuid.v4()
         async.series([
             (c) =>
-                @socket (err,_socket) ->
+                @socket (err, _socket) ->
                     if err
                         c(err)
                     else
                         socket = _socket
+                        c()
             (c) =>
                 m = message.move_file_in_project
                     id         : id
@@ -1303,7 +1337,7 @@ class Project
     # Remove a file or directory
     remove_file: (path, cb) ->
         socket = undefined
-        id = uuid.v4()
+        id     = uuid.v4()
         async.series([
             (c) =>
                 @socket (err,_socket) ->
@@ -1311,6 +1345,7 @@ class Project
                         c(err)
                     else
                         socket = _socket
+                        c()
             (c) =>
                 m = message.remove_file_in_project
                     id         : id

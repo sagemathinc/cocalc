@@ -17,8 +17,9 @@ COMPUTE_SERVER_PORTS =
     console : 6001
     project : 6002
 
-MIN_SCORE = 5
-MAX_SCORE = 5
+# This is used for project servers.
+MAX_SCORE = 3
+MIN_SCORE = -3   # if hit, server is considered busted.
 
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
@@ -446,8 +447,6 @@ class exports.Salvus extends exports.Cassandra
                 else
                     cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
 
-
-
     #####################################
     # Managing compute servers
     #####################################
@@ -457,34 +456,73 @@ class exports.Salvus extends exports.Cassandra
     running_compute_servers: (opts={}) ->
         opts = defaults opts,
             cb   : required
-            type : required    # 'sage', 'console', 'project', 'compute'
-        @select(table:'compute_servers', columns:['host','score'], where:{running:true}, cb:(error, results) =>
-            if results.length == 0 and @keyspace == 'test'
-                opts.cb(error, [{host:'localhost', port:COMPUTE_SERVER_PORTS[opts.type]}])
-            else
-                opts.cb(error, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type], score:x[1]} for x in results)
-        )
+            type : required    # 'sage', 'console', 'project', 'compute', etc.
+
+        @select
+            table   : 'compute_servers'
+            columns : ['host', 'score']
+            where   : {running:true}
+            cb      : (err, results) =>
+                if results.length == 0 and @keyspace == 'test'
+                    # This is used when testing the compute servers
+                    # when not run as a daemon so there is not entry
+                    # in the database.
+                    opts.cb(err, [{host:'localhost', port:COMPUTE_SERVER_PORTS[opts.type], score:0}])
+                else
+                    opts.cb(err, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type], score:x[1]} for x in results)
 
     # cb(error, random running sage server) or if there are no running
-    # sage servers, then cb(undefined)
+    # sage servers, then cb(undefined).  We only consider servers whose
+    # score is strictly greater than opts.min_score.
     random_compute_server: (opts={}) ->
         opts = defaults opts,
             cb        : required
             type      : required
-            min_score : MIN_SCORE
+
         @running_compute_servers
             type : opts.type
             cb   : (error, res) ->
-                res = (x for x in res if x.score >= opts.min_score)
+                res = (x for x in res if x.score > MIN_SCORE)
                 opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
 
-    # Adjust the score on a compute server
+    # Adjust the score on a compute server.  It's possible that two
+    # different servers could change this at the same time, thus
+    # messing up the score slightly.  However, the score is a rough
+    # heuristic, not a bank account balance, so I'm not worried.
+    # TODO: The score algorithm -- a simple integer delta -- is
+    # trivial; there is a (provably?) better approach used by
+    # Cassandra that I'll implement in the future.
     score_compute_server: (opts) ->
         opts = defaults opts,
-            host : required
-            cb   : undefined
-            delta: required
-        @cql("UPDATE compute_servers SET score = score + ? WHERE host = ?", [opts.delta, opts.host], opts.cb)
+            host  : required
+            delta : required
+            cb    : undefined
+        new_score = undefined
+        async.series([
+            (cb) ->
+                @select
+                    table   : 'compute_servers'
+                    columns : 'score'
+                    where   : {host:opts.host}
+                    cb      : (err, results) ->
+                        if err
+                            cb(err)
+                            return
+                        if results.length == 0
+                            cb("No compute server '#{opts.host}'")
+                        new_score = results[0][0] + opts.delta
+                        cb()
+            (cb) ->
+                if new_score >= MIN_SCORE and new_score <= MAX_SCORE
+                    @update
+                        table : 'compute_servers'
+                        set   : {score : new_score}
+                        where : {host  : opts.host}
+                        cb    : cb
+                else
+                    # new_score is outside the allowed range, so we do nothing.
+                    cb()
+        ], opts.cb)
 
     #####################################
     # User plans (what features they get)

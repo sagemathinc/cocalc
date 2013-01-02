@@ -1,3 +1,6 @@
+        #@cql("UPDATE compute_servers SET score = score + ? WHERE host = ?", [opts.delta, opts.host], opts.cb)
+
+
     if mesg.path[mesg.path.length-1] == '/'
         errmesg = message.error
             id    : mesg.id
