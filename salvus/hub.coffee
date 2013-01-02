@@ -809,13 +809,13 @@ class Project
                 cb(err)
 
         # Make sure not to cache the socket in case anything goes wrong with it.
-        socket.once 'close'
+        socket.once 'close', () =>
             if @_socket?
                 delete @_socket
-        socket.once 'end'
+        socket.once 'end', () =>
             if @_socket?
                 delete @_socket
-        socket.once 'timeout'
+        socket.once 'timeout', () =>
             if @_socket?
                 delete @_socket
 
@@ -1088,12 +1088,12 @@ class Project
 
                 recv_bundles = (type, mesg) =>
                     switch type
-                         when 'json'
+                        when 'json'
                             if mesg.id == id
                                 switch mesg.event
-                                    case 'error'
+                                    when 'error'
                                         c(true, mesg.error)
-                                    case 'project_saved'
+                                    when 'project_saved'
                                         project_saved_mesg = mesg
                                         bundle_uuids       = mesg.bundle_uuids
                                         remaining_bundles  = misc.len(bundles)

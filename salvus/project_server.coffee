@@ -192,7 +192,7 @@ events = {}
 events.open_project = (socket, mesg) ->
     # The first step in opening a project is to wait to receive all of
     # the bundle blobs.  We do the extract step below in _open_project2.
-    mesg.bundles = misc.pairs_to_obj( (u, null) for u in mesg.bundle_uuids )
+    mesg.bundles = misc.pairs_to_obj( [u, null] for u in mesg.bundle_uuids )
     n = misc.len(mesg.bundles)
     if n == 0
         _open_project2(socket, mesg)
@@ -250,7 +250,7 @@ commit_all = (opts) ->
 
 # Obtain all branches in this repo.
 get_branches = (path, cb) ->
-    child_process.exec("cd #{path} && git branch --no-color", (err, stdout, stderr) ->
+    child_process.exec "cd #{path} && git branch --no-color", (err, stdout, stderr) ->
         if err
             cb(err)
         else
@@ -275,7 +275,7 @@ get_files_and_logs = (path, cb) ->
     async.series([
         # Get the branches and the current branch
         (cb) ->
-            get_branches(path, (err, r) ->
+            get_branches path, (err, r) ->
                 if err
                     cb(err)
                 else
@@ -287,16 +287,14 @@ get_files_and_logs = (path, cb) ->
                         cb()
         # Get the list of all files in each branch, as a JSON string
         (cb) ->
-            child_process.exec("cd '#{path}' && gitfiles", (err, stdout, stderr) ->
+            child_process.exec "cd '#{path}' && gitfiles", (err, stdout, stderr) ->
                 files = stdout
                 cb(err)
-            )
         # Get the log for each branch, as a JSON string
         (cb) ->
-            child_process.exec("cd '#{path}' && gitlogs", (err, stdout, stderr) ->
+            child_process.exec "cd '#{path}' && gitlogs", (err, stdout, stderr) ->
                 logs = stdout
                 cb(err)
-            )
     ], (err) ->
         if err
             cb(err)
