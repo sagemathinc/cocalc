@@ -533,6 +533,7 @@ events.remove_file_in_project = (socket, mesg) ->
 #
 ####################################################################
 server = net.createServer (socket) ->
+    console.log("new connection!")
     misc_node.enable_mesg(socket)  # enable sending/receiving json, blob, etc. messages over this socket.
     socket.on 'mesg', (type, mesg) ->   # handle json messages
         if type == 'json' # other types are handled elsewhere in event code.

@@ -11,7 +11,7 @@
 #
 #########################################################################
 
-COMPUTE_SERVER_PORTS =
+exports.COMPUTE_SERVER_PORTS = COMPUTE_SERVER_PORTS =
     compute : 5999
     sage    : 6000
     console : 6001
@@ -968,11 +968,11 @@ class exports.Salvus extends exports.Cassandra
             objectify  : true
             cb         : (err, results) ->
                 if err
-                    cb(err)
+                    opts.cb(err)
                 else if results.length == 0
-                    cb("No project in the database with id #{project_id}")
+                    opts.cb("No project in the database with id #{project_id}")
                 else
-                    cb(false, results[0])
+                    opts.cb(false, results[0])
 
     get_project_bundles: (opts) ->
         opts = defaults opts,

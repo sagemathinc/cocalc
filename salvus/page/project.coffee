@@ -4,8 +4,9 @@
 #
 ###############################################################################
 
-{top_navbar} = require('top_navbar')
+{top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
+{alert_message} = require('alerts')
 
 MAX_TITLE_LENGTH = 25
 
@@ -16,6 +17,18 @@ class ProjectPage
         @container.top_navbar
             id    : @project_id
             label : @project_id
+        @container.find(".project-new-file").click(@new_file_dialog)
+
+    new_file_dialog: () =>
+        console.log("new_file_dialog")
+        salvus_client.write_file_to_project
+            project_id : @project_id,
+            path       : 'new_file.txt',
+            content    : ''
+            cb         : (err) ->
+                if err
+                    alert_message(type:"error", message:err)
+
 
     set_model: (project) ->
         @project = project

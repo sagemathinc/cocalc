@@ -618,6 +618,17 @@ message
     path         : required
     data_uuid    : required  # hub sends raw data as a blob with this uuid immediately.
 
+# The client sends this message to the hub in order to write (or
+# create) a plain text file (binary files not allowed, since sending
+# them via JSON makes no sense).
+# client --> hub
+message
+    event        : 'write_text_file_to_project'
+    id           : undefined
+    project_id   : required
+    path         : required
+    content      : required
+
 # The file_written_to_project message is sent by a project_server to
 # confirm successful write of the file to the project.
 # project_server --> hub

@@ -644,6 +644,13 @@ class Client extends EventEmitter
                                     where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
+    mesg_write_text_file_to_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.write_file mesg.path, mesg.content, (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.file_written_to_project(id:mesg.id))
 
 
 
@@ -787,7 +794,8 @@ class Project
             cb(false, @_socket.socket)
             return
 
-        socket = net.connection {host:host, port:database.COMPUTE_SERVER_PORTS.project}, () =>
+        socket = net.connect {host:host.host, port:host.port}, () =>
+            console.log("!! connected")
             # connected
             misc_node.enable_mesg(socket)
             # We cache the connection for later.  We only cache a
@@ -829,7 +837,7 @@ class Project
         database.is_project_being_opened(project_id:@project_id, cb:cb)
 
     _lock_for_opening: (ttl, cb) ->    # cb(err)
-        database.lock_project_for_opening(project:id:@project_id, ttl:ttl, cb:cb)
+        database.lock_project_for_opening(project_id:@project_id, ttl:ttl, cb:cb)
 
     _is_being_saved: (cb) ->    # cb(err, is_being_opened)
         database.is_project_being_saved(project_id:@project_id, cb:cb)
@@ -874,7 +882,7 @@ class Project
             # already opened on a compute server, and if so, return
             # that host.
             (c) =>
-                @get_host @project_id, (err, host) ->
+                @get_host (err, host) ->
                     if err
                         if cb?
                             cb(err)
@@ -912,7 +920,7 @@ class Project
                         c()
 
             # Open the project on that host
-            (c) ->
+            (c) =>
                 @_open_on_host host, (err) =>
                     if err
                         # Downvote this host, and try again.
@@ -1136,6 +1144,7 @@ class Project
     close: (cb) =>  # cb(err) -- indicates when done
         id = uuid.v4()
         socket = undefined
+        host = undefined
 
         async.series([
             # Get project's current host
@@ -1237,7 +1246,7 @@ class Project
     # directly change anything in the database -- it only impacts the
     # files on the compute node.  This does not trigger a save (which
     # would change the database).
-    write_file: (path, data, cb) ->   # cb(err, content_of_file_as_a_buffer)
+    write_file: (path, data, cb) ->   # cb(err)
         socket    = undefined
         id        = uuid.v4()
         data_uuid = uuid.v4()
@@ -1251,13 +1260,14 @@ class Project
                         socket = _socket
                         c()
             (c) =>
-                mesg = message.write_file_from_project
+                mesg = message.write_file_to_project
                     id         : id
                     project_id : @project_id
                     path       : path
                     data_uuid  : data_uuid
                 socket.write_mesg 'json', mesg
                 socket.write_mesg 'blob', data
+                c()
 
             (c) =>
                 socket.recv_mesg type: 'json', id:id, timeout:10, cb:(mesg) ->
@@ -1268,12 +1278,7 @@ class Project
                             c(mesg.error)
                         else
                             c("Unexpected message type '#{mesg.event}'")
-        ], (err) ->
-            if err
-                cb(err)
-            else
-                cb(false, data)
-        )
+        ], cb)
 
     make_directory: (path, cb) ->
         socket = undefined

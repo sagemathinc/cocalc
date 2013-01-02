@@ -9136,7 +9136,7 @@ Then slowly add functionality to client:
     [x] make projects view the default
     [x] create a new project
     [x] correctly show last time project was changed
-
+-->  [ ] create new (empty) file
     [ ] open project (so get list of files, logs, branches, etc.)
         -- some testing in unit tests
     [ ] save file
