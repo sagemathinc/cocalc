@@ -9130,11 +9130,13 @@ Next steps:
 
 [x] get everything to compile (coffeescript)
 [x] get everything to start up
-[ ] write very simple client code to use it a little and corresponding hub code to tie it together
 
-Then:
+Then slowly add functionality to client:
+ 
+    [x] make projects view the default
+    [x] create a new project
+--> [ ] correctly show last time project was changed
 
-[ ] client:
     [ ] open project (so get list of files, logs, branches, etc.)
         -- some testing in unit tests
     [ ] save file

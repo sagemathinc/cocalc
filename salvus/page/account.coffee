@@ -213,12 +213,13 @@ signed_in = (mesg) ->
             set_account_tab_label(true, mesg.first_name, mesg.last_name)
             top_navbar.show_page_button("projects")
             top_navbar.show_page_button("worksheet1")
-            top_navbar.switch_to_page("worksheet1")
+            # Load the default worksheet (for now)
             require('worksheet1').load_scratch_worksheet()
+
             #TEMPORARY -- for writing new cell/worksheet/etc. code
             top_navbar.show_page_button("worksheet2")
-            top_navbar.switch_to_page("worksheet2")
-            # Load the default worksheet (for now)
+
+            top_navbar.switch_to_page("projects")
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.

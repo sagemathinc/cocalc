@@ -892,13 +892,14 @@ class exports.Salvus extends exports.Cassandra
             (cb) =>
                 @get_projects_with_ids
                     ids : (x[0] for x in projects)
-                    cb : (error, results) ->
+                    cb  : (error, results) ->
                         if error
                             opts.cb(error)
                             cb(true)
                         else
+                            console.log("!! projects=#{misc.to_json(projects)}, results=#{misc.to_json(results)}")
                             if projects.length > 0
-                                for i in [0...projects.length-1]
+                                for i in [0...projects.length]
                                     results[i].mode = projects[i].mode
                             opts.cb(false, results)
                             cb()
