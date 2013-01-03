@@ -4,9 +4,9 @@ sage_server.py -- unencrypted forking TCP server that can run as root,
                create accounts on the fly, and serve sage as those
                accounts, using protobuf messages.
 
-For debugging:
+For debugging (as normal user, do):
 
-       sage --python sage_server.py -p 6000 --host 127.0.0.1
+    killemall sage_server.py && sage --python sage_server.py -p 6000 --host 127.0.0.1
 
 """
 
@@ -400,6 +400,31 @@ class Salvus(object):
         """
         kwds['coffeescript'] = True
         return self.execute_javascript(*args, **kwds)
+
+    def cython(self, filename, **opts):
+        """
+        Return module obtained by compiling the Cython code in the
+        given file.
+
+        INPUT:
+
+           - filename -- name of a Cython file
+           - all other options are passed to sage.misc.cython.cython unchanged,
+             except for use_cache which defaults to True (instead of False)
+
+        OUTPUT:
+
+           - a module
+        """
+        if 'use_cache' not in opts:
+            opts['use_cache'] = True
+        import sage.misc.cython
+        modname, path = sage.misc.cython.cython(filename, **opts)
+        import sys
+        sys.path.append(path)
+        module = __import__(modname)
+        sys.path.pop()
+        return module
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
