@@ -984,7 +984,7 @@ class exports.Salvus extends exports.Cassandra
                     if results.length == 0
                         opts.cb(err, -1)
                     else
-                        opts.cb(err, results[0].get('number')) # TODO: make sure this is right!!
+                        opts.cb(err, results[0].get('number').value)
         )
 
     get_project_open_info: (opts) ->

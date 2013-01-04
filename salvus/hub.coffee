@@ -1158,6 +1158,9 @@ class Project
                                         project_saved_mesg = mesg
                                         bundle_uuids       = mesg.bundle_uuids
                                         remaining_bundles  = misc.len(bundle_uuids)
+                                        if remaining_bundles == 0
+                                            # done -- no need to wait for any blobs
+                                            c()
                         when 'blob'
                             if bundle_uuids? and bundle_uuids[mesg.uuid]?
                                 database.save_project_bundle
