@@ -17,8 +17,10 @@ class ProjectPage
         @container.top_navbar
             id    : @project_id
             label : @project_id
+
         @container.find(".project-new-file").click(@new_file_dialog)
         @container.find(".project-save").click(@save_project_dialog)
+        @container.find(".project-close").click(@close_project_dialog)
 
     save_project_dialog: () =>
         salvus_client.save_project
@@ -27,6 +29,17 @@ class ProjectPage
             cb         : (err) ->
                 if err
                     alert_message(type:"error", message:err)
+                else
+                    alert_message(type:"success", message: "Project successfully saved.")
+
+    close_project_dialog: () =>
+        salvus_client.close_project
+            project_id : @project_id
+            cb         : (err) ->
+                if err
+                    alert_message(type:"error", message:err)
+                else
+                    alert_message(type:"success", message: "Project closed.")
 
     new_file_dialog: () =>
         salvus_client.write_file_to_project
@@ -36,6 +49,8 @@ class ProjectPage
             cb         : (err) ->
                 if err
                     alert_message(type:"error", message:err)
+                else
+                    alert_message(type:"success", message: "New file created.")
 
 
     set_model: (project) ->

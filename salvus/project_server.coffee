@@ -168,8 +168,12 @@ delete_user_32 = (uname, cb) ->
 
 # Kill all processes running as a given user.
 killall_user = (uname, cb) ->
-    child_process.exec "killall -s 9 -u #{uname}", (err, stdout, stderr) ->
-        cb(err)
+    cmd = "killall -s 9 -u #{uname}"
+    winston.debug(cmd)
+    child_process.exec cmd, (err, stdout, stderr) ->
+        # We ignore the return error code, since even if there are no
+        # processes at all, we get a return code of 1.
+        cb()
 
 # Given an object called 'bundles' containing (in order) the possibly
 # empty collection of bundles that define a git repo, extract each
@@ -444,13 +448,13 @@ events.save_project = (socket, mesg) ->
     )
 
 cleanup = (uname, cb) ->
-    console.log('0')
+    console.log('cleanup')
     async.series([
         (cb) ->
-            console.log('a')
+            console.log('cleanup -- killall_user')
             killall_user(uname, cb)
         (cb) ->
-            console.log('b')
+            console.log('cleanup -- delete_user_32')
             delete_user_32(uname, cb)
     ], cb)
 

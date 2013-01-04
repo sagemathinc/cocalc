@@ -645,15 +645,25 @@ class Client extends EventEmitter
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
     mesg_save_project: (mesg) =>
+        # TODO -- permissions!
         project = new Project(mesg.project_id)
-        project.save(mesg.commit_mesg, @account_id, (err) =>
+        project.save mesg.commit_mesg, @account_id, (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(message.success(id:mesg.id))
-        )
+
+    mesg_close_project: (mesg) =>
+        # TODO -- permissions!
+        project = new Project(mesg.project_id)
+        project.close (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
 
     mesg_write_text_file_to_project: (mesg) =>
+        # TODO -- permissions!
         #console.log("**** mesg_write_text_file_to_project")
         project = new Project(mesg.project_id)
         project.write_file mesg.path, mesg.content, (err) =>
@@ -805,7 +815,7 @@ class Project
     _connect: (host, cb) ->
         if not host?
             throw "BUG -- host must be defined"
-            
+
         if @_socket? and @_socket.host == host
             cb(false, @_socket.socket)
             return
@@ -869,20 +879,20 @@ class Project
             (c) =>
                 @open (err, _host) =>
                     if err
-                        console.log("XX 1")
+                        console.log("XX 1 -- #{err}")
                         c(err)
                     else
                         host = _host
-                        console.log("XX 2")                        
+                        console.log("XX 2")
                         c()
             (c) =>
                 @_connect host, (err, _socket) =>
                     if err
-                        console.log("XX 3")                        
+                        console.log("XX 3 -- #{err}")
                         c(err)
                     else
                         socket = _socket
-                        console.log("XX 4")                                                
+                        console.log("XX 4")
                         c()
         ], (err) ->
             if err
@@ -896,35 +906,32 @@ class Project
     # error.  (The client can choose to show some sort of notification
     # and retry after waiting a moment.)
     open: (cb) ->   # cb(err, host)
+        if not cb?
+            throw "cb must be defined"
         host = undefined
+        had_to_recurse = false
         async.series([
             # First, we check in the database to see if the project is
             # already opened on a compute server, and if so, return
             # that host.
             (c) =>
+                console.log("open project -- get host")
                 @get_host (err, host) ->
                     if err
-                        if cb?
-                            cb(err)
                         c(true) # failed -- done
                     else if host?
-                        # open already, so return the location
-                        if cb?
-                            cb(false, host)
                         c(true) # done
                     else
                         c()
 
             # Is anybody else trying to open this project right now?
             (c) =>
+                console.log("open project -- check if anybody else opening project right now")
                 @_is_being_opened (err, is_being_opened) =>
                     if err
-                        if cb?
-                            cb(err)
                         c(true)  # failed -- don't try any further
                     else if is_being_opened
-                         cb("Project #{@project_id} is currently being opened by another hub. Please try again later.")
-                         c(true)
+                         c("Project #{@project_id} is currently being opened by another hub. Please try again later.")
                     else
                         # Not open, not being opened, let's get on it!
                         # The 15 below is a timeout in seconds, after which our lock self-destructs.
@@ -932,6 +939,7 @@ class Project
 
             # We choose a project server host.
             (c) =>
+                console.log("open project -- choose a host")
                 @_choose_new_host (err, _host) ->
                     if err
                         c(err)
@@ -941,35 +949,39 @@ class Project
 
             # Open the project on that host
             (c) =>
+                console.log("open project -- open on that host (='#{host}')")
                 @_open_on_host host, (err) =>
                     if err
                         if host == 'localhost' or host == '127.0.0.1'
                             # debugging mode -- just give up instantly.
-                            cb(err)
                             c(true)
                             return
 
                         # Downvote this host, and try again.
-                        @_minus_one_host(host, (err) =>
+                        @_minus_one_host host, (err) =>
                             if err
                                 # This is serious -- if we can't even connect to the database
                                 # to flag a host as down, then there is no point in going on.
-                                cb(err)
                                 c(true)
                             else
                                 # Try again.  This will not lead to infinite recursion since each
                                 # time it is called, we just successfully flagged a host as down
                                 # in the database, and eventually we'll run out of hosts.
+                                had_to_recurse = true
                                 @open(cb)
                                 c()
-                        )
                     else
                         # Finally, got it!
-                        cb(false, host)
                         # Upvote this host, since it worked.
                         @_plus_one_host(host)
                         c()
-        ])
+        ], (err) ->
+            if not had_to_recurse   # the recurssive call will call cb
+                if host?  # if host got defined then done
+                    cb(false, host)
+                else
+                    cb(err, host)
+        )
 
     # This is called by 'open' once we determine that the project is
     # not already opened, and also we determine on which host we plan
@@ -1072,60 +1084,62 @@ class Project
         host               = undefined
         project_saved_mesg = undefined
         recv_bundles       = undefined
+        not_open = false
 
         async.series([
             # If project is already locked for saving (by this or
             # another hub), return an error.
             (c) =>
-                console.log("!! 1")
+                # console.log("!! 1")
                 @_is_being_saved (err,is_being_saved) =>
                     if err
-                        c(true, err)
+                        c(err)
                     else if is_being_saved
-                        c(true, "Project can be saved at most once every 30 seconds.")
+                        c("Project can be saved at most once every 30 seconds.")
                     else
                         @_lock_for_saving(30, c)
 
             # Determine which project_server is hosting this project.
             # If none, then there is nothing further to do.
             (c) =>
-                console.log("!! 2")                
+                # console.log("!! 2")
                 database.get_project_host project_id:@project_id, cb:(err, _host) ->
                     if err
-                        c(true, err)
+                        c(err)
                     else
                         if not _host?
-                            c(true, err)
+                            not_open = true
+                            c(true)
                         else
                             host = _host
                             c()
 
             # Get the user's name and email for the commit message
             (c) =>
-                console.log("!! 2.5")
+                # console.log("!! 2.5")
                 database.get_gitconfig account_id:account_id, cb:(err, gitconfig) ->
                     if err
                         c(err)
                     else
                         save_mesg.gitconfig = gitconfig
                         c()
-                        
+
             # Find the index of the largest bundle that we already have in the database
             (c) =>
-                console.log("!! 3")                                
+                # console.log("!! 3")
                 database.largest_project_bundle_index project_id:@project_id, cb:(err, n) ->
                     if err
-                        c(true, err)
+                        c(err)
                     else
                         save_mesg.starting_bundle_number = n + 1
                         c()
 
             # Connect to the project server that is hosting this project right now.
             (c) =>
-                console.log("!! 4")                                                
+                # console.log("!! 4")
                 @_connect host, (err, s) ->
                     if err
-                        c(true, err)
+                        c(err)
                     else
                         socket = s
                         c()
@@ -1134,26 +1148,26 @@ class Project
             # the the project and send back to us any bundle(s) that
             # it creates when saving the project.
             (c) =>
-                console.log("!! 5")                                                                
+                # console.log("!! 5")
                 socket.write_mesg 'json', save_mesg
                 c()
 
             # Listen for bundles, find out how many bundles to expect
             # and receive the bundles.
             (c) =>
-                console.log("!! 6")                                                                
+                # console.log("!! 6")
                 bundle_uuids      = undefined
                 remaining_bundles = undefined
 
                 recv_bundles = (type, mesg) =>
-                    console.log("recv_bundles: #{type}")
+                    ## console.log("recv_bundles: #{type}")
                     switch type
                         when 'json'
-                            console.log("json_message = #{misc.to_json(mesg)}")
+                            #console.log("json_message = #{misc.to_json(mesg)}")
                             if mesg.id == id
                                 switch mesg.event
                                     when 'error'
-                                        c(true, mesg.error)
+                                        c(mesg.error)
                                     when 'project_saved'
                                         project_saved_mesg = mesg
                                         bundle_uuids       = mesg.bundle_uuids
@@ -1169,7 +1183,7 @@ class Project
                                     bundle     : mesg.blob
                                     cb         : (err) ->
                                         if err
-                                            c(true, err)
+                                            c(err)
                                         else
                                             remaining_bundles -= 1
                                             if remaining_bundles == 0
@@ -1178,49 +1192,47 @@ class Project
                 socket.on 'mesg', recv_bundles
 
             (c) =>
-                console.log("!! 7")                                                                
+                # console.log("!! 7")
                 database.save_project_meta
                     project_id     : @project_id
                     files          : project_saved_mesg.files
                     logs           : project_saved_mesg.logs
                     current_branch : project_saved_mesg.current_branch
-                    cb             : (err) ->
-                        if err
-                            c(true, err)
-                        else
-                            c()
-
-        ], (err, err_mesg) ->
+                    cb             : c
+        ], (err) ->
             if socket? and recv_bundles?
                 socket.removeListener('mesg', recv_bundles)
-            if err
-                cb(err_mesg)
+            if not_open
+                cb()
+            else
+                cb(err)
         )
 
     # Close the project.  This does *NOT* save the project first; it
     # just immediately kills all processes and clears all disk space.
     close: (cb) =>  # cb(err) -- indicates when done
-        id = uuid.v4()
+        id     = uuid.v4()
         socket = undefined
-        host = undefined
+        host   = undefined
 
         async.series([
             # Get project's current host
             (c) =>
-                database.get_project_host project_id:@project_id, cb: (err, h) ->
+                database.get_project_host project_id:@project_id, cb: (err, _host) ->
                     if err
-                        c(true, err)
+                        c(true)
                     else
-                        if not h?      # not currently hosted somewhere, so "done" but no error.
-                            c(true)
-                        host = h
-                        c()
+                        if not _host?      # not currently hosted somewhere, so "done" but no error.
+                            c('ok')
+                        else
+                            host = _host
+                            c()
 
             # Connect to the project server that is hosting this project right now.
             (c) =>
                 @_connect host, (err, s) ->
                     if err
-                        c(true, err)
+                        c(err)
                     else
                         socket = s
                         c()
@@ -1228,32 +1240,44 @@ class Project
             # Put a lock, so nobody tries to save or open this project while we are closing.
             # 15 seconds should be plenty of time.
             (c) =>
+                console.log("project close: -- lock")
                 @_lock_for_opening(15, c)
                 @_lock_for_saving(15, c)
 
             # Send the close message
             (c) =>
+                console.log("project close: -- send close message")
                 socket.write_mesg 'json', message.close_project(id: id, project_id: @project_id)
                 c()
 
-            # And wait for response from server
+            # And wait for response from project server
             (c) =>
+                console.log("project close: -- waiting for response from project server")
                 socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
                     switch mesg.event
                         when 'error'
-                            c(true, mesg.error)
+                            c(mesg.error)
                         when 'project_closed'
                             c() # successfully closed project
+                        else
+                            c("BUG closing project -- unknown mesg event type '#{mesg.event}'")
 
             # Store in the database that the project is not allocated
             # on any host.
             (c) =>
+                console.log("project close -- store that project is closed")
                 database.set_project_host
                     project_id : @project_id
-                    host       : undefined
-                    cb         : (err) -> c(false, err)
+                    host       : ""
+                    cb         : c
 
-        ], (dummy, err) -> cb(err))
+        ], (err) ->
+            console.log("err = #{err}")
+            if err == 'ok'
+                cb()
+            else
+                cb(err)
+        )
 
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does
@@ -1312,7 +1336,7 @@ class Project
         async.series([
             (c) =>
                 @socket (err, _socket) ->
-                    console.log("@socket returned: #{err}, #{_socket}")
+                    # console.log("@socket returned: #{err}, #{_socket}")
                     if err
                         c(err)
                     else
@@ -1324,7 +1348,7 @@ class Project
                     project_id : @project_id
                     path       : path
                     data_uuid  : data_uuid
-                console.log("mesg = #{misc.to_json(mesg)}")
+                # console.log("mesg = #{misc.to_json(mesg)}")
                 socket.write_mesg 'json', mesg
                 socket.write_mesg 'blob', {uuid:data_uuid, blob:data}
                 c()

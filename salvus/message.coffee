@@ -536,10 +536,10 @@ message
 # and clears up all resources allocated for this project.  So make
 # sure to send a save_project message first!
 #
-# hub --> project_server
+# client --> hub --> project_server
 message
     event         : 'close_project'
-    id            : required
+    id            : undefined
     project_id    : required
 
 # A project_server sends this message in response to a close_project

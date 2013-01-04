@@ -798,7 +798,6 @@ class exports.Salvus extends exports.Cassandra
                 else if results.length == 0
                     opts.cb("There is no project with ID #{opts.project_id}.")  # error
                 else
-                    console.log("query results = #{misc.to_json(results)}")
                     host = results[0][0]
                     # We also support "" for the host not being
                     # defined, since some drivers, e.g., cqlsh do not

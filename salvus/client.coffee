@@ -637,6 +637,16 @@ class exports.Connection extends EventEmitter
                     commit_mesg : opts.commit_mesg
             cb : opts.cb
 
+    close_project: (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            cb          : required
+        @call
+            message :
+                message.close_project
+                    project_id  : opts.project_id
+            cb : opts.cb
+
     write_file_to_project: (opts) ->
         opts = defaults opts,
             project_id : required
