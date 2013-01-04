@@ -775,12 +775,18 @@ class exports.Salvus extends exports.Cassandra
                 else if results.length == 0
                     opts.cb("There is no project with ID #{opts.project_id}.")  # error
                 else
-                    opts.cb(false, results[0][0])
+                    host = results[0][0]
+                    # We also support "" for the host not being
+                    # defined, since some drivers, e.g., cqlsh do not
+                    # support setting a column to null.
+                    if host? and host.length == 0
+                        host = undefined
+                    opts.cb(false, host)
 
     set_project_host: (opts) ->
         opts = defaults opts,
             project_id : required
-            host       : undefined   # undefined is meaningful, and means "not on a host"
+            host       : undefined   # undefined is meaningful, and means "not on a host" (as does "")
             cb         : required
         @update
             table : 'projects'

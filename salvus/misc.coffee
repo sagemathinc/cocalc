@@ -185,3 +185,9 @@ exports.deep_copy = (obj) ->
 
     return newInstance
 
+# Split a pathname.  Returns an object {head:..., tail:...} where tail is
+# everything after the final slash.  Either part may be empty.
+# (Same as os.path.split in Python.)
+exports.path_split = (path) ->
+    v = path.split('/')
+    return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}

@@ -541,7 +541,7 @@ class Client extends EventEmitter
         database.uuid_value_store(name:"scratch_worksheets").get
             uuid : @account_id
             cb   : (error, data) =>
-                console.log("error=#{error}, data=#{data}")
+                #console.log("error=#{error}, data=#{data}")
                 if error
                     @push_to_client(message.error(id:mesg.id, error:error))
                 else
@@ -645,6 +645,7 @@ class Client extends EventEmitter
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
     mesg_write_text_file_to_project: (mesg) =>
+        #console.log("**** mesg_write_text_file_to_project")
         project = new Project(mesg.project_id)
         project.write_file mesg.path, mesg.content, (err) =>
             if err
@@ -854,16 +855,20 @@ class Project
             (c) =>
                 @open (err, _host) =>
                     if err
+                        console.log("XX 1")
                         c(err)
                     else
                         host = _host
+                        console.log("XX 2")                        
                         c()
             (c) =>
                 @_connect host, (err, _socket) =>
                     if err
+                        console.log("XX 3")                        
                         c(err)
                     else
                         socket = _socket
+                        console.log("XX 4")                                                
                         c()
         ], (err) ->
             if err
@@ -1267,6 +1272,7 @@ class Project
         async.series([
             (c) =>
                 @socket (err, _socket) ->
+                    console.log("@socket returned: #{err}, #{_socket}")
                     if err
                         c(err)
                     else
@@ -1278,8 +1284,9 @@ class Project
                     project_id : @project_id
                     path       : path
                     data_uuid  : data_uuid
+                console.log("mesg = #{misc.to_json(mesg)}")
                 socket.write_mesg 'json', mesg
-                socket.write_mesg 'blob', data
+                socket.write_mesg 'blob', {uuid:data_uuid, blob:data}
                 c()
 
             (c) =>

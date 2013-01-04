@@ -24,7 +24,7 @@ class ProjectPage
         salvus_client.write_file_to_project
             project_id : @project_id,
             path       : 'new_file.txt',
-            content    : ''
+            content    : 'This is a new file.'
             cb         : (err) ->
                 if err
                     alert_message(type:"error", message:err)

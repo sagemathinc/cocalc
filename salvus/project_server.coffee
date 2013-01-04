@@ -25,6 +25,7 @@ winston        = require 'winston'
 program        = require 'commander'
 daemon         = require 'start-stop-daemon'
 net            = require 'net'
+fs             = require 'fs'
 
 async          = require 'async'
 
@@ -55,28 +56,53 @@ username = (project_id) ->
 userpath = (project_id) ->
     return "/home/#{username(project_id)}"
 
-# Verify that path really describes something that would be a
-# directory under userpath, rather than a shell injection attack.
+# Check for dangerous characters in a string.
 BAD_SHELL_INJECTION_CHARS = '<>|,;$&"\''
+has_bad_shell_chars = (s) ->
+    for x in BAD_SHELL_INJECTION_CHARS
+        if x in s
+            return true
+    return false
 
+# Verify that path really describes something that would be a
+# directory under userpath, rather than a shell injection attack
+# or a path of another user.
 verify_that_path_is_valid = (project_id, path, cb) ->
     if not path?
         cb("path is undefined")
         return
 
-    fs.realpath path, (err, resolvedPath) ->
-        if err
-            cb(err)
-            return
-        p = userpath(project_id)
-        if resolvedPath.slice(0,p.length) != p
-            cb("path (=#{path}) must resolve to a directory or file under #{p}")
-            return
-        for x in BAD_SHELL_INJECTION_CHARS
-            if x in resolvedPath
-                cb("path contains suspicious character -- '#{x}'")
-                return
-        cb(false, resolvedPath)
+    resolvedPath = undefined
+
+    async.series([
+        (c) ->
+            fs.realpath path, (err, _resolvedPath) ->
+                resolvedPath = _resolvedPath
+                if err and err.errno==34  # 34 = no such file Try
+                    # again, but with the last segment of the path
+                    # deleted; this could be a path to a file or
+                    # directory that doesn't exist yet.
+                    {head, tail} = misc.path_split(path)
+                    verify_that_path_is_valid project_id, head, (err, _resolvedPath) ->
+                        if err
+                            c(err)
+                        else if has_bad_shell_chars(tail)
+                            c("filename '#{fname}' is not allowed to contain any of the following characters: '#{BAD_SHELL_INJECTION_CHARS}'")
+                        else
+                            resolvedPath = "#{_resolvedPath}/#{tail}"
+                            c()
+                else
+                    c(err)
+        (c) ->
+            p = userpath(project_id)
+            if resolvedPath.slice(0,p.length) != p
+                c("path (=#{path}) must resolve to a directory or file under #{p}")
+            else if has_bad_shell_chars(resolvedPath)
+                c("path '#{resolvedPath}' is not allowed to contain any of the following characters: '#{BAD_SHELL_INJECTION_CHARS}'")
+            c(false)
+    ], (err) -> cb(err, resolvedPath)
+    )
+
 
 # salvus@cassandra01:~$  sudo dumpe2fs -h /dev/mapper/salvus--base-root|grep "Block size:"
 # [sudo] password for salvus:
@@ -94,7 +120,6 @@ create_user = (username, quota, cb) ->
         (cb) ->
             console.log("useradd -U -m #{username}")
             child_process.exec "useradd -U -m #{username}", (err, stdout, stderr) ->
-                console.log(err, stdout, stderr)
                 cb(err)
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
@@ -114,7 +139,12 @@ create_user = (username, quota, cb) ->
                 # Everything is good, let's do it!
                 cmd = "setquota -u #{username} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
                 child_process.exec(cmd, cb)
-    ], cb)
+    ], (err) ->
+        if err
+            # We attempted to make the user, but something went wrong along the way, so we better clean up!
+            console.log("Attempting to make user failed -- #{err}")
+        cb(err)
+    )
 
 # Delete the given UNIX user, corresponding group, and all files they own.
 delete_user_32 = (username, cb) ->
@@ -438,18 +468,20 @@ events.write_file_to_project = (socket, mesg) ->
     # Listen for the blob containg the actual content that we will write.
     write_file = (type, value) ->
         if type == 'blob' and value.uuid == data_uuid
-            socket.removeListener(write_file)
+            socket.removeListener 'mesg', write_file
             path = "#{userpath(mesg.project_id)}/#{mesg.path}"
             user = username(mesg.project_id)
+            console.log("mesg --> #{misc.to_json(mesg)}, path=#{path}")
             async.series([
                 (c) ->
-                    verify_that_path_is_valid mesg.project_id, mesg.path, (err, realpath) ->
+                    verify_that_path_is_valid mesg.project_id, path, (err, realpath) ->
                         if err
                             c(err)
                         else
                             mesg.path = realpath
                             c()
                 (c) ->
+                    console.log("writeFile(#{path}, #{value.blob})")
                     fs.writeFile(path, value.blob, c)
                 # Set the permissions on the file to the correct user (instead of root)
                 (c) ->
@@ -563,12 +595,18 @@ server = net.createServer (socket) ->
 exports.start_server = start_server = () ->
     server.listen program.port, program.host, () -> winston.info "listening on port #{program.port}"
 
-process.on 'SIGINT', () ->
-    for project_id, dummy of possibly_open_projects
-        uname = username(project_id)
-        killall_user uname
-        delete_user_32 uname
-    process.exit()
+# process.on 'SIGINT', () ->
+#     #
+#     # TODO -- this should go away!  We don't need this; project server can be started/stopped independently of project being opened!
+#     #
+#     console.log "TODO -- this should go away!  We don't need this; project server can be started/stopped independently of project being opened!"
+#     winston.debug "Deleting project accounts due to SIGINT"
+#     for project_id, dummy of possibly_open_projects
+#         uname = username(project_id)
+#         winston.debug "Deleting project account for #{project_id}"
+#         killall_user uname
+#         delete_user_32 uname
+#     process.exit()
 
 program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 6002)', parseInt, 6002)

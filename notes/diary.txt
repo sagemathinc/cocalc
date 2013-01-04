@@ -9132,7 +9132,7 @@ Next steps:
 [x] get everything to start up
 
 Then slowly add functionality to client:
- 
+
     [x] make projects view the default
     [x] create a new project
     [x] correctly show last time project was changed
@@ -9161,4 +9161,4 @@ Then slowly add functionality to client:
 debug: hub --> client: {"event":"account_creation_failed","id":"dd80c104-80c3-4a82-a2a9-aee7ef2d9e2d","reason":{"agreed_to_terms":"Agree to the Salvus Terms of Service."}}
 
 
---> [ ] be able to load cython files
+--> [x] be able to load cython files
