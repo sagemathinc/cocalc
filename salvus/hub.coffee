@@ -879,20 +879,20 @@ class Project
             (c) =>
                 @open (err, _host) =>
                     if err
-                        console.log("XX 1 -- #{err}")
+                        console.log("project.socket -- error getting host from database -- #{err}")
                         c(err)
                     else
                         host = _host
-                        console.log("XX 2")
+                        console.log("project.socket -- choose host #{host}")
                         c()
             (c) =>
                 @_connect host, (err, _socket) =>
                     if err
-                        console.log("XX 3 -- #{err}")
+                        console.log("project.socket -- error connecting to project server #{err}")
                         c(err)
                     else
                         socket = _socket
-                        console.log("XX 4")
+                        console.log("project.socket -- got a socket connection to the project_server")
                         c()
         ], (err) ->
             if err
@@ -996,6 +996,7 @@ class Project
         async.series([
             # Get a connection to the project server.
             (c) =>
+                console.log("_open_on_host - get a connection to the project server.")
                 @_connect host, (err, s) ->
                     if err
                         c(err)
@@ -1006,7 +1007,7 @@ class Project
             # Get each bundle blob from the database in preparation to
             # send it to the project_server.
             (c) =>
-                #console.log("getting bundles from db...")
+                console.log("_open_on_host - get bundle blobs from the database.")
                 database.get_project_bundles project_id:@project_id, cb:(err, result) ->
                     if err
                         c(err)
@@ -1021,7 +1022,7 @@ class Project
 
             # Get meta information about the project that is needed to open the project.
             (c) =>
-                #console.log("Get meta information about the project that is needed to open the project.")
+                console.log("_open_on_host -- get meta information about the project that is needed to open the project.")
                 database.get_project_open_info project_id:@project_id, cb:(err, result) ->
                     if err
                         c(err)
@@ -1031,7 +1032,7 @@ class Project
 
             # Send open_project mesg.
             (c) =>
-                #console.log("Send open_project mesg")
+                console.log("_open_on_host -- Send open_project mesg")
                 mesg_open_project = message.open_project
                     id           : id
                     project_id   : @project_id
@@ -1043,7 +1044,7 @@ class Project
 
             # Starting sending the bundles as blobs.
             (c) ->
-                #console.log("start sending bundles as blobs")
+                console.log("_open_on_host -- start sending bundles as blobs")
                 for i in [0...bundles.length]
                     socket.write_mesg 'blob', {uuid:bundles.uuids[i],blob:bundles[i]}
                 c()
@@ -1051,8 +1052,9 @@ class Project
             # Wait for the project server to respond with success
             # (having received all blobs) or failure (something went wrong).
             (c) ->
-                #console.log("Wait for the project server to respond")
+                console.log("_open_on_host -- wait for the project server to respond")
                 socket.recv_mesg id:id, type:'json', timeout:30, cb:(mesg) ->
+                    console.log("_open_on_host -- received response #{misc.to_json(mesg)}")
                     switch mesg.event
                         when 'error'
                             # something went wrong...
@@ -1065,6 +1067,7 @@ class Project
 
             # Save where project is running to the database
             (c) =>
+                console.log("_open_on_host -- save where project running to database")
                 database.set_project_host(project_id:@project_id, host:host, cb:c)
 
         ], cb)

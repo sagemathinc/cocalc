@@ -36,8 +36,6 @@ misc           = require 'misc'
 
 {defaults, required} = misc
 
-possibly_open_projects = {}
-
 ######################################################
 # Creating and working with project repositories
 #    --> See message.coffee for how projects work. <--
@@ -124,7 +122,7 @@ create_user = (project_id, quota, cb) ->
         # Create the user
         (cb) ->
             console.log("useradd -U -m #{uname}")
-            child_process.exec "useradd -U -m #{uname}", (err, stdout, stderr) ->
+            child_process.exec "useradd -U #{uname}", (err, stdout, stderr) ->
                 cb(err)
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
@@ -182,11 +180,11 @@ killall_user = (uname, cb) ->
 # NOTE: This object is entirely in memory, which potentially imposes
 # memory/size constraints.
 extract_bundles = (project_id, bundles, cb) ->
-    console.log("extract_bundles")
+    console.log("extract_bundles -- #{project_id}")
     bundle_path = bundlepath(project_id)
     uname       = username(project_id)
     repo_path   = userpath(project_id)
-    console.log("bundle_path = ", bundle_path)
+    console.log("extracting bundles from bundle_path = ", bundle_path)
 
     # Below we create a sequence of tasks, then do them all at the end
     # with a call to async.series.  We do this, rather than defining
@@ -195,15 +193,25 @@ extract_bundles = (project_id, bundles, cb) ->
 
     # Create the bundle path and write the bundle files to disk.
     tasks = [
+        (c) -> fs.mkdir("#{repo_path}", 0o700, c),
         (c) -> fs.mkdir("#{repo_path}/.git", 0o700, c),
         (c) -> fs.mkdir("#{repo_path}/.git/salvus", 0o700, c),
     ]
 
+    if misc.len(bundles) > 0
+        tasks.push((c) -> fs.mkdir(bundle_path, 0o700, c))
+
     # Write the bundle files to disk.
     n = 0
-    for uuid, content of bundles
-        tasks.push((c) -> fs.writeFile("#{bundle_path}/#{n}.bundle", content, c))
+    for _, content of bundles
+        task = (c) ->
+            filename = "#{bundle_path}/#{arguments.callee.n}.bundle"
+            console.log("Writing bundle #{filename} out to disk")
+            fs.writeFile(filename, arguments.callee.content, c)
+        task.n = n
+        task.content = content
         n += 1
+        tasks.push(task)
 
     # Now the bundle files are all in place.  Make the repository.
     tasks.push((c) ->
@@ -246,19 +254,25 @@ events.open_project = (socket, mesg) ->
     # The first step in opening a project is to wait to receive all of
     # the bundle blobs.  We do the extract step below in _open_project2.
 
-    possibly_open_projects[mesg.project_id] = true
-
-    mesg.bundles = misc.pairs_to_obj( [u, null] for u in mesg.bundle_uuids )
+    mesg.bundles = misc.pairs_to_obj( [u, ""] for u in mesg.bundle_uuids )
+    console.log(misc.to_json(mesg.bundles))
     n = misc.len(mesg.bundles)
+    winston.debug
     if n == 0
+        console.log("open_project -- 0 bundles so skipping waiting")
         _open_project2(socket, mesg)
     else
+        console.log("open_project -- waiting for #{n} bundles: #{mesg.bundle_uuids}")
         # Create a function that listens on the socket for blobs that
         # are marked with one of the uuid's described in the mesg.
         recv_bundles = (type, m) ->
+            if type == 'blob'
+                console.log("open_project -- received bundle with uuid #{m.uuid} #{type=='blob'} #{mesg.bundles[m.uuid]} #{mesg.bundles[m.uuid]?}")
             if type == 'blob' and mesg.bundles[m.uuid]?
+                console.log("open_project -- recording bundle... of length #{m.blob.length}")
                 mesg.bundles[m.uuid] = m.blob
                 n -= 1
+                console.log("open_project -- waiting for #{n} more bundles")
                 if n <= 0
                     # We've received all blobs, so remove the listener.
                     socket.removeListener 'mesg', recv_bundles
@@ -275,7 +289,8 @@ _open_project2 = (socket, mesg) ->
         # Extract the bundles into the home directory.
         (cb) ->
             extract_bundles(mesg.project_id, mesg.bundles, cb)
-    ], (err, results) ->
+    ], (err) ->
+        console.log("finished open_project -- #{err}")
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
         else
@@ -465,7 +480,6 @@ events.close_project = (socket, mesg) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
         else
-            delete possibly_open_projects[mesg.project_id]
             socket.write_mesg('json', message.project_closed(id:mesg.id))
 
 # Read a file located in the given project.  This will result in an
@@ -632,19 +646,6 @@ server = net.createServer (socket) ->
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
     server.listen program.port, program.host, () -> winston.info "listening on port #{program.port}"
-
-# process.on 'SIGINT', () ->
-#     #
-#     # TODO -- this should go away!  We don't need this; project server can be started/stopped independently of project being opened!
-#     #
-#     console.log "TODO -- this should go away!  We don't need this; project server can be started/stopped independently of project being opened!"
-#     winston.debug "Deleting project accounts due to SIGINT"
-#     for project_id, dummy of possibly_open_projects
-#         uname = username(project_id)
-#         winston.debug "Deleting project account for #{project_id}"
-#         killall_user uname
-#         delete_user_32 uname
-#     process.exit()
 
 program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 6002)', parseInt, 6002)
