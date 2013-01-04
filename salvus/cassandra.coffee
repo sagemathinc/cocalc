@@ -760,6 +760,29 @@ class exports.Salvus extends exports.Cassandra
     #############
     # Projects
     ############
+    #
+    get_gitconfig: (opts) ->
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @select
+            table      : 'accounts'
+            columns    : ['gitconfig', 'first_name', 'last_name', 'email_address']
+            objectify  : true
+            where      : {account_id : opts.account_id}
+            cb         : (err, results) ->
+                if err
+                    opts.cb(err)
+                else if results.length == 0
+                    opts.cb("There is no account with id #{opts.account_id}.")
+                else
+                    r = results[0]
+                    if r.gitconfig? and r.gitconfig.length > 0
+                        gitconfig = r.gitconfig
+                    else
+                        # Make a github out of first_name, last_name, email_address
+                        gitconfig = "[user]\n    name = #{r.first_name} #{r.last_name}\n    email = #{r.email_address}\n"
+                    opts.cb(false, gitconfig)
 
     get_project_host: (opts) ->
         opts = defaults opts,
@@ -775,11 +798,12 @@ class exports.Salvus extends exports.Cassandra
                 else if results.length == 0
                     opts.cb("There is no project with ID #{opts.project_id}.")  # error
                 else
+                    console.log("query results = #{misc.to_json(results)}")
                     host = results[0][0]
                     # We also support "" for the host not being
                     # defined, since some drivers, e.g., cqlsh do not
                     # support setting a column to null.
-                    if host? and host.length == 0
+                    if not host? or not host
                         host = undefined
                     opts.cb(false, host)
 
@@ -995,7 +1019,7 @@ class exports.Salvus extends exports.Cassandra
                 else
                     v = []
                     for r in results
-                        v[r[0]] = r[1]
+                        v[r[0]] = new Buffer(r[1], 'hex')
                     opts.cb(err, v)
 
     save_project_bundle: (opts) ->
@@ -1008,7 +1032,7 @@ class exports.Salvus extends exports.Cassandra
         @update
             table      : 'project_bundles'
             set        :
-                bundle : opts.bundle
+                bundle : opts.bundle.toString('hex')
             where      :
                 project_id : opts.project_id
                 number     : opts.number

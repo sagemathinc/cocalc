@@ -505,13 +505,14 @@ message
 # success, the project_server will respond by sending a project_saved
 # message then sending individual the bundles n.bundle for n >=
 # starting_bundle_number.
-# hub --> project_server
+# client --> hub --> project_server
 message
     event                  : 'save_project'
-    id                     : required
+    id                     : undefined
     project_id             : required    # uuid of a project
-    starting_bundle_number : required
+    starting_bundle_number : undefined
     commit_mesg            : required    # the commit message
+    gitconfig              : undefined   # needed by project_server
 
 # The project_saved message is sent to a hub by a project_server when
 # the project_servers creates a new snapshot of the project in

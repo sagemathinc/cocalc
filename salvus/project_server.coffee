@@ -26,6 +26,7 @@ program        = require 'commander'
 daemon         = require 'start-stop-daemon'
 net            = require 'net'
 fs             = require 'fs'
+uuid           = require 'node-uuid'
 
 async          = require 'async'
 
@@ -55,6 +56,10 @@ username = (project_id) ->
 # the given project_id.
 userpath = (project_id) ->
     return "/home/#{username(project_id)}"
+
+bundlepath = (project_id) ->
+    return "#{userpath(project_id)}/.git/salvus/bundles"
+
 
 # Check for dangerous characters in a string.
 BAD_SHELL_INJECTION_CHARS = '<>|,;$&"\''
@@ -113,13 +118,13 @@ megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 
 # Create new UNIX user with given name and quota, then do cb(err).
 #     quota = {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
-create_user = (username, quota, cb) ->
-    console.log("create_user(#{username}, #{misc.to_json(quota)})")
+create_user = (project_id, quota, cb) ->
+    uname = username(project_id)
     async.series([
         # Create the user
         (cb) ->
-            console.log("useradd -U -m #{username}")
-            child_process.exec "useradd -U -m #{username}", (err, stdout, stderr) ->
+            console.log("useradd -U -m #{uname}")
+            child_process.exec "useradd -U -m #{uname}", (err, stdout, stderr) ->
                 cb(err)
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
@@ -137,7 +142,7 @@ create_user = (username, quota, cb) ->
                 cb("Invalid quota specification: #{quota}")
             else
                 # Everything is good, let's do it!
-                cmd = "setquota -u #{username} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
+                cmd = "setquota -u #{uname} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
                 child_process.exec(cmd, cb)
     ], (err) ->
         if err
@@ -147,23 +152,23 @@ create_user = (username, quota, cb) ->
     )
 
 # Delete the given UNIX user, corresponding group, and all files they own.
-delete_user_32 = (username, cb) ->
-    if username.length != 32  # a sanity check to avoid accidentally deleting a non-salvus user!
-        cb("delete_user -- the username (='#{username}') must be exactly 32 characters long")
+delete_user_32 = (uname, cb) ->
+    if uname.length != 32  # a sanity check to avoid accidentally deleting a non-salvus user!
+        cb("delete_user -- the uname (='#{uname}') must be exactly 32 characters long")
         return
 
     async.series([
         # Delete the UNIX user and their files.
         (cb) ->
-            child_process.exec("deluser --remove-home #{username}", cb)
+            child_process.exec("deluser --remove-home #{uname}", cb)
         # Delete the UNIX group (same as the user -- this is Linux).
         (cb) ->
-            child_process.exec("delgroup #{username}", cb)
+            child_process.exec("delgroup #{uname}", cb)
     ], cb)
 
 # Kill all processes running as a given user.
-killall_user = (username, cb) ->
-    child_process.exec "killall -s 9 -u #{username}", (err, stdout, stderr) ->
+killall_user = (uname, cb) ->
+    child_process.exec "killall -s 9 -u #{uname}", (err, stdout, stderr) ->
         cb(err)
 
 # Given an object called 'bundles' containing (in order) the possibly
@@ -172,8 +177,12 @@ killall_user = (username, cb) ->
 #
 # NOTE: This object is entirely in memory, which potentially imposes
 # memory/size constraints.
-extract_bundles = (username, bundles, repo_path, cb) ->
-    bundle_path = "#{repo_path}/.git/salvus"
+extract_bundles = (project_id, bundles, cb) ->
+    console.log("extract_bundles")
+    bundle_path = bundlepath(project_id)
+    uname       = username(project_id)
+    repo_path   = userpath(project_id)
+    console.log("bundle_path = ", bundle_path)
 
     # Below we create a sequence of tasks, then do them all at the end
     # with a call to async.series.  We do this, rather than defining
@@ -183,7 +192,7 @@ extract_bundles = (username, bundles, repo_path, cb) ->
     # Create the bundle path and write the bundle files to disk.
     tasks = [
         (c) -> fs.mkdir("#{repo_path}/.git", 0o700, c),
-        (c) -> fs.mkdir("#{repo_path}/.git/salvus", 0o700, c)
+        (c) -> fs.mkdir("#{repo_path}/.git/salvus", 0o700, c),
     ]
 
     # Write the bundle files to disk.
@@ -197,11 +206,14 @@ extract_bundles = (username, bundles, repo_path, cb) ->
         if n == 0
             # There were no bundles at all, so we make a new empty git repo.
             # TODO: need a salvus .gitignore template, e.g., maybe ignore all dot files in $HOME.
-            cmd = "cd #{repo_path} && git init && touch .gitignore && git add .gitignore && git commit -a -m 'Initial version.'"
+            cmd = "cd #{repo_path} && git init"
+            winston.debug(cmd)
             child_process.exec(cmd, c)
         else
             # There were bundles -- extract them.
-            child_process.exec("diffbundler extract #{bundle_path} #{repo_path}", c)
+            cmd = "diffbundler extract #{bundle_path} #{repo_path}"
+            winston.debug(cmd)
+            child_process.exec(cmd, c)
     )
 
     # At this point everything is owned by root (the project_server),
@@ -210,7 +222,7 @@ extract_bundles = (username, bundles, repo_path, cb) ->
     # make them not visible to any other user that happens to have
     # a project running on this particular virtual machine.
     tasks.push((c) ->
-        child_process.exec("chown -R #{username}. #{repo_path} && chmod u+rw,og-rwx -R #{repo_path}", c)
+        child_process.exec("chown -R #{uname}. #{repo_path} && chmod u+rw,og-rwx -R #{repo_path}", c)
     )
 
     # Do all of the tasks laid out above.
@@ -252,18 +264,13 @@ events.open_project = (socket, mesg) ->
 # Part 2 of opening a project: create user, extract bundles, write
 # back response message.
 _open_project2 = (socket, mesg) ->
-    console.log("_open_project2")
-    uname = username(mesg.project_id)
-    path  = userpath(mesg.project_id)
-    console.log("uname=#{uname}, path=#{path}")
-
     async.series([
-        # Create a user with username the project_id (with dashes removed)
+        # Create a user with username
         (cb) ->
-            create_user(uname, mesg.quota, cb)
+            create_user(mesg.project_id, mesg.quota, cb)
         # Extract the bundles into the home directory.
         (cb) ->
-            extract_bundles(uname, mesg.bundles, path, cb)
+            extract_bundles(mesg.project_id, mesg.bundles, cb)
     ], (err, results) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
@@ -279,14 +286,25 @@ commit_all = (opts) ->
         user        : required
         path        : required
         commit_mesg : required
+        gitconfig   : required
         cb          : required
-    commit_file = "#{opts.user}/.git/salvus/COMMIT_MESG"
+    commit_file = "#{opts.path}/.git/salvus/COMMIT_MESG"
+    config_file = "#{opts.path}/.gitconfig"
     async.series([
+        (cb) ->
+            fs.writeFile(config_file, opts.gitconfig, cb)
         (cb) ->
             fs.writeFile(commit_file, opts.commit_mesg, cb)
         (cb) ->
-            cmd = "su - #{opts.user} -c 'cd && git add && git commit -a -F #{commit_file}'"
-            child_process.exec(cmd, cb)
+            cmd = "su - #{opts.user} -c 'cd && git add . && git commit -a -F #{commit_file}'"
+            winston.debug(cmd)
+            child_process.exec cmd, (err, stdout, stderr) ->
+                if stdout.indexOf("nothing to commit") >= 0
+                    # not an error
+                    cb()
+                else
+                    cb(err)
+
     ], opts.cb)
 
 
@@ -347,25 +365,33 @@ get_files_and_logs = (path, cb) ->
 # Save the project
 events.save_project = (socket, mesg) ->
     path     = userpath(mesg.project_id)
-    bundles  = "#{path}/.git/salvus"
+    bundles  = bundlepath(mesg.project_id)
     response = message.project_saved
-        id    : mesg.id
-        files : {master:{}}
-        logs  : {master:{}}
+        id             : mesg.id
+        files          : {master:{}}
+        logs           : {master:{}}
+        bundle_uuids   : {}
         current_branch : 'master'
 
     tasks    = []
     async.series([
         # Commit all changes
-        (cb) -> commit_all
-            user        : username(mesg.project_id)
-            path        : path
-            commit_mesg : mesg.commit_mesg
-            cb          : cb
+        (cb) ->
+            winston.debug("save_project -- commit_all")
+            commit_all
+                user        : username(mesg.project_id)
+                path        : path
+                commit_mesg : mesg.commit_mesg
+                gitconfig   : mesg.gitconfig
+                cb          : cb
 
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
-        (cb) -> child_process.exec("diffbundler update #{path} #{bundles}", cb)
+        (cb) ->
+            winston.debug("save_project -- bundle changes")
+            cmd = "diffbundler update #{path} #{bundles}"
+            winston.debug(cmd)
+            child_process.exec(cmd, cb)
 
         # Determine which bundle files to send.  We may send some even
         # if none were created just now, due to the database not being
@@ -373,6 +399,7 @@ events.save_project = (socket, mesg) ->
         # (hub, database, network, project_server) died at a key
         # moment during a previous save.
         (cb) ->
+            winston.debug("save_project -- determine bundles to send")
             fs.readdir bundles, (err, files) ->
                 if err
                     cb(err)
@@ -381,32 +408,39 @@ events.save_project = (socket, mesg) ->
                     while "#{n}.bundle" in files
                         id = uuid.v4()
                         response.bundle_uuids[id] = n
-                        tasks.push (c) ->
-                            fs.readFile "#{n}.bundle", (err, data) ->
+                        task = (c) ->
+                            fs.readFile "#{bundles}/#{arguments.callee.n}.bundle", (err, data) ->
                                 if err
                                     c(err)
                                 else
                                     socket.write_mesg 'blob', {uuid:id, blob:data}
                                     c()
+                        task.n = n
+                        tasks.push(task)
                         n += 1
                     cb()
 
         # Obtain the branches, logs, and file lists for the repo.
         (cb) ->
+            winston.debug("save_project -- get branches, logs, and files")
             get_files_and_logs path, (err, result) ->
-                response.files          = result.files
-                response.logs           = result.logs
-                response.current_branch = result.current_branch
+                if err
+                    cb(err)
+                else
+                    response.files          = result.files
+                    response.logs           = result.logs
+                    response.current_branch = result.current_branch
+                    cb()
 
         # Read and send the bundle files
         (cb) ->
+            winston.debug("save_project -- read and send meta info, then bundle files")
+            socket.write_mesg('json', response)
             async.series(tasks, cb)
 
     ], (err) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
-        else
-            socket.write_mesg('json', response)
     )
 
 cleanup = (uname, cb) ->

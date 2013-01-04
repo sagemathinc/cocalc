@@ -644,6 +644,15 @@ class Client extends EventEmitter
                                     where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
+    mesg_save_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.save(mesg.commit_mesg, @account_id, (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
+
     mesg_write_text_file_to_project: (mesg) =>
         #console.log("**** mesg_write_text_file_to_project")
         project = new Project(mesg.project_id)
@@ -767,6 +776,8 @@ push_to_clients = (opts) ->
 
 class Project
     constructor: (@project_id) ->
+        if not @project_id?
+            throw "When creating Project, the project_id must be defined"
 
     ##############################################
     # Database state stuff
@@ -792,6 +803,9 @@ class Project
         database.score_compute_server(host:host, cb:cb, delta:+1)
 
     _connect: (host, cb) ->
+        if not host?
+            throw "BUG -- host must be defined"
+            
         if @_socket? and @_socket.host == host
             cb(false, @_socket.socket)
             return
@@ -845,7 +859,7 @@ class Project
         database.is_project_being_saved(project_id:@project_id, cb:cb)
 
     _lock_for_saving: (ttl, cb) ->    # cb(err)
-        database.lock_project_for_saving(project:id:@project_id, ttl:ttl, cb:cb)
+        database.lock_project_for_saving(project_id:@project_id, ttl:ttl, cb:cb)
 
     # Open the project (if necessary) and get a working socket connection to the project_server.
     socket: (cb) ->     # cb(err, socket)
@@ -1045,7 +1059,7 @@ class Project
 
     # Save the project to the database.  This involves saving at least
     # zero (!) bundles to the project_bundles table.
-    save: (commit_mesg, cb) -> # cb(err) -- indicates when done
+    save: (commit_mesg, account_id, cb) -> # cb(err) -- indicates when done
         id = uuid.v4() # used to tag communication with the project server
 
         save_mesg = message.save_project
@@ -1063,6 +1077,7 @@ class Project
             # If project is already locked for saving (by this or
             # another hub), return an error.
             (c) =>
+                console.log("!! 1")
                 @_is_being_saved (err,is_being_saved) =>
                     if err
                         c(true, err)
@@ -1074,16 +1089,30 @@ class Project
             # Determine which project_server is hosting this project.
             # If none, then there is nothing further to do.
             (c) =>
-                database.get_project_host project_id:@project_id, cb:(err, h) ->
+                console.log("!! 2")                
+                database.get_project_host project_id:@project_id, cb:(err, _host) ->
                     if err
                         c(true, err)
                     else
-                        if not h?
-                            c(true)
-                        host = h
+                        if not _host?
+                            c(true, err)
+                        else
+                            host = _host
+                            c()
 
+            # Get the user's name and email for the commit message
+            (c) =>
+                console.log("!! 2.5")
+                database.get_gitconfig account_id:account_id, cb:(err, gitconfig) ->
+                    if err
+                        c(err)
+                    else
+                        save_mesg.gitconfig = gitconfig
+                        c()
+                        
             # Find the index of the largest bundle that we already have in the database
             (c) =>
+                console.log("!! 3")                                
                 database.largest_project_bundle_index project_id:@project_id, cb:(err, n) ->
                     if err
                         c(true, err)
@@ -1093,6 +1122,7 @@ class Project
 
             # Connect to the project server that is hosting this project right now.
             (c) =>
+                console.log("!! 4")                                                
                 @_connect host, (err, s) ->
                     if err
                         c(true, err)
@@ -1104,17 +1134,22 @@ class Project
             # the the project and send back to us any bundle(s) that
             # it creates when saving the project.
             (c) =>
+                console.log("!! 5")                                                                
                 socket.write_mesg 'json', save_mesg
+                c()
 
             # Listen for bundles, find out how many bundles to expect
             # and receive the bundles.
             (c) =>
+                console.log("!! 6")                                                                
                 bundle_uuids      = undefined
                 remaining_bundles = undefined
 
                 recv_bundles = (type, mesg) =>
+                    console.log("recv_bundles: #{type}")
                     switch type
                         when 'json'
+                            console.log("json_message = #{misc.to_json(mesg)}")
                             if mesg.id == id
                                 switch mesg.event
                                     when 'error'
@@ -1122,7 +1157,7 @@ class Project
                                     when 'project_saved'
                                         project_saved_mesg = mesg
                                         bundle_uuids       = mesg.bundle_uuids
-                                        remaining_bundles  = misc.len(bundles)
+                                        remaining_bundles  = misc.len(bundle_uuids)
                         when 'blob'
                             if bundle_uuids? and bundle_uuids[mesg.uuid]?
                                 database.save_project_bundle
@@ -1140,6 +1175,7 @@ class Project
                 socket.on 'mesg', recv_bundles
 
             (c) =>
+                console.log("!! 7")                                                                
                 database.save_project_meta
                     project_id     : @project_id
                     files          : project_saved_mesg.files
@@ -1151,10 +1187,11 @@ class Project
                         else
                             c()
 
-        ], (dummy, err) ->
-            socket.removeListener('mesg', recv_bundles)
-            if cb?
-                cb(err)
+        ], (err, err_mesg) ->
+            if socket? and recv_bundles?
+                socket.removeListener('mesg', recv_bundles)
+            if err
+                cb(err_mesg)
         )
 
     # Close the project.  This does *NOT* save the project first; it

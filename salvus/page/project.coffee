@@ -18,9 +18,17 @@ class ProjectPage
             id    : @project_id
             label : @project_id
         @container.find(".project-new-file").click(@new_file_dialog)
+        @container.find(".project-save").click(@save_project_dialog)
+
+    save_project_dialog: () =>
+        salvus_client.save_project
+            project_id : @project_id
+            commit_mesg : "a commit message"
+            cb         : (err) ->
+                if err
+                    alert_message(type:"error", message:err)
 
     new_file_dialog: () =>
-        console.log("new_file_dialog")
         salvus_client.write_file_to_project
             project_id : @project_id,
             path       : 'new_file.txt',

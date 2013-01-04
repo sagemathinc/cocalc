@@ -90,6 +90,7 @@ CREATE TABLE accounts (
     first_name      varchar,
     last_name       varchar,
     email_address   varchar,
+    gitconfig       varchar,   // if empty or undefined, make simple default from first_name, last_name, email_address.
 
     password_hash   varchar,
     password_change_wait_until  timestamp,

@@ -625,6 +625,18 @@ class exports.Connection extends EventEmitter
             message: message.update_project_data(project_id:opts.project_id, data:opts.data)
             cb : opts.cb
 
+    save_project: (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            commit_mesg : required
+            cb          : required
+        @call
+            message :
+                message.save_project
+                    project_id  : opts.project_id
+                    commit_mesg : opts.commit_mesg
+            cb : opts.cb
+
     write_file_to_project: (opts) ->
         opts = defaults opts,
             project_id : required
