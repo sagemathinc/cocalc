@@ -421,34 +421,37 @@ class Salvus(object):
         import sage.misc.cython
         modname, path = sage.misc.cython.cython(filename, **opts)
         import sys
-        sys.path.append(path)
-        module = __import__(modname)
-        sys.path.pop()
+        try:
+            sys.path.insert(0,path)
+            module = __import__(modname)
+        finally:
+            del sys.path[0]
         return module
+
+    def _import_file(self, filename, content, **opts):
+        base,ext = os.path.splitext(filename)
+        py_file_base = str(uuid.uuid4()).replace('-','_')
+        try:
+            open(py_file_base+'.py', 'w').write(content)
+            import sys
+            try:
+                sys.path.insert(0, os.path.abspath('.'))
+                mod = __import__(py_file_base)
+            finally:
+                del sys.path[0]
+        finally:
+            os.unlink(py_file_base+'.py')
+        return mod
 
     def _sage(self, filename, **opts):
         import sage.misc.preparser
         content = "from sage.all import *\n" + sage.misc.preparser.preparse_file(open(filename).read())
-        base,ext = os.path.splitext(filename)
-        py_file_base = str(uuid.uuid4()).replace('-','_')
-        try:
-            open(py_file_base+'.py', 'w').write(content)
-            mod = __import__(py_file_base)
-        finally:
-            os.unlink(py_file_base+'.py')
-        return mod
+        return self._import_file(filename, content, **opts)
 
     def _spy(self, filename, **opts):
         import sage.misc.preparser
         content = "from sage.all import Integer, RealNumber, PolynomialRing\n" + sage.misc.preparser.preparse_file(open(filename).read())
-        base,ext = os.path.splitext(filename)
-        py_file_base = str(uuid.uuid4()).replace('-','_')
-        try:
-            open(py_file_base+'.py', 'w').write(content)
-            mod = __import__(py_file_base)
-        finally:
-            os.unlink(py_file_base+'.py')
-        return mod
+        return self._import_file(filename, content, **opts)
 
     def _py(self, filename, **opts):
         return __import__(filename)
