@@ -1,3 +1,16 @@
+[ ] embed worksheets in pdf --
+
+       Can you provide a brief sketch of how, along with links?  I can
+       tie this together for Salvus (a new Sage notebook style
+       project, from scratch, that I've been working on for the last 6
+       months) -- I'm spending quite a bit of time every day working
+       on Salvus, and a lot of what I'm doing is a lot more work than
+       what you're asking for above.  By designing this in from the
+       start, it'll be easier than adding it later.
+        --> I wrote example code for this 4 years ago or so and put it up on trac:
+            http://trac.sagemath.org/sage_trac/ticket/4825
+
+
 [ ] interacts, from jason:  https://mail.google.com/mail/u/0/?shva=1#inbox/13be165887dec055
    "And here's a version that uses underscore.js's throttle function to give better interactivity (by not overwhelming the server with update requests):
 http://aleph.sagemath.org/?q=42838fa4-2d54-406d-bea3-7ed531f96312&lang=sage"

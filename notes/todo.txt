@@ -1,4 +1,9 @@
- [ ] downloading/uploading worksheets
+[ ] parser bug -- 
+"v = [1,
+2]
+print v"
+
+ [ ] downloading/uploading worksheets/projects
 
   [ ] password reset is broken
 

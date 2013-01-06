@@ -401,7 +401,7 @@ class Salvus(object):
         kwds['coffeescript'] = True
         return self.execute_javascript(*args, **kwds)
 
-    def cython(self, filename, **opts):
+    def _cython(self, filename, **opts):
         """
         Return module obtained by compiling the Cython code in the
         given file.
@@ -425,6 +425,47 @@ class Salvus(object):
         module = __import__(modname)
         sys.path.pop()
         return module
+
+    def _sage(self, filename, **opts):
+        import sage.misc.preparser
+        content = "from sage.all import *\n" + sage.misc.preparser.preparse_file(open(filename).read())
+        base,ext = os.path.splitext(filename)
+        py_file_base = str(uuid.uuid4()).replace('-','_')
+        try:
+            open(py_file_base+'.py', 'w').write(content)
+            mod = __import__(py_file_base)
+        finally:
+            os.unlink(py_file_base+'.py')
+        return mod
+
+    def _spy(self, filename, **opts):
+        import sage.misc.preparser
+        content = "from sage.all import Integer, RealNumber, PolynomialRing\n" + sage.misc.preparser.preparse_file(open(filename).read())
+        base,ext = os.path.splitext(filename)
+        py_file_base = str(uuid.uuid4()).replace('-','_')
+        try:
+            open(py_file_base+'.py', 'w').write(content)
+            mod = __import__(py_file_base)
+        finally:
+            os.unlink(py_file_base+'.py')
+        return mod
+
+    def _py(self, filename, **opts):
+        return __import__(filename)
+
+    def require(self, filename, **opts):
+        if not os.path.exists(filename):
+            raise ValueError("file '%s' must exist"%filename)
+        base,ext = os.path.splitext(filename)
+        if ext == '.pyx' or ext == '.spyx':
+            return self._cython(filename, **opts)
+        if ext == ".sage":
+            return self._sage(filename, **opts)
+        if ext == ".spy":
+            return self._spy(filename, **opts)
+        if ext == ".py":
+            return self._py(filename, **opts)
+        raise NotImplementedError("require file of type %s not implemented"%ext)
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams

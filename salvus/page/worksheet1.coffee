@@ -1243,7 +1243,7 @@ $.fn.extend
                 tex = "$${#{tex}}$$"
             else
                 tex = "\\({#{tex}}\\)"
-            element = t.text(tex)
+            element = t.html(tex)
             #MathJax.Hub.Typeset(element[0]) #, () -> element.show())
             MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])#  , () -> element.show()])
 
