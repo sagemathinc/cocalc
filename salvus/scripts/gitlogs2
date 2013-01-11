@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+
+import json, os, uuid
+
+branches = [x.split()[-1] for x in os.popen("git branch").read().splitlines()]
+
+logs = {}
+files = {}
+
+def set_file(obj, components, commit):
+    if len(components) == 1:
+        c = components[0]
+        if c not in obj: # only record this the *first* time we see a file
+            obj[c] = commit
+    else:
+        if not obj.has_key(components[0]):
+            obj[components[0]] = {}
+        set_file(obj[components[0]], components[1:], commit) # recurse
+
+for branch in branches:
+    cmd = r"""git log --name-only --pretty=format:'{"commit":"%H","author":"%an <%ae>","date":"%ad","message":"%s", "body":"%b"}' """ + branch
+    quote = str(uuid.uuid4())
+    open_brace = str(uuid.uuid4())
+    close_brace = str(uuid.uuid4())
+
+    cmd = cmd.replace('"',quote).replace("{",open_brace).replace("}",close_brace)
+
+    log = os.popen(cmd).read()
+    log = log.replace('"', '\\"').replace(quote,'"')
+
+    commits = log.split(open_brace)
+    v = []
+    d = {}
+    files[branch] = d
+    for commit in commits:
+        if len(commit.strip()) == 0: continue
+        i = commit.find(close_brace)
+        meta = '{' + commit[:i] + '}'
+        modified_files = [str(x).replace('\\\\"','"').replace('\\"','') for x in commit[i+len(close_brace)+1:].splitlines() if x]
+        try:
+            meta = json.loads(meta)
+        except Exception, msg:
+            print msg
+            print "meta='%s'"%meta
+            continue
+        v.append(meta)
+        commit_id = meta['commit']
+        for filename in modified_files:
+            set_file(d, filename.split('/'), commit_id)
+    logs[branch] = v
+
+print logs
+print files

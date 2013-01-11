@@ -5,10 +5,22 @@ import json, os
 branches = [x.split()[-1] for x in os.popen("git branch").read().splitlines()]
 
 logs = {}
+files = {}
+
+def set_file(obj, components, commit):
+    if len(components) == 1:
+        obj[components[0]] = commit
+    else:
+        if not obj.has_key(components[0]):
+            obj[components[0]] = {}
+        set_file(obj[components[0]], components[1:], commit) # recurse
 
 for branch in branches:
     v = []
-    for entry in ('\n' + os.popen("git log " + branch).read()).split('\ncommit '):
+    d = {}
+    files[branch] = d
+    for entry in ('\n\n' + os.popen("git log --name-only " + branch).read()).split('\n\ncommit '):
+        all = entry
         i = entry.find('\n')
         commit = entry[:i].strip()
         if not commit:
@@ -19,8 +31,17 @@ for branch in branches:
         entry = entry[i+1:].strip()
         i = entry.find('\n')
         date = entry[7:i].strip()
-        message = entry[i+1:].strip()
+        entry = entry[i+1:]
+        i = entry.rfind('\n\n')
+        message = entry[:i].strip()
+        files = entry[i+1:].strip().splitlines()
+        for filename in files:
+            if len(filename.strip()) == 0 or len(commit.strip()) == 0:
+                print "all='%s'\nmessage='%s'\nentry='%s'\nfiles='%s'"%(all, message, entry, files)
+                raise RuntimeError
+            set_file(d, filename.split('/'), commit)
         v.append({'commit':commit, 'author':author, 'date':date, 'message':message})
     logs[branch] = v
 
 print json.dumps(logs,  separators=(',',':'))
+print json.dumps(files,  separators=(',',':'))
