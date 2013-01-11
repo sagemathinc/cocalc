@@ -19,7 +19,12 @@ for branch in branches:
     d = {}
     files[branch] = d
     for f in os.popen("git ls-tree --full-tree -r " + branch).read().splitlines():
-        _, _, commit, name = f.split()
-        set_file(d, name.split('/'), commit)
+        _, _, obj, filename = f.split()
+        r = os.popen("git log -1 -- '%s'|head -1"%filename).readlines()
+        if len(r) > 0:
+            x = r[0].split()
+            if len(x) >= 2:
+                commit_id = x[1]
+                set_file(d, filename.split('/'), commit_id)
 
 print json.dumps(files,  separators=(',',':'))

@@ -9138,10 +9138,12 @@ Then slowly add functionality to client:
     [x] correctly show last time project was changed
     [x] create new (empty) file
 
- (4min)  [ ] test opening project saving, closing, re-opening. 
-
---> (40min) [x] Issue: when this happens "Attempting to make user failed -- Error: Command failed: /bin/sh: 1: setquota: not found"
+    [x] (40min) Issue: when this happens "Attempting to make user failed -- Error: Command failed: /bin/sh: 1: setquota: not found"
 	due to forgetting to install quota, the user doesn't get an error message.  But they should.   Fix.
+
+    [x] (6min)  test opening project saving, closing, re-opening
+
+-->    [ ] list of files -- make the value be the id of the commit, not of the object.
 
     [ ] open project (so get list of files, logs, branches, etc.)
         -- some testing in unit tests
