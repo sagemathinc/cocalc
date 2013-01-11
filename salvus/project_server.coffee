@@ -365,15 +365,12 @@ get_files_and_logs = (path, cb) ->
                         cb("Error getting branches of git repo.")
                     else
                         cb()
-        # Get the list of all files in each branch, as a JSON string
-        (cb) ->
-            child_process.exec "cd '#{path}' && gitfiles", (err, stdout, stderr) ->
-                files = stdout
-                cb(err)
-        # Get the log for each branch, as a JSON string
+        # Get the list of all files and logs in each branch, as a JSON string
         (cb) ->
             child_process.exec "cd '#{path}' && gitlogs", (err, stdout, stderr) ->
-                logs = stdout
+                v = stdout.split('\n')
+                files = v[0]
+                logs = v[1]
                 cb(err)
     ], (err) ->
         if err

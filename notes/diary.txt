@@ -9143,7 +9143,9 @@ Then slowly add functionality to client:
 
     [x] (6min)  test opening project saving, closing, re-opening
 
--->    [ ] list of files -- make the value be the id of the commit, not of the object.
+    [x] (2h41) list of files -- make the value be the id of the commit, not of the object. fix a *lot* of robustness issues.
+
+    [ ] test that file list and log get saved correctly to database now.
 
     [ ] change messages to provide subject and body for commit messages, as an option.
 
