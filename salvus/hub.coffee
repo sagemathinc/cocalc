@@ -976,7 +976,7 @@ class Project
                         @_plus_one_host(host)
                         c()
         ], (err) ->
-            if not had_to_recurse   # the recurssive call will call cb
+            if not had_to_recurse   # the recursive call will call cb
                 if host?  # if host got defined then done
                     cb(false, host)
                 else
@@ -1339,7 +1339,7 @@ class Project
         async.series([
             (c) =>
                 @socket (err, _socket) ->
-                    # console.log("@socket returned: #{err}, #{_socket}")
+                    #console.log("@socket returned: #{err}, #{_socket}")
                     if err
                         c(err)
                     else

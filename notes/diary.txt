@@ -9136,7 +9136,13 @@ Then slowly add functionality to client:
     [x] make projects view the default
     [x] create a new project
     [x] correctly show last time project was changed
--->  [ ] create new (empty) file
+    [x] create new (empty) file
+
+ (4min)  [ ] test opening project saving, closing, re-opening. 
+
+--> (40min) [x] Issue: when this happens "Attempting to make user failed -- Error: Command failed: /bin/sh: 1: setquota: not found"
+	due to forgetting to install quota, the user doesn't get an error message.  But they should.   Fix.
+
     [ ] open project (so get list of files, logs, branches, etc.)
         -- some testing in unit tests
     [ ] save file

@@ -26,18 +26,22 @@ class ProjectPage
         salvus_client.save_project
             project_id : @project_id
             commit_mesg : "a commit message"
-            cb         : (err) ->
+            cb         : (err, mesg) ->
                 if err
-                    alert_message(type:"error", message:err)
+                    alert_message(type:"error", message:"Connection error.")
+                else if mesg.event == "error"
+                    alert_message(type:"error", message:mesg.error)
                 else
                     alert_message(type:"success", message: "Project successfully saved.")
 
     close_project_dialog: () =>
         salvus_client.close_project
             project_id : @project_id
-            cb         : (err) ->
+            cb         : (err, mesg) ->
                 if err
-                    alert_message(type:"error", message:err)
+                    alert_message(type:"error", message:"Connection error.")
+                else if mesg.event == "error"
+                    alert_message(type:"error", message:mesg.error)
                 else
                     alert_message(type:"success", message: "Project closed.")
 
@@ -46,9 +50,11 @@ class ProjectPage
             project_id : @project_id,
             path       : 'new_file.txt',
             content    : 'This is a new file.'
-            cb         : (err) ->
+            cb         : (err, mesg) ->
                 if err
-                    alert_message(type:"error", message:err)
+                    alert_message(type:"error", message:"Connection error.")
+                else if mesg.event == "error"
+                    alert_message(type:"error", message:mesg.error)
                 else
                     alert_message(type:"success", message: "New file created.")
 

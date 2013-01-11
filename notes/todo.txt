@@ -1,3 +1,9 @@
+[ ] tab completion bug:
+
+E = ModularSymbols(110,2)
+------
+E.atkin_lehner_operator(5) - E.at[tab] <-- nothing!
+
 [ ] parser bug -- 
 "v = [1,
 2]

@@ -18,7 +18,7 @@
 #      (1) The source code of salvus (which is protected by copyright, and
 #          I plan to open source it someday).
 #      (2) Ephemeral data from other random projects.
-# 
+#
 
 child_process  = require 'child_process'
 winston        = require 'winston'
@@ -146,6 +146,7 @@ create_user = (project_id, quota, cb) ->
         if err
             # We attempted to make the user, but something went wrong along the way, so we better clean up!
             console.log("Attempting to make user failed -- #{err}")
+            delete_user_32(uname)
         cb(err)
     )
 
@@ -660,7 +661,3 @@ if program._name == 'project_server.js'
         if console? and console.trace?
             console.trace()
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
-
-
-
-
