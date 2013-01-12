@@ -9148,16 +9148,12 @@ Then slowly add functionality to client:
     [x] (20min)  make that file list and log get saved correctly to database now. (I had the order backwards)
 
     [x] (55min) get_project_meta (so get list of files, logs, branches, etc.)
-
-    [ ] save file
-        -- some testing in unit tests
-    [ ] save project
-        -- some testing in unit tests
-    [ ] read file
-        -- some testing in unit tests
-    [ ] open session on project (bit of new code in hub)
-        -- some testing in unit tests
-
+    [x] save file
+    [x] save project
+    [ ] read file from project
+    [ ] move file
+    [ ] remove file
+    [ ] open session on project (some new code in hub)
     [ ] (maybe later) change messages to provide subject and body for commit messages, as an option.
 
 [ ] gui page client:
