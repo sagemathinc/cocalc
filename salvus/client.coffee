@@ -668,7 +668,7 @@ class exports.Connection extends EventEmitter
                     project_id  : opts.project_id
             cb : opts.cb
 
-    write_file_to_project: (opts) ->
+    write_text_file_to_project: (opts) ->
         opts = defaults opts,
             project_id : required
             path       : required
@@ -680,6 +680,19 @@ class exports.Connection extends EventEmitter
                     project_id : opts.project_id
                     path       : opts.path
                     content    : opts.content
+            cb : opts.cb
+
+    read_text_file_from_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required
+
+        @call
+            message :
+                message.read_text_file_from_project
+                    project_id : opts.project_id
+                    path       : opts.path
             cb : opts.cb
 
 

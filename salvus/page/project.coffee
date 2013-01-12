@@ -30,6 +30,14 @@ class ProjectPage
                     console.log("err = #{err}")
                     console.log("meta =", meta)
 
+        @container.find(".project-read-file").click () =>
+            salvus_client.read_text_file_from_project
+                project_id : @project_id
+                path : 'new_file.txt'
+                cb : (err, contents) ->
+                    console.log("err = #{err}")
+                    console.log("contents =", contents)
+
     save_project_dialog: () =>
         salvus_client.save_project
             project_id : @project_id
@@ -54,7 +62,7 @@ class ProjectPage
                     alert_message(type:"success", message: "Project closed.")
 
     new_file_dialog: () =>
-        salvus_client.write_file_to_project
+        salvus_client.write_text_file_to_project
             project_id : @project_id,
             path       : 'new_file.txt',
             content    : 'This is a new file.'

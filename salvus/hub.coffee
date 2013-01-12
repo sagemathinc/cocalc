@@ -687,6 +687,15 @@ class Client extends EventEmitter
                         current_branch : meta.current_branch
                 )
 
+    mesg_read_text_file_from_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.read_file mesg.path, (err, content) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.text_file_read_from_project(id:mesg.id, content:content))
+
+
 ##############################
 # Create the SockJS Server
 ##############################
@@ -1304,7 +1313,7 @@ class Project
     # used, e.g., for client-side editing, worksheets, etc.  This does
     # not pull the file from the database; instead, it loads it live
     # from the project_server virtual machine.
-    read_file: (path, data, cb) -> # cb(err)  -- indicates when done
+    read_file: (path, cb) -> # cb(err, content_of_file)  -- indicates when done
         socket    = undefined
         id        = uuid.v4()
         data      = undefined

@@ -9150,7 +9150,10 @@ Then slowly add functionality to client:
     [x] (55min) get_project_meta (so get list of files, logs, branches, etc.)
     [x] save file
     [x] save project
-    [ ] read file from project
+
+I'm going to write the below, but very (!?) buggy, since I don't have battery life
+for debugging...
+-->    [ ] read file from project
     [ ] move file
     [ ] remove file
     [ ] open session on project (some new code in hub)

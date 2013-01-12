@@ -99,7 +99,7 @@ verify_that_path_is_valid = (project_id, path, cb) ->
         (c) ->
             p = userpath(project_id)
             if resolvedPath.slice(0,p.length) != p
-                c("path (=#{path}) must resolve to a directory or file under #{p}")
+                c("path (='#{path}') must resolve to a directory or file under #{p}")
             else if has_bad_shell_chars(resolvedPath)
                 c("path '#{resolvedPath}' is not allowed to contain any of the following characters: '#{BAD_SHELL_INJECTION_CHARS}'")
             c(false)
@@ -642,6 +642,7 @@ server = net.createServer (socket) ->
     misc_node.enable_mesg(socket)  # enable sending/receiving json, blob, etc. messages over this socket.
     socket.on 'mesg', (type, mesg) ->   # handle json messages
         if type == 'json' # other types are handled elsewhere in event code.
+            console.log(misc.to_json(mesg))
             handler = events[mesg.event]
             if handler?
                 winston.debug("Handling message: #{misc.to_json(mesg)}")
