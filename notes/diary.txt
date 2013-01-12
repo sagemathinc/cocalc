@@ -9145,7 +9145,7 @@ Then slowly add functionality to client:
 
     [x] (2h41) list of files -- make the value be the id of the commit, not of the object. fix a *lot* of robustness issues.
 
-    [ ] test that file list and log get saved correctly to database now.
+    [x] (20min)  make that file list and log get saved correctly to database now. (I had the order backwards)
 
     [ ] change messages to provide subject and body for commit messages, as an option.
 

@@ -916,10 +916,11 @@ class Project
             # that host.
             (c) =>
                 console.log("open project -- get host")
-                @get_host (err, host) ->
+                @get_host (err, _host) ->
+                    host = _host
                     if err
                         c(true) # failed -- done
-                    else if host?
+                    else if _host?
                         c(true) # done
                     else
                         c()

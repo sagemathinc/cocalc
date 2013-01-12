@@ -121,8 +121,9 @@ create_user = (project_id, quota, cb) ->
     async.series([
         # Create the user
         (cb) ->
-            console.log("useradd -U -m #{uname}")
-            child_process.exec "useradd -U #{uname}", (err, stdout, stderr) ->
+            cmd = "useradd -U #{uname}"
+            console.log(cmd)
+            child_process.exec cmd, (err, stdout, stderr) ->
                 cb(err)
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
@@ -141,11 +142,12 @@ create_user = (project_id, quota, cb) ->
             else
                 # Everything is good, let's do it!
                 cmd = "setquota -u #{uname} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
+                console.log(cmd)
                 child_process.exec(cmd, cb)
     ], (err) ->
         if err
             # We attempted to make the user, but something went wrong along the way, so we better clean up!
-            console.log("Attempting to make user failed -- #{err}")
+            console.log("** Attempting to make user failed -- #{err}... cleaning up.** ")
             delete_user_32(uname)
         cb(err)
     )
@@ -350,8 +352,8 @@ get_branches = (path, cb) ->
 get_files_and_logs = (path, cb) ->
     branches = undefined
     current_branch = undefined
-    files = {}
-    logs  = {}
+    files = undefined
+    logs  = undefined
     async.series([
         # Get the branches and the current branch
         (cb) ->
@@ -368,10 +370,16 @@ get_files_and_logs = (path, cb) ->
         # Get the list of all files and logs in each branch, as a JSON string
         (cb) ->
             child_process.exec "cd '#{path}' && gitlogs", (err, stdout, stderr) ->
-                v = stdout.split('\n')
-                files = v[0]
-                logs = v[1]
-                cb(err)
+                if err
+                    cb(err)
+                else
+                    v = stdout.split('\n')
+                    if v.length != 3
+                        cb("Error getting list of files and logs: '#{path}', #{stderr}, v.length == #{v.length}")
+                    else
+                        logs  = v[0]
+                        files = v[1]
+                        cb()
     ], (err) ->
         if err
             cb(err)
