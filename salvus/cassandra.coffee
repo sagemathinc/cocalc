@@ -384,6 +384,21 @@ class exports.Cassandra extends EventEmitter
                 opts.cb(error, x)
         )
 
+    # Exactly like select (above), but gives an error if there is not exactly one
+    # row in the table that matches the condition.
+    select_one: (opts={}) ->
+        cb = opts.cb
+        opts.cb = (err, results) ->
+            if err
+                cb(err)
+            else if results.length == 0
+                cb("No row in table '#{opts.table}' matched condition '#{opts.where}'")
+            else if results.length > 1
+                cb("More than one row in table '#{opts.table}' matched condition '#{opts.where}'")
+            else
+                cb(false, results[0])
+        @select(opts)
+
     cql: (query, vals, cb) ->
         #winston.debug(query, vals)
         @conn.cql(query, vals, (error, results) =>
@@ -1037,6 +1052,18 @@ class exports.Salvus extends exports.Cassandra
                 number     : opts.number
             cb         : opts.cb
 
+    get_project_meta : (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+
+        @select_one
+            table      : 'projects'
+            columns    : ['files', 'logs', 'current_branch']
+            where      : { project_id:opts.project_id }
+            objectify  : true
+            cb         : opts.cb
+
     save_project_meta : (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1054,7 +1081,6 @@ class exports.Salvus extends exports.Cassandra
                 last_edited : now()
             where      :
                 project_id : opts.project_id
-            json       : ['current_branch']
             cb         : opts.cb
 
 

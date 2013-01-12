@@ -531,6 +531,26 @@ message
                                    # each is a list of objects {commit:?, author:?, date:?, description:?}
     current_branch : required
 
+
+# Request all meta information about a project (everything except the
+# actual project bundles)
+
+# client --> hub
+message
+    event      : 'get_project_meta'
+    id         : undefined
+    project_id : required
+
+# Message sent back to the client with the actual project metadata.
+# hub --> client
+message
+    event      : 'project_meta'
+    id         : required
+    project_id : required
+    files      : required
+    logs       : required
+    current_branch : required
+
 # A hub sends this message to the project_server to request that the
 # project_server close the project.  This immediately deletes all files
 # and clears up all resources allocated for this project.  So make

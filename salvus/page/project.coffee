@@ -22,6 +22,14 @@ class ProjectPage
         @container.find(".project-save").click(@save_project_dialog)
         @container.find(".project-close").click(@close_project_dialog)
 
+        # Only for temporary testing
+        @container.find(".project-meta").click () =>
+            salvus_client.get_project_meta
+                project_id : @project_id
+                cb  : (err, meta) ->
+                    console.log("err = #{err}")
+                    console.log("meta =", meta)
+
     save_project_dialog: () =>
         salvus_client.save_project
             project_id : @project_id

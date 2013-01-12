@@ -625,6 +625,27 @@ class exports.Connection extends EventEmitter
             message: message.update_project_data(project_id:opts.project_id, data:opts.data)
             cb : opts.cb
 
+    # Get all metadata about a project, including list of all files, commit log, etc.
+    get_project_meta: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            timeout    : 10
+            cb         : required    # cb(err, object with metadata)
+        @call
+            message : message.get_project_meta(project_id:opts.project_id)
+            timeout : opts.timeout
+            cb      : opts.cb
+
+    open_project: (opts) ->
+        opts = defaults opts,
+            project_id   : required
+            cb           : required
+        @call
+            message :
+                message.open_project
+                    project_id : opts.project_id
+            cb : opts.cb
+
     save_project: (opts) ->
         opts = defaults opts,
             project_id  : required
