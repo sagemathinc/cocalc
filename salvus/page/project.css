@@ -8,6 +8,17 @@
     background-color:#efe;
 }
 
+.project-directory-link {
+    background-color:#ffffff;
+    margin-top:0px;
+    margin-bottom:0px;
+}
+
+.project-directory-link:hover {
+    background-color:#efe;
+}
+
+
 .project-project_title {
     font-size:18pt;
 }

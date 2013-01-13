@@ -27,16 +27,16 @@ for branch in branches:
     log = os.popen(cmd).read()
 
     commits = log.split(commit_sep)
-    v = []
+    v = {}
     d = {}
     files[branch] = d
     for entry in commits:
         if len(entry.strip()) == 0: continue
         commit, author, date, message, modified_files= entry.split(field_sep)
         modified_files = [str(x).replace('\\\\"','"').replace('\\"','') for x in modified_files.splitlines() if x]
-        meta = {'commit':commit, 'author':author, 'date':date, 'message':message, 'modified_files':modified_files}
-        v.append(meta)
-        commit_id = meta['commit']
+        meta = {'author':author, 'date':date, 'message':message, 'modified_files':modified_files}
+        v[commit] = meta
+        commit_id = commit
         for filename in modified_files:
             set_file(d, filename.split('/'), commit_id)
     logs[branch] = v

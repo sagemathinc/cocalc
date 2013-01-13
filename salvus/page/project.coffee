@@ -12,6 +12,8 @@
 MAX_TITLE_LENGTH = 25
 
 templates = $("#salvus-project-templates")
+template_project_file = templates.find(".project-file-link")
+template_project_directory = templates.find(".project-directory-link")
 
 class ProjectPage
     constructor: (@project_id) ->
@@ -179,7 +181,7 @@ class ProjectPage
                     @update_log()
 
     # Returns array of objects
-    #    {filename:..., description:..., last_mod:..., is_file:..., commit:...}
+    #    {filename:..., is_file:..., commit:...reference to commit object if is_file true...}
     # for the current working directory and branch.
     # If the cwd is invalid, return the empty array.
     current_files: () =>
@@ -191,21 +193,34 @@ class ProjectPage
                 return []
         v = []
         for filename, d of files
-            if typeof d == 'string'
-                console.log("ddd =", d, log, log[d])
-                x = log[d]
-            else
-                x = "directory"
-            v.push({filename:filename, x:x})
+            obj = {filename:filename}
+            if typeof d == 'string'  # a commit id -- consult the log
+                obj.is_file = true
+                obj.commit = log[d]
+            else  # a directory
+                obj.is_file = false
+            v.push(obj)
         return v
 
     update_file_list: () =>
-        s = ""
-        for file in @current_files()
-            s += to_json(file) + '<br>'
-        @container.find(".project-file-listing").html(s)
+        console.log("update_file_list of project #{@project_id}")
+        listing = @container.find(".project-file-listing")
+        listing.empty()
+        console.log(@current_files())
+        for obj in @current_files()
+            console.log("obj = ", obj)
+            if obj.is_file
+                t = template_project_file.clone()
+                t.find(".project-file-name").text(obj.filename)
+                t.find(".project-file-last-edited").text($.timeago(new Date(obj.commit.date)))
+                t.find(".project-file-last-commit-message").text(obj.commit.message)
+            else
+                t = template_project_directory.clone()
+                t.find(".project-directory-name").text(obj.filename)
+            listing.append(t)
 
     update_log: () =>
+        console.log("update_log of project #{@project_id}")
         log = @meta.logs[@meta.current_branch]
         console.log(log)
 

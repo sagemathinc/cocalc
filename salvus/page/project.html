@@ -1,6 +1,9 @@
 
 <span id="salvus-project-templates" class="hide">
 
+
+
+  <div class="container salvus-project">
     <div class="row" id="project-test-html">
       TESTS:
       <div class="btn project-new-file">New File</div>
@@ -12,10 +15,8 @@
       <div class="btn project-move-file">Move the New File</div>
       <div class="btn project-make-directory">Make a Directory</div>
       <div class="btn project-remove-file">Remove the New File</div>
+      <br><br>
     </div>
-
-
-  <div class="container salvus-project">
     <div class="well">
       <!-- Title of the project (editable) -->
       <h4>
@@ -49,7 +50,7 @@
       </div>
 
       <!-- Github history log for this project -->
-      <div class="project-file-listing">
+      <div class="project-log hide">
       </div>
 
       <!-- Page to configure the settings for this project -->
@@ -60,12 +61,24 @@
   </div>
 
   <div class="row span10 well well-small project-file-link">
-    <div class="span4">
+    <div class="span" style="width: 20px;">
+      <i class="icon-file">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+    </div>
+    <div class="span2">
       <a class="project-file-name"></a>
     </div>
-    <div class="span2 project-file-last-edited"></div>
-    <div class="span3">
-      <a class="project-file-last-commit"></a>
+    <div class="span2 project-file-last-edited lighten"></div>
+    <div class="span5">
+      <a class="project-file-last-commit-message lighten"></a>
+    </div>
+  </div>
+
+  <div class="row span10 well well-small project-directory-link">
+    <div class="span" style="width: 20px;">
+      <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+    </div>
+    <div class="span2">
+      <a class="project-directory-name"></a>
     </div>
   </div>
 
