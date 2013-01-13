@@ -17,66 +17,70 @@
       <div class="btn project-remove-file">Remove the New File</div>
       <br><br>
     </div>
-    <div class="well">
-      <!-- Title of the project (editable) -->
-      <h4>
-	<span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
-	<span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-	<span class="project-project_title" contenteditable="true"></span>
-      </h4>
-      <!-- Description of the project (editable) -->
-      <div class="project-project_description" contenteditable="true">
+    <div class="row">
+      <div class="well span10">
+	<!-- Title of the project (editable) -->
+	<h4>
+	  <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
+	  <span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+	  <span class="project-project_title" contenteditable="true"></span>
+	</h4>
+	<!-- Description of the project (editable) -->
+	<div class="project-project_description" contenteditable="true">
+	</div>
+	<!-- The current branch: TODO -- make a selector when I get bootstrap docs -->
       </div>
-      <!-- The current branch: TODO -- make a selector when I get bootstrap docs -->
     </div>
+    <div class="row">
+      <div class="well span10">
+	<!-- Tabs -- place where you click on them -->
+	<ul class="nav nav-tabs">
+	  <!-- List all files in the project -->
+	  <li class="active super-menu"><a href="#project-file-listing">Files</a></li>
+	  <!-- Git revision log of this project -->
+	  <li class="super-menu"><a href="#project-log">Commits</a></li>
+	  <!-- Git branches -->
+	  <li class="super-menu"><a href="#project-branches">Branches (<span class="bold project-branch"></span>)</a></li>
+	  <!-- Settings specific to this project -->
+	  <li class="super-menu"><a href="#project-settings">Settings</a></li>
+	</ul>
 
-    <div class="span11 well">
-      <!-- Tabs -- place where you click on them -->
-      <ul class="nav nav-tabs">
-	<!-- List all files in the project -->
-	<li class="active super-menu"><a href="#project-file-listing">Files</a></li>
-	<!-- Git revision log of this project -->
-	<li class="super-menu"><a href="#project-log">Commits</a></li>
-	<!-- Git branches -->
-	<li class="super-menu"><a href="#project-branches">Branches (<span class="bold project-branch"></span>)</a></li>
-	<!-- Settings specific to this project -->
-	<li class="super-menu"><a href="#project-settings">Settings</a></li>
-      </ul>
+	<!-- The actual screens that get revealed by each tab: -->
 
-      <!-- The actual screens that get revealed by each tab: -->
+	<!-- List of all files in the project, which is browsable -->
+	<div class="project-file-listing">
+	  <div class="project-file-listing-cwd"></div>
+	  <br>
+	  <div class="project-file-listing-file-list"></div>
+	</div>
 
-      <!-- List of all files in the project, which is browsable -->
-      <div class="project-file-listing">
-	<div class="project-file-listing-cwd row span10"></div>
-	<br><br>
-	<div class="project-file-listing-file-list"></div>
+	<!-- Github history log for this project -->
+	<div class="project-log hide">
+	</div>
+
+	<!-- Page to configure the settings for this project -->
+	<div class="project-settings hide">  <!-- hidden by default -->
+	</div>
+
       </div>
-
-      <!-- Github history log for this project -->
-      <div class="project-log hide">
-      </div>
-
-      <!-- Page to configure the settings for this project -->
-      <div class="project-settings hide">  <!-- hidden by default -->
-      </div>
-
     </div>
   </div>
 
-  <div class="row span10 well well-small project-file-link">
+  <div class="row span9 well well-small project-file-link">
     <div class="span" style="width: 20px;">
       <i class="icon-file">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>
-    <div class="span2">
+    <div class="span" style="width:100px;">
       <a class="project-file-name"></a>
     </div>
-    <div class="span2 project-file-last-edited lighten"></div>
+    <div class="span project-file-last-edited lighten" style="width:140px;">
+    </div>
     <div class="span5">
       <a class="project-file-last-commit-message lighten"></a>
     </div>
   </div>
 
-  <div class="row span10 well well-small project-directory-link">
+  <div class="row span9 well well-small project-directory-link">
     <div class="span" style="width: 20px;">
       <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>
@@ -84,6 +88,18 @@
       <a class="project-directory-name"></a>
     </div>
   </div>
+
+  <span class="project-home-icon">
+    <i class="icon-home"> </i>
+  </span>
+
+  <span class="project-new-file-icon">
+    <i class="icon-plus"> </i>
+  </span>
+
+  <span class="project-segment-sep lighten">
+    &nbsp; / &nbsp;
+  </span>
 
 </span>
 

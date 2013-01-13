@@ -9168,8 +9168,10 @@ Then slowly add functionality to client:
        would be very nice to sort by last modification someday... but maybe viewing
        by commits is just as good)
    [x] project page -- show current path at top
-   [ ] click on directory to open path
-   [ ] button to create new file in current path
+
+   [x] click on directory to open path
+
+   [ ] project page -- implement button to create new file in cwd
 
    [ ] edit file
    [ ] open console on a project

@@ -7,13 +7,16 @@
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
-{to_json, from_json} = require('misc')
+{to_json, from_json, trunc} = require('misc')
 
 MAX_TITLE_LENGTH = 25
 
 templates = $("#salvus-project-templates")
 template_project_file = templates.find(".project-file-link")
 template_project_directory = templates.find(".project-directory-link")
+template_home_icon = templates.find(".project-home-icon")
+template_new_file_icon = templates.find(".project-new-file-icon")
+template_segment_sep = templates.find(".project-segment-sep")
 
 class ProjectPage
     constructor: (@project_id) ->
@@ -177,7 +180,6 @@ class ProjectPage
                         current_branch : _meta.current_branch
                     @cwd = []
                     @container.find(".project-branch").text(@meta.current_branch)
-                    @update_cwd()
                     @update_file_list()
                     @update_log()
 
@@ -189,8 +191,8 @@ class ProjectPage
         file_data = @meta.files[@meta.current_branch]
         log = @meta.logs[@meta.current_branch]
         for segment in @cwd
-            files = files[segment]
-            if not files?
+            file_data = file_data[segment]
+            if not file_data?
                 return []
 
         directories = []
@@ -219,27 +221,43 @@ class ProjectPage
     update_cwd: () =>
         t = @container.find(".project-file-listing-cwd")
         t.empty()
+        t.append($("<a>").html(template_home_icon.clone().click(() => @cwd=[]; @update_file_list())))
+        new_cwd = []
         for segment in @cwd
-            t.append($("<span class='lighten'>").text("/"))
-            t.append($("<a>").html(segment))
-        t.append($("<span class='lighten'>").text("/"))
-        t.append($("<a>").html($("<i class='icon-plus'>")))
+            new_cwd.push(segment)
+            t.append(template_segment_sep.clone())
+            t.append($("<a>"
+            ).html(segment
+            ).data("cwd",new_cwd[..]  # make a copy
+            ).click((elt) =>
+                console.log($(elt.target).data("cwd"))
+                @cwd = $(elt.target).data("cwd")
+                @update_file_list()
+            ))
+        t.append(template_segment_sep.clone())
+        t.append($("<a>").html(template_new_file_icon.clone()))
 
     update_file_list: () =>
         console.log("update_file_list of project #{@project_id}")
+        @update_cwd()
         listing = @container.find(".project-file-listing-file-list")
         listing.empty()
         console.log(@current_files())
         for obj in @current_files()
-            console.log("obj = ", obj)
             if obj.is_file
                 t = template_project_file.clone()
                 t.find(".project-file-name").text(obj.filename)
                 t.find(".project-file-last-edited").text($.timeago(new Date(obj.commit.date)))
-                t.find(".project-file-last-commit-message").text(obj.commit.message)
+                t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
             else
                 t = template_project_directory.clone()
-                t.find(".project-directory-name").text(obj.filename)
+                t.find(".project-directory-name"
+                ).data('filename',obj.filename
+                ).text(obj.filename
+                ).click (elt) =>
+                    @cwd.push($(elt.target).data('filename'))
+                    @update_file_list()
+
             listing.append(t)
 
     update_log: () =>

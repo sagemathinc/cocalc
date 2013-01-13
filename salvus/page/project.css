@@ -30,5 +30,20 @@
 
 .project-file-listing-cwd {
     background-color:#fff;
-    font-size:18pt;
+    font-size:12pt;
+    font-weight:bold;
+}
+
+.project-new-file-icon {
+}
+
+.project-new-file-icon:hover {
+    background-color:#efe;
+}
+
+.project-home-icon {
+}
+
+.project-home-icon:hover {
+    background-color:#efe;
 }

@@ -191,3 +191,10 @@ exports.deep_copy = (obj) ->
 exports.path_split = (path) ->
     v = path.split('/')
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
+
+
+exports.trunc = (s, max_length) ->
+    if s.length > max_length
+        return s.slice(0,max_length-3) + "..."
+    else
+        return s
