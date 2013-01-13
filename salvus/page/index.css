@@ -21,6 +21,10 @@ top_navbar.css
     color: #888;
 }
 
+.bold {
+    font-weight: bold;
+}
+
 .close {
     font-size:20pt;
 }

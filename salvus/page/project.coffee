@@ -7,24 +7,32 @@
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
+{to_json, from_json} = require('misc')
 
 MAX_TITLE_LENGTH = 25
 
+templates = $("#salvus-project-templates")
+
 class ProjectPage
     constructor: (@project_id) ->
-        @container = $("#project-template").clone()
+        @container = templates.find(".salvus-project").clone()
         $("#footer").before(@container)
+
         @container.top_navbar
             id    : @project_id
             label : @project_id
+
+        @update_meta()
+
+        ########################################
+        # Only for temporary testing
+        #########################################
+
 
         @container.find(".project-new-file").click(@new_file_dialog)
         @container.find(".project-save").click(@save_project_dialog)
         @container.find(".project-close").click(@close_project_dialog)
 
-        ########################################
-        # Only for temporary testing
-        #########################################
         @container.find(".project-meta").click () =>
             salvus_client.get_project_meta
                 project_id : @project_id
@@ -143,7 +151,6 @@ class ProjectPage
             timeout : opts.timeout
 
     update_view: () ->
-        console.log(@project)
         if not @project?
             return
 
@@ -153,6 +160,54 @@ class ProjectPage
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
         top_navbar.set_button_label(@project.project_id, label)
         return @
+
+
+    update_meta: () =>
+        salvus_client.get_project_meta
+            project_id : @project_id
+            cb  : (err, _meta) =>
+                if err
+                    alert_message(type:'error', message:err)
+                else
+                    @meta =
+                        files          : from_json(_meta.files)
+                        logs           : from_json(_meta.logs)
+                        current_branch : _meta.current_branch
+                    @cwd = []
+                    @container.find(".project-branch").text(@meta.current_branch)
+                    @update_file_list()
+                    @update_log()
+
+    # Returns array of objects
+    #    {filename:..., description:..., last_mod:..., is_file:..., commit:...}
+    # for the current working directory and branch.
+    # If the cwd is invalid, return the empty array.
+    current_files: () =>
+        files = @meta.files[@meta.current_branch]
+        log = @meta.logs[@meta.current_branch]
+        for segment in @cwd
+            files = files[segment]
+            if not files?
+                return []
+        v = []
+        for filename, d of files
+            if typeof d == 'string'
+                console.log("ddd =", d, log, log[d])
+                x = log[d]
+            else
+                x = "directory"
+            v.push({filename:filename, x:x})
+        return v
+
+    update_file_list: () =>
+        s = ""
+        for file in @current_files()
+            s += to_json(file) + '<br>'
+        @container.find(".project-file-listing").html(s)
+
+    update_log: () =>
+        log = @meta.logs[@meta.current_branch]
+        console.log(log)
 
 
 project_pages = {}

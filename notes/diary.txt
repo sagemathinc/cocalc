@@ -9150,22 +9150,21 @@ Then slowly add functionality to client:
     [x] (55min) get_project_meta (so get list of files, logs, branches, etc.)
     [x] save file
     [x] save project
+    [ ] debug - read file from project (client)
+    [ ] debug - read file from project (message)
+    [ ] debug - read file from project (hub); uses blobstore.
+    [ ] debug - move file
+    [ ] debug - remove file / directory
 
-I'm going to write the below, but very (!?) buggy, since I don't have battery life
-for debugging...
-
-    [ ] read file from project (client)
-    [ ] read file from project (message)
-    [ ] read file from project (hub); uses blobstore.
-
-
-    [ ] move file
-    [ ] remove file
     [ ] open session on project (some new code in hub)
+
     [ ] (maybe later) change messages to provide subject and body for commit messages, as an option.
 
 [ ] gui page client:
-    [ ] browse files in a project
+
+   --> [ ] browse files in a project
+      TODO next: change generated log so that the commit id's are the keys of an object.
+
     [ ] edit file
     [ ] open console on a project
     [ ] open worksheet on a project

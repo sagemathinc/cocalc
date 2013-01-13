@@ -2496,6 +2496,7 @@ create_persistent_sage_session = (client, mesg) ->
                             ttl   : 60  # deleted after 60 seconds
                             cb    : (err) ->
                                 # TODO: actually use this for something
+                        )
                     else
                         raise("unknown message type '#{type}'")
             cb: ->

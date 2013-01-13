@@ -1,49 +1,73 @@
 
-<span class="hide">
+<span id="salvus-project-templates" class="hide">
 
-  <div class="container" id="project-template">
+    <div class="row" id="project-test-html">
+      TESTS:
+      <div class="btn project-new-file">New File</div>
+      <div class="btn project-save">Save Project</div>
+      <div class="btn project-close">Close Project</div>
+      <div class="btn project-meta">Project Meta</div>
+      <div class="btn project-read-text-file">Read New File as Text</div>
+      <div class="btn project-read-file">Read New File as Blob</div>
+      <div class="btn project-move-file">Move the New File</div>
+      <div class="btn project-make-directory">Make a Directory</div>
+      <div class="btn project-remove-file">Remove the New File</div>
+    </div>
 
+
+  <div class="container salvus-project">
     <div class="well">
+      <!-- Title of the project (editable) -->
       <h4>
 	<span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
 	<span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-	<span class="project-project_title-text">Project Title</span>
+	<span class="project-project_title" contenteditable="true"></span>
       </h4>
-      <div class="project-project_description">
-	Description of Project
+      <!-- Description of the project (editable) -->
+      <div class="project-project_description" contenteditable="true">
+      </div>
+      <!-- The current branch: TODO -- make a selector when I get bootstrap docs -->
+      <div>
+	Branch: <span class="bold project-branch"></span>
       </div>
     </div>
     <div class="span11 well">
+      <!-- Tabs -- place where you click on them -->
       <ul class="nav nav-tabs">
-	<li class="active super-menu"><a href="#project-file_list" data-toggle="tab">Files</a></li>
-	<li class="super-menu"><a href="#project-settings" data-toggle="tab">Settings</a></li>
+	<!-- List all files in the project -->
+	<li class="active super-menu"><a href="#project-file-listing">Files</a></li>
+	<!-- Git revision log of this project -->
+	<li class="super-menu"><a href="#project-log">Log</a></li>
+	<!-- Settings specific to this project -->
+	<li class="super-menu"><a href="#project-settings">Settings</a></li>
       </ul>
 
+      <!-- The actual screens that get revealed by each tab: -->
+
+      <!-- List of all files in the project, which is browsable -->
       <div class="project-file-listing">
-	<div class="btn project-new-file">New File</div>
-	<div class="btn project-save">Save Project</div>
-	<div class="btn project-close">Close Project</div>
-	<div class="btn project-meta">Project Meta</div>
-	<div class="btn project-read-text-file">Read New File as Text</div>
-	<div class="btn project-read-file">Read New File as Blob</div>
-	<div class="btn project-move-file">Move the New File</div>
-	<div class="btn project-make-directory">Make a Directory</div>
-	<div class="btn project-remove-file">Remove the New File</div>
+      </div>
 
+      <!-- Github history log for this project -->
+      <div class="project-file-listing">
+      </div>
 
-
-
-	<div class="row span10 well well-small  project-file-link" id="project-file-link-template">
-	  <div class="span5">
-	    <a href="" class="project-file-name"></a>
-	  </div>
-	  <div class="span2 project-file-last_edited"></div>
-	</div>
+      <!-- Page to configure the settings for this project -->
+      <div class="project-settings hide">  <!-- hidden by default -->
       </div>
 
     </div>
   </div>
 
+  <div class="row span10 well well-small project-file-link">
+    <div class="span4">
+      <a class="project-file-name"></a>
+    </div>
+    <div class="span2 project-file-last-edited"></div>
+    <div class="span3">
+      <a class="project-file-last-commit"></a>
+    </div>
+  </div>
 
 </span>
 
