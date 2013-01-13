@@ -17,6 +17,7 @@ template_project_directory = templates.find(".project-directory-link")
 template_home_icon = templates.find(".project-home-icon")
 template_new_file_icon = templates.find(".project-new-file-icon")
 template_segment_sep = templates.find(".project-segment-sep")
+template_new_file_link = templates.find(".project-new-file-link")
 
 class ProjectPage
     constructor: (@project_id) ->
@@ -27,12 +28,12 @@ class ProjectPage
             id    : @project_id
             label : @project_id
 
+        @cwd = []
         @update_meta()
 
         ########################################
         # Only for temporary testing
         #########################################
-
 
         @container.find(".project-new-file").click(@new_file_dialog)
         @container.find(".project-save").click(@save_project_dialog)
@@ -127,6 +128,26 @@ class ProjectPage
                 else
                     alert_message(type:"success", message: "New file created.")
 
+    new_file: (path) =>
+        salvus_client.write_text_file_to_project
+            project_id : @project_id
+            path       : "#{path}/untitled"
+            content    : ""
+            cb : (err, mesg) =>
+                if err
+                    alert_message(type:"error", message:"Connection error.")
+                else if mesg.event == "error"
+                    alert_message(type:"error", message:mesg.error)
+                else
+                    alert_message(type:"success", message: "New file created.")
+                    salvus_client.save_project
+                        project_id : @project_id
+                        commit_mesg : "Created a new file."
+                        cb : (err, mesg) =>
+                            console.log(err, mesg)
+                            if not err and mesg.event != 'error'
+                                #console.log("updating meta")
+                                @update_meta()
 
     set_model: (project) ->
         @project = project
@@ -174,11 +195,11 @@ class ProjectPage
                 if err
                     alert_message(type:'error', message:err)
                 else
+                    #console.log("got", _meta)
                     @meta =
                         files          : from_json(_meta.files)
                         logs           : from_json(_meta.logs)
                         current_branch : _meta.current_branch
-                    @cwd = []
                     @container.find(".project-branch").text(@meta.current_branch)
                     @update_file_list()
                     @update_log()
@@ -223,6 +244,7 @@ class ProjectPage
         t.empty()
         t.append($("<a>").html(template_home_icon.clone().click(() => @cwd=[]; @update_file_list())))
         new_cwd = []
+        that = @
         for segment in @cwd
             new_cwd.push(segment)
             t.append(template_segment_sep.clone())
@@ -235,7 +257,9 @@ class ProjectPage
                 @update_file_list()
             ))
         t.append(template_segment_sep.clone())
-        t.append($("<a>").html(template_new_file_icon.clone()))
+        t.append(template_new_file_link.clone().data("cwd", @cwd).click( (elt) ->
+            that.new_file($(@).data("cwd").join('/'))
+        ).tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
     update_file_list: () =>
         console.log("update_file_list of project #{@project_id}")
@@ -243,20 +267,21 @@ class ProjectPage
         listing = @container.find(".project-file-listing-file-list")
         listing.empty()
         console.log(@current_files())
+        that = @
         for obj in @current_files()
             if obj.is_file
                 t = template_project_file.clone()
                 t.find(".project-file-name").text(obj.filename)
                 t.find(".project-file-last-edited").text($.timeago(new Date(obj.commit.date)))
                 t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
+                t.data("filename",obj.filename).click (e) ->
+                    that.open_file($(@).data('filename'))
             else
                 t = template_project_directory.clone()
-                t.find(".project-directory-name"
-                ).data('filename',obj.filename
-                ).text(obj.filename
-                ).click (elt) =>
-                    @cwd.push($(elt.target).data('filename'))
-                    @update_file_list()
+                t.find(".project-directory-name").text(obj.filename)
+                t.data('filename',obj.filename).click (e) ->
+                    that.cwd.push($(@).data('filename'))
+                    that.update_file_list()
 
             listing.append(t)
 

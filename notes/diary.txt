@@ -9169,9 +9169,14 @@ Then slowly add functionality to client:
        by commits is just as good)
    [x] project page -- show current path at top
 
-   [x] click on directory to open path
+   [x] project page -- click on directory to open path
 
-   [ ] project page -- implement button to create new file in cwd
+   [x] project_page -- enhance look of new file link.
+   [ ] project_page -- clicking on file but not on a particular link should open directory/file
+
+   [x] project page -- implement button to create new file in cwd (very badly done)
+
+   [ ] BUG? -- once there are 10 bundles things don't work...
 
    [ ] edit file
    [ ] open console on a project
