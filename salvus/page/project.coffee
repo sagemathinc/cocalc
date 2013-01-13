@@ -259,7 +259,7 @@ class ProjectPage
         t.append(template_segment_sep.clone())
         t.append(template_new_file_link.clone().data("cwd", @cwd).click( (elt) ->
             that.new_file($(@).data("cwd").join('/'))
-        ).tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
+        ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
     update_file_list: () =>
         console.log("update_file_list of project #{@project_id}")
