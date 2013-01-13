@@ -9167,13 +9167,13 @@ Then slowly add functionality to client:
    [x] project page -- sort: first directories then files, both in alphabetical order by default (but
        would be very nice to sort by last modification someday... but maybe viewing
        by commits is just as good)
+   [x] project page -- show current path at top
+   [ ] click on directory to open path
+   [ ] button to create new file in current path
 
-    [ ] click on directory to open path
-
-
-    [ ] edit file
-    [ ] open console on a project
-    [ ] open worksheet on a project
+   [ ] edit file
+   [ ] open console on a project
+   [ ] open worksheet on a project
 
 [ ] swap in andrew ohana's new bundler
 [ ] set the current branch on opening project (maybe)?

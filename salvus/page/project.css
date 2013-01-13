@@ -27,3 +27,8 @@
     font-size:12pt;
     color: #666;
 }
+
+.project-file-listing-cwd {
+    background-color:#fff;
+    font-size:18pt;
+}

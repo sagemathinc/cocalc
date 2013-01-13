@@ -177,6 +177,7 @@ class ProjectPage
                         current_branch : _meta.current_branch
                     @cwd = []
                     @container.find(".project-branch").text(@meta.current_branch)
+                    @update_cwd()
                     @update_file_list()
                     @update_log()
 
@@ -215,9 +216,18 @@ class ProjectPage
         files.sort(cmp)
         return directories.concat(files)
 
+    update_cwd: () =>
+        t = @container.find(".project-file-listing-cwd")
+        t.empty()
+        for segment in @cwd
+            t.append($("<span class='lighten'>").text("/"))
+            t.append($("<a>").html(segment))
+        t.append($("<span class='lighten'>").text("/"))
+        t.append($("<a>").html($("<i class='icon-plus'>")))
+
     update_file_list: () =>
         console.log("update_file_list of project #{@project_id}")
-        listing = @container.find(".project-file-listing")
+        listing = @container.find(".project-file-listing-file-list")
         listing.empty()
         console.log(@current_files())
         for obj in @current_files()
