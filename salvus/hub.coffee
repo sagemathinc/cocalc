@@ -695,6 +695,45 @@ class Client extends EventEmitter
             else
                 @push_to_client(message.text_file_read_from_project(id:mesg.id, content:content))
 
+    mesg_read_file_from_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.read_file mesg.path, (err, content) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                # Store content in uuid:blob store and provide a temporary link to it.
+                u = uuid.v4()
+                save_blob uuid:u, value:content, ttl:60, cb:(err) ->
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        url = "/blobs/#{mesg.path}?uuid=#{u}"
+                        @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:url))
+
+    mesg_move_file_in_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.move_file mesg.src, mesg.dest, (err, content) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.file_moved_in_project(id:mesg.id))
+
+    mesg_make_directory_in_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.make_directory mesg.path, (err, content) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.directory_made_in_project(id:mesg.id))
+
+    mesg_remove_file_from_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.remove_file mesg.path, (err, content) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.file_removed_from_project(id:mesg.id))
+
 
 ##############################
 # Create the SockJS Server
@@ -1466,7 +1505,7 @@ class Project
                         socket = _socket
                         c()
             (c) =>
-                m = message.remove_file_in_project
+                m = message.remove_file_from_project
                     id         : id
                     project_id : @project_id
                     path       : path
@@ -1475,7 +1514,7 @@ class Project
             (c) =>
                 socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
                     switch mesg.event
-                        when 'file_removed_in_project'
+                        when 'file_removed_from_project'
                             c()
                         when 'error'
                             c(mesg.error)
@@ -2382,14 +2421,19 @@ exports.send_email = send_email = (opts={}) ->
 
 save_blob = (opts) ->
     opts = defaults opts,
-        uuid  : required
+        uuid  : undefined  # if not give, is generated; function always returns the uuid that was used
         value : required   # NOTE: value *must* be a Buffer.
         ttl   : undefined
-        cb    : undefined
-    if opts.value.length >= 10000000
-        # PRIMITIVE anti-DOS measure
+        cb    : required
+    if opts.value.length >= 10000000 and opts.ttl > 60 # 10MB for more than 60 seconds
+        # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
+        opts.cb("blob must be at most 10MB if stored for more than 60 seconds")
         return
-    database.uuid_blob_store(name:"blobs").set(opts)
+    if opts.value.length >= 100000000    # 100MB for any amount of time
+        # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
+        opts.cb("blob must be at most 100MB")
+        return
+    return database.uuid_blob_store(name:"blobs").set(opts)
 
 get_blob = (opts) ->
     opts = defaults opts,
@@ -2446,8 +2490,12 @@ create_persistent_sage_session = (client, mesg) ->
                             else
                                 client.push_to_client(m)
                     when 'blob'
-                        # TODO: should we use a callback so that we notify about whether or not this worked? We could...
-                        save_blob(uuid:m.uuid, value:m.blob, ttl:60)  # deleted after 60 seconds
+                        save_blob(
+                            uuid  : m.uuid
+                            value : m.blob
+                            ttl   : 60  # deleted after 60 seconds
+                            cb    : (err) ->
+                                # TODO: actually use this for something
                     else
                         raise("unknown message type '#{type}'")
             cb: ->
@@ -2701,12 +2749,3 @@ if program._name == 'hub.js'
         console.log("BUG ****************************************************************************")
 
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
-
-
-
-
-
-
-
-
-

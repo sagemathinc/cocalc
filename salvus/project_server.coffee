@@ -610,7 +610,7 @@ events.move_file_in_project = (socket, mesg) ->
     )
 
 # Delete a file from the project, using the proper git command.
-events.remove_file_in_project = (socket, mesg) ->
+events.remove_file_from_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
         (c) ->
@@ -623,7 +623,7 @@ events.remove_file_in_project = (socket, mesg) ->
         (c) ->
             child_process.exec("su - #{user} -c 'git rm -rf \"#{mesg.path}\"'", c)
         (c) ->
-            socket.write_mesg('json', message.file_removed_in_project(id:mesg.id))
+            socket.write_mesg('json', message.file_removed_from_project(id:mesg.id))
     ], (err) ->
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))

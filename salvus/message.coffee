@@ -588,6 +588,12 @@ message
     id           : required
     data_uuid    : required  # The project_server will send the raw data of the file as a blob with this uuid.
 
+# hub --> client
+message
+    event        : 'temporary_link_to_file_read_from_project'
+    id           : required
+    url          : required
+
 # The client sends this message to the hub in order to write (or
 # create) a plain text file (binary files not allowed, since sending
 # them via JSON makes no sense).
@@ -631,14 +637,14 @@ message
 
 # client --> hub --> project_server
 message
-    event        : 'remove_file_in_project'
+    event        : 'remove_file_from_project'
     id           : required
     project_id   : required
     path         : required
 
 # project_server --> hub --> client
 message
-    event        : 'file_removed_in_project'
+    event        : 'file_removed_from_project'
     id           : required
 
 # The write_file_to_project message is sent from the hub to the

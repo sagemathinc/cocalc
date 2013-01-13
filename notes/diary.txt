@@ -9153,7 +9153,12 @@ Then slowly add functionality to client:
 
 I'm going to write the below, but very (!?) buggy, since I don't have battery life
 for debugging...
--->    [ ] read file from project
+
+    [ ] read file from project (client)
+    [ ] read file from project (message)
+    [ ] read file from project (hub); uses blobstore.
+
+
     [ ] move file
     [ ] remove file
     [ ] open session on project (some new code in hub)

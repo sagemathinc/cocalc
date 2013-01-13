@@ -22,7 +22,9 @@ class ProjectPage
         @container.find(".project-save").click(@save_project_dialog)
         @container.find(".project-close").click(@close_project_dialog)
 
+        ########################################
         # Only for temporary testing
+        #########################################
         @container.find(".project-meta").click () =>
             salvus_client.get_project_meta
                 project_id : @project_id
@@ -30,13 +32,51 @@ class ProjectPage
                     console.log("err = #{err}")
                     console.log("meta =", meta)
 
-        @container.find(".project-read-file").click () =>
+        @container.find(".project-read-text-file").click () =>
             salvus_client.read_text_file_from_project
                 project_id : @project_id
                 path : 'new_file.txt'
                 cb : (err, contents) ->
                     console.log("err = #{err}")
                     console.log("contents =", contents)
+
+        @container.find(".project-read-file").click () =>
+            salvus_client.read_file_from_project
+                project_id : @project_id
+                path : 'new_file.txt'
+                cb : (err, url) ->
+                    console.log("err = #{err}")
+                    console.log("url =", url)
+                    # test it manually at this point..
+
+        @container.find(".project-move-file").click () =>
+            salvus_client.move_file_in_project
+                project_id : @project_id
+                src : 'new_file.txt'
+                dest : 'new_file2.txt'
+                cb : (err, mesg) ->
+                    console.log("err = #{err}, mesg = ", mesg)
+
+        @container.find(".project-make-directory").click () =>
+            salvus_client.make_directory_in_project
+                project_id : @project_id
+                path : 'new_directory'
+                cb : (err, mesg) ->
+                    console.log("err = #{err}, mesg = ", mesg)
+
+        @container.find(".project-remove-file").click () =>
+            salvus_client.remove_file_from_project
+                project_id : @project_id
+                path : 'new_file.txt'
+                cb : (err, mesg) ->
+                    console.log("err = #{err}, mesg = ", mesg)
+
+        @container.find(".project-remove-directory").click () =>
+            salvus_client.remove_file_from_project
+                project_id : @project_id
+                path : 'new_directory'
+                cb : (err, mesg) ->
+                    console.log("err = #{err}, mesg = ", mesg)
 
     save_project_dialog: () =>
         salvus_client.save_project
