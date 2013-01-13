@@ -9162,8 +9162,14 @@ Then slowly add functionality to client:
 
 [ ] gui page client:
 
-   --> [ ] browse files in a project
-      TODO next: change generated log so that the commit id's are the keys of an object.
+   [x] change generated log so that the commit id's are the keys of an object.
+
+   [x] project page -- sort: first directories then files, both in alphabetical order by default (but
+       would be very nice to sort by last modification someday... but maybe viewing
+       by commits is just as good)
+
+    [ ] click on directory to open path
+
 
     [ ] edit file
     [ ] open console on a project

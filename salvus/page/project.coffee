@@ -185,22 +185,35 @@ class ProjectPage
     # for the current working directory and branch.
     # If the cwd is invalid, return the empty array.
     current_files: () =>
-        files = @meta.files[@meta.current_branch]
+        file_data = @meta.files[@meta.current_branch]
         log = @meta.logs[@meta.current_branch]
         for segment in @cwd
             files = files[segment]
             if not files?
                 return []
-        v = []
-        for filename, d of files
+
+        directories = []
+        files = []
+        for filename, d of file_data
             obj = {filename:filename}
             if typeof d == 'string'  # a commit id -- consult the log
                 obj.is_file = true
                 obj.commit = log[d]
+                files.push(obj)
             else  # a directory
                 obj.is_file = false
-            v.push(obj)
-        return v
+                directories.push(obj)
+
+        cmp = (a,b) ->
+            if a.filename < b.filename
+                return -1
+            else if a.filename == b.filename
+                return 0
+            else
+                return 1
+        directories.sort(cmp)
+        files.sort(cmp)
+        return directories.concat(files)
 
     update_file_list: () =>
         console.log("update_file_list of project #{@project_id}")
