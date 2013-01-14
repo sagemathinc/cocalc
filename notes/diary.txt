@@ -9178,12 +9178,17 @@ Then slowly add functionality to client:
 
    [ ] BUG? -- once there are 10 bundles things don't work...
 
+-->   [ ] display commit log for current branch
+   [ ] be able to switch branches
+   [ ] display log of current branch
+
    [ ] edit file
    [ ] open console on a project
    [ ] open worksheet on a project
 
 [ ] swap in andrew ohana's new bundler
 [ ] set the current branch on opening project (maybe)?
+[ ] make admin.py purge password after 30 minutes of inactivity.
 
  [ ] account creation broken!
 debug: hub --> client: {"event":"account_creation_failed","id":"dd80c104-80c3-4a82-a2a9-aee7ef2d9e2d","reason":{"agreed_to_terms":"Agree to the Salvus Terms of Service."}}

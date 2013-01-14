@@ -28,6 +28,8 @@ class ProjectPage
             id    : @project_id
             label : @project_id
 
+        @init_tabs()
+
         @cwd = []
         @update_meta()
 
@@ -91,6 +93,17 @@ class ProjectPage
                 path : 'new_directory'
                 cb : (err, mesg) ->
                     console.log("err = #{err}, mesg = ", mesg)
+
+    init_tabs: () ->
+        console.log("init_tabs")
+        @tab_names = []
+        for item in @container.find(".nav-tabs").children()
+            item = $(item)
+            name = item.find("a").attr('href').slice(1)
+            @tab_names.push(name)
+
+    display_tab: (name) =>
+
 
     save_project_dialog: () =>
         salvus_client.save_project
