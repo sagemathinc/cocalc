@@ -106,7 +106,7 @@ update_project_view = (show_all=false) ->
         $("#projects-show_all").hide()
 
 open_project = (project) ->
-    project_page(project.project_id).set_model(project)
+    project_page(project)
     top_navbar.switch_to_page(project.project_id)
 
 

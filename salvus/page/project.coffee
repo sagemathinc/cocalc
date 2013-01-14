@@ -7,7 +7,7 @@
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
-{to_json, from_json, trunc} = require('misc')
+{defaults, required, to_json, from_json, trunc} = require('misc')
 
 MAX_TITLE_LENGTH = 25
 
@@ -22,15 +22,16 @@ template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
 
 class ProjectPage
-    constructor: (@project_id) ->
+    constructor: (@project) ->
         @container = templates.find(".salvus-project").clone()
         $("#footer").before(@container)
 
         @container.top_navbar
-            id    : @project_id
-            label : @project_id
+            id    : @project.project_id
+            label : @project.project_id
 
         @init_tabs()
+        @update_view()
 
         @cwd = []
         @update_meta()
@@ -45,14 +46,14 @@ class ProjectPage
 
         @container.find(".project-meta").click () =>
             salvus_client.get_project_meta
-                project_id : @project_id
+                project_id : @project.project_id
                 cb  : (err, meta) ->
                     console.log("err = #{err}")
                     console.log("meta =", meta)
 
         @container.find(".project-read-text-file").click () =>
             salvus_client.read_text_file_from_project
-                project_id : @project_id
+                project_id : @project.project_id
                 path : 'new_file.txt'
                 cb : (err, contents) ->
                     console.log("err = #{err}")
@@ -60,7 +61,7 @@ class ProjectPage
 
         @container.find(".project-read-file").click () =>
             salvus_client.read_file_from_project
-                project_id : @project_id
+                project_id : @project.project_id
                 path : 'new_file.txt'
                 cb : (err, url) ->
                     console.log("err = #{err}")
@@ -69,7 +70,7 @@ class ProjectPage
 
         @container.find(".project-move-file").click () =>
             salvus_client.move_file_in_project
-                project_id : @project_id
+                project_id : @project.project_id
                 src : 'new_file.txt'
                 dest : 'new_file2.txt'
                 cb : (err, mesg) ->
@@ -77,21 +78,21 @@ class ProjectPage
 
         @container.find(".project-make-directory").click () =>
             salvus_client.make_directory_in_project
-                project_id : @project_id
+                project_id : @project.project_id
                 path : 'new_directory'
                 cb : (err, mesg) ->
                     console.log("err = #{err}, mesg = ", mesg)
 
         @container.find(".project-remove-file").click () =>
             salvus_client.remove_file_from_project
-                project_id : @project_id
+                project_id : @project.project_id
                 path : 'new_file.txt'
                 cb : (err, mesg) ->
                     console.log("err = #{err}, mesg = ", mesg)
 
         @container.find(".project-remove-directory").click () =>
             salvus_client.remove_file_from_project
-                project_id : @project_id
+                project_id : @project.project_id
                 path : 'new_directory'
                 cb : (err, mesg) ->
                     console.log("err = #{err}, mesg = ", mesg)
@@ -119,7 +120,7 @@ class ProjectPage
 
     save_project_dialog: () =>
         salvus_client.save_project
-            project_id : @project_id
+            project_id : @project.project_id
             commit_mesg : "a commit message"
             cb         : (err, mesg) ->
                 if err
@@ -131,7 +132,7 @@ class ProjectPage
 
     close_project_dialog: () =>
         salvus_client.close_project
-            project_id : @project_id
+            project_id : @project.project_id
             cb         : (err, mesg) ->
                 if err
                     alert_message(type:"error", message:"Connection error.")
@@ -142,7 +143,7 @@ class ProjectPage
 
     new_file_dialog: () =>
         salvus_client.write_text_file_to_project
-            project_id : @project_id,
+            project_id : @project.project_id,
             path       : 'new_file.txt',
             content    : 'This is a new file.'
             cb         : (err, mesg) ->
@@ -155,7 +156,7 @@ class ProjectPage
 
     new_file: (path) =>
         salvus_client.write_text_file_to_project
-            project_id : @project_id
+            project_id : @project.project_id
             path       : "#{path}/untitled"
             content    : ""
             cb : (err, mesg) =>
@@ -166,17 +167,13 @@ class ProjectPage
                 else
                     alert_message(type:"success", message: "New file created.")
                     salvus_client.save_project
-                        project_id : @project_id
+                        project_id : @project.project_id
                         commit_mesg : "Created a new file."
                         cb : (err, mesg) =>
                             console.log(err, mesg)
                             if not err and mesg.event != 'error'
                                 #console.log("updating meta")
                                 @update_meta()
-
-    set_model: (project) ->
-        @project = project
-        @update_view()
 
     load_from_server: (opts) ->
         opts = defaults opts,
@@ -215,7 +212,7 @@ class ProjectPage
 
     update_meta: () =>
         salvus_client.get_project_meta
-            project_id : @project_id
+            project_id : @project.project_id
             cb  : (err, _meta) =>
                 if err
                     alert_message(type:'error', message:err)
@@ -329,11 +326,11 @@ project_pages = {}
 
 # Function that returns the project page for the project with given id,
 # or creates it if it doesn't exist.
-project_page = exports.project_page = (project_id) ->
-    p = project_pages[project_id]
+project_page = exports.project_page = (project) ->
+    p = project_pages[project.project_id]
     if p?
         return p
-    p = new ProjectPage(project_id)
-    project_pages[project_id] = p
+    p = new ProjectPage(project)
+    project_pages[project.project_id] = p
     return p
 

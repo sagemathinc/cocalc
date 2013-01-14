@@ -9182,9 +9182,14 @@ Then slowly add functionality to client:
        example, see log of e78c20fc731d45bd8ab97f1dc5e7ae1e.
    [x] (5min) BUG -- never do .text(... timeago...) !
 
+   [ ] change it so project constructor function takes project object only
+
+-->   [ ] make it so editing title (and desc) of project sends appropriate message.
+
    [ ] menu to switch branches, along with code messages so branch really does get switched.
 
    [ ] show meta info all branches (what?)
+
 
    [ ] basic project settings page (?)
 
