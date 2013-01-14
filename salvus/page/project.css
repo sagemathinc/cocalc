@@ -47,3 +47,36 @@
 .project-home-icon:hover {
     background-color:#efe;
 }
+
+.project-commits-branch {
+    font-weight:bold;
+}
+
+.project-commit-single-message {
+    font-size: 12pt;
+    font-weight: bold;
+}
+
+.project-commit-single-author {
+    font-size: 9pt;
+}
+
+.project-commit-single-date {
+    font-size: 9pt;
+}
+
+
+.project-commit-single-sha {
+    font-family: monospace;
+    font-size: 9pt;
+}
+
+.project-commit-single {
+    background-color:#ffffff;
+    margin-top:0px;
+    margin-bottom:0px;
+}
+
+.project-commit-single:hover {
+    background-color:#efe;
+}

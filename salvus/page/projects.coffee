@@ -93,7 +93,7 @@ update_project_view = (show_all=false) ->
             item.find(".projects-public-icon").hide()
             item.addClass("private-project")
         item.find(".projects-title").text(project.title)
-        item.find(".projects-last_edited").text($.timeago(new Date(project.last_edited)))
+        item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
         item.find(".projects-description").text(project.description)
         item.click (event) ->
             open_project ($(@).data("project"))

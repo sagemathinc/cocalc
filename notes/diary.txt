@@ -9176,15 +9176,28 @@ Then slowly add functionality to client:
 
    [x] project page -- implement button to create new file in cwd (very badly done)
 
-   [ ] BUG? -- once there are 10 bundles things don't work...
 
--->   [ ] display commit log for current branch
-   [ ] be able to switch branches
-   [ ] display log of current branch
+   [x] (1h 58min) project_page -- display commit log for current branch; plus fix numerous other little things
+   [x] (15min) log -- need to also store list of commits in order, since json object *NOT* ordered!
+       example, see log of e78c20fc731d45bd8ab97f1dc5e7ae1e.
+   [x] (5min) BUG -- never do .text(... timeago...) !
 
-   [ ] edit file
+   [ ] menu to switch branches, along with code messages so branch really does get switched.
+
+   [ ] show meta info all branches (what?)
+
+   [ ] basic project settings page (?)
+
    [ ] open console on a project
-   [ ] open worksheet on a project
+   [ ] view file
+   [ ] open worksheet in a project
+
+   [ ] BUG -- once there are 10 bundles things don't work...
+   [ ] BUG -- this filename broke filename listing: mkdir "this is 'a' cool! ar\"rse directory"
+
+
+   [ ] Feature: Easy ability to delete projects, with a screen to get them back within 30 days (say).
+       Use a ttl when nobody left who cares about the project.
 
 [ ] swap in andrew ohana's new bundler
 [ ] set the current branch on opening project (maybe)?

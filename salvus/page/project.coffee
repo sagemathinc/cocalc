@@ -12,12 +12,14 @@
 MAX_TITLE_LENGTH = 25
 
 templates = $("#salvus-project-templates")
-template_project_file = templates.find(".project-file-link")
-template_project_directory = templates.find(".project-directory-link")
-template_home_icon = templates.find(".project-home-icon")
-template_new_file_icon = templates.find(".project-new-file-icon")
-template_segment_sep = templates.find(".project-segment-sep")
-template_new_file_link = templates.find(".project-new-file-link")
+template_project_file          = templates.find(".project-file-link")
+template_project_directory     = templates.find(".project-directory-link")
+template_home_icon             = templates.find(".project-home-icon")
+template_new_file_icon         = templates.find(".project-new-file-icon")
+template_segment_sep           = templates.find(".project-segment-sep")
+template_new_file_link         = templates.find(".project-new-file-link")
+template_project_commits       = templates.find(".project-commits")
+template_project_commit_single = templates.find(".project-commit-single")
 
 class ProjectPage
     constructor: (@project_id) ->
@@ -95,15 +97,25 @@ class ProjectPage
                     console.log("err = #{err}, mesg = ", mesg)
 
     init_tabs: () ->
-        console.log("init_tabs")
-        @tab_names = []
+        @tabs = []
+        that = @
         for item in @container.find(".nav-tabs").children()
-            item = $(item)
-            name = item.find("a").attr('href').slice(1)
-            @tab_names.push(name)
+            t = $(item)
+            name = t.find("a").attr('href').slice(1)
+            t.data("name", name)
+            @tabs.push(label:t, name:name, target:@container.find(".#{name}"))
+            t.click () ->
+                that.display_tab($(@).data("name"))
+                return false
 
     display_tab: (name) =>
-
+        for tab in @tabs
+            if tab.name == name
+                tab.target.show()
+                tab.label.addClass('active')
+            else
+                tab.target.hide()
+                tab.label.removeClass('active')
 
     save_project_dialog: () =>
         salvus_client.save_project
@@ -208,14 +220,15 @@ class ProjectPage
                 if err
                     alert_message(type:'error', message:err)
                 else
-                    #console.log("got", _meta)
+                    console.log("got", _meta)
                     @meta =
                         files          : from_json(_meta.files)
                         logs           : from_json(_meta.logs)
                         current_branch : _meta.current_branch
+                    console.log(@meta.logs)
                     @container.find(".project-branch").text(@meta.current_branch)
                     @update_file_list()
-                    @update_log()
+                    @update_commits()
 
     # Returns array of objects
     #    {filename:..., is_file:..., commit:...reference to commit object if is_file true...}
@@ -223,7 +236,7 @@ class ProjectPage
     # If the cwd is invalid, return the empty array.
     current_files: () =>
         file_data = @meta.files[@meta.current_branch]
-        log = @meta.logs[@meta.current_branch]
+        commits = @meta.logs[@meta.current_branch].commits
         for segment in @cwd
             file_data = file_data[segment]
             if not file_data?
@@ -233,9 +246,9 @@ class ProjectPage
         files = []
         for filename, d of file_data
             obj = {filename:filename}
-            if typeof d == 'string'  # a commit id -- consult the log
+            if typeof d == 'string'  # a commit id -- consult the commit log
                 obj.is_file = true
-                obj.commit = log[d]
+                obj.commit = commits[d]
                 files.push(obj)
             else  # a directory
                 obj.is_file = false
@@ -275,7 +288,6 @@ class ProjectPage
         ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
     update_file_list: () =>
-        console.log("update_file_list of project #{@project_id}")
         @update_cwd()
         listing = @container.find(".project-file-listing-file-list")
         listing.empty()
@@ -285,7 +297,7 @@ class ProjectPage
             if obj.is_file
                 t = template_project_file.clone()
                 t.find(".project-file-name").text(obj.filename)
-                t.find(".project-file-last-edited").text($.timeago(new Date(obj.commit.date)))
+                t.find(".project-file-last-edited").attr('title', obj.commit.date).timeago()
                 t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
                 t.data("filename",obj.filename).click (e) ->
                     that.open_file($(@).data('filename'))
@@ -298,11 +310,20 @@ class ProjectPage
 
             listing.append(t)
 
-    update_log: () =>
-        console.log("update_log of project #{@project_id}")
-        log = @meta.logs[@meta.current_branch]
-        console.log(log)
-
+    update_commits: () =>
+        {commit_list, commits} = @meta.logs[@meta.current_branch]
+        # TODO: make it a drop-down control to change branch
+        @container.find(".project-commits-branch").text(@meta.current_branch)
+        list = @container.find(".project-commits-list")
+        list.empty()
+        for id in commit_list
+            entry = commits[id]
+            t = template_project_commit_single.clone()
+            t.find(".project-commit-single-message").text(trunc(entry.message, 80))
+            t.find(".project-commit-single-author").text(entry.author)
+            t.find(".project-commit-single-date").attr('title', entry.date).timeago()
+            t.find(".project-commit-single-sha").text(id.slice(0,10))
+            list.append(t)
 
 project_pages = {}
 
