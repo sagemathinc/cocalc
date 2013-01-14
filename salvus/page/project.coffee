@@ -36,6 +36,40 @@ class ProjectPage
         @cwd = []
         @update_meta()
 
+        # Make it so editing the title and description of the project
+        # sends a message to the hub.
+        that = @
+        @container.find(".project-project_title").blur () ->
+            new_title = $(@).text()
+            if new_title != that.project.title
+                salvus_client.update_project_data
+                    project_id : that.project.project_id
+                    data       : {title:new_title}
+                    cb         : (err, mesg) ->
+                        if err
+                            alert_message(type:'error', message:"Error contacting server to save modified project title.")
+                        else if mesg.event == "error"
+                            alert_message(type:'error', message:mesg.error)
+                        else
+                            that.project.title = new_title
+
+        @container.find(".project-project_description").blur () ->
+            new_desc = $(@).text()
+            if new_desc != that.project.description
+                salvus_client.update_project_data
+                    project_id : that.project.project_id
+                    data       : {description:new_desc}
+                    cb         : (err, mesg) ->
+                        if err
+                            alert_message(type:'error', message:"Error contacting server to save modified project description.")
+                        else if mesg.event == "error"
+                            alert_message(type:'error', message:mesg.error)
+                        else
+                            that.project.description = new_desc
+
+
+
+
         ########################################
         # Only for temporary testing
         #########################################
