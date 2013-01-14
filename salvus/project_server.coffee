@@ -122,7 +122,7 @@ create_user = (project_id, quota, cb) ->
         # Create the user
         (cb) ->
             cmd = "useradd -U #{uname}"
-            console.log(cmd)
+            winston.debug(cmd)
             child_process.exec cmd, (err, stdout, stderr) ->
                 cb(err)
         # Set the quota, being careful to check for validity of the quota specification.
@@ -142,12 +142,12 @@ create_user = (project_id, quota, cb) ->
             else
                 # Everything is good, let's do it!
                 cmd = "setquota -u #{uname} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
-                console.log(cmd)
+                winston.debug(cmd)
                 child_process.exec(cmd, cb)
     ], (err) ->
         if err
             # We attempted to make the user, but something went wrong along the way, so we better clean up!
-            console.log("** Attempting to make user failed -- #{err}... cleaning up.** ")
+            winston.debug("** Attempting to make user failed -- #{err}... cleaning up.** ")
             delete_user_32(uname)
         cb(err)
     )
@@ -183,11 +183,11 @@ killall_user = (uname, cb) ->
 # NOTE: This object is entirely in memory, which potentially imposes
 # memory/size constraints.
 extract_bundles = (project_id, bundles, cb) ->
-    console.log("extract_bundles -- #{project_id}")
+    winston.debug("extract_bundles -- #{project_id}")
     bundle_path = bundlepath(project_id)
     uname       = username(project_id)
     repo_path   = userpath(project_id)
-    console.log("extracting bundles from bundle_path = ", bundle_path)
+    winston.debug("extracting bundles from bundle_path = ", bundle_path)
 
     # Below we create a sequence of tasks, then do them all at the end
     # with a call to async.series.  We do this, rather than defining
@@ -209,7 +209,7 @@ extract_bundles = (project_id, bundles, cb) ->
     for _, content of bundles
         task = (c) ->
             filename = "#{bundle_path}/#{arguments.callee.n}.bundle"
-            console.log("Writing bundle #{filename} out to disk")
+            winston.debug("Writing bundle #{filename} out to disk")
             fs.writeFile(filename, arguments.callee.content, c)
         task.n = n
         task.content = content
@@ -258,24 +258,24 @@ events.open_project = (socket, mesg) ->
     # the bundle blobs.  We do the extract step below in _open_project2.
 
     mesg.bundles = misc.pairs_to_obj( [u, ""] for u in mesg.bundle_uuids )
-    console.log(misc.to_json(mesg.bundles))
+    winston.debug(misc.to_json(mesg.bundles))
     n = misc.len(mesg.bundles)
     winston.debug
     if n == 0
-        console.log("open_project -- 0 bundles so skipping waiting")
+        winston.debug("open_project -- 0 bundles so skipping waiting")
         _open_project2(socket, mesg)
     else
-        console.log("open_project -- waiting for #{n} bundles: #{mesg.bundle_uuids}")
+        winston.debug("open_project -- waiting for #{n} bundles: #{mesg.bundle_uuids}")
         # Create a function that listens on the socket for blobs that
         # are marked with one of the uuid's described in the mesg.
         recv_bundles = (type, m) ->
             if type == 'blob'
-                console.log("open_project -- received bundle with uuid #{m.uuid} #{type=='blob'} #{mesg.bundles[m.uuid]} #{mesg.bundles[m.uuid]?}")
+                winston.debug("open_project -- received bundle with uuid #{m.uuid} #{type=='blob'} #{mesg.bundles[m.uuid]} #{mesg.bundles[m.uuid]?}")
             if type == 'blob' and mesg.bundles[m.uuid]?
-                console.log("open_project -- recording bundle... of length #{m.blob.length}")
+                winston.debug("open_project -- recording bundle... of length #{m.blob.length}")
                 mesg.bundles[m.uuid] = m.blob
                 n -= 1
-                console.log("open_project -- waiting for #{n} more bundles")
+                winston.debug("open_project -- waiting for #{n} more bundles")
                 if n <= 0
                     # We've received all blobs, so remove the listener.
                     socket.removeListener 'mesg', recv_bundles
@@ -293,7 +293,7 @@ _open_project2 = (socket, mesg) ->
         (cb) ->
             extract_bundles(mesg.project_id, mesg.bundles, cb)
     ], (err) ->
-        console.log("finished open_project -- #{err}")
+        winston.debug("finished open_project -- #{err}")
         if err
             socket.write_mesg('json', message.error(id:mesg.id, error:err))
         else
@@ -469,14 +469,14 @@ events.save_project = (socket, mesg) ->
     )
 
 cleanup = (uname, cb) ->
-    console.log('cleanup')
+    winston.debug('cleanup')
     async.series([
         (cb) ->
-            console.log('cleanup -- killall_user')
-            killall_user(uname, cb)
+            winston.debug('cleanup -- killall_user')
+            killall_user(uname, () -> cb())  # ignore failure in subcommand
         (cb) ->
-            console.log('cleanup -- delete_user_32')
-            delete_user_32(uname, cb)
+            winston.debug('cleanup -- delete_user_32')
+            delete_user_32(uname, () -> cb())  # ignore failure in subcommand
     ], cb)
 
 # Close the given project, which involves killing all processes of
@@ -529,7 +529,7 @@ events.write_file_to_project = (socket, mesg) ->
             socket.removeListener 'mesg', write_file
             path = "#{userpath(mesg.project_id)}/#{mesg.path}"
             user = username(mesg.project_id)
-            console.log("mesg --> #{misc.to_json(mesg)}, path=#{path}")
+            winston.debug("mesg --> #{misc.to_json(mesg)}, path=#{path}")
             async.series([
                 (c) ->
                     verify_that_path_is_valid mesg.project_id, path, (err, realpath) ->
@@ -539,7 +539,7 @@ events.write_file_to_project = (socket, mesg) ->
                             mesg.path = realpath
                             c()
                 (c) ->
-                    console.log("writeFile(#{path}, #{value.blob})")
+                    winston.debug("writeFile(#{path}, #{value.blob})")
                     fs.writeFile(path, value.blob, c)
                 # Set the permissions on the file to the correct user (instead of root)
                 (c) ->
@@ -638,11 +638,11 @@ events.remove_file_from_project = (socket, mesg) ->
 #
 ####################################################################
 server = net.createServer (socket) ->
-    console.log("new connection!")
+    winston.debug("new connection!")
     misc_node.enable_mesg(socket)  # enable sending/receiving json, blob, etc. messages over this socket.
     socket.on 'mesg', (type, mesg) ->   # handle json messages
         if type == 'json' # other types are handled elsewhere in event code.
-            console.log(misc.to_json(mesg))
+            winston.debug(misc.to_json(mesg))
             handler = events[mesg.event]
             if handler?
                 winston.debug("Handling message: #{misc.to_json(mesg)}")

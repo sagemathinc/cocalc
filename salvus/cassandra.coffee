@@ -911,6 +911,22 @@ class exports.Salvus extends exports.Cassandra
                             cb()
         ])
 
+    delete_project: (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            cb          : undefined
+        async.series([
+            (cb) =>
+                @delete(table:'projects', where:{project_id : opts.project_id}, cb:cb)
+            (cb) =>
+                @delete(table:'project_bundles', where:{project_id : opts.project_id}, cb:cb)
+            (cb) =>
+                @delete(table:'project_users', where:{project_id : opts.project_id}, cb:cb)
+        ], (err) ->
+            if opts.cb?
+                opts.cb(err)
+        )
+
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
     get_projects_with_user: (opts) ->
@@ -941,9 +957,16 @@ class exports.Salvus extends exports.Cassandra
                             opts.cb(error)
                             cb(true)
                         else
-                            if projects.length > 0
-                                for i in [0...projects.length]
-                                    results[i].mode = projects[i].mode
+                            # The following is a little awkward and is done this way only
+                            # because of the potential for inconsistency in the database, e.g.,
+                            # project_id's in the project_users table that shouldn't be there
+                            # since the project was deleted but something nasty happened before
+                            # everything else related to that project was deleted.
+                            modes = {}
+                            for p in projects
+                                modes[p.project_id] = p.mode
+                            for r in results
+                                r.mode = modes[r.project_id]
                             opts.cb(false, results)
                             cb()
         ])

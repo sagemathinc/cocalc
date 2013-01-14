@@ -9186,11 +9186,17 @@ Then slowly add functionality to client:
 
    [x] (17min) project client -- make it so editing title (and desc) of project sends appropriate message.
 
-   [ ] BUG -- the update_project_data message results in 5-6 messages back from the hub.  BUG.
+   [x] (1.5hours for this and two below) BUG: s.restart('compute') (and other things) make my "w" script go haywire.
+   [x] BUG -- the update_project_data message results in 5-6 messages back from the hub.  BUG.
+   [x] BUG -- when creating a new project, make sure to
+       open/close/save it once, so that files and logs are defined.
+
 
    [ ] menu to switch branches, along with code messages so branch really does get switched.
 
    [ ] show meta info all branches (what?)
+
+   [ ] project file list -- make it possible to show hidden files via a checkbox
 
 
    [ ] basic project settings page (?)

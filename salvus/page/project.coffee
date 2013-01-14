@@ -276,6 +276,9 @@ class ProjectPage
         directories = []
         files = []
         for filename, d of file_data
+            # TODO -- make it possible to show hidden files via a checkbox
+            if filename[0] == '.'
+                continue
             obj = {filename:filename}
             if typeof d == 'string'  # a commit id -- consult the commit log
                 obj.is_file = true

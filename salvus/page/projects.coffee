@@ -138,7 +138,9 @@ $("#projects-create_project-button-create_project").click (event) ->
         public      : $("#projects-create_project-public").is(":checked")
         cb : (error, mesg) ->
             if error
-                alert_message("Error creating project: #{error}")
+                alert_messgae(type:"error", message:"Unable to connect to server to create new project '#{title}'; please try again later.")
+            else if mesg.event == "error"
+                alert_message(type:"error", message:mesg.error)
             else
                 update_project_list()
     close_create_project()
