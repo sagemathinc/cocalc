@@ -7,7 +7,7 @@
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
-{defaults, required, to_json, from_json, trunc} = require('misc')
+{defaults, required, to_json, from_json, trunc, keys} = require('misc')
 
 MAX_TITLE_LENGTH = 25
 
@@ -78,12 +78,7 @@ class ProjectPage
         @container.find(".project-save").click(@save_project_dialog)
         @container.find(".project-close").click(@close_project_dialog)
 
-        @container.find(".project-meta").click () =>
-            salvus_client.get_project_meta
-                project_id : @project.project_id
-                cb  : (err, meta) ->
-                    console.log("err = #{err}")
-                    console.log("meta =", meta)
+        @container.find(".project-meta").click @update_meta
 
         @container.find(".project-read-text-file").click () =>
             salvus_client.read_text_file_from_project
@@ -204,9 +199,7 @@ class ProjectPage
                         project_id : @project.project_id
                         commit_mesg : "Created a new file."
                         cb : (err, mesg) =>
-                            console.log(err, mesg)
                             if not err and mesg.event != 'error'
-                                #console.log("updating meta")
                                 @update_meta()
 
     load_from_server: (opts) ->
@@ -251,15 +244,17 @@ class ProjectPage
                 if err
                     alert_message(type:'error', message:err)
                 else
-                    console.log("got", _meta)
+                    files = from_json(_meta.files)
+                    logs = from_json(_meta.logs)
                     @meta =
-                        files          : from_json(_meta.files)
-                        logs           : from_json(_meta.logs)
+                        files          : files
+                        logs           : logs
                         current_branch : _meta.current_branch
-                    console.log(@meta.logs)
+                        branches       : keys(files)
                     @container.find(".project-branch").text(@meta.current_branch)
                     @update_file_list()
                     @update_commits()
+                    @update_branches()
 
     # Returns array of objects
     #    {filename:..., is_file:..., commit:...reference to commit object if is_file true...}
@@ -312,7 +307,6 @@ class ProjectPage
             ).html(segment
             ).data("cwd",new_cwd[..]  # make a copy
             ).click((elt) =>
-                console.log($(elt.target).data("cwd"))
                 @cwd = $(elt.target).data("cwd")
                 @update_file_list()
             ))
@@ -325,7 +319,6 @@ class ProjectPage
         @update_cwd()
         listing = @container.find(".project-file-listing-file-list")
         listing.empty()
-        console.log(@current_files())
         that = @
         for obj in @current_files()
             if obj.is_file
@@ -346,8 +339,23 @@ class ProjectPage
 
     update_commits: () =>
         {commit_list, commits} = @meta.logs[@meta.current_branch]
-        # TODO: make it a drop-down control to change branch
-        @container.find(".project-commits-branch").text(@meta.current_branch)
+
+        # Set the selector that allows one to choose the current branch.
+        select = @container.find(".project-commits-branch")
+        select.empty()
+        for branch in @meta.branches
+            select.append($("<option>").text(branch).attr("value",branch))
+        select.val(@meta.current_branch)
+        that = @
+        select.change  () ->
+            new_branch = $(@).val()
+            if new_branch != that.meta.current_branch
+                that.meta.current_branch = new_branch
+                that.update_file_list()
+                that.update_commits()
+                return false
+
+        # Set the list of commits for the current branch.
         list = @container.find(".project-commits-list")
         list.empty()
         for id in commit_list
@@ -358,6 +366,9 @@ class ProjectPage
             t.find(".project-commit-single-date").attr('title', entry.date).timeago()
             t.find(".project-commit-single-sha").text(id.slice(0,10))
             list.append(t)
+
+    update_branches: () =>
+        @container.find(".project-branches-list").text(to_json(@meta.branches))
 
 project_pages = {}
 

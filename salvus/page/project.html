@@ -6,16 +6,21 @@
   <div class="container salvus-project">
     <div class="row">
       <div class="well span10">
-	<!-- Title of the project (editable) -->
-	<h4>
-	  <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
-	  <span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-	  <span class="project-project_title" contenteditable="true"></span>
-	</h4>
-	<!-- Description of the project (editable) -->
-	<div class="project-project_description" contenteditable="true">
+	<div class="span7">
+	  <!-- Title of the project (editable) -->
+	  <h4>
+	    <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
+	    <span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+	    <span class="project-project_title" contenteditable="true"></span>
+	  </h4>
+	  <!-- Description of the project (editable) -->
+	  <div class="project-project_description" contenteditable="true">
+	  </div>
+	  <!-- The current branch: TODO -- make a selector when I get bootstrap docs -->
 	</div>
-	<!-- The current branch: TODO -- make a selector when I get bootstrap docs -->
+	<div class="span2">
+	  <b>show branch:</b> <select class="project-commits-branch"></select>
+	</div>
       </div>
     </div>
     <div class="row">
@@ -43,17 +48,12 @@
 
 	<!-- Git history log for this project -->
 	<div class="project-commits hide">
-	  <div class="row well well-small span4">
-	    <div>
-	      branch: <span class="project-commits-branch"></span>
-	    </div>
-	  </div>
-	  <br>
 	  <div class="project-commits-list"></div>
 	</div>
 
 	<!-- Git branches -->
 	<div class="project-branches hide">
+	  <div class="project-branches-list"></div>
 	</div>
 
 	<!-- Page to configure the settings for this project -->
@@ -68,7 +68,7 @@
       <div class="btn project-new-file">New File</div>
       <div class="btn project-save">Save Project</div>
       <div class="btn project-close">Close Project</div>
-      <div class="btn project-meta">Project Meta</div>
+      <div class="btn project-meta">Reload</div>
       <div class="btn project-read-text-file">Read New File as Text</div>
       <div class="btn project-read-file">Read New File as Blob</div>
       <div class="btn project-move-file">Move the New File</div>
