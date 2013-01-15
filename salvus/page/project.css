@@ -50,6 +50,7 @@
 
 .project-commits-branch {
     font-weight:bold;
+    width:18ex;
 }
 
 .project-commit-single-message {
@@ -88,7 +89,7 @@
 }
 
 .project-branch-single-current {
-    background-color:#ddffdd;
+    background-color:#9f9;
 }
 
 .project-branch-single:hover {

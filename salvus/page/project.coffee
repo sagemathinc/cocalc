@@ -69,7 +69,13 @@ class ProjectPage
                             that.project.description = new_desc
 
 
-
+        # Make it so typing something into the "create a new branch..." box
+        # makes a new branch.
+        new_branch = @container.find(".project-branches").find('form')
+        new_branch.submit () ->
+            branch = $(@).find("input").val()
+            alert_message(message:"TODO: create the branch #{branch}")
+            return false
 
         ########################################
         # Only for temporary testing
@@ -138,6 +144,8 @@ class ProjectPage
             t.click () ->
                 that.display_tab($(@).data("name"))
                 return false
+
+        @display_tab("project-branches") # TODO -- for testing.
 
     display_tab: (name) =>
         for tab in @tabs
@@ -247,12 +255,14 @@ class ProjectPage
                 else
                     files = from_json(_meta.files)
                     logs = from_json(_meta.logs)
+                    branches = keys(files)
+                    branches.sort()
                     @meta =
                         files          : files
                         logs           : logs
                         current_branch : _meta.current_branch
-                        branches       : keys(files)
-                    @container.find(".project-branch").text(@meta.current_branch)
+                        display_branch : _meta.current_branch  # start the same
+                        branches       : branches
                     @update_file_list_tab()
                     @update_commits_tab()
                     @update_branches_tab()
@@ -262,8 +272,8 @@ class ProjectPage
     # for the current working directory and branch.
     # If the cwd is invalid, return the empty array.
     current_files: () =>
-        file_data = @meta.files[@meta.current_branch]
-        commits = @meta.logs[@meta.current_branch].commits
+        file_data = @meta.files[@meta.display_branch]
+        commits = @meta.logs[@meta.display_branch].commits
         for segment in @cwd
             file_data = file_data[segment]
             if not file_data?
@@ -338,24 +348,25 @@ class ProjectPage
 
             listing.append(t)
 
+    switch_displayed_branch: (new_branch) =>
+        if new_branch != @meta.display_branch
+            @meta.display_branch = new_branch
+            @update_file_list_tab()
+            @update_commits_tab()
+
     update_commits_tab: () =>
-        {commit_list, commits} = @meta.logs[@meta.current_branch]
+        {commit_list, commits} = @meta.logs[@meta.display_branch]
 
         # Set the selector that allows one to choose the current branch.
         select = @container.find(".project-commits-branch")
         select.empty()
         for branch in @meta.branches
             select.append($("<option>").text(branch).attr("value",branch))
-        select.val(@meta.current_branch)
+        select.val(@meta.display_branch)
         that = @
         select.change  () ->
-            new_branch = $(@).val()
-            if new_branch != that.meta.current_branch
-                that.meta.current_branch = new_branch
-                that.update_file_list_tab()
-                that.update_commits_tab()
-                that.update_branches_tab()
-                return false
+            that.switch_displayed_branch($(@).val())
+            return false
 
         # Set the list of commits for the current branch.
         list = @container.find(".project-commits-list")
@@ -376,13 +387,22 @@ class ProjectPage
 
         current_branch = @meta.current_branch
         @container.find(".project-branch").text(current_branch)
+        that = @
 
         for branch in @meta.branches
             t = template_project_branch_single.clone()
             t.find(".project-branch-single-name").text(branch)
             if branch == current_branch
                 t.addClass("project-branch-single-current")
+                t.find("a[href=#switch]").hide()
+                t.find("a[href=#compare]").hide()
+            t.data('branch', branch)
+            t.click () ->
+                that.switch_displayed_branch($(@).data('branch'))
+                return false
             list.append(t)
+
+        @container.find(".project-branches").find("input").attr('placeholder',"Create a new branch from '#{current_branch}'...")
 
 project_pages = {}
 

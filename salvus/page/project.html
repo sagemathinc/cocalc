@@ -18,9 +18,14 @@
 	  </div>
 	  <!-- The current branch: TODO -- make a selector when I get bootstrap docs -->
 	</div>
-	<div class="span2">
-	  <b>show branch:</b> <select class="project-commits-branch"></select>
-	</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="span3">
+	<label for="project-commits-branch">
+	  <span class="lighten">show branch: </span>
+	  <select name="project-commits-branch" class="project-commits-branch"></select>
+	</label>
       </div>
     </div>
     <div class="row">
@@ -53,6 +58,9 @@
 
 	<!-- Git branches -->
 	<div class="project-branches hide">
+	  <form>
+	    <input type="text">
+	  </form>
 	  <div class="project-branches-list"></div>
 	</div>
 
@@ -95,9 +103,14 @@
   </div>
 
   <div class="row span9 well well-small project-branch-single">
-    <div class="span7">
-      <div class="row">
-	<div class="project-branch-single-name"></div>
+    <div class="row">
+      <div class="span6 project-branch-single-name"></div>
+      <div class="pull-right">
+	<div class="btn-group">
+	  <a href="#switch" class="btn">Switch to</a>
+	  <a href="#compare" class="btn btn-info">Compare</a>
+	  <a href="#delete" class="btn btn-danger">Delete branch</a>
+	</div>
       </div>
     </div>
   </div>
