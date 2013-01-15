@@ -80,3 +80,21 @@
 .project-commit-single:hover {
     background-color:#efe;
 }
+
+.project-branch-single {
+    background-color:#ffffff;
+    margin-top:0px;
+    margin-bottom:0px;
+}
+
+.project-branch-single-current {
+    background-color:#ddffdd;
+}
+
+.project-branch-single:hover {
+    background-color:#efe;
+}
+
+.project-branch-single-name {
+    font-weight:bold;
+}

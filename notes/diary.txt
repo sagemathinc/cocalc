@@ -9191,12 +9191,13 @@ Then slowly add functionality to client:
    [x] BUG -- when creating a new project, make sure to
        open/close/save it once, so that files and logs are defined.
 
-   [ ] (1:09) menu to switch viewed branches 
+   [x] (1:09) project: menu to switch viewed branches
 
-   [ ] page listing all branches
+   [x] (20min) project: page listing all branches
    [ ] make a new branch
    [ ] change current branch in deployed path (and database)
 
+   [ ] show last commit message for each branch
    [ ] project file list -- make it possible to show hidden files via a checkbox
 
 

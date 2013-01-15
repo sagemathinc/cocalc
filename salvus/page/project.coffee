@@ -20,6 +20,7 @@ template_segment_sep           = templates.find(".project-segment-sep")
 template_new_file_link         = templates.find(".project-new-file-link")
 template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
+template_project_branch_single = templates.find(".project-branch-single")
 
 class ProjectPage
     constructor: (@project) ->
@@ -31,10 +32,10 @@ class ProjectPage
             label : @project.project_id
 
         @init_tabs()
-        @update_view()
+        @update_topbar()
 
         @cwd = []
-        @update_meta()
+        @reload()
 
         # Make it so editing the title and description of the project
         # sends a message to the hub.
@@ -78,7 +79,7 @@ class ProjectPage
         @container.find(".project-save").click(@save_project_dialog)
         @container.find(".project-close").click(@close_project_dialog)
 
-        @container.find(".project-meta").click @update_meta
+        @container.find(".project-meta").click @reload
 
         @container.find(".project-read-text-file").click () =>
             salvus_client.read_text_file_from_project
@@ -200,7 +201,7 @@ class ProjectPage
                         commit_mesg : "Created a new file."
                         cb : (err, mesg) =>
                             if not err and mesg.event != 'error'
-                                @update_meta()
+                                @reload()
 
     load_from_server: (opts) ->
         opts = defaults opts,
@@ -225,7 +226,7 @@ class ProjectPage
             cb      : opts.cb
             timeout : opts.timeout
 
-    update_view: () ->
+    update_topbar: () ->
         if not @project?
             return
 
@@ -237,7 +238,7 @@ class ProjectPage
         return @
 
 
-    update_meta: () =>
+    reload: () =>
         salvus_client.get_project_meta
             project_id : @project.project_id
             cb  : (err, _meta) =>
@@ -252,9 +253,9 @@ class ProjectPage
                         current_branch : _meta.current_branch
                         branches       : keys(files)
                     @container.find(".project-branch").text(@meta.current_branch)
-                    @update_file_list()
-                    @update_commits()
-                    @update_branches()
+                    @update_file_list_tab()
+                    @update_commits_tab()
+                    @update_branches_tab()
 
     # Returns array of objects
     #    {filename:..., is_file:..., commit:...reference to commit object if is_file true...}
@@ -308,14 +309,14 @@ class ProjectPage
             ).data("cwd",new_cwd[..]  # make a copy
             ).click((elt) =>
                 @cwd = $(elt.target).data("cwd")
-                @update_file_list()
+                @update_file_list_tab()
             ))
         t.append(template_segment_sep.clone())
         t.append(template_new_file_link.clone().data("cwd", @cwd).click( (elt) ->
             that.new_file($(@).data("cwd").join('/'))
         ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
-    update_file_list: () =>
+    update_file_list_tab: () =>
         @update_cwd()
         listing = @container.find(".project-file-listing-file-list")
         listing.empty()
@@ -333,11 +334,11 @@ class ProjectPage
                 t.find(".project-directory-name").text(obj.filename)
                 t.data('filename',obj.filename).click (e) ->
                     that.cwd.push($(@).data('filename'))
-                    that.update_file_list()
+                    that.update_file_list_tab()
 
             listing.append(t)
 
-    update_commits: () =>
+    update_commits_tab: () =>
         {commit_list, commits} = @meta.logs[@meta.current_branch]
 
         # Set the selector that allows one to choose the current branch.
@@ -351,8 +352,9 @@ class ProjectPage
             new_branch = $(@).val()
             if new_branch != that.meta.current_branch
                 that.meta.current_branch = new_branch
-                that.update_file_list()
-                that.update_commits()
+                that.update_file_list_tab()
+                that.update_commits_tab()
+                that.update_branches_tab()
                 return false
 
         # Set the list of commits for the current branch.
@@ -367,8 +369,20 @@ class ProjectPage
             t.find(".project-commit-single-sha").text(id.slice(0,10))
             list.append(t)
 
-    update_branches: () =>
-        @container.find(".project-branches-list").text(to_json(@meta.branches))
+    # Display all the branches, along with information about each one.
+    update_branches_tab: () =>
+        list = @container.find(".project-branches-list")
+        list.empty()
+
+        current_branch = @meta.current_branch
+        @container.find(".project-branch").text(current_branch)
+
+        for branch in @meta.branches
+            t = template_project_branch_single.clone()
+            t.find(".project-branch-single-name").text(branch)
+            if branch == current_branch
+                t.addClass("project-branch-single-current")
+            list.append(t)
 
 project_pages = {}
 
