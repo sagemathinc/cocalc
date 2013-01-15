@@ -9194,7 +9194,7 @@ Then slowly add functionality to client:
    [x] (1:09) project: menu to switch viewed branches
 
    [x] (20min) projects: page listing all branches
--->   [ ] (13+) make a new branch
+-->   [ ] (1:20+) projects: make a new branch
    [ ] change current branch in deployed path (and database)
 
    [ ] show last commit message for each branch

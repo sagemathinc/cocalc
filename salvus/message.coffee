@@ -679,6 +679,22 @@ message
     id           : required
 
 ############################################
+# Branches
+############################################
+message
+    event        : 'create_project_branch'
+    id           : undefined
+    project_id   : required
+    base_branch  : required
+    new_branch   : required
+
+message
+    event       : 'merge_project_branches'
+    id          : undefined
+    base_branch : required
+    second_branch: required
+
+############################################
 # Managing multiple projects
 ############################################
 
