@@ -753,11 +753,21 @@ class exports.Connection extends EventEmitter
             project_id : required
             new_branch : required
             cb         : required
-        console.log("create_project_branch (#{misc.to_json(opts)})")
         @call
             message : message.create_project_branch
                 project_id : opts.project_id
                 new_branch : opts.new_branch
+            cb : opts.cb
+
+    checkout_project_branch: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            branch     : required
+            cb         : required
+        @call
+            message : message.checkout_project_branch
+                project_id : opts.project_id
+                branch     : opts.branch
             cb : opts.cb
 
 

@@ -774,6 +774,14 @@ class Client extends EventEmitter
                 resp.id = mesg.id
                 @push_to_client(resp)
 
+    mesg_checkout_project_branch: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.checkout_branch mesg.branch, (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
 
 ##############################
 # Create the SockJS Server
@@ -1611,9 +1619,11 @@ class Project
 
     # Checkout an existing branch -- making it the working directory.
     # This obviously could be confusing to running sessions, but that's how git works.
-    checkout_branch: (branch, cb) ->
+    checkout_branch: (branch, cb) =>
         @call
-            message: message.checkout_project_branch(branch)
+            message: message.checkout_project_branch
+                branch     : branch
+                project_id : @project_id
             cb: cb
 
 ########################################

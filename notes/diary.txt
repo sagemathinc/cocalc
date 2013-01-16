@@ -9199,17 +9199,19 @@ Then slowly add functionality to client:
 
    [x] (3:37) projects: make a new branch (part 2)
 
-   [ ] refactor hub code to use new "call" method.
-   [ ] save versus commit -- oops.  I need option to save without commiting working files, e.g., thisis needed in create_project in project.coffee
-       
+   [x] (0:27) projects: change current branch in deployed path (and database)
 
-   [ ] change current branch in deployed path (and database)
+-->   [ ] delete branch
+
+   [ ] refactor hub code to use new "call" method.
+
+   [ ] save versus commit -- oops.  I need option to save without commiting working files, e.g., thisis needed in create_project in project.coffee
 
    [ ] show last commit message for each branch
    [ ] project file list -- make it possible to show hidden files via a checkbox
 
 
-   [ ] basic project settings page (?)
+   [ ] basic project settings page (?)f
 
    [ ] open console on a project
    [ ] view file

@@ -707,6 +707,13 @@ events.create_project_branch = (socket, mesg) ->
         args       : ["branch", mesg.new_branch]
         cb         : (err, out) -> write_status(err:err, socket:socket, id:mesg.id, out:out)
 
+events.checkout_project_branch = (socket, mesg) ->
+    exec_as_user
+        project_id : mesg.project_id
+        command    : "git"
+        args       : ["checkout", mesg.branch]
+        cb         : (err, out) -> write_status(err:err, socket:socket, id:mesg.id, out:out)
+
 ####################################################################
 #
 # The TCP Socket server, which listens for incoming connections and

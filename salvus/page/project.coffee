@@ -72,8 +72,7 @@ class ProjectPage
 
         # Make it so typing something into the "create a new branch..." box
         # makes a new branch.
-        new_branch = @container.find(".project-branches").find('form')
-        new_branch.submit () ->
+        @container.find(".project-branches").find('form').submit () ->
             that.create_new_branch($(@).find("input").val())
             return false
 
@@ -82,7 +81,7 @@ class ProjectPage
         #########################################
 
         @container.find(".project-new-file").click(@new_file_dialog)
-        @container.find(".project-save").click(@save_project_dialog)
+        @container.find(".project-save").click(@save_project)
         @container.find(".project-close").click(@close_project_dialog)
 
         @container.find(".project-meta").click @reload
@@ -159,11 +158,32 @@ class ProjectPage
                             alert_message(message:"Created new branch '#{branch}'")
                             c()  # success
             (c) =>
-                # TODO: make change so this doesn't commit
-                @save_project_dialog(c)
+                @save_project(c)
             (c) =>
                 @reload()
         ])
+
+    checkout_branch: (branch, cb) =>
+        series([
+            (c) =>
+                salvus_client.checkout_project_branch
+                    project_id : @project.project_id
+                    branch     : branch
+                    cb         : (err, mesg) =>
+                        if err
+                            alert_message(type:'error', message:err)
+                            c(true) # fail
+                        else if mesg.event == "error"
+                            alert_message(type:'error', message:mesg.error)
+                            c(true) # fail
+                        else
+                            alert_message(message:"Checked out branch '#{branch}'")
+                            c()  # success
+            (c) =>
+                @save_project(c)
+            (c) =>
+                @reload()
+        ], cb)
 
     init_tabs: () ->
         @tabs = []
@@ -188,7 +208,7 @@ class ProjectPage
                 tab.target.hide()
                 tab.label.removeClass('active')
 
-    save_project_dialog: (cb) =>
+    save_project: (cb) =>
         salvus_client.save_project
             project_id : @project.project_id
             commit_mesg : "a commit message"
@@ -429,11 +449,20 @@ class ProjectPage
             if branch == current_branch
                 t.addClass("project-branch-single-current")
                 t.find("a[href=#checkout]").hide()
-                t.find("a[href=#compare]").hide()
+                #t.find("a[href=#compare]").hide()
             t.data('branch', branch)
-            t.click () ->
-                that.switch_displayed_branch($(@).data('branch'))
+
+            #t.click () ->
+            #    that.switch_displayed_branch($(@).data('branch'))
+            #    return false
+
+            # Make it so clicking on the "Checkout" button checks out a given branch.
+            t.find("a[href=#checkout]").data("branch", branch).click (evt) ->
+                branch = $(@).data('branch')
+                console.log("branch = ", branch)
+                that.checkout_branch(branch)
                 return false
+
             list.append(t)
 
         @container.find(".project-branches").find("input").attr('placeholder',"Create a new branch from '#{current_branch}'...")
