@@ -4,7 +4,7 @@
 #
 # For local debugging, run this way (as root), since it gives better stack traces:
 #
-#         make_coffee && echo "require('project_server').start_server()" | coffee
+#         echo "require('project_server').start_server()" | coffee
 #
 #######################################################################
 
@@ -158,6 +158,9 @@ delete_user_32 = (uname, cb) ->
         cb("delete_user -- the uname (='#{uname}') must be exactly 32 characters long")
         return
 
+    # clear cached uid for this user
+    delete getuid.cache[uname]
+
     async.series([
         # Delete the UNIX user and their files.
         (cb) ->
@@ -242,6 +245,86 @@ extract_bundles = (project_id, bundles, cb) ->
 
     # Do all of the tasks laid out above.
     async.series(tasks, cb)
+
+
+write_status = (opts) ->
+    opts = defaults opts,
+        err : required
+        id  : required
+        socket : required
+        out : undefined
+    if opts.err
+        err = opts.err
+        if opts.out?
+            err += ' \n' + opts.out.stderr
+        opts.socket.write_mesg('json', message.error(id:opts.id, error:err))
+    else
+        opts.socket.write_mesg('json', message.success(id:opts.id))
+
+getuid = (user, cb) ->
+    id = getuid.cache[user]
+    if id?
+        cb(false, id)
+    else
+        child_process.exec "id -u #{user}", (err, id, stderr) ->
+            if err
+                cb(err)
+            else
+                id = parseInt(id)
+                getuid.cache[user] = id
+                cb(false, id)
+getuid.cache = {}
+
+exec_as_user = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        command    : required
+        args       : []
+        path       : undefined   # defaults to home directory (base of repo)
+        timeout    : 10          # in seconds
+        cb         : required
+
+    user = username(opts.project_id)
+    home = userpath(opts.project_id)
+    if not opts.path?
+        opts.path = home
+    uid  = undefined
+    stdout = ''
+    stderr = ''
+    async.series([
+        # Get the uid of the user; this will err if the project isn't currently
+        # hosted on this project server.
+        (c) ->
+            getuid user, (err, id) ->
+                if err
+                    c(err)
+                else
+                    winston.debug("uid = #{id}")
+                    uid = id
+                    c()
+        # Run the command with given args
+        (c) ->
+            winston.debug("opts = #{misc.to_json({cwd:opts.path, uid:uid, gid:uid, env:{HOME:home}})}")
+            r = child_process.spawn(opts.command, opts.args,
+                   {cwd:opts.path, uid:uid, gid:uid, env:{HOME:home}})
+            stdout = ''
+            r.stdout.on 'data', (data) -> stdout += data
+            r.stderr.on 'data', (data) -> stderr += data
+            r.on 'exit', (code) ->
+                if code != 0
+                    c("command '#{opts.command}' (args=#{misc.to_json(opts.args)}) exited with nonzero code #{code}")
+                else
+                    c()
+            if opts.timeout?
+                f = () ->
+                    if r.exitCode == null
+                        # process did not exit yet -- kill
+                        r.kill("SIGKILL")
+                        c("killed command '#{opts.command}' (args=#{misc.to_json(opts.args)}) since it exceeded the timeout of #{opts.timeout}")
+                setTimeout(f, opts.timeout)
+    ], (err) ->
+        opts.cb(err, {stdout:stdout, stderr:stderr})
+    )
 
 ########################################################################
 # Event Handlers -- these handle various messages as documented
@@ -611,23 +694,18 @@ events.move_file_in_project = (socket, mesg) ->
 
 # Delete a file from the project, using the proper git command.
 events.remove_file_from_project = (socket, mesg) ->
-    user = username(mesg.project_id)
-    async.series([
-        (c) ->
-            verify_that_path_is_valid mesg.project_id, mesg.path, (err, realpath) ->
-                if err
-                    c(err)
-                else
-                    mesg.path = realpath
-                    c()
-        (c) ->
-            child_process.exec("su - #{user} -c 'git rm -rf \"#{mesg.path}\"'", c)
-        (c) ->
-            socket.write_mesg('json', message.file_removed_from_project(id:mesg.id))
-    ], (err) ->
-        if err
-            socket.write_mesg('json', message.error(id:mesg.id, error:err))
-    )
+    exec_as_user
+        project_id : mesg.project_id
+        command    : "git"
+        args       : ["-rf",  mesg.path]
+        cb         : (err, out) -> write_status(err:err, socket:socket, id:mesg.id, out:out)
+
+events.create_project_branch = (socket, mesg) ->
+    exec_as_user
+        project_id : mesg.project_id
+        command    : "git"
+        args       : ["branch", mesg.new_branch]
+        cb         : (err, out) -> write_status(err:err, socket:socket, id:mesg.id, out:out)
 
 ####################################################################
 #

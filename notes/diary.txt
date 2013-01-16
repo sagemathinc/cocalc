@@ -9194,7 +9194,15 @@ Then slowly add functionality to client:
    [x] (1:09) project: menu to switch viewed branches
 
    [x] (20min) projects: page listing all branches
--->   [ ] (1:20+) projects: make a new branch
+
+   [x] (1:20+) projects: make a new branch (ui/part 1)
+
+   [x] (3:37) projects: make a new branch (part 2)
+
+   [ ] refactor hub code to use new "call" method.
+   [ ] save versus commit -- oops.  I need option to save without commiting working files, e.g., thisis needed in create_project in project.coffee
+       
+
    [ ] change current branch in deployed path (and database)
 
    [ ] show last commit message for each branch

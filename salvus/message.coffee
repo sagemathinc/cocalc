@@ -366,16 +366,16 @@ message(
 )
 
 message
-    event : "account_settings_saved"
+    event : 'account_settings_saved'
     id    : undefined
 
 message
-    event : "error"
+    event : 'error'
     id    : undefined
     error : undefined
 
 message
-    event : "success"
+    event : 'success'
     id    : undefined
 
 ############################################
@@ -681,18 +681,23 @@ message
 ############################################
 # Branches
 ############################################
+# client --> hub
 message
     event        : 'create_project_branch'
     id           : undefined
     project_id   : required
-    base_branch  : required
     new_branch   : required
 
 message
-    event       : 'merge_project_branches'
-    id          : undefined
-    base_branch : required
-    second_branch: required
+    event        : 'checkout_project_branch'
+    id           : undefined
+    project_id   : required
+    branch       : required
+
+message
+    event         : 'merge_project_branches'
+    id            : undefined
+    second_branch : required
 
 ############################################
 # Managing multiple projects

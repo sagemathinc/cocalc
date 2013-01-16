@@ -7,6 +7,7 @@
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
+{series}        = require('async')
 {defaults, required, to_json, from_json, trunc, keys} = require('misc')
 
 MAX_TITLE_LENGTH = 25
@@ -62,7 +63,7 @@ class ProjectPage
                     data       : {description:new_desc}
                     cb         : (err, mesg) ->
                         if err
-                            alert_message(type:'error', message:"Error contacting server to save modified project description.")
+                            alert_message(type:'error', message:err)
                         else if mesg.event == "error"
                             alert_message(type:'error', message:mesg.error)
                         else
@@ -73,8 +74,7 @@ class ProjectPage
         # makes a new branch.
         new_branch = @container.find(".project-branches").find('form')
         new_branch.submit () ->
-            branch = $(@).find("input").val()
-            alert_message(message:"TODO: create the branch #{branch}")
+            that.create_new_branch($(@).find("input").val())
             return false
 
         ########################################
@@ -133,6 +133,38 @@ class ProjectPage
                 cb : (err, mesg) ->
                     console.log("err = #{err}, mesg = ", mesg)
 
+    create_new_branch: (branch) =>
+        if branch.length == 0 or branch.split(/\s+/g).length != 1
+            # obviously invalid branch name
+            alert_message(type:'error', message:"Invalid branch name '#{branch}'")
+            return
+        if branch in @meta.branches
+            alert_message(type:'error', message:"Branch '#{branch}' already exists")
+            return
+
+        series([
+            # First try to create the new branch
+            (c) =>
+                salvus_client.create_project_branch
+                    project_id : @project.project_id
+                    new_branch : branch
+                    cb         : (err, mesg) ->
+                        if err
+                            alert_message(type:'error', message:err)
+                            c(true) # fail
+                        else if mesg.event == "error"
+                            alert_message(type:'error', message:mesg.error)
+                            c(true) # fail
+                        else
+                            alert_message(message:"Created new branch '#{branch}'")
+                            c()  # success
+            (c) =>
+                # TODO: make change so this doesn't commit
+                @save_project_dialog(c)
+            (c) =>
+                @reload()
+        ])
+
     init_tabs: () ->
         @tabs = []
         that = @
@@ -156,7 +188,7 @@ class ProjectPage
                 tab.target.hide()
                 tab.label.removeClass('active')
 
-    save_project_dialog: () =>
+    save_project_dialog: (cb) =>
         salvus_client.save_project
             project_id : @project.project_id
             commit_mesg : "a commit message"
@@ -167,6 +199,8 @@ class ProjectPage
                     alert_message(type:"error", message:mesg.error)
                 else
                     alert_message(type:"success", message: "Project successfully saved.")
+                if cb?
+                    cb()
 
     close_project_dialog: () =>
         salvus_client.close_project
@@ -394,7 +428,7 @@ class ProjectPage
             t.find(".project-branch-single-name").text(branch)
             if branch == current_branch
                 t.addClass("project-branch-single-current")
-                t.find("a[href=#switch]").hide()
+                t.find("a[href=#checkout]").hide()
                 t.find("a[href=#compare]").hide()
             t.data('branch', branch)
             t.click () ->

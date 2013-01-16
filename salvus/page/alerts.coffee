@@ -1,4 +1,4 @@
-defaults = require("misc").defaults
+{defaults, to_json} = require("misc")
 
 types = ['error', 'default', 'success', 'info']
 
@@ -8,7 +8,16 @@ exports.alert_message = (opts={}) ->
     opts = defaults opts,
         type    : 'default'
         message : defaults.required
-        block   : false
+        block   : undefined
+
+    if not opts.block?
+        if opts.type == 'error'
+            opts.block = true
+        else
+            opts.block = false
+
+    if typeof opts.message != "string"
+        opts.message = to_json(opts.message)
 
     if opts.type not in types
         alert("Unknown alert_message type #{opts.type}.")
@@ -22,7 +31,7 @@ exports.alert_message = (opts={}) ->
     c.prependTo("#alert-messages")
     c.click(() -> $(this).remove())
 
-    setTimeout((()->c.remove()), 5000)
+    setTimeout((()->c.remove()), 10000)
 
 # for testing/development
 # alert_message(type:'error',   message:"This is an error")

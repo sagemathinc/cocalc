@@ -765,6 +765,15 @@ class Client extends EventEmitter
             else
                 @push_to_client(message.file_removed_from_project(id:mesg.id))
 
+    mesg_create_project_branch: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.create_branch mesg.new_branch, (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
+
 
 ##############################
 # Create the SockJS Server
@@ -1383,6 +1392,41 @@ class Project
                 cb(err)
         )
 
+    # Tag the input message mesg with a uuid and this project_id, then
+    # send it to the project server hosting this project (or create
+    # one if there is none right now).  Finally do the standard:
+    # cb(err, response_mesg).  If err is true, then there was an error
+    # getting a socket to the project server in the first place; if
+    # err is false, then it is still possible that response_mesg.event
+    # == 'error' due to the project server having issues.
+    call: (opts) =>
+        opts = defaults opts,
+            message : required
+            timeout : 10
+            cb      : required
+
+        socket = undefined
+        id     = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err,_socket) ->
+                    if err
+                        opts.cb(err)
+                        c(true)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                opts.message.id = id
+                opts.message.project_id = @project_id
+                socket.write_mesg 'json', opts.message
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:id, timeout:opts.timeout, cb:(mesg) ->
+                    opts.cb(false, mesg)
+                    c()
+        ])
+
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does
     # not pull the file from the database; instead, it loads it live
@@ -1556,6 +1600,21 @@ class Project
                         else
                             c("Unexpected message type '#{mesg.event}'")
         ], cb)
+
+    # Create a new branch
+    create_branch: (new_branch, cb) ->
+        @call
+            message: message.create_project_branch
+                new_branch  : new_branch
+                project_id  : @project_id
+            cb : cb
+
+    # Checkout an existing branch -- making it the working directory.
+    # This obviously could be confusing to running sessions, but that's how git works.
+    checkout_branch: (branch, cb) ->
+        @call
+            message: message.checkout_project_branch(branch)
+            cb: cb
 
 ########################################
 # Permissions related to projects

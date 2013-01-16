@@ -746,11 +746,19 @@ class exports.Connection extends EventEmitter
                 message.remove_file_from_project
                     project_id : opts.project_id
                     path       : opts.path
-            cb : (err, mesg) ->
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(false, mesg.url)
+            cb : opts.cb
+
+    create_project_branch: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            new_branch : required
+            cb         : required
+        console.log("create_project_branch (#{misc.to_json(opts)})")
+        @call
+            message : message.create_project_branch
+                project_id : opts.project_id
+                new_branch : opts.new_branch
+            cb : opts.cb
 
 
 #################################################
