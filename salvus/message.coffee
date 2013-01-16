@@ -686,7 +686,7 @@ message
     event        : 'create_project_branch'
     id           : undefined
     project_id   : required
-    new_branch   : required
+    branch       : required
 
 message
     event        : 'checkout_project_branch'
@@ -695,9 +695,16 @@ message
     branch       : required
 
 message
-    event         : 'merge_project_branches'
+    event         : 'delete_project_branch'
     id            : undefined
-    second_branch : required
+    project_id   : required
+    branch        : required
+
+message
+    event         : 'merge_project_branch'
+    id            : undefined
+    project_id   : required
+    branch        : required
 
 ############################################
 # Managing multiple projects

@@ -73,7 +73,7 @@ class ProjectPage
         # Make it so typing something into the "create a new branch..." box
         # makes a new branch.
         @container.find(".project-branches").find('form').submit () ->
-            that.create_new_branch($(@).find("input").val())
+            that.branch_op($(@).find("input").val(), 'create')
             return false
 
         ########################################
@@ -132,21 +132,20 @@ class ProjectPage
                 cb : (err, mesg) ->
                     console.log("err = #{err}, mesg = ", mesg)
 
-    create_new_branch: (branch) =>
+    branch_op: (branch, op) =>
+        # op must be one of ['create', 'checkout', 'delete', 'merge']
+
+        # Quick client-side check for obviously invalid branch name
         if branch.length == 0 or branch.split(/\s+/g).length != 1
-            # obviously invalid branch name
             alert_message(type:'error', message:"Invalid branch name '#{branch}'")
-            return
-        if branch in @meta.branches
-            alert_message(type:'error', message:"Branch '#{branch}' already exists")
             return
 
         series([
-            # First try to create the new branch
             (c) =>
-                salvus_client.create_project_branch
+                salvus_client.project_branch_op
                     project_id : @project.project_id
-                    new_branch : branch
+                    op         : op
+                    branch     : branch
                     cb         : (err, mesg) ->
                         if err
                             alert_message(type:'error', message:err)
@@ -155,35 +154,13 @@ class ProjectPage
                             alert_message(type:'error', message:mesg.error)
                             c(true) # fail
                         else
-                            alert_message(message:"Created new branch '#{branch}'")
+                            alert_message(message:"#{op} branch '#{branch}'")
                             c()  # success
             (c) =>
                 @save_project(c)
             (c) =>
                 @reload()
         ])
-
-    checkout_branch: (branch, cb) =>
-        series([
-            (c) =>
-                salvus_client.checkout_project_branch
-                    project_id : @project.project_id
-                    branch     : branch
-                    cb         : (err, mesg) =>
-                        if err
-                            alert_message(type:'error', message:err)
-                            c(true) # fail
-                        else if mesg.event == "error"
-                            alert_message(type:'error', message:mesg.error)
-                            c(true) # fail
-                        else
-                            alert_message(message:"Checked out branch '#{branch}'")
-                            c()  # success
-            (c) =>
-                @save_project(c)
-            (c) =>
-                @reload()
-        ], cb)
 
     init_tabs: () ->
         @tabs = []
@@ -450,17 +427,27 @@ class ProjectPage
                 t.addClass("project-branch-single-current")
                 t.find("a[href=#checkout]").hide()
                 #t.find("a[href=#compare]").hide()
+                t.find("a[href=#merge]").hide()
             t.data('branch', branch)
 
-            #t.click () ->
-            #    that.switch_displayed_branch($(@).data('branch'))
-            #    return false
+            # TODO -- combine following three into a single loop
 
             # Make it so clicking on the "Checkout" button checks out a given branch.
             t.find("a[href=#checkout]").data("branch", branch).click (evt) ->
                 branch = $(@).data('branch')
-                console.log("branch = ", branch)
-                that.checkout_branch(branch)
+                that.branch_op(branch, 'checkout')
+                return false
+
+            t.find("a[href=#delete]").data("branch",branch).click (evt) ->
+                branch = $(@).data('branch')
+                # TODO -- stern warnings
+                that.branch_op(branch, 'delete')
+                return false
+
+            t.find("a[href=#merge]").data("branch",branch).click (evt) ->
+                branch = $(@).data('branch')
+                # TODO -- stern warnings
+                that.branch_op(branch, 'merge')
                 return false
 
             list.append(t)

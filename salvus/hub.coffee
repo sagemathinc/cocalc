@@ -767,7 +767,7 @@ class Client extends EventEmitter
 
     mesg_create_project_branch: (mesg) =>
         project = new Project(mesg.project_id)
-        project.create_branch mesg.new_branch, (err, resp) =>
+        project.branch_op mesg.branch, 'create', (err, resp) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
@@ -776,7 +776,25 @@ class Client extends EventEmitter
 
     mesg_checkout_project_branch: (mesg) =>
         project = new Project(mesg.project_id)
-        project.checkout_branch mesg.branch, (err, resp) =>
+        project.branch_op mesg.branch, 'checkout', (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
+
+    mesg_delete_project_branch: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.branch_op mesg.branch, 'delete', (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
+
+    mesg_merge_project_branch: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.branch_op mesg.branch, 'merge', (err, resp) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
@@ -1609,22 +1627,13 @@ class Project
                             c("Unexpected message type '#{mesg.event}'")
         ], cb)
 
-    # Create a new branch
-    create_branch: (new_branch, cb) ->
+    # Branch op
+    branch_op : (branch, op, cb) =>
         @call
-            message: message.create_project_branch
-                new_branch  : new_branch
+            message: message["#{op}_project_branch"]
+                branch      : branch
                 project_id  : @project_id
             cb : cb
-
-    # Checkout an existing branch -- making it the working directory.
-    # This obviously could be confusing to running sessions, but that's how git works.
-    checkout_branch: (branch, cb) =>
-        @call
-            message: message.checkout_project_branch
-                branch     : branch
-                project_id : @project_id
-            cb: cb
 
 ########################################
 # Permissions related to projects

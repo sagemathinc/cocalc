@@ -9201,9 +9201,11 @@ Then slowly add functionality to client:
 
    [x] (0:27) projects: change current branch in deployed path (and database)
 
--->   [ ] delete branch
+   [x] (0:27) project -- delete branch; merge branches
 
    [ ] refactor hub code to use new "call" method.
+
+   [ ] project -- big warning before deleting a branch.
 
    [ ] save versus commit -- oops.  I need option to save without commiting working files, e.g., thisis needed in create_project in project.coffee
 
