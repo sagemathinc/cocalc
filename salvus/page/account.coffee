@@ -116,10 +116,9 @@ top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 $("#create_account-button").click((event) ->
     destroy_create_account_tooltips()
 
-    opts = {}
+    opts = {agreed_to_terms:$("#create_account-agreed_to_terms").is(":checked") == "on"}
     for field in create_account_fields
         opts[field] = $("#create_account-#{field}").val()
-        opts['agreed_to_terms'] = $("#create_account-agreed_to_terms").is(":checked") # special case
         opts.cb = (error, mesg) ->
             if error
                 alert_message(type:"error", message: "There was an unexpected error trying to create a new account.  Please try again later.")
@@ -140,6 +139,7 @@ $("#create_account-button").click((event) ->
                     # should never ever happen
                     alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
+    console.log(opts)
     salvus_client.create_account(opts)
 )
 
