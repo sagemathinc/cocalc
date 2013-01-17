@@ -687,12 +687,14 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             cb         : required
+            timeout    : 10
 
         @call
             message :
                 message.read_text_file_from_project
                     project_id : opts.project_id
                     path       : opts.path
+            timeout : opts.timeout
             cb : opts.cb
 
     # Like "read_text_file_from_project" above, except the callback

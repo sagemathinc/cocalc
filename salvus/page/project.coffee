@@ -35,7 +35,7 @@ class ProjectPage
         @init_tabs()
         @update_topbar()
 
-        @cwd = []
+        @current_path = []
         @reload()
 
         # Make it so editing the title and description of the project
@@ -76,12 +76,17 @@ class ProjectPage
             that.branch_op($(@).find("input").val(), 'create')
             return false
 
+        file_tools = @container.find(".project-file-tools")
+        file_tools.find("a[href=#delete]").click () -> that.delete_current_path()
+        file_tools.find("a[href=#rename]").click () -> that.rename_current_path()
+        file_tools.find("a[href=#move]").click () -> that.move_current_path()
+
         ########################################
         # Only for temporary testing
         #########################################
 
         @container.find(".project-new-file").click(@new_file_dialog)
-        @container.find(".project-save").click(@save_project)
+        @container.find(".project-save").click(() => @save_project())
         @container.find(".project-close").click(@close_project_dialog)
 
         @container.find(".project-meta").click @reload
@@ -174,7 +179,7 @@ class ProjectPage
                 that.display_tab($(@).data("name"))
                 return false
 
-        @display_tab("project-branches") # TODO -- for testing.
+        # @display_tab("project-branches") # TODO -- for testing.
 
     display_tab: (name) =>
         for tab in @tabs
@@ -301,14 +306,20 @@ class ProjectPage
     # Returns array of objects
     #    {filename:..., is_file:..., commit:...reference to commit object if is_file true...}
     # for the current working directory and branch.
-    # If the cwd is invalid, return the empty array.
+    # If the current_path is invalid, return the empty array.
+    #
+    # If the current_path is a file, returns the commit id of the last change to the file.
     current_files: () =>
         file_data = @meta.files[@meta.display_branch]
         commits = @meta.logs[@meta.display_branch].commits
-        for segment in @cwd
+        for segment in @current_path
             file_data = file_data[segment]
             if not file_data?
                 return []
+
+        # It's a file instead of a directory.
+        if typeof file_data == "string"
+            return file_data # the commit id
 
         directories = []
         files = []
@@ -336,48 +347,92 @@ class ProjectPage
         files.sort(cmp)
         return directories.concat(files)
 
-    update_cwd: () =>
-        t = @container.find(".project-file-listing-cwd")
+    # Render the slash-separated and clickable path that sits above
+    # the list of files (or current file)
+    update_current_path: () =>
+        t = @container.find(".project-file-listing-current_path")
         t.empty()
-        t.append($("<a>").html(template_home_icon.clone().click(() => @cwd=[]; @update_file_list())))
-        new_cwd = []
+        t.append($("<a>").html(template_home_icon.clone().click(() =>
+            @current_path=[]; @update_file_list_tab())))
+
+        file_data = @meta.files[@meta.display_branch]
+        new_current_path = []
         that = @
-        for segment in @cwd
-            new_cwd.push(segment)
+        for segment in @current_path
+            file_data = file_data[segment]
+            new_current_path.push(segment)
             t.append(template_segment_sep.clone())
             t.append($("<a>"
-            ).html(segment
-            ).data("cwd",new_cwd[..]  # make a copy
+            ).text(segment
+            ).data("current_path",new_current_path[..]  # make a copy
             ).click((elt) =>
-                @cwd = $(elt.target).data("cwd")
+                @current_path = $(elt.target).data("current_path")
                 @update_file_list_tab()
             ))
-        t.append(template_segment_sep.clone())
-        t.append(template_new_file_link.clone().data("cwd", @cwd).click( (elt) ->
-            that.new_file($(@).data("cwd").join('/'))
-        ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
+        if typeof file_data != "string"
+            # It's a directory, so put a link to create a new file or directory in it.
+            t.append(template_segment_sep.clone())
+            t.append(template_new_file_link.clone().data("current_path", @current_path).click( (elt) ->
+                that.new_file($(@).data("current_path").join('/'))
+            ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
+
+    render_file_display: (path, cb) =>
+        salvus_client.read_text_file_from_project
+            project_id : @project.project_id
+            timeout : 3
+            path : path
+            cb : (err, mesg) ->
+                if err
+                    cb($("<div>").html("Unable to load file..."))
+                else if mesg.event == 'error'
+                    cb($("<div>").html(mesg.error))
+                else
+                    cb($("<pre>").text(mesg.content))
+
+    # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: () =>
-        @update_cwd()
-        listing = @container.find(".project-file-listing-file-list")
-        listing.empty()
+        # Update the display of the path above the listing or file preview
+        @update_current_path()
+
+        # Now rendering the listing or file preview
+        file_or_listing = @container.find(".project-file-listing-file-list")
+        file_or_listing.empty()
+
+        current = @current_files()
         that = @
-        for obj in @current_files()
-            if obj.is_file
-                t = template_project_file.clone()
-                t.find(".project-file-name").text(obj.filename)
-                t.find(".project-file-last-edited").attr('title', obj.commit.date).timeago()
-                t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
-                t.data("filename",obj.filename).click (e) ->
-                    that.open_file($(@).data('filename'))
-            else
-                t = template_project_directory.clone()
-                t.find(".project-directory-name").text(obj.filename)
+
+        if typeof current == "string"
+            # A file instead of a directory listing.
+
+            # The path to the file.
+            path = @current_path.join('/')
+
+            # Show a spinner if the file takes more than some amount of
+            # time to load from the server.
+            spinner = @container.find(".project-file-listing-spinner")
+            t = setTimeout((()->spinner.show().spin()), 500)
+            @render_file_display path, (x) ->
+                clearTimeout(t)  # make sure not to show the spinner anyways.
+                spinner.spin(false).hide()
+                file_or_listing.append(x)
+        else
+            # A directory listing (as an array)
+            for obj in current
+                if obj.is_file
+                    t = template_project_file.clone()
+                    t.find(".project-file-name").text(obj.filename)
+                    t.find(".project-file-last-edited").attr('title', obj.commit.date).timeago()
+                    t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
+                else
+                    t = template_project_directory.clone()
+                    t.find(".project-directory-name").text(obj.filename)
+
                 t.data('filename',obj.filename).click (e) ->
-                    that.cwd.push($(@).data('filename'))
+                    that.current_path.push($(@).data('filename'))
                     that.update_file_list_tab()
 
-            listing.append(t)
+                file_or_listing.append(t)
 
     switch_displayed_branch: (new_branch) =>
         if new_branch != @meta.display_branch
@@ -453,6 +508,35 @@ class ProjectPage
             list.append(t)
 
         @container.find(".project-branches").find("input").attr('placeholder',"Create a new branch from '#{current_branch}'...")
+
+    #########################################
+    # Operations on the current path
+    #########################################
+
+    # The user clicked the "delete" button for the current path.
+    delete_current_path: () =>
+        # Display confirmation modal.
+        $("#project-delete-path-dialog").modal()
+        # If they say yes, save current state and confirm success.
+        # Actually do the delete.
+        # Save result after doing delete.
+        # Refresh.
+
+    rename_current_path: () =>
+        # Display modal dialog in which user can edit the filename
+        $("#project-rename-path-dialog").modal()
+        # Get the new filename and check if different
+        # If so, send message
+        # Save that rename happened.
+        # Refresh.
+
+    move_current_path: () =>
+        # Display modal browser of all files in this project branch
+        $("#project-move-path-dialog").modal()
+        # Send move message
+        # Save
+        # Refresh
+
 
 project_pages = {}
 

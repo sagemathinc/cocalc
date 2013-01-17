@@ -76,7 +76,7 @@ verify_that_path_is_valid = (project_id, path, cb) ->
         return
 
     resolvedPath = undefined
-
+    
     async.series([
         (c) ->
             fs.realpath path, (err, _resolvedPath) ->
@@ -281,7 +281,7 @@ exec_as_user = (opts) ->
         command    : required
         args       : []
         path       : undefined   # defaults to home directory (base of repo)
-        timeout    : 10          # in seconds
+        timeout    : 10          # timeout in *seconds*
         cb         : required
 
     user = username(opts.project_id)
@@ -321,7 +321,7 @@ exec_as_user = (opts) ->
                         # process did not exit yet -- kill
                         r.kill("SIGKILL")
                         c("killed command '#{opts.command}' (args=#{misc.to_json(opts.args)}) since it exceeded the timeout of #{opts.timeout}")
-                setTimeout(f, opts.timeout)
+                setTimeout(f, opts.timeout*1000)
     ], (err) ->
         opts.cb(err, {stdout:stdout, stderr:stderr})
     )
@@ -577,18 +577,20 @@ events.close_project = (socket, mesg) ->
 # over the socket as a blob message.
 events.read_file_from_project = (socket, mesg) ->
     data = undefined
+    path = userpath(mesg.project_id) + '/' + mesg.path
+    winston.debug("** the path = ", path)
     async.series([
         # Check that the file is valid (in the user's directory).
         (cb) ->
-            verify_that_path_is_valid mesg.project_id, mesg.path, (err, realpath) ->
+            verify_that_path_is_valid mesg.project_id, path, (err, realpath) ->
                 if err
                     cb(err)
                 else
-                    mesg.path = realpath
+                    path = realpath
                     cb()
         # Read the file into memory.
         (cb) ->
-            fs.readFile "#{userpath(mesg.project_id)}/#{mesg.path}", (err, _data) ->
+            fs.readFile path, (err, _data) ->
                 data = _data
                 cb(err)
         # Send the file as a blob back to the hub.

@@ -96,3 +96,13 @@
 .project-branch-single-name {
     font-weight:bold;
 }
+
+.project-file-listing-current_path {
+    margin-left:25px;
+}
+
+.project-rename-path-dialog-filename {
+    background-color:#fff;
+    padding:5px;
+    border: 1px solid #aaa;
+}

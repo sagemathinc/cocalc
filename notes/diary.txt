@@ -9203,7 +9203,9 @@ Then slowly add functionality to client:
 
    [x] (0:27) project -- delete branch; merge branches
 
-   [ ] refactor hub code to use new "call" method.
+-->[ ] refactor hub code to use new "call" method.
+---->[ ] clicking on a file (instead of a directory) shows page on that file
+----->  [ ] remove file.
 
    [ ] project -- big warning before deleting a branch.
 
@@ -9229,6 +9231,7 @@ Then slowly add functionality to client:
    [ ] when project logs/files, etc. are updated, message should go out to certain clients
        with new data... maybe.
 
+[ ] make it possible to show hidden files via a checkbox
 [ ] swap in andrew ohana's new bundler
 [ ] set the current branch on opening project (maybe)?
 [ ] make admin.py purge password after 30 minutes of inactivity.

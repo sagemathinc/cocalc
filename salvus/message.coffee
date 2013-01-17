@@ -642,10 +642,6 @@ message
     project_id   : required
     path         : required
 
-# project_server --> hub --> client
-message
-    event        : 'file_removed_from_project'
-    id           : required
 
 # The write_file_to_project message is sent from the hub to the
 # project_server to tell the project_server to write a file to a

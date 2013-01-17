@@ -1,4 +1,65 @@
 
+
+<!-- Modal dialogs for manipulating paths -->
+
+<div id="project-delete-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+  <form>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+	<font size=+3>×</font>
+      </button>
+      <h3>Delete <span class="project-delete-path-dialog-filename">filename</span>?</h3>
+    </div>
+    <div class="center">
+      <input type="text" style="width:80%" placeholder="Deleting because...">
+    </div>
+    <div class="modal-footer">
+      <button class="center btn btn-danger" data-dismiss="modal">Delete</button>
+      <button class="center btn" data-dismiss="modal">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div id="project-rename-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+  <form>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+	<font size=+3>×</font>
+      </button>
+      <h3>Rename <span contenteditable="true" class="project-rename-path-dialog-filename">filename</span></h3>
+    </div>
+    <br>
+    <div class="center">
+      <input type="text" style="width:80%" placeholder="Rename because...">
+    </div>
+    <div class="modal-footer">
+      <button class="center btn btn-primary" data-dismiss="modal">Rename</button>
+      <button class="center btn" data-dismiss="modal">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div id="project-move-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+  <form>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+	<font size=+3>×</font>
+      </button>
+      <h3>Move <span class="project-move-path-dialog-filename">filename</span> to:</h3>
+    </div>
+    <br>
+    <div class="center">
+      <input type="text" style="width:80%" placeholder="Move because...">
+    </div>
+    <div class="modal-footer">
+      <button class="center btn btn-success" data-dismiss="modal">Move</button>
+      <button class="center btn" data-dismiss="modal">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<!-- The actual project file browser, etc., interface -->
+
 <span id="salvus-project-templates" class="hide">
 
 
@@ -46,9 +107,19 @@
 
 	<!-- List of all files in the project, which is browsable -->
 	<div class="project-file-listing">
-	  <div class="project-file-listing-cwd"></div>
+	  <div class="row">
+	    <div class="project-file-tools pull-right btn-group">
+	      <a href="#rename" class="btn btn-primary btn-small">Rename</a>
+	      <a href="#move" class="btn btn-small btn-success">Move</a>
+	      <a href="#delete" class="btn btn-danger btn-small">Delete</a>
+	    </div>
+	    <div class="project-file-listing-current_path"></div>
+	  </div>
 	  <br>
-	  <div class="project-file-listing-file-list"></div>
+	  <div class="row">
+	    <div class="project-file-listing-spinner hide"></div>
+	    <div class="project-file-listing-file-list"></div>
+	  </div>
 	</div>
 
 	<!-- Git history log for this project -->
@@ -152,6 +223,8 @@
   <span class="project-segment-sep lighten">
     &nbsp; / &nbsp;
   </span>
+
+
 
 </span>
 

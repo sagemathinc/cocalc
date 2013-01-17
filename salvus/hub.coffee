@@ -724,7 +724,8 @@ class Client extends EventEmitter
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
-                @push_to_client(message.text_file_read_from_project(id:mesg.id, content:content))
+                t = content.blob.toString()
+                @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
 
     mesg_read_file_from_project: (mesg) =>
         project = new Project(mesg.project_id)
@@ -759,11 +760,12 @@ class Client extends EventEmitter
 
     mesg_remove_file_from_project: (mesg) =>
         project = new Project(mesg.project_id)
-        project.remove_file mesg.path, (err, content) =>
+        project.remove_file mesg.path, (err, resp) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
-                @push_to_client(message.file_removed_from_project(id:mesg.id))
+                resp.id = mesg.id
+                @push_to_client(resp)
 
     mesg_create_project_branch: (mesg) =>
         project = new Project(mesg.project_id)
@@ -1626,6 +1628,14 @@ class Project
                         else
                             c("Unexpected message type '#{mesg.event}'")
         ], cb)
+
+    remove_file: (path, cb) =>
+        @call
+            message: message.remove_file_from_project
+                id         : id
+                project_id : @project_id
+                path       : path
+            cb : cb
 
     # Branch op
     branch_op : (branch, op, cb) =>
