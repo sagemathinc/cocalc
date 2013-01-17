@@ -9204,8 +9204,11 @@ Then slowly add functionality to client:
    [x] (0:27) project -- delete branch; merge branches
 
 -->[ ] refactor hub code to use new "call" method.
----->[ ] clicking on a file (instead of a directory) shows page on that file
------>  [ ] remove file.
+(5.5 hours) ---->[x] clicking on a file (instead of a directory) shows page on that file
+----->  [x] remove file.
+
+   [ ] do not show deleted files by default
+   [ ] make it possible to show *deleted* (in the past) files via a checkbox
 
    [ ] project -- big warning before deleting a branch.
 

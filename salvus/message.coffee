@@ -638,7 +638,7 @@ message
 # client --> hub --> project_server
 message
     event        : 'remove_file_from_project'
-    id           : required
+    id           : undefined
     project_id   : required
     path         : required
 

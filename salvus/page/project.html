@@ -2,22 +2,24 @@
 
 <!-- Modal dialogs for manipulating paths -->
 
-<div id="project-delete-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
-  <form>
+<div id="project-delete-path-dialog" class="modal hide" tabindex="-1">
     <div class="modal-header">
-      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+      <button type="button" class="close btn-close">
 	<font size=+3>×</font>
       </button>
       <h3>Delete <span class="project-delete-path-dialog-filename">filename</span>?</h3>
     </div>
-    <div class="center">
-      <input type="text" style="width:80%" placeholder="Deleting because...">
+    <div class="modal-body">
+      <form>
+	<div class="center">
+	  <input type="text" style="width:80%" placeholder="Why?  (optional)">
+	</div>
+      </form>
     </div>
     <div class="modal-footer">
-      <button class="center btn btn-danger" data-dismiss="modal">Delete</button>
-      <button class="center btn" data-dismiss="modal">Cancel</button>
+      <button class="btn btn-close">Cancel</button>
+      <button class="btn btn-danger btn-submit">Delete</button>
     </div>
-  </form>
 </div>
 
 <div id="project-rename-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
@@ -30,11 +32,11 @@
     </div>
     <br>
     <div class="center">
-      <input type="text" style="width:80%" placeholder="Rename because...">
+      <input type="text" style="width:80%" placeholder="Why? (optional)">
     </div>
     <div class="modal-footer">
-      <button class="center btn btn-primary" data-dismiss="modal">Rename</button>
       <button class="center btn" data-dismiss="modal">Cancel</button>
+      <button class="center btn btn-primary" data-dismiss="modal">Rename</button>
     </div>
   </form>
 </div>
@@ -49,11 +51,11 @@
     </div>
     <br>
     <div class="center">
-      <input type="text" style="width:80%" placeholder="Move because...">
+      <input type="text" style="width:80%" placeholder="Why? (optional)">
     </div>
     <div class="modal-footer">
-      <button class="center btn btn-success" data-dismiss="modal">Move</button>
       <button class="center btn" data-dismiss="modal">Cancel</button>
+      <button class="center btn btn-warning" data-dismiss="modal">Move</button>
     </div>
   </form>
 </div>
@@ -82,15 +84,15 @@
       </div>
     </div>
     <div class="row">
-      <div class="span3">
-	<label for="project-commits-branch">
-	  <span class="lighten">show branch: </span>
-	  <select name="project-commits-branch" class="project-commits-branch"></select>
-	</label>
-      </div>
-    </div>
-    <div class="row">
       <div class="well span10">
+
+	<div class="span3 pull-right">
+	  <label for="project-commits-branch">
+	    <span class="lighten">show branch: </span>
+	    <select name="project-commits-branch" class="project-commits-branch"></select>
+	  </label>
+	</div>
+
 	<!-- Tabs -- place where you click on them -->
 	<ul class="nav nav-tabs">
 	  <!-- List all files in the project -->
@@ -110,7 +112,7 @@
 	  <div class="row">
 	    <div class="project-file-tools pull-right btn-group">
 	      <a href="#rename" class="btn btn-primary btn-small">Rename</a>
-	      <a href="#move" class="btn btn-small btn-success">Move</a>
+	      <a href="#move" class="btn btn-small btn-warning">Move</a>
 	      <a href="#delete" class="btn btn-danger btn-small">Delete</a>
 	    </div>
 	    <div class="project-file-listing-current_path"></div>

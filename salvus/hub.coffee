@@ -1600,36 +1600,8 @@ class Project
         ], cb)
 
     # Remove a file or directory
-    remove_file: (path, cb) ->
-        socket = undefined
-        id     = uuid.v4()
-        async.series([
-            (c) =>
-                @socket (err,_socket) ->
-                    if err
-                        c(err)
-                    else
-                        socket = _socket
-                        c()
-            (c) =>
-                m = message.remove_file_from_project
-                    id         : id
-                    project_id : @project_id
-                    path       : path
-                socket.write_mesg 'json', m
-                c()
-            (c) =>
-                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
-                    switch mesg.event
-                        when 'file_removed_from_project'
-                            c()
-                        when 'error'
-                            c(mesg.error)
-                        else
-                            c("Unexpected message type '#{mesg.event}'")
-        ], cb)
-
     remove_file: (path, cb) =>
+        id = uuid.v4()
         @call
             message: message.remove_file_from_project
                 id         : id

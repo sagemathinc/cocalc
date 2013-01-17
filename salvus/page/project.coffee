@@ -23,6 +23,31 @@ template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
 
+
+##################################################
+# Initialize the modal project management dialogs
+##################################################
+delete_path_dialog = $("#project-delete-path-dialog")
+
+submit_delete_path_dialog = () ->
+    delete_path_dialog.modal('hide')
+    project = delete_path_dialog.data("project")
+    project.delete_current_path(delete_path_dialog.find("input[type=text]").val())
+    return false
+
+delete_path_dialog.submit submit_delete_path_dialog
+delete_path_dialog.find("form").submit submit_delete_path_dialog
+delete_path_dialog.find(".btn-submit").click submit_delete_path_dialog
+delete_path_dialog.find(".btn-close").click () ->
+    delete_path_dialog.modal('hide')
+    return false
+
+
+
+##################################################
+# Define the project page class
+##################################################
+
 class ProjectPage
     constructor: (@project) ->
         @container = templates.find(".salvus-project").clone()
@@ -73,20 +98,20 @@ class ProjectPage
         # Make it so typing something into the "create a new branch..." box
         # makes a new branch.
         @container.find(".project-branches").find('form').submit () ->
-            that.branch_op($(@).find("input").val(), 'create')
+            that.branch_op(branch:$(@).find("input").val(), op:'create')
             return false
 
         file_tools = @container.find(".project-file-tools")
-        file_tools.find("a[href=#delete]").click () -> that.delete_current_path()
-        file_tools.find("a[href=#rename]").click () -> that.rename_current_path()
-        file_tools.find("a[href=#move]").click () -> that.move_current_path()
+        file_tools.find("a[href=#delete]").click () -> that.delete_current_path_dialog()
+        file_tools.find("a[href=#rename]").click () -> that.rename_current_path_dialog()
+        file_tools.find("a[href=#move]").click () -> that.move_current_path_dialog()
 
         ########################################
         # Only for temporary testing
         #########################################
 
         @container.find(".project-new-file").click(@new_file_dialog)
-        @container.find(".project-save").click(() => @save_project())
+        @container.find(".project-save").click(() => @save_project(show_success_alert:true))
         @container.find(".project-close").click(@close_project_dialog)
 
         @container.find(".project-meta").click @reload
@@ -137,8 +162,14 @@ class ProjectPage
                 cb : (err, mesg) ->
                     console.log("err = #{err}, mesg = ", mesg)
 
-    branch_op: (branch, op) =>
+    branch_op: (opts) =>
+        opts = defaults opts,
+            branch : required
+            op     : required
+            cb     : undefined
         # op must be one of ['create', 'checkout', 'delete', 'merge']
+        branch = opts.branch
+        op = opts.op
 
         # Quick client-side check for obviously invalid branch name
         if branch.length == 0 or branch.split(/\s+/g).length != 1
@@ -162,10 +193,10 @@ class ProjectPage
                             alert_message(message:"#{op} branch '#{branch}'")
                             c()  # success
             (c) =>
-                @save_project(c)
+                @save_project(cb:c)
             (c) =>
                 @reload()
-        ])
+        ], opts.cb)
 
     init_tabs: () ->
         @tabs = []
@@ -190,19 +221,22 @@ class ProjectPage
                 tab.target.hide()
                 tab.label.removeClass('active')
 
-    save_project: (cb) =>
+    save_project: (opts={}) =>
+        opts = defaults opts,
+            commit_mesg : ""
+            cb          : undefined
+            show_success_alert : false
         salvus_client.save_project
             project_id : @project.project_id
-            commit_mesg : "a commit message"
+            commit_mesg : opts.commit_mesg
             cb         : (err, mesg) ->
                 if err
                     alert_message(type:"error", message:"Connection error.")
                 else if mesg.event == "error"
                     alert_message(type:"error", message:mesg.error)
-                else
+                else if opts.show_success_alert
                     alert_message(type:"success", message: "Project successfully saved.")
-                if cb?
-                    cb()
+                opts.cb?()
 
     close_project_dialog: () =>
         salvus_client.close_project
@@ -282,7 +316,7 @@ class ProjectPage
         return @
 
 
-    reload: () =>
+    reload: (cb) =>
         salvus_client.get_project_meta
             project_id : @project.project_id
             cb  : (err, _meta) =>
@@ -302,6 +336,7 @@ class ProjectPage
                     @update_file_list_tab()
                     @update_commits_tab()
                     @update_branches_tab()
+                cb?()
 
     # Returns array of objects
     #    {filename:..., is_file:..., commit:...reference to commit object if is_file true...}
@@ -490,19 +525,19 @@ class ProjectPage
             # Make it so clicking on the "Checkout" button checks out a given branch.
             t.find("a[href=#checkout]").data("branch", branch).click (evt) ->
                 branch = $(@).data('branch')
-                that.branch_op(branch, 'checkout')
+                that.branch_op(branch:branch, op:'checkout')
                 return false
 
             t.find("a[href=#delete]").data("branch",branch).click (evt) ->
                 branch = $(@).data('branch')
                 # TODO -- stern warnings
-                that.branch_op(branch, 'delete')
+                that.branch_op(branch:branch, op:'delete')
                 return false
 
             t.find("a[href=#merge]").data("branch",branch).click (evt) ->
                 branch = $(@).data('branch')
                 # TODO -- stern warnings
-                that.branch_op(branch, 'merge')
+                that.branch_op(branch:branch, op:'merge')
                 return false
 
             list.append(t)
@@ -514,15 +549,55 @@ class ProjectPage
     #########################################
 
     # The user clicked the "delete" button for the current path.
-    delete_current_path: () =>
+    delete_current_path_dialog: () =>
         # Display confirmation modal.
-        $("#project-delete-path-dialog").modal()
-        # If they say yes, save current state and confirm success.
-        # Actually do the delete.
-        # Save result after doing delete.
-        # Refresh.
+        m = delete_path_dialog
+        comment = m.find("input[type=text]").val("")
+        m.data("project", @)
+        m.modal(keyboard:true)
+        comment.focus()
+        m.find("button").click () -> m.modal('hide')
 
-    rename_current_path: () =>
+    delete_current_path: (commit_mesg) =>
+        path = @current_path.join('/')
+        if not commit_mesg?
+            commit_mesg ="Deleted #{path}."
+        series([
+            # Switch to different branch if necessary
+            (cb) =>
+                if @meta.display_branch != @meta.current_branch
+                    @branch_op(branch:@meta.display_branch, op:'checkout',cb:cb)
+                else
+                    cb()
+            # Save the project in its current state, so this path delete is actually safe.
+            (cb) =>
+                @save_project
+                    commit_mesg:"save before deleting #{path}"
+                    cb:cb
+            # Delete the current path.
+            (cb) =>
+                salvus_client.remove_file_from_project
+                    project_id : @project.project_id
+                    path       : path
+                    cb         : (err, mesg) ->
+                        if err
+                            cb(err)
+                        else if mesg.event == "error"
+                            cb(mesg.error)
+                        else
+                            cb()
+            # Save after the delete.
+            (cb) =>
+                @save_project(commit_mesg:commit_mesg, cb:cb)
+            # Reload the files/branches/etc to take into account new commit, file deletions, etc. 
+            (cb) =>
+                @reload(cb)
+        ], (err) ->
+            if err
+                alert_message(type:"error", message:err)
+        )
+
+    rename_current_path_dialog: () =>
         # Display modal dialog in which user can edit the filename
         $("#project-rename-path-dialog").modal()
         # Get the new filename and check if different
@@ -530,7 +605,7 @@ class ProjectPage
         # Save that rename happened.
         # Refresh.
 
-    move_current_path: () =>
+    move_current_path_dialog: () =>
         # Display modal browser of all files in this project branch
         $("#project-move-path-dialog").modal()
         # Send move message

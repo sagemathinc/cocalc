@@ -393,6 +393,8 @@ commit_all = (opts) ->
         commit_mesg : required
         gitconfig   : required
         cb          : required
+    if opts.commit_mesg == ''
+        opts.commit_mesg = '(no message)'
     commit_file = "#{opts.path}/.git/salvus/COMMIT_MESG"
     config_file = "#{opts.path}/.gitconfig"
     async.series([
@@ -404,6 +406,7 @@ commit_all = (opts) ->
             cmd = "su - #{opts.user} -c 'cd && git add . && git commit -a -F #{commit_file}'"
             winston.debug(cmd)
             child_process.exec cmd, (err, stdout, stderr) ->
+                winston.debug(err, stdout, stderr)
                 if stdout.indexOf("nothing to commit") >= 0
                     # not an error
                     cb()
@@ -699,7 +702,7 @@ events.remove_file_from_project = (socket, mesg) ->
     exec_as_user
         project_id : mesg.project_id
         command    : "git"
-        args       : ["-rf",  mesg.path]
+        args       : ["rm", "-rf",  mesg.path]
         cb         : (err, out) -> write_status(err:err, socket:socket, id:mesg.id, out:out)
 
 events.create_project_branch = (socket, mesg) ->
