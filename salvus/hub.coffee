@@ -1570,6 +1570,7 @@ class Project
 
     # Move a file or directory
     move_file: (src, dest, cb) ->
+        winston.debug("MOVE: #{src} --> #{dest}")
         socket = undefined
         id     = uuid.v4()
         async.series([

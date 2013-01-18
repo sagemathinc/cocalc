@@ -645,25 +645,24 @@ make_directory_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
         (c) ->
-            verify_that_path_is_valid mesg.project_id, mesg.path, (err, realpath) ->
-                if err
-                    c(err)
-                else
-                    mesg.path = realpath
-                    c()
-        (c) ->
-            fs.mkdir(mesg.path, 0o700, c)
+            exec_as_user
+                project_id : mesg.project_id
+                command    : "mkdir"
+                args       : ["-p", mesg.path]
+                cb         : c
         (c) ->
             # Git does not record the existence of empty directories,
             # so we add an empty .gitignore file to the newly created
             # directory.
-            fs.writeFile("#{mesg.path}/.gitignore", "", c)
-        (c) ->
-            # It would be better if I knew an easy way to figure out the
-            # uid and gid of the user, and could use: fs.chown(mesg.path, uid, gid)
-            child_process.exec('chown #{user}. #{mesg.path}', c)
+            exec_as_user
+                project_id : mesg.project_id
+                command    : "touch"
+                args       : [mesg.path + '/.gitignore']
+                cb         : c
+
         (c) ->
             socket.write_mesg 'json', message.directory_made_in_project(id:mesg.id)
+
     ], (err) ->
         if err
             socket.write_mesg 'json', message.error(id:mesg.id, error:err)
@@ -675,21 +674,11 @@ events.move_file_in_project = (socket, mesg) ->
     user = username(mesg.project_id)
     async.series([
         (c) ->
-            verify_that_path_is_valid mesg.project_id, mesg.src, (err, realpath) ->
-                if err
-                    c(err)
-                else
-                    mesg.src = realpath
-                    c()
-        (c) ->
-            verify_that_path_is_valid mesg.project_id, mesg.dest, (err, realpath) ->
-                if err
-                    c(err)
-                else
-                    mesg.dest = realpath
-                    c()
-        (c) ->
-            child_process.exec("su - #{user} -c 'git mv \"#{mesg.src}\" \"#{mesg.dest}\"'", c)
+            exec_as_user
+                project_id : mesg.project_id
+                command    : "git"
+                args       : ["mv", mesg.src, mesg.dest]
+                cb         : c
         (c) ->
             socket.write_mesg('json', message.file_moved_in_project(id:mesg.id))
     ], (err) ->

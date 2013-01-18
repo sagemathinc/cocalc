@@ -9208,16 +9208,20 @@ Then slowly add functionality to client:
 ----->  [x] remove file.
 
    [x] (11min) BUG -- get rid of weird slash in html on every page
-
    [x] (4min) project -- put correct filename in delete dialog
    [x] (7min) project -- put correct filename in rename and move dialogs
    [x] (28min) project -- Refactor modal dialog code
    [x] (38min) project -- move file ui code
-   [ ] project -- make it so move file works (sends message to hub, etc.)
+   [ ] (1:20) project -- make it so move file works (sends message to hub, etc.)
+
+   [ ] project_server -- make sure exec_as_user is used as much as possible.
 
    [ ] checkbox -- show hidden files (starting with dot)
    [ ] checkbox -- show deleted files
+   [ ] html preview -- implement computer_server side code that can compute
+       an html preview for any file; use that when clicking around...
 
+   [ ] button to rollback a specific past commit
 
    [ ] project -- big warning before deleting a branch.
 

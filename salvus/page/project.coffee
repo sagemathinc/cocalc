@@ -41,9 +41,11 @@ class Dialog
         @opts = opts
 
         submit = () =>
-            console.log('submit')
-            opts.dialog.modal('hide')
-            opts.submit(opts.dialog, @project)
+            try
+                opts.dialog.modal('hide')
+                opts.submit(opts.dialog, @project)
+            catch e
+                console.log("Exception submitting modal: ", e)
             return false
 
         opts.dialog.submit submit
@@ -60,7 +62,16 @@ class Dialog
 delete_path_dialog = new Dialog
     dialog      : $("#project-delete-path-dialog")
     submit      : (dialog, project) ->
-        project.delete_current_path(dialog.find("input[type=text]").val())
+        path = project.current_path.join('/')
+        commit_mesg = dialog.find("input[type=text]").val()
+        if commit_mesg == ""
+            commit_mesg = "deleted #{path}"
+        project.path_action
+            action      : 'delete'
+            branch      : project.meta.display_branch
+            path        : path
+            commit_mesg : commit_mesg
+
     before_show : (dialog, project) ->
         dialog.find(".project-delete-path-dialog-filename").text(project.current_pathname())
         dialog.find("input[type=text]").val("")
@@ -70,11 +81,20 @@ delete_path_dialog = new Dialog
 move_path_dialog = new Dialog
     dialog      : $("#project-move-path-dialog")
     submit      : (dialog, project) ->
-        console.log(dialog, project)
-        new_name = dialog.find("input[name=new-filename]").val()
-        new_path = project.current_path.slice(0,-1).join('/') + '/' + new_name
+        src      = project.current_pathname()
+        dest     = dialog.find("input[name=new-filename]").val()
+        if src == dest
+            # nothing to do
+            return
         why      = dialog.find("input[name=why]").val()
-        project.move_path(project.current_pathname(), new_path, why)
+        if why == ""
+            why = "move #{src} to #{dest}"
+        project.path_action
+            action      : 'move'
+            branch      : project.meta.display_branch
+            path        : src
+            commit_mesg : why
+            extra_options : {dest:dest}
     before_show : (dialog, project) ->
         dialog.find(".project-move-path-dialog-filename").text(project.current_pathname())
         dialog.find("input[name=new-filename]").val(project.current_pathname())
@@ -142,8 +162,9 @@ class ProjectPage
             return false
 
         file_tools = @container.find(".project-file-tools")
-        file_tools.find("a[href=#delete]").click () -> that.delete_current_path_dialog()
-        file_tools.find("a[href=#move]").click () -> that.move_current_path_dialog()
+        file_tools.find("a[href=#delete]").click () -> delete_path_dialog.show(that)
+        file_tools.find("a[href=#move]").click () -> move_path_dialog.show(that)
+        file_tools.find("a[href=#edit]").click () -> that.edit_current_file()
 
         ########################################
         # Only for temporary testing
@@ -152,54 +173,7 @@ class ProjectPage
         @container.find(".project-new-file").click(@new_file_dialog)
         @container.find(".project-save").click(() => @save_project(show_success_alert:true))
         @container.find(".project-close").click(@close_project_dialog)
-
         @container.find(".project-meta").click @reload
-
-        @container.find(".project-read-text-file").click () =>
-            salvus_client.read_text_file_from_project
-                project_id : @project.project_id
-                path : 'new_file.txt'
-                cb : (err, contents) ->
-                    console.log("err = #{err}")
-                    console.log("contents =", contents)
-
-        @container.find(".project-read-file").click () =>
-            salvus_client.read_file_from_project
-                project_id : @project.project_id
-                path : 'new_file.txt'
-                cb : (err, url) ->
-                    console.log("err = #{err}")
-                    console.log("url =", url)
-                    # test it manually at this point..
-
-        @container.find(".project-move-file").click () =>
-            salvus_client.move_file_in_project
-                project_id : @project.project_id
-                src : 'new_file.txt'
-                dest : 'new_file2.txt'
-                cb : (err, mesg) ->
-                    console.log("err = #{err}, mesg = ", mesg)
-
-        @container.find(".project-make-directory").click () =>
-            salvus_client.make_directory_in_project
-                project_id : @project.project_id
-                path : 'new_directory'
-                cb : (err, mesg) ->
-                    console.log("err = #{err}, mesg = ", mesg)
-
-        @container.find(".project-remove-file").click () =>
-            salvus_client.remove_file_from_project
-                project_id : @project.project_id
-                path : 'new_file.txt'
-                cb : (err, mesg) ->
-                    console.log("err = #{err}, mesg = ", mesg)
-
-        @container.find(".project-remove-directory").click () =>
-            salvus_client.remove_file_from_project
-                project_id : @project.project_id
-                path : 'new_directory'
-                cb : (err, mesg) ->
-                    console.log("err = #{err}, mesg = ", mesg)
 
     branch_op: (opts) =>
         opts = defaults opts,
@@ -292,7 +266,7 @@ class ProjectPage
         salvus_client.write_text_file_to_project
             project_id : @project.project_id,
             path       : 'new_file.txt',
-            content    : 'This is a new file.'
+            content    : 'This is a new file.\nIt has little content....'
             cb         : (err, mesg) ->
                 if err
                     alert_message(type:"error", message:"Connection error.")
@@ -466,7 +440,7 @@ class ProjectPage
                 else if mesg.event == 'error'
                     cb($("<div>").html(mesg.error))
                 else
-                    cb($("<pre>").text(mesg.content))
+                    cb($("<pre style='background-color:#fff; padding:2ex; margin-left:2ex;'>").text(mesg.content))
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: () =>
@@ -588,56 +562,76 @@ class ProjectPage
         @container.find(".project-branches").find("input").attr('placeholder',"Create a new branch from '#{current_branch}'...")
 
     #########################################
-    # Operations on the current path
+    # Operations on files in a path and branch.
     #########################################
 
-    # The user clicked the "delete" button for the current path.
-    delete_current_path_dialog: () => delete_path_dialog.show(@)
+    path_action: (opts) =>
+        opts = defaults opts,
+            action  : required     # 'delete', 'move'
+            branch  : undefined    # defaults to displayed branch
+            path    : undefined    # defaults to displayed current_path
+            commit_mesg : required
+            extra_options : undefined  # needed for some actions
 
-    delete_current_path: (commit_mesg) =>
-        path = @current_pathname()
-        if not commit_mesg?
-            commit_mesg ="Deleted #{path}."
         series([
             # Switch to different branch if necessary
             (cb) =>
-                if @meta.display_branch != @meta.current_branch
-                    @branch_op(branch:@meta.display_branch, op:'checkout',cb:cb)
+                if opts.branch != @meta.current_branch
+                    @branch_op(branch:opts.branch, op:'checkout', cb:cb)
                 else
                     cb()
-            # Save the project in its current state, so this path delete is actually safe.
+
+            # Save the project in its current state, so this action is undo-able/safe
             (cb) =>
                 @save_project
-                    commit_mesg:"save before deleting #{path}"
-                    cb:cb
-            # Delete the current path.
+                    commit_mesg : "save before #{opts.action}"
+                    cb          : cb
+
+            # Carry out the action
             (cb) =>
-                salvus_client.remove_file_from_project
-                    project_id : @project.project_id
-                    path       : path
-                    cb         : (err, mesg) ->
-                        if err
-                            cb(err)
-                        else if mesg.event == "error"
-                            cb(mesg.error)
-                        else
-                            cb()
-            # Save after the delete.
+                switch opts.action
+                    when 'delete'
+                        salvus_client.remove_file_from_project
+                            project_id : @project.project_id
+                            path       : opts.path
+                            cb         : (err, mesg) =>
+                                if err
+                                    cb(err)
+                                else if mesg.event == "error"
+                                    cb(mesg.error)
+                                else
+                                    @current_path.pop()
+                                    cb()
+                    when 'move'
+                        salvus_client.move_file_in_project
+                            project_id : @project.project_id
+                            src        : opts.path
+                            dest       : opts.extra_options.dest
+                            cb         : (err, mesg) =>
+                                if err
+                                    cb(err)
+                                else if mesg.event == "error"
+                                    cb(mesg.error)
+                                else
+                                    @current_path = opts.extra_options.dest.split('/')
+                                    cb()
+                    else
+                        cb("unknown path action #{opts.action}")
+
+            # Save after the action.
             (cb) =>
-                @save_project(commit_mesg:commit_mesg, cb:cb)
+                @save_project
+                    commit_mesg : opts.commit_mesg
+                    cb          : cb
+
             # Reload the files/branches/etc to take into account new commit, file deletions, etc.
             (cb) =>
                 @reload(cb)
+
         ], (err) ->
             if err
                 alert_message(type:"error", message:err)
         )
-
-    move_current_path_dialog: () =>
-        move_path_dialog.show(@)
-
-    move_path: (from, to, commit_mesg) =>
-        console.log("move path #{from} --> #{to}: #{commit_mesg}")
 
 project_pages = {}
 

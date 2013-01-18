@@ -625,7 +625,7 @@ message
 # client --> hub --> project_server
 message
     event        : 'move_file_in_project'
-    id           : required
+    id           : undefined
     project_id   : required
     src          : required
     dest         : required

@@ -750,6 +750,19 @@ class exports.Connection extends EventEmitter
                     path       : opts.path
             cb : opts.cb
 
+    move_file_in_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            src        : required
+            dest       : required
+            cb         : required
+        @call
+            message :
+                message.move_file_in_project
+                    project_id : opts.project_id
+                    src        : opts.src
+                    dest       : opts.dest
+            cb : opts.cb
 
     project_branch_op: (opts) ->
         opts = defaults opts,
