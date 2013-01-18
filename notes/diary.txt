@@ -9207,11 +9207,12 @@ Then slowly add functionality to client:
 (5.5 hours) ---->[x] clicking on a file (instead of a directory) shows page on that file
 ----->  [x] remove file.
 
+   [x] (11min) BUG -- get rid of weird slash in html on every page
+
    [x] (4min) project -- put correct filename in delete dialog
    [x] (7min) project -- put correct filename in rename and move dialogs
    [ ] project -- Refactor modal code
    [ ] project -- rename file
-
 
    [ ] checkbox -- show hidden files (starting with dot)
    [ ] checkbox -- show deleted files
