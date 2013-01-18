@@ -31,6 +31,45 @@ delete_path_dialog = $("#project-delete-path-dialog")
 rename_path_dialog = $("#project-rename-path-dialog")
 move_path_dialog   = $("#project-move-path-dialog")
 
+class Dialog
+    constructor: (opts) ->
+        opts = defaults opts,
+            dialog      : required
+            submit      : required
+            before_show : undefined
+            after_show  : undefined
+
+        @opts = opts
+
+        submit = () =>
+            opts.dialog.modal('hide')
+            opts.submit(opts.dialog, @project)
+            return false
+
+        opts.dialog.submit submit
+        opts.dialog.find("form").submit submit
+        opts.dialog.find(".btn-submit").click submit
+        opts.dialog.find(".btn-close").click(() -> opts.dialog.modal('hide'); return false)
+
+    show: (project) =>
+        @project = project
+        @opts.before_show(@opts.dialog, project)
+        @opts.dialog.modal()
+        @opts.after_show(@opts.dialog, project)
+
+delete_path_dialog = new Dialog
+    dialog      : $("#project-delete-path-dialog")
+    submit      : (dialog, project) ->
+        project.delete_current_path(dialog.find("input[type=text]").val())
+    before_show : (dialog, project) ->
+        dialog.find(".project-delete-path-dialog-filename").text(project.current_pathname())
+        dialog.find("input[type=text]").val("")
+    after_show  : (dialog) ->
+        dialog.find("input[type=text]").focus()
+
+
+
+###
 submit_delete_path_dialog = () ->
     delete_path_dialog.modal('hide')
     project = delete_path_dialog.data("project")
@@ -43,6 +82,21 @@ delete_path_dialog.find(".btn-submit").click submit_delete_path_dialog
 delete_path_dialog.find(".btn-close").click () ->
     delete_path_dialog.modal('hide')
     return false
+
+submit_delete_path_dialog = () ->
+    delete_path_dialog.modal('hide')
+    project = delete_path_dialog.data("project")
+    project.delete_current_path(delete_path_dialog.find("input[type=text]").val())
+    return false
+
+delete_path_dialog.submit submit_delete_path_dialog
+delete_path_dialog.find("form").submit submit_delete_path_dialog
+delete_path_dialog.find(".btn-submit").click submit_delete_path_dialog
+delete_path_dialog.find(".btn-close").click () ->
+    delete_path_dialog.modal('hide')
+    return false
+###
+
 
 
 
@@ -555,15 +609,7 @@ class ProjectPage
     #########################################
 
     # The user clicked the "delete" button for the current path.
-    delete_current_path_dialog: () =>
-        # Display confirmation modal.
-        m = delete_path_dialog
-        comment = m.find("input[type=text]").val("")
-        m.data("project", @)
-        m.find(".project-delete-path-dialog-filename").text(@current_pathname())
-        m.modal()
-        comment.focus()
-        m.find("button").click () -> m.modal('hide')
+    delete_current_path_dialog: () => delete_path_dialog.show(@)
 
     delete_current_path: (commit_mesg) =>
         path = @current_pathname()
@@ -604,21 +650,17 @@ class ProjectPage
                 alert_message(type:"error", message:err)
         )
 
-    rename_current_path_dialog: () =>
-        m = rename_path_dialog
+    rename_current_path_dialog: () => rename_path_dialog.show(@)
         # Display modal dialog in which user can edit the filename
-        m.modal()
         m.find(".project-rename-path-dialog-filename").text(@current_pathname()).focus()
         # Get the new filename and check if different
         # If so, send message
         # Save that rename happened.
         # Refresh.
 
-    move_current_path_dialog: () =>
-        m = move_path_dialog
+    move_current_path_dialog: () => move_path_dialog.show(@)
         m.find(".project-move-path-dialog-filename").text(@current_pathname())
         # Display modal browser of all files in this project branch
-        m.modal()
         # Send move message
         # Save
         # Refresh
