@@ -9207,8 +9207,14 @@ Then slowly add functionality to client:
 (5.5 hours) ---->[x] clicking on a file (instead of a directory) shows page on that file
 ----->  [x] remove file.
 
-   [ ] do not show deleted files by default
-   [ ] make it possible to show *deleted* (in the past) files via a checkbox
+   [ ] (4min) project -- put correct filename in delete dialog
+   [ ] project -- Refactor modal code
+   [ ] project -- rename file
+
+
+   [ ] checkbox -- show hidden files (starting with dot)
+   [ ] checkbox -- show deleted files
+
 
    [ ] project -- big warning before deleting a branch.
 
@@ -9218,7 +9224,7 @@ Then slowly add functionality to client:
    [ ] project file list -- make it possible to show hidden files via a checkbox
 
 
-   [ ] basic project settings page (?)f
+   [ ] basic project settings page (?)
 
    [ ] open console on a project
    [ ] view file

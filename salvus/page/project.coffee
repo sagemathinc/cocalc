@@ -554,7 +554,8 @@ class ProjectPage
         m = delete_path_dialog
         comment = m.find("input[type=text]").val("")
         m.data("project", @)
-        m.modal(keyboard:true)
+        m.find(".project-delete-path-dialog-filename").text(@current_path.join('/'))
+        m.modal()
         comment.focus()
         m.find("button").click () -> m.modal('hide')
 
