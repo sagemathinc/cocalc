@@ -28,7 +28,6 @@ template_project_branch_single = templates.find(".project-branch-single")
 # Initialize the modal project management dialogs
 ##################################################
 delete_path_dialog = $("#project-delete-path-dialog")
-rename_path_dialog = $("#project-rename-path-dialog")
 move_path_dialog   = $("#project-move-path-dialog")
 
 class Dialog
@@ -42,6 +41,7 @@ class Dialog
         @opts = opts
 
         submit = () =>
+            console.log('submit')
             opts.dialog.modal('hide')
             opts.submit(opts.dialog, @project)
             return false
@@ -67,36 +67,20 @@ delete_path_dialog = new Dialog
     after_show  : (dialog) ->
         dialog.find("input[type=text]").focus()
 
-
-
-###
-submit_delete_path_dialog = () ->
-    delete_path_dialog.modal('hide')
-    project = delete_path_dialog.data("project")
-    project.delete_current_path(delete_path_dialog.find("input[type=text]").val())
-    return false
-
-delete_path_dialog.submit submit_delete_path_dialog
-delete_path_dialog.find("form").submit submit_delete_path_dialog
-delete_path_dialog.find(".btn-submit").click submit_delete_path_dialog
-delete_path_dialog.find(".btn-close").click () ->
-    delete_path_dialog.modal('hide')
-    return false
-
-submit_delete_path_dialog = () ->
-    delete_path_dialog.modal('hide')
-    project = delete_path_dialog.data("project")
-    project.delete_current_path(delete_path_dialog.find("input[type=text]").val())
-    return false
-
-delete_path_dialog.submit submit_delete_path_dialog
-delete_path_dialog.find("form").submit submit_delete_path_dialog
-delete_path_dialog.find(".btn-submit").click submit_delete_path_dialog
-delete_path_dialog.find(".btn-close").click () ->
-    delete_path_dialog.modal('hide')
-    return false
-###
-
+move_path_dialog = new Dialog
+    dialog      : $("#project-move-path-dialog")
+    submit      : (dialog, project) ->
+        console.log(dialog, project)
+        new_name = dialog.find("input[name=new-filename]").val()
+        new_path = project.current_path.slice(0,-1).join('/') + '/' + new_name
+        why      = dialog.find("input[name=why]").val()
+        project.move_path(project.current_pathname(), new_path, why)
+    before_show : (dialog, project) ->
+        dialog.find(".project-move-path-dialog-filename").text(project.current_pathname())
+        dialog.find("input[name=new-filename]").val(project.current_pathname())
+        dialog.find("input[name=why]").val("")
+    after_show  : (dialog) ->
+        dialog.find("input[name=new-filename]").focus()
 
 
 
@@ -159,7 +143,6 @@ class ProjectPage
 
         file_tools = @container.find(".project-file-tools")
         file_tools.find("a[href=#delete]").click () -> that.delete_current_path_dialog()
-        file_tools.find("a[href=#rename]").click () -> that.rename_current_path_dialog()
         file_tools.find("a[href=#move]").click () -> that.move_current_path_dialog()
 
         ########################################
@@ -642,7 +625,7 @@ class ProjectPage
             # Save after the delete.
             (cb) =>
                 @save_project(commit_mesg:commit_mesg, cb:cb)
-            # Reload the files/branches/etc to take into account new commit, file deletions, etc. 
+            # Reload the files/branches/etc to take into account new commit, file deletions, etc.
             (cb) =>
                 @reload(cb)
         ], (err) ->
@@ -650,21 +633,11 @@ class ProjectPage
                 alert_message(type:"error", message:err)
         )
 
-    rename_current_path_dialog: () => rename_path_dialog.show(@)
-        # Display modal dialog in which user can edit the filename
-        m.find(".project-rename-path-dialog-filename").text(@current_pathname()).focus()
-        # Get the new filename and check if different
-        # If so, send message
-        # Save that rename happened.
-        # Refresh.
+    move_current_path_dialog: () =>
+        move_path_dialog.show(@)
 
-    move_current_path_dialog: () => move_path_dialog.show(@)
-        m.find(".project-move-path-dialog-filename").text(@current_pathname())
-        # Display modal browser of all files in this project branch
-        # Send move message
-        # Save
-        # Refresh
-
+    move_path: (from, to, commit_mesg) =>
+        console.log("move path #{from} --> #{to}: #{commit_mesg}")
 
 project_pages = {}
 

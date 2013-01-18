@@ -9211,8 +9211,9 @@ Then slowly add functionality to client:
 
    [x] (4min) project -- put correct filename in delete dialog
    [x] (7min) project -- put correct filename in rename and move dialogs
-   [x] (28min) project -- Refactor modal code
-   [ ] project -- rename file
+   [x] (28min) project -- Refactor modal dialog code
+   [x] (38min) project -- move file ui code
+   [ ] project -- make it so move file works (sends message to hub, etc.)
 
    [ ] checkbox -- show hidden files (starting with dot)
    [ ] checkbox -- show deleted files

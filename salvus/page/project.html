@@ -2,12 +2,12 @@
 
 <!-- Modal dialogs for manipulating paths -->
 
-<div id="project-delete-path-dialog" class="modal hide" tabindex="-1">
+<div id="project-delete-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
       <button type="button" class="close btn-close">
 	<font size=+3>×</font>
       </button>
-      <h3>Delete <span class="project-delete-path-dialog-filename">filename</span>?</h3>
+      <h4>Delete <span class="project-delete-path-dialog-filename">filename</span>?</h4>
     </div>
     <div class="modal-body">
       <form>
@@ -22,43 +22,31 @@
     </div>
 </div>
 
-<div id="project-rename-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
-  <form>
+<div id="project-move-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
-      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+      <button type="button" class="close" aria-hidden="true">
 	<font size=+3>×</font>
       </button>
-      <h3>Rename <span contenteditable="true" class="project-rename-path-dialog-filename">filename</span></h3>
+      <h4>Move <span contenteditable="true" class="project-move-path-dialog-filename">filename</span></h4>
     </div>
-    <br>
-    <div class="center">
-      <input type="text" style="width:80%" placeholder="Why? (optional)">
+    <!-- TODO: clicking on path below could give a path browser... -->
+    <h5 style="margin-left:2ex">New path or filename:</h5>
+      <div class="center">
+	<form>
+	  <input type="text" style="width:80%" name="new-filename" value="">
+	</form>
+      </div>
+      <div class="center">
+	<form>
+	  <input type="text" style="width:80%" name="why" placeholder="Why? (optional)">
+	</form>
+      </div>
+      <div class="modal-footer">
+      <button class="btn btn-close">Cancel</button>
+      <button class="btn btn-warning btn-submit">Move</button>
     </div>
-    <div class="modal-footer">
-      <button class="center btn" data-dismiss="modal">Cancel</button>
-      <button class="center btn btn-primary" data-dismiss="modal">Rename</button>
-    </div>
-  </form>
 </div>
 
-<div id="project-move-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
-  <form>
-    <div class="modal-header">
-      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-	<font size=+3>×</font>
-      </button>
-      <h3>Move <span class="project-move-path-dialog-filename">filename</span> to:</h3>
-    </div>
-    <br>
-    <div class="center">
-      <input type="text" style="width:80%" placeholder="Why? (optional)">
-    </div>
-    <div class="modal-footer">
-      <button class="center btn" data-dismiss="modal">Cancel</button>
-      <button class="center btn btn-warning" data-dismiss="modal">Move</button>
-    </div>
-  </form>
-</div>
 
 <!-- The actual project file browser, etc., interface -->
 
@@ -111,8 +99,8 @@
 	<div class="project-file-listing">
 	  <div class="row">
 	    <div class="project-file-tools pull-right btn-group">
-	      <a href="#rename" class="btn btn-primary btn-small">Rename</a>
-	      <a href="#move" class="btn btn-small btn-warning">Move</a>
+	      <a href="#edit" class="btn btn-primary btn-small">Edit</a>
+	      <a href="#move" class="btn btn-warning btn-small">Move</a>
 	      <a href="#delete" class="btn btn-danger btn-small">Delete</a>
 	    </div>
 	    <div class="project-file-listing-current_path"></div>
