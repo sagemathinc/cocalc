@@ -28,6 +28,8 @@ template_project_branch_single = templates.find(".project-branch-single")
 # Initialize the modal project management dialogs
 ##################################################
 delete_path_dialog = $("#project-delete-path-dialog")
+rename_path_dialog = $("#project-rename-path-dialog")
+move_path_dialog   = $("#project-move-path-dialog")
 
 submit_delete_path_dialog = () ->
     delete_path_dialog.modal('hide')
@@ -382,6 +384,10 @@ class ProjectPage
         files.sort(cmp)
         return directories.concat(files)
 
+    # Return the string representation of the current path, as a
+    # relative path from the root of the project.
+    current_pathname: () => @current_path.join('/')
+
     # Render the slash-separated and clickable path that sits above
     # the list of files (or current file)
     update_current_path: () =>
@@ -441,7 +447,7 @@ class ProjectPage
             # A file instead of a directory listing.
 
             # The path to the file.
-            path = @current_path.join('/')
+            path = @current_pathname()
 
             # Show a spinner if the file takes more than some amount of
             # time to load from the server.
@@ -554,13 +560,13 @@ class ProjectPage
         m = delete_path_dialog
         comment = m.find("input[type=text]").val("")
         m.data("project", @)
-        m.find(".project-delete-path-dialog-filename").text(@current_path.join('/'))
+        m.find(".project-delete-path-dialog-filename").text(@current_pathname())
         m.modal()
         comment.focus()
         m.find("button").click () -> m.modal('hide')
 
     delete_current_path: (commit_mesg) =>
-        path = @current_path.join('/')
+        path = @current_pathname()
         if not commit_mesg?
             commit_mesg ="Deleted #{path}."
         series([
@@ -599,16 +605,20 @@ class ProjectPage
         )
 
     rename_current_path_dialog: () =>
+        m = rename_path_dialog
         # Display modal dialog in which user can edit the filename
-        $("#project-rename-path-dialog").modal()
+        m.modal()
+        m.find(".project-rename-path-dialog-filename").text(@current_pathname()).focus()
         # Get the new filename and check if different
         # If so, send message
         # Save that rename happened.
         # Refresh.
 
     move_current_path_dialog: () =>
+        m = move_path_dialog
+        m.find(".project-move-path-dialog-filename").text(@current_pathname())
         # Display modal browser of all files in this project branch
-        $("#project-move-path-dialog").modal()
+        m.modal()
         # Send move message
         # Save
         # Refresh
