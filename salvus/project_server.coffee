@@ -67,6 +67,10 @@ has_bad_shell_chars = (s) ->
             return true
     return false
 
+
+# Script for computing logs of files
+gitlogs = fs.readFileSync('scripts/gitlogs')
+
 # Verify that path really describes something that would be a
 # directory under userpath, rather than a shell injection attack
 # or a path of another user.
@@ -435,11 +439,12 @@ get_branches = (path, cb) ->
             cb(false, {branches:branches, current_branch:current_branch})
 
 # Obtain the file lists and logs for all the branches in the repo.
-get_files_and_logs = (path, cb) ->
+get_files_and_logs = (project_id, cb) ->
     branches = undefined
     current_branch = undefined
     files = undefined
     logs  = undefined
+    path  = userpath(project_id)
     async.series([
         # Get the branches and the current branch
         (cb) ->
@@ -453,19 +458,28 @@ get_files_and_logs = (path, cb) ->
                         cb("Error getting branches of git repo.")
                     else
                         cb()
+        # Write script to get logs
+        (cb) ->
+            fs.writeFile(path + '/.git/salvus/gitlogs', gitlogs ,cb)
+        (cb) ->
+            fs.chmod(path + '/.git/salvus/gitlogs', 0o777, cb)
+            
         # Get the list of all files and logs in each branch, as a JSON string
         (cb) ->
-            child_process.exec "cd '#{path}' && gitlogs", (err, stdout, stderr) ->
-                if err
-                    cb(err)
-                else
-                    v = stdout.split('\n')
-                    if v.length != 3
-                        cb("Error getting list of files and logs: '#{path}', #{stderr}, v.length == #{v.length}")
+            exec_as_user
+                project_id : project_id
+                command    : '.git/salvus/gitlogs'
+                cb : (err, output) ->
+                    if err
+                        cb(err)
                     else
-                        logs  = v[0]
-                        files = v[1]
-                        cb()
+                        v = output.stdout.split('\n')
+                        if v.length != 3
+                            cb("Error getting list of files and logs: '#{path}', #{stderr}, v.length == #{v.length}")
+                        else
+                            logs  = v[0]
+                            files = v[1]
+                            cb()
     ], (err) ->
         if err
             cb(err)
@@ -534,7 +548,8 @@ events.save_project = (socket, mesg) ->
         # Obtain the branches, logs, and file lists for the repo.
         (cb) ->
             winston.debug("save_project -- get branches, logs, and files")
-            get_files_and_logs path, (err, result) ->
+            get_files_and_logs mesg.project_id, (err, result) ->
+                winston.debug(err, result)
                 if err
                     cb(err)
                 else
@@ -677,7 +692,7 @@ events.move_file_in_project = (socket, mesg) ->
             exec_as_user
                 project_id : mesg.project_id
                 command    : "git"
-                args       : ["mv", mesg.src, mesg.dest]
+                args       : ["mv", "-f", mesg.src, mesg.dest]   # -f = force
                 cb         : c
         (c) ->
             socket.write_mesg('json', message.file_moved_in_project(id:mesg.id))

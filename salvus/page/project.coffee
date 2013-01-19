@@ -58,6 +58,7 @@ class Dialog
         @opts.before_show(@opts.dialog, project)
         @opts.dialog.modal()
         @opts.after_show(@opts.dialog, project)
+        return false
 
 delete_path_dialog = new Dialog
     dialog      : $("#project-delete-path-dialog")
@@ -358,8 +359,13 @@ class ProjectPage
     #
     # If the current_path is a file, returns the commit id of the last change to the file.
     current_files: () =>
+        ignore_deleted_files = true
+        ignore_hidden_files = true
+
+
         file_data = @meta.files[@meta.display_branch]
         commits = @meta.logs[@meta.display_branch].commits
+        dir_exists = @meta.logs[@meta.display_branch].dir_exists
         for segment in @current_path
             file_data = file_data[segment]
             if not file_data?
@@ -373,14 +379,18 @@ class ProjectPage
         files = []
         for filename, d of file_data
             # TODO -- make it possible to show hidden files via a checkbox
-            if filename[0] == '.'
+            if ignore_hidden_files and filename[0] == '.'
                 continue
             obj = {filename:filename}
             if typeof d == 'string'  # a commit id -- consult the commit log
-                obj.is_file = true
                 obj.commit = commits[d]
+                if ignore_deleted_files and obj.commit.modified_files[filename] == "D"
+                    continue
+                obj.is_file = true
                 files.push(obj)
             else  # a directory
+                if ignore_deleted_files and not dir_exists[filename]
+                    continue
                 obj.is_file = false
                 directories.push(obj)
 
@@ -446,6 +456,7 @@ class ProjectPage
     update_file_list_tab: () =>
         # Update the display of the path above the listing or file preview
         @update_current_path()
+        @container.find(".project-file-listing-spinner").spin(false).hide()
 
         # Now rendering the listing or file preview
         file_or_listing = @container.find(".project-file-listing-file-list")
@@ -573,7 +584,14 @@ class ProjectPage
             commit_mesg : required
             extra_options : undefined  # needed for some actions
 
+        spin_timer = undefined
+
         series([
+            # Display the file/listing spinner
+            (cb) =>
+                spinner = @container.find(".project-file-listing-spinner")
+                spin_timer = setTimeout((()->spinner.show().spin()), 500)
+                cb()
             # Switch to different branch if necessary
             (cb) =>
                 if opts.branch != @meta.current_branch
@@ -626,6 +644,7 @@ class ProjectPage
 
             # Reload the files/branches/etc to take into account new commit, file deletions, etc.
             (cb) =>
+                clearTimeout(spin_timer)
                 @reload(cb)
 
         ], (err) ->

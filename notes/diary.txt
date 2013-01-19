@@ -9212,18 +9212,47 @@ Then slowly add functionality to client:
    [x] (7min) project -- put correct filename in rename and move dialogs
    [x] (28min) project -- Refactor modal dialog code
    [x] (38min) project -- move file ui code
-   [ ] (1:20) project -- make it so move file works (sends message to hub, etc.)
+   [x] (1:20) project -- make it so move file works (sends message to hub, etc.)
+
+-----
+
+-->  [x] (3 hours) enhance files data structure to somehow make it easy to indicate whether or not
+       a file/directory currently exists.... and also worry about scalability and test it.
+
+WAIT, I seriously messed up with this design!  It simply does not
+scale.  yes, it is fast once everything is loaded and parsed, but even
+for the salvus repo, this takes *seconds*.  And every commit takes a
+second.  It could be optimized so some things are faster... but this
+will just result in complicated code... that doesn't genuinely scale,
+by design.  I can't believe I thought this would work -- it's naive
+and violates basic design constraints of salvus.  That said, I now
+know what functionality I need.  In order to have a browser, I just
+need something that computes the current_file object.  This can be
+done with a message with some parameters.  Then basically everything
+else stays the same, except that that the gitlogs script disappears
+(which tooks day(s) to write and rewrite...), and everything goes
+O(1), but with the constant the latency for connecting to the project_server.
+Since that latency is there for every cell evaluation, etc., it has to be
+small anyways, or the whole system is unusable.   So... the high priority
+plan right now 
+
+
+
+
+------
+
+
+   [ ] checkbox -- show deleted files (differently)
+
+   [ ] checkbox -- show hidden files (starting with dot)
+   [ ] button to rollback a specific past commit
 
    [ ] project_server -- make sure exec_as_user is used as much as possible.
 
-   [ ] checkbox -- show hidden files (starting with dot)
-   [ ] checkbox -- show deleted files
    [ ] html preview -- implement computer_server side code that can compute
        an html preview for any file; use that when clicking around...
 
-   [ ] button to rollback a specific past commit
-
-   [ ] project -- big warning before deleting a branch.
+   [ ] project -- big warning before deleting a branch. (?)
 
    [ ] save versus commit -- oops.  I need option to save without commiting working files, e.g., thisis needed in create_project in project.coffee
 
