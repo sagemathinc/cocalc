@@ -106,3 +106,25 @@
     padding:5px;
     border: 1px solid #aaa;
 }
+
+
+.project-command-line-input {
+    width:50%;
+}
+
+.project-command-line-stdout {
+    margin-left:5ex;
+    background-color:#fff;
+    color:#333;
+    font-size:10pt;
+    max-height:12em;
+    overflow:auto;
+}
+.project-command-line-stderr {
+    background-color:#fff;
+    color:#922;
+    font-size:10pt;
+    max-height:12em;
+    overflow:auto;
+}
+

@@ -803,6 +803,13 @@ class Client extends EventEmitter
                 resp.id = mesg.id
                 @push_to_client(resp)
 
+    mesg_project_exec: (mesg) =>
+        (new Project(mesg.project_id)).exec mesg, (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(resp)
+
 ##############################
 # Create the SockJS Server
 ##############################
@@ -1445,12 +1452,13 @@ class Project
                         socket = _socket
                         c()
             (c) =>
-                opts.message.id = id
+                if not opts.message.id?
+                    opts.message.id = id
                 opts.message.project_id = @project_id
                 socket.write_mesg 'json', opts.message
                 c()
             (c) =>
-                socket.recv_mesg type:'json', id:id, timeout:opts.timeout, cb:(mesg) ->
+                socket.recv_mesg type:'json', id:opts.message.id, timeout:opts.timeout, cb:(mesg) ->
                     opts.cb(false, mesg)
                     c()
         ])
@@ -1617,6 +1625,13 @@ class Project
                 branch      : branch
                 project_id  : @project_id
             cb : cb
+
+    # Exec a command
+    exec : (mesg, cb) =>
+        @call
+            message : mesg
+            cb      : cb
+            timeout : mesg.timeout
 
 ########################################
 # Permissions related to projects

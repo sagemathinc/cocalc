@@ -776,6 +776,41 @@ class exports.Connection extends EventEmitter
                 branch     : opts.branch
             cb : opts.cb
 
+
+
+    ######################################################################
+    # Execute a program in a given project
+    ######################################################################
+    exec: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : ''
+            command    : required
+            args       : []
+            timeout    : 10
+            max_output : undefined
+            bash       : false
+            cb         : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
+
+        @call
+            message : message.project_exec
+                project_id : opts.project_id
+                path       : opts.path
+                command    : opts.command
+                args       : opts.args
+                timeout    : opts.timeout
+                max_output : opts.max_output
+                bash       : opts.bash
+            timeout : opts.timeout
+            cb      : (err, mesg) ->
+                if err
+                    opts.cb(err)
+                else if mesg.event == 'error'
+                    opts.cb(mesg.error)
+                else
+                    opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code})
+
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

@@ -551,6 +551,35 @@ message
     logs       : required
     current_branch : required
 
+
+
+######################################################################
+# Execute a program in a given project
+######################################################################
+
+# client --> project
+message
+    event      : 'project_exec'
+    id         : undefined
+    project_id : required
+    path       : ''   # if relative, is a path under home; if absolute is what it is.
+    command    : required
+    args       : []
+    timeout    : 10   # time in seconds.
+    max_output : undefined
+    bash       : false  # if true, args are ignored and command is run as a bash command
+
+message
+    event      : 'project_exec_output'
+    id         : required
+    stdout     : required
+    stderr     : required
+    exit_code  : required
+
+
+
+#############################################################################
+
 # A hub sends this message to the project_server to request that the
 # project_server close the project.  This immediately deletes all files
 # and clears up all resources allocated for this project.  So make

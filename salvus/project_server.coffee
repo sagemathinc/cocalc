@@ -286,16 +286,49 @@ exec_as_user = (opts) ->
         args       : []
         path       : undefined   # defaults to home directory (base of repo)
         timeout    : 10          # timeout in *seconds*
+        err_on_exit: true        # if true, then a nonzero exit code will result in cb(error_message)
+        max_output : undefined   # bound on size of stdout and stderr; further output ignored
+        bash       : false       # if true, ignore args and evaluate command as a bash command
         cb         : required
 
     user = username(opts.project_id)
     home = userpath(opts.project_id)
+
+    if opts.bash
+        tmpfilename = "/#{bundlepath(opts.project_id)}/#{uuid.v4()}"
+    else
+        s = opts.command.split(/\s+/g) # split on whitespace
+        if opts.args.length == 0 and s.length > 1
+            # try to work out command from a single command line string
+            # TODO -- the following is dumb and doesn't take into account escapes, strings with spaces, etc.
+            opts.args = s.slice(1)
+            opts.command = s[0]
+
     if not opts.path?
         opts.path = home
+    else if opts.path[0] != '/'
+        opts.path = home + '/' + opts.path
     uid  = undefined
     stdout = ''
     stderr = ''
+    exit_code = undefined
+    winston.debug("opts.max_output = ", opts.max_output)
     async.series([
+        (c) ->
+            if opts.bash
+                if opts.timeout?
+                    # This ensures that everything involved with this
+                    # command really does die no matter what; it's
+                    # better than killing from outside, since it gets
+                    # all subprocesses since they inherit the limits.
+                    cmd = "ulimit -t #{opts.timeout}\n#{opts.command}"
+                else
+                    cmd = opts.command
+                fs.writeFile(tmpfilename, cmd, c)
+                opts.command = 'bash'
+                opts.args = [tmpfilename]
+            else
+                c()
         # Get the uid of the user; this will err if the project isn't currently
         # hosted on this project server.
         (c) ->
@@ -312,22 +345,44 @@ exec_as_user = (opts) ->
             r = child_process.spawn(opts.command, opts.args,
                    {cwd:opts.path, uid:uid, gid:uid, env:{HOME:home}})
             stdout = ''
-            r.stdout.on 'data', (data) -> stdout += data
-            r.stderr.on 'data', (data) -> stderr += data
+            r.stdout.on 'data', (data) ->
+                data = data.toString()
+                if opts.max_output?
+                    if stdout.length < opts.max_output
+                        winston.debug(stdout.length, opts.max_output)
+                        stdout += data.slice(0,opts.max_output - stdout.length)
+                else
+                    stdout += data
+            r.stderr.on 'data', (data) ->
+                data = data.toString()
+                if opts.max_output?
+                    if stderr.length < opts.max_output
+                        stderr += data.slice(0,opts.max_output - stderr.length)
+                else
+                    stderr += data
             r.on 'exit', (code) ->
-                if code != 0
+                exit_code = code
+                if opts.err_on_exit and code != 0
                     c("command '#{opts.command}' (args=#{misc.to_json(opts.args)}) exited with nonzero code #{code}")
                 else
+                    if opts.max_output?
+                        if stdout.length >= opts.max_output
+                            stdout += " (truncated at #{opts.max_output} characters)"
+                        if stderr.length >= opts.max_output
+                            stderr += " (truncated at #{opts.max_output} characters)"
                     c()
             if opts.timeout?
                 f = () ->
+                    console.log("in timeout function")
                     if r.exitCode == null
                         # process did not exit yet -- kill
-                        r.kill("SIGKILL")
+                        r.kill("SIGKILL")  # this does not kill the process group :-(
                         c("killed command '#{opts.command}' (args=#{misc.to_json(opts.args)}) since it exceeded the timeout of #{opts.timeout}")
                 setTimeout(f, opts.timeout*1000)
     ], (err) ->
-        opts.cb(err, {stdout:stdout, stderr:stderr})
+        opts.cb(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
+        if opts.bash
+            fs.unlink(tmpfilename)
     )
 
 ########################################################################
@@ -736,6 +791,27 @@ events.merge_project_branch = (socket, mesg) ->
         command    : "git"
         args       : ["merge", mesg.branch]
         cb         : (err, out) -> write_status(err:err, socket:socket, id:mesg.id, out:out)
+
+events.project_exec = (socket, mesg) ->
+    exec_as_user
+        project_id : mesg.project_id
+        command    : mesg.command
+        args       : mesg.args
+        path       : mesg.path
+        timeout    : mesg.timeout
+        max_output : mesg.max_output
+        bash       : mesg.bash
+        err_on_exit : false
+        cb         : (err, out) ->
+            if err
+                write_status(err:err, socket:socket, id:mesg.id, out:out)
+            else
+                winston.debug(misc.to_json(out))
+                socket.write_mesg 'json', message.project_exec_output
+                    id        : mesg.id
+                    stdout    : out.stdout
+                    stderr    : out.stderr
+                    exit_code : out.exit_code
 
 ####################################################################
 #

@@ -155,6 +155,13 @@ class ProjectPage
                         else
                             that.project.description = new_desc
 
+        # Activate the command line
+        @container.find("form.project-command-line").submit () ->
+            try
+                that.command_line_exec($(@))
+            catch e
+                console.log(e)
+            return false
 
         # Make it so typing something into the "create a new branch..." box
         # makes a new branch.
@@ -175,6 +182,28 @@ class ProjectPage
         @container.find(".project-save").click(() => @save_project(show_success_alert:true))
         @container.find(".project-close").click(@close_project_dialog)
         @container.find(".project-meta").click @reload
+
+    command_line_exec: (form) =>
+        input = form.find("input")
+        command = input.val()
+        console.log(command)
+        input.val("")
+        t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 1000)
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : command
+            timeout    : 3
+            max_output : 100000
+            bash       : true
+            path       : @current_pathname()
+            cb         : (err, output) =>
+                clearTimeout(t)
+                @container.find(".project-command-line-spinner").spin(false).hide()
+                if err
+                    alert_message(type:'error', message:err)
+                else
+                    form.find(".project-command-line-stdout").text(output.stdout).show()
+                    form.find(".project-command-line-stderr").text(output.stderr).show()
 
     branch_op: (opts) =>
         opts = defaults opts,
@@ -440,6 +469,19 @@ class ProjectPage
             ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
     render_file_display: (path, cb) =>
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : "cat"
+            args       : [path]
+            timeout    : 3
+            max_output : 100000
+            cb         : (err, output) =>
+                if err
+                    cb($("<div>").html(err))
+                else
+                    cb($("<pre style='background-color:#fff; padding:2ex; margin-left:2ex;'>").text(output.stdout))
+
+    xxx_render_file_display: (path, cb) =>
         salvus_client.read_text_file_from_project
             project_id : @project.project_id
             timeout : 3
@@ -475,12 +517,22 @@ class ProjectPage
             # time to load from the server.
             spinner = @container.find(".project-file-listing-spinner")
             t = setTimeout((()->spinner.show().spin()), 500)
+
+            # Hide the command prompt
+            @container.find("span.project-command-line").hide()
+
             @render_file_display path, (x) ->
                 clearTimeout(t)  # make sure not to show the spinner anyways.
                 spinner.spin(false).hide()
                 file_or_listing.append(x)
         else
             # A directory listing (as an array)
+
+            # Show the command prompt
+            @container.find("span.project-command-line").show().find("pre").hide()
+
+
+            # Show the files
             for obj in current
                 if obj.is_file
                     t = template_project_file.clone()

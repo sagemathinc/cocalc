@@ -57,7 +57,7 @@
   <div class="container salvus-project">
     <div class="row">
       <div class="well span10">
-	<div class="span7">
+	<div class="span9">
 	  <!-- Title of the project (editable) -->
 	  <h4>
 	    <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
@@ -72,8 +72,7 @@
       </div>
     </div>
     <div class="row">
-      <div class="well span10">
-
+      <div class="span10 well">
 	<div class="span3 pull-right">
 	  <label for="project-commits-branch">
 	    <span class="lighten">show branch: </span>
@@ -103,9 +102,19 @@
 	      <a href="#move" class="btn btn-warning btn-small">Move</a>
 	      <a href="#delete" class="btn btn-danger btn-small">Delete</a>
 	    </div>
-	    <div class="project-file-listing-current_path"></div>
+	    <!-- command line prompt -->
+	    <form class="project-command-line">
+	      <span class="project-file-listing-current_path"></span>
+	      <span class="project-command-line">
+		<input class="project-command-line-input" type="text" placeholder="type a bash command...">
+		<div class="project-command-line-spinner hide"></div>
+		<pre class="project-command-line-stderr hide"></pre>
+		<pre class="project-command-line-stdout hide"></pre>
+	      </span>
+	    </form>
+
 	  </div>
-	  <br>
+
 	  <div class="row">
 	    <div class="project-file-listing-spinner hide"></div>
 	    <div class="project-file-listing-file-list"></div>

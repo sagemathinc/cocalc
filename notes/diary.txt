@@ -9216,10 +9216,9 @@ Then slowly add functionality to client:
 
 -----
 
--->  [x] (3 hours) enhance files data structure to somehow make it easy to indicate whether or not
-       a file/directory currently exists.... and also worry about scalability and test it.
+-->  [x] (3 hours) enhance files data structure to somehow make it easy to indicate whether or not a file/directory currently exists.... and also worry about scalability and test it.
 
-WAIT, I seriously messed up with this design!  It simply does not
+(30min) WAIT, I seriously messed up with this design!  It simply does not
 scale.  yes, it is fast once everything is loaded and parsed, but even
 for the salvus repo, this takes *seconds*.  And every commit takes a
 second.  It could be optimized so some things are faster... but this
@@ -9234,13 +9233,48 @@ else stays the same, except that that the gitlogs script disappears
 O(1), but with the constant the latency for connecting to the project_server.
 Since that latency is there for every cell evaluation, etc., it has to be
 small anyways, or the whole system is unusable.   So... the high priority
-plan right now 
+plan right now is to implement the following, the redo UI to use it:
 
 
+Sort of functionality I need.
+  [ ] message project_path_info, that takes a project, branch, and path
+       and returns info about it.  If the path resolves to a file, it
+       returns info about that file, including some sort of preview (not too big);
+       if the path resolves to a directory, it returns list of filenames
+       in the directory, along with meta-information about each, including
+       last commit to change, file status, etc., etc.
 
+   [ ] project_commits_info, takes a project, branch, and ranges and returns
+       info about those commits, along with the total number of commits.
+
+   [ ] project_commit_info, takes project, branch, and commit id, and returns
+       info about that one commit.
+Once the above are done and working, I can delete what I did already with gitlogs, etc.
+
+How to implement:
+
+   [x] project: exec a command
+
+which runs arbitrary command, with timeout, etc.
 
 ------
 
+   [ ] with project = salvus repo, get this when trying to send:
+
+debug: _open_on_host -- Send open_project mesg
+debug: _open_on_host -- start sending bundles as blobs
+debug: BUG ****************************************************************************
+debug: Uncaught exception: Error: First argument needs to be a number, array or string.
+Trace
+    at process.daemon.pidFile (/home/wstein/salvus/salvus/node_modules/hub.js:3741:15)
+    at process.EventEmitter.emit (events.js:126:20)
+debug: BUG ****************************************************************************
+
+
+---------------
+
+
+   [ ] project -- title/description must be nonempty (otherwise can't click to edit them)
 
    [ ] checkbox -- show deleted files (differently)
 
