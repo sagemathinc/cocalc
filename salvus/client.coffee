@@ -672,7 +672,8 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : required
-            content    : ''
+            content    : required
+            timeout    : 10
             cb         : required
         @call
             message :
@@ -680,6 +681,7 @@ class exports.Connection extends EventEmitter
                     project_id : opts.project_id
                     path       : opts.path
                     content    : opts.content
+            timeout : opts.timeout
             cb : opts.cb
 
     read_text_file_from_project: (opts) ->
@@ -776,6 +778,15 @@ class exports.Connection extends EventEmitter
                 branch     : opts.branch
             cb : opts.cb
 
+
+    stopped_editing_file: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            filename   : required
+            cb         : undefined
+        @call
+            message : message.stopped_editing_file(project_id : opts.project_id)
+            cb      : opts.cb
 
 
     ######################################################################

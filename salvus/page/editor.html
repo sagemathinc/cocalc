@@ -4,14 +4,39 @@ Editor for files in a project
 
 <span id="salvus-editor-templates" class="hide">
 
+  <!-- Template for the entire editor, both tabs and the actual content -->
   <div class="salvus-editor">
-      <ul class="nav nav-tabs">
-	<li class="active super-menu"><a>foo.txt<span class="salvus-editor-close-button-x">×</span></a></li>
-	<li class="super-menu"><a>bar.txt<span class="salvus-editor-close-button-x">×</span></a></li>
-      </ul>
-      <textarea>
-	a displayed open file will show info about if it is published
-      </textarea>
+    <!-- The editor tabs go in this ul: -->
+    <ul class="nav nav-tabs">
+    </ul>
+    <!-- The editor content gets displayed here -->
+    <div class="salvus-editor-content">
+      <div class="pull-right btn-group">
+	<a href="#save" class="btn btn-small">Save</a>
+	<a href="#close" class="btn btn-small">Close</a>
+	<a href="#reload" class="btn btn-small">Reload</a>
+	<a href="#commit" class="btn btn-small">Commit</a>
+      </div>
+    </div>
   </div>
+
+  <!-- Template for the tab at the top of the editor with filename and an x -->
+  <li class="super-menu">
+    <a>
+      <span class="salvus-editor-tab-filename"></span>
+      <span class="salvus-editor-close-button-x">×</span>
+    </a>
+  </li>
+
+  <!-- Template for the codemirror text editor -->
+  <div class="salvus-editor-codemirror">
+    <textarea></textarea>
+  </div>
+
+  <!-- Template for the worksheet editor -->
+  <div class="salvus-editor-worksheet">
+    <textarea></textarea>
+  </div>
+
 
 </span>

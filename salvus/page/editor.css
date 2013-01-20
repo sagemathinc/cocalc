@@ -16,3 +16,9 @@ Editor for files in a project
     background-color:orange;
     font-size: 18px;
 }
+
+.salvus-editor-textarea {
+    width:100%;
+    border: 2px solid #99f;
+    box-shadow: 4px 4px 2px #bbf;
+}

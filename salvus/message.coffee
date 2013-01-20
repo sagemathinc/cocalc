@@ -577,6 +577,12 @@ message
     exit_code  : required
 
 
+message
+    event      : 'stopped_editing_file'
+    id         : undefined
+    project_id : required
+    filename   : required
+
 
 #############################################################################
 

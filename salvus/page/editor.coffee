@@ -2,7 +2,27 @@
 # Editor for files in a project
 ##################################################
 
-{defaults, required} = require('misc')
+{salvus_client} = require('salvus_client')
+{defaults, required, filename_extension} = require('misc')
+{EventEmitter} = require('events')
+
+file_associations =
+    txt    :
+        editor : "codemirror"
+        mode   : "text"
+
+    py     :
+        editor : "codemirror"
+        mode   : "python"
+
+    sagews :
+        editor : "worksheet"
+        mode   : "sage"
+
+    ''     :  # other
+        editor : "codemirror"
+
+templates = $("#salvus-editor-templates")
 
 class exports.Editor
     constructor: (opts) ->
@@ -10,7 +30,9 @@ class exports.Editor
             project_id : required
             initial_files : undefined # if given, attempt to open these files on creation
 
-        @element = $("#salvus-editor-templates").find(".salvus-editor").clone().show()
+        @project_id = opts.project_id
+        @element = templates.find(".salvus-editor").clone().show()
+        @nav_tabs = @element.find(".nav-tabs")
 
         @tabs = {}   # filename:DOM element mapping
 
@@ -18,27 +40,187 @@ class exports.Editor
             for filename in opts.initial_files
                 @open(filename)
 
-    create_tab: (filename) ->
+        that = @
+        # Enable the save/close/commit buttons
+        @element.find("a[href=#save]").addClass('disabled').click () ->
+            if not $(@).hasClass("disabled")
+                that.save(that.active_tab.filename)
+            return false
 
-    open: (filename) ->
-        tab = tabs[filename]  # if defined, then we already have a tab
-                              # with this file, so reload it.
-        if not tab?
-            # create new tab
-            tab = tabs[filename] = @create_tab(filename)
+        @element.find("a[href=#close]").addClass('disabled').click () ->
+            if not $(@).hasClass("disabled")
+                that.close(that.active_tab.filename, true)
+            return false
 
-    # Close this tab.  If it has unsaved changes, the user will be
-    # warned.
-    close: (filename) ->
+        @element.find("a[href=#reload]").addClass('disabled').click () ->
+            if not $(@).hasClass("disabled")
+                that.reload(that.active_tab.filename, true)
+            return false
 
-    # Make this the active tab.
-    activate: (filename) ->
+        @element.find("a[href=#commit]").addClass('disabled').click () ->
+            if not $(@).hasClass("disabled")
+                filename = that.active_tab.filename
+                that.commit(filename, "save #{filename}")
+            return false
+
+    open: (filename) =>
+        if not tabs[filename]?   # if defined, then we already have a
+                                 # tab with this file, so reload it.
+            tabs[filename] = @create_tab(filename)
+        @load(filename)
+
+    # Close this tab.  If it has unsaved changes, the user will be warned.
+    close: (filename, warn) =>
+        tab = @tabs[filename]
+        if not tab? # nothing to do -- file isn't opened anymore
+            return
+        if warn and tab.has_unsaved_changes()
+            @warn_user filename, (proceed) =>
+                @close(filename, false)
+
+        salvus_client.stopped_editing_file
+            project_id : @project_id
+            filename   : filename
+
+        tab.link.remove()
+        tab.editor.remove()
+        delete @tabs[filename]
+
+    # Warn user about unsaved changes (modal)
+    warn_user: (filename, cb) =>
+        alert("TODO: Warn user about unsaved changes (modal) -- not implemented")
+        cb(true)
+
+    # Make the give tab active.
+    activate: (filename) =>
+        if not @tabs[filename]?
+            return
+        for name, tab of @tabs
+            if name == filename
+                @active_tab = tab
+                tab.link.addClass("active")
+                tab.editor.show()
+                # TODO! 
+                @element.find(".btn-group").children().removeClass('disabled')
+            else
+                tab.link.removeClass("active")
+                tab.editor.hide()
 
     # Save the branch to disk, but do not do any sort of git commit.
-    save: (filename) ->
+    save: (filename) =>
+        tab = @tabs[filename]
+        if not tab?
+            return
+        salvus_client.write_text_file_to_project
+            project_id : @project_id
+            timeout    : 5   # possibly adjust dynamically based on filesize
+            path       : filename
+            content    : tab.editor.val()
+            cb         : (err, mesg) =>
+                if err
+                    alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
+                else if mesg.event == 'error'
+                    alert_message(type:"error", message:"Error saving #{filename} -- #{mesg.error}")
+                # TODO -- change some state to reflect success, e.g., disable save button
 
+    # Load a file from the backend if there is a tab for this file;
+    # otherwise does nothing.
+    load: (filename) =>
+        tab = @tabs[filename]
+        if not tab?
+            return
+
+        salvus_client.read_text_file_from_project
+            project_id : @project_id
+            timeout    : 5
+            path       : filename
+            cb         : (err, mesg) ->
+                if err
+                    alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
+                else if mesg.event == 'error'
+                    alert_message(type:"error", message:"Error loading #{filename} -- #{mesg.error}")
+                else
+                    tab.editor.val(mesg.content)
 
     # Save just this file and commit it (only) to the current branch
     # with the given message.
-    commit: (filename, message) ->
+    commit: (filename, message) =>
+        console.log("commit(#{filename}, #{message})")
+
+    create_tab: (filename) =>
+        ext = filename_extension(filename)
+        x = file_associations[ext]
+        if not x?
+            x = file_associations['']
+        switch x.editor
+            when "codemirror"
+                editor = new CodeMirrorEditor(mode:x.mode)
+            when "worksheet"
+                editor = new WorksheetEditor(mode:x.mode)
+            else
+                throw("Unknown editor type '#{x.editor}'")
+
+        link = templates.find(".super-menu").clone().show()
+        link.find(".salvus-editor-tab-filename").text(filename)
+        tab = {link:link, editor:editor, filename:filename}
+        link.find("a").click () => @activate(filename)
+        @nav_tabs.append(top_tab)
+        @tabs[filename] = tab
+
+
+###############################################
+# Abstract base class for editors
+###############################################
+# Derived classes must:
+#    (1) implement the _get and _set methods
+#    (2) define an element attribute that is a jquery wrapper of something in the dom
+#
+# Events ensure that *all* users editor the same file see the same
+# thing (synchronized).
+#
+
+class FileEditor extends EventEmitter
+    val: (content) =>
+        if not content?
+            # If content not defined, returns current value.
+            return @_get()
+        else
+            # If content is defined, sets value.
+            @_set(content)
+
+    has_unsaved_changes: () => false # TODO
+
+
+    _get: () =>
+        throw("TODO: implement _get")
+
+    _set: (content) =>
+        @_
+        throw("TODO: implement _set")
+
+
+###############################################
+# Codemirror-based File Editor
+###############################################
+class CodeMirrorEditor extends FileEditor
+    constructor: (opts) ->
+        @opts = defaults opts,
+            mode : required
+        @element = templates.find(".salvus-editor-codemirror").clone().show()
+        @codemirror = CodeMirror.fromTextArea(@element.find("textarea")[0])
+
+    _get: () =>
+        return @codemirror.getValue()
+
+    _set: (content) =>
+        @codemirror.value(content)
+
+
+###############################################
+# Worksheet based editor
+###############################################
+class WorksheetEditor extends FileEditor
+    constructor: (opts) ->
+        @opts = defaults opts,
+            mode : required
 
