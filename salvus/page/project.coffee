@@ -9,6 +9,7 @@
 {alert_message} = require('alerts')
 {series}        = require('async')
 {defaults, required, to_json, from_json, trunc, keys} = require('misc')
+{Editor}        = require('editor')
 
 MAX_TITLE_LENGTH = 25
 
@@ -22,7 +23,6 @@ template_new_file_link         = templates.find(".project-new-file-link")
 template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
-
 
 ##################################################
 # Initialize the modal project management dialogs
@@ -121,6 +121,8 @@ class ProjectPage
         @init_tabs()
         @update_topbar()
 
+        @create_editor()
+
         @current_path = []
         @reload()
 
@@ -202,6 +204,7 @@ class ProjectPage
         @container.find(".project-meta").click @reload
 
     edit_file: (filename) =>
+        
         # hack mockup
         salvus_client.read_text_file_from_project
             project_id : @project.project_id
@@ -305,6 +308,13 @@ class ProjectPage
                 return false
 
         # @display_tab("project-branches") # TODO -- for testing.
+
+    create_editor: (initial_files) ->   # initial_files (optional)
+        @editor = new Editor
+            project_id    : @project.project_id
+            initial_files : initial_files
+        console.log(@editor)
+        @container.find(".project-editor").append(@editor.element)
 
     display_tab: (name) =>
         for tab in @tabs

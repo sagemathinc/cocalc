@@ -1,0 +1,18 @@
+/*
+
+Editor for files in a project
+
+*/
+
+
+.salvus-editor-close-button-x {
+   font-size: 18px;
+   margin-left:10px;
+}
+
+.salvus-editor-close-button-x:hover {
+    margin-left:10px;
+    color: #fff;
+    background-color:orange;
+    font-size: 18px;
+}

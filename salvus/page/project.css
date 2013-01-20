@@ -131,19 +131,8 @@
 
 .project-id {
     color:#888;
-    margin-right:5px;
+    margin-right:2ex;
     font-size:9pt;
     font-family:monospace;
 }
 
-.project-close-button-x {
-   font-size: 18px;
-   margin-left:10px;
-}
-
-.project-close-button-x:hover {
-    margin-left:10px;
-    color: #fff;
-    background-color:orange;
-    font-size: 18px;
-}

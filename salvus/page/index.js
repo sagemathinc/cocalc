@@ -31,6 +31,7 @@ account.coffee
 worksheet1.coffee
 worksheet2.coffee
 
+editor.coffee
 project.coffee
 projects.coffee
 

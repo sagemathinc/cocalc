@@ -9280,7 +9280,9 @@ debug: BUG *********************************************************************
 
 ---------------
 
+   [ ] oops -- the css in project.css isn't prefixed with "salvus".
 
+   [ ] project -- buttons for sessions -- don't use on android since don't *fit*
    [ ] project -- title/description must be nonempty (otherwise can't click to edit them)
 
    [ ] checkbox -- show deleted files (differently)
