@@ -56,12 +56,6 @@
     <div class="row">
       <div class="well span12">
 	<div class="span12">
-	  <div class="span2 pull-right">
-	    <label for="project-commits-branch">
-	      <span class="lighten">show branch: </span>
-	      <select name="project-commits-branch" class="project-commits-branch"></select>
-	    </label>
-	  </div>
 	  <!-- select branch -- this may disappear soon -->
 	  <!-- Title of the project (editable) -->
 	  <h4>
@@ -92,11 +86,18 @@
 	  <!-- Use an interactive console in the project -->
 	  <li class="super-menu"><a href="#project-consoles">Consoles</a></li>
 
+	  <!-- Chat about this project -->
+	  <li class="super-menu"><a href="#project-chats">Chats</a></li>
+
 	  <!-- Git revision log of this project -->
 	  <li class="super-menu"><a href="#project-commits">Commits</a></li>
 
 	  <!-- Git branches -->
 	  <li class="super-menu"><a href="#project-branches">Branches (<span class="bold project-branch"></span>)</a></li>
+
+	  <!-- Git forks -->
+	  <li class="super-menu"><a href="#project-forks">Forks</a></li>
+
 	  <!-- Settings specific to this project -->
 	  <li class="super-menu"><a href="#project-settings">Settings</a></li>
 	</ul>
@@ -106,6 +107,13 @@
 	<!-- List of all files in the project, which is browsable -->
 	<div class="project-file-listing">
 	  <div class="row">
+	  <div class="span2 pull-right">
+	    <label for="project-commits-branch">
+	      <select name="project-commits-branch" class="project-commits-branch"></select>
+	      <div class="lighten">(shown branch)</div>
+	    </label>
+	  </div>
+
 	    <div class="project-file-tools pull-right btn-group">
 	      <a href="#move" class="btn btn-warning btn-small">Move</a>
 	      <a href="#delete" class="btn btn-danger btn-small">Delete</a>
@@ -139,6 +147,11 @@
 	  Awesome xterms here.
 	</div>
 
+	<!-- Chatroom/logs for this project -->
+	<div class="project-chats hide">
+	  Chat sessions here
+	</div>
+
 	<!-- Git history log for this project -->
 	<div class="project-commits hide">
 	  <div class="project-commits-list"></div>
@@ -152,6 +165,11 @@
 	  <div class="project-branches-list"></div>
 	</div>
 
+	<!-- Git forks -->
+	<div class="project-forks hide">
+	  Known forks of this project listed here.
+	</div>
+
 	<!-- Page to configure the settings for this project -->
 	<div class="project-settings hide">  <!-- hidden by default -->
 	</div>
@@ -159,7 +177,7 @@
       </div>
     </div>
 
-    <div class="row" id="project-test-html"><br><br><br><br>
+    <div class="row hide" id="project-test-html"><br><br><br><br>
       TESTS:
       <div class="btn project-new-file">New File</div>
       <div class="btn project-save">Save Project</div>
@@ -170,7 +188,7 @@
 
   </div>
 
-  <div class="row span9 well well-small project-commit-single">
+  <div class="row span11 well well-small project-commit-single">
     <div class="span7">
       <div class="row">
 	<div class="project-commit-single-message"></div>
@@ -185,7 +203,7 @@
     </div>
   </div>
 
-  <div class="row span9 well well-small project-branch-single">
+  <div class="row span11 well well-small project-branch-single">
     <div class="row">
       <div class="span6 project-branch-single-name"></div>
       <div class="pull-right">
@@ -199,7 +217,7 @@
     </div>
   </div>
 
-  <div class="row span9 well well-small project-file-link">
+  <div class="row span11 well well-small project-file-link">
     <div class="span" style="width: 20px;">
       <i class="icon-file">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>
@@ -213,7 +231,7 @@
     </div>
   </div>
 
-  <div class="row span9 well well-small project-directory-link">
+  <div class="row span11 well well-small project-directory-link">
     <div class="span" style="width: 20px;">
       <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>

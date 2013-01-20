@@ -9300,9 +9300,11 @@ debug: BUG *********************************************************************
    [ ] show last commit message for each branch
    [ ] project file list -- make it possible to show hidden files via a checkbox
 
-   [ ] the "about x hours ago" thing doesn't work at all on ipad!
+   [ ] the "about x hours ago" thing doesn't work at all on ipad!?
 
    [ ] basic project settings page (?)
+
+   [ ] need a spinner when loading project list
 
    [ ] open console on a project
    [ ] view file
