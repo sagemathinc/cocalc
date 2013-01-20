@@ -124,6 +124,9 @@ class ProjectPage
         @current_path = []
         @reload()
 
+        # Set the project id
+        @container.find(".project-id").text(@project.project_id)
+
         # Make it so editing the title and description of the project
         # sends a message to the hub.
         that = @
@@ -170,8 +173,24 @@ class ProjectPage
             return false
 
         file_tools = @container.find(".project-file-tools")
-        file_tools.find("a[href=#delete]").click () -> delete_path_dialog.show(that)
-        file_tools.find("a[href=#move]").click () -> move_path_dialog.show(that)
+
+        file_tools.find("a[href=#delete]").click () ->
+            if $(@).hasClass("disabled")
+                return false
+            delete_path_dialog.show(that)
+            return false
+
+        file_tools.find("a[href=#move]").click () ->
+            if $(@).hasClass("disabled")
+                return false
+            move_path_dialog.show(that)
+            return false
+
+        file_tools.find("a[href=#edit]").click () ->
+            if $(@).hasClass("disabled")
+                return false
+            that.edit_file(that.current_pathname())
+            return false
 
         ########################################
         # Only for temporary testing
@@ -181,6 +200,39 @@ class ProjectPage
         @container.find(".project-save").click(() => @save_project(show_success_alert:true))
         @container.find(".project-close").click(@close_project_dialog)
         @container.find(".project-meta").click @reload
+
+    edit_file: (filename) =>
+        # hack mockup
+        salvus_client.read_text_file_from_project
+            project_id : @project.project_id
+            timeout    :  5
+            path       : filename
+            cb         : (err, mesg) =>
+                if err
+                    alert_message(type:"error", message:"Unable to load '#{filename}' -- #{err}")
+                else if mesg.event == 'error'
+                    alert_message
+                        type:"error"
+                        message: "error loading #{filename} -- #{mesg.error}"
+                else
+                    @new_editor_tab
+                        filename : filename
+                        content  : mesg.content
+
+        # 1. Check to see if there is already a tab in the files list for this file,
+        # and if so, simply show it.  Done.
+        # 2.
+
+    new_editor_tab: (opts) =>
+        opts = defaults opts,
+            filename : required
+            content  : required
+            cb       : undefined   # cb() once tab is open
+        console.log("Edit #{opts.filename} with contents '#{opts.content}'")
+        tabs = @container.find(".project-editor").find(".nav-tabs")
+        console.log(tabs)
+        tabs.append($("<li class='active super-menu'><a>#{opts.filename}<span class='project-close-button-x'>×</span></a></li>"))
+        @display_tab("project-editor")
 
     command_line_exec: (form) =>
         input = form.find("input")
@@ -243,7 +295,7 @@ class ProjectPage
     init_tabs: () ->
         @tabs = []
         that = @
-        for item in @container.find(".nav-tabs").children()
+        for item in @container.find(".project-pages").children()
             t = $(item)
             name = t.find("a").attr('href').slice(1)
             t.data("name", name)
@@ -505,11 +557,12 @@ class ProjectPage
         current = @current_files()
         that = @
 
+        # The path we are viewing.
+        path = @current_pathname()
+
+        @container.find(".project-file-tools a").removeClass("disabled")
         if typeof current == "string"
             # A file instead of a directory listing.
-
-            # The path to the file.
-            path = @current_pathname()
 
             # Show a spinner if the file takes more than some amount of
             # time to load from the server.
@@ -529,6 +582,13 @@ class ProjectPage
             # Show the command prompt
             @container.find("span.project-command-line").show().find("pre").hide()
 
+            # Hide the edit button
+            @container.find(".project-file-tools a[href=#edit]").addClass("disabled")
+
+            # Hide the move and delete buttons if and only if this is the top level path
+            if path == ""
+                @container.find(".project-file-tools a[href=#move]").addClass("disabled")
+                @container.find(".project-file-tools a[href=#delete]").addClass("disabled")
 
             # Show the files
             for obj in current

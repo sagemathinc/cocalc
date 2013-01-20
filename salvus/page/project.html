@@ -56,7 +56,8 @@
     <div class="row">
       <div class="well span12">
 	<div class="span12">
-	  <!-- select branch -- this may disappear soon -->
+	  <div class="pull-right project-id"></div>
+
 	  <!-- Title of the project (editable) -->
 	  <h4>
 	    <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
@@ -76,24 +77,24 @@
       <div class="span12 well">
 
 	<!-- Tabs -- place where you click on them -->
-	<ul class="nav nav-tabs">
+	<ul class="nav nav-tabs project-pages">
 	  <!-- Browse through files in the project -->
-	  <li class="active super-menu"><a href="#project-file-listing">Browse</a></li>
+	  <li class="active super-menu"><a href="#project-file-listing">Browser</a></li>
 
 	  <!-- Open files -->
-	  <li class="super-menu"><a href="#project-open-files">Files</a></li>
+	  <li class="super-menu"><a href="#project-editor">Editor</a></li>
 
 	  <!-- Use an interactive console in the project -->
-	  <li class="super-menu"><a href="#project-consoles">Consoles</a></li>
+	  <li class="super-menu"><a href="#project-consoles">Console</a></li>
 
 	  <!-- Chat about this project -->
-	  <li class="super-menu"><a href="#project-chats">Chats</a></li>
+	  <li class="super-menu"><a href="#project-chats">Chat</a></li>
 
 	  <!-- Publications -->
-	  <li class="super-menu"><a href="#project-pubs">Pubs</a></li>
+	  <li class="super-menu"><a href="#project-pubs">Publish</a></li>
 
 	  <!-- Git revision log of this project -->
-	  <li class="super-menu"><a href="#project-commits">Commits</a></li>
+	  <li class="super-menu"><a href="#project-commits">Log</a></li>
 
 	  <!-- Git branches -->
 	  <li class="super-menu"><a href="#project-branches">Branches (<span class="bold project-branch"></span>)</a></li>
@@ -118,14 +119,21 @@
 	  </div>
 
 	    <div class="project-file-tools pull-right btn-group">
+	      <a href="#edit" class="btn btn-success  btn-small">Edit</a>
 	      <a href="#move" class="btn btn-warning btn-small">Move</a>
 	      <a href="#delete" class="btn btn-danger btn-small">Delete</a>
 	    </div>
+
+	    <!-- current path -->
+	    <span class="project-file-listing-current_path"></span>
+
+	    <br>
+
 	    <!-- command line prompt -->
 	    <form class="project-command-line">
-	      <span class="project-file-listing-current_path"></span>
 	      <span class="project-command-line">
-		<input class="project-command-line-input" type="text" placeholder="type a bash command...">
+		<input class="project-command-line-input" type="text"
+		       placeholder="run bash command here...">
 		<div class="project-command-line-spinner hide"></div>
 		<pre class="project-command-line-stderr hide"></pre>
 		<pre class="project-command-line-stdout hide"></pre>
@@ -141,9 +149,14 @@
 	</div>
 
 	<!-- Open files in this project. -->
-	<div class="project-open-files hide">
-tabbed list of open files.<br>
-a displayed open file will show info about if it is published
+	<div class="project-editor hide">
+	  <ul class="nav nav-tabs">
+	    <li class="active super-menu"><a>foo.txt<span class="project-close-button-x">×</span></a></li>
+	    <li class="super-menu"><a>bar.txt<span class="project-close-button-x">×</span></a></li>
+	  </ul>
+	  <textarea>
+	    a displayed open file will show info about if it is published
+	  </textarea>
 	</div>
 
 	<!-- Consoles on this project (multiple tabs, of course) -->
