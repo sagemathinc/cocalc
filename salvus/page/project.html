@@ -78,16 +78,19 @@
 	<!-- Tabs -- place where you click on them -->
 	<ul class="nav nav-tabs">
 	  <!-- Browse through files in the project -->
-	  <li class="active super-menu"><a href="#project-file-listing">Files</a></li>
+	  <li class="active super-menu"><a href="#project-file-listing">Browse</a></li>
 
-	  <!-- Worksheets -->
-	  <li class="super-menu"><a href="#project-worksheets">Worksheets</a></li>
+	  <!-- Open files -->
+	  <li class="super-menu"><a href="#project-open-files">Files</a></li>
 
 	  <!-- Use an interactive console in the project -->
 	  <li class="super-menu"><a href="#project-consoles">Consoles</a></li>
 
 	  <!-- Chat about this project -->
 	  <li class="super-menu"><a href="#project-chats">Chats</a></li>
+
+	  <!-- Publications -->
+	  <li class="super-menu"><a href="#project-pubs">Pubs</a></li>
 
 	  <!-- Git revision log of this project -->
 	  <li class="super-menu"><a href="#project-commits">Commits</a></li>
@@ -137,19 +140,53 @@
 	  </div>
 	</div>
 
-	<!-- Worksheets in this project. -->
-	<div class="project-worksheets hide">
-	  Awesome worksheets here.
+	<!-- Open files in this project. -->
+	<div class="project-open-files hide">
+tabbed list of open files.<br>
+a displayed open file will show info about if it is published
 	</div>
 
 	<!-- Consoles on this project (multiple tabs, of course) -->
 	<div class="project-consoles hide">
-	  Awesome xterms here.
+	  <div class="pull-right">
+	    <span class="lighten">new session:&nbsp; </span>
+	    <span class="btn-group">
+	      <a href="#" class="btn btn-small btn-success">Bash</a>
+	      <a href="#" class="btn btn-small">Sage</a>
+	      <a href="#" class="btn btn-small">GAP</a>
+	      <a href="#" class="btn btn-small">Pari</a>
+	      <a href="#" class="btn btn-small">Maxima</a>
+	      <a href="#" class="btn btn-small">Octave</a>
+	      <a href="#" class="btn btn-small">R</a>
+	      <a href="#" class="btn btn-small">Singular</a>
+	    </span>
+
+	  </div>
+	  <br><br>
+	  tabbed list of xterm sessions
 	</div>
 
 	<!-- Chatroom/logs for this project -->
 	<div class="project-chats hide">
 	  Chat sessions here
+	</div>
+
+	<!-- Publications of this project -->
+	<div class="project-pubs hide">
+	  A publication is a specific state of the project, as defined
+	  by a commit in some branch, a choice of file as the "home
+	  page", and a user-specified name.  There is a url associated
+	  to the publication (https://salv.us/userid/name), a way to
+	  browse user publications, etc.  When a visitor requests the
+	  publication, a copy of the project (at the given state) is
+	  opened on some project server, and visitor can interact with
+	  the home page.  This can enable browsing in the project,
+	  e.g., through the sections of a book.  The pages for pubs
+	  will displays statistics (like google analytics?) about
+	  visitors to the pub.  It will also allow for requiring
+	  login, a secret word, etc.  It will also allow for data
+	  collection, e.g., one type of pub can be a homework
+	  assignment for students in a course. 
 	</div>
 
 	<!-- Git history log for this project -->
@@ -172,6 +209,14 @@
 
 	<!-- Page to configure the settings for this project -->
 	<div class="project-settings hide">  <!-- hidden by default -->
+
+	  <ul>
+	    <li> Which console session buttons to list -- could depend a lot on particular project.</li>
+	    <li> Whether project is public or private </li>
+	    <li> Collaborators </li>
+	    <li> Compute resource limitations </li>
+	  </ul>
+
 	</div>
 
       </div>
