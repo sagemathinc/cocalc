@@ -391,7 +391,6 @@ class ProjectPage
         ignore_deleted_files = true
         ignore_hidden_files = true
 
-
         file_data = @meta.files[@meta.display_branch]
         commits = @meta.logs[@meta.display_branch].commits
         dir_exists = @meta.logs[@meta.display_branch].dir_exists

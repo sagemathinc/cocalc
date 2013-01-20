@@ -9257,6 +9257,13 @@ How to implement:
 
 which runs arbitrary command, with timeout, etc.
 
+
+
+-->   [ ] I feel like I've fixated too much on doing something github like, which
+   Salvus *isn't*.   I'm going to take a step back and implement a console -- which
+   will be a real step forward in functionality -- and from using that, see what
+   would feel most ** natural ** for file browsing.  SALVUS IS NOT GITHUB!
+
 ------
 
    [ ] with project = salvus repo, get this when trying to send:

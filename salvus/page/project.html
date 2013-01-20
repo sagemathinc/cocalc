@@ -82,10 +82,15 @@
 
 	<!-- Tabs -- place where you click on them -->
 	<ul class="nav nav-tabs">
-	  <!-- List all files in the project -->
-	  <li class="active super-menu"><a href="#project-file-listing">Files</a></li>
+	  <!-- Browse through files in the project -->
+	  <li class="active super-menu"><a href="#project-file-listing">Browse</a></li>
+
+	  <!-- Use an interactive console in the project -->
+	  <li class="super-menu"><a href="#project-console">Console</a></li>
+
 	  <!-- Git revision log of this project -->
 	  <li class="super-menu"><a href="#project-commits">Commits</a></li>
+
 	  <!-- Git branches -->
 	  <li class="super-menu"><a href="#project-branches">Branches (<span class="bold project-branch"></span>)</a></li>
 	  <!-- Settings specific to this project -->
@@ -119,6 +124,11 @@
 	    <div class="project-file-listing-spinner hide"></div>
 	    <div class="project-file-listing-file-list"></div>
 	  </div>
+	</div>
+
+	<!-- Console on this project (multiple tabs, of course) -->
+	<div class="project-console hide">
+	  Awesome xterms here.
 	</div>
 
 	<!-- Git history log for this project -->

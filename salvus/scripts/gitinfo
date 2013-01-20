@@ -1,8 +1,39 @@
 #!/usr/bin/env python
 
-import cPickle, json, os, uuid, subprocess
+print "NOT DONE -- just for testing"
+sys.exit(1)
 
-branches = [x.split()[-1] for x in os.popen("git branch").read().splitlines()]
+##################################################################
+#
+# This is a script that takes as input a branch and a path and outputs
+# -- *very* efficiently via one git call -- two JSON strings.  The
+# first contains information about all relevant commits, and the
+# second gives for each file at least its status code and last commit
+# to touch it.
+#
+# The path is *NOT* recursively walked, since it is important that
+# the size of the output stay manageable.
+#
+# The information about given in each list may grow as our needs
+# expand.
+#
+##################################################################
+
+import json, os, subprocess, sys, uuid
+
+if len(sys.argv) < 2:
+    print "Usage: %s <path> [branch]"%(sys.argv[0])
+    sys.exit(1)
+
+path = sys.argv[1]
+if not os.path.exists(path):
+    print "path %s does not exist"%path
+    sys.exit(1)
+
+if len(sys.argv) >= 3:
+    branch = sys.argv[2]
+else:
+    branch = ""
 
 logs = {}
 files = {}
@@ -31,13 +62,15 @@ def dir_exists(commits, files, d=None):
             dir_exists(commits, val, d)
     return d
 
-for branch in branches:
+def go():
     format = "--pretty=format:!%H|%an <%ae>|%ad|%s|"
     field_sep = str(uuid.uuid4())
     commit_sep = str(uuid.uuid4())
     format = format.replace('|',field_sep).replace("!",commit_sep)
 
-    log = subprocess.Popen(['git', 'log', '--name-status', format, branch],
+    file_list = [os.path.listdir(path)
+
+    log = subprocess.Popen(['git', 'log', '--name-status', format, branch, "--"] + file_list,
                      stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                      stderr=subprocess.PIPE).stdout.read()
     commits = log.split(commit_sep)
@@ -59,7 +92,6 @@ for branch in branches:
             set_file(d, filename.split('/'), commit_id)
     logs[branch] = {'commit_list':commit_list, 'commits':v, 'dir_exists':dir_exists(v, d)}
 
-#open('logs.pickle','w').write(cPickle.dumps(logs))
-#open('files.pickle','w').write(cPickle.dumps(files))
+
 print json.dumps(logs,  separators=(',',':'))
 print json.dumps(files,  separators=(',',':'))
