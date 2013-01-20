@@ -9279,6 +9279,13 @@ debug: BUG *********************************************************************
 
 
 ---------------
+   EDITOR:
+
+   [ ] show number of open files in Editor title.
+
+
+
+----------
 
    [ ] oops -- the css in project.css isn't prefixed with "salvus".
 

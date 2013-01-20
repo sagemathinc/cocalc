@@ -785,7 +785,9 @@ class exports.Connection extends EventEmitter
             filename   : required
             cb         : undefined
         @call
-            message : message.stopped_editing_file(project_id : opts.project_id)
+            message : message.stopped_editing_file
+                project_id : opts.project_id
+                filename   : opts.filename
             cb      : opts.cb
 
 

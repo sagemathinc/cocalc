@@ -3,24 +3,25 @@
 ##################################################
 
 {salvus_client} = require('salvus_client')
-{defaults, required, filename_extension} = require('misc')
+{keys, defaults, required, filename_extension} = require('misc')
 {EventEmitter} = require('events')
 
 file_associations =
     txt    :
         editor : "codemirror"
-        mode   : "text"
+        opts   : {mode   : "text"}
 
     py     :
         editor : "codemirror"
-        mode   : "python"
+        opts   : {mode   : "python"}
 
     sagews :
         editor : "worksheet"
-        mode   : "sage"
+        opts   : {mode : "sage"}
 
     ''     :  # other
         editor : "codemirror"
+        opts   : {mode: "text"}
 
 templates = $("#salvus-editor-templates")
 
@@ -54,7 +55,7 @@ class exports.Editor
 
         @element.find("a[href=#reload]").addClass('disabled').click () ->
             if not $(@).hasClass("disabled")
-                that.reload(that.active_tab.filename, true)
+                that.reload(that.active_tab.filename)
             return false
 
         @element.find("a[href=#commit]").addClass('disabled').click () ->
@@ -64,9 +65,9 @@ class exports.Editor
             return false
 
     open: (filename) =>
-        if not tabs[filename]?   # if defined, then we already have a
+        if not @tabs[filename]?   # if defined, then we already have a
                                  # tab with this file, so reload it.
-            tabs[filename] = @create_tab(filename)
+            @tabs[filename] = @create_tab(filename)
         @load(filename)
 
     # Close this tab.  If it has unsaved changes, the user will be warned.
@@ -74,7 +75,7 @@ class exports.Editor
         tab = @tabs[filename]
         if not tab? # nothing to do -- file isn't opened anymore
             return
-        if warn and tab.has_unsaved_changes()
+        if warn and tab.editor.has_unsaved_changes()
             @warn_user filename, (proceed) =>
                 @close(filename, false)
 
@@ -86,21 +87,48 @@ class exports.Editor
         tab.editor.remove()
         delete @tabs[filename]
 
+        names = keys(@tabs)
+        if names.length > 0
+            # select new tab
+            @display_tab(names[0])
+
+    # Reload content of this tab.  Warn user if this will result in changes.
+    reload: (filename) =>
+        tab = @tabs[filename]
+        if not tab? # nothing to do
+            return
+        salvus_client.read_text_file_from_project
+            project_id : @project_id
+            timeout    : 5
+            path       : filename
+            cb         : (err, mesg) =>
+                if err
+                    alert_message(type:"error", message:"Communications issue loading new version of #{filename} -- #{err}")
+                else if mesg.event == 'error'
+                    alert_message(type:"error", message:"Error loading new version of #{filename} -- #{mesg.error}")
+                else
+                    current_content = tab.editor.val()
+                    new_content = mesg.content
+                    if current_content != new_content
+                        @warn_user filename, (proceed) =>
+                            if proceed
+                                tab.editor.val(new_content)
+
     # Warn user about unsaved changes (modal)
     warn_user: (filename, cb) =>
-        alert("TODO: Warn user about unsaved changes (modal) -- not implemented")
+        console.log("TODO: Warn user about unsaved changes (modal) -- not implemented")
         cb(true)
 
     # Make the give tab active.
-    activate: (filename) =>
+    display_tab: (filename) =>
         if not @tabs[filename]?
             return
         for name, tab of @tabs
             if name == filename
                 @active_tab = tab
                 tab.link.addClass("active")
-                tab.editor.show()
-                # TODO! 
+                tab.editor.element.show()
+                # TODO!
                 @element.find(".btn-group").children().removeClass('disabled')
             else
                 tab.link.removeClass("active")
@@ -154,17 +182,20 @@ class exports.Editor
             x = file_associations['']
         switch x.editor
             when "codemirror"
-                editor = new CodeMirrorEditor(mode:x.mode)
+                editor = new CodeMirrorEditor(x.opts)
             when "worksheet"
-                editor = new WorksheetEditor(mode:x.mode)
+                editor = new WorksheetEditor(x.opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
         link = templates.find(".super-menu").clone().show()
         link.find(".salvus-editor-tab-filename").text(filename)
+        link.find(".salvus-editor-close-button-x").click () =>
+            @close(filename)
         tab = {link:link, editor:editor, filename:filename}
-        link.find("a").click () => @activate(filename)
-        @nav_tabs.append(top_tab)
+        link.find("a").click () => @display_tab(filename)
+        @nav_tabs.append(link)
+        @element.find(".salvus-editor-content").append(editor.element.hide())
         @tabs[filename] = tab
 
 
@@ -173,7 +204,7 @@ class exports.Editor
 ###############################################
 # Derived classes must:
 #    (1) implement the _get and _set methods
-#    (2) define an element attribute that is a jquery wrapper of something in the dom
+#    (2) show/hide/remove
 #
 # Events ensure that *all* users editor the same file see the same
 # thing (synchronized).
@@ -190,7 +221,6 @@ class FileEditor extends EventEmitter
 
     has_unsaved_changes: () => false # TODO
 
-
     _get: () =>
         throw("TODO: implement _get")
 
@@ -205,15 +235,37 @@ class FileEditor extends EventEmitter
 class CodeMirrorEditor extends FileEditor
     constructor: (opts) ->
         @opts = defaults opts,
-            mode : required
-        @element = templates.find(".salvus-editor-codemirror").clone().show()
-        @codemirror = CodeMirror.fromTextArea(@element.find("textarea")[0])
+            mode         : required
+            line_numbers : true
+            indent_unit  : 4
+            tab_size     : 4
+            smart_indent : true
+            undo_depth   : 100
+
+        @element = templates.find(".salvus-editor-codemirror").clone()
+        @codemirror = CodeMirror.fromTextArea @element.find("textarea")[0],
+            mode        : opts.mode
+            lineNumbers : opts.line_numbers
+            indentUnit  : opts.indent_unit
+            tabSave     : opts.tab_size
+            smartIndent : opts.smart_indent
+            undoDepth   : opts.undo_depth
 
     _get: () =>
         return @codemirror.getValue()
 
     _set: (content) =>
-        @codemirror.value(content)
+        @codemirror.setValue(content)
+
+    show: () =>
+        @element.show()
+        @codemirror.refresh()
+
+    hide: () =>
+        @element.hide()
+
+    remove: () =>
+        @element.remove()
 
 
 ###############################################

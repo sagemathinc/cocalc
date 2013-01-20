@@ -188,7 +188,10 @@ class ProjectPage
 
         file_tools.find("a[href=#edit]").click () ->
             if not $(@).hasClass("disabled")
-                that.editor.open(that.current_pathname())
+                filename = that.current_pathname()
+                that.editor.open(filename)
+                that.display_tab("project-editor")
+                that.editor.display_tab(filename)
             return false
 
         ########################################
