@@ -172,7 +172,6 @@ class ProjectPage
         file_tools = @container.find(".project-file-tools")
         file_tools.find("a[href=#delete]").click () -> delete_path_dialog.show(that)
         file_tools.find("a[href=#move]").click () -> move_path_dialog.show(that)
-        file_tools.find("a[href=#edit]").click () -> that.edit_current_file()
 
         ########################################
         # Only for temporary testing
