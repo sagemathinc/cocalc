@@ -336,7 +336,10 @@ class ProjectPage
             t = $(item)
             name = t.find("a").attr('href').slice(1)
             t.data("name", name)
-            @tabs.push(label:t, name:name, target:@container.find(".#{name}"))
+            tab = {label:t, name:name, target:@container.find(".#{name}")}
+            if name == "project-status"
+                tab.onshow = @update_status
+            @tabs.push(tab)
             t.click () ->
                 that.display_tab($(@).data("name"))
                 return false
@@ -355,6 +358,8 @@ class ProjectPage
             if tab.name == name
                 tab.target.show()
                 tab.label.addClass('active')
+                if tab.onshow?
+                    tab.onshow()
             else
                 tab.target.hide()
                 tab.label.removeClass('active')
