@@ -34,6 +34,10 @@
     font-weight:bold;
 }
 
+.project-file-listing-file-list {
+    margin:2em;
+}
+
 .project-commits-branch {
     font-weight:bold;
     width:12ex;
@@ -95,13 +99,13 @@
 
 
 .project-command-line-input {
-    margin-left:3ex;
-    margin-top:1ex;
+    margin-top:2em;
+    margin-left:2em;
     width:90%;
 }
 
 .project-command-line-stdout {
-    margin-left:5ex;
+    margin-left:2em;
     background-color:#fff;
     color:#333;
     font-size:10pt;
@@ -109,7 +113,7 @@
     overflow:auto;
 }
 .project-command-line-stderr {
-    margin-left:5ex;
+    margin-left:2em;
     background-color:#fff;
     color:#922;
     font-size:10pt;

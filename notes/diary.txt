@@ -9286,6 +9286,8 @@ debug: BUG *********************************************************************
    [x] (13min) saving a file with a space in the filename fails (from editor)
    [x] (3 hours) commit current repo; somewhat involved UI stuff
    [x] (5min) project status tab -- update status on showing tab
+   [ ] fix that closing then re-opening project dies -- should be easy.
+   [ ] include "run command here..." even when showing file preview; in that case just run in dir that contains file; 
 
    [ ] browser doesn't show paths in a directory if there are no files in that directory.
        confusing.  it should really just browse the current live files, not something
