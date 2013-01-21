@@ -2,9 +2,11 @@
 # Editor for files in a project
 ##################################################
 
+{keys, defaults, required, filename_extension, len} = require('misc')
+
 {salvus_client} = require('salvus_client')
-{keys, defaults, required, filename_extension} = require('misc')
 {EventEmitter} = require('events')
+{alert_message} = require('alerts')
 
 file_associations =
     txt    :
@@ -28,8 +30,11 @@ templates = $("#salvus-editor-templates")
 class exports.Editor
     constructor: (opts) ->
         opts = defaults opts,
-            project_id : required
+            project_id    : required
             initial_files : undefined # if given, attempt to open these files on creation
+            counter       : undefined # if given, is a jQuery set of DOM objs to set to the number of open files
+
+        @counter = opts.counter
 
         @project_id = opts.project_id
         @element = templates.find(".salvus-editor").clone().show()
@@ -64,6 +69,11 @@ class exports.Editor
                 that.commit(filename, "save #{filename}")
             return false
 
+    update_counter: () =>
+        console.log(@counter)
+        if @counter?
+            @counter.text(len(@tabs))
+
     open: (filename) =>
         if not @tabs[filename]?   # if defined, then we already have a
                                  # tab with this file, so reload it.
@@ -86,6 +96,7 @@ class exports.Editor
         tab.link.remove()
         tab.editor.remove()
         delete @tabs[filename]
+        @update_counter()
 
         names = keys(@tabs)
         if names.length > 0
@@ -197,6 +208,8 @@ class exports.Editor
         @nav_tabs.append(link)
         @element.find(".salvus-editor-content").append(editor.element.hide())
         @tabs[filename] = tab
+        @update_counter()
+        return tab
 
 
 ###############################################

@@ -9281,7 +9281,9 @@ debug: BUG *********************************************************************
 ---------------
    EDITOR:
 
-   [ ] show number of open files in Editor title.
+   [x] (12min) project: show number of open files in Editor title.
+   [ ] change home icon to a button (maybe with icon in it)
+   [ ] commit current repo
 
 
 

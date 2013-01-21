@@ -275,10 +275,11 @@ class ProjectPage
 
         # @display_tab("project-branches") # TODO -- for testing.
 
-    create_editor: (initial_files) ->   # initial_files (optional)
+    create_editor: (initial_files) =>   # initial_files (optional)
         @editor = new Editor
             project_id    : @project.project_id
             initial_files : initial_files
+            counter       : @container.find(".project-editor-file-count")
         console.log(@editor)
         @container.find(".project-editor").append(@editor.element)
 
