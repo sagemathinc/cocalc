@@ -208,14 +208,6 @@ class ProjectPage
                 move_path_dialog.show(that)
             return false
 
-        file_tools.find("a[href=#edit]").click () ->
-            if not $(@).hasClass("disabled")
-                filename = that.current_pathname()
-                that.editor.open(filename)
-                that.display_tab("project-editor")
-                that.editor.display_tab(filename)
-            return false
-
         ########################################
         # Only for temporary testing
         #########################################
@@ -258,6 +250,7 @@ class ProjectPage
                 else
                     out = output.stderr + output.stdout
                 form.find(".project-commit-command-output").text(out).show()
+                @update_status()
 
     update_status: () =>
         @container.find(".project-commit-command-output").hide()
@@ -652,13 +645,21 @@ class ProjectPage
                     t.find(".project-file-name").text(obj.filename)
                     t.find(".project-file-last-edited").attr('title', obj.commit.date).timeago()
                     t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
+                    # Clicking -- open the file in the editor
+                    t.data('path',path + '/' + obj.filename).click (e) ->
+                        path = $(@).data('path')
+                        that.editor.open(path)
+                        that.display_tab("project-editor")
+                        that.editor.display_tab(path)
+                        return false
                 else
                     t = template_project_directory.clone()
                     t.find(".project-directory-name").text(obj.filename)
-
-                t.data('filename',obj.filename).click (e) ->
-                    that.current_path.push($(@).data('filename'))
-                    that.update_file_list_tab()
+                    # Clicking -- ppen the directory
+                    t.data('filename',obj.filename).click (e) ->
+                        that.current_path.push($(@).data('filename'))
+                        that.update_file_list_tab()
+                        return false
 
                 file_or_listing.append(t)
 

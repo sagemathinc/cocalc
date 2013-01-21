@@ -4,14 +4,17 @@ Editor for files in a project
 
 */
 
+.salvus-editor-content {
+    margin-left:1em;
+}
 
 .salvus-editor-close-button-x {
    font-size: 18px;
-   margin-left:10px;
+   margin-left:5px;
 }
 
 .salvus-editor-close-button-x:hover {
-    margin-left:10px;
+    margin-left:5px;
     color: #fff;
     background-color:orange;
     font-size: 18px;
@@ -21,4 +24,8 @@ Editor for files in a project
     width:100%;
     border: 2px solid #99f;
     box-shadow: 4px 4px 2px #bbf;
+}
+
+.salvus-editor-button-bar {
+    margin-bottom:1em;
 }

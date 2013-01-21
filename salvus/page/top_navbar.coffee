@@ -96,11 +96,11 @@ class TopNavbar  extends EventEmitter
 
     # make it so the navbar entry to go to a given page is hidden
     hide_page_button: (id) ->
-        @pages[id].button.hide()
+        @pages[id]?.button.hide()
 
     # make it so the navbar entry to go to a given page is shown
     show_page_button: (id) ->
-        @pages[id].button.show()
+        @pages[id]?.button.show()
 
     # TODO -- ?
     have_unsaved_changes: (id) ->

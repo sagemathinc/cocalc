@@ -137,21 +137,27 @@
 	<!-- List of all files in the project, which is browsable -->
 	<div class="project-file-listing">
 	  <div class="row">
-	  <div class="span2 pull-right hide">  <!-- TODO -- hid! -->
-	    <label for="project-commits-branch">
-	      <select name="project-commits-branch" class="project-commits-branch"></select>
-	      <!--<div class="lighten">(shown branch)</div>-->
-	    </label>
-	  </div>
-
-	    <div class="project-file-tools pull-right btn-group">
-	      <a href="#edit" class="btn btn-success">Edit</a>
-	      <a href="#move" class="btn btn-warning">Move</a>
-	      <a href="#delete" class="btn btn-danger">Delete</a>
+	    <div class="span2 pull-right hide">  <!-- TODO -- hid! -->
+	      <label for="project-commits-branch">
+		<select name="project-commits-branch" class="project-commits-branch"></select>
+		<!--<div class="lighten">(shown branch)</div>-->
+	      </label>
 	    </div>
 
-	    <!-- current path -->
+	    <div>
+	    <!-- Buttons for basic file operations -->
+	    <span class="project-file-tools pull-right">
+	      <span class="btn-group">
+		<a href="#move" class="btn btn-warning">Move</a>
+		<a href="#delete" class="btn btn-danger">Delete</a>
+	      </span>
+	    </span>
+
+	    <!-- The current path -->
 	    <span class="project-file-listing-current_path"></span>
+	    </div>
+
+	    <!-- List of files -->
 	    <div class="row">
 	      <div class="project-file-listing-spinner hide"></div>
 	      <div class="project-file-listing-file-list"></div>

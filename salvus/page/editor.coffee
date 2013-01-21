@@ -2,7 +2,7 @@
 # Editor for files in a project
 ##################################################
 
-{to_json, keys, defaults, required, filename_extension, len} = require('misc')
+{trunc, to_json, keys, defaults, required, filename_extension, len} = require('misc')
 
 {salvus_client} = require('salvus_client')
 {EventEmitter} = require('events')
@@ -176,14 +176,9 @@ class exports.Editor
                 if err
                     alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
                 else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error loading #{filename} -- #{mesg.error}")
+                    alert_message(type:"error", message:"Error loading #{filename} -- #{to_json(mesg.error)}")
                 else
                     tab.editor.val(mesg.content)
-
-    # Save just this file and commit it (only) to the current branch
-    # with the given message.
-    commit: (filename, message) =>
-        console.log("commit(#{filename}, #{message})")
 
     create_tab: (filename) =>
         ext = filename_extension(filename)
@@ -199,7 +194,7 @@ class exports.Editor
                 throw("Unknown editor type '#{x.editor}'")
 
         link = templates.find(".super-menu").clone().show()
-        link.find(".salvus-editor-tab-filename").text(filename)
+        link.find(".salvus-editor-tab-filename").text(filename) #trunc(filename,15))
         link.find(".salvus-editor-close-button-x").click () =>
             @close(filename)
         tab = {link:link, editor:editor, filename:filename}
