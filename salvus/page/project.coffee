@@ -10,6 +10,7 @@
 {series}        = require('async')
 {defaults, required, to_json, from_json, trunc, keys} = require('misc')
 {Editor}        = require('editor')
+{Consoles}      = require('consoles')
 
 MAX_TITLE_LENGTH = 25
 
@@ -123,6 +124,7 @@ class ProjectPage
         @update_topbar()
 
         @create_editor()
+        @create_consoles()
 
         @current_path = []
         @reload()
@@ -344,9 +346,16 @@ class ProjectPage
     create_editor: (initial_files) =>   # initial_files (optional)
         @editor = new Editor
             project_id    : @project.project_id
-            initial_files : initial_files
             counter       : @container.find(".project-editor-file-count")
+            initial_files : initial_files
         @container.find(".project-editor").append(@editor.element)
+
+    create_consoles: (initial_consoles) =>   # initial_consoles (optional)
+        @consoles = new Consoles
+            project_id       : @project.project_id
+            counter          : @container.find(".project-consoles-count")
+            initial_consoles : initial_consoles
+        @container.find(".project-consoles").append(@consoles.element)
 
     display_tab: (name) =>
         for tab in @tabs

@@ -9289,6 +9289,14 @@ debug: BUG *********************************************************************
    [x] (10min) fix that closing then re-opening project dies -- should be easy.
    [x] (1:15min) Get rid of edit button in browser and make clicking on file just bring it up in editor.
 
+
+
+-->   [ ] I want terminal functionality in projects.  that's my goal for today.
+
+
+
+
+
    [ ] browser doesn't show paths in a directory if there are no files in that directory.
        confusing.  it should really just browse the current live files, not something
        checked in.  SEriously.
