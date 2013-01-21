@@ -445,7 +445,7 @@ _open_project2 = (socket, mesg) ->
 
 # Commit all changes to files in the project, plus add all new files
 # that are not .gitignore'd to the current branch, whatever it may be.
-commit_all = (opts) ->
+commit = (opts) ->
     opts = defaults opts,
         user        : required
         path        : required
@@ -462,15 +462,16 @@ commit_all = (opts) ->
         (cb) ->
             fs.writeFile(commit_file, opts.commit_mesg, cb)
         (cb) ->
-            cmd = "su - #{opts.user} -c 'cd && git add . && git commit -a -F #{commit_file}'"
+            #TODO -- change to exec as uid directly.
+            #cmd = "su - #{opts.user} -c 'cd && git add . && git commit -a -F #{commit_file}'"
+            cmd = "su - #{opts.user} -c 'cd && git commit -a -F #{commit_file}'"
             winston.debug(cmd)
             child_process.exec cmd, (err, stdout, stderr) ->
                 winston.debug(err, stdout, stderr)
-                if stdout.indexOf("nothing to commit") >= 0
-                    # not an error
-                    cb()
+                if err
+                    cb(stdout + stderr + " ") # " " just in case both stdout and stderr empty
                 else
-                    cb(err)
+                    cb()
 
     ], opts.cb)
 
@@ -557,8 +558,8 @@ events.save_project = (socket, mesg) ->
     async.series([
         # Commit all changes
         (cb) ->
-            winston.debug("save_project -- commit_all")
-            commit_all
+            winston.debug("save_project -- commit")
+            commit
                 user        : username(mesg.project_id)
                 path        : path
                 commit_mesg : mesg.commit_mesg

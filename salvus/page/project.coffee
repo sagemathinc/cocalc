@@ -167,6 +167,27 @@ class ProjectPage
                 console.log(e)
             return false
 
+        # Enable the Refresh button for git status
+        @container.find(".project-status").find("a[href=#refresh]").click () =>
+            @update_status()
+
+        # Activate the commit line (under status)
+        @container.find("form.project-commit-message").submit () ->
+            try
+                that.git_commit($(@).find("input"))
+            catch e
+                console.log(e)
+            return false
+
+
+        # Activate the command line on the git status page
+        @container.find("form.project-commit-command").submit () ->
+            try
+                that.git_command_line_exec($(@))
+            catch e
+                console.log(e)
+            return false
+
         # Make it so typing something into the "create a new branch..." box
         # makes a new branch.
         @container.find(".project-branches").find('form').submit () ->
@@ -202,16 +223,64 @@ class ProjectPage
         @container.find(".project-close").click(@close_project_dialog)
         @container.find(".project-meta").click @reload
 
+    git_commit: (input) =>
+        @container.find(".project-commit-message-output").text("").hide()
+        @container.find(".project-commit-message-spinner").show().spin()
+        salvus_client.save_project
+            project_id : @project.project_id
+            commit_mesg : input.val()
+            cb : (err, mesg) =>
+                @container.find(".project-commit-message-spinner").spin(false).hide()
+                if err
+                    alert_message(type:"error", message:"Connection error saving project.")
+                else if mesg.event == "error"
+                    console.log(mesg.error)
+                    @container.find(".project-commit-message-output").text(mesg.error).show()
+                else
+                    input.val("")
+                    @reload()
+
+    git_command_line_exec: (form) =>
+        command = form.find("input").val()
+        @container.find(".project-commit-command-spinner").show().spin()
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : command
+            timeout    : 5
+            max_output : 10000
+            bash       : true
+            cb         : (err, output) =>
+                @container.find(".project-commit-command-spinner").spin(false).hide()
+                if err
+                    out = err
+                else
+                    out = output.stderr + output.stdout
+                form.find(".project-commit-command-output").text(out).show()
+
+    update_status: () =>
+        @container.find(".project-commit-command-output").hide()
+        salvus_client.exec
+            project_id : @project.project_id
+            command : "git status; echo ''; git diff"
+            timeout : 5
+            max_output : 10000
+            bash       : true
+            cb : (err, output) =>
+                if err
+                    status = "Error looking up current status -- #{err}"
+                else
+                    status = output.stdout + output.stderr
+                @container.find(".project-git-status-output").text(status)
+
     command_line_exec: (form) =>
         input = form.find("input")
         command = input.val()
-        console.log(command)
         input.val("")
         t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 1000)
         salvus_client.exec
             project_id : @project.project_id
             command    : command
-            timeout    : 3
+            timeout    : 5
             max_output : 100000
             bash       : true
             path       : @current_pathname()
@@ -279,7 +348,6 @@ class ProjectPage
             project_id    : @project.project_id
             initial_files : initial_files
             counter       : @container.find(".project-editor-file-count")
-        console.log(@editor)
         @container.find(".project-editor").append(@editor.element)
 
     display_tab: (name) =>
@@ -301,7 +369,7 @@ class ProjectPage
             commit_mesg : opts.commit_mesg
             cb         : (err, mesg) ->
                 if err
-                    alert_message(type:"error", message:"Connection error.")
+                    alert_message(type:"error", message:"Connection error saving project.")
                 else if mesg.event == "error"
                     alert_message(type:"error", message:mesg.error)
                 else if opts.show_success_alert
@@ -387,6 +455,9 @@ class ProjectPage
 
 
     reload: (cb) =>
+        # Update current git status output
+        @update_status()
+
         salvus_client.get_project_meta
             project_id : @project.project_id
             cb  : (err, _meta) =>
@@ -407,6 +478,7 @@ class ProjectPage
                     @update_commits_tab()
                     @update_branches_tab()
                 cb?()
+
 
     # Returns array of objects
     #    {filename:..., is_file:..., commit:...reference to commit object if is_file true...}

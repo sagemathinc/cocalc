@@ -9284,7 +9284,8 @@ debug: BUG *********************************************************************
    [x] (12min) project: show number of open files in Editor title.
    [x] (20min) change home icon to a button (maybe with icon in it); plus find some bugs
    [x] (13min) saving a file with a space in the filename fails (from editor)
-   [ ] commit current repo
+   [x] (3 hours) commit current repo; somewhat involved UI stuff
+   [ ] project status tab -- update status on showing tab
    [ ] editor: warn_user about unsaved changes
    [ ] browser doesn't show paths in a directory if there are no files in that directory. 
        confusing.  it should really just browse the current live files, not something

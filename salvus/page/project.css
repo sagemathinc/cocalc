@@ -123,3 +123,39 @@
     font-family:monospace;
 }
 
+
+.project-commit-message-input {
+    width:100%;
+}
+
+.project-commit-command-input {
+    width:100%;
+}
+
+.project-commit-message-output {
+    background-color:#fff;
+    color:#e87011;
+    padding:1em;
+    border: solid 1px red;
+    width:100%;
+}
+
+.project-git-status-output {
+    background-color:#fff;
+    border: 2px solid #99f;
+    box-shadow: 4px 4px 2px #bbf;
+    max-height:20em;
+    overflow:auto;
+    width:100%;
+    padding:1em;
+}
+
+.project-commit-command-output {
+    background-color:#fff;
+    color:#222;
+    padding:1em;
+    border: solid 1px blue;
+    width:100%;
+}
+
+

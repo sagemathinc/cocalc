@@ -505,6 +505,7 @@ message
 # success, the project_server will respond by sending a project_saved
 # message then sending individual the bundles n.bundle for n >=
 # starting_bundle_number.
+#
 # client --> hub --> project_server
 message
     event                  : 'save_project'

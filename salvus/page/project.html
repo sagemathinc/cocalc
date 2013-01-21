@@ -79,19 +79,21 @@
 	<!-- Tabs -- place where you click on them -->
 	<ul class="nav nav-tabs project-pages">
 	  <!-- Browse through files in the project -->
-	  <li class="active super-menu"><a href="#project-file-listing">Browser</a></li>
+	  <li class="active super-menu"><a href="#project-file-listing">Browse</a></li>
 
 	  <!-- Open files -->
-	  <li class="super-menu"><a href="#project-editor">Editor (<span class="project-editor-file-count">0</span>)</a></li>
+	  <li class="super-menu"><a href="#project-editor">Edit (<span class="project-editor-file-count">0</span>)</a></li>
 
 	  <!-- Use an interactive console in the project -->
-	  <li class="super-menu"><a href="#project-consoles">Console</a></li>
+	  <li class="super-menu"><a href="#project-consoles">Terminal</a></li>
 
 	  <!-- Chat about this project -->
+<!--
 	  <li class="super-menu"><a href="#project-chats">Chat</a></li>
+-->
 
-	  <!-- Publications -->
-	  <li class="super-menu"><a href="#project-pubs">Publish</a></li>
+	  <!-- Git status for this project -->
+	  <li class="super-menu"><a href="#project-status">Status</a></li>
 
 	  <!-- Git revision log of this project -->
 	  <li class="super-menu"><a href="#project-commits">Commits</a></li>
@@ -100,7 +102,12 @@
 	  <li class="super-menu"><a href="#project-branches">Branches (<span class="bold project-branch"></span>)</a></li>
 
 	  <!-- Git forks -->
+<!--
 	  <li class="super-menu"><a href="#project-forks">Forks</a></li>
+-->
+
+	  <!-- Publications -->
+	  <li class="super-menu"><a href="#project-pubs">Publish</a></li>
 
 	  <!-- Settings specific to this project -->
 	  <li class="super-menu"><a href="#project-settings">Settings</a></li>
@@ -156,16 +163,15 @@
 	<div class="project-consoles hide">
 	  <div class="pull-right">
 	    <span class="lighten">new session:&nbsp; </span>
-	    <span class="btn-group">
 	      <a href="#" class="btn btn-small btn-success">Bash</a>
-	      <a href="#" class="btn btn-small">Sage</a>
-	      <a href="#" class="btn btn-small">GAP</a>
-	      <a href="#" class="btn btn-small">Pari</a>
-	      <a href="#" class="btn btn-small">Maxima</a>
-	      <a href="#" class="btn btn-small">Octave</a>
-	      <a href="#" class="btn btn-small">R</a>
-	      <a href="#" class="btn btn-small">Singular</a>
-	    </span>
+	      <a href="#" class="btn btn-small btn-info">Sage</a>
+	      <a href="#" class="btn btn-small btn-info hide">GAP</a>
+	      <a href="#" class="btn btn-small  btn-info hide">Pari</a>
+	      <a href="#" class="btn btn-small  btn-info hide">Maxima</a>
+	      <a href="#" class="btn btn-small  btn-info hide">Octave</a>
+	      <a href="#" class="btn btn-small  btn-info hide">Python</a>
+	      <a href="#" class="btn btn-small  btn-info hide">R</a>
+	      <a href="#" class="btn btn-small  btn-info hide">Singular</a>
 
 	  </div>
 	  <br><br>
@@ -179,25 +185,67 @@
 
 	<!-- Publications of this project -->
 	<div class="project-pubs hide">
-	  A publication is a specific state of the project, as defined
-	  by a commit in some branch, a choice of file as the "home
-	  page", and a user-specified name.  There is a url associated
-	  to the publication (https://salv.us/userid/name), a way to
-	  browse user publications, etc.  When a visitor requests the
-	  publication, a copy of the project (at the given state) is
-	  opened on some project server, and visitor can interact with
-	  the home page.  This can enable browsing in the project,
-	  e.g., through the sections of a book.  The pages for pubs
-	  will displays statistics (like google analytics?) about
-	  visitors to the pub.  It will also allow for requiring
-	  login, a secret word, etc.  It will also allow for data
-	  collection, e.g., one type of pub can be a homework
-	  assignment for students in a course. 
+	  <b>Not yet implemented:</b> A publication is a specific
+	  state of the project, as defined by a commit in some branch,
+	  a choice of file as the "home page", and a user-specified
+	  name.  There is a url associated to the publication
+	  (https://salv.us/userid/name), a way to browse user
+	  publications, etc.  When a visitor requests the publication,
+	  a copy of the project (at the given state) is opened on some
+	  project server, and visitor can interact with the home page.
+	  This can enable browsing in the project, e.g., through the
+	  sections of a book.  The pages for pubs will displays
+	  statistics (like google analytics?) about visitors to the
+	  pub.  It will also allow for requiring login, a secret word,
+	  etc.  It will also allow for data collection, e.g., one type
+	  of pub can be a homework assignment for students in a
+	  course.
+	</div>
+
+	<!-- Git status for this project -->
+	<div class="project-status hide">
+	  <!-- git status -->
+	  <div class="row">
+	    <div class="span11">
+	      <!-- commit message -->
+	      <form class="project-commit-message">
+		<span class="project-commit-message">
+		  <input class="project-commit-message-input" type="text"
+			 placeholder="enter message to commit changes listed below (git commit -a)...">
+		  <div class="project-commit-message-spinner hide"></div>
+		  <pre class="project-commit-message-output hide"></pre>
+		</span>
+	      </form>
+	    </div>
+	  </div>
+	  <h3>Status <a class="btn btn-info pull-right" href="#refresh"><i class="icon-refresh"></i> Refresh</a></h3>
+	  <div class="row">
+	    <div class="span11 project-git-status">
+	      <pre class="project-git-status-output"></pre>
+	    </div>
+	  </div>
+	  <br><br>
+	  <div class="row">
+	    <div class="span11">
+	      <!-- run a command -->
+	      <form class="project-commit-command">
+		<span class="project-commit-command">
+		  <input class="project-commit-command-input" type="text"
+			 placeholder="enter a shell command...">
+		  <div class="project-commit-command-spinner hide"></div>
+		  <pre class="project-commit-command-output hide"></pre>
+		</span>
+	      </form>
+	    </div>
+	  </div>
 	</div>
 
 	<!-- Git history log for this project -->
 	<div class="project-commits hide">
-	  <div class="project-commits-list"></div>
+	  <div class="row">
+	    <div class="project-commits-list">
+	    </div>
+	  </div>
 	</div>
 
 	<!-- Git branches -->
@@ -215,7 +263,7 @@
 
 	<!-- Page to configure the settings for this project -->
 	<div class="project-settings hide">  <!-- hidden by default -->
-
+	  <b>Not yet implemented:</b>
 	  <ul>
 	    <li> Which tabs ("Browser, Console, editor, etc.") are
 	    displayed and in what order.</li>
