@@ -27,9 +27,10 @@ class TopNavbar  extends EventEmitter
             label         : required   # jquery object that is placed in the button
             'class'       : undefined  # classes to apply to label
             insert_after  : undefined  # if given, the page is inserted after the page with given id.
-            insert_before : undefined  # if given, the page is inserted after the page with given id.
+            insert_before : undefined  # if given, the page is inserted before the page with given id.
             pull_right    : false      # if true, place button in the right-hand side group of buttons.
             close         : true       # if true, include a "close" x.
+            onclose       : undefined  # called if defined when the page is closed
 
         button = @button_template.clone()
         if opts.pull_right
@@ -38,14 +39,14 @@ class TopNavbar  extends EventEmitter
         else
             @buttons.append(button)
             #button.after(@divider_template.clone())
-        @pages[opts.id] = {page:opts.page, button:button}
+        @pages[opts.id] = {page:opts.page, button:button, onclose:opts.onclose}
 
         a = button.find("a")
         a.data("id", opts.id)
         that = @
         a.click((event) -> that.switch_to_page($(this).data("id")); return false)
 
-        @set_button_label(opts.id, opts.label, opts['class'], opts['close'])
+        @set_button_label(opts.id, opts.label, opts.class, opts.close)
 
     set_button_label: (id, label, klass, close=true) ->
         button = @pages[id].button
@@ -89,6 +90,8 @@ class TopNavbar  extends EventEmitter
         if p?
             p.page.remove()
             p.button.remove()
+            if p.onclose?
+                p.onclose()
             delete @pages[id]
 
     # make it so the navbar entry to go to a given page is hidden
@@ -127,10 +130,10 @@ $("#projects").top_navbar
     label   : "Projects"
     close   : false
 
-$("#worksheet2").top_navbar
-    id      : "worksheet2"
-    label   : "Worksheet2"
-    close   : false
+#$("#worksheet2").top_navbar
+#    id      : "worksheet2"
+#    label   : "Worksheet2"
+#    close   : false
 
 $("#worksheet1").top_navbar
     id      : "worksheet1"

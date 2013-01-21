@@ -113,9 +113,11 @@ class ProjectPage
         @container = templates.find(".salvus-project").clone()
         $("#footer").before(@container)
 
+        # Create a new tab in the top navbar
         @container.top_navbar
             id    : @project.project_id
             label : @project.project_id
+            onclose : () => delete project_pages[@project.project_id]
 
         @init_tabs()
         @update_topbar()

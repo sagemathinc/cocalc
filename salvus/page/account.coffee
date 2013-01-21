@@ -217,7 +217,7 @@ signed_in = (mesg) ->
             require('worksheet1').load_scratch_worksheet()
 
             #TEMPORARY -- for writing new cell/worksheet/etc. code
-            top_navbar.show_page_button("worksheet2")
+            #top_navbar.show_page_button("worksheet2")
 
             top_navbar.switch_to_page("projects")
 
@@ -246,7 +246,7 @@ sign_out = () ->
                 show_page("account-sign_in")
                 #top_navbar.hide_page_button("projects")
                 top_navbar.hide_page_button("worksheet1")
-                top_navbar.hide_page_button("worksheet2")
+                #top_navbar.hide_page_button("worksheet2")
                 # TODO: have to remove a bunch of other pages
 
                 top_navbar.switch_to_page("account")
