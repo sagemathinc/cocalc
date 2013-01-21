@@ -351,11 +351,14 @@ class ProjectPage
         @container.find(".project-editor").append(@editor.element)
 
     create_consoles: (initial_consoles) =>   # initial_consoles (optional)
-        @consoles = new Consoles
-            project_id       : @project.project_id
-            counter          : @container.find(".project-consoles-count")
-            initial_consoles : initial_consoles
-        @container.find(".project-consoles").append(@consoles.element)
+        try
+            @consoles = new Consoles
+                project_id       : @project.project_id
+                counter          : @container.find(".project-consoles-count")
+                initial_sessions : initial_consoles
+            @container.find(".project-consoles").append(@consoles.element)
+        catch e
+            console.log("Error creating new Consoles...: #{e}")
 
     display_tab: (name) =>
         for tab in @tabs

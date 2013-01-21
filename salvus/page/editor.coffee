@@ -40,7 +40,7 @@ class exports.Editor
         @element = templates.find(".salvus-editor").clone().show()
         @nav_tabs = @element.find(".nav-tabs")
 
-        @tabs = {}   # filename:DOM element mapping
+        @tabs = {}   # filename:{useful stuff}
 
         if opts.initial_files?
             for filename in opts.initial_files
