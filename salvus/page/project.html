@@ -56,7 +56,23 @@
     <div class="row">
       <div class="well span12">
 	<div class="span12">
-	  <div class="pull-right project-id"></div>
+	  <div class="pull-right">
+	    <!-- The project id -->
+	    <div class="project-id"></div>
+	    <!-- The current branch -->
+	    <div>branch: 
+	      <span class="bold project-branch"></span>
+	    </div>
+	    <!-- Search box -->
+	    <form class="project-search-form">
+	      <span class="project-search-form">
+		<input class="project-search-form-input search-query" type="text"
+                       placeholder="search...">
+		<div class="project-search-form-spinner hide"></div>
+		<div class="project-search-form-output hide"></div>
+	      </span>
+	    </form>
+	  </div>
 
 	  <!-- Title of the project (editable) -->
 	  <h4>
@@ -99,7 +115,7 @@
 	  <li class="super-menu"><a href="#project-commits">Commits</a></li>
 
 	  <!-- Git branches -->
-	  <li class="super-menu"><a href="#project-branches">Branches (<span class="bold project-branch"></span>)</a></li>
+	  <li class="super-menu"><a href="#project-branches">Branches</a></li>
 
 	  <!-- Git forks -->
 <!--
@@ -111,6 +127,9 @@
 
 	  <!-- Settings specific to this project -->
 	  <li class="super-menu"><a href="#project-settings">Settings</a></li>
+
+	  <!-- Search -->
+	  <li class="super-menu"><a href="#project-search">Search</a></li>
 	</ul>
 
 	<!-- The actual screens that get revealed by each tab: -->
@@ -118,7 +137,7 @@
 	<!-- List of all files in the project, which is browsable -->
 	<div class="project-file-listing">
 	  <div class="row">
-	  <div class="span2 pull-right">
+	  <div class="span2 pull-right hide">  <!-- TODO -- hid! -->
 	    <label for="project-commits-branch">
 	      <select name="project-commits-branch" class="project-commits-branch"></select>
 	      <!--<div class="lighten">(shown branch)</div>-->
@@ -133,9 +152,10 @@
 
 	    <!-- current path -->
 	    <span class="project-file-listing-current_path"></span>
-
-	    <br>
-
+	    <div class="row">
+	      <div class="project-file-listing-spinner hide"></div>
+	      <div class="project-file-listing-file-list"></div>
+	    </div>
 	    <!-- command line prompt -->
 	    <form class="project-command-line">
 	      <span class="project-command-line">
@@ -147,11 +167,6 @@
 	      </span>
 	    </form>
 
-	  </div>
-
-	  <div class="row">
-	    <div class="project-file-listing-spinner hide"></div>
-	    <div class="project-file-listing-file-list"></div>
 	  </div>
 	</div>
 
@@ -274,6 +289,11 @@
 	    <li> Compute resource limitations </li>
 	  </ul>
 
+	</div>
+
+	<!-- Search -->
+	<div class="project-search hide">
+	  Output from doing searchers appears here.
 	</div>
 
       </div>

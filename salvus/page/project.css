@@ -109,6 +109,7 @@
     overflow:auto;
 }
 .project-command-line-stderr {
+    margin-left:5ex;
     background-color:#fff;
     color:#922;
     font-size:10pt;
