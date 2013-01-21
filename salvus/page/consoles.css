@@ -27,3 +27,12 @@ Collection of consoles on a project
 .salvus-consoles-button-bar {
     margin-bottom:1em;
 }
+
+.salvus-consoles-command-line-output {
+    width:100%;
+    height:16em;
+}
+
+.salvus-consoles-command-line-input {
+    width:100%;
+}

@@ -1,6 +1,6 @@
 <!--
-Collection of consoles on a project
--->
+    Collection of consoles on a project
+  -->
 
 <span id="salvus-consoles-templates" class="hide">
 
@@ -9,10 +9,10 @@ Collection of consoles on a project
 
     <div class="row salvus-consoles-button-bar">
       <div class="span7">
-	<span class="btn-group">
-	  <a class="btn btn-success" href="#new-command-line"><i class="icon-plus"> </i> Command Line</a>
+	<div class="pull-right">
 	  <a class="btn btn-success" href="#new-xterm"><i class="icon-plus"> </i> XTerm</a>
-	</span>
+	  <a class="btn btn-success" href="#new-command-line"><i class="icon-plus"> </i> Command Line</a>
+	</div>
 
 	<!-- The console tabs go in this ul: -->
 	<ul class="nav nav-tabs">
@@ -42,11 +42,14 @@ Collection of consoles on a project
     </a>
   </li>
 
-  <!-- Template for the codemirror text editor -->
-  <div class="salvus-consoles-xterm">
+  <!-- Template for command line console -->
+  <div class="salvus-consoles-command-line">
+    <textarea class="salvus-consoles-command-line-output">
+    </textarea>
+    <div class="salvus-consoles-command-line-spinner hide"></div>
+    <form>
+      <input class="salvus-consoles-command-line-input" type="text" placeholder="bash $ ">
+    </form>
   </div>
 
 </span>
-
-</span>
-

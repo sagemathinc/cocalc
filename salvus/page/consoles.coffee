@@ -156,14 +156,48 @@ class Console
 
 class CommandLineConsole extends Console
     init : () =>
-        @element = $("<textarea>stuff</textarea>")
+        @element = templates.find(".salvus-consoles-command-line").clone()
         @title_ui.text("Command Line")
+
+        # Enable the command line prompt.
+        that = @
+        @element.find("form").submit () ->
+            try
+                that._exec_command()
+            catch e
+                console.log(e)
+            return false
 
     show: () =>
         @element.show()
 
     hide: () =>
         @element.hide()
+
+    _exec_command: () =>
+        input = @element.find("input")
+        command = input.val()
+        input.val("")
+        @_append_to_output('bash$ ' + command + '\n')
+        spinner = @element.find(".salvus-consoles-command-line-spinner").show().spin()
+        salvus_client.exec
+            project_id : @project_id
+            command    : command
+            timeout    : 3
+            max_output : 100000
+            bash       : true
+            cb         : (err, output) =>
+                spinner.spin(false).hide()
+                if err
+                    out = err
+                else
+                    out = output.stderr + output.stdout
+                @_append_to_output(out)
+
+    _append_to_output: (val) =>
+        output_area = @element.find(".salvus-consoles-command-line-output")
+        output_area.val(output_area.val() + val)
+        output_area.scrollTop(output_area[0].scrollHeight - output_area.height())
 
 class XTermConsole extends Console
     init : () =>
