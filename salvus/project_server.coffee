@@ -688,6 +688,7 @@ events.write_file_to_project = (socket, mesg) ->
             path = "#{userpath(mesg.project_id)}/#{mesg.path}"
             user = username(mesg.project_id)
             winston.debug("mesg --> #{misc.to_json(mesg)}, path=#{path}")
+            uid = undefined
             async.series([
                 (c) ->
                     verify_that_path_is_valid mesg.project_id, path, (err, realpath) ->
@@ -697,11 +698,18 @@ events.write_file_to_project = (socket, mesg) ->
                             mesg.path = realpath
                             c()
                 (c) ->
-                    winston.debug("writeFile(#{path}, #{value.blob})")
                     fs.writeFile(path, value.blob, c)
+                (c) ->
+                    getuid user, (err, id) ->
+                        if err
+                            c(err)
+                        else
+                            uid = id
+                            c()
                 # Set the permissions on the file to the correct user (instead of root)
                 (c) ->
-                    child_process.exec "chown #{user}. #{path}", c
+                    fs.chown(path, uid, uid, c)
+
             ], (err) ->
                 if err
                     socket.write_mesg 'json', message.error(id:mesg.id,error:err)

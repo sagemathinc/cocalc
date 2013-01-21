@@ -70,7 +70,6 @@ class exports.Editor
             return false
 
     update_counter: () =>
-        console.log(@counter)
         if @counter?
             @counter.text(len(@tabs))
 
