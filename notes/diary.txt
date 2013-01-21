@@ -9287,14 +9287,14 @@ debug: BUG *********************************************************************
    [x] (3 hours) commit current repo; somewhat involved UI stuff
    [x] (5min) project status tab -- update status on showing tab
    [x] (10min) fix that closing then re-opening project dies -- should be easy.
-   [x] (1:15min) Get rid of edit button in browser and make clicking on file just bring it up in editor.  
-
-
-   [ ] include "run command here..." even when showing file preview; in that case just run in dir that contains file;
+   [x] (1:15min) Get rid of edit button in browser and make clicking on file just bring it up in editor.
 
    [ ] browser doesn't show paths in a directory if there are no files in that directory.
        confusing.  it should really just browse the current live files, not something
        checked in.  SEriously.
+
+
+   [ ] include "run command here..." even when showing file preview; in that case just run in dir that contains file;
 
    [ ] editor: warn_user about unsaved changes
 

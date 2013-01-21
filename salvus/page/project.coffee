@@ -646,7 +646,11 @@ class ProjectPage
                     t.find(".project-file-last-edited").attr('title', obj.commit.date).timeago()
                     t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
                     # Clicking -- open the file in the editor
-                    t.data('path',path + '/' + obj.filename).click (e) ->
+                    if path != ""
+                        fname = path + '/' + obj.filename
+                    else
+                        fname = obj.filename
+                    t.data('path',fname).click (e) ->
                         path = $(@).data('path')
                         that.editor.open(path)
                         that.display_tab("project-editor")
