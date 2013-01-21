@@ -34,20 +34,6 @@
     font-weight:bold;
 }
 
-.project-new-file-icon {
-}
-
-.project-new-file-icon:hover {
-    background-color:#efe;
-}
-
-.project-home-icon {
-}
-
-.project-home-icon:hover {
-    background-color:#efe;
-}
-
 .project-commits-branch {
     font-weight:bold;
     width:12ex;
@@ -110,7 +96,8 @@
 
 .project-command-line-input {
     margin-left:3ex;
-    width:50%;
+    margin-top:1ex;
+    width:90%;
 }
 
 .project-command-line-stdout {

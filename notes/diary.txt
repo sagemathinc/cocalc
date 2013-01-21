@@ -9282,9 +9282,12 @@ debug: BUG *********************************************************************
    EDITOR:
 
    [x] (12min) project: show number of open files in Editor title.
-   [ ] change home icon to a button (maybe with icon in it)
+   [x] (20min) change home icon to a button (maybe with icon in it)
+   [ ] saving a file with a space in the filename fails (from editor)
    [ ] commit current repo
-
+   [ ] browser doesn't show paths in a directory if there are no files in that directory. 
+       confusing.  it should really just browse the current live files, not something
+       checked in.  SEriously.
 
 
 ----------

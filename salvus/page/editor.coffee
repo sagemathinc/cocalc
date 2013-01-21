@@ -2,7 +2,7 @@
 # Editor for files in a project
 ##################################################
 
-{keys, defaults, required, filename_extension, len} = require('misc')
+{to_json, keys, defaults, required, filename_extension, len} = require('misc')
 
 {salvus_client} = require('salvus_client')
 {EventEmitter} = require('events')
@@ -116,7 +116,7 @@ class exports.Editor
                 if err
                     alert_message(type:"error", message:"Communications issue loading new version of #{filename} -- #{err}")
                 else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error loading new version of #{filename} -- #{mesg.error}")
+                    alert_message(type:"error", message:"Error loading new version of #{filename} -- #{to_json(mesg.error)}")
                 else
                     current_content = tab.editor.val()
                     new_content = mesg.content
@@ -159,7 +159,7 @@ class exports.Editor
                 if err
                     alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
                 else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error saving #{filename} -- #{mesg.error}")
+                    alert_message(type:"error", message:"Error saving #{filename} -- #{to_json(mesg.error)}")
                 # TODO -- change some state to reflect success, e.g., disable save button
 
     # Load a file from the backend if there is a tab for this file;
