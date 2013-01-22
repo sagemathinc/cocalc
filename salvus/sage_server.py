@@ -25,7 +25,7 @@ For debugging (as normal user, do):
 
 
 import json, os, resource, shutil, signal, socket, struct, sys, \
-       tempfile, time, traceback, uuid
+       tempfile, time, traceback, uuid, pwd
 
 import parsing, sage_salvus
 
@@ -504,10 +504,11 @@ def execute(conn, id, code, data, preparse):
         (sys.stdout, sys.stderr) = streams
 
 
-def drop_privileges(id, home):
+def drop_privileges(id, home, transient):
     gid = id
     uid = id
-    os.chown(home, uid, gid)
+    if transient:
+        os.chown(home, uid, gid)
     os.setgid(gid)
     os.setuid(uid)
     os.environ['DOT_SAGE'] = home
@@ -515,10 +516,11 @@ def drop_privileges(id, home):
     os.chdir(home)
 
 
-def session(conn, home, cputime, numfiles, vmem, uid):
+def session(conn, home, cputime, numfiles, vmem, uid, transient):
     pid = os.getpid()
     if home is not None:
-        drop_privileges(uid, home)
+        drop_privileges(uid, home, transient)
+        pass
 
     if cputime is not None:
         resource.setrlimit(resource.RLIMIT_CPU, (cputime,cputime))
@@ -579,12 +581,13 @@ def rmtree(path):
         shutil.rmtree(path)
 
 class Connection(object):
-    def __init__(self, pid, uid, home=None, maxtime=3600):
+    def __init__(self, pid, uid, home=None, maxtime=3600, transient=False):
         self._pid = pid
         self._uid = uid
         self._home = home
         self._start_time = time.time()
         self._maxtime = maxtime
+        self._transient = transient
 
     def __repr__(self):
         return 'pid=%s, home=%s, start_time=%s, maxtime=%s'%(
@@ -598,6 +601,8 @@ class Connection(object):
         os.kill(self._pid, sig)
 
     def remove_files(self):
+        if not self._transient:
+            return
         # remove any other files created in /tmp by this user, if server is running as root.
         if whoami == 'root':
             if self._home is not None:
@@ -660,8 +665,17 @@ def serve_connection(conn):
         return
 
     # start a session
-    home = tempfile.mkdtemp() if whoami == 'root' else None
-    uid = (os.getpid() % 5000) + 5000   # TODO: just for testing; hub/db will have to assign and track this!
+    if 'project_id' in mesg:
+        # Start session with user determined by the given project.
+        transient = False
+        username = mesg['project_id'][:8]
+        home = "/home/" + username
+        uid = pwd.getpwnam(username).pw_uid
+    else:
+        transient = True
+        home = tempfile.mkdtemp() if whoami == 'root' else None
+        uid = (os.getpid() % 5000) + 5000   # TODO: just for testing; hub/db will have to assign and track this!
+
     pid = os.fork()
     limits = mesg.get('limits', {})
     if pid:
@@ -670,7 +684,8 @@ def serve_connection(conn):
         if whoami == 'root':
             # TODO TODO on linux, set disk quota for given user
             pass
-        C = Connection(pid=pid, uid=uid, home=home, maxtime=limits.get('walltime', LIMITS['walltime']))
+        C = Connection(pid=pid, uid=uid, home=home,
+                       maxtime=limits.get('walltime', LIMITS['walltime']), transient=transient)
         C.monitor()
     else:
         # child
@@ -678,7 +693,8 @@ def serve_connection(conn):
         session(conn, home, uid=uid,
                 cputime=limits.get('cputime', LIMITS['cputime']),
                 numfiles=limits.get('numfiles', LIMITS['numfiles']),
-                vmem=limits.get('vmem', LIMITS['vmem']))
+                vmem=limits.get('vmem', LIMITS['vmem']),
+                transient=transient)
 
 def serve(port, host):
     #log.info('opening connection on port %s', port)

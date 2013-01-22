@@ -9399,15 +9399,17 @@ I'm going to try to make Salvus basically usable, and ignore a lot of
 the little bugs and polish, and focus more on getting features
 working, and only then move on to polish and bug fixing.  What I must do:
 
---> [ ] worksheets
+ [x] worksheets (very basic!)
+
+ [ ] save/load worksheets
+
+ [ ] basic publish
 
  [ ] click to show commit
 
  [ ] browser must browse live directory, but give git-related info
      about each file -- last commit and whether or not it was checked
      in.
-
- [ ] basic publish
 
  [ ] basic search
 

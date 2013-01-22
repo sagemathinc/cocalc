@@ -37,6 +37,7 @@ class exports.Consoles
 
         # Enable buttons for creating new consoles.
         @element.find("a[href=#new-command-line]").click () => @create_tab(type:'command-line')
+        @element.find("a[href=#new-worksheet]").click () => @create_tab(type:'worksheet')
         @element.find("a[href=#new-xterm]").click () => @create_tab(type:'xterm')
 
         that = @
@@ -97,9 +98,6 @@ class exports.Consoles
             return
         else
             session_id = uuid()
-            if opts.type not in ['command-line', 'xterm']
-                console.log("consoles -- unknown opts.type '#{opts.type}'")
-                return
             type = opts.type
 
         # create the tab UI element
@@ -113,9 +111,14 @@ class exports.Consoles
         # create the actual console.
         switch type
             when 'command-line'
-                console = new CommandLineConsole(opts)
+                console = new CommandLineSession(opts)
             when 'xterm'
-                console = new XTermConsole(opts)
+                console = new XTermSession(opts)
+            when 'worksheet'
+                console = new WorksheetSession(opts)
+            else
+                alert_message(type:"error", "unknown session type '#{opts.type}'")
+                return
 
         console.element.hide()
 
@@ -139,7 +142,7 @@ class exports.Consoles
 
         @display_tab(session_id)
 
-class Console
+class Session
     constructor : (opts) ->
         opts = defaults opts,
             project_id : required
@@ -167,7 +170,8 @@ class Console
     remove: () =>
         @element.remove()
 
-class CommandLineConsole extends Console
+# TODO -- probably delete -- this is not a session!
+class CommandLineSession extends Session
     init : () =>
         @element = templates.find(".salvus-consoles-command-line").clone()
         @title_ui.text("cmdline")
@@ -206,15 +210,15 @@ class CommandLineConsole extends Console
         output_area.val(output_area.val() + val)
         output_area.scrollTop(output_area[0].scrollHeight - output_area.height())
 
-class XTermConsole extends Console
+class XTermSession extends Session
     init : () =>
-        @element = $("<div>Connecting...</div>")
+        @element = $("<div>Connecting to console server...</div>")
         salvus_client.new_session
-            timeout : 15  # make longer later -- TODO -- mainly for testing!
-            limits : {walltime:60*15}
-            type   : "console"
+            timeout    : 15  # make longer later -- TODO -- mainly for testing!
+            limits     : {walltime:60*15}
+            type       : "console"
             project_id : @project_id
-            params : {command:'bash', args:['--norc'], ps1:"\\w\\$ "}
+            params     : {command:'bash', args:['--norc'], ps1:"\\w\\$ "}
             cb : (err, session) =>
                 if err
                     @element.text(err)
@@ -229,8 +233,22 @@ class XTermConsole extends Console
 
         @title_ui.text("xterm")
 
-    show: () =>
-        @element.show()
-
-    hide: () =>
-        @element.hide()
+class WorksheetSession extends Session
+    init : () =>
+        @element = $("<div>Connecting to worksheet server...</div>")
+        salvus_client.new_session
+            timeout    : 15
+            limits     : {walltime:60*15}
+            type       : "sage"
+            project_id : @project_id
+            cb : (err, session) =>
+                if err
+                    @element.text(err)
+                else
+                    @element.show()
+                    @element.salvus_worksheet
+                        title   : "worksheet"
+                        session : session
+                    @worksheet = @element.data("worksheet")
+                    @element = @worksheet.element
+        @title_ui.text("worksheet")
