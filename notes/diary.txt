@@ -9293,7 +9293,9 @@ debug: BUG *********************************************************************
 
 -->   [ ] I want terminal functionality in projects.  that's my goal for today.
 
-
+ [ ] extend console session so that hub can specify the username
+ [ ] add function to Project class in hub to make a new console session on that project
+ [ ] add option to new session to specify the project_id, and if so open console on that project
 
 
 

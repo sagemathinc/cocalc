@@ -604,7 +604,7 @@ class Client extends EventEmitter
                 project = new Project(project_id)
                 project.open(cb)
             (cb) =>
-                project.save("Created new project.", @account_id, cb)
+                project.save("Created new project.", @account_id, true, cb)
             (cb) =>
                 project.close(cb)
         ], (error) =>
@@ -679,7 +679,7 @@ class Client extends EventEmitter
     mesg_save_project: (mesg) =>
         # TODO -- permissions!
         project = new Project(mesg.project_id)
-        project.save mesg.commit_mesg, @account_id, (err) =>
+        project.save mesg.commit_mesg, @account_id, true, (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
@@ -1221,7 +1221,7 @@ class Project
 
     # Save the project to the database.  This involves saving at least
     # zero (!) bundles to the project_bundles table.
-    save: (commit_mesg, account_id, cb) -> # cb(err) -- indicates when done
+    save: (commit_mesg, account_id, add_all, cb) -> # cb(err) -- indicates when done
         id = uuid.v4() # used to tag communication with the project server
 
         save_mesg = message.save_project
@@ -1229,6 +1229,7 @@ class Project
             project_id             : @project_id
             starting_bundle_number : 0  # will get changed below
             commit_mesg            : commit_mesg
+            add_all                : add_all
 
         socket             = undefined
         host               = undefined
@@ -2680,11 +2681,6 @@ create_persistent_console_session = (client, mesg) ->
 
     # Cap limits on the console session.
     client.cap_session_limits(mesg.limits)
-    # Determine the home directory
-    # TODO: when we have projects this will be /tmp/project-id; for now use session_uuid
-    # home is a relative path under wherever the console_server has been configured to store home dirs
-    if not mesg.params.home?
-        mesg.params.home = session_uuid
 
     database.random_compute_server(type:'console', cb:(error, console_server) ->
         winston.debug(to_json(error) + to_json(console_server))
@@ -2707,8 +2703,10 @@ create_persistent_console_session = (client, mesg) ->
             compute_sessions[session_uuid] = console_session
             client.compute_session_uuids.push(session_uuid)
 
-            # Send session configuration
+            # Add functionality to TCP socket so that we can send JSON messages
             misc_node.enable_mesg(console_session)
+
+            # Send session configuration as a JSON message
             console_session.write_mesg('json', mesg)
             winston.debug("console session -- wrote config message (=#{to_json(mesg)}")
 

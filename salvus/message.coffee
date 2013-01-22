@@ -37,6 +37,8 @@ message
 message
     event        : 'start_session'
     type         : required           # "sage", "console";  later this could be "R", "octave", etc.
+    # TODO: project_id should be required
+    project_id   : undefined          # the project that this session will start in
     params       : undefined          # extra parameters that control the type of session
     id           : undefined
     limits       : undefined
@@ -514,6 +516,7 @@ message
     starting_bundle_number : undefined
     commit_mesg            : required    # the commit message
     gitconfig              : undefined   # needed by project_server
+    add_all                : false       # if true and *all* files before saving.
 
 # The project_saved message is sent to a hub by a project_server when
 # the project_servers creates a new snapshot of the project in

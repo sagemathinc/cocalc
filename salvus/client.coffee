@@ -276,11 +276,18 @@ class exports.Connection extends EventEmitter
             timeout : 10          # how long until give up on getting a new session
             type    : "sage"      # "sage", "console"
             params  : undefined   # extra params relevant to the session
+            project_id : undefined # project that this session starts in (TODO: make required)
             cb      : required    # cb(error, session)  if error is defined it is a string
 
         @call
-            message : message.start_session(limits:opts.limits, type:opts.type, params:opts.params)
+            message : message.start_session
+                limits     : opts.limits
+                type       : opts.type
+                params     : opts.params
+                project_id : opts.project_id
+
             timeout : opts.timeout
+
             cb      : (error, reply) =>
                 if error
                     opts.cb(error)

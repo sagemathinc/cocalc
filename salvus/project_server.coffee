@@ -45,10 +45,10 @@ misc           = require 'misc'
 # string of the uuid, but with -'s replaced by _'s so we
 # obtain a valid unix account name.
 username = (project_id) ->
-    if '..' in project_id
+    if '..' in project_id or project_id.length != 36
         # a sanity check -- this should never ever be allowed to happen, ever.
         throw "invalid project id #{project_id}"
-    return project_id.replace(/-/g,'')
+    return project_id.replace(/-/g,'')   # see also console_server.coffee
 
 # The path to the home directory of the user associated with
 # the given project_id.
@@ -274,7 +274,10 @@ getuid = (user, cb) ->
             if err
                 cb(err)
             else
-                id = parseInt(id)
+                try
+                    id = parseInt(id)
+                catch e
+                    cb("parse error #{id} should be an integer")
                 getuid.cache[user] = id
                 cb(false, id)
 getuid.cache = {}
@@ -443,8 +446,9 @@ _open_project2 = (socket, mesg) ->
             socket.write_mesg('json', message.project_opened(id:mesg.id))
     )
 
-# Commit all changes to files in the project, plus add all new files
-# that are not .gitignore'd to the current branch, whatever it may be.
+# Commit all changes to files in the project, plus (if add_all is
+# true) add all new files that are not .gitignore'd to the current
+# branch, whatever it may be.
 commit = (opts) ->
     opts = defaults opts,
         user        : required
@@ -452,6 +456,7 @@ commit = (opts) ->
         commit_mesg : required
         gitconfig   : required
         cb          : required
+        add_all     : false
     if opts.commit_mesg == ''
         opts.commit_mesg = '(no message)'
     commit_file = "#{opts.path}/.git/salvus/COMMIT_MESG"
@@ -463,8 +468,10 @@ commit = (opts) ->
             fs.writeFile(commit_file, opts.commit_mesg, cb)
         (cb) ->
             #TODO -- change to exec as uid directly.
-            #cmd = "su - #{opts.user} -c 'cd && git add . && git commit -a -F #{commit_file}'"
-            cmd = "su - #{opts.user} -c 'cd && git commit -a -F #{commit_file}'"
+            if opts.add_all
+                cmd = "su - #{opts.user} -c 'cd && git add . && git commit -a -F #{commit_file}'"
+            else
+                cmd = "su - #{opts.user} -c 'cd && git commit -a -F #{commit_file}'"
             winston.debug(cmd)
             child_process.exec cmd, (err, stdout, stderr) ->
                 winston.debug(err, stdout, stderr)
@@ -564,6 +571,7 @@ events.save_project = (socket, mesg) ->
                 path        : path
                 commit_mesg : mesg.commit_mesg
                 gitconfig   : mesg.gitconfig
+                add_all     : mesg.add_all
                 cb          : cb
 
         # If necessary (e.g., there were changes) create an additional

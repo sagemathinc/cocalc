@@ -157,7 +157,7 @@ class Console
 class CommandLineConsole extends Console
     init : () =>
         @element = templates.find(".salvus-consoles-command-line").clone()
-        @title_ui.text("Command Line")
+        @title_ui.text("cmdline")
 
         # Enable the command line prompt.
         that = @
@@ -206,19 +206,21 @@ class XTermConsole extends Console
             timeout : 2  # make longer later -- TODO -- mainly for testing!
             limits : {walltime:60*15}
             type   : "console"
+            project_id : @project_id
             params : {command:'bash', args:['--norc'], ps1:"\\w\\$ "}
             cb : (err, session) =>
                 if err
                     @element.text(err)
                 else
                     @element.salvus_console
-                        title   : "XTerm"
+                        title   : "xterm"
                         session : session,
                         cols    : 80
-                        rows    : 16
+                        rows    : 24
                     @console = @element.data("console")
+                    @element = @console.element
 
-        @title_ui.text("XTerm")
+        @title_ui.text("xterm")
 
     show: () =>
         @element.show()
