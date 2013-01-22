@@ -55,7 +55,7 @@ class exports.Consoles
         tab = @tabs[filename]
         if not tab? # nothing to do -- file isn't opened anymore
             return
-        if warn and tab.editor.has_unsaved_changes()
+        if warn and tab.console.has_unsaved_changes()
             @warn_user filename, (proceed) =>
                 @close(filename, false)
 
@@ -64,7 +64,7 @@ class exports.Consoles
             filename   : filename
 
         tab.link.remove()
-        tab.editor.remove()
+        tab.console.remove()
         delete @tabs[filename]
         @update_counter()
 
@@ -154,6 +154,19 @@ class Console
     init : () =>
         throw("Define init method in derived class -- should create @element UI")
 
+    has_unsaved_changes: () =>
+        # TODO
+        return false
+
+    show: () =>
+        @element.show()
+
+    hide: () =>
+        @element.hide()
+
+    remove: () =>
+        @element.remove()
+
 class CommandLineConsole extends Console
     init : () =>
         @element = templates.find(".salvus-consoles-command-line").clone()
@@ -167,12 +180,6 @@ class CommandLineConsole extends Console
             catch e
                 console.log(e)
             return false
-
-    show: () =>
-        @element.show()
-
-    hide: () =>
-        @element.hide()
 
     _exec_command: () =>
         input = @element.find("input")
@@ -221,9 +228,3 @@ class XTermConsole extends Console
                     @element = @console.element
 
         @title_ui.text("xterm")
-
-    show: () =>
-        @element.show()
-
-    hide: () =>
-        @element.hide()

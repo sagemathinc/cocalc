@@ -9296,13 +9296,12 @@ debug: BUG *********************************************************************
     [x] extend console session so that hub can specify the username
 
     [x] console: tab bar too skinny.
-    [ ] console: closing active tab doesn't delete/hide corresponding prompt.
+-->    [ ] console: closing active tab doesn't delete/hide corresponding prompt.
     [ ] console: HOME environ variable is wrong
     [ ] console: ls needs colors
     [ ] console BUG -- if n xterms are open, then get n echos of input back; even if close xterms
     [ ] console: overwrite mode instead of insert mode by default; annoying
     [ ] console: replace countdown timer by live ping
-
 
 
 
