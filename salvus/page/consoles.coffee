@@ -228,3 +228,9 @@ class XTermConsole extends Console
                     @element = @console.element
 
         @title_ui.text("xterm")
+
+    show: () =>
+        @element.show()
+
+    hide: () =>
+        @element.hide()

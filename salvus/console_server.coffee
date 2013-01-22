@@ -156,7 +156,7 @@ server = net.createServer (socket) ->
     # Receive a single message:
     misc_node.enable_mesg(socket)
     socket.on 'mesg', (type, mesg) ->
-        winston.debug "received control mesg #{mesg}"
+        winston.debug "received control mesg #{to_json(mesg)}"
         handle_client(socket, mesg)
 
 # Start listening for connections on the socket.

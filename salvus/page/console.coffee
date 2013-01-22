@@ -95,10 +95,11 @@ class Console extends EventEmitter
         @set_title(@opts.title)
 
         # Create the new Terminal object -- this is defined in
-        # static/term.js -- it's a nearly complete implemenation of
+        # static/term/term.js -- it's a nearly complete implementation of
         # the xterm protocol.
         @terminal = new Terminal(@opts.cols, @opts.rows)
-        # this is needed by the custom renderer, if it is used.
+
+        # this object (=@) is needed by the custom renderer, if it is used.
         @terminal.salvus_console = @
 
         that = @
@@ -131,13 +132,16 @@ class Console extends EventEmitter
         # Plug the remote session into the terminal.
 
         # The user types in the terminal, so we send the text to the remote server:
-        @terminal.on 'data',  (data) => @session.write_data(data)
+        @terminal.on 'data',  (data) =>
+            #console.log("user typed: '#{data}' into #{@opts.session.session_uuid}")
+            @session.write_data(data)
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
 
         # The remote server sends data back to us to display:
-        @session.on 'data',  (data) => @terminal.write(data)
+        @session.on 'data',  (data) =>
+            @terminal.write(data)
 
 
         #########################
@@ -210,8 +214,8 @@ class Console extends EventEmitter
         @element.find(".salvus-console-terminal").replaceWith(@terminal.element)
         ter = $(@terminal.element)
         ter.on('click', () => @focus())
-        # Focus/blur handler.
 
+        # Focus/blur handler.
         if IS_MOBILE  # so keyboard appears
             if @opts.renderer == 'ttyjs'
                 @mobile_target = @element.find(".salvus-console-for-mobile")
@@ -225,13 +229,12 @@ class Console extends EventEmitter
                         @blur()
                 )
         else
-            $(document).on('click', (e) =>
+            $(document).on 'click', (e) =>
                 t = $(e.target)
                 if t.hasParent($(@terminal.element)).length > 0
                     @focus()
                 else
                     @blur()
-            )
 
     _init_buttons: () ->
         editor = @terminal.editor

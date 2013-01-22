@@ -9299,12 +9299,19 @@ debug: BUG *********************************************************************
     [x] console: closing active tab doesn't delete/hide corresponding console
     [x] console: HOME environ variable is wrong
 
-    [ ] console: ls needs colors
-    [ ] console BUG -- if n xterms are open, then get n echos of input back; even if close xterms
+    [x] console BUG -- if n xterms are open, then get n echos of input back; even if close xterms.
+
+    [ ] console: ls needs colors; to fix this need to have
+        a template for the home directory, including a .bashrc, and make
+        sure that it is read on startup
+
+    [ ] xterm console titlebar doesn't work.
+
     [ ] console: overwrite mode instead of insert mode by default; annoying
     [ ] console: replace countdown timer by live ping
 
 
+   [ ] console: if screen skinny then on desktop in codemirror mode, it gets all weird and doesn't work; actually resizing is needed...
 
    [ ] browser doesn't show paths in a directory if there are no files in that directory.
        confusing.  it should really just browse the current live files, not something
