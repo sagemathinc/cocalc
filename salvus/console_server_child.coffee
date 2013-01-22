@@ -24,10 +24,8 @@ process.on 'message', (opts, socket) ->
         vmem    : required  # limit on virtual memory (in megabytes)  POSIX rlimit name: 'as' (address space)
         numfiles: required  # limit on number of file descriptors     POSIX rlimit name: 'nofile'
 
-    if opts.gid? or opts.uid?
-        env = {HOME:opts.home, PATH:opts.path, PS1:opts.ps1}
-    else
-        env = process.env
+    env = {HOME:opts.home, PATH:opts.path, PS1:opts.ps1}
+    # env = process.env   # for testing sometimes do this...
 
     term_opts =
         name : 'xterm-color'   # do *NOT* use just "xterm"!
