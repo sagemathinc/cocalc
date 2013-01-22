@@ -201,7 +201,23 @@ class CommandLineConsole extends Console
 
 class XTermConsole extends Console
     init : () =>
-        @element = $("<textarea>xterm stuff</textarea>")
+        @element = $("<div>Connecting...</div>")
+        salvus_client.new_session
+            timeout : 2  # make longer later -- TODO -- mainly for testing!
+            limits : {walltime:60*15}
+            type   : "console"
+            params : {command:'bash', args:['--norc'], ps1:"\\w\\$ "}
+            cb : (err, session) =>
+                if err
+                    @element.text(err)
+                else
+                    @element.salvus_console
+                        title   : "XTerm"
+                        session : session,
+                        cols    : 80
+                        rows    : 16
+                    @console = @element.data("console")
+
         @title_ui.text("XTerm")
 
     show: () =>

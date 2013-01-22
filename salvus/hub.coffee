@@ -408,6 +408,7 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
+
         switch mesg.type
             when 'sage'
                 create_persistent_sage_session(@, mesg)
@@ -2553,7 +2554,7 @@ SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles
 SESSION_LIMITS = {cputime:10*60, walltime:30*60, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (client, mesg) ->
-    winston.log('creating persistent sage session')
+    winston.info('creating persistent sage session')
     # generate a uuid
     session_uuid = uuid.v4()
     client.cap_session_limits(mesg.limits)
@@ -2671,7 +2672,7 @@ connect_to_existing_console_session = (client, mesg) ->
         client.push_to_client(message.session_connected(id:mesg.id, data_channel:channel))
 
 create_persistent_console_session = (client, mesg) ->
-    winston.log('creating a console session for user with account_id #{account_id}')
+    winston.debug("creating a console session for user with account_id #{client.account_id}")
     session_uuid = uuid.v4()
 
     if not mesg.params?
@@ -2686,28 +2687,34 @@ create_persistent_console_session = (client, mesg) ->
         mesg.params.home = session_uuid
 
     database.random_compute_server(type:'console', cb:(error, console_server) ->
+        winston.debug(to_json(error) + to_json(console_server))
         if error
             client.push_to_client(message.error(id:mesg.id, error:error))
             return
+
         console_session = net.connect {port:console_server.port, host:console_server.host}, () ->
-            # store the console_session, so other clients can potentially tune in (TODO: also store something in database)
+
+            # store the console_session, so other clients can
+            # potentially tune in (TODO: also store something in database)
             console_session.closed = false
+
             console_session.on('end', ()->console_session.closed = true)
 
             console_session.port = console_server.port
             console_session.host = console_server.host
             console_session.account_id = client.account_id
             console_sessions[session_uuid] = console_session
-
             compute_sessions[session_uuid] = console_session
-
             client.compute_session_uuids.push(session_uuid)
 
             # Send session configuration
             misc_node.enable_mesg(console_session)
             console_session.write_mesg('json', mesg)
+            winston.debug("console session -- wrote config message (=#{to_json(mesg)}")
+
             # Get back pid of child
             console_session.once 'mesg', (type, resp) ->
+                winston.debug("Console session -- get back pid of child #{type}, #{to_json(resp)}")
                 misc_node.disable_mesg(console_session)
 
                 if resp.event == 'error'

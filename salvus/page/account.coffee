@@ -539,6 +539,7 @@ $("#account").find(".account-cell0").salvus_cell
 
 elt = $("#account").find(".account-console0")
 if not elt.data('initialized')
+    return # TODO -- this needs to get implemented
     elt.data('initialized',true)
     salvus_client.new_session
         limits : {}

@@ -29,7 +29,7 @@ console.coffee
 account.coffee
 
 worksheet1.coffee
-worksheet2.coffee
+#worksheet2.coffee
 
 editor.coffee
 consoles.coffee

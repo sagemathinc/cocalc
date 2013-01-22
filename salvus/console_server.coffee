@@ -84,6 +84,8 @@ start_session = (socket, mesg) ->
     if not opts.cwd?
         opts.cwd = opts.home
 
+    winston.debug "start_session opts = #{to_json(opts)}"
+
     # If opts.home does not exist, create it and set the right
     # permissions before dropping privileges:
     makedirs opts.home, opts.uid, opts.gid, (err) ->
