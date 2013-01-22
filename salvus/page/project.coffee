@@ -341,7 +341,7 @@ class ProjectPage
                 that.display_tab($(@).data("name"))
                 return false
 
-        # @display_tab("project-branches") # TODO -- for testing.
+        @display_tab("project-consoles") # TODO -- for testing.
 
     create_editor: (initial_files) =>   # initial_files (optional)
         @editor = new Editor
