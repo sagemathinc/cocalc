@@ -9301,6 +9301,8 @@ debug: BUG *********************************************************************
 
     [x] console BUG -- if n xterms are open, then get n echos of input back; even if close xterms.
 
+    [x] make username shorter, e.g., first 8 characters of uuid
+
     [ ] console: ls needs colors; to fix this need to have
         a template for the home directory, including a .bashrc, and make
         sure that it is read on startup
@@ -9358,6 +9360,8 @@ debug: BUG *********************************************************************
 
    [ ] BUG -- once there are 10 bundles things don't work...
    [ ] BUG -- this filename broke filename listing: mkdir "this is 'a' cool! ar\"rse directory"
+
+   [ ] TODO: may want to ensure that first 8 characters of project uuid determines it when creating new projects...?
 
 
    [ ] Feature: Easy ability to delete projects, with a screen to get them back within 30 days (say).

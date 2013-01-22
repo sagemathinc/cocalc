@@ -84,7 +84,8 @@ start_session = (socket, mesg) ->
     if mesg.project_id.length != 36
         winston.debug("suspicious project_id (=#{mesg.project_id}) -- bailing")
         return
-    username = mesg.project_id.replace(/-/g,'')  # see also project_server.coffee:username
+    #username = mesg.project_id.replace(/-/g,'')  # see also project_server.coffee:username
+    username = mesg.project_id.slice(0,8)
 
     opts.cputime  = mesg.limits.cputime
     opts.vmem     = mesg.limits.vmem

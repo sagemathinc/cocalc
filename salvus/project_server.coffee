@@ -48,7 +48,8 @@ username = (project_id) ->
     if '..' in project_id or project_id.length != 36
         # a sanity check -- this should never ever be allowed to happen, ever.
         throw "invalid project id #{project_id}"
-    return project_id.replace(/-/g,'')   # see also console_server.coffee
+    #return project_id.replace(/-/g,'')   # see also console_server.coffee
+    return project_id.slice(0,8)
 
 # The path to the home directory of the user associated with
 # the given project_id.
@@ -152,14 +153,14 @@ create_user = (project_id, quota, cb) ->
         if err
             # We attempted to make the user, but something went wrong along the way, so we better clean up!
             winston.debug("** Attempting to make user failed -- #{err}... cleaning up.** ")
-            delete_user_32(uname)
+            delete_user_8(uname)
         cb(err)
     )
 
 # Delete the given UNIX user, corresponding group, and all files they own.
-delete_user_32 = (uname, cb) ->
-    if uname.length != 32  # a sanity check to avoid accidentally deleting a non-salvus user!
-        cb("delete_user -- the uname (='#{uname}') must be exactly 32 characters long")
+delete_user_8 = (uname, cb) ->
+    if uname.length != 8  # a sanity check to avoid accidentally deleting a non-salvus user!
+        cb("delete_user -- the uname (='#{uname}') must be exactly 8 characters long")
         return
 
     # clear cached uid for this user
@@ -640,8 +641,8 @@ cleanup = (uname, cb) ->
             winston.debug('cleanup -- killall_user')
             killall_user(uname, () -> cb())  # ignore failure in subcommand
         (cb) ->
-            winston.debug('cleanup -- delete_user_32')
-            delete_user_32(uname, () -> cb())  # ignore failure in subcommand
+            winston.debug('cleanup -- delete_user_8')
+            delete_user_8(uname, () -> cb())  # ignore failure in subcommand
     ], cb)
 
 # Close the given project, which involves killing all processes of

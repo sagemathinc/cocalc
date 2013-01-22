@@ -210,7 +210,7 @@ class XTermConsole extends Console
     init : () =>
         @element = $("<div>Connecting...</div>")
         salvus_client.new_session
-            timeout : 2  # make longer later -- TODO -- mainly for testing!
+            timeout : 15  # make longer later -- TODO -- mainly for testing!
             limits : {walltime:60*15}
             type   : "console"
             project_id : @project_id
