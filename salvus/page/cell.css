@@ -10,13 +10,14 @@
 }
 
 .salvus-cell {
-    border     : 2px solid lightgrey;
-    background : white;
+    border: 0px solid #fff;
+/*    border     : 2px solid lightgrey;
+    background : white; */
 }
 
 .salvus-cell-selected {
     border: 2px solid #99f;
-    /* box-shadow: 4px 4px 2px #bbf; */
+    box-shadow: 3px 3px 1px #bbf;
 }
 
 .salvus-cell-note {
@@ -25,6 +26,10 @@
     border           : 1px solid white;
     min-height       : 1.5em;
     overflow-y       : auto;
+}
+
+.salvus-cell-note:hover {
+    border: 1px dashed #999;
 }
 
 .salvus-cell-editor {

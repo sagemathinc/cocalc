@@ -52,8 +52,9 @@ class Worksheet extends EventEmitter
 
     _next_cell : (cell) -> cell.element.next().data('cell')
 
+    _prev_cell : (cell) -> cell.element.prev().data('cell')
+
     _cell_execute : (cell) ->
-        console.log('execute', cell)
         next = @_next_cell(cell)
         if not next?
             next = @_append_new_cell()

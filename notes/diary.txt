@@ -9399,9 +9399,13 @@ I'm going to try to make Salvus basically usable, and ignore a lot of
 the little bugs and polish, and focus more on getting features
 working, and only then move on to polish and bug fixing.  What I must do:
 
- [x] worksheets (very basic!)
+ [x] worksheets (very basic!) 
 
- [ ] save/load worksheets
+ [ ] save/load worksheets -- special storage (?)
+
+ [ ] more work on porting worksheets to new structure
+
+ [ ] worksheet: BUG "range(2000)" shows no output
 
  [ ] basic publish
 
