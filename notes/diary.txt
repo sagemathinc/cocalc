@@ -9401,7 +9401,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] worksheets (very basic!) 
 
- [x] worksheet: BUG "range(2000)" shows no output; 'a'*4093 nothing, but 'a'*4092 works.; works fine in old worksheet.
+ [x] (45min) worksheet: BUG "range(2000)" shows no output; 'a'*4093 nothing, but 'a'*4092 works.; works fine in old worksheet.2
+
+ [x] (20min) make blue be around compute input only and be present only when editor is focused
 
  [ ] make the startup timer for a cell appear only once the computation starts.
 

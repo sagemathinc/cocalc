@@ -10,14 +10,6 @@
 }
 
 .salvus-cell {
-    border: 0px solid #fff;
-/*    border     : 2px solid lightgrey;
-    background : white; */
-}
-
-.salvus-cell-selected {
-    border: 2px solid #99f;
-    box-shadow: 3px 3px 1px #bbf;
 }
 
 .salvus-cell-note {
@@ -32,9 +24,15 @@
     border: 1px dashed #999;
 }
 
-.salvus-cell-editor {
+.salvus-cell-input {
     min-height       : 1.5em;
     border           : 2px solid #e0e0e0;
+}
+
+.salvus-cell-input-selected {
+    min-height       : 1.5em;
+    border: 2px solid #99f;
+    box-shadow: 3px 3px 1px #bbf;
 }
 
 .salvus-cell-output {

@@ -77,7 +77,7 @@ class Cell extends EventEmitter
 
         @element = cell_template.clone()
         @_initialize_note()
-        @_initialize_code_editor()
+        @_initialize_input()
         @_initialize_output()
 
         @element.data("cell", @)
@@ -89,7 +89,6 @@ class Cell extends EventEmitter
         if @opts.hide?
             for e in @opts.hide
                 @hide(e)
-
 
     #######################################################################
     # Private Methods
@@ -120,9 +119,13 @@ class Cell extends EventEmitter
                 )
         )
 
+    _initialize_input: () ->
+        @_input = @element.find(".salvus-cell-input")
+        @_initialize_code_editor()
+
     _initialize_code_editor: () ->
         that = @
-        @_code_editor = @element.find(".salvus-cell-editor")
+        @_code_editor = @_input.find(".salvus-cell-editor")
         @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1
             autofocus       : false
@@ -138,7 +141,15 @@ class Cell extends EventEmitter
         $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
         @_editor.on "change", (instance, changeObj) =>
-            @emit("change", {editor:changeObj})
+            @emit "change", {editor:changeObj}
+
+        @_editor.on "focus", (e) =>
+            @selected(true)
+            @emit "focus"
+
+        @_editor.on "blur", (e) =>
+            @selected(false)
+            @emit "blur"
 
     _initialize_output: ->
         @_output = @element.find(".salvus-cell-output")
@@ -179,11 +190,10 @@ class Cell extends EventEmitter
     # Mark the cell as selected or not selected
     selected: (is_selected=true) ->
         if is_selected
-            @element.addClass("salvus-cell-selected")
+            @_input.addClass("salvus-cell-input-selected")
         else
-            @element.removeClass("salvus-cell-selected")
+            @_input.removeClass("salvus-cell-input-selected")
         return @
-        #$(@_editor.getWrapperElement()).addClass('salvus-cell-editor-selected')
 
     # Show an individual component of the cell:
     #
@@ -290,7 +300,6 @@ class Cell extends EventEmitter
             code     : @_editor.getValue()
             preparse : true
             cb       : (mesg) =>
-                console.log(mesg)
                 # NOTE: this callback function gets called
                 # *repeatedly* while this cell is being evaluated.
                 # The last message has the property that mesg.done is
