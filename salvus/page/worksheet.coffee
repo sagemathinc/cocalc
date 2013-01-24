@@ -69,6 +69,12 @@ class Worksheet extends EventEmitter
         cell.on 'execute', =>
             @_cell_execute(cell)
 
+        cell.on 'execute-running', =>
+            @element.addClass("salvus-worksheet-running")
+
+        cell.on 'execute-done', =>
+            @element.removeClass("salvus-worksheet-running")
+
         # User requested to move to the previous cell (e.g., via up arrow).
         cell.on 'previous-cell', =>
             p = @_prev_cell(cell)

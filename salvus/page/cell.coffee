@@ -337,13 +337,28 @@ class Cell extends EventEmitter
     execute: () ->
         if not @opts.session
             throw "Attempt to execute code on a cell whose session has not been set."
-        @emit('execute')
+        @emit 'execute'
+        code = $.trim(@_editor.getValue())
+        if code == ""
+            # easy special case -- empty input
+            @delete_output()
+            return
         first_message = true
-        @prepare_stopwatch()
-        @opts.session.execute_code
-            code     : @_editor.getValue()
+        s = setTimeout( (() => @prepare_stopwatch()), 250)
+        @_last_execute_uuid = @opts.session.execute_code
+            code     : code
             preparse : true
             cb       : (mesg) =>
+                clearTimeout(s)
+                @emit 'execute-running'
+
+                # I HAVEN'T DECIDED ON THE SEMANTICS FOR THIS:
+                #if mesg.id != @_last_execute_uuid
+                    # The user executed code multiple times in the
+                    # same cell before the output from the first
+                    # execution finished, and we just got a message
+                    # with some output.
+
                 # NOTE: this callback function gets called
                 # *repeatedly* while this cell is being evaluated.
                 # The last message has the property that mesg.done is
@@ -363,6 +378,8 @@ class Cell extends EventEmitter
 
                 if mesg.done
                     @stop_stopwatch()
+                    if mesg.id == @_last_execute_uuid
+                        @emit 'execute-done'
 
 
 exports.Cell = Cell
