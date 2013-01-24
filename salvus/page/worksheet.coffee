@@ -64,7 +64,23 @@ class Worksheet extends EventEmitter
         @opts.cell_opts.session = @opts.session
         cell = new Cell(@opts.cell_opts)
         cell.append_to(@_cells)
-        cell.on('execute', => @_cell_execute(cell))
+
+        # User requested to execute the code in this cell.
+        cell.on 'execute', =>
+            @_cell_execute(cell)
+
+        # User requested to move to the previous cell (e.g., via up arrow).
+        cell.on 'previous-cell', =>
+            p = @_prev_cell(cell)
+            if p?
+                @_focus_cell(p)
+
+        # User requested to move to the next cell (e.g., via down arrow).
+        cell.on 'next-cell', =>
+            n = @_next_cell(cell)
+            if n?
+                @_focus_cell(n)
+
         return cell
 
 

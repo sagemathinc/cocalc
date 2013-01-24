@@ -52,6 +52,9 @@ class Cell extends EventEmitter
             # initial value of the code editor (TEXT)
             editor_value          : undefined
 
+            # key that causes code to be executed
+            execute_key           : "Shift-Enter"
+
             # maximum height of output (scroll bars appear beyond this)
             output_max_height     : "20em"
             # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
@@ -126,8 +129,22 @@ class Cell extends EventEmitter
         @_initialize_code_editor()
 
     _initialize_code_editor: () ->
-        that = @
         @_code_editor = @_input.find(".salvus-cell-editor")
+
+        extraKeys =
+            "Up" : (editor) =>
+                if editor.getCursor().line == 0
+                    @emit "previous-cell"
+                else
+                    throw CodeMirror.Pass
+            "Down" : (editor) =>
+                if editor.getCursor().line >= editor.lineCount() - 1
+                    @emit "next-cell"
+                else
+                    throw CodeMirror.Pass
+
+        extraKeys[@opts.execute_key] = (editor) => @execute()
+
         @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1
             autofocus       : false
@@ -138,7 +155,8 @@ class Cell extends EventEmitter
             lineWrapping    : @opts.editor_line_wrapping
             undoDepth       : @opts.editor_undo_depth
             matchBrackets   : @opts.editor_match_brackets
-            extraKeys       : {'Shift-Enter': () -> that.execute()}
+            extraKeys       : extraKeys
+
         $(@_editor.getWrapperElement()).addClass('salvus-cell-editor')
         $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 

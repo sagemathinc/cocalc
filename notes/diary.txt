@@ -9405,9 +9405,13 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (20min) make blue be around compute input only and be present only when editor is focused
 
- [ ] (23 min) make the startup timer for a cell appear only once the computation starts; generally make timer really nice
+ [x] (23 min) make the startup timer for a cell appear only once the computation starts; generally make timer really nice
 
- [ ] cursor keys to move between cells
+ [ ] (17min) cursor keys to move between cells
+
+ [ ] when evaluation is requested change the stopwatch to be green... but say "wait..."
+
+ [ ] control cursor keys to move cells
 
  [ ] implement click timer to interrrupt; also escape and control-c
 
