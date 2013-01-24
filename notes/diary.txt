@@ -9424,9 +9424,13 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (11min) join cells
 
+ [ ] worksheet: join cells shouldn't delete all output (?)
+
  [ ] worksheet: split cells
 
  [ ] worksheet: tab completion
+
+ [ ] worksheet: blue line to insert new cell
 
  [ ] worksheet: sections
 

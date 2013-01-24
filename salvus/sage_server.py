@@ -516,6 +516,9 @@ def drop_privileges(id, home, transient):
     os.setgid(gid)
     os.setuid(uid)
     os.environ['DOT_SAGE'] = home
+    mpl = os.environ['MPLCONFIGDIR']
+    os.environ['MPLCONFIGDIR'] = home + mpl[5:]
+    os.environ['HOME'] = home
     os.environ['IPYTHON_DIR'] = home
     os.chdir(home)
 
@@ -710,12 +713,12 @@ def serve(port, host):
     signal.signal(signal.SIGCHLD, handle_session_term)
 
     tm = time.time()
-    print "pre-importing the sage library..."
+    #print "pre-importing the sage library..."
     import sage.all
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?
-    exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
-    #exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
+    #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
+    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
 
 
