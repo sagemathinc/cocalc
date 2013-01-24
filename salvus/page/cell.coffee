@@ -57,9 +57,14 @@ class Cell extends EventEmitter
 
             keys                  :
                 # key that causes code to be executed
-                execute           : "Shift-Enter"
+                execute           : "Shift-Enter"   # execute code
                 move_cell_up      : "Ctrl-Up"
                 move_cell_down    : "Ctrl-Down"
+                interrupt         : "Esc"
+                introspect        : "Tab"
+                join_with_prev    : "Ctrl-Backspace"
+                split_cell        : "Ctrl-;"
+                execute_insert    : "Ctrl-Enter"
 
             # maximum height of output (scroll bars appear beyond this)
             output_max_height     : "20em"
@@ -100,6 +105,7 @@ class Cell extends EventEmitter
         if @opts.hide?
             for e in @opts.hide
                 @hide(e)
+
 
     #######################################################################
     # Private Methods
@@ -148,6 +154,11 @@ class Cell extends EventEmitter
                     @emit "next-cell"
                 else
                     throw CodeMirror.Pass
+            "Backspace" : (editor) =>
+                if editor.getValue() == ""
+                    @emit "delete-cell"
+                else
+                    throw CodeMirror.Pass
 
         extraKeys[@opts.keys.execute] = (editor) =>
             @execute()
@@ -157,6 +168,20 @@ class Cell extends EventEmitter
 
         extraKeys[@opts.keys.move_cell_down] = (editor) =>
             @emit "move-cell-down"
+
+        extraKeys[@opts.keys.interrupt] = (editor) =>
+            @opts.session.interrupt()
+
+        extraKeys[@opts.keys.join_with_prev] = (editor) =>
+            @emit "join-with-prev"
+
+        extraKeys[@opts.keys.split_cell] = (editor) =>
+            # TODO -- defie first, second
+            @emit "split-cell", first, second
+
+        extraKeys[@opts.keys.execute_insert] = (editor) =>
+            @execute()
+            @emit "insert-after"
 
         @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1
@@ -201,6 +226,10 @@ class Cell extends EventEmitter
     _output_line_wrapping_off: ->
         @_output.removeClass('white-space word-wrap overflow-wrap')
 
+    _interrupt: =>
+        if @element.find('.salvus-cell-stopwatch').hasClass('salvus-cell-stopwatch-running')
+            @opts.session.interrupt(); return false
+
     #######################################################################
     # Public API
     # Unless otherwise stated, these methods can be chained.
@@ -218,7 +247,7 @@ class Cell extends EventEmitter
                 since   : new Date()
                 compact : true
                 layout  : '{hnn}{sep}{mnn}{sep}{snn}'
-            ).click((e) -> @interrupt()).tooltip('destroy').tooltip(title:"Time running; click to interrupt.")
+            ).click(@_interrupt).tooltip('destroy').tooltip(title:"Time running; click to interrupt.")
 
     stop_stopwatch: () ->
         if @opts.stopwatch

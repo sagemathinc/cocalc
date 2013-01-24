@@ -9416,11 +9416,13 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (20min) worksheet: control cursor keys to move cells; also start adding in events for worksheet
 
+ [x] (25min) implement click timer to interrrupt; also escape; more keyboard shortcut foundations.
+
+ [ ] join cells/split cells/control-enter/backspace to delete cell
+
  [ ] worksheet: tab completion
 
  [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
-
- [ ] implement click timer to interrrupt; also escape and control-c
 
  [ ] more work on porting worksheets to new structure
 
