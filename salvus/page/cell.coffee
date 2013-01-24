@@ -237,6 +237,12 @@ class Cell extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+    #
+    input: () =>
+        @_editor.getValue()
+
+    append_to_input: (s) =>
+        @_editor.replaceRange(s, {line:@_editor.lineCount(), ch:0})
 
     prepare_stopwatch: () ->
         if @opts.stopwatch

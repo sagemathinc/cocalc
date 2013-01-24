@@ -134,11 +134,31 @@ class Worksheet extends EventEmitter
 
         cell.on 'split-cell', (before_cursor, after_cursor) =>
             @emit 'split-cell', cell.opts.id, before_cursor, after_cursor
+            # Create new cell after this one.
+            new_cell = @_insert_new_cell_after(cell)
+            # Move all text after cursor in this cell to beginning of new cell
+            # TODO
 
         cell.on 'insert-new-cell-after', () =>
-            console.log("insert-new-cell-after")
             @emit 'insert-new-cell-after', cell.opts.id
             @_focus_cell(@_insert_new_cell_after(cell))
+
+        cell.on 'join-with-prev', () =>
+            @emit 'join-with-prev', cell.opts.id
+            prev_cell = @_prev_cell(cell)
+            if not prev_cell?
+                # If there is no cell above this one, do nothing.
+                return
+            # Copy note contents to end of note of cell above.
+            prev_cell.note(prev_cell.note() + '<br>' + cell.note())
+            # Copy input to end of input above.
+            prev_cell.append_to_input("\n" +cell.input())
+            # Delete this cell
+            cell.remove()
+            # Focus cell above
+            @_focus_cell(prev_cell)
+
+
 
         return cell
 
