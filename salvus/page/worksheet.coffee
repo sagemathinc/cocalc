@@ -108,6 +108,27 @@ class Worksheet extends EventEmitter
                 @_focus_cell(cell)
                 @emit 'move-cell-down', cell.opts.id
 
+        cell.on 'delete-cell', =>
+            if @number_of_cells() == 1
+                # can't delete last cell, since worksheets always have at least one cell
+                return
+            @emit 'delete-cell', cell.opts.id
+            cell_prev = @_prev_cell(cell)
+            cell_next = @_next_cell(cell)
+            note = cell.note()
+            if note != ""
+                if cell_next?
+                    cell_next.note(note + '<br>' + cell_next.note())
+                else if cell_prev?
+                    cell_prev.note(cell_prev.note() + '<br>' + note)
+            cell.remove()
+            if cell_prev?
+                @_focus_cell(cell_prev)
+            else
+                @_focus_cell(cell_next)
+
+        cell.on 'insert-new-cell-after', (input) =>
+            @emit 'insert-new-cell-after', cell.opts.id, input
 
         return cell
 
@@ -130,6 +151,9 @@ class Worksheet extends EventEmitter
     # Return ordered array of the current cell objects (these are classes not DOM elements).
     cells: () ->
         return ($(c).data('cell') for c in @_cells.find(".salvus-cell"))
+
+    number_of_cells: () ->
+        return @_cells.find(".salvus-cell").length
 
 
 

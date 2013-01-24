@@ -176,12 +176,12 @@ class Cell extends EventEmitter
             @emit "join-with-prev"
 
         extraKeys[@opts.keys.split_cell] = (editor) =>
-            # TODO -- defie first, second
+            # TODO -- define first, second
             @emit "split-cell", first, second
 
         extraKeys[@opts.keys.execute_insert] = (editor) =>
             @execute()
-            @emit "insert-after"
+            @emit "insert-new-cell-after"
 
         @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1
@@ -423,6 +423,16 @@ class Cell extends EventEmitter
                     if mesg.id == @_last_execute_uuid
                         @emit 'execute-done'
 
+    # Remove this cell from the DOM
+    remove: () =>
+        @element.remove()
+
+    # Set or get the HTML value of the note field
+    note: (val) =>
+        if val?
+            @_note.html(val)
+        else
+            return @_note.html()
 
 exports.Cell = Cell
 

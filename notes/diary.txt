@@ -9418,9 +9418,15 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (25min) implement click timer to interrrupt; also escape; more keyboard shortcut foundations.
 
- [ ] join cells/split cells/control-enter/backspace to delete cell
+ [x] (31min) worksheet: backspace to delete cell
+
+ [ ] join cells/split cells
+
+ [ ] control-enter
 
  [ ] worksheet: tab completion
+
+ [ ] worksheet: sections
 
  [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
 
