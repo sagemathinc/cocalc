@@ -254,4 +254,12 @@ class WorksheetSession extends Session
                         session : session
                     @worksheet = @element.data("worksheet")
                     @element = @worksheet.element
+
+                    # TODO: just testing listing to the events; note that the first cell
+                    # that gets added is added before we start listening, so doesn't
+                    # fire the function below... not sure what to do about that.
+                    @worksheet.on "append-new-cell", (id) -> console.log("append cell with id #{id}")
+                    @worksheet.on "move-cell-up", (id) -> console.log("move cell up id #{id}")
+                    @worksheet.on "move-cell-down", (id) -> console.log("move cell down id #{id}")
+
         @title_ui.text("worksheet")

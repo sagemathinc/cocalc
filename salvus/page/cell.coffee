@@ -21,6 +21,9 @@ cell_template = templates.find(".salvus-cell")
 class Cell extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
+            # used to tag the cell for synchronizing between clients
+            id                    : undefined
+
             # DOM element (or jquery wrapped element); this is replaced by the cell
             element               : undefined
 
@@ -52,8 +55,11 @@ class Cell extends EventEmitter
             # initial value of the code editor (TEXT)
             editor_value          : undefined
 
-            # key that causes code to be executed
-            execute_key           : "Shift-Enter"
+            keys                  :
+                # key that causes code to be executed
+                execute           : "Shift-Enter"
+                move_cell_up      : "Ctrl-Up"
+                move_cell_down    : "Ctrl-Down"
 
             # maximum height of output (scroll bars appear beyond this)
             output_max_height     : "20em"
@@ -143,7 +149,14 @@ class Cell extends EventEmitter
                 else
                     throw CodeMirror.Pass
 
-        extraKeys[@opts.execute_key] = (editor) => @execute()
+        extraKeys[@opts.keys.execute] = (editor) =>
+            @execute()
+
+        extraKeys[@opts.keys.move_cell_up] = (editor) =>
+            @emit "move-cell-up"
+
+        extraKeys[@opts.keys.move_cell_down] = (editor) =>
+            @emit "move-cell-down"
 
         @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1

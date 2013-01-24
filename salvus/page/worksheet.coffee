@@ -15,7 +15,7 @@
 #
 
 {EventEmitter} = require('events')
-{copy, filename_extension, required, defaults, to_json} = require('misc')
+{copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
 
 {Cell} = require("cell")
 
@@ -63,8 +63,12 @@ class Worksheet extends EventEmitter
 
     _append_new_cell : () ->
         @opts.cell_opts.session = @opts.session
+        @opts.cell_opts.id = uuid()
         cell = new Cell(@opts.cell_opts)
+
         cell.append_to(@_cells)
+        @emit 'append-new-cell', cell.opts.id
+
 
         # User requested to execute the code in this cell.
         cell.on 'execute', =>
@@ -87,6 +91,23 @@ class Worksheet extends EventEmitter
             n = @_next_cell(cell)
             if n?
                 @_focus_cell(n)
+
+        # User requested to move this cell up
+        cell.on 'move-cell-up', =>
+            p = @_prev_cell(cell)
+            if p?
+                cell.element.insertBefore(p.element)
+                @_focus_cell(cell)
+                @emit 'move-cell-up', cell.opts.id
+
+        # User requested to move this cell down
+        cell.on 'move-cell-down', =>
+            n = @_next_cell(cell)
+            if n?
+                cell.element.insertAfter(n.element)
+                @_focus_cell(cell)
+                @emit 'move-cell-down', cell.opts.id
+
 
         return cell
 
