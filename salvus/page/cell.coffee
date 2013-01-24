@@ -21,28 +21,46 @@ cell_template = templates.find(".salvus-cell")
 class Cell extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
-            element               : undefined   # DOM element (or jquery wrapped element); this is replaced by the cell
+            # DOM element (or jquery wrapped element); this is replaced by the cell
+            element               : undefined
 
-            hide                  : undefined   # subarray of ['note','editor','output']; if given, hides the given components when the cell is created
+           # subarray of ['note','editor','output']; if given, hides
+           # the given components when the cell is created
+            hide                  : undefined
 
-            note_change_timer     : 250        # milliseconds interval between sending update change events about note
-            note_max_height       : "auto"     # maximum height of note part of cell.
-            note_value            : undefined  # initial value of the note (HTML)
+            # milliseconds interval between sending update change events about note
+            note_change_timer     : 250
+            # maximum height of note part of cell.
+            note_max_height       : "auto"
+            # initial value of the note (HTML)
+            note_value            : undefined
 
-            editor_mode           : "python"   # language mode of the input editor
-            editor_line_numbers   : false      # whether to display line numbers in the input code editor
-            editor_indent_spaces  : 4          # number of spaces to indent in the code editor
-            editor_line_wrapping  : true       # whether or not to wrap lines in the code editor
-            editor_undo_depth     : 40         # undo depth for code editor
-            editor_match_brackets : true       # whether to do bracket matching in the code editor
-            editor_max_height     : "20em"     # css maximum height of code editor (scroll bars appear beyond this)
-            editor_value          : undefined  # initial value of the code editor (TEXT)
+            # language mode of the input editor
+            editor_mode           : "python"
+            # whether to display line numbers in the input code editor
+            editor_line_numbers   : false
+            # number of spaces to indent in the code editor
+            editor_indent_spaces  : 4
+            # whether or not to wrap lines in the code editor
+            editor_line_wrapping  : true
+            # undo depth for code editor
+            editor_undo_depth     : 40
+            # whether to do bracket matching in the code editor
+            editor_match_brackets : true
+            # css maximum height of code editor (scroll bars appear beyond this)
+            editor_max_height     : "20em"
+            # initial value of the code editor (TEXT)
+            editor_value          : undefined
 
-            output_max_height     : "20em"     # maximum height of output (scroll bars appear beyond this)
-            output_line_wrapping  : false      # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
-            output_value          : undefined  # initial value of the output area (JSON)
+            # maximum height of output (scroll bars appear beyond this)
+            output_max_height     : "20em"
+            # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
+            output_line_wrapping  : false
+            # initial value of the output area (JSON)
+            output_value          : undefined
 
-            session               : undefined  # a session -- needed to execute code in a cell
+            # a session -- needed to execute code in a cell
+            session               : undefined
 
         if not @opts.element?
             @opts.element = $("<div>")
@@ -129,8 +147,14 @@ class Cell extends EventEmitter
         if @opts.output_line_wrapping
             @_output_line_wrapping_on()
 
-    _output_line_wrapping_on: -> @_output.css({'white-space', 'pre-wrap', 'word-wrap':'break-word', 'overflow-wrap':'break-word'})
-    _output_line_wrapping_off: -> @_output.removeClass('white-space word-wrap overflow-wrap')
+    _output_line_wrapping_on: ->
+        @_output.css
+            'white-space'  : 'pre-wrap'
+            'word-wrap'    : 'break-word'
+            'overflow-wrap': 'break-word'
+
+    _output_line_wrapping_off: ->
+        @_output.removeClass('white-space word-wrap overflow-wrap')
 
     #######################################################################
     # Public API
@@ -161,9 +185,13 @@ class Cell extends EventEmitter
         return @
         #$(@_editor.getWrapperElement()).addClass('salvus-cell-editor-selected')
 
-    # Show an individual component of the cell: cell.show("note"), cell.show("editor"), cell.show("output").
-    # Also, cell.show() will show the complete cell (not show each component) if it was hidden; this does
-    # not impact which components are hidden/shown.
+    # Show an individual component of the cell:
+    #
+    #       cell.show("note"), cell.show("editor"), cell.show("output").
+    #
+    # Also, cell.show() will show the complete cell (not show each
+    # component) if it was hidden; this does not impact which
+    # components are hidden/shown.
     show: (e) ->
         if not e?
             @element.show()
@@ -180,9 +208,13 @@ class Cell extends EventEmitter
                 throw "unknown component #{e}"
         return @
 
-    # Hide an individual component of the cell -- cell.hide("note"), cell.hide("editor"), cell.hide("output")
-    # Also, cell.hide() will hide the complete cell (not hide each component); this does not
-    # impact which individual components are hidden/shown.
+    # Hide an individual component of the cell --
+    #
+    #  cell.hide("note"), cell.hide("editor"), cell.hide("output")
+    #
+    # Also, cell.hide() will hide the complete cell (not hide each
+    # component); this does not impact which individual components are
+    # hidden/shown.
     hide: (e) ->
         if not e?
             @element.hide()
@@ -204,14 +236,17 @@ class Cell extends EventEmitter
     # Append new output to one output stream of the cell
     append_output : (opts) ->
         opts = defaults opts,
-            stream : required  # the output stream: 'stdout', 'stderr', 'html', 'tex', 'file', 'javascript'
-            value  : required  # depends on the output stream:
-                            # stdout -- arbitrary text
-                            # stderr -- arbitrary text
-                            # html -- arbitrary valid html
-                            # tex -- {tex:'latex expression', display:true/false}   --  display math or inline math
-                            # file -- {filename:"...", uuid:"...", show:true/false}
-                            # javascript -- {code:"...", coffeescript:true/false}
+            # the output stream: 'stdout', 'stderr', 'html', 'tex', 'file', 'javascript'
+            stream : required
+            # value -- options depends on the output stream:
+            #     - stdout -- arbitrary text
+            #     - stderr -- arbitrary text
+            #     - html -- arbitrary valid html
+            #     - tex -- {tex:'latex expression', display:true/false}   --  display math or inline math
+            #     - file -- {filename:"...", uuid:"...", show:true/false}
+            #     - javascript -- {code:"...", coffeescript:true/false}
+            value  : required
+
         @emit("change", {output:opts})
         e = templates.find(".salvus-cell-output-#{opts.stream}").clone()
         if e.length != 1
@@ -223,15 +258,16 @@ class Cell extends EventEmitter
             when 'html'
                 e.html(opts.value)
             when 'tex'
-                e.text(opts.value).data('value', opts.value).mathjax(tex: opts.value.tex, display:opts.value.display)
+                e.text(opts.value).data('value', opts.value).mathjax(
+                                        tex: opts.value.tex, display:opts.value.display)
             when 'file'
                 if opts.value.show
                     target = "/blobs/#{opts.value.filename}?uuid=#{opts.value.uuid}"
                     switch filename_extension(opts.value.filename)
+                        # TODO: harden DOM creation below
                         when 'svg', 'png', 'gif', 'jpg'
                             e.append($("<img src='#{target}' class='salvus-cell-output-img'>"))
                         else
-                            # TODO: countdown timer?
                             e.append($("<a href='#{target}' target='_new'>#{opts.value.filename} (this temporary link expires in a minute)</a> "))
             when 'javascript'
                 if opts.value.coffeescript
@@ -249,11 +285,21 @@ class Cell extends EventEmitter
         if not @opts.session
             throw "Attempt to execute code on a cell whose session has not been set."
         @emit('execute')
+        first_message = true
         @opts.session.execute_code
             code     : @_editor.getValue()
             preparse : true
             cb       : (mesg) =>
-                @delete_output()
+                console.log(mesg)
+                # NOTE: this callback function gets called
+                # *repeatedly* while this cell is being evaluated.
+                # The last message has the property that mesg.done is
+                # true.  Right When the cell *starts* being evaluated
+                # a mesg is always sent.
+                if first_message
+                    @delete_output()
+                    first_message = false
+                    # Start a stopwatch at this point.
                 @append_output(stream:'stdout',     value:mesg.stdout)     if mesg.stdout?
                 @append_output(stream:'stderr',     value:mesg.stderr)     if mesg.stderr?
                 @append_output(stream:'html',       value:mesg.html)       if mesg.html?

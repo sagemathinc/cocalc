@@ -36,9 +36,12 @@ class exports.Consoles
                 @create_tab(session_id)
 
         # Enable buttons for creating new consoles.
-        @element.find("a[href=#new-command-line]").click () => @create_tab(type:'command-line')
-        @element.find("a[href=#new-worksheet]").click () => @create_tab(type:'worksheet')
-        @element.find("a[href=#new-xterm]").click () => @create_tab(type:'xterm')
+        @element.find("a[href=#new-command-line]").click () =>
+            @create_tab(type:'command-line'); return false
+        @element.find("a[href=#new-worksheet]").click () =>
+            @create_tab(type:'worksheet'); return false
+        @element.find("a[href=#new-xterm]").click () =>
+            @create_tab(type:'xterm'); return false
 
         that = @
         # Enable the buttons

@@ -323,6 +323,9 @@ class Salvus(object):
         self._conn.send_json(message.output(tex={'tex':tex, 'display':display}, id=self._id, done=done))
         return self
 
+    def start_executing(self):
+        self._conn.send_json(message.output(done=False, id=self._id))
+
     def stdout(self, output, done=False):
         """
         Send the string output (or str(output) if output is not a
@@ -473,6 +476,7 @@ class Salvus(object):
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
     salvus = Salvus(conn=conn, id=id, data=data)
+    salvus.start_executing()
 
     try:
         streams = (sys.stdout, sys.stderr)
