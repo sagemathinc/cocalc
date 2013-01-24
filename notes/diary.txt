@@ -9405,7 +9405,11 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (20min) make blue be around compute input only and be present only when editor is focused
 
- [ ] make the startup timer for a cell appear only once the computation starts.
+ [ ] (23 min) make the startup timer for a cell appear only once the computation starts; generally make timer really nice
+
+ [ ] cursor keys to move between cells
+
+ [ ] implement click timer to interrrupt; also escape and control-c
 
  [ ] more work on porting worksheets to new structure
 

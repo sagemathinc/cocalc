@@ -58,3 +58,18 @@
 
 .salvus-cell-output-tex {
 }
+
+.salvus-cell-stopwatch {
+    margin-left : -10ex;
+    position    : absolute;
+    font-size   : 9pt;
+    padding     : 1px;
+    color       : #222;
+    background-color : #ddd;
+    opacity     : 0.5;
+}
+
+.salvus-cell-stopwatch-running {
+    background-color : #8f8;
+}
+

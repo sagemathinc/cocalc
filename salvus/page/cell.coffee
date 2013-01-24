@@ -58,6 +58,8 @@ class Cell extends EventEmitter
             output_line_wrapping  : false
             # initial value of the output area (JSON)
             output_value          : undefined
+            # show output stopwatch during code evaluation.
+            stopwatch             : true
 
             # a session -- needed to execute code in a cell
             session               : undefined
@@ -142,6 +144,7 @@ class Cell extends EventEmitter
 
         @_editor.on "change", (instance, changeObj) =>
             @emit "change", {editor:changeObj}
+            @destroy_stopwatch()
 
         @_editor.on "focus", (e) =>
             @selected(true)
@@ -171,6 +174,23 @@ class Cell extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    start_stopwatch: () ->
+        if @opts.stopwatch
+            @element.find(".salvus-cell-stopwatch").addClass('salvus-cell-stopwatch-running'
+            ).show().countdown('destroy').countdown(
+                since   : new Date()
+                compact : true
+                layout  : '{hnn}{sep}{mnn}{sep}{snn}'
+            ).click((e) -> @interrupt()).tooltip('destroy').tooltip(title:"Time running; click to interrupt.")
+
+    stop_stopwatch: () ->
+        if @opts.stopwatch
+            @element.find(".salvus-cell-stopwatch").countdown('pause').removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(title:"Time this took to run.")
+
+    destroy_stopwatch: () ->
+        if @opts.stopwatch
+            @element.find(".salvus-cell-stopwatch").countdown('destroy').hide()
 
     append_to: (e) ->
         e.append(@element)
@@ -308,13 +328,18 @@ class Cell extends EventEmitter
                 if first_message
                     @delete_output()
                     first_message = false
-                    # Start a stopwatch at this point.
+                    @start_stopwatch()
+
                 @append_output(stream:'stdout',     value:mesg.stdout)     if mesg.stdout?
                 @append_output(stream:'stderr',     value:mesg.stderr)     if mesg.stderr?
                 @append_output(stream:'html',       value:mesg.html)       if mesg.html?
                 @append_output(stream:'tex',        value:mesg.tex)        if mesg.tex?
                 @append_output(stream:'file',       value:mesg.file)       if mesg.file?
                 @append_output(stream:'javascript', value:mesg.javascript) if mesg.javascript?
+
+                if mesg.done
+                    @stop_stopwatch()
+
 
 exports.Cell = Cell
 
