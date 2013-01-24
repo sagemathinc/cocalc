@@ -20,6 +20,14 @@
     overflow-y       : auto;
 }
 
+.salvus-cell-insert-above {
+    height: 5px;
+}
+
+.salvus-cell-insert-above:hover {
+    background-color : #99f;
+}
+
 .salvus-cell-note:hover {
     border: 1px dashed #999;
 }

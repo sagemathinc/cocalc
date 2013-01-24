@@ -9424,30 +9424,44 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (11min) join cells
 
- [ ] worksheet: join cells shouldn't delete all output (?)
+ [x] (4min) worksheet: join cells shouldn't delete all output
 
- [ ] worksheet: split cells
+ [x] (17min) worksheet: split cells
 
- [ ] worksheet: tab completion
-
- [ ] worksheet: blue line to insert new cell
+ [x] (19min) worksheet: blue line to insert new cell
 
  [ ] worksheet: sections
 
+ [ ] worksheet: undo and persistence
+
+ [ ] worksheet: tab completion
+
+ [ ] worksheet: persistence
+
+ [ ] worksheet: typeset mode
+
+ [ ] worksheet: default systems other than sage
+
+ [ ] worksheet: buttons, which provide all feature to mobile.
+
+ [ ] worksheet: interact
+
  [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
 
- [ ] more work on porting worksheets to new structure
+ [ ] worksheet: import/export
 
- [ ] save/load worksheets -- special storage (?)
+ [ ] worksheet: automatic typesetting
 
+ [ ] worksheet: automatic 2d graphics
+
+ [ ] worksheet: automatic 3d graphics
 
  [ ] basic publish
 
  [ ] click to show commit
 
  [ ] browser must browse live directory, but give git-related info
-     about each file -- last commit and whether or not it was checked
-     in.
+     about each file -- last commit and whether or not it was checked in.
 
  [ ] basic search
 

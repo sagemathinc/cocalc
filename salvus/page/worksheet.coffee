@@ -61,19 +61,31 @@ class Worksheet extends EventEmitter
             next = @_append_new_cell()
         @_focus_cell(next)
 
-    _append_new_cell: () -> @_insert_new_cell_after()
+    _append_new_cell: () -> @_insert_new_cell(location:'end')
 
-    _insert_new_cell_after : (c) ->  # appends new cell to end if c is undefined
+    _insert_new_cell : (opts) ->
+        opts = defaults opts,
+            location    : required   # 'before', 'after', 'end', 'beginning'
+            cell        : undefined  # must give if location='before' or 'after'.
+        # appends new cell to end if c is undefined
         @opts.cell_opts.session = @opts.session
         @opts.cell_opts.id = uuid()
         cell = new Cell(@opts.cell_opts)
 
-        if c?
-            # make a sibling of c
-            cell.element.insertAfter(c.element)
-        else
-            # append to the end of all the cells
-            cell.append_to(@_cells)
+        switch opts.location
+            when 'after'
+                # make sibling directly after cell
+                cell.element.insertAfter(opts.cell.element)
+            when 'before'
+                # make sibling directly before cell
+                cell.element.insertBefore(opts.cell.element)
+            when 'end'
+                # append as the last cell
+                cell.append_to(@_cells)
+            when 'beginning'
+                cell.prepend_to(@_cells)
+            else
+                throw("invalid input to _insert_new_cell #{to_json(opts)}")
 
         # User requested to execute the code in this cell.
         cell.on 'execute', =>
@@ -135,13 +147,21 @@ class Worksheet extends EventEmitter
         cell.on 'split-cell', (before_cursor, after_cursor) =>
             @emit 'split-cell', cell.opts.id, before_cursor, after_cursor
             # Create new cell after this one.
-            new_cell = @_insert_new_cell_after(cell)
+            new_cell = @_insert_new_cell(location:'after', cell:cell)
             # Move all text after cursor in this cell to beginning of new cell
-            # TODO
+            new_cell.input(after_cursor)
+            new_cell.append_to_output(cell.output().children().detach())
+            cell.input(before_cursor)
+            @_focus_cell(new_cell)
+
+
+        cell.on 'insert-new-cell-before', () =>
+            @emit 'insert-new-cell-before', cell.opts.id
+            @_focus_cell(@_insert_new_cell(location:'before', cell:cell))
 
         cell.on 'insert-new-cell-after', () =>
             @emit 'insert-new-cell-after', cell.opts.id
-            @_focus_cell(@_insert_new_cell_after(cell))
+            @_focus_cell(@_insert_new_cell(location:'after', cell:cell))
 
         cell.on 'join-with-prev', () =>
             @emit 'join-with-prev', cell.opts.id
@@ -150,9 +170,13 @@ class Worksheet extends EventEmitter
                 # If there is no cell above this one, do nothing.
                 return
             # Copy note contents to end of note of cell above.
-            prev_cell.note(prev_cell.note() + '<br>' + cell.note())
+            note = $.trim(cell.note())
+            if note.length > 0
+                prev_cell.note(prev_cell.note() + '<br>' + note)
             # Copy input to end of input above.
             prev_cell.append_to_input("\n" +cell.input())
+            # Copy output to end of output above
+            prev_cell.append_to_output(cell.output())
             # Delete this cell
             cell.remove()
             # Focus cell above

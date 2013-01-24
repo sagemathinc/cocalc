@@ -92,6 +92,7 @@ class Cell extends EventEmitter
         @_note_change_timer_is_set = false
 
         @element = cell_template.clone()
+        @_initialize_insert_above()
         @_initialize_note()
         @_initialize_input()
         @_initialize_output()
@@ -111,9 +112,14 @@ class Cell extends EventEmitter
     # Private Methods
     #######################################################################
 
+    _initialize_insert_above: () ->
+        @element.find(".salvus-cell-insert-above").tooltip(delay:500, title:"Click to insert a cell.").click () =>
+            @emit "insert-new-cell-before"
+
     _initialize_note: () ->
         # make note fire change event when changed
         @_note = @element.find(".salvus-cell-note")
+        @_note.tooltip(delay:1000, title:"Write a note about this cell.")
         if @opts.note_value != ""
             @_note.html(@opts.note_value)
         @_note.css('max-height', @opts.note_max_height)
@@ -178,8 +184,8 @@ class Cell extends EventEmitter
         extraKeys[@opts.keys.split_cell] = (editor) =>
             from = @_editor.getCursor()
             to   = {line:@_editor.lineCount(), ch:0}
-            before_cursor = editor.getRange({line:0, ch:0}, from)
-            after_cursor = editor.getRange(from, to)
+            before_cursor = $.trim(editor.getRange({line:0, ch:0}, from))
+            after_cursor = $.trim(editor.getRange(from, to))
             @emit "split-cell", before_cursor, after_cursor
 
         extraKeys[@opts.keys.execute_insert] = (editor) =>
@@ -198,7 +204,7 @@ class Cell extends EventEmitter
             matchBrackets   : @opts.editor_match_brackets
             extraKeys       : extraKeys
 
-        $(@_editor.getWrapperElement()).addClass('salvus-cell-editor')
+        $(@_editor.getWrapperElement()).addClass('salvus-cell-editor').tooltip(delay:1000, title:"Enter code to evaluate.")
         $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
         @_editor.on "change", (instance, changeObj) =>
@@ -238,8 +244,11 @@ class Cell extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
     #
-    input: () =>
-        @_editor.getValue()
+    input: (val) =>
+        if val?
+            @_editor.setValue(val)
+        else
+            @_editor.getValue()
 
     append_to_input: (s) =>
         @_editor.replaceRange(s, {line:@_editor.lineCount(), ch:0})
@@ -260,7 +269,7 @@ class Cell extends EventEmitter
 
     stop_stopwatch: () ->
         if @opts.stopwatch
-            @element.find(".salvus-cell-stopwatch").countdown('pause').removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(title:"Time this took to run.")
+            @element.find(".salvus-cell-stopwatch").countdown('pause').removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.")
 
     destroy_stopwatch: () ->
         if @opts.stopwatch
@@ -268,6 +277,10 @@ class Cell extends EventEmitter
 
     append_to: (e) ->
         e.append(@element)
+        return @
+
+    prepend_to: (e) ->
+        e.prepend(@element)
         return @
 
     # Refresh the cell; this might be needed if you hide the DOM element
@@ -337,7 +350,18 @@ class Cell extends EventEmitter
     delete_output: () ->
         @_output.html('')
 
-    # Append new output to one output stream of the cell
+    output: (val) =>
+        if val?
+            @_output.replaceWith(val)
+        else
+            return @_output
+
+    append_to_output: (elt) => # elt = jquery wrapped set
+        @_output.append(elt)
+
+    # Append new output to one output stream of the cell.
+    # This is not to be confused with "append_to_output", which
+    # simply appends to the DOM.
     append_output : (opts) ->
         opts = defaults opts,
             # the output stream: 'stdout', 'stderr', 'html', 'tex', 'file', 'javascript'
