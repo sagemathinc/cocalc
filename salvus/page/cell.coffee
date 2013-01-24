@@ -193,9 +193,14 @@ class Cell extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
+    prepare_stopwatch: () ->
+        if @opts.stopwatch
+            @element.find(".salvus-cell-stopwatch").addClass('salvus-cell-stopwatch-waiting'
+            ).text('waiting...').show()
+
     start_stopwatch: () ->
         if @opts.stopwatch
-            @element.find(".salvus-cell-stopwatch").addClass('salvus-cell-stopwatch-running'
+            @element.find(".salvus-cell-stopwatch").removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running'
             ).show().countdown('destroy').countdown(
                 since   : new Date()
                 compact : true
@@ -334,6 +339,7 @@ class Cell extends EventEmitter
             throw "Attempt to execute code on a cell whose session has not been set."
         @emit('execute')
         first_message = true
+        @prepare_stopwatch()
         @opts.session.execute_code
             code     : @_editor.getValue()
             preparse : true
