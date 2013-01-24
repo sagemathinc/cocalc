@@ -9420,9 +9420,10 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (31min) worksheet: backspace to delete cell
 
+ [x] (18min) worksheet: control-enter -- insert new cell after
+
  [ ] join cells/split cells
 
- [ ] control-enter
 
  [ ] worksheet: tab completion
 

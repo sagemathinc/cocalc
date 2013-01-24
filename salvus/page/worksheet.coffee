@@ -61,14 +61,19 @@ class Worksheet extends EventEmitter
             next = @_append_new_cell()
         @_focus_cell(next)
 
-    _append_new_cell : () ->
+    _append_new_cell: () -> @_insert_new_cell_after()
+
+    _insert_new_cell_after : (c) ->  # appends new cell to end if c is undefined
         @opts.cell_opts.session = @opts.session
         @opts.cell_opts.id = uuid()
         cell = new Cell(@opts.cell_opts)
 
-        cell.append_to(@_cells)
-        @emit 'append-new-cell', cell.opts.id
-
+        if c?
+            # make a sibling of c
+            cell.element.insertAfter(c.element)
+        else
+            # append to the end of all the cells
+            cell.append_to(@_cells)
 
         # User requested to execute the code in this cell.
         cell.on 'execute', =>
@@ -127,8 +132,13 @@ class Worksheet extends EventEmitter
             else
                 @_focus_cell(cell_next)
 
-        cell.on 'insert-new-cell-after', (input) =>
-            @emit 'insert-new-cell-after', cell.opts.id, input
+        cell.on 'split-cell', (before_cursor, after_cursor) =>
+            @emit 'split-cell', cell.opts.id, before_cursor, after_cursor
+
+        cell.on 'insert-new-cell-after', () =>
+            console.log("insert-new-cell-after")
+            @emit 'insert-new-cell-after', cell.opts.id
+            @_focus_cell(@_insert_new_cell_after(cell))
 
         return cell
 

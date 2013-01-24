@@ -176,8 +176,11 @@ class Cell extends EventEmitter
             @emit "join-with-prev"
 
         extraKeys[@opts.keys.split_cell] = (editor) =>
-            # TODO -- define first, second
-            @emit "split-cell", first, second
+            from = @_editor.getCursor()
+            to   = {line:@_editor.lineCount(), ch:0}
+            before_cursor = editor.getRange({line:0, ch:0}, from)
+            after_cursor = editor.getRange(from, to)
+            @emit "split-cell", before_cursor, after_cursor
 
         extraKeys[@opts.keys.execute_insert] = (editor) =>
             @execute()
