@@ -39,6 +39,7 @@ class Worksheet extends EventEmitter
         @set_description(@opts.description)
         @_cells = @element.find(".salvus-worksheet-cells")
         @_current_cell = @_append_new_cell()
+        @_focus_cell(@_current_cell)
 
     #######################################################################
     # Private Methods
@@ -108,8 +109,6 @@ class Worksheet extends EventEmitter
     # Return ordered array of the current cell objects (these are classes not DOM elements).
     cells: () ->
         return ($(c).data('cell') for c in @_cells.find(".salvus-cell"))
-
-
 
 
 

@@ -88,8 +88,8 @@ class Cell extends EventEmitter
         @element.data("cell", @)
         $(@opts.element).replaceWith(@element)
 
-        @refresh()
         @_editor.setValue(@opts.editor_value)
+        @refresh()
 
         if @opts.hide?
             for e in @opts.hide

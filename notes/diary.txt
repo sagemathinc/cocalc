@@ -9410,9 +9410,13 @@ working, and only then move on to polish and bug fixing.  What I must do:
  [x] (17min) cursor keys to move between cells
 
  [x] (10min?) when evaluation is requested change the stopwatch to be green... but say "wait..."
- [x] (33min) cell: make execute cell instant/trivial when input is empty; also make it clearer that a computation is currently running. 
+ [x] (33min) cell: make execute cell instant/trivial when input is empty; also make it clearer that a computation is currently running.
 
- [ ] worksheet: fix bug where first input cell is whacked
+ [x] (6min) worksheet: fix bug where first input cell is whacked
+
+ [ ] worksheet: tab completion
+
+ [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
 
  [ ] control cursor keys to move cells
 
