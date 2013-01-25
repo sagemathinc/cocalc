@@ -65,6 +65,7 @@ class Cell extends EventEmitter
                 join_with_prev    : "Ctrl-Backspace"
                 split_cell        : "Ctrl-;"
                 execute_insert    : "Ctrl-Enter"
+                execute_stay      : "Alt-Enter"
 
             # maximum height of output (scroll bars appear beyond this)
             output_max_height     : "20em"
@@ -177,6 +178,7 @@ class Cell extends EventEmitter
 
         extraKeys[@opts.keys.execute] = (editor) =>
             @execute()
+            @emit "next-cell", true
 
         extraKeys[@opts.keys.move_cell_up] = (editor) =>
             @emit "move-cell-up"
@@ -200,6 +202,10 @@ class Cell extends EventEmitter
         extraKeys[@opts.keys.execute_insert] = (editor) =>
             @execute()
             @emit "insert-new-cell-after"
+            @emit "next-cell"
+
+        extraKeys[@opts.keys.execute_stay] = (editor) =>
+            @execute()
 
         @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1

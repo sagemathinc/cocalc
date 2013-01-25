@@ -72,15 +72,11 @@ class Worksheet extends EventEmitter
         @_current_cell = cell
         cell.focus()
 
-    _next_cell : (cell) -> cell.element.next().data('cell')
+    _next_cell : (cell) ->
+        cell.element.next().data('cell')
 
-    _prev_cell : (cell) -> cell.element.prev().data('cell')
-
-    _cell_execute : (cell) ->
-        next = @_next_cell(cell)
-        if not next?
-            next = @_append_new_cell()
-        @_focus_cell(next)
+    _prev_cell : (cell) ->
+        cell.element.prev().data('cell')
 
     _append_new_cell: () -> @_insert_new_cell(location:'end')
 
@@ -108,10 +104,6 @@ class Worksheet extends EventEmitter
             else
                 throw("invalid input to _insert_new_cell #{to_json(opts)}")
 
-        # User requested to execute the code in this cell.
-        cell.on 'execute', =>
-            @_cell_execute(cell)
-
         cell.on 'execute-running', =>
             @element.addClass("salvus-worksheet-running")
 
@@ -125,10 +117,13 @@ class Worksheet extends EventEmitter
                 @_focus_cell(p)
 
         # User requested to move to the next cell (e.g., via down arrow).
-        cell.on 'next-cell', =>
+        cell.on 'next-cell', (create) =>
             n = @_next_cell(cell)
+            if not n? and create? and create
+                n = @_append_new_cell()
             if n?
                 @_focus_cell(n)
+
 
         # User requested to move this cell up
         cell.on 'move-cell-up', =>

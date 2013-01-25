@@ -9430,7 +9430,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (19min) worksheet: blue line to insert new cell
 
---> [ ] worksheet: sections
+ [ ] (10min) worksheet: alt-enter = evaluate and do not move cursor.
+
+ [ ] worksheet: sections
 
  [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
 
