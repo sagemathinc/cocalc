@@ -9430,17 +9430,23 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (19min) worksheet: blue line to insert new cell
 
- [ ] (10min) worksheet: alt-enter = evaluate and do not move cursor.
+ [x] (10min) worksheet: alt-enter = evaluate and do not move cursor.
+
+ [x] (57min) include "font awesome" icon set
 
  [ ] worksheet: sections
-
- [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
-
- [ ] worksheet: undo and persistence
+-->   [ ] worksheet sections -- hide/show
+      [ ] implement next/prev cell in presence of sections
+      [ ] make the heading font size make sense 
+      [ ] Shift section both out *and* in
 
  [ ] worksheet: tab completion
 
  [ ] worksheet: persistence
+
+ [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
+
+ [ ] worksheet: undo and persistence
 
  [ ] worksheet: typeset mode
 
