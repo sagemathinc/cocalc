@@ -92,6 +92,8 @@ class Cell extends EventEmitter
         @_note_change_timer_is_set = false
 
         @element = cell_template.clone()
+        
+        @_initialize_checkbox()
         @_initialize_insert_above()
         @_initialize_note()
         @_initialize_input()
@@ -111,6 +113,12 @@ class Cell extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
+    #
+
+    _initialize_checkbox: () ->
+        @_checkbox = @element.find(".salvus-cell-checkbox").find("input")
+        @_checkbox.click (event) =>
+            @emit "checkbox-change", event.shiftKey
 
     _initialize_insert_above: () ->
         @element.find(".salvus-cell-insert-above").tooltip(delay:500, title:"Click to insert a cell.").click () =>
@@ -243,7 +251,13 @@ class Cell extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
-    #
+
+    checkbox: (checked) =>
+        if checked?
+            @_checkbox.attr('checked', checked)
+        else
+            return @_checkbox.is(":checked")
+
     input: (val) =>
         if val?
             @_editor.setValue(val)

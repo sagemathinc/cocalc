@@ -67,8 +67,33 @@
 .salvus-cell-output-tex {
 }
 
+.salvus-cell-checkbox {
+    position:absolute;
+    margin-left:-1.1em;
+    margin-top:.1em;
+/*    border: 1px solid #white; */
+}
+
+.salvus-cell-checkbox:hover {
+/*    border: 1px dashed #888; */
+}
+
+/*.salvus-cell-checkbox {
+    border : 1px solid #999;
+    width: 1em;
+    height: 1.35em;
+    margin-left:-1.2em;
+    margin-top:.3em;
+    position:absolute;
+}
+
+.salvus-cell-checkbox:hover {
+    border : 1px dashed #777;
+}
+*/
+
 .salvus-cell-stopwatch {
-    margin-left : -10ex;
+    margin-left : -11ex;
     position    : absolute;
     font-size   : 10pt;
     padding     : 1px;

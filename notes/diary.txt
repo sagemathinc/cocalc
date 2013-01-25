@@ -9430,7 +9430,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (19min) worksheet: blue line to insert new cell
 
- [ ] worksheet: sections
+--> [ ] worksheet: sections
+
+ [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
 
  [ ] worksheet: undo and persistence
 
@@ -9455,6 +9457,8 @@ working, and only then move on to polish and bug fixing.  What I must do:
  [ ] worksheet: automatic 2d graphics
 
  [ ] worksheet: automatic 3d graphics
+
+ [ ] worksheet: hiding/showing cells
 
  [ ] basic publish
 

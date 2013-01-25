@@ -183,6 +183,21 @@ class Worksheet extends EventEmitter
             @_focus_cell(prev_cell)
 
 
+        cell.on 'checkbox-change', (shift) =>
+            if shift and @last_checked_cell
+                # Select everything between cell and last_checked_cell.
+                checking = false
+                new_state = cell.checkbox()
+                for c in @cells()
+                    if c == @last_checked_cell or c == cell
+                        c.checkbox(new_state)
+                        if not checking
+                            checking = true
+                        else
+                            break
+                    if checking
+                        c.checkbox(new_state)
+            @last_checked_cell = cell
 
         return cell
 
