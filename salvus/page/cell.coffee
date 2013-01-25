@@ -95,7 +95,7 @@ class Cell extends EventEmitter
         @element = cell_template.clone()
 
         @_initialize_checkbox()
-        @_initialize_insert_above()
+        @_initialize_insert()
         @_initialize_note()
         @_initialize_input()
         @_initialize_output()
@@ -122,14 +122,17 @@ class Cell extends EventEmitter
             @emit "checkbox-change", event.shiftKey
             return true
 
-    _initialize_insert_above: () ->
+    _initialize_insert: () ->
         @element.find(".salvus-cell-insert-above").tooltip(delay:500, title:"Click to insert a cell.").click () =>
             @emit "insert-new-cell-before"
 
+        @element.find(".salvus-cell-insert-below").tooltip(delay:500, title:"Click to insert a cell.").click () =>
+            @emit "insert-new-cell-after"
+            
     _initialize_note: () ->
         # make note fire change event when changed
         @_note = @element.find(".salvus-cell-note")
-        @_note.tooltip(delay:1000, title:"Write a note about this cell.")
+        #@_note.tooltip(delay:1000, title:"Write a note about this cell.")
         if @opts.note_value != ""
             @_note.html(@opts.note_value)
         @_note.css('max-height', @opts.note_max_height)
@@ -219,7 +222,7 @@ class Cell extends EventEmitter
             matchBrackets   : @opts.editor_match_brackets
             extraKeys       : extraKeys
 
-        $(@_editor.getWrapperElement()).addClass('salvus-cell-editor').tooltip(delay:1000, title:"Enter code to evaluate.")
+        $(@_editor.getWrapperElement()).addClass('salvus-cell-editor')#.tooltip(delay:1000, title:"Enter code to evaluate.")
         $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
         @_editor.on "change", (instance, changeObj) =>

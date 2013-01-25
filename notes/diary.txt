@@ -9434,12 +9434,6 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (57min) include "font awesome" icon set
 
- [ ] worksheet: sections
--->   [ ] worksheet sections -- hide/show
-      [ ] implement next/prev cell in presence of sections
-      [ ] make the heading font size make sense 
-      [ ] Shift section both out *and* in
-
  [ ] worksheet: tab completion
 
  [ ] worksheet: persistence
@@ -9477,6 +9471,16 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [ ] basic search
 
+
+LATER:
+ [x] worksheet: sections --- good enough for now, though a little remains
+      [x] () worksheet sections -- hide/show
+      [x] implement next/prev cell in presence of sections
+      [ ] insert cells everywhere, e.g., in new sections
+      [ ] make the heading font size make sense 
+      [ ] Shift section both out *and* in
+      [x] delete section (kind of ugly)
+      [ ] selecting range of cells.... that includes a section...
 
 
 

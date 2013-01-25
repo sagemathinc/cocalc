@@ -24,6 +24,26 @@
    color : #888;
 }
 
+
+.salvus-worksheet-section {
+    padding-top:1em;
+    padding-bottom:1em;
+}
+
+.salvus-worksheet-section-show {
+    color       : #666;
+    font-size: 15pt;
+}
+
+.salvus-worksheet-section-hide {
+    color       : #666;
+    font-size: 15pt;
+}
+
+.salvus-worksheet-section-title-user {
+    font-weight: bold;
+    font-size: 18pt;
+}
 .salvus-worksheet-section-cells {
-    margin-left:6em;
+    margin-left:3em;
 }

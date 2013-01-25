@@ -42,7 +42,7 @@ class Worksheet extends EventEmitter
         @_focus_cell(@_current_cell)
 
         @element.find("a[href=#section]").click () =>
-             @_create_section()
+            @_create_section()
             return false
 
     #######################################################################
@@ -51,15 +51,42 @@ class Worksheet extends EventEmitter
     #
 
     _create_section: () =>
-        console.log("_create_section")
         group = []
-        for c in @cells()
+        n = 0
+        cells = @cells()
+        for c in cells
+            n += 1
+            end_group = false
             if c.checkbox()
                 group.push(c)
+                c.checkbox(false)
             else
+                end_group = true
+            if n == cells.length
+                end_group = true
+            if end_group
                 if group.length > 0
+
                     # found a new group
                     section = templates.find(".salvus-worksheet-section").clone()
+
+                    section.find(".salvus-worksheet-section-hide").click () ->
+                        section.find(".salvus-worksheet-section-hide").hide()
+                        section.find(".salvus-worksheet-section-show").show()
+                        section.find(".salvus-worksheet-section-cells").hide()
+
+                    section.find(".salvus-worksheet-section-show").click () ->
+                        section.find(".salvus-worksheet-section-show").hide()
+                        section.find(".salvus-worksheet-section-hide").show()
+                        section.find(".salvus-worksheet-section-cells").show()
+
+                    section.find(".salvus-worksheet-section-hide")
+
+                    section.find(".salvus-worksheet-section-title-user").blur () ->
+                        t = $(@)
+                        if $.trim(t.text()) == "" and t.find(".salvus-cell").length == 0
+                            section.remove()
+
                     section.insertBefore(group[0].element)
                     section_cells = section.find(".salvus-worksheet-section-cells")
                     for x in group
@@ -73,10 +100,24 @@ class Worksheet extends EventEmitter
         cell.focus()
 
     _next_cell : (cell) ->
-        cell.element.next().data('cell')
+        e = cell.element[0]
+        this_one = false
+        for elt in @_cells.find(".salvus-cell:visible")
+            if this_one
+                return $(elt).data("cell")
+            if elt == e
+                this_one = true
 
     _prev_cell : (cell) ->
-        cell.element.prev().data('cell')
+        e = cell.element[0]
+        this_one = false
+        last = undefined
+        for elt in @_cells.find(".salvus-cell:visible")
+            if elt == e
+                this_one = true
+                return $(last).data("cell")
+            last = elt
+
 
     _append_new_cell: () -> @_insert_new_cell(location:'end')
 

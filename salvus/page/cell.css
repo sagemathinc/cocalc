@@ -21,12 +21,21 @@
 }
 
 .salvus-cell-insert-above {
-    height: 5px;
+    height: 3px;
 }
 
 .salvus-cell-insert-above:hover {
     background-color : #99f;
 }
+
+.salvus-cell-insert-below {
+    height: 3px;
+}
+
+.salvus-cell-insert-below:hover {
+    background-color : #99f;
+}
+
 
 .salvus-cell-note:hover {
     border: 1px dashed #999;
