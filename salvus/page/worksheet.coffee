@@ -84,8 +84,11 @@ class Worksheet extends EventEmitter
 
                     section.find(".salvus-worksheet-section-title-user").blur () ->
                         t = $(@)
-                        if $.trim(t.text()) == "" and t.find(".salvus-cell").length == 0
-                            section.remove()
+                        if $.trim(t.text()) == ""
+                            if section.find(".salvus-cell").length == 0
+                                section.remove()
+                            else
+                                t.text("...")
 
                     section.insertBefore(group[0].element)
                     section_cells = section.find(".salvus-worksheet-section-cells")
