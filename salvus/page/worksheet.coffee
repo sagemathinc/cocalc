@@ -41,9 +41,30 @@ class Worksheet extends EventEmitter
         @_current_cell = @_append_new_cell()
         @_focus_cell(@_current_cell)
 
+        @element.find("a[href=#section]").click () =>
+             @_create_section()
+            return false
+
     #######################################################################
     # Private Methods
     #######################################################################
+    #
+
+    _create_section: () =>
+        console.log("_create_section")
+        group = []
+        for c in @cells()
+            if c.checkbox()
+                group.push(c)
+            else
+                if group.length > 0
+                    # found a new group
+                    section = templates.find(".salvus-worksheet-section").clone()
+                    section.insertBefore(group[0].element)
+                    section_cells = section.find(".salvus-worksheet-section-cells")
+                    for x in group
+                        section_cells.append(x.element)
+                group = []
 
     _focus_cell : (cell) ->
         if @_current_cell?

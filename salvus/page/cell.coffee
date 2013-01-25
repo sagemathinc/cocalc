@@ -92,7 +92,7 @@ class Cell extends EventEmitter
         @_note_change_timer_is_set = false
 
         @element = cell_template.clone()
-        
+
         @_initialize_checkbox()
         @_initialize_insert_above()
         @_initialize_note()
@@ -119,6 +119,7 @@ class Cell extends EventEmitter
         @_checkbox = @element.find(".salvus-cell-checkbox").find("input")
         @_checkbox.click (event) =>
             @emit "checkbox-change", event.shiftKey
+            return true
 
     _initialize_insert_above: () ->
         @element.find(".salvus-cell-insert-above").tooltip(delay:500, title:"Click to insert a cell.").click () =>
