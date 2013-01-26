@@ -91,6 +91,39 @@ class SageSession extends Session
         opts.session_uuid = @session_uuid
         @conn.introspect(opts)
 
+# TODO -- for 'interact2'
+# 
+#     variable: (opts) ->
+#         opts = defaults opts,
+#             name      : required
+#             namespace : 'globals()'
+#         return SageSessionVariable(@, opts.name, opts.namespace)
+
+# class SageSessionVariable extends EventEmitter
+#     constructor: (@session, @name, @namespace, cb) ->
+#         @uuid = misc.uuid()
+#         @session.execute_code
+#             code : "sage_salvus.register_variable(salvus.data['name'], eval(salvus.data['namespace']), salvus.data['uuid'])"
+#             data :
+#                 name      : @name
+#                 namespace : @namespace
+#                 uuid      : @uuid
+#             preparse : false
+#             cb       : cb
+
+#     set : (value, cb) =>
+#         @session.execute_code
+#             code     :
+#             cb       :
+#             preparse : false
+
+#     get : (cb) =>  # cb(err, value) -- value must be JSON-able
+#         @session.execute_code
+#             code :
+#             cb   :
+#             preparse : false
+
+
 ###
 #
 # A Console session, which connects the client to a pty on a remote machine.

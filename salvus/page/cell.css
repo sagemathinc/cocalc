@@ -76,6 +76,14 @@
 .salvus-cell-output-tex {
 }
 
+.salvus-cell-output-interact {
+    padding: 1em;
+    margin: 1em;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    box-shadow: 3px 3px 1px #ccc;
+}
+
 .salvus-cell-checkbox {
     position:absolute;
     margin-left:-1.1em;

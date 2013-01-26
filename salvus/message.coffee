@@ -114,6 +114,7 @@ message
     html         : undefined   # arbitrary html stream
     tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
     javascript   : undefined   # javascript code evaluation stream -- see also 'execute_javascript' to run code that is not saved as part of the output
+    interact     : undefined   # create an interact layout defined by a JSON object
     obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
     file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://salv.us/blobs/filename?uuid=[the uuid]
     done         : false       # the sequences of messages for a given code evaluation is done.

@@ -9438,10 +9438,15 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (21 minutes) sage_server -- USERNAME environ variable needs to not be "root"; DOT_SAGE, SAGE_TMP need to be right after privilege drop
 
- [ ] get rid of asolute session timeouts; instead kill any session that
-     sees no browser activity for that timeout amount of time.
-
  [ ] worksheet: interact
+      [ ] worksheet interact -- add a new "interact" message type
+
+
+
+ [ ] implement a show(...) command
+
+ [ ] get rid of absolute session timeouts; instead kill any session that
+     sees no browser activity for that timeout amount of time.
 
  [ ] cells: mobile needs to have some buttons: tab/esc/exec
 
@@ -9489,6 +9494,14 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
 
 LATER:
+ [ ] other ideas..
+-->    [x] (7min) (it already works fine!) cell: salvus.execute_javascript -- implement it
+
+    -> [ ] implement sage session variables so we have a javascript
+           object tied to a variable defined in python with 'change'
+           event, which can have listeners registered on both sides.
+       [ ] using such variables, implement an @interact decorator.
+
  [x] worksheet: sections --- good enough for now, though a little remains
       [x] () worksheet sections -- hide/show
       [x] implement next/prev cell in presence of sections

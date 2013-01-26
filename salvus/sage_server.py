@@ -119,7 +119,7 @@ class Message(object):
     def execute_javascript(self, code, data=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, obj=None, tex=None, file=None, done=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None: m['stdout'] = stdout
@@ -128,6 +128,7 @@ class Message(object):
         if tex is not None: m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
+        if interact is not None: m['interact'] = interact
         if obj is not None: m['obj'] = json.dumps(obj)
         if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
         if done is not None: m['done'] = done
@@ -354,6 +355,10 @@ class Salvus(object):
         self._conn.send_json(message.output(stderr=stderr, done=done, id=self._id))
         return self
 
+    def interact(self, f, done=False, **kwds):
+        self._conn.send_json(message.output(interact={'hello':'world'}, id=self._id, done=done))
+        return self
+
     def javascript(self, code, once=True, coffeescript=False, done=False):
         """
         Execute the given Javascript code as part of the output
@@ -530,6 +535,8 @@ def drop_privileges(id, home, transient, username):
     # scratch (which would take a long time).
     import sage.misc.misc
     sage.misc.misc.DOT_SAGE = home + '/.sage/'
+
+    
 
 def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     pid = os.getpid()

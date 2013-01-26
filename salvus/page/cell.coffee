@@ -332,6 +332,10 @@ class Cell extends EventEmitter
                 e.remove()
             @_close_on_action_elements = []
 
+    _initialize_interact: (elt, value) =>
+        console.log("initializing an interact")
+        elt.text(to_json(value))
+
     #######################################################################
     # Public API
     # Unless otherwise stated, these methods can be chained.
@@ -472,7 +476,10 @@ class Cell extends EventEmitter
             #     - tex -- {tex:'latex expression', display:true/false}   --  display math or inline math
             #     - file -- {filename:"...", uuid:"...", show:true/false}
             #     - javascript -- {code:"...", coffeescript:true/false}
+            #     - interact - object that describes layout
             value  : required
+
+        console.log(opts)
 
         @emit("change", {output:opts})
         e = templates.find(".salvus-cell-output-#{opts.stream}").clone()
@@ -501,6 +508,8 @@ class Cell extends EventEmitter
                     eval(CoffeeScript.compile(opts.value.code))
                 else
                     eval(opts.value.code)
+            when 'interact'
+                @_initialize_interact(e, opts.value)
             else
                 throw "unknown stream '#{opts.stream}'"
         return @
@@ -550,6 +559,7 @@ class Cell extends EventEmitter
                 @append_output(stream:'tex',        value:mesg.tex)        if mesg.tex?
                 @append_output(stream:'file',       value:mesg.file)       if mesg.file?
                 @append_output(stream:'javascript', value:mesg.javascript) if mesg.javascript?
+                @append_output(stream:'interact',   value:mesg.interact)   if mesg.interact?
 
                 if mesg.done
                     @stop_stopwatch()
@@ -704,3 +714,5 @@ spinner_at = (opts) ->
 remove_spinner = (elt) ->
     clearTimeout(elt.data("timer"))
     elt.spin(false).remove()
+
+
