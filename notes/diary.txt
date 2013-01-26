@@ -9434,7 +9434,11 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (57min) include "font awesome" icon set
 
- [ ] worksheet: tab completion
+ [x] (3 hours) cells: tab completion
+
+ [ ] worksheet: interact
+
+ [ ] cells: mobile needs to have some buttons: tab/esc/exec
 
  [ ] worksheet: persistence
 
@@ -9448,8 +9452,6 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [ ] worksheet: buttons, which provide all feature to mobile.
 
- [ ] worksheet: interact
-
  [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
 
  [ ] worksheet: import/export
@@ -9462,6 +9464,12 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [ ] worksheet: hiding/showing cells
 
+ [ ] worksheet: load/attach functionality
+
+ [ ] worksheet: JSON view
+
+ [ ] worksheet: text view
+
  [ ] basic publish
 
  [ ] click to show commit
@@ -9470,6 +9478,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
      about each file -- last commit and whether or not it was checked in.
 
  [ ] basic search
+
+ [ ] switches? -- useful for something in salvus? http://www.larentis.eu/switch/
+     probably for settings page.
 
 
 LATER:

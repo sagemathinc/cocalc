@@ -1,6 +1,6 @@
 .CodeMirror {
     height           : auto;
-    background-color : #ffffe8;
+    background-color : #ffffef;
 }
 
 .CodeMirror-scroll {
@@ -118,3 +118,48 @@
 .salvus-cell-stopwatch-waiting {
     background-color : #ff8;
 }
+
+
+.salvus-cell-introspect {
+    padding          : 0px;
+
+    background-color : #eee;
+    z-index          : 999;
+    position         : absolute;
+    opacity          : 0.92;
+
+    width            : 100ex;
+
+    border           : 2px solid grey;
+    box-shadow       : 8px 8px 4px #888;
+}
+
+.salvus-cell-introspect-title {
+    font-size        : 18pt;
+    padding          : 1ex;
+    border-bottom    : 1px solid grey;
+}
+
+.salvus-cell-introspect-content {
+    font-size        : 10pt;
+    font-family      : "Courier New";
+    background-color : #fffff8;
+    white-space      : pre;
+    padding          : 1ex;
+    max-height       : 600px;
+    overflow         : auto;
+}
+
+.salvus-cell-introspect-close {
+    font-size : 20pt;
+    padding-right:1ex;
+    padding-top:.8ex;
+}
+
+.salvus-cell-introspect-close:hover {
+    color            : white;
+    background-color :  orange;
+}
+
+
+

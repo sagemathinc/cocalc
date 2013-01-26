@@ -27,6 +27,18 @@ top_navbar.css
     font-size:9pt;
 }
 
+.large {
+    font-size:16pt;
+}
+
+.Large {
+    font-size:18pt;
+}
+
+.huge {
+    font-size:22pt;
+}
+
 .bold {
     font-weight: bold;
 }

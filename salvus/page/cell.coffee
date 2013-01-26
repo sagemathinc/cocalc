@@ -1,16 +1,18 @@
-######################################################
+#####################################################
 #
 # A Compute Cell
 #
 ######################################################
 
-# imports
 {EventEmitter} = require('events')
+
+{IS_MOBILE}    = require("feature")
 
 {copy, filename_extension, required, defaults, to_json} = require('misc')
 
 {local_diff} = require('misc_page')
 
+{alert_message} = require('alerts')
 
 
 # templates
@@ -75,6 +77,9 @@ class Cell extends EventEmitter
             output_value          : undefined
             # show output stopwatch during code evaluation.
             stopwatch             : true
+
+            # maximum number of completions to show at once when tab completing
+            completions_size      : 20
 
             # a session -- needed to execute code in a cell
             session               : undefined
@@ -179,6 +184,9 @@ class Cell extends EventEmitter
                 else
                     throw CodeMirror.Pass
 
+        extraKeys[@opts.keys.introspect] = (editor) =>
+            @_introspect()
+
         extraKeys[@opts.keys.execute] = (editor) =>
             @execute()
             @emit "next-cell", true
@@ -191,6 +199,7 @@ class Cell extends EventEmitter
 
         extraKeys[@opts.keys.interrupt] = (editor) =>
             @opts.session.interrupt()
+            @_close_on_action()
 
         extraKeys[@opts.keys.join_with_prev] = (editor) =>
             @emit "join-with-prev"
@@ -256,6 +265,72 @@ class Cell extends EventEmitter
     _interrupt: =>
         if @element.find('.salvus-cell-stopwatch').hasClass('salvus-cell-stopwatch-running')
             @opts.session.interrupt(); return false
+
+    _introspect: =>
+        @_close_on_action()
+
+        # If anything is selected, send a normal tab key
+        if @_editor.somethingSelected()
+            CodeMirror.commands.defaultTab(@_editor)
+            return
+        # If the character right before the cursor (on the same line)
+        # is whitespace, send normal tab key.
+        pos = @_editor.getCursor()
+        if pos.ch == 0 or @_editor.getRange({line:pos.line, ch:pos.ch-1},
+                             pos).search(/[\s|\)]/) != -1
+            CodeMirror.commands.defaultTab(editor)
+            return
+        # Otherwise, introspect.
+        to   = @_editor.getCursor()
+        spinner = spinner_at(editor:@_editor, pos:to, options:{radius:8}, delay:250)
+        @opts.session.introspect
+            line    : @_editor.getRange({line:0, ch:0}, to)
+            timeout : 3
+            cb : (err, mesg) =>
+                remove_spinner(spinner)
+                if err
+                    alert_message(type:"error", message:err)
+                    @opts.session.interrupt()
+                else
+                    from = {line:to.line, ch:to.ch-mesg.target.length}
+                    switch mesg.event
+                        when 'introspect_completions'
+                            show_completions
+                                editor           : @_editor
+                                from             : from
+                                to               : to
+                                completions      : mesg.completions
+                                target           : mesg.target
+                                completions_size : @opts.completions_size
+
+                        when 'introspect_docstring'
+                            @_close_on_action show_introspect
+                                editor    : @_editor
+                                from      : from
+                                content   : mesg.docstring
+                                target    : mesg.target
+                                type      : "docstring"
+
+                        when 'introspect_source_code'
+                            @_close_on_action show_introspect
+                                editor    : @_editor
+                                from      : from
+                                content   : mesg.source_code
+                                target    : mesg.target
+                                type      : "source-code"
+
+                        else throw("introspect_cell -- unknown event #{mesg.event}")
+
+    _close_on_action : (element) =>
+        if element?
+            if not @_close_on_action_elements?
+                @_close_on_action_elements = [element]
+            else
+                @_close_on_action_elements.push(element)
+        else if @_close_on_action_elements?
+            for e in @_close_on_action_elements
+                e.remove()
+            @_close_on_action_elements = []
 
     #######################################################################
     # Public API
@@ -434,6 +509,7 @@ class Cell extends EventEmitter
         @opts.session = session
 
     execute: () ->
+        @_close_on_action()
         if not @opts.session
             throw "Attempt to execute code on a cell whose session has not been set."
         @emit 'execute'
@@ -500,3 +576,131 @@ $.fn.extend
             opts0.element = this
             $(this).data('cell', new Cell(opts0))
 
+
+#################################################################################
+# Misc functions that are useful for implementing the cell.  These could
+# be moved elsewhere.
+#################################################################################
+
+# This is an improved rewrite of simple-hint.js from the CodeMirror3 distribution.
+show_completions = (opts) ->
+    {editor, from, to, completions, target, completions_size} = defaults opts,
+        editor           : required
+        from             : required
+        to               : required
+        completions      : required
+        target           : required
+        completions_size : 20
+
+    if completions.length == 0
+        return
+
+    insert = (str) ->
+        editor.replaceRange(str, from, to)
+
+    if completions.length == 1
+        insert(target + completions[0])
+        return
+
+    sel = $("<select>").css('width','auto')
+    complete = $("<div>").addClass("salvus-completions").append(sel)
+    for c in completions
+        sel.append($("<option>").text(target + c))
+    sel.find(":first").attr("selected", true)
+    sel.attr("size", Math.min(completions_size, completions.length))
+    pos = editor.cursorCoords(from)
+
+    complete.css
+        left : pos.left   + 'px'
+        top  : pos.bottom + 'px'
+    $("body").append(complete)
+    # If we're at the edge of the screen, then we want the menu to appear on the left of the cursor.
+    winW = window.innerWidth or Math.max(document.body.offsetWidth, document.documentElement.offsetWidth)
+    if winW - pos.left < sel.attr("clientWidth")
+        complete.css(left: (pos.left - sel.attr("clientWidth")) + "px")
+    # Hide scrollbar
+    if completions.length <= completions_size
+        complete.css(width: (sel.attr("clientWidth") - 1) + "px")
+
+    done = false
+    close = () ->
+        if done
+            return
+        done = true
+        complete.remove()
+
+    pick = () ->
+        insert(sel.val())
+        close()
+        if not IS_MOBILE
+            setTimeout((() -> editor.focus()), 50)
+
+    sel.blur(pick)
+    sel.dblclick(pick)
+    if not IS_MOBILE  # do not do this on mobile, since it makes it unusable!
+        sel.click(pick)
+    sel.keydown (event) ->
+        code = event.keyCode
+        switch code
+            when 13 # enter
+                pick()
+                return false
+            when 27
+                close()
+                editor.focus()
+                return false
+            else
+                if code != 38 and code != 40 and code != 33 and code != 34 and not CodeMirror.isModifierKey(event)
+                    close()
+                    editor.focus()
+                    # Pass to CodeMirror (e.g., backspace)
+                    editor.triggerOnKeyDown(event)
+    sel.focus()
+
+
+show_introspect = (opts) ->
+    opts = defaults opts,
+        editor    : required
+        from      : required
+        content   : required
+        type      : required   # 'docstring', 'source-code' -- TODO: curr ignored
+        target    : required
+    element = templates.find(".salvus-cell-introspect").clone()
+    element.find(".salvus-cell-introspect-title").text(opts.target)
+    element.find(".salvus-cell-introspect-content").text(opts.content)
+    element.find(".salvus-cell-introspect-close").click () -> element.remove()
+    pos = opts.editor.cursorCoords(opts.from)
+    element.css
+        left : pos.left + 'px'
+        top  : pos.bottom + 'px'
+    $("body").append element
+    if not IS_MOBILE
+        element.draggable(handle: element.find(".salvus-cell-introspect-title")).resizable(
+            alsoResize : element.find(".salvus-cell-introspect-content")
+            maxHeight: 650
+        )
+    element.focus()
+    return element
+
+spinner_at = (opts) ->
+    opts = defaults opts,
+        editor       : required
+        pos          : required # {line:, ch:} position
+        delay        : undefined
+        options      : undefined
+
+    pos = opts.editor.cursorCoords(opts.pos)
+    elt = $("<span style='position:absolute'>").css(left:pos.left+'px', top:pos.bottom+'px')
+    $("body").append(elt)
+    start = () ->
+        elt.spin(opts.options)
+
+    if opts.delay?
+        elt.data("timer", setTimeout(start, opts.delay))
+    else
+        start()
+    return elt
+
+remove_spinner = (elt) ->
+    clearTimeout(elt.data("timer"))
+    elt.spin(false).remove()
