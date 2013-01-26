@@ -2552,7 +2552,7 @@ persistent_sage_sessions = {}
 
 SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
 
-SESSION_LIMITS = {cputime:10*60, walltime:30*60, vmem:2000, numfiles:1000, quota:128}
+SESSION_LIMITS = {cputime:120*60, walltime:1000*60, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (client, mesg) ->
     winston.info('creating persistent sage session')

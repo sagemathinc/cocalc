@@ -508,7 +508,7 @@ def execute(conn, id, code, data, preparse):
         (sys.stdout, sys.stderr) = streams
 
 
-def drop_privileges(id, home, transient):
+def drop_privileges(id, home, transient, username):
     gid = id
     uid = id
     if transient:
@@ -520,13 +520,21 @@ def drop_privileges(id, home, transient):
     os.environ['MPLCONFIGDIR'] = home + mpl[5:]
     os.environ['HOME'] = home
     os.environ['IPYTHON_DIR'] = home
+    os.environ['USERNAME'] = username
+    os.environ['USER'] = username
     os.chdir(home)
 
+    # Monkey patch the Sage library and anything else that does not
+    # deal well with changing user.  This sucks, but it is work that
+    # simply must be done because we're not importing the library from
+    # scratch (which would take a long time).
+    import sage.misc.misc
+    sage.misc.misc.DOT_SAGE = home + '/.sage/'
 
-def session(conn, home, cputime, numfiles, vmem, uid, transient):
+def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     pid = os.getpid()
     if home is not None:
-        drop_privileges(uid, home, transient)
+        drop_privileges(uid, home, transient, username)
         pass
 
     if cputime is not None:
@@ -550,7 +558,6 @@ def session(conn, home, cputime, numfiles, vmem, uid, transient):
     # seed the random number generator(s)
     import sage.all; sage.all.set_random_seed()
     import time; import random; random.seed(time.time())
-
 
     while True:
         try:
@@ -679,9 +686,12 @@ def serve_connection(conn):
         home = "/home/" + username
         uid = pwd.getpwnam(username).pw_uid
     else:
+        # TODO -- redo so there is a username, etc., or get rid of and
+        # have a special transient project.
         transient = True
         home = tempfile.mkdtemp() if whoami == 'root' else None
         uid = (os.getpid() % 5000) + 5000   # TODO: just for testing; hub/db will have to assign and track this!
+        username = str(uid) # kind of silly since there is no username in this case
 
     pid = os.fork()
     limits = mesg.get('limits', {})
@@ -697,7 +707,7 @@ def serve_connection(conn):
     else:
         # child
         conn.send_json(message.session_description(os.getpid(), limits))
-        session(conn, home, uid=uid,
+        session(conn=conn, home=home, username=username, uid=uid,
                 cputime=limits.get('cputime', LIMITS['cputime']),
                 numfiles=limits.get('numfiles', LIMITS['numfiles']),
                 vmem=limits.get('vmem', LIMITS['vmem']),
@@ -713,14 +723,13 @@ def serve(port, host):
     signal.signal(signal.SIGCHLD, handle_session_term)
 
     tm = time.time()
-    #print "pre-importing the sage library..."
+    print "pre-importing the sage library..."
     import sage.all
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?
     #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
     exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
-
 
     t = time.time()
     s.listen(128)

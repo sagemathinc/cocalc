@@ -9436,6 +9436,11 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (3 hours) cells: tab completion
 
+ [x] (21 minutes) sage_server -- USERNAME environ variable needs to not be "root"; DOT_SAGE, SAGE_TMP need to be right after privilege drop
+
+ [ ] get rid of asolute session timeouts; instead kill any session that
+     sees no browser activity for that timeout amount of time.
+
  [ ] worksheet: interact
 
  [ ] cells: mobile needs to have some buttons: tab/esc/exec
@@ -9444,9 +9449,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
 
- [ ] worksheet: undo and persistence
+ [ ] worksheet: undo
 
- [ ] worksheet: typeset mode
+ [ ] worksheet: typeset all output mode
 
  [ ] worksheet: default systems other than sage
 
