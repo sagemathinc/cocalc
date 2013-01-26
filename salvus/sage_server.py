@@ -355,8 +355,16 @@ class Salvus(object):
         self._conn.send_json(message.output(stderr=stderr, done=done, id=self._id))
         return self
 
+    def _execute_interact(self, id, vals):
+        if id not in sage_salvus.interacts:
+            raise RuntimeError, "Error: No interact with id %s"%id
+        else:
+            sage_salvus.interacts[id](vals)
+
     def interact(self, f, done=False, **kwds):
-        self._conn.send_json(message.output(interact={'hello':'world'}, id=self._id, done=done))
+        self._conn.send_json(message.output(
+            interact = sage_salvus.Interact(f, **kwds).jsonable(),
+            id=self._id, done=done))
         return self
 
     def javascript(self, code, once=True, coffeescript=False, done=False):

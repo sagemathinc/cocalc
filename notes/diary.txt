@@ -9438,10 +9438,12 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (21 minutes) sage_server -- USERNAME environ variable needs to not be "root"; DOT_SAGE, SAGE_TMP need to be right after privilege drop
 
- [ ] worksheet: interact
-      [ ] worksheet interact -- add a new "interact" message type
+ [x] worksheet: very, very basic interacts 
+      [x] (20min) worksheet interact -- add a new "interact" message type
+      [x] (2:19min) make it analyze the function and make all controls input boxes.
 
 
+ [ ] worksheet: implement all interact controls
 
  [ ] implement a show(...) command
 

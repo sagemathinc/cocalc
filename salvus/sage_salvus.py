@@ -145,3 +145,85 @@ def checkbox(variable, label='', namespace=None, default=False, container_id=Non
               data = {'cb_uuid':cb_uuid, 'value':namespace[variable], 'label':label})
 
     return container_id
+
+
+##########################################################################
+# New function interact implementation -- doesn't use code from above!
+##########################################################################
+import inspect
+
+interacts = {}
+
+def jsonable(x):
+    """
+    Given any object x, make a JSON-able version of x, doing as best we can.
+    For some objects, sage as Sage integers, this works well.  For other
+    objects which make no sense in Javascript, we get a string.
+    """
+    try:
+        json.dumps(x)
+        return x
+    except:
+        return repr(x)
+
+
+class Control(object):
+    def __init__(self, label, default, control_type):
+        self._label = label
+        self._default = jsonable(default)
+        self._type  = type(default)
+        self._control_type = control_type
+
+    def jsonable(self):
+        return {'control_type':self._control_type, 'label':self._label, 'default':self._default}
+
+class TextInput(Control):
+    def __init__(self, arg, value):
+        Control.__init__(self, label=arg, default=value, control_type='text-input')
+
+class Interact(object):
+    def __init__(self, f, **kwds):
+        """
+        Given a function f, create an object that describes an interact
+        for working with f interactively.
+        """
+        self._uuid = uuid()
+        # Prevent garbage collection until client specifically requests it,
+        # since we want to be able to store state.
+        interacts[self._uuid] = self
+
+        self._f = f
+        (args, varargs, varkw, defaults) = inspect.getargspec(f)
+        if defaults is None:
+            defaults = []
+
+        n = len(args) - len(defaults)
+        self._controls  = [self._automatic_control(arg, defaults[i-n] if i >= n else None)
+                           for i, arg in enumerate(args)]
+
+        self._last_vals = {}
+        for i, arg in enumerate(args):
+            if i >= n:
+                d = defaults[i-n]
+            else:
+                d = None
+            self._last_vals[arg] = d
+
+    def _automatic_control(self, arg, value):
+        return TextInput(arg, value)
+
+    def jsonable(self):
+        """
+        Return a JSON-able description of this interact, which the client
+        can use for laying out controls.
+        """
+        return {'controls':[c.jsonable() for c in self._controls], 'id':self._uuid}
+
+    def __call__(self, vals):
+        """
+        Call self._f with inputs specified by vals.  Any input variables not
+        specified in vals will have the value they had last time.
+        """
+        for k, v in vals.iteritems():
+            self._last_vals[k] = v
+        self._f(**self._last_vals)

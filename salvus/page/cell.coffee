@@ -29,8 +29,8 @@ class Cell extends EventEmitter
             # DOM element (or jquery wrapped element); this is replaced by the cell
             element               : undefined
 
-           # subarray of ['note','editor','output']; if given, hides
-           # the given components when the cell is created
+            # subarray of ['note','editor','output', 'checkbox']; if given, hides
+            # the given components when the cell is created
             hide                  : undefined
 
             # milliseconds interval between sending update change events about note
@@ -53,7 +53,7 @@ class Cell extends EventEmitter
             # whether to do bracket matching in the code editor
             editor_match_brackets : true
             # css maximum height of code editor (scroll bars appear beyond this)
-            editor_max_height     : "20em"
+            editor_max_height     : "40em"
             # initial value of the code editor (TEXT)
             editor_value          : undefined
 
@@ -70,7 +70,7 @@ class Cell extends EventEmitter
                 execute_stay      : "Alt-Enter"
 
             # maximum height of output (scroll bars appear beyond this)
-            output_max_height     : "20em"
+            output_max_height     : "40em"
             # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
             output_line_wrapping  : false
             # initial value of the output area (JSON)
@@ -114,7 +114,6 @@ class Cell extends EventEmitter
         if @opts.hide?
             for e in @opts.hide
                 @hide(e)
-
 
     #######################################################################
     # Private Methods
@@ -332,9 +331,46 @@ class Cell extends EventEmitter
                 e.remove()
             @_close_on_action_elements = []
 
-    _initialize_interact: (elt, value) =>
-        console.log("initializing an interact")
-        elt.text(to_json(value))
+    _initialize_interact: (elt, desc) =>
+        console.log("initializing an interact", desc)
+
+        output = elt.find(".salvus-cell-interact-output")
+        o = output.salvus_cell
+            hide    : ['note', 'editor', 'checkbox']
+            session : @opts.session
+        output_cell = o.data('cell')
+        current_id = undefined
+        done = true
+        update = (vals) =>
+            output_cell.delete_output()
+            if not done
+                output_cell.opts.session.interrupt()
+
+            done = false
+            current_id = output_cell.opts.session.execute_code
+                code      : 'salvus._execute_interact(salvus.data["id"], salvus.data["vals"])'
+                data      : {id:desc.id, vals:vals}
+                preparse  : false
+                cb        : (mesg) =>
+                    if mesg.id == current_id  # could have left over messages
+                        output_cell.append_output_in_mesg(mesg)
+                        if mesg.done
+                            done = true
+        update({})
+
+        controls = elt.find(".salvus-cell-interact-controls")
+        for control in desc.controls
+            # TODO -- put in separate function
+            e = templates.find(".salvus-cell-interact-control-#{control.control_type}").clone()
+            e.find(".salvus-cell-interact-label").html(control.label)
+            e.find("input").val(control.default).data('label',control.label)
+            e.find("input").bind("input propertychange", () ->
+                t = $(@)
+                vals = {}
+                vals[t.data('label')] = t.val()
+                update(vals)
+            )
+            controls.append(e)
 
     #######################################################################
     # Public API
@@ -443,9 +479,11 @@ class Cell extends EventEmitter
             when 'note'
                 @_note.hide()
             when 'editor'
-                $(@_editor.getWrapperElement()).hide()
+                @element.find(".salvus-cell-input").hide()
             when 'output'
                 @_output.hide()
+            when 'checkbox'
+                @element.find(".salvus-cell-checkbox").hide()
             else
                 throw "unknown component #{e}"
         return @
@@ -461,6 +499,15 @@ class Cell extends EventEmitter
 
     append_to_output: (elt) => # elt = jquery wrapped set
         @_output.append(elt)
+
+    append_output_in_mesg: (mesg) ->
+        @append_output(stream:'stdout',     value:mesg.stdout)     if mesg.stdout?
+        @append_output(stream:'stderr',     value:mesg.stderr)     if mesg.stderr?
+        @append_output(stream:'html',       value:mesg.html)       if mesg.html?
+        @append_output(stream:'tex',        value:mesg.tex)        if mesg.tex?
+        @append_output(stream:'file',       value:mesg.file)       if mesg.file?
+        @append_output(stream:'javascript', value:mesg.javascript) if mesg.javascript?
+        @append_output(stream:'interact',   value:mesg.interact)   if mesg.interact?
 
     # Append new output to one output stream of the cell.
     # This is not to be confused with "append_to_output", which
@@ -553,13 +600,7 @@ class Cell extends EventEmitter
                     first_message = false
                     @start_stopwatch()
 
-                @append_output(stream:'stdout',     value:mesg.stdout)     if mesg.stdout?
-                @append_output(stream:'stderr',     value:mesg.stderr)     if mesg.stderr?
-                @append_output(stream:'html',       value:mesg.html)       if mesg.html?
-                @append_output(stream:'tex',        value:mesg.tex)        if mesg.tex?
-                @append_output(stream:'file',       value:mesg.file)       if mesg.file?
-                @append_output(stream:'javascript', value:mesg.javascript) if mesg.javascript?
-                @append_output(stream:'interact',   value:mesg.interact)   if mesg.interact?
+                @append_output_in_mesg(mesg)
 
                 if mesg.done
                     @stop_stopwatch()
