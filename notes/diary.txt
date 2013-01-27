@@ -9455,7 +9455,7 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] (8min) interact: add checkbox auto-detect
      [x] (15min) interact: autodetect for all controls
 
-     [ ] interact: read-only controls, so only set_interact_var can change
+     [ ] (8min) interact: read-only controls, so only set_interact_var can change
 
      [ ] interact: slider control
      [ ] interact: extensible user control
@@ -9470,13 +9470,17 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [ ] interact: support width option
      [ ] interact: library interacts
      [ ] interact: test mobile support
-interact.factorization = factor(int(n))
 
      [ ] interact: draggable controls that save layout
      [ ] interact: hints (e.g., for input_box)
      [ ] interact: make sure labels can include typeset mathjax.
 
      [ ] interact: interact.foo to get the value of foo?
+
+     [ ] interact: interrupt needs to do a proper roundtrip of
+         messages before continuing otherwise we interrupt ourselves.
+
+  [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
 
 
  [ ] foo? and foo?? followed by execute should do the right thing, not give error

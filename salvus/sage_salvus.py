@@ -294,9 +294,9 @@ class Interact(object):
             if n % 2 == 1:
                 del interact.half
             else:
-                interact.half = n/2
+                interact.half = input_box(n/2, readonly=True)
             if n.is_prime():
-                interact.is_prime = 'True'
+                interact.is_prime = input_box('True', readonly=True)
             else:
                 del interact.is_prime
     """
@@ -396,7 +396,7 @@ def interact_control(arg, value):
     c._opts['var'] = arg
     return c
 
-def input_box(default=None, label=None, type=None, width=80, height=1):
+def input_box(default=None, label=None, type=None, width=80, height=1, readonly=False):
     """
     An input box interactive control for use with the :func:`interact` command.
     """
@@ -406,7 +406,7 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
             repr         = "Input box labeled %r with default value %r"%(label, default)
         )
 
-def checkbox(default=True, label=None):
+def checkbox(default=True, label=None, readonly=False):
     """
     A checkbox interactive control for use with the :func:`interact` command.
     """
@@ -418,7 +418,12 @@ def checkbox(default=True, label=None):
 
 def selector(values, label=None, default=None,
              nrows=None, ncols=None, width=None, buttons=False):
-    
+    return control(
+            control_type = 'selector',
+            opts         = locals(),
+            repr         = "Selector labeled %r with values %s"%(label, values)
+        )
+
 
 interact_functions = {}
 for f in ['interact', 'input_box', 'checkbox']:

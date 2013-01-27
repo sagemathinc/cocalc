@@ -394,6 +394,7 @@ class Cell extends EventEmitter
             vals[desc.var] = val
             update(vals)
 
+        console.log(desc)
         switch desc.control_type
             when 'input-box'
                 input = control.find("input")
@@ -402,12 +403,16 @@ class Cell extends EventEmitter
                 input.keypress (evt) ->
                     if evt.which == 13
                         send(input.val())
+                if desc.readonly
+                    input.attr('readonly', 'readonly')
             when 'checkbox'
                 input = control.find("input")
                 set = (val) ->
                     input.attr('checked', val)
                 input.click (evt) ->
                     send(input.is(':checked'))
+                if desc.readonly
+                    input.attr('disabled', 'disabled')
 
         set(desc.default)
         control.data("set", set)
