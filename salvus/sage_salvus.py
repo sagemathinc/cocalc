@@ -182,7 +182,7 @@ class TextInput(Control):
         Control.__init__(self, label=arg, default=value, control_type='text-input')
 
 class Interact(object):
-    def __init__(self, f, **kwds):
+    def __init__(self, f, layout=None, width=None):
         """
         Given a function f, create an object that describes an interact
         for working with f interactively.
@@ -193,6 +193,9 @@ class Interact(object):
         interacts[self._uuid] = self
 
         self._f = f
+        self._layout = layout
+        self._width = width if width is None else str(width)
+
         (args, varargs, varkw, defaults) = inspect.getargspec(f)
         if defaults is None:
             defaults = []
@@ -217,7 +220,12 @@ class Interact(object):
         Return a JSON-able description of this interact, which the client
         can use for laying out controls.
         """
-        return {'controls':[c.jsonable() for c in self._controls], 'id':self._uuid}
+        X = {'controls':[c.jsonable() for c in self._controls], 'id':self._uuid}
+        if self._width is not None:
+            X['width'] = self._width
+        if self._layout is not None:
+            X['layout'] = self._layout
+        return X
 
     def __call__(self, vals):
         """
@@ -227,3 +235,38 @@ class Interact(object):
         for k, v in vals.iteritems():
             self._last_vals[k] = v
         self._f(**self._last_vals)
+
+class _interact_layout:
+    def __init__(self, layout, width):
+        self._layout = layout
+        self._width = width
+    def __call__(self, f):
+        return interact(f, self._layout, self._width)
+
+def interact(f=None, layout=None, width=None):
+    """
+    Use interact to very easily create interactive worksheet
+    cells with sliders, text boxes, radio buttons, check boxes, and
+    color selectors.
+
+    Put ``@interact`` on the line before a function definition in a
+    cell by itself, and choose appropriate defaults for the variable
+    names to determine the types of controls (see tables below).  You
+    may also put ``@interact(layout=...)`` to control the layout of
+    controls.  In addition, you can type interact(f), if f is a
+    function.
+
+    INPUT:
+
+    - `f` -- function
+    - `layout` -- TODO
+    - `width` -- number, or string such as '80%', '300px', '20em'.
+
+    OUTPUT:
+
+        - creates an interactive control.
+    """
+    if f is None:
+        return _interact_layout(layout, width)
+    else:
+        salvus.interact(f, layout=layout, width=width)

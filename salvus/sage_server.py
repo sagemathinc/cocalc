@@ -361,9 +361,9 @@ class Salvus(object):
         else:
             sage_salvus.interacts[id](vals)
 
-    def interact(self, f, done=False, **kwds):
+    def interact(self, f, done=False, layout=None, width=None):
         self._conn.send_json(message.output(
-            interact = sage_salvus.Interact(f, **kwds).jsonable(),
+            interact = sage_salvus.Interact(f, layout=layout, width=width).jsonable(),
             id=self._id, done=done))
         return self
 
@@ -543,8 +543,6 @@ def drop_privileges(id, home, transient, username):
     # scratch (which would take a long time).
     import sage.misc.misc
     sage.misc.misc.DOT_SAGE = home + '/.sage/'
-
-    
 
 def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     pid = os.getpid()
@@ -739,6 +737,10 @@ def serve(port, host):
 
     tm = time.time()
     print "pre-importing the sage library..."
+
+    import sagenb.notebook.interact
+    sagenb.notebook.interact.interact = sage_salvus.interact
+
     import sage.all
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?

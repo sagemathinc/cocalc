@@ -9442,8 +9442,8 @@ working, and only then move on to polish and bug fixing.  What I must do:
       [x] (20min) worksheet interact -- add a new "interact" message type
       [x] (2:19min) make it analyze the function and make all controls input boxes.
 
-
- [ ] worksheet: implement all interact controls
+ [ ] worksheet: implement full interact controls
+-->  [x] (30min) interact: monkey patch sagenb so that sage.all.interact = salvus.interact, etc.; plus make our interact a decorator too.
 
  [ ] implement a show(...) command
 
