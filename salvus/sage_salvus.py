@@ -230,8 +230,6 @@ class InteractCell(object):
         specified in vals will have the value they had last time.
         """
         for k, v in vals.iteritems():
-            if k not in self._last_vals:
-                raise RuntimeError("interact -- trying to set unknown input variable '%s' to '%s'"%(k,v))
             self._last_vals[k] = v
         self._f(**self._last_vals)
 
@@ -278,6 +276,23 @@ class Interact(object):
         @interact
         def f(n=20, twice=None):
             interact.twice = int(n)*2
+
+
+    In this example, we create and delete multiple controls depending
+    on properties of the input::
+
+        @interact
+        def f(n=20, **kwds):
+            print kwds
+            n = Integer(n)
+            if n % 2 == 1:
+                del interact.half
+            else:
+                interact.half = n/2
+            if n.is_prime():
+                interact.is_prime = 'True'
+            else:
+                del interact.is_prime
     """
 
     def __call__(self, f=None, layout=None, width=None):
