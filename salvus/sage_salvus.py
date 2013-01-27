@@ -170,21 +170,6 @@ def jsonable(x):
         else:
             return str(x)
 
-
-class Control(object):
-    def __init__(self, label, default, control_type):
-        self._label = label
-        self._default = jsonable(default)
-        self._type  = type(default)
-        self._control_type = control_type
-
-    def jsonable(self):
-        return {'control_type':self._control_type, 'label':self._label, 'default':self._default}
-
-class TextInput(Control):
-    def __init__(self, arg, value):
-        Control.__init__(self, label=arg, default=value, control_type='text-input')
-
 class InteractCell(object):
     def __init__(self, f, layout=None, width=None):
         """
@@ -263,8 +248,29 @@ class Interact(object):
 
     - creates an interactive control.
 
-    EXAMPLES:
 
+    AUTOMATIC CONTROL RULES
+    -----------------------
+
+    There are also some defaults that allow you to make controls
+    automatically without having to explicitly specify them.  E.g.,
+    you can make ``x`` a continuous slider of values between ``u`` and
+    ``v`` by just writing ``x=(u,v)`` in the argument list.
+
+    - ``u`` - blank input_box
+    - ``u=elt`` - input_box with ``default=element``, unless other rule below
+    - ``u=(umin,umax)`` - continuous slider (really `100` steps)
+    - ``u=(umin,umax,du)`` - slider with step size ``du``
+    - ``u=list`` - buttons if ``len(list)`` at most `5`; otherwise, drop down
+    - ``u=generator`` - a slider (up to `10000` steps)
+    - ``u=bool`` - a checkbox
+    - ``u=Color('blue')`` - a color selector; returns ``Color`` object
+    - ``u=matrix`` - an ``input_grid`` with ``to_value`` set to
+      ``matrix.parent()`` and default values given by the matrix
+    - ``u=(default, v)`` - ``v`` anything as above, with given ``default`` value
+    - ``u=(label, v)`` - ``v`` anything as above, with given ``label`` (a string)
+
+    EXAMPLES:
 
 
     We illustrate features that are only in Salvus, not in the Sage
@@ -338,13 +344,55 @@ class control:
             X[k] = jsonable(v)
         return X
 
+import types
+
+def automatic_control(default):
+    from sage.matrix.all import is_Matrix
+    from sage.all import Color
+    label = None
+    default_value = None
+
+    for _ in range(2):
+        if isinstance(default, tuple) and len(default) == 2 and isinstance(default[0], str):
+            label, default = default
+        if isinstance(default, tuple) and len(default) == 2 and isinstance(default[1], (tuple, list, types.GeneratorType)):
+            default_value, default = default
+
+    if isinstance(default, control):
+        if label:
+            default._opts['label'] = label
+        return default
+    elif isinstance(default, str):
+        return input_box(default, label=label, type=str)
+    elif isinstance(default, bool):
+        return input_box(default, label=label, type=bool)
+    elif isinstance(default, list):
+        return selector(default, default=default_value, label=label, buttons=len(default) <= 5)
+    elif isinstance(default, types.GeneratorType):
+        return slider(list_of_first_n(default, 10000), default=default_value, label=label)
+    elif isinstance(default, Color):
+        return input_box(default, label=label, type=Color)
+    elif isinstance(default, tuple):
+        if len(default) == 2:
+            return slider(default[0], default[1], default=default_value, label=label)
+        elif len(default) == 3:
+            return slider(default[0], default[1], default[2], default=default_value, label=label)
+        else:
+            return slider(list(default), default=default_value, label=label)
+    elif is_Matrix(default):
+        return input_grid(default.nrows(), default.ncols(), default=default.list(), to_value=default.parent())
+    else:
+        return input_box(default, label=label)
+
 def interact_control(arg, value):
     if isinstance(value, control):
         if value._opts['label'] is None:
             value._opts['label'] = arg
         c = value
     else:
-        c = input_box(label=arg, default=value)
+        c = automatic_control(value)
+        if c._opts['label'] is None:
+            c._opts['label'] = arg
     c._opts['var'] = arg
     return c
 
@@ -367,6 +415,10 @@ def checkbox(default=True, label=None):
             opts         = locals(),
             repr         = "Checkbox labeled %r with default value %r"%(label, default)
         )
+
+def selector(values, label=None, default=None,
+             nrows=None, ncols=None, width=None, buttons=False):
+    
 
 interact_functions = {}
 for f in ['interact', 'input_box', 'checkbox']:

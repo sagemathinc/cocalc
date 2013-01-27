@@ -9451,7 +9451,11 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] (1:50) interact: add a new command that enables one to set or delete the value
          of any variable in a layout control from python.
 
-     [ ] (15min) interact: implement checkbox, plus refactor and improve code
+     [x] (15min) interact: implement checkbox, plus refactor and improve code
+     [x] (8min) interact: add checkbox auto-detect
+     [x] (15min) interact: autodetect for all controls
+
+     [ ] interact: read-only controls, so only set_interact_var can change
 
      [ ] interact: slider control
      [ ] interact: extensible user control
@@ -9469,8 +9473,8 @@ working, and only then move on to polish and bug fixing.  What I must do:
 interact.factorization = factor(int(n))
 
      [ ] interact: draggable controls that save layout
-     [ ] interact: read-only controls, so only set_interact_var can change
      [ ] interact: hints (e.g., for input_box)
+     [ ] interact: make sure labels can include typeset mathjax.
 
      [ ] interact: interact.foo to get the value of foo?
 
