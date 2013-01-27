@@ -363,11 +363,11 @@ class Salvus(object):
 
     def interact(self, f, done=False, layout=None, width=None):
         self._conn.send_json(message.output(
-            interact = sage_salvus.Interact(f, layout=layout, width=width).jsonable(),
+            interact = sage_salvus.InteractCell(f, layout=layout, width=width).jsonable(),
             id=self._id, done=done))
         return self
 
-    def javascript(self, code, once=True, coffeescript=False, done=False):
+    def javascript(self, code, once=True, coffeescript=False, done=False, obj=None):
         """
         Execute the given Javascript code as part of the output
         stream.  This same code will be executed (at exactly this
@@ -394,7 +394,7 @@ class Salvus(object):
         - worksheet - jQuery wrapper around the current worksheet DOM object
 
         """
-        self._conn.send_json(message.output(javascript={'code':code, 'once':once, 'coffeescript':coffeescript}, id=self._id, done=done))
+        self._conn.send_json(message.output(javascript={'code':code, 'once':once, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj))
         return self
 
     def coffeescript(self, *args, **kwds):
@@ -743,7 +743,7 @@ def serve(port, host):
     import sagenb.notebook.interact
     sagenb.notebook.interact.interact = sage_salvus.interact
     for k,v in sage_salvus.interact_functions.iteritems():
-        sagenb.notebook.interact.__dict__[k] = v
+        namespace[k] = sagenb.notebook.interact.__dict__[k] = v
 
     import sage.all
     # Doing an integral start embedded ECL; unfortunately, it can

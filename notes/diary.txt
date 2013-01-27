@@ -9448,6 +9448,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] (1 hour?) interact: re-structure the code so it will be easy to define new controls.
 
      [x] (15 min) interact: input_box (return to submit) and re-organize some of the javascript side code
+     [x] (1:50) interact: add a new command that enables one to set or delete the value
+         of any variable in a layout control from python.
+
 
      [ ] interact: slider control
      [ ] interact: extensible user control
@@ -9463,8 +9466,12 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [ ] interact: support width option
      [ ] interact: library interacts
      [ ] interact: test mobile support
-     [ ] interact: add a new command that enables one to set the value
-         of any variable in a layout control from python.
+
+interact.factorization = factor(int(n))
+
+     [ ] interact: draggable controls that save layout
+     [ ] interact: read-only controls, so only set_interact_var can change
+     [ ] interact: hints (e.g., for input_box)
 
 
  [ ] foo? and foo?? followed by execute should do the right thing, not give error

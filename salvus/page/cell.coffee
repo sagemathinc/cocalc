@@ -277,7 +277,7 @@ class Cell extends EventEmitter
         pos = @_editor.getCursor()
         if pos.ch == 0 or @_editor.getRange({line:pos.line, ch:pos.ch-1},
                              pos).search(/[\s|\)]/) != -1
-            CodeMirror.commands.defaultTab(editor)
+            CodeMirror.commands.defaultTab(@_editor)
             return
         # Otherwise, introspect.
         to   = @_editor.getCursor()
@@ -331,9 +331,22 @@ class Cell extends EventEmitter
                 e.remove()
             @_close_on_action_elements = []
 
-    _initialize_interact: (elt, desc) =>
-        console.log("initializing an interact", desc)
+    _set_interact_var: (control_desc) =>
+        panel = @_output.closest('.salvus-cell-output-interact')
+        control = panel.find(".salvus-cell-interact-var-#{control_desc.var}")
+        if control.length > 0
+            control.data("set")(control_desc.default)
+        else
+            controls = panel.find(".salvus-cell-interact-controls")
+            controls.append(@_interact_control(control_desc, controls.data('update')))
 
+    _del_interact_var: (arg) =>
+        panel = @_output.closest('.salvus-cell-output-interact')
+        control = panel.find(".salvus-cell-interact-var-#{arg}")
+        control.remove()
+
+    _initialize_interact: (elt, desc) =>
+        # Create place for the output stream to appear
         output = elt.find(".salvus-cell-interact-output")
         o = output.salvus_cell
             hide    : ['note', 'editor', 'checkbox']
@@ -356,11 +369,13 @@ class Cell extends EventEmitter
                         output_cell.append_output_in_mesg(mesg)
                         if mesg.done
                             done = true
-        update({})
 
         controls = elt.find(".salvus-cell-interact-controls")
+        controls.data("update", update)
         for control in desc.controls
             controls.append(@_interact_control(control, update))
+
+        update({})
 
     _interact_control: (desc, update) ->
         # Generic initialization code
@@ -370,15 +385,23 @@ class Cell extends EventEmitter
         if desc.label?
             control.find(".salvus-cell-interact-label").html(desc.label)
 
+        control.addClass("salvus-cell-interact-var-#{desc.var}")
+
         # Initialization specific to each control type
+        set = undefined
         switch desc.control_type
             when 'input-box'
                 input = control.find("input")
-                input.val(desc.default).keypress (evt) ->
+                set = (val) ->
+                    input.val(val)
+                input.keypress (evt) ->
                     if evt.which == 13
                         vals = {}
                         vals[desc.var] = input.val()
                         update(vals)
+
+        set(desc.default)
+        control.data("set", set)
         return control
 
     #######################################################################
@@ -510,18 +533,18 @@ class Cell extends EventEmitter
         @_output.append(elt)
 
     append_output_in_mesg: (mesg) ->
-        @append_output(stream:'stdout',     value:mesg.stdout)     if mesg.stdout?
-        @append_output(stream:'stderr',     value:mesg.stderr)     if mesg.stderr?
-        @append_output(stream:'html',       value:mesg.html)       if mesg.html?
-        @append_output(stream:'tex',        value:mesg.tex)        if mesg.tex?
-        @append_output(stream:'file',       value:mesg.file)       if mesg.file?
-        @append_output(stream:'javascript', value:mesg.javascript) if mesg.javascript?
-        @append_output(stream:'interact',   value:mesg.interact)   if mesg.interact?
+        @append_output(stream:'stdout',     value:mesg.stdout,    obj:mesg.obj) if mesg.stdout?
+        @append_output(stream:'stderr',     value:mesg.stderr,    obj:mesg.obj) if mesg.stderr?
+        @append_output(stream:'html',       value:mesg.html,      obj:mesg.obj) if mesg.html?
+        @append_output(stream:'tex',        value:mesg.tex,       obj:mesg.obj) if mesg.tex?
+        @append_output(stream:'file',       value:mesg.file,      obj:mesg.obj) if mesg.file?
+        @append_output(stream:'javascript', value:mesg.javascript,obj:mesg.obj) if mesg.javascript?
+        @append_output(stream:'interact',   value:mesg.interact,  obj:mesg.obj) if mesg.interact?
 
     # Append new output to one output stream of the cell.
     # This is not to be confused with "append_to_output", which
     # simply appends to the DOM.
-    append_output : (opts) ->
+    append_output : (opts) =>
         opts = defaults opts,
             # the output stream: 'stdout', 'stderr', 'html', 'tex', 'file', 'javascript'
             stream : required
@@ -534,8 +557,7 @@ class Cell extends EventEmitter
             #     - javascript -- {code:"...", coffeescript:true/false}
             #     - interact - object that describes layout
             value  : required
-
-        console.log(opts)
+            obj    : undefined
 
         @emit("change", {output:opts})
         e = templates.find(".salvus-cell-output-#{opts.stream}").clone()
@@ -560,10 +582,15 @@ class Cell extends EventEmitter
                         else
                             e.append($("<a href='#{target}' target='_new'>#{opts.value.filename} (this temporary link expires in a minute)</a> "))
             when 'javascript'
-                if opts.value.coffeescript
-                    eval(CoffeeScript.compile(opts.value.code))
-                else
-                    eval(opts.value.code)
+                cell = @
+                obj = JSON.parse(opts.obj)
+                try
+                    if opts.value.coffeescript
+                        eval(CoffeeScript.compile(opts.value.code))
+                    else
+                        eval(opts.value.code)
+                catch exc
+                    e.text("Error evaluating Javascript '#{opts.value.code}': #{exc}")
             when 'interact'
                 @_initialize_interact(e, opts.value)
             else

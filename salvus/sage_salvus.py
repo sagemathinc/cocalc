@@ -160,11 +160,15 @@ def jsonable(x):
     For some objects, sage as Sage integers, this works well.  For other
     objects which make no sense in Javascript, we get a string.
     """
+    import sage.all
     try:
         json.dumps(x)
         return x
     except:
-        return repr(x)
+        if isinstance(x, (sage.all.Integer)):
+            return int(x)
+        else:
+            return str(x)
 
 
 class Control(object):
@@ -181,7 +185,7 @@ class TextInput(Control):
     def __init__(self, arg, value):
         Control.__init__(self, label=arg, default=value, control_type='text-input')
 
-class Interact(object):
+class InteractCell(object):
     def __init__(self, f, layout=None, width=None):
         """
         Given a function f, create an object that describes an interact
@@ -238,18 +242,18 @@ class _interact_layout:
     def __call__(self, f):
         return interact(f, self._layout, self._width)
 
-def interact(f=None, layout=None, width=None):
+class Interact(object):
     """
-    Use interact to very easily create interactive worksheet
-    cells with sliders, text boxes, radio buttons, check boxes, and
-    color selectors.
+    Use interact to create interactive worksheet cells with sliders,
+    text boxes, radio buttons, check boxes, and color selectors.
 
     Put ``@interact`` on the line before a function definition in a
     cell by itself, and choose appropriate defaults for the variable
     names to determine the types of controls (see tables below).  You
     may also put ``@interact(layout=...)`` to control the layout of
-    controls.  In addition, you can type interact(f), if f is a
-    function.
+    controls.    Within the function, you may explicitly set the value
+    of the control corresponding to a variable foo to bar by typing
+    interact.foo = bar.
 
     INPUT:
 
@@ -259,12 +263,37 @@ def interact(f=None, layout=None, width=None):
 
     OUTPUT:
 
-        - creates an interactive control.
+    - creates an interactive control.
+
+    EXAMPLES:
+
+
+
+    We illustrate features that are only in Salvus, not in the Sage
+    cell server or Sage notebook.
+
+    You can set the value of a control called foo to 100 using
+    interact.foo=100. For example::
+
+        @interact
+        def f(n=20, twice=None):
+            interact.twice = int(n)*2
     """
-    if f is None:
-        return _interact_layout(layout, width)
-    else:
-        salvus.interact(f, layout=layout, width=width)
+
+    def __call__(self, f=None, layout=None, width=None):
+        if f is None:
+            return _interact_layout(layout, width)
+        else:
+            salvus.interact(f, layout=layout, width=width)
+
+    def __setattr__(self, arg, value):
+        desc = interact_control(arg, value).jsonable()
+        salvus.javascript("cell._set_interact_var(obj)", obj=desc)
+
+    def __delattr__(self, arg):
+        salvus.javascript("cell._del_interact_var(obj)", obj=jsonable(arg))
+
+interact = Interact()
 
 class control:
     def __init__(self, control_type, opts, repr):
