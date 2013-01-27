@@ -360,14 +360,15 @@ class Cell extends EventEmitter
 
         controls = elt.find(".salvus-cell-interact-controls")
         for control in desc.controls
-            # TODO -- put in separate function
             e = templates.find(".salvus-cell-interact-control-#{control.control_type}").clone()
+            if e.length == 0
+                throw("Unknown interact control '#{control.control_type}'")
             e.find(".salvus-cell-interact-label").html(control.label)
-            e.find("input").val(control.default).data('label',control.label)
+            e.find("input").val(control.default).data('var', control.var)
             e.find("input").bind("input propertychange", () ->
                 t = $(@)
                 vals = {}
-                vals[t.data('label')] = t.val()
+                vals[t.data('var')] = t.val()
                 update(vals)
             )
             controls.append(e)

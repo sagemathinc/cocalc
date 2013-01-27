@@ -738,8 +738,12 @@ def serve(port, host):
     tm = time.time()
     print "pre-importing the sage library..."
 
+    # Monkey patching interact using the new and improved Salvus
+    # implementation of interact.
     import sagenb.notebook.interact
     sagenb.notebook.interact.interact = sage_salvus.interact
+    for k,v in sage_salvus.interact_functions.iteritems():
+        sagenb.notebook.interact.__dict__[k] = v
 
     import sage.all
     # Doing an integral start embedded ECL; unfortunately, it can

@@ -201,19 +201,12 @@ class Interact(object):
             defaults = []
 
         n = len(args) - len(defaults)
-        self._controls  = [self._automatic_control(arg, defaults[i-n] if i >= n else None)
+        self._controls  = [interact_control(arg, defaults[i-n] if i >= n else None)
                            for i, arg in enumerate(args)]
 
         self._last_vals = {}
         for i, arg in enumerate(args):
-            if i >= n:
-                d = defaults[i-n]
-            else:
-                d = None
-            self._last_vals[arg] = d
-
-    def _automatic_control(self, arg, value):
-        return TextInput(arg, value)
+            self._last_vals[arg] = self._controls[i].default()
 
     def jsonable(self):
         """
@@ -233,6 +226,8 @@ class Interact(object):
         specified in vals will have the value they had last time.
         """
         for k, v in vals.iteritems():
+            if k not in self._last_vals:
+                raise RuntimeError("interact -- trying to set unknown input variable '%s' to '%s'"%(k,v))
             self._last_vals[k] = v
         self._f(**self._last_vals)
 
@@ -270,3 +265,56 @@ def interact(f=None, layout=None, width=None):
         return _interact_layout(layout, width)
     else:
         salvus.interact(f, layout=layout, width=width)
+
+class control:
+    def __init__(self, control_type, opts, repr):
+        self._control_type = control_type
+        self._opts = dict(opts)
+        self._repr = repr
+
+    def __repr__(self):
+        return self._repr
+
+    def label(self):
+        """Return the label of this control."""
+        return self._opts['label']
+
+    def default(self):
+        """Return default value of this control."""
+        return self._opts['default']
+
+    def type(self):
+        """Return type that values of this control are coerced to."""
+        return self._opts['type']
+
+    def jsonable(self):
+        """Return JSON-able object the client browser uses to render the control."""
+        X = {'control_type':self._control_type}
+        for k, v in self._opts.iteritems():
+            X[k] = jsonable(v)
+        return X
+
+def interact_control(arg, value):
+    if isinstance(value, control):
+        if value._opts['label'] is None:
+            value._opts['label'] = arg
+        c = value
+    else:
+        c = input_box(label=arg, default=value)
+    c._opts['var'] = arg
+    return c
+
+def input_box(default=None, label=None, type=None, width=80, height=1):
+    """
+    An input box interactive control.  Use this in conjunction
+    with the :func:`interact` command.
+    """
+    return control(
+            control_type = 'input-box',
+            opts         = locals(),
+            repr         = "Interact input box labeled %r with default value %r"%(label, default)
+        )
+
+interact_functions = {'interact':interact, 'input_box':input_box}
+
+

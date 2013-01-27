@@ -9445,6 +9445,29 @@ working, and only then move on to polish and bug fixing.  What I must do:
  [ ] worksheet: implement full interact controls
 -->  [x] (30min) interact: monkey patch sagenb so that sage.all.interact = salvus.interact, etc.; plus make our interact a decorator too.
 
+     [ ] (1 hour?) interact: re-structure the code so it will be easy to define new controls.
+
+     [ ] interact: input_box (return to submit)
+     [ ] interact: slider control
+     [ ] interact: extensible user control
+     [ ] interact: checkbox
+     [ ] interact: text_control
+     [ ] interact: selector
+     [ ] interact: range_slider control
+     [ ] interact: input_grid
+     [ ] interact: color_selector control
+
+     [ ] interact: automatic defaults
+     [ ] interact: support layout option
+     [ ] interact: support width option
+     [ ] interact: library interacts
+     [ ] interact: test mobile support
+
+
+ [ ] foo? and foo?? followed by execute should do the right thing, not give error
+
+ [ ] foo? and foo?? need to give file location (and link!)
+
  [ ] implement a show(...) command
 
  [ ] get rid of absolute session timeouts; instead kill any session that
