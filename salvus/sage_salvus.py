@@ -350,15 +350,26 @@ def interact_control(arg, value):
 
 def input_box(default=None, label=None, type=None, width=80, height=1):
     """
-    An input box interactive control.  Use this in conjunction
-    with the :func:`interact` command.
+    An input box interactive control for use with the :func:`interact` command.
     """
     return control(
             control_type = 'input-box',
             opts         = locals(),
-            repr         = "Interact input box labeled %r with default value %r"%(label, default)
+            repr         = "Input box labeled %r with default value %r"%(label, default)
         )
 
-interact_functions = {'interact':interact, 'input_box':input_box}
+def checkbox(default=True, label=None):
+    """
+    A checkbox interactive control for use with the :func:`interact` command.
+    """
+    return control(
+            control_type = 'checkbox',
+            opts         = locals(),
+            repr         = "Checkbox labeled %r with default value %r"%(label, default)
+        )
+
+interact_functions = {}
+for f in ['interact', 'input_box', 'checkbox']:
+    interact_functions[f] = globals()[f]
 
 

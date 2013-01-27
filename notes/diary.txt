@@ -9451,10 +9451,10 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] (1:50) interact: add a new command that enables one to set or delete the value
          of any variable in a layout control from python.
 
+     [ ] (15min) interact: implement checkbox, plus refactor and improve code
 
      [ ] interact: slider control
      [ ] interact: extensible user control
-     [ ] interact: checkbox
      [ ] interact: text_control
      [ ] interact: selector
      [ ] interact: range_slider control
@@ -9466,12 +9466,13 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [ ] interact: support width option
      [ ] interact: library interacts
      [ ] interact: test mobile support
-
 interact.factorization = factor(int(n))
 
      [ ] interact: draggable controls that save layout
      [ ] interact: read-only controls, so only set_interact_var can change
      [ ] interact: hints (e.g., for input_box)
+
+     [ ] interact: interact.foo to get the value of foo?
 
 
  [ ] foo? and foo?? followed by execute should do the right thing, not give error

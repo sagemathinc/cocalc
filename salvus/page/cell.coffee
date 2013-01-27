@@ -29,7 +29,7 @@ class Cell extends EventEmitter
             # DOM element (or jquery wrapped element); this is replaced by the cell
             element               : undefined
 
-            # subarray of ['note','editor','output', 'checkbox']; if given, hides
+            # subarray of ['note','editor','output', 'checkbox', 'insert']; if given, hides
             # the given components when the cell is created
             hide                  : undefined
 
@@ -132,7 +132,7 @@ class Cell extends EventEmitter
 
         @element.find(".salvus-cell-insert-below").tooltip(delay:500, title:"Click to insert a cell.").click () =>
             @emit "insert-new-cell-after"
-            
+
     _initialize_note: () ->
         # make note fire change event when changed
         @_note = @element.find(".salvus-cell-note")
@@ -349,7 +349,7 @@ class Cell extends EventEmitter
         # Create place for the output stream to appear
         output = elt.find(".salvus-cell-interact-output")
         o = output.salvus_cell
-            hide    : ['note', 'editor', 'checkbox']
+            hide    : ['note', 'editor', 'checkbox', 'insert']
             session : @opts.session
         output_cell = o.data('cell')
         current_id = undefined
@@ -389,6 +389,11 @@ class Cell extends EventEmitter
 
         # Initialization specific to each control type
         set = undefined
+        send = (val) ->
+            vals = {}
+            vals[desc.var] = val
+            update(vals)
+
         switch desc.control_type
             when 'input-box'
                 input = control.find("input")
@@ -396,9 +401,13 @@ class Cell extends EventEmitter
                     input.val(val)
                 input.keypress (evt) ->
                     if evt.which == 13
-                        vals = {}
-                        vals[desc.var] = input.val()
-                        update(vals)
+                        send(input.val())
+            when 'checkbox'
+                input = control.find("input")
+                set = (val) ->
+                    input.attr('checked', val)
+                input.click (evt) ->
+                    send(input.is(':checked'))
 
         set(desc.default)
         control.data("set", set)
@@ -516,6 +525,9 @@ class Cell extends EventEmitter
                 @_output.hide()
             when 'checkbox'
                 @element.find(".salvus-cell-checkbox").hide()
+            when 'insert'
+                @element.find(".salvus-cell-insert-above").hide()
+                @element.find(".salvus-cell-insert-below").hide()
             else
                 throw "unknown component #{e}"
         return @
