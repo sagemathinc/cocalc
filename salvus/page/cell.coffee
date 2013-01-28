@@ -440,6 +440,13 @@ class Cell extends EventEmitter
                 button.click (evt) -> send(null)
                 set = (val) -> button.find("span").html(val)
 
+            when 'text'
+                text = control.find(".salvus-cell-interact-control-content")
+                if desc.classes
+                    for cls in desc.classes.split(/\s+/g)
+                        text.addClass(cls)
+                set = (val) -> text.html(val)
+
             when 'selector'
                 content = control.find(".salvus-cell-interact-control-content")
                 if desc.buttons or desc.nrows != null or desc.ncols != null

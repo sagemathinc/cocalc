@@ -339,14 +339,14 @@ class Interact(object):
             salvus.interact(f, layout=layout, width=width)
 
     def __setattr__(self, arg, value):
-        if arg in interact_exec_stack[-1]._controls:
+        if arg in interact_exec_stack[-1]._controls and not isinstance(value, control):
             # setting value of existing control
             desc = {'var':arg, 'default':interact_exec_stack[-1]._controls[arg].convert_to_client(value)}
         else:
             # create a new control
-            control = interact_control(arg, value)
-            interact_exec_stack[-1]._controls[arg] = control
-            desc = control.jsonable()
+            new_control = interact_control(arg, value)
+            interact_exec_stack[-1]._controls[arg] = new_control
+            desc = new_control.jsonable()
         salvus.javascript("cell._set_interact_var(obj)", obj=desc)
 
     def __delattr__(self, arg):
@@ -536,7 +536,47 @@ def checkbox(default=True, label=None, readonly=False):
             repr         = "Checkbox labeled %r with default value %r"%(label, default)
         )
 
-def button(default=None, label='', classes=None, width=None, icon=None):
+def text_control(default='', label='', classes=None):
+    """
+    A read-only control that displays arbitrary HTML amongst the other
+    interact controls.  This is very powerful, since it can display
+    any HTML.
+
+    INPUT::
+
+    - ``default`` -- actual HTML to display
+    - ``label`` -- defaults to '', since usually you do not want a label
+    - ``classes`` -- space separated string of CSS classes
+
+    EXAMPLES::
+
+    We output the factorization of a number in a text_control::
+
+        @interact
+        def f(n=2013,  fact=text_control("")):
+            interact.fact = factor(n)
+
+    We use a CSS class to make the text_control look like a button:
+
+        @interact
+        def f(n=text_control("foo <b>bar</b>", classes='btn')):
+            pass
+
+    We animate a picture into view:
+ 
+        @interact
+        def f(size=[10,15,..,30], speed=[1,2,3,4]):
+            for k in range(size):
+                interact.g = text_control("<img src='http://sagemath.org/pix/sage_logo_new.png' width=%s>"%(20*k))
+                sleep(speed/50.0)
+    """
+    return control(
+            control_type = 'text',
+            opts         = locals(),
+            repr         = "Text %r"%(default)
+        )
+
+def button(default=None, label=None, classes=None, width=None, icon=None):
     """
     Create a button.  [SALVUS only]
 
@@ -658,7 +698,7 @@ def selector(values, label=None, default=None,
         )
 
 interact_functions = {}
-interact_controls = ['button', 'checkbox', 'input_box', 'selector']
+interact_controls = ['button', 'checkbox', 'input_box', 'selector', 'text_control']
 
 for f in ['interact'] + interact_controls:
     interact_functions[f] = globals()[f]

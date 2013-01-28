@@ -9468,9 +9468,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] interact: interact.controls.[tab] to see all controls.
 
      [x] (26min) interact: button control
- 
+     [x] interact: text_control
+
      [ ] interact: slider control
-     [ ] interact: text_control
      [ ] interact: range_slider control
      [ ] interact: input_grid
      [ ] interact: color_selector control
