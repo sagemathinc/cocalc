@@ -394,7 +394,7 @@ class Cell extends EventEmitter
             vals[desc.var] = val
             update(vals)
 
-        console.log(desc)
+        console.log(to_json(desc), desc)
         switch desc.control_type
             when 'input-box'
                 input = control.find("input")
@@ -405,6 +405,7 @@ class Cell extends EventEmitter
                         send(input.val())
                 if desc.readonly
                     input.attr('readonly', 'readonly')
+
             when 'checkbox'
                 input = control.find("input")
                 set = (val) ->
@@ -413,9 +414,30 @@ class Cell extends EventEmitter
                     send(input.is(':checked'))
                 if desc.readonly
                     input.attr('disabled', 'disabled')
-            when 'selector'
-                set = (val) ->
 
+            when 'selector'
+                if true
+                    # A button bar.
+                    
+                else
+                    # A standard drop down selector box.
+                    select = control.find('select')
+                    i = 0
+                    for lbl in desc.lbls
+                        select.append($("<option>").attr("value",i).attr("label", lbl))
+                        i += 1
+
+                    select.change (evt) ->
+                        send(select.find(":selected").attr("value"))
+
+                    set = (val) ->
+                        if typeof val == 'number'
+                            $(select.children()[val]).attr("selected", true)
+                        else
+                            val = String(val)
+                            for opt in select.find("option")
+                                if opt.attr("value") == val
+                                    opt.attr("selected", true)
             else
                 throw("Unknown interact control type '#{desc.control_type}'")
 

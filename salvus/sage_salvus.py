@@ -199,6 +199,7 @@ class InteractCell(object):
         for arg in args:
             self._last_vals[arg] = self._controls[arg].default()
 
+        self._ordered_args = args
         self._args = set(args)
 
     def jsonable(self):
@@ -206,7 +207,7 @@ class InteractCell(object):
         Return a JSON-able description of this interact, which the client
         can use for laying out controls.
         """
-        X = {'controls':[c.jsonable() for c in self._controls.values()], 'id':self._uuid}
+        X = {'controls':[self._controls[arg].jsonable() for arg in self._ordered_args], 'id':self._uuid}
         if self._width is not None:
             X['width'] = self._width
         if self._layout is not None:
@@ -222,10 +223,12 @@ class InteractCell(object):
             x = self._controls[k](v)
             self._last_vals[k] =  x
         _control_values.append(self._last_vals)
+        _controls.append(self._controls)
         try:
             self._f(**dict([(k,self._last_vals[k]) for k in self._args]))
         finally:
             _control_values.pop()
+            _controls.pop()
 
 class _interact_layout:
     def __init__(self, layout, width):
@@ -313,12 +316,20 @@ class Interact(object):
     that you create using interact.foo, and check whether there is a
     control associated to a given variable name using hasattr::
 
-            @interact
-            def f():
-                if not hasattr(interact, 'foo'):
-                    interact.foo = 'hello'
-                else:
-                    print interact.foo
+        @interact
+        def f():
+            if not hasattr(interact, 'foo'):
+                interact.foo = 'hello'
+            else:
+                print interact.foo
+
+    An indecisive interact::
+
+        @interact
+        def f(n=selector(['yes', 'no'])):
+            for i in range(5):
+                interact.n = i%2
+                sleep(.2)
     """
     def __call__(self, f=None, layout=None, width=None):
         if f is None:
@@ -327,7 +338,12 @@ class Interact(object):
             salvus.interact(f, layout=layout, width=width)
 
     def __setattr__(self, arg, value):
-        desc = interact_control(arg, value).jsonable()
+        if arg in _controls[-1]:
+            # setting value of existing control
+            desc = {'var':arg, 'default':_controls[-1][arg].convert_to_client(value)}
+        else:
+            # create a new control
+            desc = interact_control(arg, value).jsonable()
         salvus.javascript("cell._set_interact_var(obj)", obj=desc)
 
     def __delattr__(self, arg):
@@ -341,9 +357,10 @@ class Interact(object):
 
 interact = Interact()
 _control_values = []
+_controls = []
 
 class control:
-    def __init__(self, control_type, opts, repr, convert_value=None):
+    def __init__(self, control_type, opts, repr, convert_from_client=None, convert_to_client=jsonable):
         # The type of the control -- a string, used for CSS selectors, switches, etc.
         self._control_type = control_type
         # The options that define the control -- passed to client
@@ -351,17 +368,21 @@ class control:
         # Used to print the control to a string.
         self._repr = repr
         # Callable that the control may use in converting from JSON
-        self._convert_value = convert_value
+        self._convert_from_client = convert_from_client
+        self._convert_to_client = convert_to_client
         self._last_value = self._opts['default']
+
+    def convert_to_client(self, value):
+        return self._convert_to_client(value)
 
     def __call__(self, obj):
         """
         Convert JSON-able object returned from client to describe
         value of this control.
         """
-        if self._convert_value is not None:
+        if self._convert_from_client is not None:
             try:
-                x = self._convert_value(obj)
+                x = self._convert_from_client(obj)
             except Exception, err:
                 sys.stderr.write("%s -- %s\n"%(err, self))
                 sys.stderr.flush()
@@ -380,7 +401,7 @@ class control:
 
     def default(self):
         """Return default value of this control."""
-        return self._opts['default']
+        return self(self._opts['default'])
 
     def type(self):
         """Return type that values of this control are coerced to."""
@@ -414,7 +435,7 @@ def automatic_control(default):
     elif isinstance(default, str):
         return input_box(default, label=label, type=str)
     elif isinstance(default, bool):
-        return input_box(default, label=label, type=bool)
+        return checkbox(default, label=label)
     elif isinstance(default, list):
         return selector(default, default=default_value, label=label, buttons=len(default) <= 5)
     elif isinstance(default, types.GeneratorType):
@@ -482,7 +503,7 @@ def input_box(default=None, label=None, type=None, width=80, height=1, readonly=
             control_type = 'input-box',
             opts         = locals(),
             repr         = "Input box labeled %r with default value %r"%(label, default),
-            convert_value = ParseValue(type)
+            convert_from_client = ParseValue(type)
         )
 
 def checkbox(default=True, label=None, readonly=False):
@@ -512,7 +533,7 @@ def selector(values, label=None, default=None,
           all labels must be given or must all equal None.
         - ``label`` - a string (default: None); if given, this label
           is placed to the left of the entire button group
-        - ``default`` - an object (default: 0); default value in values list
+        - ``default`` - an object (default: first); default value in values list
         - ``nrows`` - an integer (default: None); if given determines
           the number of rows of buttons; if given, buttons=True
         - ``ncols`` - an integer (default: None); if given determines
@@ -522,10 +543,38 @@ def selector(values, label=None, default=None,
         - ``buttons`` - a bool (default: False, except as noted
           above); if True, use buttons
     """
+    if (len(values) > 0 and isinstance(values[0], tuple) and len(values[0]) == 2):
+        vals = [z[0] for z in values]
+        lbls = [str(z[1]) if z[1] is not None else None for z in values]
+    else:
+        vals = values
+        lbls = [None] * len(vals)
+
+    for i in range(len(vals)):
+        if lbls[i] is None:
+            v = vals[i]
+            lbls[i] = v if isinstance(v, str) else str(v)
+
+    if default is None:
+        default = 0
+    else:
+        try:
+            default = vals.index(default)
+        except IndexError:
+            default = 0
+
+    opts = dict(locals())
+    for k in ['vals', 'values', 'i', 'v', 'z']:
+        if k in opts:
+            del opts[k]  # these could have a big jsonable repr
+
+    opts['lbls'] = lbls
     return control(
-            control_type = 'selector',
-            opts         = locals(),
-            repr         = "Selector labeled %r with values %s"%(label, values)
+            control_type        = 'selector',
+            opts                = opts,
+            repr                = "Selector labeled %r with values %s"%(label, values),
+            convert_from_client = lambda n : vals[int(n)],
+            convert_to_client   = lambda x : vals.index(x)
         )
 
 interact_functions = {}
