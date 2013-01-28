@@ -461,7 +461,7 @@ def automatic_control(default):
     elif isinstance(default, types.GeneratorType):
         return slider(list_of_first_n(default, 10000), default=default_value, label=label)
     elif isinstance(default, Color):
-        return input_box(default, label=label, type=Color)
+        return color_selector(default=default, label=label)
     elif isinstance(default, tuple):
         if len(default) == 2:
             return slider(default[0], default[1], default=default_value, label=label)
@@ -522,7 +522,7 @@ def input_box(default=None, label=None, type=None, width=80, height=1, readonly=
     return control(
             control_type = 'input-box',
             opts         = locals(),
-            repr         = "Input box labeled %r with default value %r"%(label, default),
+            repr         = "Input box",
             convert_from_client = ParseValue(type)
         )
 
@@ -533,21 +533,30 @@ def checkbox(default=True, label=None, readonly=False):
     return control(
             control_type = 'checkbox',
             opts         = locals(),
-            repr         = "Checkbox labeled %r with default value %r"%(label, default)
+            repr         = "Checkbox"
         )
 
-def color_selector(default=(0,0,1), label=None, readonly=False, widget='none', hide_box=False):
+def color_selector(default='blue', label=None, readonly=False, widget=None, hide_box=False):
     """
+    A color selector.
+
+    SALVUS only: the widget option is ignored -- SALVUS only provides
+    bootstrap-colorpicker.
+
     EXAMPLES::
 
         @interact
         def f(c=color_selector()):
             print c
     """
+    from sage.all import Color
+    default = Color(default).html_color()
     return control(
             control_type = 'color-selector',
             opts         = locals(),
-            repr         = "Checkbox labeled %r with default value %r"%(label, default)
+            repr         = "Color selector",
+            convert_from_client = lambda x : Color(str(x)),
+            convert_to_client = lambda x : Color(x).html_color()
         )
 
 def text_control(default='', label='', classes=None):

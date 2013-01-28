@@ -9469,7 +9469,7 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (26min) interact: button control
      [x] interact: text_control
--->     [ ] interact: color_selector control
+     [ ] (1:23) interact: color_selector control
 
      [ ] interact: slider control
      [ ] interact: range_slider control
