@@ -9463,10 +9463,11 @@ working, and only then move on to polish and bug fixing.  What I must do:
          that aren't in sage.
 
      [x] (15min) interact: make the vars that trigger re-evaluation known.
+     [x] interact: automatic defaults
 
      [x] interact: interact.controls.[tab] to see all controls.
 
--->     [ ] interact: button control
+     [x] (26min) interact: button control
  
      [ ] interact: slider control
      [ ] interact: text_control
@@ -9474,7 +9475,7 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [ ] interact: input_grid
      [ ] interact: color_selector control
 
-     [ ] interact: automatic defaults
+     [ ] interact: labels/controls need to line up nicely
      [ ] interact: support layout option
      [ ] interact: support width option
      [ ] interact: interrupt needs to do a proper roundtrip of

@@ -536,6 +536,56 @@ def checkbox(default=True, label=None, readonly=False):
             repr         = "Checkbox labeled %r with default value %r"%(label, default)
         )
 
+def button(default=None, label='', classes=None, width=None, icon=None):
+    """
+    Create a button.  [SALVUS only]
+
+    You can tell that pressing this button triggered the interact
+    evaluation because interact.triggers() will include the variable
+    name tied to the button.
+
+    INPUT:
+
+    - ``default`` -- value variable is set to
+    - ``label`` -- string (default: '')
+    - ``classes`` -- string if None; if given, space separated
+      list of CSS classes. e.g., Bootstrap CSS classes such as:
+              btn-primary, btn-info, btn-success, btn-warning, btn-danger,
+              btn-link, btn-large, btn-small, btn-mini.
+      See http://twitter.github.com/bootstrap/base-css.html#buttons
+      If button_classes a single string, that class is applied to all buttons.
+    - ``width`` - an integer or string (default: None); if given,
+      all buttons are this width.  If an integer, the default units
+      are 'ex'.  A string that specifies any valid HTML units (e.g., '100px', '3em')
+      is also allowed [SALVUS only].
+    - ``icon`` -- None or string name of any icon listed at the font
+      awesome website (http://fortawesome.github.com/Font-Awesome/), e.g., 'icon-repeat'
+
+    EXAMPLES::
+
+        @interact
+        def f(hi=button('Hello', label='', classes="btn-primary btn-large"),
+              by=button("By")):
+            if 'hi' in interact.triggers():
+                print "Hello to you, good sir."
+            if 'by' in interact.triggers():
+                print "See you."
+
+    Some buttons with icons::
+
+        @interact
+        def f(n=button('repeat', icon='icon-repeat'),
+              m=button('see?', icon="icon-eye-open", classes="btn-large")):
+            print interact.triggers()
+    """
+    return control(
+            control_type = "button",
+            opts         = locals(),
+            repr         = "Button",
+            convert_from_client = lambda x : default,
+            convert_to_client   = lambda x : str(x)
+    )
+
 def selector(values, label=None, default=None,
              nrows=None, ncols=None, width=None, buttons=False,
              button_classes=None):
@@ -608,7 +658,7 @@ def selector(values, label=None, default=None,
         )
 
 interact_functions = {}
-interact_controls = ['input_box', 'checkbox', 'selector']
+interact_controls = ['button', 'checkbox', 'input_box', 'selector']
 
 for f in ['interact'] + interact_controls:
     interact_functions[f] = globals()[f]
