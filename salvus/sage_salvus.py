@@ -197,6 +197,8 @@ class InteractCell(object):
         for i, arg in enumerate(args):
             self._last_vals[arg] = self._controls[i].default()
 
+        self._args = set(args)
+
     def jsonable(self):
         """
         Return a JSON-able description of this interact, which the client
@@ -214,9 +216,16 @@ class InteractCell(object):
         Call self._f with inputs specified by vals.  Any input variables not
         specified in vals will have the value they had last time.
         """
+        kwds = {}  # only call with original input args, not vars corresponding to new interact controls.
         for k, v in vals.iteritems():
             self._last_vals[k] = v
-        self._f(**self._last_vals)
+            if k in self._args:
+                kwds[k] = v
+        _control_values.append(self._last_vals)
+        try:
+            self._f(**kwds)
+        finally:
+            _control_values.pop()
 
 class _interact_layout:
     def __init__(self, layout, width):
@@ -299,8 +308,18 @@ class Interact(object):
                 interact.is_prime = input_box('True', readonly=True)
             else:
                 del interact.is_prime
-    """
 
+    You can access the value of a control associated to a variable foo
+    that you create using interact.foo, and check whether there is a
+    control associated to a given variable name using hasattr::
+
+            @interact
+            def f():
+                if not hasattr(interact, 'foo'):
+                    interact.foo = 'hello'
+                else:
+                    print interact.foo
+    """
     def __call__(self, f=None, layout=None, width=None):
         if f is None:
             return _interact_layout(layout, width)
@@ -314,7 +333,14 @@ class Interact(object):
     def __delattr__(self, arg):
         salvus.javascript("cell._del_interact_var(obj)", obj=jsonable(arg))
 
+    def __getattr__(self, arg):
+        try:
+            return _control_values[-1][arg]
+        except:
+            raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
+
 interact = Interact()
+_control_values = []
 
 class control:
     def __init__(self, control_type, opts, repr):

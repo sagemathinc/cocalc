@@ -9455,12 +9455,14 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] (8min) interact: add checkbox auto-detect
      [x] (15min) interact: autodetect for all controls
 
-     [ ] (8min) interact: read-only controls, so only set_interact_var can change
+     [x] (8min) interact: read-only controls, so only set_interact_var can change
 
+-->     [ ] interact: interact.foo to get the value of foo?
+
+     [ ] interact: selector
      [ ] interact: slider control
      [ ] interact: extensible user control
      [ ] interact: text_control
-     [ ] interact: selector
      [ ] interact: range_slider control
      [ ] interact: input_grid
      [ ] interact: color_selector control
@@ -9475,13 +9477,23 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [ ] interact: hints (e.g., for input_box)
      [ ] interact: make sure labels can include typeset mathjax.
 
-     [ ] interact: interact.foo to get the value of foo?
-
      [ ] interact: interrupt needs to do a proper roundtrip of
          messages before continuing otherwise we interrupt ourselves.
 
-  [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
+     [ ] interact: make sure I don't re-introduce the bugs of http://trac.sagemath.org/sage_trac/ticket/14020
 
+
+
+ [ ] load/attach
+
+ [ ] cell modes: %cython
+ [ ] cell mode: %hide
+ [ ] cell mode: %hideall
+ [ ] cell mode: %time
+ [ ] cell mode: %latex
+ [ ] cell mode: %html
+
+ [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
 
  [ ] foo? and foo?? followed by execute should do the right thing, not give error
 
