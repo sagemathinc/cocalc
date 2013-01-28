@@ -9469,11 +9469,11 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (26min) interact: button control
      [x] interact: text_control
+-->     [ ] interact: color_selector control
 
      [ ] interact: slider control
      [ ] interact: range_slider control
      [ ] interact: input_grid
-     [ ] interact: color_selector control
 
      [ ] interact: labels/controls need to line up nicely
      [ ] interact: support layout option

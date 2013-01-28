@@ -441,11 +441,19 @@ class Cell extends EventEmitter
                 set = (val) -> button.find("span").html(val)
 
             when 'text'
-                text = control.find(".salvus-cell-interact-control-content")
+                text = control.find(".salvus-cell-interact-control-content")      
                 if desc.classes
                     for cls in desc.classes.split(/\s+/g)
-                        text.addClass(cls)
+                        text.addClas1s(cls)
                 set = (val) -> text.html(val)
+
+            when 'color-selector'
+                content = control.find(".salvus-cell-interact-control-content")
+                control.find("input").colorpicker(format:'hex')
+                x = control.find(".color")
+                x.attr('id', 'cp0')
+                x.colorpicker()
+                set = (val) ->
 
             when 'selector'
                 content = control.find(".salvus-cell-interact-control-content")

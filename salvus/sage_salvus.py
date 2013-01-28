@@ -536,6 +536,20 @@ def checkbox(default=True, label=None, readonly=False):
             repr         = "Checkbox labeled %r with default value %r"%(label, default)
         )
 
+def color_selector(default=(0,0,1), label=None, readonly=False, widget='none', hide_box=False):
+    """
+    EXAMPLES::
+
+        @interact
+        def f(c=color_selector()):
+            print c
+    """
+    return control(
+            control_type = 'color-selector',
+            opts         = locals(),
+            repr         = "Checkbox labeled %r with default value %r"%(label, default)
+        )
+
 def text_control(default='', label='', classes=None):
     """
     A read-only control that displays arbitrary HTML amongst the other
@@ -698,7 +712,7 @@ def selector(values, label=None, default=None,
         )
 
 interact_functions = {}
-interact_controls = ['button', 'checkbox', 'input_box', 'selector', 'text_control']
+interact_controls = ['button', 'checkbox', 'color_selector', 'input_box', 'selector', 'text_control']
 
 for f in ['interact'] + interact_controls:
     interact_functions[f] = globals()[f]
