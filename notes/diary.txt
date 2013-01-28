@@ -9458,7 +9458,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] (8min) interact: read-only controls, so only set_interact_var can change
      [x] (20min) interact: interact.foo to get the value of foo?
 
--->     [ ] interact: selector
+     [x] (5h:41min) interact: selector plus a lot of other feature
+         improvements overall, plus added extra features to selector
+         that aren't in sage.
 
      [ ] interact: slider control
      [ ] interact: text_control
@@ -9481,6 +9483,8 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [ ] interact: extensible user controls
 
 
+
+ [ ] mathjax jquery plugin -- give it a timeout!
 
  [ ] load/attach
 

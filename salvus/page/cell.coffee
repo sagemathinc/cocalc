@@ -338,7 +338,9 @@ class Cell extends EventEmitter
             control.data("set")(control_desc.default)
         else
             controls = panel.find(".salvus-cell-interact-controls")
-            controls.append(@_interact_control(control_desc, controls.data('update')))
+            control = @_interact_control(control_desc, controls.data('update'))
+            controls.append(control)
+            control.data('refresh')?()
 
     _del_interact_var: (arg) =>
         panel = @_output.closest('.salvus-cell-output-interact')
@@ -373,11 +375,18 @@ class Cell extends EventEmitter
         controls = elt.find(".salvus-cell-interact-controls")
         controls.data("update", update)
         for control in desc.controls
-            controls.append(@_interact_control(control, update))
+            c = @_interact_control(control, update)
+            controls.append(c)
+            c.data('refresh')?()
 
         update({})
 
     _interact_control: (desc, update) ->
+        # Create and return a detached DOM element elt that represents
+        # the interact control described by desc.  It will call update
+        # when it changes.  If elt.data('refresh') is defined, it will
+        # be called after the control is inserted into the DOM.
+
         # Generic initialization code
         control = templates.find(".salvus-cell-interact-control-#{desc.control_type}").clone()
         if control.length == 0
@@ -393,6 +402,10 @@ class Cell extends EventEmitter
             vals = {}
             vals[desc.var] = val
             update(vals)
+
+        if desc.width?
+            if typeof desc.width == 'number'
+                desc.width = "#{desc.width}ex"
 
         console.log(to_json(desc), desc)
         switch desc.control_type
@@ -416,12 +429,58 @@ class Cell extends EventEmitter
                     input.attr('disabled', 'disabled')
 
             when 'selector'
-                if true
+                content = control.find(".salvus-cell-interact-control-content")
+                if desc.buttons or desc.nrows != null or desc.ncols != null
                     # A button bar.
-                    
+                    if desc.ncols != null
+                        ncols = desc.ncols
+                    else if desc.nrows != null
+                        ncols = Math.ceil(desc.lbls.length/desc.nrows)
+                    else if desc.nrows != null
+                        ncols = desc.lbls.length
+                    bar = $('<span class="btn-group">')
+                    content.append(bar)
+
+                    i = 0
+                    for lbl in desc.lbls
+                        button = $("<a class='btn'>").data('value',i).text(lbl)
+                        if desc.button_classes != null
+                            if typeof desc.button_classes == "string"
+                                c = desc.button_classes
+                            else
+                                c = desc.button_classes[i]
+                            for cls in c.split(/\s+/g)
+                                button.addClass(cls)
+                        if desc.width
+                            button.width(desc.width)
+                        button.click () ->
+                            val = $(@).data('value')
+                            send(val)
+                            set(val)
+                        bar.append(button)
+                        i += 1
+                        if i % ncols == 0 and i < desc.lbls.length
+                            # start a new bar
+                            content.append($('<br>'))
+                            bar = $('<span class="btn-group">')
+                            content.append(bar)
+
+                    control.data 'refresh', () ->
+                        if ncols != desc.lbls.length and not desc.width
+                            # If no width param is specified and the
+                            # button bar will take up multiple lines, make
+                            # all buttons the same width as the widest, so
+                            # the buttons look good.
+                            w = Math.max.apply @, ($(x).width() for x in content.find("a"))
+                            content.find("a").width(w)
+
+                    set = (val) ->
+                        content.find("a.active").removeClass("active")
+                        $(content.find("a")[val]).addClass("active")
                 else
                     # A standard drop down selector box.
-                    select = control.find('select')
+                    select = $("<select>")
+                    content.append(select)
                     i = 0
                     for lbl in desc.lbls
                         select.append($("<option>").attr("value",i).attr("label", lbl))
@@ -429,6 +488,9 @@ class Cell extends EventEmitter
 
                     select.change (evt) ->
                         send(select.find(":selected").attr("value"))
+
+                    if desc.width
+                        select.width(desc.width)
 
                     set = (val) ->
                         if typeof val == 'number'

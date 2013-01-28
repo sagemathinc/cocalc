@@ -222,13 +222,11 @@ class InteractCell(object):
         for k, v in vals.iteritems():
             x = self._controls[k](v)
             self._last_vals[k] =  x
-        _control_values.append(self._last_vals)
-        _controls.append(self._controls)
+        interact_exec_stack.append(self)
         try:
             self._f(**dict([(k,self._last_vals[k]) for k in self._args]))
         finally:
-            _control_values.pop()
-            _controls.pop()
+            interact_exec_stack.pop()
 
 class _interact_layout:
     def __init__(self, layout, width):
@@ -338,26 +336,32 @@ class Interact(object):
             salvus.interact(f, layout=layout, width=width)
 
     def __setattr__(self, arg, value):
-        if arg in _controls[-1]:
+        if arg in interact_exec_stack[-1]._controls:
             # setting value of existing control
-            desc = {'var':arg, 'default':_controls[-1][arg].convert_to_client(value)}
+            desc = {'var':arg, 'default':interact_exec_stack[-1]._controls[arg].convert_to_client(value)}
         else:
             # create a new control
-            desc = interact_control(arg, value).jsonable()
+            control = interact_control(arg, value)
+            interact_exec_stack[-1]._controls[arg] = control
+            desc = control.jsonable()
         salvus.javascript("cell._set_interact_var(obj)", obj=desc)
 
     def __delattr__(self, arg):
+        try:
+            del interact_exec_stack[-1]._controls[arg]
+        except KeyError:
+            pass
         salvus.javascript("cell._del_interact_var(obj)", obj=jsonable(arg))
 
     def __getattr__(self, arg):
         try:
-            return _control_values[-1][arg]
-        except:
+            return interact_exec_stack[-1]._last_vals[arg]
+        except Exception, err:
+            print err
             raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
 
 interact = Interact()
-_control_values = []
-_controls = []
+interact_exec_stack = []
 
 class control:
     def __init__(self, control_type, opts, repr, convert_from_client=None, convert_to_client=jsonable):
@@ -517,7 +521,8 @@ def checkbox(default=True, label=None, readonly=False):
         )
 
 def selector(values, label=None, default=None,
-             nrows=None, ncols=None, width=None, buttons=False):
+             nrows=None, ncols=None, width=None, buttons=False,
+             button_classes=None):
     """
         A drop down menu or a button bar for use in conjunction with
         the :func:`interact` command.  We use the same command to
@@ -530,7 +535,7 @@ def selector(values, label=None, default=None,
 
         - ``values`` - either (1) a list [val0, val1, val2, ...] or (2)
           a list of pairs [(val0, lbl0), (val1,lbl1), ...] in which case
-          all labels must be given or must all equal None.
+          all labels must be given -- use None to auto-compute a given label.
         - ``label`` - a string (default: None); if given, this label
           is placed to the left of the entire button group
         - ``default`` - an object (default: first); default value in values list
@@ -539,9 +544,18 @@ def selector(values, label=None, default=None,
         - ``ncols`` - an integer (default: None); if given determines
           the number of columns of buttons; if given, buttons=True
         - ``width`` - an integer or string (default: None); if given,
-          all buttons are this width (in HTML ex units).
+          all buttons are this width.  If an integer, the default units
+          are 'ex'.  A string that specifies any valid HTML units (e.g., '100px', '3em')
+          is also allowed [SALVUS only].
         - ``buttons`` - a bool (default: False, except as noted
           above); if True, use buttons
+        - ``button_classes`` - [SALVUS only] None, a string, or list of strings
+          of the of same length as values, whose entries are a whitespace-separated
+          string of CSS classes, e.g., Bootstrap CSS classes such as:
+              btn-primary, btn-info, btn-success, btn-warning, btn-danger,
+              btn-link, btn-large, btn-small, btn-mini.
+          See http://twitter.github.com/bootstrap/base-css.html#buttons
+          If button_classes a single string, that class is applied to all buttons.
     """
     if (len(values) > 0 and isinstance(values[0], tuple) and len(values[0]) == 2):
         vals = [z[0] for z in values]
