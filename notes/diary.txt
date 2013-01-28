@@ -9464,7 +9464,9 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (15min) interact: make the vars that trigger re-evaluation known.
 
-     [ ] interact: button control
+     [x] interact: interact.controls.[tab] to see all controls.
+
+-->     [ ] interact: button control
  
      [ ] interact: slider control
      [ ] interact: text_control

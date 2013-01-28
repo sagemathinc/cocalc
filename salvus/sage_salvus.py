@@ -239,7 +239,7 @@ class _interact_layout:
 class Interact(object):
     """
     Use interact to create interactive worksheet cells with sliders,
-    text boxes, radio buttons, check boxes, and color selectors.
+    text boxes, radio buttons, check boxes, color selectors, and more.
 
     Put ``@interact`` on the line before a function definition in a
     cell by itself, and choose appropriate defaults for the variable
@@ -248,6 +248,8 @@ class Interact(object):
     controls.    Within the function, you may explicitly set the value
     of the control corresponding to a variable foo to bar by typing
     interact.foo = bar.
+
+    Type "interact.controls.[tab]" to get access to all of the controls.
 
     INPUT:
 
@@ -606,7 +608,16 @@ def selector(values, label=None, default=None,
         )
 
 interact_functions = {}
-for f in ['interact', 'input_box', 'checkbox', 'selector']:
+interact_controls = ['input_box', 'checkbox', 'selector']
+
+for f in ['interact'] + interact_controls:
     interact_functions[f] = globals()[f]
+
+# A little magic so that "interact.controls.[tab]" shows all the controls.
+class Controls:
+    pass
+Interact.controls = Controls()
+for f in interact_controls:
+    interact.controls.__dict__[f] = interact_functions[f]
 
 
