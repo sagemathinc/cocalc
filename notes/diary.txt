@@ -9462,6 +9462,10 @@ working, and only then move on to polish and bug fixing.  What I must do:
          improvements overall, plus added extra features to selector
          that aren't in sage.
 
+     [x] (15min) interact: make the vars that trigger re-evaluation known.
+
+     [ ] interact: button control
+ 
      [ ] interact: slider control
      [ ] interact: text_control
      [ ] interact: range_slider control

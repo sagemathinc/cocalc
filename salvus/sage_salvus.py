@@ -219,6 +219,7 @@ class InteractCell(object):
         Call self._f with inputs specified by vals.  Any input variables not
         specified in vals will have the value they had last time.
         """
+        self.triggers = [str(x) for x in vals.keys()]
         for k, v in vals.iteritems():
             x = self._controls[k](v)
             self._last_vals[k] =  x
@@ -359,6 +360,19 @@ class Interact(object):
         except Exception, err:
             print err
             raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
+
+    def triggers(self):
+        """
+        Return the variables whose change triggered evaluation of this
+        interact.  [SALVUS only]
+
+        For example::
+
+            @interact
+            def f(n=True, m=False, xyz=[1,2,3]):
+                print n, m, interact.triggers()
+        """
+        return interact_exec_stack[-1].triggers
 
 interact = Interact()
 interact_exec_stack = []
