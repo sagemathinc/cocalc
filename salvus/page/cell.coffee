@@ -413,6 +413,11 @@ class Cell extends EventEmitter
                     send(input.is(':checked'))
                 if desc.readonly
                     input.attr('disabled', 'disabled')
+            when 'selector'
+                set = (val) ->
+
+            else
+                throw("Unknown interact control type '#{desc.control_type}'")
 
         set(desc.default)
         control.data("set", set)

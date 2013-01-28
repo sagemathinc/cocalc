@@ -4,6 +4,8 @@
 #                                                                                #
 ##################################################################################
 
+import sys
+
 salvus = None
 
 
@@ -190,12 +192,12 @@ class InteractCell(object):
             defaults = []
 
         n = len(args) - len(defaults)
-        self._controls  = [interact_control(arg, defaults[i-n] if i >= n else None)
-                           for i, arg in enumerate(args)]
+        self._controls  = dict([(arg, interact_control(arg, defaults[i-n] if i >= n else None))
+                           for i, arg in enumerate(args)])
 
         self._last_vals = {}
-        for i, arg in enumerate(args):
-            self._last_vals[arg] = self._controls[i].default()
+        for arg in args:
+            self._last_vals[arg] = self._controls[arg].default()
 
         self._args = set(args)
 
@@ -204,7 +206,7 @@ class InteractCell(object):
         Return a JSON-able description of this interact, which the client
         can use for laying out controls.
         """
-        X = {'controls':[c.jsonable() for c in self._controls], 'id':self._uuid}
+        X = {'controls':[c.jsonable() for c in self._controls.values()], 'id':self._uuid}
         if self._width is not None:
             X['width'] = self._width
         if self._layout is not None:
@@ -216,14 +218,12 @@ class InteractCell(object):
         Call self._f with inputs specified by vals.  Any input variables not
         specified in vals will have the value they had last time.
         """
-        kwds = {}  # only call with original input args, not vars corresponding to new interact controls.
         for k, v in vals.iteritems():
-            self._last_vals[k] = v
-            if k in self._args:
-                kwds[k] = v
+            x = self._controls[k](v)
+            self._last_vals[k] =  x
         _control_values.append(self._last_vals)
         try:
-            self._f(**kwds)
+            self._f(**dict([(k,self._last_vals[k]) for k in self._args]))
         finally:
             _control_values.pop()
 
@@ -343,10 +343,33 @@ interact = Interact()
 _control_values = []
 
 class control:
-    def __init__(self, control_type, opts, repr):
+    def __init__(self, control_type, opts, repr, convert_value=None):
+        # The type of the control -- a string, used for CSS selectors, switches, etc.
         self._control_type = control_type
+        # The options that define the control -- passed to client
         self._opts = dict(opts)
+        # Used to print the control to a string.
         self._repr = repr
+        # Callable that the control may use in converting from JSON
+        self._convert_value = convert_value
+        self._last_value = self._opts['default']
+
+    def __call__(self, obj):
+        """
+        Convert JSON-able object returned from client to describe
+        value of this control.
+        """
+        if self._convert_value is not None:
+            try:
+                x = self._convert_value(obj)
+            except Exception, err:
+                sys.stderr.write("%s -- %s\n"%(err, self))
+                sys.stderr.flush()
+                x = self._last_value
+        else:
+            x = obj
+        self._last_value = x
+        return x
 
     def __repr__(self):
         return self._repr
@@ -422,6 +445,35 @@ def interact_control(arg, value):
     c._opts['var'] = arg
     return c
 
+class ParseValue:
+    def __init__(self, type):
+        self._type = type
+    def _eval(self, value):
+        value = str(value)
+        if value.isspace():
+            return None
+        if len(value.strip()) == 0:
+            return None
+        from sage.all import sage_eval
+        return sage_eval(value, salvus.namespace)
+
+    def __call__(self, value):
+        from sage.all import Color
+        if self._type is None:
+            return self._eval(value)
+        elif self._type is str:
+            return str(value)
+        elif self._type is Color:
+            try:
+                return Color(value)
+            except ValueError:
+                try:
+                    return Color("#"+value)
+                except ValueError:
+                    raise TypeError("invalid color '%s'"%value)
+        else:
+            return self._type(self._eval(value))
+
 def input_box(default=None, label=None, type=None, width=80, height=1, readonly=False):
     """
     An input box interactive control for use with the :func:`interact` command.
@@ -429,7 +481,8 @@ def input_box(default=None, label=None, type=None, width=80, height=1, readonly=
     return control(
             control_type = 'input-box',
             opts         = locals(),
-            repr         = "Input box labeled %r with default value %r"%(label, default)
+            repr         = "Input box labeled %r with default value %r"%(label, default),
+            convert_value = ParseValue(type)
         )
 
 def checkbox(default=True, label=None, readonly=False):
@@ -444,15 +497,39 @@ def checkbox(default=True, label=None, readonly=False):
 
 def selector(values, label=None, default=None,
              nrows=None, ncols=None, width=None, buttons=False):
+    """
+        A drop down menu or a button bar for use in conjunction with
+        the :func:`interact` command.  We use the same command to
+        create either a drop down menu or selector bar of buttons,
+        since conceptually the two controls do exactly the same thing
+        - they only look different.  If either ``nrows`` or ``ncols``
+        is given, then you get a buttons instead of a drop down menu.
+
+        INPUT:
+
+        - ``values`` - either (1) a list [val0, val1, val2, ...] or (2)
+          a list of pairs [(val0, lbl0), (val1,lbl1), ...] in which case
+          all labels must be given or must all equal None.
+        - ``label`` - a string (default: None); if given, this label
+          is placed to the left of the entire button group
+        - ``default`` - an object (default: 0); default value in values list
+        - ``nrows`` - an integer (default: None); if given determines
+          the number of rows of buttons; if given, buttons=True
+        - ``ncols`` - an integer (default: None); if given determines
+          the number of columns of buttons; if given, buttons=True
+        - ``width`` - an integer or string (default: None); if given,
+          all buttons are this width (in HTML ex units).
+        - ``buttons`` - a bool (default: False, except as noted
+          above); if True, use buttons
+    """
     return control(
             control_type = 'selector',
             opts         = locals(),
             repr         = "Selector labeled %r with values %s"%(label, values)
         )
 
-
 interact_functions = {}
-for f in ['interact', 'input_box', 'checkbox']:
+for f in ['interact', 'input_box', 'checkbox', 'selector']:
     interact_functions[f] = globals()[f]
 
 

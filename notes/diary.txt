@@ -9456,12 +9456,11 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] (15min) interact: autodetect for all controls
 
      [x] (8min) interact: read-only controls, so only set_interact_var can change
+     [x] (20min) interact: interact.foo to get the value of foo?
 
--->     [ ] interact: interact.foo to get the value of foo?
+-->     [ ] interact: selector
 
-     [ ] interact: selector
      [ ] interact: slider control
-     [ ] interact: extensible user control
      [ ] interact: text_control
      [ ] interact: range_slider control
      [ ] interact: input_grid
@@ -9470,17 +9469,16 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [ ] interact: automatic defaults
      [ ] interact: support layout option
      [ ] interact: support width option
-     [ ] interact: library interacts
-     [ ] interact: test mobile support
-
-     [ ] interact: draggable controls that save layout
-     [ ] interact: hints (e.g., for input_box)
-     [ ] interact: make sure labels can include typeset mathjax.
-
      [ ] interact: interrupt needs to do a proper roundtrip of
          messages before continuing otherwise we interrupt ourselves.
+     [ ] interact: library interacts
 
+     [ ] interact: test mobile support
+     [ ] interact: draggable controls that save layout (?)
+     [ ] interact: hints (e.g., for input_box)
+     [ ] interact: make sure labels can include typeset mathjax.
      [ ] interact: make sure I don't re-introduce the bugs of http://trac.sagemath.org/sage_trac/ticket/14020
+     [ ] interact: extensible user controls
 
 
 
