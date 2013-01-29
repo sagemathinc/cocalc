@@ -716,7 +716,7 @@ class Slider:
 
 def slider(start, stop=None, step=None, default=None, label=None,
            display_value=True, max_steps=500, step_size=None, range=False,
-           width=None):
+           width=None, animate=True):
     """
     An interactive slider control for use with :func:`interact`.
 
@@ -730,12 +730,14 @@ def slider(start, stop=None, step=None, default=None, label=None,
           current value to the right of the slider.
         - ``max_steps`` -- integer, default: 500; this is the maximum
           number of values that the slider can take on.  Do not make
-          it too large, since it could overwhelm the client.
+          it too large, since it could overwhelm the client.  [SALVUS only]
         - ``range`` -- bool (default: False); instead, you can select
           a range of values (lower, higher), which are returned as a
           2-tuple.  You may also set the value of the slider or
           specify a default value using a 2-tuple.
-        - ``width`` -- how wide the slider appears to the user
+        - ``width`` -- how wide the slider appears to the user  [SALVUS only]
+        - ``animate`` -- True (default), False,"fast", "slow", or the
+          duration of the animation in milliseconds.  [SALVUS only]
 
     You may call the slider function as follows:
 
@@ -747,6 +749,19 @@ def slider(start, stop=None, step=None, default=None, label=None,
       the width of the control in pixels.  In all cases, the number of
       values will be shrunk to be at most the pixel_width, since it is
       not possible to select more than this many values using a slider.
+
+    EXAMPLES::
+
+
+    Use one slider to modify the animation speed of another::
+
+        @interact
+        def f(speed=(50,100,..,2000), x=slider([1..50], animate=1000)):
+            if 'speed' in interact.triggers():
+                print "change x to have speed", speed
+                del interact.x
+                interact.x = slider([1..50], default=interact.x, animate=speed)
+                return
     """
     if step_size is not None: # for compat with sage
         step = step_size
@@ -754,8 +769,9 @@ def slider(start, stop=None, step=None, default=None, label=None,
     vals = [str(x) for x in slider.vals]  # for display by the client
     return control(
             control_type = 'range-slider' if range else 'slider',
-            opts         = {'default':slider.to_client(default),
-                            'label':label,
+            opts         = {'default'       : slider.to_client(default),
+                            'label'         : label,
+                            'animate'       : animate,
                             'vals'          : vals,
                             'display_value' : display_value,
                             'width'         : width},
@@ -767,6 +783,17 @@ def slider(start, stop=None, step=None, default=None, label=None,
 def range_slider(*args, **kwds):
     """
     range_slider is the same as :func:`slider`, except with range=True.
+
+    EXAMPLES:
+
+    A range slider with a constraint::
+
+        @interact
+        def f(x=range_slider([1..1000], default=(100,200), label='alpha')):
+            print x
+            if x[1] > 700:
+                print 'Right endpoint must be at most 100!'
+                interact.x = [x[0],700]
     """
     kwds['range'] = True
     return slider(*args, **kwds)

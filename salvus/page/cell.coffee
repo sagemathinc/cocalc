@@ -473,14 +473,14 @@ class Cell extends EventEmitter
                 if desc.width
                     content.width(desc.width)
                 slider.slider
-                    animate : "fast"
+                    animate : desc.animate
                     min     : 0
                     max     : desc.vals.length-1
                     step    : 1
                     value   : desc.default
                     change  : (event, ui) ->
                         if desc.display_value
-                            value.text(ui.value)
+                            value.text(desc.vals[ui.value])
                         if event.altKey?
                             # This is a genuine event by user, not calling "set" below.
                             send(ui.value)
@@ -490,7 +490,28 @@ class Cell extends EventEmitter
 
             when 'range-slider'
                 content = control.find(".salvus-cell-interact-control-content")
+                slider = content.find("div")
+                value = control.find(".salvus-cell-interact-control-value")
+                if desc.width
+                    content.width(desc.width)
+                slider.slider
+                    animate : desc.animate
+                    range   : true
+                    min     : 0
+                    max     : desc.vals.length-1
+                    step    : 1
+                    values  : desc.default
+                    change  : (event, ui) ->
+                        if desc.display_value
+                            v = slider.slider("values")
+                            value.text("#{desc.vals[v[0]]} - #{desc.vals[v[1]]}")
+                        if event.altKey?
+                            # This is a genuine event by user, not calling "set" below.
+                            send(slider.slider("values"))
+
                 set = (val) ->
+                    console.log(val)
+                    slider.slider('values', val)
 
             when 'selector'
                 content = control.find(".salvus-cell-interact-control-content")

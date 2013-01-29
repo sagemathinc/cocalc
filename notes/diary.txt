@@ -9471,10 +9471,12 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [x] interact: text_control
      [x] (1:23) interact: color_selector control
 
-     [ ] (2:25) interact: slider control
+     [x] (2:25) interact: slider control
 
-     [ ] interact: range_slider control
+     [ ] (0:36) interact: range_slider control
+
      [ ] interact: input_grid
+     [ ] interact: image point selector
 
      [ ] interact: labels/controls need to line up nicely
      [ ] interact: support layout option
