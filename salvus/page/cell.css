@@ -170,3 +170,10 @@
 }
 
 
+.salvus-cell-interact-control-grid {
+    border : 1px solid grey;
+    display: inline-block;
+    margin: 1ex;
+    padding: 1ex;
+    box-shadow: 3px 3px 1px #ccc;
+}

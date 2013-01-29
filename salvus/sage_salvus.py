@@ -4,7 +4,7 @@
 #                                                                                #
 ##################################################################################
 
-import sys
+import copy, sys
 
 salvus = None
 
@@ -219,7 +219,7 @@ class InteractCell(object):
         Call self._f with inputs specified by vals.  Any input variables not
         specified in vals will have the value they had last time.
         """
-        self.triggers = [str(x) for x in vals.keys()]
+        self.changed = [str(x) for x in vals.keys()]
         for k, v in vals.iteritems():
             x = self._controls[k](v)
             self._last_vals[k] =  x
@@ -366,18 +366,18 @@ class Interact(object):
             print err
             raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
 
-    def triggers(self):
+    def changed(self):
         """
-        Return the variables whose change triggered evaluation of this
-        interact.  [SALVUS only]
+        Return the variables that changed since last evaluation of the interact function
+        body.  [SALVUS only]
 
         For example::
 
             @interact
             def f(n=True, m=False, xyz=[1,2,3]):
-                print n, m, interact.triggers()
+                print n, m, xyz, interact.changed()
         """
-        return interact_exec_stack[-1].triggers
+        return interact_exec_stack[-1].changed
 
 interact = Interact()
 interact_exec_stack = []
@@ -507,17 +507,19 @@ def interact_control(arg, value):
     c._opts['var'] = arg
     return c
 
+def sage_eval(x):
+    x = str(x).strip()
+    if x.isspace():
+        return None
+    from sage.all import sage_eval
+    return sage_eval(x, salvus.namespace)
+
 class ParseValue:
     def __init__(self, type):
         self._type = type
+        
     def _eval(self, value):
-        value = str(value)
-        if value.isspace():
-            return None
-        if len(value.strip()) == 0:
-            return None
-        from sage.all import sage_eval
-        return sage_eval(value, salvus.namespace)
+        return sage_eval(value)
 
     def __call__(self, value):
         from sage.all import Color
@@ -620,12 +622,12 @@ def text_control(default='', label='', classes=None):
             repr         = "Text %r"%(default)
         )
 
-def button(default=None, label=None, classes=None, width=None, icon=None):
+def button(default=None, label='', classes=None, width=None, icon=None):
     """
     Create a button.  [SALVUS only]
 
     You can tell that pressing this button triggered the interact
-    evaluation because interact.triggers() will include the variable
+    evaluation because interact.changed() will include the variable
     name tied to the button.
 
     INPUT:
@@ -650,9 +652,9 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
         @interact
         def f(hi=button('Hello', label='', classes="btn-primary btn-large"),
               by=button("By")):
-            if 'hi' in interact.triggers():
+            if 'hi' in interact.changed():
                 print "Hello to you, good sir."
-            if 'by' in interact.triggers():
+            if 'by' in interact.changed():
                 print "See you."
 
     Some buttons with icons::
@@ -660,7 +662,7 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
         @interact
         def f(n=button('repeat', icon='icon-repeat'),
               m=button('see?', icon="icon-eye-open", classes="btn-large")):
-            print interact.triggers()
+            print interact.changed()
     """
     return control(
             control_type = "button",
@@ -713,6 +715,87 @@ class Slider:
         else:
             return self.vals[int(val)]
 
+class InputGrid:
+    def __init__(self, nrows, ncols, default, to_value):
+        self.nrows    = nrows
+        self.ncols    = ncols
+        self.to_value = to_value
+        self.value    = copy.deepcopy(self.adapt(default))
+
+    def adapt(self, x):
+        if not isinstance(x, list):
+            return [[x for _ in range(self.ncols)] for _ in range(self.nrows)]
+        elif not all(isinstance(elt, list) for elt in x):
+            return [[x[i * self.ncols + j] for j in xrange(self.ncols)] for i in xrange(self.nrows)]
+        else:
+            return x
+
+    def from_client(self, x):
+        # Either x is a triple (i,j,s), where i,j are the coordinates of
+        # an entry, and s is a string; or, x is a list of list of strings,
+        # which we sage_eval.
+        if len(x) == 3 and not isinstance(x[0],list):
+            i,j,s = x
+            self.value[i][j] = sage_eval(s)
+        else:
+            s = '[' + ','.join('[' + ','.join(r) + ']' for r in x) + ']'; s
+            self.value = sage_eval(s)
+        return self.to_value(self.value) if self.to_value is not None else self.value
+
+    def to_client(self, x=None):
+        if x is None:
+            v = self.value
+        else:
+            v = self.adapt(x)
+        self.value = v  # save value in our local cache
+        return [[repr(x) for x in y] for y in v]
+
+
+def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
+    """
+    A grid of input boxes, for use with the :func:`interact` command.
+
+    EXAMPLES:
+
+    Solving a system::
+
+        @interact
+        def _(m = input_grid(2,2, default = [[1,7],[3,4]],
+                             label='M=', to_value=matrix, width=10),
+              v = input_grid(2,1, default=[1,2],
+                             label='v=', to_value=matrix)):
+            try:
+                x = m\v
+                html('$$%s %s = %s$$'%(latex(m), latex(x), latex(v)))
+            except:
+                html('There is no solution to $$%s x=%s$$'%(latex(m), latex(v)))
+
+    Squaring an editable and randomizable matrix::
+
+        @interact
+        def f(reset  = button('Randomize', classes="btn-primary", icon="icon-th"),
+              square = button("Square", icon="icon-external-link"),
+              m      = input_grid(4,4,default=0, width=5, label="m =", to_value=matrix)):
+            if 'reset' in interact.changed():
+                print "randomize"
+                interact.m = [[random() for _ in range(4)] for _ in range(4)]
+            if 'square' in interact.changed():
+                salvus.tex(m^2)
+
+    """
+    ig = InputGrid(nrows, ncols, default, to_value)
+
+    return control(
+            control_type = 'input-grid',
+            opts         = {'default'       : ig.to_client(),
+                            'label'         : label,
+                            'width'         : width,
+                            'nrows'         : nrows,
+                            'ncols'         : ncols},
+            repr         = "Input Grid",
+            convert_from_client = ig.from_client,
+            convert_to_client   = ig.to_client
+        )
 
 def slider(start, stop=None, step=None, default=None, label=None,
            display_value=True, max_steps=500, step_size=None, range=False,
@@ -873,7 +956,8 @@ def selector(values, label=None, default=None,
 
 interact_functions = {}
 interact_controls = ['button', 'checkbox', 'color_selector', 'input_box',
-                     'range_slider', 'selector', 'slider', 'text_control']
+                     'range_slider', 'selector', 'slider', 'text_control',
+                     'input_grid']
 
 for f in ['interact'] + interact_controls:
     interact_functions[f] = globals()[f]

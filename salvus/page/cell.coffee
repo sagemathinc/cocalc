@@ -416,8 +416,11 @@ class Cell extends EventEmitter
                 input.keypress (evt) ->
                     if evt.which == 13
                         send(input.val())
+                input.blur (evt) ->
+                    send(input.val())
                 if desc.readonly
                     input.attr('readonly', 'readonly')
+
 
             when 'checkbox'
                 input = control.find("input")
@@ -446,6 +449,35 @@ class Cell extends EventEmitter
                     for cls in desc.classes.split(/\s+/g)
                         text.addClas1s(cls)
                 set = (val) -> text.html(val)
+
+            when 'input-grid'
+                grid = control.find(".salvus-cell-interact-control-grid")
+
+                for i in [0...desc.nrows]
+                    for j in [0...desc.ncols]
+                        cell = $('<input type="text">').css("margin","0").data(i:i,j:j)
+                        if desc.width
+                            cell.width(desc.width)
+                        cell.keypress (evt) ->
+                            if evt.which == 13
+                                t = $(@)
+                                send([t.data('i'), t.data('j'), t.val()])
+                                t.data('last', t.val())
+                        cell.blur (evt) ->
+                            t = $(@)
+                            if t.data('last') != t.val()
+                                send([t.data('i'), t.data('j'), t.val()])
+                                t.data('last', t.val())
+                        grid.append(cell)
+                    grid.append($('<br>'))
+
+                set = (val) ->
+                    cells = grid.find("input")
+                    i = 0
+                    for r in val
+                        for c in r
+                            $(cells[i]).val(c).data('last',c)
+                            i += 1
 
             when 'color-selector'
                 input = control.find("input").colorpicker()

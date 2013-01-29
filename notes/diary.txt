@@ -8835,7 +8835,7 @@ NEXT:
          need for storing database.
 -->     [x] Try out my uuid:blob store in hub to see how/if it works!
 
---> 
+-->
      [ ] Make another component called "project_server" and move some functionality
          from console_server there?  It would do the following:
                 - set quota for a uid/gid
@@ -9399,7 +9399,7 @@ I'm going to try to make Salvus basically usable, and ignore a lot of
 the little bugs and polish, and focus more on getting features
 working, and only then move on to polish and bug fixing.  What I must do:
 
- [x] worksheets (very basic!) 
+ [x] worksheets (very basic!)
 
  [x] (45min) worksheet: BUG "range(2000)" shows no output; 'a'*4093 nothing, but 'a'*4092 works.; works fine in old worksheet.2
 
@@ -9438,7 +9438,7 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
  [x] (21 minutes) sage_server -- USERNAME environ variable needs to not be "root"; DOT_SAGE, SAGE_TMP need to be right after privilege drop
 
- [x] worksheet: very, very basic interacts 
+ [x] worksheet: very, very basic interacts
       [x] (20min) worksheet interact -- add a new "interact" message type
       [x] (2:19min) make it analyze the function and make all controls input boxes.
 
@@ -9475,12 +9475,29 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (0:36) interact: range_slider control
 
-     [x] interact -- need html('...') to work in sage library via monkey patch
-     [ ] interact: input_grid
+     [x] (0:18) interact -- need html('...') to work in sage library via monkey patch
+
+     [x] (2:33) interact: input_grid
+
      [ ] interact: support layout option
      [ ] interact: support width option
+     [ ] interact: that special-button-to-submit mode
 
      [ ] interact: make labels parse typeset math
+
+
+     [ ] interact: subtle issue in setattr -- this doesn't work well for input_grid,
+         do to coercion of that list...
+            I._last_vals[arg] = value
+@interact
+def f(reset  = button('Randomize', classes="btn-primary"),
+      square = button("Square"),
+      m      = input_grid(4,4,default=0, width=5, label="m =", to_value=matrix)):
+    if 'reset' in interact.changed():
+        print "randomize"
+        interact.m = [[random() for _ in range(4)] for _ in range(4)]
+    if 'square' in interact.changed():
+        salvus.tex(m^2)
 
      [ ] interact: image point selector
      [ ] interact: labels/controls need to line up nicely
@@ -9579,17 +9596,7 @@ LATER:
       [x] () worksheet sections -- hide/show
       [x] implement next/prev cell in presence of sections
       [ ] insert cells everywhere, e.g., in new sections
-      [ ] make the heading font size make sense 
+      [ ] make the heading font size make sense
       [ ] Shift section both out *and* in
       [x] delete section (kind of ugly)
       [ ] selecting range of cells.... that includes a section...
-
-
-
-
-
-
-
-
-
-
