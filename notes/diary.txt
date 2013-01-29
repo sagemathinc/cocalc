@@ -9485,6 +9485,8 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] mostly done -- interact: that special-button-to-submit mode  (auto_update)
 
+
+---------
      [ ] auto_update -- make it not delete the output on changes...
 
      [ ] interact: make labels parse typeset math
@@ -9502,35 +9504,31 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     if 'square' in interact.changed():
         salvus.tex(m^2)
 
-     [ ] interact: image point selector
-     [ ] interact: labels/controls need to line up nicely
-     [ ] interact: interrupt needs to do a proper roundtrip of
-         messages before continuing otherwise we interrupt ourselves.
-     [ ] interact: library interacts
-
-
-     [ ] interact: slider (etc.) -- display_prec??
-
-     [ ] interact: test mobile support
-     [ ] interact: draggable controls that save layout (?)
-     [ ] interact: hints (e.g., for input_box)
-     [ ] interact: make sure I don't re-introduce the bugs of http://trac.sagemath.org/sage_trac/ticket/14020
-     [ ] interact: extensible user controls
-
-
-
- [ ] mathjax jquery plugin -- give it a timeout!
 
  [ ] load/attach
-
  [ ] cell modes: %cython
  [ ] cell mode: %hide
  [ ] cell mode: %hideall
  [ ] cell mode: %time
  [ ] cell mode: %latex
  [ ] cell mode: %html
-
  [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
+
+LATER:
+     [ ] interact: image point selector
+     [ ] interact: labels/controls need to line up nicely
+     [ ] interact: interrupt needs to do a proper roundtrip of
+         messages before continuing otherwise we interrupt ourselves.
+
+     [ ] interact: library interacts
+     [ ] interact: test mobile support
+     [ ] interact: draggable controls that save layout (?)
+     [ ] interact: hints (e.g., for input_box)
+     [ ] interact: make sure I don't re-introduce the bugs of http://trac.sagemath.org/sage_trac/ticket/14020
+     [ ] interact: extensible user controls
+
+ [ ] mathjax jquery plugin -- give it a timeout!
+
 
  [ ] foo? and foo?? followed by execute should do the right thing, not give error
 
