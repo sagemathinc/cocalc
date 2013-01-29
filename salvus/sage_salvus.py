@@ -173,7 +173,7 @@ def jsonable(x):
             return str(x)
 
 class InteractCell(object):
-    def __init__(self, f, layout=None, width=None):
+    def __init__(self, f, layout=None, width=None, style=None):
         """
         Given a function f, create an object that describes an interact
         for working with f interactively.
@@ -185,7 +185,8 @@ class InteractCell(object):
 
         self._f = f
         self._layout = layout
-        self._width = width if width is None else str(width)
+        self._width = jsonable(width)
+        self._style = str(style)
 
         (args, varargs, varkw, defaults) = inspect.getargspec(f)
         if defaults is None:
@@ -212,6 +213,7 @@ class InteractCell(object):
             X['width'] = self._width
         if self._layout is not None:
             X['layout'] = self._layout
+        X['style'] = self._style
         return X
 
     def __call__(self, vals):
@@ -230,11 +232,12 @@ class InteractCell(object):
             interact_exec_stack.pop()
 
 class _interact_layout:
-    def __init__(self, layout, width):
+    def __init__(self, layout, width, style):
         self._layout = layout
         self._width = width
+        self._style = style
     def __call__(self, f):
-        return interact(f, self._layout, self._width)
+        return interact(f, self._layout, self._width, self._style)
 
 class Interact(object):
     """
@@ -253,9 +256,11 @@ class Interact(object):
 
     INPUT:
 
-    - `f` -- function
-    - `layout` -- TODO
-    - `width` -- number, or string such as '80%', '300px', '20em'.
+    - ``f`` -- function
+    - ``width`` -- number, or string such as '80%', '300px', '20em'.
+    - ``style`` -- CSS style string, which allows you to change the border,
+      background color, etc., of the interact.
+    - ``layout`` -- TODO
 
     OUTPUT:
 
@@ -331,12 +336,34 @@ class Interact(object):
             for i in range(5):
                 interact.n = i%2
                 sleep(.2)
+
+    We use the style option to make a holiday interact::
+
+        @interact(width=25,
+                  style="background-color:lightgreen; border:5px dashed red;")
+        def f(x=button('Merry ...',width=20)):
+            pass
+
+    We make a little box that can be dragged around, resized, and is
+    updated via a computation (in this case, counting primes)::
+
+        @interact(width=30,
+            style="background-color:lightorange; position:absolute; z-index:1000; box-shadow : 8px 8px 4px #888;")
+        def f(prime=text_control(label="Counting primes: ")):
+            salvus.javascript("cell.element.closest('.salvus-cell-output-interact').draggable().resizable()")
+            p = 2
+            c = 1
+            while True:
+                interact.prime = '%s, %.2f'%(p, float(c)/p)
+                p = next_prime(p)
+                c += 1
+                sleep(.25)
     """
-    def __call__(self, f=None, layout=None, width=None):
+    def __call__(self, f=None, layout=None, width=None, style=None):
         if f is None:
-            return _interact_layout(layout, width)
+            return _interact_layout(layout, width, style)
         else:
-            salvus.interact(f, layout=layout, width=width)
+            salvus.interact(f, layout=layout, width=width, style=style)
 
     def __setattr__(self, arg, value):
         I = interact_exec_stack[-1]

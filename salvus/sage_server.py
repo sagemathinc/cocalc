@@ -361,9 +361,9 @@ class Salvus(object):
         else:
             sage_salvus.interacts[id](vals)
 
-    def interact(self, f, done=False, layout=None, width=None):
+    def interact(self, f, done=False, layout=None, width=None, style=None):
         self._conn.send_json(message.output(
-            interact = sage_salvus.InteractCell(f, layout=layout, width=width).jsonable(),
+            interact = sage_salvus.InteractCell(f, layout=layout, width=width, style=style).jsonable(),
             id=self._id, done=done))
         return self
 
@@ -394,6 +394,8 @@ class Salvus(object):
         - worksheet - jQuery wrapper around the current worksheet DOM object
 
         """
+        if obj is None:
+            obj = {}
         self._conn.send_json(message.output(javascript={'code':code, 'once':once, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj))
         return self
 

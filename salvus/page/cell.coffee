@@ -348,6 +348,9 @@ class Cell extends EventEmitter
         control.remove()
 
     _initialize_interact: (elt, desc) =>
+        # Canonicalize width
+        desc.width = parse_width(desc.width)
+
         # Create place for the output stream to appear
         output = elt.find(".salvus-cell-interact-output")
         o = output.salvus_cell
@@ -379,6 +382,11 @@ class Cell extends EventEmitter
             controls.append(c)
             c.data('refresh')?()
 
+        elt.attr('style', desc.style)
+
+        if desc.width?
+            elt.width(desc.width)
+
         update({})
 
     _interact_control: (desc, update) ->
@@ -403,11 +411,8 @@ class Cell extends EventEmitter
             vals[desc.var] = val
             update(vals)
 
-        if desc.width?
-            if typeof desc.width == 'number'
-                desc.width = "#{desc.width}ex"
+        desc.width = parse_width(desc.width)
 
-        console.log(to_json(desc), desc)
         switch desc.control_type
             when 'input-box'
                 input = control.find("input")
@@ -542,7 +547,6 @@ class Cell extends EventEmitter
                             send(slider.slider("values"))
 
                 set = (val) ->
-                    console.log(val)
                     slider.slider('values', val)
 
             when 'selector'
@@ -1016,3 +1020,9 @@ remove_spinner = (elt) ->
     elt.spin(false).remove()
 
 
+parse_width = (width) ->
+    if width?
+        if typeof width == 'number'
+            return "#{width}ex"
+        else
+            return width
