@@ -9473,23 +9473,27 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (2:25) interact: slider control
 
-     [ ] (0:36) interact: range_slider control
+     [x] (0:36) interact: range_slider control
 
+     [x] interact -- need html('...') to work in sage library via monkey patch
      [ ] interact: input_grid
-     [ ] interact: image point selector
-
-     [ ] interact: labels/controls need to line up nicely
      [ ] interact: support layout option
      [ ] interact: support width option
+
+     [ ] interact: make labels parse typeset math
+
+     [ ] interact: image point selector
+     [ ] interact: labels/controls need to line up nicely
      [ ] interact: interrupt needs to do a proper roundtrip of
          messages before continuing otherwise we interrupt ourselves.
      [ ] interact: library interacts
+
+
      [ ] interact: slider (etc.) -- display_prec??
 
      [ ] interact: test mobile support
      [ ] interact: draggable controls that save layout (?)
      [ ] interact: hints (e.g., for input_box)
-     [ ] interact: make sure labels can include typeset mathjax.
      [ ] interact: make sure I don't re-introduce the bugs of http://trac.sagemath.org/sage_trac/ticket/14020
      [ ] interact: extensible user controls
 

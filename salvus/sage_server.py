@@ -745,7 +745,15 @@ def serve(port, host):
     for k,v in sage_salvus.interact_functions.iteritems():
         namespace[k] = sagenb.notebook.interact.__dict__[k] = v
 
+    # Actually import sage now.  This must happen after the interact
+    # import because of library interacts.
     import sage.all
+
+    # Monkey patch the html command.
+    def html(*args, **kwds):
+        namespace['salvus'].html(*args, **kwds)
+    sage.all.html = sage.misc.html.html = sage.interacts.library.html = html
+
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?
     #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
