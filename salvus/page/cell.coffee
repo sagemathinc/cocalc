@@ -352,6 +352,8 @@ class Cell extends EventEmitter
         # Canonicalize width
         desc.width = parse_width(desc.width)
 
+        console.log(to_json(desc))
+
         # Create place for the output stream to appear
         output = elt.find(".salvus-cell-interact-output")
         o = output.salvus_cell
@@ -361,9 +363,10 @@ class Cell extends EventEmitter
         current_id = undefined
         done = true
         update = (vals) =>
-            output_cell.delete_output()
             if not done
                 output_cell.opts.session.interrupt()
+
+            output_cell.delete_output()
 
             done = false
             current_id = output_cell.opts.session.execute_code
@@ -535,7 +538,7 @@ class Cell extends EventEmitter
                 if desc.width
                     content.width(desc.width)
                 else
-                    content.css('min-width','10em')
+                    content.css('min-width','20em')
                 slider.slider
                     animate : desc.animate
                     min     : 0

@@ -173,7 +173,7 @@ def jsonable(x):
             return str(x)
 
 class InteractCell(object):
-    def __init__(self, f, layout=None, width=None, style=None):
+    def __init__(self, f, layout=None, width=None, style=None, update_args=None, auto_update=True):
         """
         Given a function f, create an object that describes an interact
         for working with f interactively.
@@ -202,10 +202,22 @@ class InteractCell(object):
         self._args = set(args)
 
         if layout is None:
-            layout = [[arg] for arg in self.ordered_args]
+            layout = [[arg] for arg in self._ordered_args]
+
         if not isinstance(layout, dict):
             layout={'top': layout}
         self._layout = layout
+
+        # TODO -- this is UGLY
+        if not auto_update:
+            c = button('Update')
+            c._opts['var'] = 'auto_update'
+            self._controls['auto_update'] = c
+            self._ordered_args.append("auto_update")
+            layout['top'].append(['auto_update'])
+            update_args = ['auto_update']
+
+        self._update_args = update_args
 
     def jsonable(self):
         """
@@ -229,6 +241,15 @@ class InteractCell(object):
         for k, v in vals.iteritems():
             x = self._controls[k](v)
             self._last_vals[k] =  x
+
+        if self._update_args is not None:
+            do_it = False
+            for v in self._update_args:
+                if v in self.changed:
+                    do_it = True
+            if not do_it:
+                return
+
         interact_exec_stack.append(self)
         try:
             self._f(**dict([(k,self._last_vals[k]) for k in self._args]))
@@ -236,12 +257,10 @@ class InteractCell(object):
             interact_exec_stack.pop()
 
 class _interact_layout:
-    def __init__(self, layout, width, style):
-        self._layout = layout
-        self._width = width
-        self._style = style
+    def __init__(self, *args):
+        self._args = args
     def __call__(self, f):
-        return interact(f, self._layout, self._width, self._style)
+        return interact(f, *self._args)
 
 class Interact(object):
     """
@@ -264,7 +283,16 @@ class Interact(object):
     - ``width`` -- number, or string such as '80%', '300px', '20em'.
     - ``style`` -- CSS style string, which allows you to change the border,
       background color, etc., of the interact.
-    - ``layout`` -- TODO
+    - ``layout`` -- a dictionary with keys 'top', 'bottom', 'left',
+      'right' and values lists of rows of control variable names.  If
+      a dictionary is not passed in, then the value of layout is set
+      to the 'top' value.  If ``None``, then all control names are put
+      on separate rows in the 'top' value.
+    - ``update_args`` -- (default: None); list of strings, so that
+      only changing the corresponding controls causes the function to
+      be re-evaluated; changing other controls will not cause an update.
+    - ``auto_update`` -- (default: True); if False, a button labeled
+      'Update' will appear which you can click on to re-evalute.
 
     OUTPUT:
 
@@ -370,11 +398,11 @@ class Interact(object):
                 c += 1
                 sleep(.25)
     """
-    def __call__(self, f=None, layout=None, width=None, style=None):
+    def __call__(self, f=None, layout=None, width=None, style=None, update_args=None, auto_update=True):
         if f is None:
-            return _interact_layout(layout, width, style)
+            return _interact_layout(layout, width, style, update_args, auto_update)
         else:
-            salvus.interact(f, layout=layout, width=width, style=style)
+            salvus.interact(f, layout=layout, width=width, style=style, update_args=update_args, auto_update=auto_update)
 
     def __setattr__(self, arg, value):
         I = interact_exec_stack[-1]

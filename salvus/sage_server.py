@@ -361,9 +361,9 @@ class Salvus(object):
         else:
             sage_salvus.interacts[id](vals)
 
-    def interact(self, f, done=False, layout=None, width=None, style=None):
+    def interact(self, f, done=False, **kwds):
         self._conn.send_json(message.output(
-            interact = sage_salvus.InteractCell(f, layout=layout, width=width, style=style).jsonable(),
+            interact = sage_salvus.InteractCell(f, **kwds).jsonable(),
             id=self._id, done=done))
         return self
 

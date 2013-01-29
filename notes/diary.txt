@@ -9483,10 +9483,11 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (0:51) interact: support layout option
 
-     [ ] interact: that special-button-to-submit mode
+     [x] mostly done -- interact: that special-button-to-submit mode  (auto_update)
+
+     [ ] auto_update -- make it not delete the output on changes...
 
      [ ] interact: make labels parse typeset math
-
 
      [ ] interact: subtle issue in setattr -- this doesn't work well for input_grid,
          do to coercion of that list...
