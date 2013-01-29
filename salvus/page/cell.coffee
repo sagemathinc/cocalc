@@ -337,7 +337,8 @@ class Cell extends EventEmitter
         if control.length > 0
             control.data("set")(control_desc.default)
         else
-            controls = panel.find(".salvus-cell-interact-controls")
+            # TODO: support more general control placement -- use desc.layout data
+            controls = panel.find(".salvus-cell-interact-controls-top")
             control = @_interact_control(control_desc, controls.data('update'))
             controls.append(control)
             control.data('refresh')?()
@@ -375,12 +376,36 @@ class Cell extends EventEmitter
                         if mesg.done
                             done = true
 
-        controls = elt.find(".salvus-cell-interact-controls")
-        controls.data("update", update)
-        for control in desc.controls
-            c = @_interact_control(control, update)
-            controls.append(c)
+        v = {}
+        for c in desc.controls
+            v[c.var] = c
+
+        created_controls = []
+        for pos in ['top', 'bottom', 'left', 'right']
+            controls = elt.find(".salvus-cell-interact-controls-#{pos}")
+            controls.data("update", update)
+            if desc.layout[pos]?
+                for row in desc.layout[pos]
+                    t = $("<table>")
+                    tr = $("<tr>")
+                    t.append(tr)
+                    for arg in row
+                        if v[arg]?
+                            # There is a control with given name
+                            c = @_interact_control(v[arg], update)
+                            td = $("<td>")
+                            td.append(c)
+                            created_controls.push(c)
+                            tr.append(td)
+                    controls.append(t)
+
+        for c in created_controls
             c.data('refresh')?()
+
+        #for control in desc.controls
+        #    c = @_interact_control(control, update)
+        #    controls.append(c)
+        #    c.data('refresh')?()
 
         elt.attr('style', desc.style)
 
@@ -509,6 +534,8 @@ class Cell extends EventEmitter
                 value = control.find(".salvus-cell-interact-control-value")
                 if desc.width
                     content.width(desc.width)
+                else
+                    content.css('min-width','10em')
                 slider.slider
                     animate : desc.animate
                     min     : 0

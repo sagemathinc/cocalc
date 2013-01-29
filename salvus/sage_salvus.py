@@ -182,9 +182,7 @@ class InteractCell(object):
         # Prevent garbage collection until client specifically requests it,
         # since we want to be able to store state.
         interacts[self._uuid] = self
-
         self._f = f
-        self._layout = layout
         self._width = jsonable(width)
         self._style = str(style)
 
@@ -202,6 +200,12 @@ class InteractCell(object):
 
         self._ordered_args = args
         self._args = set(args)
+
+        if layout is None:
+            layout = [[arg] for arg in self.ordered_args]
+        if not isinstance(layout, dict):
+            layout={'top': layout}
+        self._layout = layout
 
     def jsonable(self):
         """
@@ -291,8 +295,15 @@ class Interact(object):
     EXAMPLES:
 
 
-    We illustrate features that are only in Salvus, not in the Sage
-    cell server or Sage notebook.
+    The layout option::
+
+        @interact(layout={'top': [['a', 'b']], 'left': [['c']],
+                          'bottom': [['d']], 'right':[['e']]})
+        def _(a=x^2, b=(0..20), c=100, d=x+1, e=sin(2)):
+            print a+b+c+d+e
+
+    We illustrate some features that are only in Salvus, not in the
+    Sage cell server or Sage notebook.
 
     You can set the value of a control called foo to 100 using
     interact.foo=100. For example::

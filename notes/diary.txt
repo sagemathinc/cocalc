@@ -9479,9 +9479,10 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (2:33) interact: input_grid
 
-     [ ] (0:45) interact: support width option and a style option.
+     [x] (0:45) interact: support width option and a style option.
 
-     [ ] interact: support layout option
+     [x] (0:51) interact: support layout option
+
      [ ] interact: that special-button-to-submit mode
 
      [ ] interact: make labels parse typeset math
