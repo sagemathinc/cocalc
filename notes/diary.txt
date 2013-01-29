@@ -9469,9 +9469,10 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (26min) interact: button control
      [x] interact: text_control
-     [ ] (1:23) interact: color_selector control
+     [x] (1:23) interact: color_selector control
 
-     [ ] interact: slider control
+     [ ] (2:25) interact: slider control
+
      [ ] interact: range_slider control
      [ ] interact: input_grid
 
@@ -9481,6 +9482,7 @@ working, and only then move on to polish and bug fixing.  What I must do:
      [ ] interact: interrupt needs to do a proper roundtrip of
          messages before continuing otherwise we interrupt ourselves.
      [ ] interact: library interacts
+     [ ] interact: slider (etc.) -- display_prec??
 
      [ ] interact: test mobile support
      [ ] interact: draggable controls that save layout (?)

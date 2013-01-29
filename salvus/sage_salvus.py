@@ -339,13 +339,16 @@ class Interact(object):
             salvus.interact(f, layout=layout, width=width)
 
     def __setattr__(self, arg, value):
-        if arg in interact_exec_stack[-1]._controls and not isinstance(value, control):
+        I = interact_exec_stack[-1]
+        if arg in I._controls and not isinstance(value, control):
             # setting value of existing control
-            desc = {'var':arg, 'default':interact_exec_stack[-1]._controls[arg].convert_to_client(value)}
+            v = I._controls[arg].convert_to_client(value)
+            desc = {'var':arg, 'default':v}
+            I._last_vals[arg] = value
         else:
             # create a new control
             new_control = interact_control(arg, value)
-            interact_exec_stack[-1]._controls[arg] = new_control
+            I._controls[arg] = new_control
             desc = new_control.jsonable()
         salvus.javascript("cell._set_interact_var(obj)", obj=desc)
 
@@ -393,7 +396,12 @@ class control:
         self._last_value = self._opts['default']
 
     def convert_to_client(self, value):
-        return self._convert_to_client(value)
+        try:
+            return self._convert_to_client(value)
+        except Exception, err:
+            sys.stderr.write("%s -- %s\n"%(err, self))
+            sys.stderr.flush()
+            return jsonable(value)
 
     def __call__(self, obj):
         """
@@ -435,6 +443,19 @@ class control:
         return X
 
 import types
+
+def list_of_first_n(v, n):
+    """Given an iterator v, return first n elements it produces as a list."""
+    if not hasattr(v, 'next'):
+        v = v.__iter__()
+    w = []
+    while n > 0:
+        try:
+            w.append(v.next())
+        except StopIteration:
+            return w
+        n -= 1
+    return w
 
 def automatic_control(default):
     from sage.matrix.all import is_Matrix
@@ -649,6 +670,107 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
             convert_to_client   = lambda x : str(x)
     )
 
+
+class Slider:
+    def __init__(self, start, stop, step_size, max_steps):
+        if isinstance(start, (list, tuple)):
+            self.vals = start
+        else:
+            if step_size is None:
+                if stop is None:
+                    step_size = start/float(max_steps)
+                else:
+                    step_size = (stop-start)/float(max_steps)
+            from sage.all import srange  # sage range is much better/more flexible.
+            self.vals = srange(start, stop, step_size, include_endpoint=True)
+        # Now check to see if any of thee above constructed a list of
+        # values that exceeds max_steps -- if so, linearly interpolate:
+        if len(self.vals) > max_steps:
+            n = len(self.vals)//max_steps
+            self.vals = [self.vals[n*i] for i in range(len(self.vals)//n)]
+
+    def to_client(self, val):
+        if val is None:
+            return 0
+        if isinstance(val, (list, tuple)):
+            return [self.to_client(v) for v in val]
+        else:
+            # Find index into self.vals of closest match.
+            try:
+                return self.vals.index(val)  # exact match
+            except ValueError:
+                pass
+            z = [(abs(val-x),i) for i, x in enumerate(self.vals)]
+            z.sort()
+            return z[0][1]
+
+    def from_client(self, val):
+        if val is None:
+            return self.vals[0]
+        # val can be a n-tuple or an integer
+        if isinstance(val, (list, tuple)):
+            return tuple([self.vals[v] for v in val])
+        else:
+            return self.vals[int(val)]
+
+
+def slider(start, stop=None, step=None, default=None, label=None,
+           display_value=True, max_steps=500, step_size=None, range=False,
+           width=None):
+    """
+    An interactive slider control for use with :func:`interact`.
+
+    There are several ways to call the slider function, but they all
+    take several named arguments:
+
+        - ``default`` - an object (default: None); default value is closest
+          value.  If range=True, default can also be a 2-tuple (low, high).
+        - ``label`` -- string
+        - ``display_value`` -- bool (default: True); whether to display the
+          current value to the right of the slider.
+        - ``max_steps`` -- integer, default: 500; this is the maximum
+          number of values that the slider can take on.  Do not make
+          it too large, since it could overwhelm the client.
+        - ``range`` -- bool (default: False); instead, you can select
+          a range of values (lower, higher), which are returned as a
+          2-tuple.  You may also set the value of the slider or
+          specify a default value using a 2-tuple.
+        - ``width`` -- how wide the slider appears to the user
+
+    You may call the slider function as follows:
+
+    - slider([list of objects], ...) -- slider taking values the objects in the list
+
+    - slider([start,] stop[, step]) -- slider over numbers from start
+      to stop.  When step is given it specifies the increment (or
+      decrement); if it is not given, then the number of steps equals
+      the width of the control in pixels.  In all cases, the number of
+      values will be shrunk to be at most the pixel_width, since it is
+      not possible to select more than this many values using a slider.
+    """
+    if step_size is not None: # for compat with sage
+        step = step_size
+    slider = Slider(start, stop, step, max_steps)
+    vals = [str(x) for x in slider.vals]  # for display by the client
+    return control(
+            control_type = 'range-slider' if range else 'slider',
+            opts         = {'default':slider.to_client(default),
+                            'label':label,
+                            'vals'          : vals,
+                            'display_value' : display_value,
+                            'width'         : width},
+            repr         = "Slider",
+            convert_from_client = slider.from_client,
+            convert_to_client   = slider.to_client
+        )
+
+def range_slider(*args, **kwds):
+    """
+    range_slider is the same as :func:`slider`, except with range=True.
+    """
+    kwds['range'] = True
+    return slider(*args, **kwds)
+
 def selector(values, label=None, default=None,
              nrows=None, ncols=None, width=None, buttons=False,
              button_classes=None):
@@ -720,8 +842,11 @@ def selector(values, label=None, default=None,
             convert_to_client   = lambda x : vals.index(x)
         )
 
+
+
 interact_functions = {}
-interact_controls = ['button', 'checkbox', 'color_selector', 'input_box', 'selector', 'text_control']
+interact_controls = ['button', 'checkbox', 'color_selector', 'input_box',
+                     'range_slider', 'selector', 'slider', 'text_control']
 
 for f in ['interact'] + interact_controls:
     interact_functions[f] = globals()[f]

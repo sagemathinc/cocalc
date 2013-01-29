@@ -466,6 +466,32 @@ class Cell extends EventEmitter
                 else
                     input.width('7ex')
 
+            when 'slider'
+                content = control.find(".salvus-cell-interact-control-content")
+                slider = content.find("div")
+                value = control.find(".salvus-cell-interact-control-value")
+                if desc.width
+                    content.width(desc.width)
+                slider.slider
+                    animate : "fast"
+                    min     : 0
+                    max     : desc.vals.length-1
+                    step    : 1
+                    value   : desc.default
+                    change  : (event, ui) ->
+                        if desc.display_value
+                            value.text(ui.value)
+                        if event.altKey?
+                            # This is a genuine event by user, not calling "set" below.
+                            send(ui.value)
+
+                set = (val) ->
+                    slider.slider('value', val)
+
+            when 'range-slider'
+                content = control.find(".salvus-cell-interact-control-content")
+                set = (val) ->
+
             when 'selector'
                 content = control.find(".salvus-cell-interact-control-content")
                 if desc.buttons or desc.nrows != null or desc.ncols != null
