@@ -9518,6 +9518,18 @@ def f(reset  = button('Randomize', classes="btn-primary"),
         salvus.tex(m^2)
 
  [ ] tab completion bug: "E.q_eigenform(20) - F.q[tab]" for E,F elliptic curves
+<<<<<<< HEAD
+=======
+
+ [ ] load/attach
+ [ ] cell modes: %cython
+ [ ] cell mode: %hide
+ [ ] cell mode: %hideall
+ [ ] cell mode: %time
+ [ ] cell mode: %latex
+ [ ] cell mode: %html
+ [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
+>>>>>>> 870b921565fd13e90e5fa11092036626fe6a10a8
 
 LATER:
      [ ] interact: image point selector
