@@ -256,6 +256,53 @@ class InteractCell(object):
         finally:
             interact_exec_stack.pop()
 
+class InteractFunction(object):
+    def __init__(self, interact_cell):
+        self.__dict__['interact_cell'] = interact_cell
+
+    def __setattr__(self, arg, value):
+        I = self.__dict__['interact_cell']
+        if arg in I._controls and not isinstance(value, control):
+            # setting value of existing control
+            v = I._controls[arg].convert_to_client(value)
+            desc = {'var':arg, 'default':v}
+            I._last_vals[arg] = value
+        else:
+            # create a new control
+            new_control = interact_control(arg, value)
+            I._controls[arg] = new_control
+            desc = new_control.jsonable()
+        salvus.javascript("cell._set_interact_var(obj)", obj=desc)
+
+    def __getattr__(self, arg):
+        I = self.__dict__['interact_cell']
+        try:
+            return I._last_vals[arg]
+        except Exception, err:
+            print err
+            raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
+
+    def __delattr__(self, arg):
+        I = self.__dict__['interact_cell']
+        try:
+            del I._controls[arg]
+        except KeyError:
+            pass
+        salvus.javascript("cell._del_interact_var(obj)", obj=jsonable(arg))
+
+    def changed(self):
+        """
+        Return the variables that changed since last evaluation of the interact function
+        body.  [SALVUS only]
+
+        For example::
+
+            @interact
+            def f(n=True, m=False, xyz=[1,2,3]):
+                print n, m, xyz, interact.changed()
+        """
+        return self.__dict__['interact_cell'].changed
+
 class _interact_layout:
     def __init__(self, *args):
         self._args = args
@@ -402,7 +449,7 @@ class Interact(object):
         if f is None:
             return _interact_layout(layout, width, style, update_args, auto_update)
         else:
-            salvus.interact(f, layout=layout, width=width, style=style, update_args=update_args, auto_update=auto_update)
+            return salvus.interact(f, layout=layout, width=width, style=style, update_args=update_args, auto_update=auto_update)
 
     def __setattr__(self, arg, value):
         I = interact_exec_stack[-1]

@@ -362,10 +362,11 @@ class Salvus(object):
             sage_salvus.interacts[id](vals)
 
     def interact(self, f, done=False, **kwds):
+        I = sage_salvus.InteractCell(f, **kwds)
         self._conn.send_json(message.output(
-            interact = sage_salvus.InteractCell(f, **kwds).jsonable(),
+            interact = I.jsonable(),
             id=self._id, done=done))
-        return self
+        return sage_salvus.InteractFunction(I)
 
     def javascript(self, code, once=True, coffeescript=False, done=False, obj=None):
         """
