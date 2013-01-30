@@ -9483,11 +9483,24 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (0:51) interact: support layout option
 
-     [x] mostly done -- interact: that special-button-to-submit mode  (auto_update)
+     [x] (1:30) mostly done -- interact: that special-button-to-submit mode  (auto_update)
 
+ 
+ [ ] worksheet: persistence
+
+
+ [ ] load/attach
+ [ ] cell modes: %cython
+ [ ] cell mode: %hide
+ [ ] cell mode: %hideall
+ [ ] cell mode: %time
+ [ ] cell mode: %latex
+ [ ] cell mode: %html
+ [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
 
 ---------
-     [ ] auto_update -- make it not delete the output on changes...
+     [ ] interact: auto_update -- make it not delete the output on changes...
+     [ ] interact: update_args -- finish
 
      [ ] interact: make labels parse typeset math
 
@@ -9504,15 +9517,6 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     if 'square' in interact.changed():
         salvus.tex(m^2)
 
-
- [ ] load/attach
- [ ] cell modes: %cython
- [ ] cell mode: %hide
- [ ] cell mode: %hideall
- [ ] cell mode: %time
- [ ] cell mode: %latex
- [ ] cell mode: %html
- [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
 
 LATER:
      [ ] interact: image point selector
@@ -9540,9 +9544,6 @@ LATER:
      sees no browser activity for that timeout amount of time.
 
  [ ] cells: mobile needs to have some buttons: tab/esc/exec
-
- [ ] worksheet: persistence
-
  [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
 
  [ ] worksheet: undo
