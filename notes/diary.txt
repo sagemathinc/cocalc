@@ -9517,6 +9517,7 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     if 'square' in interact.changed():
         salvus.tex(m^2)
 
+ [ ] tab completion bug: "E.q_eigenform(20) - F.q[tab]" for E,F elliptic curves
 
 LATER:
      [ ] interact: image point selector
