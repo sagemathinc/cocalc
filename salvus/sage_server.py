@@ -288,6 +288,11 @@ class Salvus(object):
         self.data = data
         self.namespace = namespace
         namespace['salvus'] = self   # beware of circular ref?
+        # Monkey patch in our "require" command.
+        namespace['require'] = self.require
+        # Make the salvus object itself available when doing "from sage.all import *".
+        import sage.all
+        sage.all.salvus = self
 
     def obj(self, obj, done=False):
         self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
