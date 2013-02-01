@@ -9485,8 +9485,28 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
      [x] (1:30) mostly done -- interact: that special-button-to-submit mode  (auto_update)
 
- 
- [ ] worksheet: persistence
+---------------------------------------
+
+worksheet: persistence
+
+-->  (***)[ ] cell: serialization to JSON
+		   - look at old code for this
+		   - migrate
+		   - test via console message
+             [ ] cell --> obj
+             [ ] obj --> cell
+
+  (**) [ ] worksheet: serialization to JSON
+  (*)  [ ] saving worksheet to file:
+           [ ] client
+           [ ] hub
+           [ ] project_server
+           [ ] gui
+  (**) [ ] where to SAVE?  defer this decision, and
+           just save to a file in the home directory.
+  (**) [ ] clicking on file in browser opens worksheet
+
+---------------------------------------
 
 
  [ ] load/attach
@@ -9518,18 +9538,7 @@ def f(reset  = button('Randomize', classes="btn-primary"),
         salvus.tex(m^2)
 
  [ ] tab completion bug: "E.q_eigenform(20) - F.q[tab]" for E,F elliptic curves
-<<<<<<< HEAD
-=======
 
- [ ] load/attach
- [ ] cell modes: %cython
- [ ] cell mode: %hide
- [ ] cell mode: %hideall
- [ ] cell mode: %time
- [ ] cell mode: %latex
- [ ] cell mode: %html
- [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
->>>>>>> 870b921565fd13e90e5fa11092036626fe6a10a8
 
 LATER:
      [ ] interact: image point selector

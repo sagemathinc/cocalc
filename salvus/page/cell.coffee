@@ -8,7 +8,7 @@
 
 {IS_MOBILE}    = require("feature")
 
-{copy, filename_extension, required, defaults, to_json} = require('misc')
+{copy, filename_extension, required, defaults, to_json, len} = require('misc')
 
 {local_diff} = require('misc_page')
 
@@ -74,7 +74,7 @@ class Cell extends EventEmitter
             # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
             output_line_wrapping  : false
             # initial value of the output area (JSON)
-            output_value          : undefined
+            output_messages       : undefined
             # show output stopwatch during code evaluation.
             stopwatch             : true
 
@@ -93,7 +93,7 @@ class Cell extends EventEmitter
             @opts.editor_value = e.text()
 
         @opts.note_value = e.data('note_value') if not @opts.note_value?
-        @opts.output_value = e.data('output_value') if not @opts.output_value?
+        @opts.output_messages = e.data('output_messages') if not @opts.output_messages?
 
         @_note_change_timer_is_set = false
 
@@ -118,7 +118,6 @@ class Cell extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
-    #
 
     _initialize_checkbox: () ->
         @_checkbox = @element.find(".salvus-cell-checkbox").find("input")
@@ -247,10 +246,23 @@ class Cell extends EventEmitter
 
     _initialize_output: ->
         @_output = @element.find(".salvus-cell-output")
-        @_output.html(@opts.output_value)
+
+        # Set max height of the output area
         @_output.css('max-height', @opts.output_max_height)
+        # Whether or not to wrap output.
         if @opts.output_line_wrapping
             @_output_line_wrapping_on()
+
+        # Initialize the array of output messages, which define the
+        # current output in this cell, since the last evaluation.
+        @_output_messages = []
+
+        # Replay any initial outputs -- this is used, e.g., -- when
+        # loading a worksheet from a file.
+        if @opts.output_messages?
+            @_output_messages = @opts.output_messages
+            for mesg in @_output_messages
+                @append_output_in_mesg(mesg)
 
     _output_line_wrapping_on: ->
         @_output.css
@@ -663,6 +675,12 @@ class Cell extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
+    to_obj: () =>
+        id     : @opts.id
+        note   : @_note.html()
+        input  : @_editor.getValue()
+        output : @_output_messages
+
     checkbox: (checked) =>
         if checked?
             @_checkbox.attr('checked', checked)
@@ -778,6 +796,11 @@ class Cell extends EventEmitter
         return @
 
     delete_output: () ->
+        # Delete the array of all received output messages
+        @_output_messages = []
+        # Delete all display output in that part of the cell.  This
+        # won't delete javascript side-effects the user may have
+        # caused, of course.
         @_output.html('')
 
     output: (val) =>
@@ -790,13 +813,25 @@ class Cell extends EventEmitter
         @_output.append(elt)
 
     append_output_in_mesg: (mesg) ->
-        @append_output(stream:'stdout',     value:mesg.stdout,    obj:mesg.obj) if mesg.stdout?
-        @append_output(stream:'stderr',     value:mesg.stderr,    obj:mesg.obj) if mesg.stderr?
-        @append_output(stream:'html',       value:mesg.html,      obj:mesg.obj) if mesg.html?
-        @append_output(stream:'tex',        value:mesg.tex,       obj:mesg.obj) if mesg.tex?
-        @append_output(stream:'file',       value:mesg.file,      obj:mesg.obj) if mesg.file?
-        @append_output(stream:'javascript', value:mesg.javascript,obj:mesg.obj) if mesg.javascript?
-        @append_output(stream:'interact',   value:mesg.interact,  obj:mesg.obj) if mesg.interact?
+        # Save this output message in case the cell is serialized in its current state
+        m = {}
+        for x, y of mesg
+            # No point in saving certain data, e.g., event just tags that it is output,
+            # done is used to know when computation completes (no comp done here), etc.
+            if x != 'event' and x != 'done' and x != 'id' and x != 'session_uuid'
+                m[x] = y
+        if len(m) > 0
+            # only record nonempty messages
+            @_output_messages.push(m)
+
+        # Handle each possible type of stream that could be in the output message:
+        for stream in ['stdout', 'stderr', 'html', 'tex', 'file', 'javascript', 'interact']
+            value = mesg[stream]
+            if value?
+                @append_output
+                    stream : stream
+                    value  : value
+                    obj    : mesg.obj
 
     # Append new output to one output stream of the cell.
     # This is not to be confused with "append_to_output", which
@@ -857,7 +892,8 @@ class Cell extends EventEmitter
     set_session: (session) ->
         @opts.session = session
 
-    execute: () ->
+    execute: () =>
+        console.log(to_json(@to_obj()))
         @_close_on_action()
         if not @opts.session
             throw "Attempt to execute code on a cell whose session has not been set."
