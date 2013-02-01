@@ -24,6 +24,11 @@ For debugging (as normal user, do):
 #########################################################################################
 
 
+# We import the notebook interact, which we will monkey patch below,
+# first, since importing later causes trouble in sage>=5.6.
+import sagenb.notebook.interact
+
+# Standard imports.
 import json, os, resource, shutil, signal, socket, struct, sys, \
        tempfile, time, traceback, uuid, pwd
 

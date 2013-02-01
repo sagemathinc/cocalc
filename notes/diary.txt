@@ -9597,6 +9597,16 @@ LATER:
  [ ] switches? -- useful for something in salvus? http://www.larentis.eu/switch/
      probably for settings page.
 
+ [ ] settings: whether or not lines wrap in codemirror.
+
+ [ ] failing to create a new project due to connection error
+     doesn't give a good error.
+
+ [ ] fail: os.chdir("/home/wstein/explicit")
+g = require('/home/wstein/explicit/go2.sage')
+
+ [ ] 
+
 
 LATER:
  [ ] other ideas..
@@ -9615,3 +9625,5 @@ LATER:
       [ ] Shift section both out *and* in
       [x] delete section (kind of ugly)
       [ ] selecting range of cells.... that includes a section...
+
+ [ ] investigate : http://jschr.github.com/textillate/index.html
