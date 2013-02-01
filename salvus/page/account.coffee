@@ -199,6 +199,7 @@ sign_in = () ->
                     # should never ever happen
                     alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
+first_login = true
 signed_in = (mesg) ->
     # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
@@ -215,6 +216,17 @@ signed_in = (mesg) ->
             top_navbar.show_page_button("worksheet1")
             # Load the default worksheet (for now)
             require('worksheet1').load_scratch_worksheet()
+
+            # If this is the initial login, switch to the project
+            # page.  We do this because if the user's connection is
+            # flakie, they might get dropped and re-logged-in multiple
+            # times, and we definitely don't want to switch to the
+            # projects page in that case.  Also, if they explicitly
+            # log out, then log back in as another user, seeing
+            # the account page by default in that case makes sense.
+            if first_login and top_navbar.current_page_id == 'account'
+                first_login = false
+                top_navbar.switch_to_page("projects")
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.
