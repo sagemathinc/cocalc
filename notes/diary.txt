@@ -9493,10 +9493,14 @@ worksheet: persistence
 		   - look at old code for this
 		   - migrate
 		   - test via console message
-             [ ] cell --> obj
+             [x] (45min) cell --> obj
              [ ] obj --> cell
 
   (**) [ ] worksheet: serialization to JSON
+           - first do a simple version without sections, etc., to test cell --> obj
+           [x] (1:15) worksheet to_obj
+  -->      [ ] obj --> worksheet
+
   (*)  [ ] saving worksheet to file:
            [ ] client
            [ ] hub
@@ -9508,6 +9512,9 @@ worksheet: persistence
 
 ---------------------------------------
 
+ [x] (0:15) bug: when reconnecting due to timeout, switches to list of all projects display.  Why? Probably has to do with login.
+
+ [ ] cell: add a 'lang' attribute to specify the language.
 
  [ ] load/attach
  [ ] cell modes: %cython
