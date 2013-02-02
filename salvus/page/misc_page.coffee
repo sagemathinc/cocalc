@@ -47,3 +47,6 @@ exports.local_diff = (before, after) ->
     repl = repl.slice(0, d+j+1)
     return {pos:i, orig:orig, repl:repl}
 
+exports.scroll_top = () ->
+    # Scroll smoothly to the top of the page.
+    $("html, body").animate({ scrollTop: 0 })

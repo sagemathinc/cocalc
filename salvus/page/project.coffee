@@ -11,6 +11,7 @@
 {filename_extension, defaults, required, to_json, from_json, trunc, keys} = require('misc')
 {Editor}        = require('editor')
 {Consoles}      = require('consoles')
+{scroll_top}    = require('misc_page')
 
 MAX_TITLE_LENGTH = 25
 
@@ -361,6 +362,7 @@ class ProjectPage
             console.log("Error creating new Consoles...: #{e}")
 
     display_tab: (name) =>
+        scroll_top()
         for tab in @tabs
             if tab.name == name
                 tab.target.show()
@@ -681,6 +683,12 @@ class ProjectPage
         switch ext
             when "salvus"
                 @display_tab("project-consoles")
+                # Do not open if already open
+                if path?
+                    for id, c of @consoles.tabs
+                        if c.console.path == path
+                            @consoles.display_tab(id)
+                            return
                 @consoles.create_tab(type:"worksheet", path:path)
             else
                 @editor.open(path)

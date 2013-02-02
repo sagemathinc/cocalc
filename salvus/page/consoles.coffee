@@ -30,7 +30,7 @@ class exports.Consoles
         # The tabs inside the consoles UI area.
         @nav_tabs = @element.find(".nav-tabs")
 
-        @tabs = {}   # id:{usefull stuff}
+        @tabs = {}   # id:{useful stuff}
 
         # If given, create the initial console session views.
         if opts.initial_sessions?
@@ -57,21 +57,21 @@ class exports.Consoles
             @counter.text(len(@tabs))
 
     # Close this tab.
-    close: (filename, warn) =>
-        tab = @tabs[filename]
+    close: (id, warn) =>
+        tab = @tabs[id]
         if not tab? # nothing to do -- file isn't opened anymore
             return
         if warn and tab.console.has_unsaved_changes()
-            @warn_user filename, (proceed) =>
-                @close(filename, false)
+            @warn_user id, (proceed) =>
+                @close(id, false)
 
         salvus_client.stopped_editing_file
             project_id : @project_id
-            filename   : filename
+            id   : id
 
         tab.link.remove()
         tab.console.remove()
-        delete @tabs[filename]
+        delete @tabs[id]
         @update_counter()
 
         names = keys(@tabs)
