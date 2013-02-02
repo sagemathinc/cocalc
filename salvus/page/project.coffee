@@ -681,7 +681,7 @@ class ProjectPage
         switch ext
             when "salvus"
                 @display_tab("project-consoles")
-                @consoles.create_tab(type:"worksheet")
+                @consoles.create_tab(type:"worksheet", path:path)
             else
                 @editor.open(path)
                 @display_tab("project-editor")

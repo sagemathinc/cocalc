@@ -7,6 +7,8 @@
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 
+async = require("async")
+
 templates = $("#salvus-consoles-templates")
 
 class exports.Consoles
@@ -95,9 +97,10 @@ class exports.Consoles
         opts = defaults opts,
             session_id : undefined
             type       : undefined   # 'command-line' or 'xterm'
+            path       : undefined   # a file with history/worksheet/etc. to load
 
         if opts.session_id?
-            console.log("consoles -- create_tab with session_id known is not implemented")
+            console.log("consoles -- create_tab with session_id known is not implemented, yet")
             return
         else
             session_id = uuid()
@@ -110,6 +113,7 @@ class exports.Consoles
             project_id : @project_id
             session_id : session_id
             title_ui   : link.find(".salvus-consoles-tab-title")  # gets set by xterm protocol
+            path       : opts.path
 
         # create the actual console.
         switch type
@@ -153,9 +157,11 @@ class Session
             project_id : required
             session_id : required
             title_ui   : required
+            path       : undefined
         @project_id = opts.project_id
         @session_id = opts.session_id
         @title_ui = opts.title_ui
+        @path = opts.path
 
         @init()
 
@@ -240,37 +246,71 @@ class XTermSession extends Session
 
 class WorksheetSession extends Session
     init : () =>
-        @element = $("<div>Connecting to worksheet server...</div>")
-        salvus_client.new_session
-            timeout    : 15
-            limits     : {walltime:60*15}
-            type       : "sage"
-            project_id : @project_id
-            cb : (err, session) =>
-                if err
-                    @element.text(err)
+        session     = undefined
+        title       = undefined
+        description = undefined
+        content     = undefined
+
+        async.series([
+            (cb) =>
+                @element = $("<div>Loading worksheet...</div>")
+                @element.show()
+
+                async.parallel([
+                    # Start a new compute session
+                    (cb) =>
+                        salvus_client.new_session
+                            timeout    : 15
+                            limits     : {walltime: 60*15}
+                            type       : "sage"
+                            project_id : @project_id
+                            cb : (err, _session) =>
+                                if err
+                                    cb(err)
+                                else
+                                    session = _session
+                                    cb()
+
+                    # Obtain worksheet contents
+                    (cb) =>
+                        if @path?
+                            salvus_client.read_text_file_from_project
+                                project_id : @project_id
+                                path       : @path
+                                cb         : (err, s) ->
+                                    if err
+                                        cb(err)
+                                    else
+                                        {title, description, content} = from_json(s.content)
+                                        cb()
+                        else
+                            title       = "Title"
+                            description = "Description"
+                            content     = undefined
+                            cb()
+
+                ], cb)
+
+            # Create the actual worksheet page and display it
+            (cb) =>
+                @element.salvus_worksheet
+                    title       : title
+                    description : description
+                    content     : content
+                    session     : session
+                    project_id  : @project_id
+
+                @worksheet = @element.data("worksheet")
+                @element   = @worksheet.element
+                if @path?
+                    @title_ui.text(@path)
                 else
-                    @element.show()
+                    @title_ui.text("worksheet")
+                cb()
 
-                    title = "Title"
-                    description = "Description"
-
-                    @element.salvus_worksheet
-                        title       : title
-                        description : description
-                        session     : session
-                        project_id  : @project_id
-                    @worksheet = @element.data("worksheet")
-                    if content?
-                        @worksheet.set_content(content)
-
-                    @element = @worksheet.element
-
-                    # TODO: just testing listing to the events; note that the first cell
-                    # that gets added is added before we start listening, so doesn't
-                    # fire the function below... not sure what to do about that.
-                    #@worksheet.on "append-new-cell", (id) -> console.log("append cell with id #{id}")
-                    #@worksheet.on "move-cell-up", (id) -> console.log("move cell up id #{id}")
-                    #@worksheet.on "move-cell-down", (id) -> console.log("move cell down id #{id}")
-
-        @title_ui.text("worksheet")
+        ], (err) =>
+            if err
+                msg = "Unable to load worksheet: #{err}"
+                @element = $("<div>#{msg}</div>")
+                alert_message(type:"error", message:msg)
+        )
