@@ -17,6 +17,7 @@
 {EventEmitter} = require('events')
 {merge, copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
 {alert_message} = require('alerts')
+{salvus_client} = require('salvus_client')
 
 {Cell} = require("cell")
 
@@ -34,6 +35,7 @@ class Worksheet extends EventEmitter
             cell_opts   : {}
             session     : undefined
             path        : undefined  # If given, is the default filename of the worksheet; containing directory is chdir'd on startup.
+            project_id  : required
 
         @element = worksheet_template.clone()
         @element.data("worksheet", @)
@@ -59,12 +61,24 @@ class Worksheet extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
-    #
-    _save: (filename) =>
-        if filename == ""
+
+    _save: (path) =>
+        if path == ""
             alert_message(type:'error', message:"You must enter a filename in order to save your worksheet.")
             return
-        console.log("save to #{filename}")
+        if filename_extension(path) != 'salvus'
+            path += '.salvus'
+        salvus_client.write_text_file_to_project
+            project_id : @opts.project_id
+            path       : path
+            content    : JSON.stringify(@to_obj(), null, '\t')
+            timeout    : 10
+            cb         : (err) =>
+                if err
+                    alert_message(type:"error", message:"Failed to write worksheet to #{path} -- #{err}")
+                else
+                    alert_message(type:"success", message:"Saved worksheet to #{path}")
+                    @element.find(".salvus-worksheet-filename").val(path)
 
     _init_filename_save: () =>
         input = @element.find(".salvus-worksheet-filename")
@@ -274,11 +288,6 @@ class Worksheet extends EventEmitter
 
 
         cell.on 'checkbox-change', (shift) =>
-
-            t = to_json(@to_obj())
-            localStorage.worksheet = t
-            console.log(t)
-
             if shift and @last_checked_cell
                 # Select everything between cell and last_checked_cell.
                 checking = false
@@ -321,14 +330,12 @@ class Worksheet extends EventEmitter
         return cell
 
     _to_obj: (c) =>
-        console.log('_to_obj: ', c)
         # c is a DOM object (not jQuery wrapped), which defines
         # either a section or cell.
         c = $(c)
         if c.hasClass("salvus-worksheet-section")
             # It is a section
             title = c.find(".salvus-worksheet-section-title-user").html()
-            console.log('children of section =', c.find(".salvus-worksheet-section-cells").children())
             content = (@_to_obj(d) for d in $(c.find(".salvus-worksheet-section-cells")[0]).children())
             return {title: title,  content: content, id:c.attr("id")}
         else
@@ -339,17 +346,14 @@ class Worksheet extends EventEmitter
     # DOM element elt, which must be jQuery wrapped.
     _append_content: (elt, content) =>
         # content = list of objects that defines cells and sections
-        console.log("content = ", content)
         for c in content
             if c.content?  # c defines a section, since it has content
-                console.log("new section = ", c)
                 section = @_new_section(id: c.id, title:c.title)
                 section_cells = section.find(".salvus-worksheet-section-cells")
                 elt.append(section)
                 # Now append the cells (and sections) inside this section
                 @_append_content(section_cells, c.content)
             else
-                console.log("new cell = ", c)
                 # c defines a cell.
                 cell = @_new_cell(c)
                 elt.append(cell.element)

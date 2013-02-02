@@ -9537,11 +9537,12 @@ I could do the following:
            [ ] project_server
            [ ] gui
 
---> [ ] worksheet persistence: write client code to save worksheet to filesystem (UI -- just use a text input pre-filed with the filename... for now)
+    [x] (1:05) worksheet persistence: write client code to save worksheet to filesystem (UI -- just use a text input pre-filed with the filename... for now)
     [ ] worksheet persistence: write client code so when you click on a worksheet file it opens the worksheet (rather than codemirror editor)
     [ ] worksheet persistence: write code as above to persist blobs
-    [ ] worksheet persistence: make it so one can enter an optional commit message when saving file.
+    [ ] worksheet persistence: make it so can enter an optional commit message when saving file, then do a git add path; git commit -m "...'.
     [ ] worksheet persistence: make it so chdir to containing directory of worksheet file on startup.
+
 
 ---------------------------------------
 

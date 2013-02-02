@@ -250,16 +250,14 @@ class WorksheetSession extends Session
                 else
                     @element.show()
 
-                    if localStorage.worksheet?
-                        {title, description, content} = from_json(localStorage.worksheet)
-                    else
-                        title = "Title"
-                        description = "Description"
+                    title = "Title"
+                    description = "Description"
 
                     @element.salvus_worksheet
                         title       : title
                         description : description
                         session     : session
+                        project_id  : @project_id
                     @worksheet = @element.data("worksheet")
                     if content?
                         @worksheet.set_content(content)
