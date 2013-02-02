@@ -811,10 +811,6 @@ class Client extends EventEmitter
             else
                 @push_to_client(resp)
 
-    mesg_stopped_editing_file: (mesg) =>
-        # TODO
-        winston.debug("mesg_stopped_editing_file -- WRITE HANDLER FOR THIS!")
-
 ##############################
 # Create the SockJS Server
 ##############################

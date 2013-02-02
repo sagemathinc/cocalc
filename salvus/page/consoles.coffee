@@ -65,10 +65,6 @@ class exports.Consoles
             @warn_user id, (proceed) =>
                 @close(id, false)
 
-        salvus_client.stopped_editing_file
-            project_id : @project_id
-            id   : id
-
         tab.link.remove()
         tab.console.remove()
         delete @tabs[id]
@@ -315,3 +311,6 @@ class WorksheetSession extends Session
                 @element = $("<div>#{msg}</div>")
                 alert_message(type:"error", message:msg)
         )
+
+    has_unsaved_changes: () =>
+        return @worksheet.has_unsaved_changes()
