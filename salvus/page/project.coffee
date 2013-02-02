@@ -8,7 +8,7 @@
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 {series}        = require('async')
-{defaults, required, to_json, from_json, trunc, keys} = require('misc')
+{filename_extension, defaults, required, to_json, from_json, trunc, keys} = require('misc')
 {Editor}        = require('editor')
 {Consoles}      = require('consoles')
 
@@ -663,10 +663,7 @@ class ProjectPage
                     else
                         fname = obj.filename
                     t.data('path',fname).click (e) ->
-                        path = $(@).data('path')
-                        that.editor.open(path)
-                        that.display_tab("project-editor")
-                        that.editor.display_tab(path)
+                        that.open_file($(@).data('path'))
                         return false
                 else
                     t = template_project_directory.clone()
@@ -678,6 +675,17 @@ class ProjectPage
                         return false
 
                 file_or_listing.append(t)
+
+    open_file: (path) =>
+        ext = filename_extension(path)
+        switch ext
+            when "salvus"
+                @display_tab("project-consoles")
+                @consoles.create_tab(type:"worksheet")
+            else
+                @editor.open(path)
+                @display_tab("project-editor")
+                @editor.display_tab(path)
 
     switch_displayed_branch: (new_branch) =>
         if new_branch != @meta.display_branch

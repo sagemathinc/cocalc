@@ -145,6 +145,8 @@ class exports.Consoles
 
         @display_tab(session_id)
 
+        return console
+
 class Session
     constructor : (opts) ->
         opts = defaults opts,
