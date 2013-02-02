@@ -29,6 +29,13 @@ class Cell extends EventEmitter
             # DOM element (or jquery wrapped element); this is replaced by the cell
             element               : undefined
 
+            # initial value of the note (HTML)
+            note                  : undefined
+            # initial value of the code editor (TEXT)
+            input                 : undefined
+            # initial value of the output area (JSON)
+            output                : undefined
+
             # subarray of ['note','editor','output', 'checkbox', 'insert']; if given, hides
             # the given components when the cell is created
             hide                  : undefined
@@ -37,8 +44,6 @@ class Cell extends EventEmitter
             note_change_timer     : 250
             # maximum height of note part of cell.
             note_max_height       : "auto"
-            # initial value of the note (HTML)
-            note_value            : undefined
 
             # language mode of the input editor
             editor_mode           : "python"
@@ -54,8 +59,6 @@ class Cell extends EventEmitter
             editor_match_brackets : true
             # css maximum height of code editor (scroll bars appear beyond this)
             editor_max_height     : "40em"
-            # initial value of the code editor (TEXT)
-            editor_value          : undefined
 
             keys                  :
                 # key that causes code to be executed
@@ -73,8 +76,6 @@ class Cell extends EventEmitter
             output_max_height     : "40em"
             # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
             output_line_wrapping  : false
-            # initial value of the output area (JSON)
-            output_messages       : undefined
             # show output stopwatch during code evaluation.
             stopwatch             : true
 
@@ -89,11 +90,10 @@ class Cell extends EventEmitter
 
         e = $(@opts.element)
 
-        if not @opts.editor_value?
-            @opts.editor_value = e.text()
-
-        @opts.note_value = e.data('note_value') if not @opts.note_value?
-        @opts.output_messages = e.data('output_messages') if not @opts.output_messages?
+        if not @opts.input?
+            @opts.input = e.text()
+        @opts.note = e.data('note') if not @opts.note?
+        @opts.output = e.data('output') if not @opts.output?
 
         @_note_change_timer_is_set = false
 
@@ -108,7 +108,10 @@ class Cell extends EventEmitter
         @element.data("cell", @)
         $(@opts.element).replaceWith(@element)
 
-        @_editor.setValue(@opts.editor_value)
+        if @opts.id?
+            @opts.element.attr('id', @opts.id)
+
+        @_editor.setValue(@opts.input)
         @refresh()
 
         if @opts.hide?
@@ -136,8 +139,8 @@ class Cell extends EventEmitter
         # make note fire change event when changed
         @_note = @element.find(".salvus-cell-note")
         #@_note.tooltip(delay:1000, title:"Write a note about this cell.")
-        if @opts.note_value != ""
-            @_note.html(@opts.note_value)
+        if @opts.note != ""
+            @_note.html(@opts.note)
         @_note.css('max-height', @opts.note_max_height)
         that = @
         @_note.live('focus', ->
@@ -255,13 +258,13 @@ class Cell extends EventEmitter
 
         # Initialize the array of output messages, which define the
         # current output in this cell, since the last evaluation.
-        @_output_messages = []
+        @_persistent_output_messages = []
 
         # Replay any initial outputs -- this is used, e.g., -- when
         # loading a worksheet from a file.
-        if @opts.output_messages?
-            @_output_messages = @opts.output_messages
-            for mesg in @_output_messages
+        if @opts.output?
+            @_persistent_output_messages = []
+            for mesg in @opts.output
                 @append_output_in_mesg(mesg)
 
     _output_line_wrapping_on: ->
@@ -363,8 +366,6 @@ class Cell extends EventEmitter
     _initialize_interact: (elt, desc) =>
         # Canonicalize width
         desc.width = parse_width(desc.width)
-
-        console.log(to_json(desc))
 
         # Create place for the output stream to appear
         output = elt.find(".salvus-cell-interact-output")
@@ -676,10 +677,20 @@ class Cell extends EventEmitter
     #######################################################################
 
     to_obj: () =>
-        id     : @opts.id
-        note   : @_note.html()
-        input  : @_editor.getValue()
-        output : @_output_messages
+        obj =
+            id     : @opts.id
+            note   : @_note.html()
+            input  : @_editor.getValue()
+            output : @_persistent_output_messages
+
+        if not obj.note or obj.note.length == 0
+            delete obj.note
+        if not obj.input or obj.input.length == 0
+            delete obj.input
+        if not obj.output or obj.output.length == 0
+            delete obj.output
+
+        return obj
 
     checkbox: (checked) =>
         if checked?
@@ -797,7 +808,7 @@ class Cell extends EventEmitter
 
     delete_output: () ->
         # Delete the array of all received output messages
-        @_output_messages = []
+        @_persistent_output_messages = []
         # Delete all display output in that part of the cell.  This
         # won't delete javascript side-effects the user may have
         # caused, of course.
@@ -813,16 +824,17 @@ class Cell extends EventEmitter
         @_output.append(elt)
 
     append_output_in_mesg: (mesg) ->
-        # Save this output message in case the cell is serialized in its current state
+        # Save this output message in case the cell is serialized in
+        # its current state.  Note that we only record nonempty
+        # messages that we want to appear when we reload the cell.
         m = {}
         for x, y of mesg
             # No point in saving certain data, e.g., event just tags that it is output,
             # done is used to know when computation completes (no comp done here), etc.
-            if x != 'event' and x != 'done' and x != 'id' and x != 'session_uuid'
+            if x not in ['id', 'event', 'done', 'session_uuid', 'interact']
                 m[x] = y
         if len(m) > 0
-            # only record nonempty messages
-            @_output_messages.push(m)
+            @_persistent_output_messages.push(m)
 
         # Handle each possible type of stream that could be in the output message:
         for stream in ['stdout', 'stderr', 'html', 'tex', 'file', 'javascript', 'interact']
@@ -893,7 +905,6 @@ class Cell extends EventEmitter
         @opts.session = session
 
     execute: () =>
-        console.log(to_json(@to_obj()))
         @_close_on_action()
         if not @opts.session
             throw "Attempt to execute code on a cell whose session has not been set."

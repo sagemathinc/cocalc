@@ -15,7 +15,8 @@
 #
 
 {EventEmitter} = require('events')
-{copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
+{merge, copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
+{alert_message} = require('alerts')
 
 {Cell} = require("cell")
 
@@ -29,8 +30,10 @@ class Worksheet extends EventEmitter
             element     : required # DOM element (or jQuery wrapped element); this is replaced by the worksheet
             title       : ""
             description : ""
+            content     : undefined  # If given, sets the cells/sections of the worksheet (see @to_obj()).
             cell_opts   : {}
             session     : undefined
+            path        : undefined  # If given, is the default filename of the worksheet; containing directory is chdir'd on startup.
 
         @element = worksheet_template.clone()
         @element.data("worksheet", @)
@@ -41,14 +44,77 @@ class Worksheet extends EventEmitter
         @_current_cell = @_append_new_cell()
         @_focus_cell(@_current_cell)
 
-        @element.find("a[href=#section]").click () =>
-            @_create_section()
-            return false
+        @_init_section_button()
+        @_init_filename_save()
+
+        if @opts.content?
+            # Set the contents of the worksheet, then *delete* this
+            # attribute, since it would be wasted and could be
+            # misleading, unless we try to keep it in sync with the
+            # DOM, which would be further
+            # wasteful/misleading/hard/error prone.
+            @set_content(@opts.content)
+            delete @opts.content
 
     #######################################################################
     # Private Methods
     #######################################################################
     #
+    _save: (filename) =>
+        if filename == ""
+            alert_message(type:'error', message:"You must enter a filename in order to save your worksheet.")
+            return
+        console.log("save to #{filename}")
+
+    _init_filename_save: () =>
+        input = @element.find(".salvus-worksheet-filename")
+        if @opts.path?
+            input.val(@opts.path)
+        input.keypress (evt) =>
+            if evt.which == 13
+                @_save(input.val())
+                return false
+        @element.find("a[href=#save]").click () =>
+            @_save(input.val())
+            return false
+
+    _init_section_button: () =>
+        @element.find("a[href=#section]").click () =>
+            @_create_section()
+            return false
+
+    _new_section: (opts={}) =>
+        opts = defaults opts,
+            id    : undefined
+            title : 'Section'
+        section = templates.find(".salvus-worksheet-section").clone()
+        if not opts.id?
+            opts.id = uuid()
+        section.attr('id', opts.id)
+
+        if opts.title?
+            section.find(".salvus-worksheet-section-title-user").html(opts.title)
+
+        section.find(".salvus-worksheet-section-hide").click () ->
+            section.find(".salvus-worksheet-section-hide").hide()
+            section.find(".salvus-worksheet-section-show").show()
+            section.find(".salvus-worksheet-section-cells").hide()
+
+        section.find(".salvus-worksheet-section-show").click () ->
+            section.find(".salvus-worksheet-section-show").hide()
+            section.find(".salvus-worksheet-section-hide").show()
+            section.find(".salvus-worksheet-section-cells").show()
+
+        section.find(".salvus-worksheet-section-hide")
+
+        section.find(".salvus-worksheet-section-title-user").blur () ->
+            t = $(@)
+            if $.trim(t.text()) == ""
+                if section.find(".salvus-cell").length == 0
+                    section.remove()
+                else
+                    t.text("...")
+        return section
 
     _create_section: () =>
         group = []
@@ -66,30 +132,8 @@ class Worksheet extends EventEmitter
                 end_group = true
             if end_group
                 if group.length > 0
-
                     # found a new group
-                    section = templates.find(".salvus-worksheet-section").clone()
-
-                    section.find(".salvus-worksheet-section-hide").click () ->
-                        section.find(".salvus-worksheet-section-hide").hide()
-                        section.find(".salvus-worksheet-section-show").show()
-                        section.find(".salvus-worksheet-section-cells").hide()
-
-                    section.find(".salvus-worksheet-section-show").click () ->
-                        section.find(".salvus-worksheet-section-show").hide()
-                        section.find(".salvus-worksheet-section-hide").show()
-                        section.find(".salvus-worksheet-section-cells").show()
-
-                    section.find(".salvus-worksheet-section-hide")
-
-                    section.find(".salvus-worksheet-section-title-user").blur () ->
-                        t = $(@)
-                        if $.trim(t.text()) == ""
-                            if section.find(".salvus-cell").length == 0
-                                section.remove()
-                            else
-                                t.text("...")
-
+                    section = @_new_section()
                     section.insertBefore(group[0].element)
                     section_cells = section.find(".salvus-worksheet-section-cells")
                     for x in group
@@ -124,29 +168,15 @@ class Worksheet extends EventEmitter
 
     _append_new_cell: () -> @_insert_new_cell(location:'end')
 
-    _insert_new_cell : (opts) ->
-        opts = defaults opts,
-            location    : required   # 'before', 'after', 'end', 'beginning'
-            cell        : undefined  # must give if location='before' or 'after'.
-        # appends new cell to end if c is undefined
-        @opts.cell_opts.session = @opts.session
-        @opts.cell_opts.id = uuid()
-        cell = new Cell(@opts.cell_opts)
+    _new_cell: (obj) =>
+        opts = copy(@opts.cell_opts)
+        opts.session = @opts.session
+        if obj?
+            merge(opts, obj)
+        else
+            opts.id = uuid()
 
-        switch opts.location
-            when 'after'
-                # make sibling directly after cell
-                cell.element.insertAfter(opts.cell.element)
-            when 'before'
-                # make sibling directly before cell
-                cell.element.insertBefore(opts.cell.element)
-            when 'end'
-                # append as the last cell
-                cell.append_to(@_cells)
-            when 'beginning'
-                cell.prepend_to(@_cells)
-            else
-                throw("invalid input to _insert_new_cell #{to_json(opts)}")
+        cell = new Cell(opts)
 
         cell.on 'execute-running', =>
             @element.addClass("salvus-worksheet-running")
@@ -244,6 +274,11 @@ class Worksheet extends EventEmitter
 
 
         cell.on 'checkbox-change', (shift) =>
+
+            t = to_json(@to_obj())
+            localStorage.worksheet = t
+            console.log(t)
+
             if shift and @last_checked_cell
                 # Select everything between cell and last_checked_cell.
                 checking = false
@@ -259,18 +294,100 @@ class Worksheet extends EventEmitter
                         c.checkbox(new_state)
             @last_checked_cell = cell
 
+
+    _insert_new_cell : (opts) =>
+        opts = defaults opts,
+            location    : required   # 'before', 'after', 'end', 'beginning'
+            cell        : undefined  # must give if location='before' or 'after'.
+
+        # appends new cell to end if c is undefined
+        cell = @_new_cell()
+
+        switch opts.location
+            when 'after'
+                # make sibling directly after cell
+                cell.element.insertAfter(opts.cell.element)
+            when 'before'
+                # make sibling directly before cell
+                cell.element.insertBefore(opts.cell.element)
+            when 'end'
+                # append as the last cell
+                cell.append_to(@_cells)
+            when 'beginning'
+                cell.prepend_to(@_cells)
+            else
+                throw("invalid input to _insert_new_cell #{to_json(opts)}")
+
         return cell
 
+    _to_obj: (c) =>
+        console.log('_to_obj: ', c)
+        # c is a DOM object (not jQuery wrapped), which defines
+        # either a section or cell.
+        c = $(c)
+        if c.hasClass("salvus-worksheet-section")
+            # It is a section
+            title = c.find(".salvus-worksheet-section-title-user").html()
+            console.log('children of section =', c.find(".salvus-worksheet-section-cells").children())
+            content = (@_to_obj(d) for d in $(c.find(".salvus-worksheet-section-cells")[0]).children())
+            return {title: title,  content: content, id:c.attr("id")}
+        else
+            # It is a cell
+            return c.data('cell').to_obj()
+
+    # Append the cells/sections/etc. defined by the object c to the
+    # DOM element elt, which must be jQuery wrapped.
+    _append_content: (elt, content) =>
+        # content = list of objects that defines cells and sections
+        console.log("content = ", content)
+        for c in content
+            if c.content?  # c defines a section, since it has content
+                console.log("new section = ", c)
+                section = @_new_section(id: c.id, title:c.title)
+                section_cells = section.find(".salvus-worksheet-section-cells")
+                elt.append(section)
+                # Now append the cells (and sections) inside this section
+                @_append_content(section_cells, c.content)
+            else
+                console.log("new cell = ", c)
+                # c defines a cell.
+                cell = @_new_cell(c)
+                elt.append(cell.element)
+                cell.refresh()
 
     #######################################################################
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
-    set_title: (title) ->
+
+    # convert worksheet to object
+    to_obj: () =>
+        obj =
+            title       : @get_title()
+            description : @get_description()
+            content     : (@_to_obj(c) for c in @_cells.children())
+        return obj
+
+    # Given worksheet content as returned by to_obj() above, rebuilt
+    # the worksheet part of the DOM from scratching using this
+    # content.
+    set_content: (content) =>
+        # Delete everything from the worksheet contents DOM.
+        @_cells.children().remove()
+        # Iterate through content adding sections and cells
+        @_append_content(@_cells, content)
+
+    set_title: (title) =>
         @element.find(".salvus-worksheet-title").html(title)
+
+    get_title: () =>
+        @element.find(".salvus-worksheet-title").html()
 
     set_description: (description) ->
         @element.find(".salvus-worksheet-description").html(description)
+
+    get_description: (description) ->
+        @element.find(".salvus-worksheet-description").html()
 
     set_session: (session) ->
         @opts.session = session

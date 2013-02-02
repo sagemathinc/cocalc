@@ -2,7 +2,7 @@
 # Collection of consoles on a project
 ##################################################
 
-{trunc, to_json, keys, defaults, required, filename_extension, len, uuid} = require('misc')
+{trunc, to_json, from_json, keys, defaults, required, filename_extension, len, uuid} = require('misc')
 
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -249,10 +249,21 @@ class WorksheetSession extends Session
                     @element.text(err)
                 else
                     @element.show()
+
+                    if localStorage.worksheet?
+                        {title, description, content} = from_json(localStorage.worksheet)
+                    else
+                        title = "Title"
+                        description = "Description"
+
                     @element.salvus_worksheet
-                        title   : "worksheet"
-                        session : session
+                        title       : title
+                        description : description
+                        session     : session
                     @worksheet = @element.data("worksheet")
+                    if content?
+                        @worksheet.set_content(content)
+
                     @element = @worksheet.element
 
                     # TODO: just testing listing to the events; note that the first cell

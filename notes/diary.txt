@@ -9489,26 +9489,59 @@ working, and only then move on to polish and bug fixing.  What I must do:
 
 worksheet: persistence
 
--->  (***)[ ] cell: serialization to JSON
+  (***)[ ] cell: serialization to JSON
 		   - look at old code for this
 		   - migrate
 		   - test via console message
              [x] (45min) cell --> obj
-             [ ] obj --> cell
+             [x] obj --> cell
 
-  (**) [ ] worksheet: serialization to JSON
+  (**) [x] worksheet: serialization to JSON
            - first do a simple version without sections, etc., to test cell --> obj
            [x] (1:15) worksheet to_obj
-  -->      [ ] obj --> worksheet
+           [x] (0:45) obj --> worksheet
+           [x] (3:00 -- yep) testing using localStorage and fixing bugs
 
   (*)  [ ] saving worksheet to file:
+I need to decide on a design for graphics display.
+A *natural* solution is just to have the graphics be in the same working directory as the worksheet,
+just like with a command prompt... but that just doesn't work, since it makes plot(sin) impossible --
+either I use uuid's or force the user to name every plot, which is a non-starter.  If I use uuid's
+they leak.
+
+I could do the following:
+   1. increase the ttl for images in the uuid:value store used to
+      transmit files to '1 hour' (say) -- way more than worksheet
+      autosave interval
+   2. when saving a worksheet, any embedded binary objects (e.g., svg's) will be
+      placed there via salvus.file.  The output message looks like this (say):
+       {"file":{"show":true,"uuid":"d32f6780-01e3-4076-9eb8-d47b2024f250","filename":"a.svg"}}
+   3. when a "save_worksheet" message is sent from the client to the hub, the hub
+      scans the json desc of the worksheet for the uuid's of files and ensures that copies
+      of those objects are made to a uuid:value table associated to the project, i.e,
+      the name of the table is the project_id.  These do not expire... since the old
+      version of the worksheet needs these to be displayed... so this makes sense.
+   4. We will limit the number (and size) of objects in the table associated to a given project.
+   5. Users can have an option to clear all objects associated to a project.. browse objects by data/size... see them....
+   6. They can also scan their *current* worksheets, and clear all objects except those referenced
+      by worksheets.
+
+           [ ] message:
+                  - require a filename to save worksheet. use existing write_text_file function
+                  - add message to copy a list of objects from temporary to permanent uuid:value store
+                    handling this just involves:
+                          (1) removing the ttl
+                          (2) copying the uuid (and blob size) into a new table associated to the project.
            [ ] client
            [ ] hub
            [ ] project_server
            [ ] gui
-  (**) [ ] where to SAVE?  defer this decision, and
-           just save to a file in the home directory.
-  (**) [ ] clicking on file in browser opens worksheet
+
+--> [ ] worksheet persistence: write client code to save worksheet to filesystem (UI -- just use a text input pre-filed with the filename... for now)
+    [ ] worksheet persistence: write client code so when you click on a worksheet file it opens the worksheet (rather than codemirror editor)
+    [ ] worksheet persistence: write code as above to persist blobs
+    [ ] worksheet persistence: make it so one can enter an optional commit message when saving file.
+    [ ] worksheet persistence: make it so chdir to containing directory of worksheet file on startup.
 
 ---------------------------------------
 

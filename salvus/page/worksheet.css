@@ -32,12 +32,12 @@
 
 .salvus-worksheet-section-show {
     color       : #666;
-    font-size: 15pt;
+    font-size: 24pt;
 }
 
 .salvus-worksheet-section-hide {
     color       : #666;
-    font-size: 15pt;
+    font-size: 24pt;
 }
 
 .salvus-worksheet-section-title-user {
@@ -46,4 +46,8 @@
 }
 .salvus-worksheet-section-cells {
     margin-left:3em;
+}
+
+.salvus-worksheet-section-title {
+    margin-left:-1em;
 }

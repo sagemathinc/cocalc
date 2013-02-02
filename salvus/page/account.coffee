@@ -539,9 +539,9 @@ $("a[href='#account-settings-upgrade']").click (event) ->
 ################################################
 
 $("#account").find(".account-cell0").salvus_cell
-    note_value          : "Write Sage code &dArr;"
+    note                : "Write Sage code &dArr;"
+    input               : "\n"
     editor_line_numbers : true
-    editor_value        : "\n"
     editor_max_height   : "10em"
 
 elt = $("#account").find(".account-console0")

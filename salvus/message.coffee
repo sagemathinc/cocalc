@@ -715,6 +715,17 @@ message
     id           : required
 
 ############################################
+# Permament blob store
+############################################
+
+# Remove ttl from a blob by associating it with a project.
+message
+    event       : 'save_blob_to_project'
+    id          : undefined   # message id, as usual
+    project_id  : required    # id of project that contains blob associated to
+    blob_ids    : required   # list of blobs to attach permanently to the project
+
+############################################
 # Branches
 ############################################
 # client --> hub
