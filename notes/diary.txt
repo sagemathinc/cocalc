@@ -9544,7 +9544,9 @@ I could do the following:
 
     [x] (0:04) worksheet persistence: set the filename field when loading worksheet
     [x] worksheet persistence: if there is already a loaded worksheet with a given filename, just use that tab.
-    [ ] worksheet persistence: change "save" button state to disabled right after save; change back when worksheet changes.
+-->    [ ] worksheet persistence: change "save" button state to disabled right after save; change back when worksheet *changes* (?).
+    [ ] worksheets --closing a tab suddenly broken; easy traceback to debug; "filename" versus id
+    [ ] worksheet persistence: change tab title when file saved
     [ ] worksheet persistence: autosave
     [ ] worksheet persistence: write code as above to persist blobs
     [ ] worksheet persistence: make it so can enter an optional commit message when saving file, then do a git add path; git commit -m "...'.

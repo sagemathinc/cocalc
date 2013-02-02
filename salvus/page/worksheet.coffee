@@ -78,12 +78,15 @@ class Worksheet extends EventEmitter
                     alert_message(type:"error", message:"Failed to write worksheet to #{path} -- #{err}")
                 else
                     alert_message(type:"success", message:"Saved worksheet to #{path}")
-                    @element.find(".salvus-worksheet-filename").val(path)
+                    @has_unsaved_changes(false)
 
     _init_filename_save: () =>
         input = @element.find(".salvus-worksheet-filename")
         if @opts.path?
-            input.val(@opts.path)
+            if filename_extension(@opts.path) == 'salvus'
+                input.val(@opts.path.slice(0,-7))
+            else
+                input.val(@opts.path)
         input.keypress (evt) =>
             if evt.which == 13
                 @_save(input.val())
@@ -148,6 +151,7 @@ class Worksheet extends EventEmitter
                 if group.length > 0
                     # found a new group
                     section = @_new_section()
+                    @has_unsaved_changes(true)
                     section.insertBefore(group[0].element)
                     section_cells = section.find(".salvus-worksheet-section-cells")
                     for x in group
@@ -212,11 +216,18 @@ class Worksheet extends EventEmitter
             if n?
                 @_focus_cell(n)
 
+        that = @
+        changed = () -> that.has_unsaved_changes(true)
+
+        cell.on "change", (desc) =>
+            # Something changed, e.g., editing a note, input, etc.
+            changed()
 
         # User requested to move this cell up
         cell.on 'move-cell-up', =>
             p = @_prev_cell(cell)
             if p?
+                changed()
                 cell.element.insertBefore(p.element)
                 @_focus_cell(cell)
                 @emit 'move-cell-up', cell.opts.id
@@ -225,6 +236,7 @@ class Worksheet extends EventEmitter
         cell.on 'move-cell-down', =>
             n = @_next_cell(cell)
             if n?
+                changed()
                 cell.element.insertAfter(n.element)
                 @_focus_cell(cell)
                 @emit 'move-cell-down', cell.opts.id
@@ -233,6 +245,7 @@ class Worksheet extends EventEmitter
             if @number_of_cells() == 1
                 # can't delete last cell, since worksheets always have at least one cell
                 return
+            changed()
             @emit 'delete-cell', cell.opts.id
             cell_prev = @_prev_cell(cell)
             cell_next = @_next_cell(cell)
@@ -249,6 +262,7 @@ class Worksheet extends EventEmitter
                 @_focus_cell(cell_next)
 
         cell.on 'split-cell', (before_cursor, after_cursor) =>
+            changed()
             @emit 'split-cell', cell.opts.id, before_cursor, after_cursor
             # Create new cell after this one.
             new_cell = @_insert_new_cell(location:'after', cell:cell)
@@ -260,10 +274,12 @@ class Worksheet extends EventEmitter
 
 
         cell.on 'insert-new-cell-before', () =>
+            changed()
             @emit 'insert-new-cell-before', cell.opts.id
             @_focus_cell(@_insert_new_cell(location:'before', cell:cell))
 
         cell.on 'insert-new-cell-after', () =>
+            changed()
             @emit 'insert-new-cell-after', cell.opts.id
             @_focus_cell(@_insert_new_cell(location:'after', cell:cell))
 
@@ -273,6 +289,7 @@ class Worksheet extends EventEmitter
             if not prev_cell?
                 # If there is no cell above this one, do nothing.
                 return
+            changed()
             # Copy note contents to end of note of cell above.
             note = $.trim(cell.note())
             if note.length > 0
@@ -363,6 +380,28 @@ class Worksheet extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    # has_unsaved_changes() returns the state, where true means that
+    # there are no unsaved changed.  To set the state, do
+    # has_unsaved_changes(true or false).
+    has_unsaved_changes: (state) =>
+        if not state?
+            # requesting state, which defaults to not has_unsaved_changes
+            if @_has_unsaved_changes?
+                @_has_unsaved_changes = false
+            return @_has_unsaved_changes
+        else
+            # setting state
+            if @_has_unsaved_changes != state
+                # Save the new state
+                @_has_unsaved_changes = state
+
+                # Then, change UI to reflect new state
+                button = @element.find("a[href=#save]")
+                if state
+                    button.removeClass("disabled")
+                else
+                    button.addClass("disabled")
 
     # convert worksheet to object
     to_obj: () =>

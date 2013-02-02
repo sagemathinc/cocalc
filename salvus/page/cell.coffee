@@ -834,6 +834,8 @@ class Cell extends EventEmitter
             if x not in ['id', 'event', 'done', 'session_uuid', 'interact']
                 m[x] = y
         if len(m) > 0
+            # changed in a way that would benefit from saving
+            @emit 'changed', {output:mesg}
             @_persistent_output_messages.push(m)
 
         # Handle each possible type of stream that could be in the output message:
