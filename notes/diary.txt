@@ -9542,14 +9542,13 @@ I could do the following:
     [x] (0:34) worksheet persistence: write client code so when you click on a worksheet file it opens the worksheet (rather than codemirror editor)
            (involved: modify consoles.create_tab to take filename option, pass it to worksheet, and the worksheet can load, etc. )
 
-    [ ] worksheet persistence: set the filename field when loading worksheet
+    [x] (0:4) worksheet persistence: set the filename field when loading worksheet
     [ ] worksheet persistence: if there is already a loaded worksheet with a given filename, just use that tab.
     [ ] worksheet persistence: change "save" button state to disabled right after save; change back when worksheet changes.
     [ ] worksheet persistence: autosave
     [ ] worksheet persistence: write code as above to persist blobs
     [ ] worksheet persistence: make it so can enter an optional commit message when saving file, then do a git add path; git commit -m "...'.
     [ ] worksheet persistence: make it so chdir to containing directory of worksheet file on startup.
-
     [ ] TODO: add id's to worksheets --? otherwise, how will sync'ing work between clients?
 
 ---------------------------------------

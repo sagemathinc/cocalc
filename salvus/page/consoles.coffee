@@ -297,6 +297,7 @@ class WorksheetSession extends Session
                     title       : title
                     description : description
                     content     : content
+                    path        : @path
                     session     : session
                     project_id  : @project_id
 
