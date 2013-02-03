@@ -646,7 +646,8 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
             return
-        project_is_owned_by
+
+        user_has_write_access_to_project
             project_id : mesg.project_id
             account_id : @account_id
             cb: (error, ok) =>
@@ -734,9 +735,9 @@ class Client extends EventEmitter
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
-                # Store content in uuid:blob store and provide a temporary link to it.
+                # Store content in uuid:blob store and provide a temporary (valid for an hour) link to it.
                 u = uuid.v4()
-                save_blob uuid:u, value:content, ttl:60, cb:(err) ->
+                save_blob uuid:u, value:content, ttl:3600, cb:(err) ->
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
@@ -810,6 +811,29 @@ class Client extends EventEmitter
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(resp)
+
+    ################################################
+    # Blob Management
+    ################################################
+    mesg_save_blobs_to_project: (mesg) =>
+        user_has_write_access_to_project
+            project_id : mesg.project_id
+            account_id : @account_id
+            cb : (err, t) =>
+                console.log("user_has_write_access_to_project: #{err}, #{t}")
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else if not t
+                    @error_to_client(id:mesg.id, error:"Cannot save blobs, since user does not have write access to this project.")
+                else
+                    save_blobs_to_project
+                        project_id : mesg.project_id
+                        blob_ids   : mesg.blob_ids
+                        cb         : (err) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:err)
+                            else:
+                                @push_to_client(message.success(id:mesg.id))
 
 ##############################
 # Create the SockJS Server
@@ -1638,20 +1662,69 @@ class Project
 ########################################
 # Permissions related to projects
 ########################################
-project_is_owned_by = (opts) ->
+#
+
+# Return the access that account_id has to project_id.  The
+# possibilities are 'none', 'owner', 'collaborator', 'viewer'
+get_project_access = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required        # cb(err, mode)
+    database.select
+        table : 'project_users'
+        where : {project_id : opts.project_id,  account_id: opts.account_id}
+        columns : ['mode']
+        cb : (err, results) ->
+            if err
+                opts.cb(err)
+            else
+                if results.length == 0
+                    opts.cb(false, null)
+                else
+                    opts.cb(false, results[0][0])
+
+user_owns_project = (opts) ->
     opts = defaults opts,
         project_id : required
         account_id : required
         cb : required         # input: (error, result) where if defined result is true or false
-
-    database.count
-        table : 'projects'
-        where : {project_id: opts.project_id, account_id: opts.account_id}
-        cb : (error, n) ->
-            if error
-                opts.cb(error)
+    get_project_access
+        project_id : opts.project_id
+        account_id : opts.account_id
+        cb : (err, mode) ->
+            if err
+                opts.cb(err)
             else
-                opts.cb(false, n==1)
+                opts.cb(false, mode == 'owner')
+
+user_has_write_access_to_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required        # cb(err, true or false)
+    get_project_access
+        project_id : opts.project_id
+        account_id : opts.account_id
+        cb : (err, mode) ->
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, mode in ['owner', 'collaborator'])
+
+user_has_read_access_to_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required        # cb(err, true or false)
+    get_project_access
+        project_id : opts.project_id
+        account_id : opts.account_id
+        cb : (err, mode) ->
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, mode != 'none')
 
 ########################################
 # Passwords
@@ -2520,21 +2593,65 @@ save_blob = (opts) ->
         value : required   # NOTE: value *must* be a Buffer.
         ttl   : undefined
         cb    : required
-    if opts.value.length >= 10000000 and opts.ttl > 60 # 10MB for more than 60 seconds
+    if opts.value.length >= 10000000
         # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
-        opts.cb("blob must be at most 10MB if stored for more than 60 seconds")
-        return
-    if opts.value.length >= 100000000    # 100MB for any amount of time
-        # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
-        opts.cb("blob must be at most 100MB")
-        return
-    return database.uuid_blob_store(name:"blobs").set(opts)
+        opts.cb("Blobs must be at most 10MB, but you tried to store one of size #{opts.value.length} bytes")
+    else
+        return database.uuid_blob_store(name:"blobs").set(opts)
 
 get_blob = (opts) ->
     opts = defaults opts,
         uuid : required
         cb   : required
     database.uuid_blob_store(name:"blobs").get(opts)
+
+
+# For each element of the array blob_ids, (1) add an entry to the project_blobs
+# table associated it to the given project *and* (2) remove its ttl.
+# An object can only be saved to one project.
+_save_blobs_to_project_cache = {}
+save_blobs_to_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        blob_ids   : required
+        cb         : required
+
+    console.log(to_json(opts))
+
+    # ANTI-DOS measure -- don't allow more than 1000 blobs to be moved at once
+    if opts.blob_ids.length > 1000
+        cb("At most 1000 blobs may be saved to a project at once.")
+
+    blob_store = database.uuid_blob_store(name:"blobs")
+
+    tasks = []
+    for id in opts.blob_ids
+        if _save_blobs_to_project_cache[id]?
+            continue
+        tasks.push (cb) =>
+            async.series([
+                (cb) =>
+                    # 1. Ensure there is an entry in the project_blobs table.
+                    database.update
+                        table : 'project_blobs'
+                        where : {blob_id : id}
+                        set   : {project_id : opts.project_id}
+                        cb    : cb
+                (cb) =>
+                    # 2. Remove ttl
+                    blob_store.set_ttl
+                        uuid  : id
+                        cb    : cb
+                (cb) =>
+                    # Record in a local cache that we already made
+                    # this object permanent, so we'll not hit the
+                    # database again for this id.
+                    _save_blobs_to_project_cache[id] = null
+                    cb()
+            ], cb)
+
+    # Carry out all the above tasks in parallel.
+    async.parallel(tasks, opts.cb)
 
 ########################################
 # Compute Sessions (of various types)
@@ -2585,13 +2702,12 @@ create_persistent_sage_session = (client, mesg) ->
                             else
                                 client.push_to_client(m)
                     when 'blob'
-                        save_blob(
+                        save_blob
                             uuid  : m.uuid
                             value : m.blob
-                            ttl   : 60  # deleted after 60 seconds
+                            ttl   : 3600  # deleted after one hour
                             cb    : (err) ->
                                 # TODO: actually use this for something
-                        )
                     else
                         raise("unknown message type '#{type}'")
             cb: ->

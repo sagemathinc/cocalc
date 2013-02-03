@@ -2,7 +2,7 @@
 # Collection of consoles on a project
 ##################################################
 
-{trunc, to_json, from_json, keys, defaults, required, filename_extension, len, uuid} = require('misc')
+{filename_extension, trunc, to_json, from_json, keys, defaults, required, filename_extension, len, uuid} = require('misc')
 
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -231,14 +231,15 @@ class XTermSession extends Session
                     @element.text(err)
                 else
                     @element.salvus_console
-                        title   : "xterm"
+                        title   : "bash"
                         session : session,
                         cols    : 80
                         rows    : 24
                     @console = @element.data("console")
                     @element = @console.element
 
-        @title_ui.text("xterm")
+        # TODO -- more systematic
+        @title_ui.html("<font color='darkgreen'>bash</font>")
 
 class WorksheetSession extends Session
     init : () =>
@@ -299,10 +300,12 @@ class WorksheetSession extends Session
 
                 @worksheet = @element.data("worksheet")
                 @element   = @worksheet.element
-                if @path?
-                    @title_ui.text(@path)
-                else
-                    @title_ui.text("worksheet")
+                @_update_title_ui()
+
+                @worksheet.on 'save', (path) =>
+                    @path = path
+                    @_update_title_ui()
+
                 cb()
 
         ], (err) =>
@@ -311,6 +314,16 @@ class WorksheetSession extends Session
                 @element = $("<div>#{msg}</div>")
                 alert_message(type:"error", message:msg)
         )
+
+    _update_title_ui : () ->
+        if @path?
+            if filename_extension(@path) == "salvus"
+                path = @path.slice(0,-7)
+            else
+                path = @path
+        else
+            path = "worksheet"
+        @title_ui.html("<font color='darkblue'>#{path}</font>")
 
     has_unsaved_changes: () =>
         return @worksheet.has_unsaved_changes()

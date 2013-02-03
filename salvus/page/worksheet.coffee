@@ -68,10 +68,12 @@ class Worksheet extends EventEmitter
             return
         if filename_extension(path) != 'salvus'
             path += '.salvus'
+        @emit "save", path
+        obj = @to_obj()
         salvus_client.write_text_file_to_project
             project_id : @opts.project_id
             path       : path
-            content    : JSON.stringify(@to_obj(), null, '\t')
+            content    : JSON.stringify(obj, null, '\t')
             timeout    : 10
             cb         : (err) =>
                 if err
@@ -79,6 +81,40 @@ class Worksheet extends EventEmitter
                 else
                     alert_message(type:"success", message:"Saved worksheet to #{path}")
                     @has_unsaved_changes(false)
+
+        # We also ensure all blobs referenced by the worksheet are made permanent.
+        ids = @_new_blobs(obj.content)
+        console.log(ids)
+        if ids.length > 0
+            salvus_client.save_blobs_to_project
+                project_id : @opts.project_id
+                blob_ids   : ids
+                cb         : (err) =>
+                    if err
+                        alert_message(type:"error", message:"Failed to write worksheet blobs -- #{err}")
+                    else
+                        for id in ids
+                            @_saved_blobs[id] = null
+
+    _new_blobs_helper: (content, result) =>
+        # walk the content tree finding blobs
+        for c in content
+            if c.content?
+                @_new_blobs_helper(c.content, result)
+            else if c.output?
+                for output in c.output
+                    if output.file?
+                        id = output.file.uuid
+                        if not @_saved_blobs[id]?
+                            result.push(id)
+
+    _new_blobs: (content) =>
+        if not @_saved_blobs?
+            @_saved_blobs = {}
+        v = []
+        @_new_blobs_helper(content, v)
+        return v
+
 
     _init_filename_save: () =>
         input = @element.find(".salvus-worksheet-filename")

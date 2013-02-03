@@ -245,6 +245,14 @@ CREATE TABLE project_users (
      PRIMARY KEY (project_id, account_id)
 );
 
+/* Table of persistent blobs attached to a project. */
+CREATE TABLE project_blobs (
+     blob_id     uuid,
+     project_id  uuid,
+     PRIMARY KEY(blob_id)
+);
+CREATE INDEX ON project_blobs(project_id);
+
 
 ////////////////////////////////////////////
 // Sessions -- live compute sessions

@@ -561,6 +561,9 @@ class Cassandra(Process):
                     i = r.find('%s:'%k)
                     if i == -1:
                         raise ValueError("no configuration option '%s'"%k)
+                    if r[i-2] == "#":
+                        i = i - 2
+
                     j = r[i:].find('\n')
                     if j == -1:
                         j = len(r)

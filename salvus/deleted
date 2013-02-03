@@ -1,3 +1,23 @@
+
+        @cassandra.select
+            table : @_table
+            columns : ['value']
+            where   : {name:@opts.name, uuid:opts.uuid}
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else if results.length == 0
+                    opts.cb("no object with uuid #{opts.uuid}")
+                else
+                    console.log(results[0][0])
+                    @cassandra.update
+                        table : @_table
+                        where : {name:@opts.name, uuid:opts.uuid}
+                        set   : {value:@_to_db(@_from_db(results[0][0]))}
+                        ttl   : opts.ttl
+                        cb    : opts.cb
+
+
         #@cql("UPDATE compute_servers SET score = score + ? WHERE host = ?", [opts.delta, opts.host], opts.cb)
 
 

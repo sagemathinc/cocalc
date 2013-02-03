@@ -832,6 +832,20 @@ class exports.Connection extends EventEmitter
 
 
     ######################################################################
+    # Blob management
+    ######################################################################
+    save_blobs_to_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            blob_ids   : required   # array
+            cb         : undefined
+        @call
+            message : message.save_blobs_to_project
+                project_id : opts.project_id
+                blob_ids   : opts.blob_ids
+            cb : opts.cb
+
+    ######################################################################
     # Execute a program in a given project
     ######################################################################
     exec: (opts) ->

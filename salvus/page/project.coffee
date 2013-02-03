@@ -684,11 +684,10 @@ class ProjectPage
             when "salvus"
                 @display_tab("project-consoles")
                 # Do not open if already open
-                if path?
-                    for id, c of @consoles.tabs
-                        if c.console.path == path
-                            @consoles.display_tab(id)
-                            return
+                for id, c of @consoles.tabs
+                    if c.console.path == path
+                        @consoles.display_tab(id)
+                        return
                 @consoles.create_tab(type:"worksheet", path:path)
             else
                 @editor.open(path)

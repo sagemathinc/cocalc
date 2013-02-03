@@ -93,6 +93,25 @@ class UUIDStore
             cb    : opts.cb
         return opts.uuid
 
+    # change the ttl of an existing entry -- requires re-insertion, which wastes network bandwidth...
+    set_ttl: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            ttl  : 0         # no ttl
+            cb   : undefined
+
+        @get
+            uuid : opts.uuid
+            cb : (err, value) =>
+                if err
+                    opts.cb(err)
+                else if value?
+                    @set
+                        uuid : opts.uuid
+                        value : value      # note -- the implicit conversion between buf and string is *necessary*, sadly.
+                        ttl   : opts.ttl
+                        cb    : opts.cb
+
     get: (opts) ->
         opts = defaults opts,
             uuid : required
@@ -103,8 +122,18 @@ class UUIDStore
             table   : @_table
             columns : ['value']
             where   : {name:@opts.name, uuid:opts.uuid}
-            cb      : (error, results) =>
-                opts.cb(error, if results.length == 1 then @_from_db(results[0][0]))
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb(false, undefined)
+                    else
+                        r = results[0][0]
+                        if r == null
+                            opts.cb(false, undefined)
+                        else
+                            opts.cb(false, @_from_db(r))
 
     delete: (opts) ->
         opts = defaults opts,
