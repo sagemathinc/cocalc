@@ -88,10 +88,6 @@ class exports.Editor
             @warn_user filename, (proceed) =>
                 @close(filename, false)
 
-        salvus_client.stopped_editing_file
-            project_id : @project_id
-            filename   : filename
-
         tab.link.remove()
         tab.editor.remove()
         delete @tabs[filename]

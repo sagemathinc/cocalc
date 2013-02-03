@@ -56,16 +56,15 @@ class exports.Consoles
         if @counter?
             @counter.text(len(@tabs))
 
+
     # Close this tab.
-    close: (id, warn) =>
+    close: (id) =>
+        console.log("close #{id}")
         tab = @tabs[id]
         if not tab? # nothing to do -- file isn't opened anymore
             return
-        if warn and tab.console.has_unsaved_changes()
-            @warn_user id, (proceed) =>
-                @close(id, false)
-
         tab.link.remove()
+        tab.console.save()
         tab.console.remove()
         delete @tabs[id]
         @update_counter()
@@ -126,7 +125,8 @@ class exports.Consoles
         console.element.hide()
 
         # Activate the x close button.
-        link.find(".salvus-consoles-close-button-x").click () => @close(session_id)
+        link.find(".salvus-consoles-close-button-x").click () =>
+            @close(session_id)
 
         # When the user clicks on the console tab, the corresponding console gets displayed.
         link.find("a").click () => @display_tab(session_id)
@@ -167,6 +167,9 @@ class Session
     has_unsaved_changes: () =>
         # TODO
         return false
+
+    save: () =>
+        # TODO
 
     show: () =>
         @element.show()
@@ -327,3 +330,7 @@ class WorksheetSession extends Session
 
     has_unsaved_changes: () =>
         return @worksheet.has_unsaved_changes()
+
+    save: () =>
+        console.log("worksheet -- save")
+        @worksheet.save(@worksheet.filename())

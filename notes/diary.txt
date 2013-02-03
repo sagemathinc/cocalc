@@ -9558,15 +9558,20 @@ I could do the following:
 
     [x] worksheet persistence: it says it has unsaved changes on initial load, but shouldn't.; save button should do nothing when disabled
 
-   [ ] worksheet persistence: autosave
+    [x] worksheet persistence: autosave
             -- make sure to modify db schema
             -- changing title and desc must make worksheet dirty
             -- same for section headings
 
     [ ] account: ability to change autosave interval in settings page
 
-    [ ] worksheet persistence: save unsaved changes -- confirmation
+    [x] worksheet persistence: save unsaved changes -- confirmation if you click the x:  NO, instead I will save on close, and if there is no filename, deal with that somehow.
+
+    [ ] worksheet persistence: make it so worksheet.save() succeeds in some way, no matter what... going so far as to store
+        in localStorage and saving on next connect.
+
     [ ] worksheet persistence: make it so can enter an optional commit message when saving file, then do a git add path; git commit -m "...'.
+
     [ ] TODO: add id's to worksheets --? otherwise, how will sync'ing work between clients?
 
     [ ] worksheet persistence: warn before overwriting existing file with same name!

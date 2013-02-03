@@ -93,38 +93,6 @@ class Worksheet extends EventEmitter
         @set_description(@opts.description)
         @_monitor_for_changes(@element.find(".salvus-worksheet-description"))
 
-    _save: (path) =>
-        if path == ""
-            alert_message(type:'error', message:"You must enter a filename in order to save your worksheet.")
-            return
-        if filename_extension(path) != 'salvus'
-            path += '.salvus'
-        @emit "save", path
-        obj = @to_obj()
-        salvus_client.write_text_file_to_project
-            project_id : @opts.project_id
-            path       : path
-            content    : JSON.stringify(obj, null, '\t')
-            timeout    : 10
-            cb         : (err) =>
-                if err
-                    alert_message(type:"error", message:"Failed to write worksheet to #{path} -- #{err}")
-                else
-                    @has_unsaved_changes(false)
-
-        # We also ensure all blobs referenced by the worksheet are made permanent.
-        ids = @_new_blobs(obj.content)
-        if ids.length > 0
-            salvus_client.save_blobs_to_project
-                project_id : @opts.project_id
-                blob_ids   : ids
-                cb         : (err) =>
-                    if err
-                        alert_message(type:"error", message:"Failed to write worksheet blobs -- #{err}")
-                    else
-                        for id in ids
-                            @_saved_blobs[id] = 'known'
-
     _new_blobs_helper: (content, result) =>
         # walk the content tree finding blobs
         for c in content
@@ -159,7 +127,7 @@ class Worksheet extends EventEmitter
                 if that.has_unsaved_changes()
                     path = input.val()
                     if path.length > 0
-                        that._save(path)
+                        that.save(path)
             interval = setInterval(save_if_changed, autosave_interval*1000)
 
     _init_filename_save: () =>
@@ -171,12 +139,12 @@ class Worksheet extends EventEmitter
                 input.val(@opts.path)
         input.keypress (evt) =>
             if evt.which == 13
-                @_save(input.val())
+                @save(input.val())
                 return false
         save = @element.find("a[href=#save]")
         save.click () =>
             if not save.hasClass('disabled')
-                @_save(input.val())
+                @save(input.val())
             return false
 
     _init_section_button: () =>
@@ -465,6 +433,45 @@ class Worksheet extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    # Return whatever filename the user has currently entered in the filename box.
+    filename: () =>
+        @element.find(".salvus-worksheet-filename").val()
+
+    # Save the worksheet to the given path.
+    save: (path) =>
+        console.log("save(#{path})")
+        if path == ""
+            alert_message(type:'error', message:"You must enter a filename in order to save your worksheet.")
+            return
+        if filename_extension(path) != 'salvus'
+            path += '.salvus'
+        @emit "save", path
+        obj = @to_obj()
+        salvus_client.write_text_file_to_project
+            project_id : @opts.project_id
+            path       : path
+            content    : JSON.stringify(obj, null, '\t')
+            timeout    : 10
+            cb         : (err) =>
+                if err
+                    alert_message(type:"error", message:"Failed to write worksheet to #{path} -- #{err}")
+                else
+                    @has_unsaved_changes(false)
+
+        # We also ensure all blobs referenced by the worksheet are made permanent.
+        ids = @_new_blobs(obj.content)
+        if ids.length > 0
+            salvus_client.save_blobs_to_project
+                project_id : @opts.project_id
+                blob_ids   : ids
+                cb         : (err) =>
+                    if err
+                        alert_message(type:"error", message:"Failed to write worksheet blobs -- #{err}")
+                    else
+                        for id in ids
+                            @_saved_blobs[id] = 'known'
+
 
     # has_unsaved_changes() returns the state, where true means that
     # there are no unsaved changed.  To set the state, do
