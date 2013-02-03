@@ -9577,7 +9577,11 @@ I could do the following:
 git log --name-status client.coffee hub.coffee  # SPECIFIC list of files!
 # I have code to parse output of this in the gitlogs file.
 
--->        [x] write something like gitlogs to work on a given path; call it "git-ls".  MUST BE FAST.
+    [x] comment out status tab -- too confusing. (should delete later)
+
+    [x] account: ability to change autosave interval in settings page **
+
+-->        [x] (1:46) write something like gitlogs to work on a given path; call it "git-ls".  MUST BE FAST.
                INPUT: path, ordering
                OUTPUT: JSON string with keys the filenames, and values objects that given info about *all* files in this directory, e.g.,
 x - file or directory?
@@ -9585,21 +9589,22 @@ x - last modification time
 x - size in bytes
 x - last commit id
 x - last commit message
- - sort
+x - sort
 
-           [ ] define message
+           [x] make git-ls get copied to .git/salvus path
+
+--> [x] OOPS, I removed the "commit everything first" functionality completely this morning (?) from the save project_server command (and
+corresponding messages).  In fact, that's exactly what I want.... at least for a special "salvus" branch.
+Get this functionality back exactly as it was.
+
+           [ ] git-ls; option about whether or not to include dot-files
+           [ ] define "project_directory_listing" message, which uses git-ls
+
            [ ] define routing code in client.coffee, hub.coffee, project.coffee with stub in project.coffee, and test.
            [ ] implement in project.coffee and test.
+           [ ] modify UI to use this new ls system.
 
     [ ] file browser: change current graphical file browser to use above function
-
-    [ ] worksheet persistence: make it so can enter an optional commit
-        message when saving file, then do a git add path; git commit -m
-        "...'... and refresh the file listing.
-
-    [x] comment out status tab -- too confusing. (should delete later)
-
-    [x] account: ability to change autosave interval in settings page **
 
     [ ] When changing project title, should auto change the entry in the tab at the top.
 

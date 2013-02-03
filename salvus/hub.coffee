@@ -604,7 +604,11 @@ class Client extends EventEmitter
                 project = new Project(project_id)
                 project.open(cb)
             (cb) =>
-                project.save(@account_id, cb)
+                project.save
+                    account_id  : @account_id
+                    add_all     : true
+                    commit_mesg : "new project"
+                    cb          : cb
             (cb) =>
                 project.close(cb)
         ], (error) =>
@@ -680,11 +684,15 @@ class Client extends EventEmitter
     mesg_save_project: (mesg) =>
         # TODO -- permissions!
         project = new Project(mesg.project_id)
-        project.save @account_id, (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.success(id:mesg.id))
+        project.save
+            account_id  : @account_id
+            add_all     : mesg.add_all
+            commit_mesg : mesg.commit_mesg
+            cb          : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
 
     mesg_close_project: (mesg) =>
         # TODO -- permissions!
@@ -1240,13 +1248,21 @@ class Project
 
     # Save the project to the database.  This involves saving at least
     # zero (!) bundles to the project_bundles table.
-    save: (account_id, cb) -> # cb(err) -- indicates when done
+    save: (opts) -> # cb(err) -- indicates when done
+        opts = defaults opts,
+            account_id : undefined  # required only if commit_all is true
+            commit_mesg: undefined  # if defined will commit first before saving back to database.
+            add_all    : false      # if true add everything we can to the repo before commiting.
+            cb         : undefined
+
         id = uuid.v4() # used to tag communication with the project server
 
         save_mesg = message.save_project
             id                     : id
             project_id             : @project_id
             starting_bundle_number : 0  # will get changed below
+            commit_mesg            : opts.commit_mesg
+            add_all                : opts.add_all
 
         socket             = undefined
         host               = undefined
@@ -1279,6 +1295,15 @@ class Project
                         else
                             host = _host
                             c()
+
+            # Get the user's name and email for the commit message
+            (c) =>
+                database.get_gitconfig account_id:opts.account_id, cb:(err, gitconfig) ->
+                    if err
+                        c(err)
+                    else
+                        save_mesg.gitconfig = gitconfig
+                        c()
 
             # Find the index of the largest bundle that we already have in the database
             (c) =>
@@ -1353,9 +1378,9 @@ class Project
             if socket? and recv_bundles?
                 socket.removeListener('mesg', recv_bundles)
             if not_open
-                cb()
+                opts.cb?()
             else
-                cb(err)
+                opts.cb?(err)
         )
 
     delete: (cb) =>

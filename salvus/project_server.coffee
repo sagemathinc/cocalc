@@ -71,6 +71,7 @@ has_bad_shell_chars = (s) ->
 
 # Script for computing logs of files
 gitlogs = fs.readFileSync('scripts/gitlogs')
+gitls   = fs.readFileSync('scripts/git-ls')
 
 # Verify that path really describes something that would be a
 # directory under userpath, rather than a shell injection attack
@@ -81,7 +82,7 @@ verify_that_path_is_valid = (project_id, path, cb) ->
         return
 
     resolvedPath = undefined
-    
+
     async.series([
         (c) ->
             fs.realpath path, (err, _resolvedPath) ->
@@ -202,11 +203,28 @@ extract_bundles = (project_id, bundles, cb) ->
     # the tasks in place, because the number of tasks depends on the
     # number of bundles.
 
-    # Create the bundle path and write the bundle files to disk.
     tasks = [
-        (c) -> fs.mkdir("#{repo_path}", 0o700, c),
-        (c) -> fs.mkdir("#{repo_path}/.git", 0o700, c),
-        (c) -> fs.mkdir("#{repo_path}/.git/salvus", 0o700, c),
+        # Create the bundle path
+        (c) ->
+            winston.debug("create the bundle path")
+            fs.mkdir("#{repo_path}", 0o700, c)
+        (c) ->
+            fs.mkdir("#{repo_path}/.git", 0o700, c)
+
+        (c) ->
+            fs.mkdir("#{repo_path}/.git/salvus", 0o700, c)
+
+        # Write script to get complete commit logs
+        (c) ->
+            winston.debug("Write script to get complete commit logs")
+            fs.writeFile("#{repo_path}/.git/salvus/gitlogs", gitlogs ,c)
+        (c) ->
+            fs.chmod("#{repo_path}/.git/salvus/gitlogs", 0o777, c)
+        (c) ->
+            winston.debug("Write script to get listing")
+            fs.writeFile("#{repo_path}/.git/salvus/git-ls", gitls ,c)
+        (c) ->
+            fs.chmod("#{repo_path}/.git/salvus/git-ls", 0o777, c)
     ]
 
     if misc.len(bundles) > 0
@@ -228,7 +246,6 @@ extract_bundles = (project_id, bundles, cb) ->
     tasks.push((c) ->
         if n == 0
             # There were no bundles at all, so we make a new empty git repo.
-            # TODO: need a salvus .gitignore template, e.g., maybe ignore all dot files in $HOME.
             cmd = "cd #{repo_path} && git init"
             winston.debug(cmd)
             child_process.exec(cmd, c)
@@ -249,6 +266,7 @@ extract_bundles = (project_id, bundles, cb) ->
     )
 
     # Do all of the tasks laid out above.
+    console.log("do #{tasks.length} tasks")
     async.series(tasks, cb)
 
 
@@ -522,12 +540,6 @@ get_files_and_logs = (project_id, cb) ->
                         cb("Error getting branches of git repo.")
                     else
                         cb()
-        # Write script to get logs
-        (cb) ->
-            fs.writeFile(path + '/.git/salvus/gitlogs', gitlogs ,cb)
-        (cb) ->
-            fs.chmod(path + '/.git/salvus/gitlogs', 0o777, cb)
-            
         # Get the list of all files and logs in each branch, as a JSON string
         (cb) ->
             exec_as_user
@@ -564,6 +576,19 @@ events.save_project = (socket, mesg) ->
 
     tasks    = []
     async.series([
+        # Commit everything first, if requested
+        (cb) ->
+            if mesg.commit_mesg?
+                commit
+                    user        : username(mesg.project_id)
+                    path        : path
+                    commit_mesg : mesg.commit_mesg
+                    gitconfig   : mesg.gitconfig
+                    add_all     : mesg.add_all
+                    cb          : cb
+            else
+                cb()
+
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
         (cb) ->

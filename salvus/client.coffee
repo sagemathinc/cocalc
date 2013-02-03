@@ -689,11 +689,15 @@ class exports.Connection extends EventEmitter
     save_project: (opts) ->
         opts = defaults opts,
             project_id  : required
+            commit_mesg : undefined
+            add_all     : undefined
             cb          : required
         @call
             message :
                 message.save_project
                     project_id  : opts.project_id
+                    commit_mesg : opts.commit_mesg
+                    add_all     : opts.add_all
             cb : opts.cb
 
     close_project: (opts) ->
