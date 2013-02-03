@@ -172,26 +172,6 @@ class ProjectPage
                 console.log(e)
             return false
 
-        # Enable the Refresh button for git status
-        @container.find(".project-status").find("a[href=#refresh]").click () =>
-            @update_status()
-
-        # Activate the commit line (under status)
-        @container.find("form.project-commit-message").submit () ->
-            try
-                that.git_commit($(@).find("input"))
-            catch e
-                console.log(e)
-            return false
-
-
-        # Activate the command line on the git status page
-        @container.find("form.project-commit-command").submit () ->
-            try
-                that.git_command_line_exec($(@))
-            catch e
-                console.log(e)
-            return false
 
         # Make it so typing something into the "create a new branch..." box
         # makes a new branch.
@@ -253,22 +233,6 @@ class ProjectPage
                 else
                     out = output.stderr + output.stdout
                 form.find(".project-commit-command-output").text(out).show()
-                @update_status()
-
-    update_status: () =>
-        @container.find(".project-commit-command-output").hide()
-        salvus_client.exec
-            project_id : @project.project_id
-            command : "git status; echo ''; git diff"
-            timeout : 5
-            max_output : 10000
-            bash       : true
-            cb : (err, output) =>
-                if err
-                    status = "Error looking up current status -- #{err}"
-                else
-                    status = output.stdout + output.stderr
-                @container.find(".project-git-status-output").text(status)
 
     command_line_exec: (form) =>
         input = form.find("input")
@@ -335,8 +299,6 @@ class ProjectPage
             name = t.find("a").attr('href').slice(1)
             t.data("name", name)
             tab = {label:t, name:name, target:@container.find(".#{name}")}
-            if name == "project-status"
-                tab.onshow = @update_status
             @tabs.push(tab)
             t.click () ->
                 that.display_tab($(@).data("name"))
@@ -469,9 +431,6 @@ class ProjectPage
 
 
     reload: (cb) =>
-        # Update current git status output
-        @update_status()
-
         salvus_client.get_project_meta
             project_id : @project.project_id
             cb  : (err, _meta) =>

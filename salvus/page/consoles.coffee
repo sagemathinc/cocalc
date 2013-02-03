@@ -233,7 +233,7 @@ class XTermSession extends Session
                     @element.text(err)
                 else
                     @element.salvus_console
-                        title   : "bash"
+                        title   : "console"
                         session : session,
                         cols    : 80
                         rows    : 24
@@ -241,7 +241,7 @@ class XTermSession extends Session
                     @element = @console.element
 
         # TODO -- more systematic
-        @title_ui.html("<font color='darkgreen'>bash</font>")
+        @title_ui.html("<font color='darkgreen'>console</font>")
 
 class WorksheetSession extends Session
     init : () =>

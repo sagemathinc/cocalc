@@ -9569,7 +9569,7 @@ I could do the following:
         message when saving file, then do a git add path; git commit -m
         "...'... and refresh the file listing.
 
-    [ ] BIG TODO:  I got rid of project save(...) taking a commit message; this breaks the "status" tab in the GUI.
+    [ ] comment out status tab -- too confusing. (should delete later)
 
     [x] account: ability to change autosave interval in settings page **
 
