@@ -564,17 +564,6 @@ events.save_project = (socket, mesg) ->
 
     tasks    = []
     async.series([
-        # Commit all changes
-        (cb) ->
-            winston.debug("save_project -- commit")
-            commit
-                user        : username(mesg.project_id)
-                path        : path
-                commit_mesg : mesg.commit_mesg
-                gitconfig   : mesg.gitconfig
-                add_all     : mesg.add_all
-                cb          : cb
-
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
         (cb) ->

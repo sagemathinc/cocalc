@@ -9563,14 +9563,19 @@ I could do the following:
             -- changing title and desc must make worksheet dirty
             -- same for section headings
 
-    [ ] account: ability to change autosave interval in settings page
-
     [x] worksheet persistence: save unsaved changes -- confirmation if you click the x:  NO, instead I will save on close, and if there is no filename, deal with that somehow.
+
+    [ ] worksheet persistence: make it so can enter an optional commit
+        message when saving file, then do a git add path; git commit -m
+        "...'... and refresh the file listing.
+
+    [ ] BIG TODO:  I got rid of project save(...) taking a commit message; this breaks the "status" tab in the GUI.
+
+VERY IMPORTANT since without this we can't modify settings.
+**    [ ] account: ability to change autosave interval in settings page **
 
     [ ] worksheet persistence: make it so worksheet.save() succeeds in some way, no matter what... going so far as to store
         in localStorage and saving on next connect.
-
-    [ ] worksheet persistence: make it so can enter an optional commit message when saving file, then do a git add path; git commit -m "...'.
 
     [ ] TODO: add id's to worksheets --? otherwise, how will sync'ing work between clients?
 

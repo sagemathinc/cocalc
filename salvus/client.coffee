@@ -1,6 +1,6 @@
 {EventEmitter} = require('events')
 
-require('async')  # just so it can be used in page.
+async = require('async')  # don't delete even if not used below, since this needs to be available to page/
 
 message = require("message")
 misc    = require("misc")
@@ -689,13 +689,11 @@ class exports.Connection extends EventEmitter
     save_project: (opts) ->
         opts = defaults opts,
             project_id  : required
-            commit_mesg : required
             cb          : required
         @call
             message :
                 message.save_project
                     project_id  : opts.project_id
-                    commit_mesg : opts.commit_mesg
             cb : opts.cb
 
     close_project: (opts) ->
@@ -876,6 +874,59 @@ class exports.Connection extends EventEmitter
                     opts.cb(mesg.error)
                 else
                     opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code})
+
+    #################################################
+    # Git Commands
+    #################################################
+    commit_file: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            author     : required
+            message    : undefined
+            cb         : undefined      # (err)
+
+        if opts.message == "undefined"
+            opts.message = "Saved '#{opts.path}'"
+
+        async.series([
+            (cb) =>
+                # We add the changes to the worksheet to the repo.
+                @exec
+                    project_id : opts.project_id
+                    command    : "git"
+                    args       : ["add", opts.path]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(output.stdout + output.stderr)
+                        else
+                            cb()
+            (cb) =>
+                # We commit just the file that changed.
+                @exec
+                    project_id : opts.project_id
+                    command    : "git"
+                    args       : ["commit", "-m", opts.message, opts.path, "--author", opts.author]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            console.log("output=",output)
+                            if output.stdout.indexOf("Changes not staged for commit") != -1
+                                # OK
+                                cb()
+                            else
+                                cb(output.stdout + output.stderr)
+                        else
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb("Error saving '#{opts.path}' to the repository -- #{err}")
+            else
+                opts.cb() # good
+        )
 
 
 #################################################

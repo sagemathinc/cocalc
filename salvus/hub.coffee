@@ -604,7 +604,7 @@ class Client extends EventEmitter
                 project = new Project(project_id)
                 project.open(cb)
             (cb) =>
-                project.save("Created new project.", @account_id, true, cb)
+                project.save(@account_id, cb)
             (cb) =>
                 project.close(cb)
         ], (error) =>
@@ -680,7 +680,7 @@ class Client extends EventEmitter
     mesg_save_project: (mesg) =>
         # TODO -- permissions!
         project = new Project(mesg.project_id)
-        project.save mesg.commit_mesg, @account_id, true, (err) =>
+        project.save @account_id, (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
@@ -1240,15 +1240,13 @@ class Project
 
     # Save the project to the database.  This involves saving at least
     # zero (!) bundles to the project_bundles table.
-    save: (commit_mesg, account_id, add_all, cb) -> # cb(err) -- indicates when done
+    save: (account_id, cb) -> # cb(err) -- indicates when done
         id = uuid.v4() # used to tag communication with the project server
 
         save_mesg = message.save_project
             id                     : id
             project_id             : @project_id
             starting_bundle_number : 0  # will get changed below
-            commit_mesg            : commit_mesg
-            add_all                : add_all
 
         socket             = undefined
         host               = undefined
@@ -1260,19 +1258,17 @@ class Project
             # If project is already locked for saving (by this or
             # another hub), return an error.
             (c) =>
-                # winston.debug("!! 1")
-                @_is_being_saved (err,is_being_saved) =>
+                @_is_being_saved (err, is_being_saved) =>
                     if err
                         c(err)
                     else if is_being_saved
-                        c("Project can be saved at most once every 30 seconds.")
+                        c("Project can be saved at most once every 10 seconds.")
                     else
-                        @_lock_for_saving(30, c)
+                        @_lock_for_saving(10, c)
 
             # Determine which project_server is hosting this project.
             # If none, then there is nothing further to do.
             (c) =>
-                # winston.debug("!! 2")
                 database.get_project_host project_id:@project_id, cb:(err, _host) ->
                     if err
                         c(err)
@@ -1284,19 +1280,8 @@ class Project
                             host = _host
                             c()
 
-            # Get the user's name and email for the commit message
-            (c) =>
-                # winston.debug("!! 2.5")
-                database.get_gitconfig account_id:account_id, cb:(err, gitconfig) ->
-                    if err
-                        c(err)
-                    else
-                        save_mesg.gitconfig = gitconfig
-                        c()
-
             # Find the index of the largest bundle that we already have in the database
             (c) =>
-                # winston.debug("!! 3")
                 database.largest_project_bundle_index project_id:@project_id, cb:(err, n) ->
                     if err
                         c(err)
@@ -1306,7 +1291,6 @@ class Project
 
             # Connect to the project server that is hosting this project right now.
             (c) =>
-                # winston.debug("!! 4")
                 @_connect host, (err, s) ->
                     if err
                         c(err)
@@ -1318,14 +1302,12 @@ class Project
             # the the project and send back to us any bundle(s) that
             # it creates when saving the project.
             (c) =>
-                # winston.debug("!! 5")
                 socket.write_mesg 'json', save_mesg
                 c()
 
             # Listen for bundles, find out how many bundles to expect
             # and receive the bundles.
             (c) =>
-                # winston.debug("!! 6")
                 bundle_uuids      = undefined
                 remaining_bundles = undefined
 
@@ -1333,7 +1315,6 @@ class Project
                     ## winston.debug("recv_bundles: #{type}")
                     switch type
                         when 'json'
-                            #winston.debug("json_message = #{misc.to_json(mesg)}")
                             if mesg.id == id
                                 switch mesg.event
                                     when 'error'
@@ -1362,7 +1343,6 @@ class Project
                 socket.on 'mesg', recv_bundles
 
             (c) =>
-                # winston.debug("!! 7")
                 database.save_project_meta
                     project_id     : @project_id
                     files          : project_saved_mesg.files

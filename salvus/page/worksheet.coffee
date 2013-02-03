@@ -16,11 +16,13 @@
 
 {dirname}      = require('path')
 {EventEmitter} = require('events')
+async          = require("async")
 
 {merge, copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
 {alert_message} = require('alerts')
 {salvus_client} = require('salvus_client')
 {Cell} = require("cell")
+
 
 templates          = $("#salvus-worksheet-templates")
 worksheet_template = templates.find(".salvus-worksheet")
@@ -440,7 +442,6 @@ class Worksheet extends EventEmitter
 
     # Save the worksheet to the given path.
     save: (path) =>
-        console.log("save(#{path})")
         if path == ""
             alert_message(type:'error', message:"You must enter a filename in order to save your worksheet.")
             return
@@ -448,29 +449,53 @@ class Worksheet extends EventEmitter
             path += '.salvus'
         @emit "save", path
         obj = @to_obj()
-        salvus_client.write_text_file_to_project
-            project_id : @opts.project_id
-            path       : path
-            content    : JSON.stringify(obj, null, '\t')
-            timeout    : 10
-            cb         : (err) =>
-                if err
-                    alert_message(type:"error", message:"Failed to write worksheet to #{path} -- #{err}")
+        async.series([
+            (cb) =>
+                salvus_client.write_text_file_to_project
+                    project_id : @opts.project_id
+                    path       : path
+                    content    : JSON.stringify(obj, null, '\t')
+                    timeout    : 10
+                    cb         : cb
+            (cb) =>
+                salvus_client.commit_file
+                    project_id : @opts.project_id
+                    path       : path
+                    author     : require('account').account_settings.git_author()
+                    message    : "Saved worksheet '#{@get_title()}' to '#{path}'."
+                    cb         : cb
+            (cb) =>
+                # TODO: save new git commit back to database -- but we will probably remove this later; too aggressive
+                salvus_client.save_project
+                    project_id : @opts.project_id
+                    cb         : (err, mesg) ->
+                        console.log(err, mesg)
+                        # We do not quit no matter what
+                        cb()
+            (cb) =>
+                # We also ensure all blobs referenced by the worksheet are made permanent.
+                ids = @_new_blobs(obj.content)
+                if ids.length > 0
+                    salvus_client.save_blobs_to_project
+                        project_id : @opts.project_id
+                        blob_ids   : ids
+                        cb         : (err) =>
+                            if err
+                                cb("Failed to write worksheet blobs -- #{err}")
+                            else
+                                for id in ids
+                                    @_saved_blobs[id] = 'known'
+                                cb()
                 else
-                    @has_unsaved_changes(false)
+                    cb()
+        ], (err) =>
+            if err
+                alert_message(type:"error", message:"Failed to save worksheet to #{path} -- #{err}")
+            else
+                @has_unsaved_changes(false)
+        )
 
-        # We also ensure all blobs referenced by the worksheet are made permanent.
-        ids = @_new_blobs(obj.content)
-        if ids.length > 0
-            salvus_client.save_blobs_to_project
-                project_id : @opts.project_id
-                blob_ids   : ids
-                cb         : (err) =>
-                    if err
-                        alert_message(type:"error", message:"Failed to write worksheet blobs -- #{err}")
-                    else
-                        for id in ids
-                            @_saved_blobs[id] = 'known'
+
 
 
     # has_unsaved_changes() returns the state, where true means that
