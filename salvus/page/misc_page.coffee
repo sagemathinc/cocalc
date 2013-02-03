@@ -16,7 +16,6 @@ $.fn.spin = (opts) ->
     this
 
 
-
 exports.local_diff = (before, after) ->
     # Return object
     #

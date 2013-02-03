@@ -18,10 +18,13 @@
 }
 
 .salvus-worksheet-title {
+    text-align:center;
+    font-size:32pt;
 }
 
 .salvus-worksheet-description {
-   color : #888;
+   color : #444;
+    text-align:center
 }
 
 

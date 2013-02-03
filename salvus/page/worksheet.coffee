@@ -20,7 +20,6 @@
 {merge, copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
 {alert_message} = require('alerts')
 {salvus_client} = require('salvus_client')
-
 {Cell} = require("cell")
 
 templates          = $("#salvus-worksheet-templates")
@@ -42,8 +41,8 @@ class Worksheet extends EventEmitter
         @element = worksheet_template.clone()
         @element.data("worksheet", @)
         $(@opts.element).replaceWith(@element)
-        @set_title(@opts.title)
-        @set_description(@opts.description)
+        @_init_title()
+        @_init_description()
         @_cells = @element.find(".salvus-worksheet-cells")
         @_current_cell = @_append_new_cell()
         @_focus_cell(@_current_cell)
@@ -65,6 +64,8 @@ class Worksheet extends EventEmitter
             # attempt to change to containing directory
             @chdir(dirname(@opts.path))
 
+        @_init_autosave()
+
     chdir: (path) =>
         @opts.session.execute_code
             code : "os.chdir(salvus.data['path'])"
@@ -74,6 +75,23 @@ class Worksheet extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
+    #
+    _monitor_for_changes: (elt) =>
+        elt.data("last", elt.html())
+        elt.keyup () =>
+            h = elt.html()
+            if elt.data("last") != h
+                # TODO: here we might also send a message with edit difference back to hub...?
+                @has_unsaved_changes(true)
+                elt.data("last", h)
+
+    _init_title: () =>
+        @set_title(@opts.title)
+        @_monitor_for_changes(@element.find(".salvus-worksheet-title"))
+
+    _init_description: () =>
+        @set_description(@opts.description)
+        @_monitor_for_changes(@element.find(".salvus-worksheet-description"))
 
     _save: (path) =>
         if path == ""
@@ -92,12 +110,10 @@ class Worksheet extends EventEmitter
                 if err
                     alert_message(type:"error", message:"Failed to write worksheet to #{path} -- #{err}")
                 else
-                    alert_message(type:"success", message:"Saved worksheet to #{path}")
                     @has_unsaved_changes(false)
 
         # We also ensure all blobs referenced by the worksheet are made permanent.
         ids = @_new_blobs(obj.content)
-        console.log(ids)
         if ids.length > 0
             salvus_client.save_blobs_to_project
                 project_id : @opts.project_id
@@ -123,12 +139,28 @@ class Worksheet extends EventEmitter
 
     _new_blobs: (content) =>
         if not @_saved_blobs?
-            console.log("resetting saved_blobs")
             @_saved_blobs = {}
         v = []
         @_new_blobs_helper(content, v)
         return v
 
+    _init_autosave: () =>
+        # start autosaving, as long as a filename is set
+        input = @element.find(".salvus-worksheet-filename")
+        autosave_interval = require('account').account_settings.settings.autosave_interval
+        that = @
+        interval = undefined
+        if autosave_interval
+            save_if_changed = () ->
+                # Check to see if the worksheet has been closed, in which case we stop autosaving.
+                if that.element.closest(document.documentElement).length == 0
+                    clearInterval(interval)
+                    return
+                if that.has_unsaved_changes()
+                    path = input.val()
+                    if path.length > 0
+                        that._save(path)
+            interval = setInterval(save_if_changed, autosave_interval*1000)
 
     _init_filename_save: () =>
         input = @element.find(".salvus-worksheet-filename")
@@ -161,8 +193,9 @@ class Worksheet extends EventEmitter
             opts.id = uuid()
         section.attr('id', opts.id)
 
-        if opts.title?
-            section.find(".salvus-worksheet-section-title-user").html(opts.title)
+        title = section.find(".salvus-worksheet-section-title-user")
+        title.html(opts.title)
+        @_monitor_for_changes(title)
 
         section.find(".salvus-worksheet-section-hide").click () ->
             section.find(".salvus-worksheet-section-hide").hide()
@@ -438,8 +471,9 @@ class Worksheet extends EventEmitter
     # has_unsaved_changes(true or false).
     has_unsaved_changes: (state) =>
         if not state?
-            # requesting state, which defaults to not has_unsaved_changes
-            if @_has_unsaved_changes?
+            # getting state
+            # requesting state, which defaults to false.
+            if not @_has_unsaved_changes?
                 @_has_unsaved_changes = false
             return @_has_unsaved_changes
         else
@@ -481,7 +515,6 @@ class Worksheet extends EventEmitter
         @_saved_blobs = {}
         for b in @_new_blobs(content)
             @_saved_blobs[b] = 'known'
-        console.log("will not save these blobs: ", @_saved_blobs)
 
     set_title: (title) =>
         @element.find(".salvus-worksheet-title").html(title)

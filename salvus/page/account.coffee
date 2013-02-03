@@ -139,7 +139,6 @@ $("#create_account-button").click((event) ->
                     # should never ever happen
                     alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
-    console.log(opts)
     salvus_client.create_account(opts)
 )
 

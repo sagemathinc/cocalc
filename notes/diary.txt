@@ -9558,12 +9558,20 @@ I could do the following:
 
     [x] worksheet persistence: it says it has unsaved changes on initial load, but shouldn't.; save button should do nothing when disabled
 
-    [ ] worksheet persistence: autosave
+   [ ] worksheet persistence: autosave
+            -- make sure to modify db schema
+            -- changing title and desc must make worksheet dirty
+            -- same for section headings
+
+    [ ] account: ability to change autosave interval in settings page
+
     [ ] worksheet persistence: save unsaved changes -- confirmation
     [ ] worksheet persistence: make it so can enter an optional commit message when saving file, then do a git add path; git commit -m "...'.
     [ ] TODO: add id's to worksheets --? otherwise, how will sync'ing work between clients?
 
     [ ] worksheet persistence: warn before overwriting existing file with same name!
+
+    [ ] worksheet persistence: saving to a path that doesn't exist should auto-create that path.
 
     [ ] projects (page): graphically indicate which projects are currently open
     [ ] projects: have a way to explicitly close a project, which kills all processes, deletes all non-checked-in-files, etc. 
@@ -9572,6 +9580,16 @@ I could do the following:
         this could go in the upper right. the UI would have a link to browse the filesystem and change to another directory graphically.
 
     [ ] hub security: add in lots of checks about permissions to access projects, now that we have the db code.
+
+    [ ] file browsing -- have both recently changed files and all files by directory...
+
+    [ ] when showing files, make the extension (and final dot) be in a lighter shade. 
+
+    [ ] worksheet: auto-number the section headings, subsections, etc.  This will be purely client side rendering.
+
+    [ ] crazy idea ?? account: rewrite the DB schema it to put all the settings
+        (except the very few that have to be indexed!) into a single
+        JSON object.  This will be much easier to deal with.
 
     [ ] project idea: when opening a file in editor or worksheet, don't switch to view it if shift/alt/control also pressed:  http://stackoverflow.com/questions/2485345/javascript-or-jquery-event-handlers-for-ctrl-shift-mouse-left-button-click
 

@@ -344,6 +344,7 @@ exports.unrestricted_account_settings =
     email_new_features   : required
     email_maintenance    : required
     enable_tooltips      : required
+    autosave_interval    : required   # time in seconds
 
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
@@ -355,6 +356,7 @@ exports.account_settings_defaults =
     connect_Github     : ''
     connect_Google     : ''
     connect_Dropbox    : ''
+    autosave_interval  : 30
 
 # client <--> hub
 message(

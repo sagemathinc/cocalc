@@ -1,3 +1,12 @@
+# jQuery mod for detecting DOC removal
+# See http://stackoverflow.com/questions/2200494/jquery-trigger-event-when-an-element-is-removed-from-the-dom
+# Usage:   $('.thing').bind('destroyed', () -> )
+$.event.special.destroyed =
+    remove: (o) ->
+        if o.handler
+            o.handler()
+
+
 
     _next_cell0 : (cell) ->
         next = cell.element.next()
