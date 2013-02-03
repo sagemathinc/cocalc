@@ -9565,11 +9565,39 @@ I could do the following:
 
     [x] worksheet persistence: save unsaved changes -- confirmation if you click the x:  NO, instead I will save on close, and if there is no filename, deal with that somehow.
 
+    [ ] file browser: function to give list of files/directories in a
+                      path, and for each the current revision control
+                      status (last mod, commit message); make this a
+                      pager function, since there could be a million
+                      files in a path.  This *must* be fast, so
+                      calling git 50 times (which takes a second) is
+                      not acceptable!
+
+           [x] (0:10) figure out how to do it efficiently
+git log --name-status client.coffee hub.coffee  # SPECIFIC list of files!
+# I have code to parse output of this in the gitlogs file.
+
+-->        [x] write something like gitlogs to work on a given path; call it "git-ls".  MUST BE FAST.
+               INPUT: path, ordering
+               OUTPUT: JSON string with keys the filenames, and values objects that given info about *all* files in this directory, e.g.,
+x - file or directory?
+x - last modification time
+x - size in bytes
+x - last commit id
+x - last commit message
+ - sort
+
+           [ ] define message
+           [ ] define routing code in client.coffee, hub.coffee, project.coffee with stub in project.coffee, and test.
+           [ ] implement in project.coffee and test.
+
+    [ ] file browser: change current graphical file browser to use above function
+
     [ ] worksheet persistence: make it so can enter an optional commit
         message when saving file, then do a git add path; git commit -m
         "...'... and refresh the file listing.
 
-    [ ] comment out status tab -- too confusing. (should delete later)
+    [x] comment out status tab -- too confusing. (should delete later)
 
     [x] account: ability to change autosave interval in settings page **
 
@@ -9587,7 +9615,7 @@ I could do the following:
     [ ] worksheet persistence: saving to a path that doesn't exist should auto-create that path.
 
     [ ] projects (page): graphically indicate which projects are currently open
-    [ ] projects: have a way to explicitly close a project, which kills all processes, deletes all non-checked-in-files, etc. 
+    [ ] projects: have a way to explicitly close a project, which kills all processes, deletes all non-checked-in-files, etc.
 
     [ ] worksheet feature idea: could make it display the current working directory, updated after each compute.
         this could go in the upper right. the UI would have a link to browse the filesystem and change to another directory graphically.
@@ -9596,7 +9624,7 @@ I could do the following:
 
     [ ] file browsing -- have both recently changed files and all files by directory...
 
-    [ ] when showing files, make the extension (and final dot) be in a lighter shade. 
+    [ ] when showing files, make the extension (and final dot) be in a lighter shade.
 
     [ ] worksheet: auto-number the section headings, subsections, etc.  This will be purely client side rendering.
 
