@@ -9552,15 +9552,24 @@ I could do the following:
        - hub: change db query to determine write access... then test saving blobs
        - also, support bounding cassandra log file more effectively.
 
-    [ ] worksheet persist optimization: make sure to initialize the _saved_blobs to all blobs on worksheet load
+    [x] worksheet persist optimization: make sure to initialize the _saved_blobs to all blobs on worksheet load
+
+    [x] worksheet persistence: make it so chdir to containing directory of worksheet file on startup.
+
+    [x] worksheet persistence: it says it has unsaved changes on initial load, but shouldn't.; save button should do nothing when disabled
 
     [ ] worksheet persistence: autosave
-    [ ] worksheet persistence: save unsaved changes?
+    [ ] worksheet persistence: save unsaved changes -- confirmation
     [ ] worksheet persistence: make it so can enter an optional commit message when saving file, then do a git add path; git commit -m "...'.
-    [ ] worksheet persistence: make it so chdir to containing directory of worksheet file on startup.
     [ ] TODO: add id's to worksheets --? otherwise, how will sync'ing work between clients?
 
     [ ] worksheet persistence: warn before overwriting existing file with same name!
+
+    [ ] projects (page): graphically indicate which projects are currently open
+    [ ] projects: have a way to explicitly close a project, which kills all processes, deletes all non-checked-in-files, etc. 
+
+    [ ] worksheet feature idea: could make it display the current working directory, updated after each compute.
+        this could go in the upper right. the UI would have a link to browse the filesystem and change to another directory graphically.
 
     [ ] hub security: add in lots of checks about permissions to access projects, now that we have the db code.
 

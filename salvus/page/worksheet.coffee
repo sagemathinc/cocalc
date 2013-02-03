@@ -14,7 +14,9 @@
 ###########################################
 #
 
+{dirname}      = require('path')
 {EventEmitter} = require('events')
+
 {merge, copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
 {alert_message} = require('alerts')
 {salvus_client} = require('salvus_client')
@@ -57,6 +59,17 @@ class Worksheet extends EventEmitter
             # wasteful/misleading/hard/error prone.
             @set_content(@opts.content)
             delete @opts.content
+            @has_unsaved_changes(false)
+
+        if @opts.path?
+            # attempt to change to containing directory
+            @chdir(dirname(@opts.path))
+
+    chdir: (path) =>
+        @opts.session.execute_code
+            code : "os.chdir(salvus.data['path'])"
+            data : {path: path}
+            preparse : false
 
     #######################################################################
     # Private Methods
@@ -128,8 +141,10 @@ class Worksheet extends EventEmitter
             if evt.which == 13
                 @_save(input.val())
                 return false
-        @element.find("a[href=#save]").click () =>
-            @_save(input.val())
+        save = @element.find("a[href=#save]")
+        save.click () =>
+            if not save.hasClass('disabled')
+                @_save(input.val())
             return false
 
     _init_section_button: () =>

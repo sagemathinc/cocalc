@@ -387,7 +387,7 @@ class Cell extends EventEmitter
                 data      : {id:desc.id, vals:vals}
                 preparse  : false
                 cb        : (mesg) =>
-                    if mesg.id == current_id  # could have left over messages
+                    if mesg.id == current_id  # could have left over messages (TODO -- really?)
                         output_cell.append_output_in_mesg(mesg)
                         if mesg.done
                             done = true
