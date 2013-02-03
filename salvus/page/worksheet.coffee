@@ -94,7 +94,7 @@ class Worksheet extends EventEmitter
                         alert_message(type:"error", message:"Failed to write worksheet blobs -- #{err}")
                     else
                         for id in ids
-                            @_saved_blobs[id] = null
+                            @_saved_blobs[id] = 'known'
 
     _new_blobs_helper: (content, result) =>
         # walk the content tree finding blobs
@@ -110,6 +110,7 @@ class Worksheet extends EventEmitter
 
     _new_blobs: (content) =>
         if not @_saved_blobs?
+            console.log("resetting saved_blobs")
             @_saved_blobs = {}
         v = []
         @_new_blobs_helper(content, v)
@@ -453,8 +454,19 @@ class Worksheet extends EventEmitter
     set_content: (content) =>
         # Delete everything from the worksheet contents DOM.
         @_cells.children().remove()
+
         # Iterate through content adding sections and cells
         @_append_content(@_cells, content)
+
+        # Optimization: initialize the _saved_blobs to all blobs on
+        # worksheet load, since we may assume any blobs in a worksheet
+        # that we have just loaded from disk have been saved... when
+        # the worksheet was saved.  The user could construct some weird
+        # worksheet that violates this, but that is their problem.
+        @_saved_blobs = {}
+        for b in @_new_blobs(content)
+            @_saved_blobs[b] = 'known'
+        console.log("will not save these blobs: ", @_saved_blobs)
 
     set_title: (title) =>
         @element.find(".salvus-worksheet-title").html(title)

@@ -820,7 +820,6 @@ class Client extends EventEmitter
             project_id : mesg.project_id
             account_id : @account_id
             cb : (err, t) =>
-                console.log("user_has_write_access_to_project: #{err}, #{t}")
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else if not t
@@ -1428,7 +1427,6 @@ class Project
             (c) =>
                 winston.debug("project close: -- waiting for response from project server")
                 socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
-                    console.log("got response: #{misc.to_json(mesg)}")
                     switch mesg.event
                         when 'error'
                             c(mesg.error)
@@ -2616,7 +2614,7 @@ save_blobs_to_project = (opts) ->
         blob_ids   : required
         cb         : required
 
-    console.log(to_json(opts))
+    console.log("SAVING ***all*** these blobs to project: ", to_json(opts))
 
     # ANTI-DOS measure -- don't allow more than 1000 blobs to be moved at once
     if opts.blob_ids.length > 1000
