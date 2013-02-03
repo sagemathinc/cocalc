@@ -59,7 +59,6 @@ class exports.Consoles
 
     # Close this tab.
     close: (id) =>
-        console.log("close #{id}")
         tab = @tabs[id]
         if not tab? # nothing to do -- file isn't opened anymore
             return
@@ -332,5 +331,4 @@ class WorksheetSession extends Session
         return @worksheet.has_unsaved_changes()
 
     save: () =>
-        console.log("worksheet -- save")
         @worksheet.save(@worksheet.filename())

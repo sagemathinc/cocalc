@@ -133,13 +133,13 @@
 
 	    <div class="span5 well">
 	      <div class="row">
-		<div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated.">Evaluate key</div>
+		<div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Evaluate key</div>
 		<div class="row span3">
 		  <select id="account-settings-evaluate_key">
 		    <option value="shift-enter">Shift-Enter (enter for newline)</option>
 		    <option value="enter">Enter (shift-enter for newline)</option>
 		  </select>
-		  <br><span class="lighten">(After saving this setting, you will have to refresh the page before it takes effect.)</span>
+		  <br><span class="lighten"></span>
 		</div>
 		<br><br>
 		<div class="hide row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
@@ -151,6 +151,17 @@
 		    <option value="maxima">Maxima</option>
 		    <option value="gap">GAP</option> -->
 		  </select>
+		</div>
+	      </div>
+	      <div class="row">
+		<div class="row span2" rel="tooltip" title="Your files will be automatically saved every autosave seconds.  All past versions of files are retained, so you can always undo a save. Set autosave to 0 to disable.">
+		  Autosave interval (seconds)
+		</div>
+		<div class="row span1">
+		  <input id="account-settings-autosave" type="text" class="span1">
+		</div>
+		<div class="row span2">
+		  <div id="account-settings-autosave-slider"></div>
 		</div>
 	      </div>
 	    </div>

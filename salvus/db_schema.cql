@@ -108,6 +108,8 @@ CREATE TABLE accounts (
     connect_Google     varchar,
     connect_Dropbox    varchar,
 
+    autosave           int,
+
     enable_tooltips    boolean
 );
 

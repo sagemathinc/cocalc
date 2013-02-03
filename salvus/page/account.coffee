@@ -85,6 +85,37 @@ $("#account-settings-cancel-changes-button").click((event) -> account_settings.s
 
 $("#account-settings-tab").find("form").click((event) -> return false)
 
+$("#account-settings-autosave-slider").slider
+    animate : true
+    min     : 0
+    max     : 300
+    step    : 15
+    value   : 30
+    change  : (event, ui) ->
+        $("#account-settings-autosave").val(ui.value)
+
+
+$("#account-settings-autosave").keyup () ->
+    t = $(@)
+    x = t.val()
+    last = t.data('last')
+    if x == last
+        return
+    if x.length == 0
+        return
+    s = parseInt(x)
+    if not (s >=0 and s <= 1000000)
+        s = parseInt(last)
+    else
+        t.data('last', x)
+    # Verify that input makes sense
+
+    # Move slider as best we can
+    $("#account-settings-autosave-slider").slider('value', s)
+
+    # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
+    t.val(s)
+
 
 ################################################
 # Tooltips
@@ -212,9 +243,13 @@ signed_in = (mesg) ->
             # change the navbar title from "Sign in" to "first_name last_name"
             set_account_tab_label(true, mesg.first_name, mesg.last_name)
             top_navbar.show_page_button("projects")
-            top_navbar.show_page_button("worksheet1")
+
+            #####
+            # DISABLE worksheet1 -- enable this maybe when finishing worksheets port
+            # 
+            #top_navbar.show_page_button("worksheet1")
             # Load the default worksheet (for now)
-            require('worksheet1').load_scratch_worksheet()
+            #require('worksheet1').load_scratch_worksheet()
 
             # If this is the initial login, switch to the project
             # page.  We do this because if the user's connection is
@@ -296,6 +331,10 @@ class AccountSettings
                     val = element.is(":checked")
                 when 'connect_Github', 'connect_Google', 'connect_Dropbox'
                     val = (element.val() == "unlink")
+                when 'autosave'
+                    val = parseInt(element.val())
+                    if not (val >= 0 and val <= 1000000)
+                        val = 30
                 else
                     val = element.val()
             @settings[prop] = val
@@ -339,6 +378,9 @@ class AccountSettings
                 when 'support_level'
                     element.text(value)
                     $("#feedback-support-level").text(value)
+                when 'autosave'
+                    $("#account-settings-autosave-slider").slider('value', value)
+                    $("#account-settings-autosave").val(value)
                 else
                     set(element, value)
 

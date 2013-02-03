@@ -9571,8 +9571,11 @@ I could do the following:
 
     [ ] BIG TODO:  I got rid of project save(...) taking a commit message; this breaks the "status" tab in the GUI.
 
-VERY IMPORTANT since without this we can't modify settings.
-**    [ ] account: ability to change autosave interval in settings page **
+    [x] account: ability to change autosave interval in settings page **
+
+    [ ] When changing project title, should auto change the entry in the tab at the top.
+
+    [ ] Style of project tab in the top should be different to distinguish projects from other stuff.
 
     [ ] worksheet persistence: make it so worksheet.save() succeeds in some way, no matter what... going so far as to store
         in localStorage and saving on next connect.

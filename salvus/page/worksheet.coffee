@@ -117,10 +117,10 @@ class Worksheet extends EventEmitter
     _init_autosave: () =>
         # start autosaving, as long as a filename is set
         input = @element.find(".salvus-worksheet-filename")
-        autosave_interval = require('account').account_settings.settings.autosave_interval
+        autosave = require('account').account_settings.settings.autosave
         that = @
         interval = undefined
-        if autosave_interval
+        if autosave
             save_if_changed = () ->
                 # Check to see if the worksheet has been closed, in which case we stop autosaving.
                 if that.element.closest(document.documentElement).length == 0
@@ -130,7 +130,7 @@ class Worksheet extends EventEmitter
                     path = input.val()
                     if path.length > 0
                         that.save(path)
-            interval = setInterval(save_if_changed, autosave_interval*1000)
+            interval = setInterval(save_if_changed, autosave*1000)
 
     _init_filename_save: () =>
         input = @element.find(".salvus-worksheet-filename")
@@ -469,7 +469,6 @@ class Worksheet extends EventEmitter
                 salvus_client.save_project
                     project_id : @opts.project_id
                     cb         : (err, mesg) ->
-                        console.log(err, mesg)
                         # We do not quit no matter what
                         cb()
             (cb) =>
