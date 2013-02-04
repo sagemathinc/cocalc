@@ -9612,21 +9612,23 @@ x - sort
     [x] file browser: make the command line be in *focus*, since nothing else is.
     [x] file browser: move the command line
 
-    [ ] file browser: show whether or not current version of file is saved to repo
-    [ ] file browser: the rows are too tall
+    [x] file browser: show whether or not current version of file is saved to repo; plus add icons for actions
+    [x] file browser: the rows are too tall
+    [x] file browser: sort by time
+    [ ] file browser: implement actions with files
+    [ ] file browser: option to sort in alphabetical order
+    [ ] file browser: get rid of big move/delete buttons near the top
     [ ] file browser: only show spinner after waiting a given amount of time.
-    [ ] file browser: sort by time
     [ ] file browser: show hidden files
     [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
     [ ] file browser: new file or directory -- implement
-    [ ] file browser: actions with files
     [ ] file browser: click to edit a file with any of these characters must work:'<>|,;$&\"''"
     [ ] file browser: persistent command line history
-
+    [ ] file browser: command line -- tab completion of filenames in current path would be trivial, plus common commands (?), e.g., "git", "ls"
 
     [ ] project: when closing last project need to go back to project list
 
-    [ ] project: the whole topbar well with title is a too-big waste of space.
+    [ ] project: the whole topbar well with title is a too-big waste of space.  Give it *more* info, but make it toggleable?
 
     [ ] worksheet: create an empty (or corrupted) .salvus file and click on it.  don't get a good error...
         Also, closing the x after this happens doesn't get rid of the "loading worksheet..." message.

@@ -289,13 +289,16 @@
   </div>
 
   <div class="row span11 well well-small project-file-link">
+    <div class="span" style="width: 10px;">
+      <input type="checkbox">
+    </div>
     <div class="span" style="width: 20px;">
       <i class="icon-file">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>
-    <div class="span" style="width:100px;">
+    <div class="span" style="width:150px;">
       <a class="project-file-name"></a>
     </div>
-    <div class="span smallish" style="width:120px;">
+    <div class="span smallish" style="width:140px;">
       <span class="project-file-last-mod-date">
       </span>
     </div>
@@ -303,12 +306,23 @@
       <span class="project-file-size">
       </span>
     </div>
-    <div class="span6">
-      <a class="project-file-last-commit-message lighten"></a>
-      <span class="project-file-last-commit-date-container smallish lighten">(<span class="project-file-last-commit-date"></span>)</span>
+    <div class="span4 lighten smallish">
+      <span class="project-file-last-commit-date-container"><span class="project-file-last-commit-date"></span></span>
+      (<a class="project-file-last-commit-message lighten"></a>)
+    </div>
+    <div class="pull-right">
+      <span class="btn-group project-file-buttons">
+	<a class="btn btn-primary btn-small" href="save-file"><i class="icon-save"> </i></a>
+	<a class="btn btn-info  btn-small" href="log-file"><i class="icon-backward"> </i></a>
+	<a class="btn btn-warning  btn-small" href="move-file"><i class="icon-external-link"> </i></a>
+	<a class="btn btn-success  btn-small" href="download-file"><i class="icon-download-alt"> </i></a>
+      </span>
     </div>
   </div>
   <div class="row span11 well well-small project-directory-link">
+    <div class="span" style="width: 10px;">
+      <input type="checkbox">
+    </div>
     <div class="span" style="width: 20px;">
       <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>

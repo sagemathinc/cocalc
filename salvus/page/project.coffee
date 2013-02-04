@@ -124,6 +124,7 @@ class ProjectPage
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
+        @_sort_by_time = true
 
         @init_tabs()
         @reload()
@@ -510,6 +511,7 @@ class ProjectPage
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : @current_path.join('/')
+            time       : @_sort_by_time
             cb         : (err, listing) =>
                 spinner.spin(false).hide()
                 if (err)
@@ -566,6 +568,29 @@ class ProjectPage
                             t.find(".project-file-last-commit-date-container").hide()
                         if obj.commit?.message?
                             t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
+
+                        # Record whether or not the file is currently saved to the repo
+                        save_button = t.find("a[href=save-file]")
+                        if obj.mtime? and obj.commit?.date? and obj.mtime <= obj.commit.date
+                            # Saved, disable the button:
+                            save_button.addClass("disabled")
+                        else
+                            save_button.tooltip(title:"Save permanent snapshot", placement:"left", delay:500)
+                            # Enable the button
+                            save_button.click () =>
+                                alert('save')
+
+                        move_button = t.find("a[href=move-file]")
+                        move_button.tooltip(title:"Move or delete; copy to another project", placement:"top", delay:500)
+
+                        log_button = t.find("a[href=log-file]")
+                        if obj.commit?
+                            log_button.tooltip(title:"Previous versions", placement:"top", delay:500)
+                        else
+                            log_button.addClass("disabled")
+
+                        download_button = t.find("a[href=download-file]")
+                        download_button.tooltip(title:"Download", placement:"right", delay:500)
 
                         # Clicking -- open the file in the editor
                         if path != ""

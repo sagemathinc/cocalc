@@ -6,16 +6,36 @@
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
+    height:1.7em;
+    padding-top:5px;
+    padding-left:15px;
+    padding-right:15px;
+    padding-bottom:6px;
 }
 
 .project-file-link:hover {
     background-color:#efe;
 }
 
+.project-file-name {
+    font-size:12pt;
+    font-weight:bold;
+}
+
+.project-directory-name {
+    font-size:12pt;
+    font-weight:bold;
+}
+
 .project-directory-link {
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
+    height:1.7em;
+    padding-top:5px;
+    padding-left:15px;
+    padding-right:15px;
+    padding-bottom:0px;
 }
 
 .project-directory-link:hover {
