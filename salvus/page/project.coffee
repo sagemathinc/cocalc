@@ -11,7 +11,7 @@
 {filename_extension, defaults, required, to_json, from_json, trunc, keys} = require('misc')
 {Editor}        = require('editor')
 {Consoles}      = require('consoles')
-{scroll_top}    = require('misc_page')
+{scroll_top, human_readable_size}    = require('misc_page')
 
 MAX_TITLE_LENGTH = 25
 
@@ -541,10 +541,16 @@ class ProjectPage
                         t = template_project_file.clone()
                         t.find(".project-file-name").text(obj.name)
 
-                        console.log(obj)
+                        if obj.mtime?
+                            date = (new Date(obj.mtime*1000)).toISOString()
+                            t.find(".project-file-last-mod-date").attr('title', date).timeago()
+                        if obj.size?
+                            t.find(".project-file-size").text(human_readable_size(obj.size))
                         if obj.commit?.date?
                             date = (new Date(obj.commit.date*1000)).toISOString()
-                            t.find(".project-file-last-edited").attr('title', date).timeago()
+                            t.find(".project-file-last-commit-date").attr('title', date).timeago()
+                        else
+                            t.find(".project-file-last-commit-date-container").hide()
                         if obj.commit?.message?
                             t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
 

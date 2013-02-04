@@ -20,11 +20,15 @@ top_navbar.css
 }
 
 .lighten {
-    color: #888;
+    color: #666;
 }
 
 .small {
     font-size:9pt;
+}
+
+.smallish {
+    font-size:10pt;
 }
 
 .large {

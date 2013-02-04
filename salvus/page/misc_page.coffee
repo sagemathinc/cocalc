@@ -49,3 +49,17 @@ exports.local_diff = (before, after) ->
 exports.scroll_top = () ->
     # Scroll smoothly to the top of the page.
     $("html, body").animate({ scrollTop: 0 })
+
+
+exports.human_readable_size = (bytes) ->
+    if bytes < 1000
+        return "#{bytes}"
+    if bytes < 1000000
+        b = Math.floor(bytes/100)
+        return "#{b/10}K"
+    if bytes < 1000000000
+        b = Math.floor(bytes/100000)
+        return "#{b/10}M"
+    b = Math.floor(bytes/100000000)
+    return "#{b/10}G"
+
