@@ -541,8 +541,12 @@ class ProjectPage
                         t = template_project_file.clone()
                         t.find(".project-file-name").text(obj.name)
 
-                        #TODO t.find(".project-file-last-edited").attr('title', obj.commit.date).timeago()
-                        #TODO t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
+                        console.log(obj)
+                        if obj.commit?.date?
+                            date = (new Date(obj.commit.date*1000)).toISOString()
+                            t.find(".project-file-last-edited").attr('title', date).timeago()
+                        if obj.commit?.message?
+                            t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
 
                         # Clicking -- open the file in the editor
                         if path != ""

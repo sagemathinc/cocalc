@@ -9602,7 +9602,11 @@ x - sort
            [x] implement new directory browser in project.coffee and test.
            [x] modify UI to use this new ls system.
 
-    [ ] file browser: show commit/last mod/size info
+    [x] file browser: show commit info
+    [ ] file browser: show last change info
+    [ ] file browser: show size info
+    [ ] file browser: show whether or not current version of file is saved to repo
+    [ ] file browser: the rows are too tall
     [ ] file browser: only show spinner after waiting a given amount of time.
     [ ] file browser: refresh on running bash command
     [ ] file browser: sort by time
