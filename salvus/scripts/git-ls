@@ -2,14 +2,17 @@
 
 import json, os, subprocess, uuid
 
-def gitls(path, time, start, limit):
+def gitls(path, time, start, limit, hidden):
     if not os.path.exists(path):
         return {'error':"no such path '%s'"%path}
     os.chdir(path)
     result = {}
+    listdir = os.listdir('.')
+    if not hidden:
+        listdir = [x for x in listdir if not x.startswith('.')]
     if time:
         # Get list of pairs (timestamp, name)
-        all = [(os.path.getmtime(name), name) for name in os.listdir('.')]
+        all = [(os.path.getmtime(name), name) for name in listdir]
         # Sort
         all.sort()
         all.reverse()
@@ -22,8 +25,7 @@ def gitls(path, time, start, limit):
         sorted_names = [x[1] for x in all]
     else:
         # Get list of (name, timestamp) pairs
-        # for name in os.path.listdir(path):
-        all = [(name, int(os.path.getmtime(name))) for name in os.listdir('.')]
+        all = [(name, int(os.path.getmtime(name))) for name in listdir]
         # Sort
         all.sort()
         # Limit and convert to objects
@@ -75,7 +77,9 @@ if __name__ == "__main__":
     parser.add_argument('--time', help='order by time instead of alphabetical order', action='store_true')
     parser.add_argument('--start',  help='starting file number', default=0)
     parser.add_argument('--limit',  help='maximum number of files', default=0)  # 0 = no limit
+    parser.add_argument('--hidden', help="include files/directories that start with a dot", action="store_true")
     parser.add_argument('path', nargs='?', help='return info about all files in this path', default='.')
 
     args = parser.parse_args()
-    print json.dumps(gitls(path=args.path[0], time=args.time, start=int(args.start), limit=int(args.limit)), separators=(',',':'))
+    r = gitls(path=args.path[0], time=args.time, start=int(args.start), limit=int(args.limit), hidden=args.hidden)
+    print json.dumps(r, separators=(',',':'))

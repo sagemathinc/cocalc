@@ -9593,11 +9593,12 @@ x - sort
 
            [x] make git-ls get copied to .git/salvus path
 
---> [x] OOPS, I removed the "commit everything first" functionality completely this morning (?) from the save project_server command (and
-corresponding messages).  In fact, that's exactly what I want.... at least for a special "salvus" branch.
-Get this functionality back exactly as it was.
+	--> [x] OOPS, I removed the "commit everything first" functionality completely this morning (?) from the save project_server command (and
+	corresponding messages).  In fact, that's exactly what I want.... at least for a special "salvus" branch.
+	Get this functionality back exactly as it was.
 
-           [ ] git-ls; option about whether or not to include dot-files
+           [x] git-ls; option about whether or not to include dot-files
+
            [ ] define "project_directory_listing" message, which uses git-ls
 
            [ ] define routing code in client.coffee, hub.coffee, project.coffee with stub in project.coffee, and test.
