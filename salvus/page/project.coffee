@@ -121,17 +121,17 @@ class ProjectPage
             label : @project.project_id
             onclose : () => delete project_pages[@project.project_id]
 
-        @init_tabs()
-        @update_topbar()
-
-        @create_editor()
-        @create_consoles()
-
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
 
+        @init_tabs()
         @reload()
+
+        @update_topbar()
+
+        @create_editor()
+        @create_consoles()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
@@ -214,28 +214,10 @@ class ProjectPage
                 if err
                     alert_message(type:"error", message:"Connection error saving project.")
                 else if mesg.event == "error"
-                    console.log(mesg.error)
                     @container.find(".project-commit-message-output").text(mesg.error).show()
                 else
                     input.val("")
                     @reload()
-
-    git_command_line_exec: (form) =>
-        command = form.find("input").val()
-        @container.find(".project-commit-command-spinner").show().spin()
-        salvus_client.exec
-            project_id : @project.project_id
-            command    : command
-            timeout    : 5
-            max_output : 10000
-            bash       : true
-            cb         : (err, output) =>
-                @container.find(".project-commit-command-spinner").spin(false).hide()
-                if err
-                    out = err
-                else
-                    out = output.stderr + output.stdout
-                form.find(".project-commit-command-output").text(out).show()
 
     command_line_exec: (form) =>
         input = form.find("input")
@@ -250,6 +232,7 @@ class ProjectPage
             bash       : true
             path       : @current_pathname()
             cb         : (err, output) =>
+                @update_file_list_tab()
                 clearTimeout(t)
                 @container.find(".project-command-line-spinner").spin(false).hide()
                 if err
@@ -307,7 +290,11 @@ class ProjectPage
                 that.display_tab($(@).data("name"))
                 return false
 
-        @display_tab("project-file-listing") # TODO -- for testing.
+            if name == "project-file-listing"
+                tab.onshow = () ->
+                    that.update_file_list_tab()
+
+        @display_tab("project-file-listing")
 
     create_editor: (initial_files) =>   # initial_files (optional)
         @editor = new Editor
@@ -504,8 +491,6 @@ class ProjectPage
                     alert_message(type:"error", message:err)
                     return
 
-                console.log(listing)
-
                 # Now rendering the listing or file preview
                 file_or_listing = @container.find(".project-file-listing-file-list")
                 file_or_listing.empty()
@@ -516,7 +501,7 @@ class ProjectPage
                 @container.find(".project-file-tools a").removeClass("disabled")
 
                 # Show the command prompt
-                @container.find("span.project-command-line").show().find("pre").hide()
+                # @container.find("span.project-command-line").show().find("pre").hide()
 
                 # Hide the edit button
                 @container.find(".project-file-tools a[href=#edit]").addClass("disabled")

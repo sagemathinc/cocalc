@@ -9605,19 +9605,30 @@ x - sort
     [x] file browser: show commit info
     [x] file browser: show last change info
     [x] file browser: show size info
+    [x] file browser: refresh on show tab
+    [x] file browser: refresh on running bash command
+    [ ] file browser: It would be pretty cool if the path changed in response to cd'ing in the command line.
     [ ] file browser: show whether or not current version of file is saved to repo
     [ ] file browser: the rows are too tall
     [ ] file browser: only show spinner after waiting a given amount of time.
-    [ ] file browser: refresh on running bash command
     [ ] file browser: sort by time
     [ ] file browser: show hidden files
-    [ ] file browser: refresh on reshow tab
     [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
     [ ] file browser: new file or directory -- implement
     [ ] file browser: actions with files
     [ ] file browser: click to edit a file with any of these characters must work:'<>|,;$&\"''"
+    [ ] file browser: persistent command line history
+
+
+    [ ] project: the whole topbar well with title is a too-big waste of space.
+
+    [ ] worksheet: create an empty (or corrupted) .salvus file and click on it.  don't get a good error...
+        Also, closing the x after this happens doesn't get rid of the "loading worksheet..." message.
 
     [ ] worksheet: "loading worksheet..." needs a spinner.  Also, it could do something if the size is large (?).
+
+    [ ] worksheet scalability: a 3MB (of output) worksheet takes a *noticeable* time to render.  If I could
+        redo *output* of cells to use codemirror, maybe it would be much faster?
 
     [ ] projects: need a spinner while new project is being created
 

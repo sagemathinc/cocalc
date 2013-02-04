@@ -917,7 +917,6 @@ class exports.Connection extends EventEmitter
                         if err
                             cb(err)
                         else if output.exit_code
-                            console.log("output=",output)
                             if output.stdout.indexOf("Changes not staged for commit") != -1
                                 # OK
                                 cb()
@@ -957,7 +956,6 @@ class exports.Connection extends EventEmitter
         if opts.path == ""
             opts.path = "."
         args.push(opts.path)
-        console.log(args)
 
         # We add the changes to the worksheet to the repo.
         @exec
