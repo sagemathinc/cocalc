@@ -103,9 +103,9 @@
 
 
 .project-command-line-input {
-    margin-top:2em;
+    margin-top:0em;
     margin-left:2em;
-    width:90%;
+    width:70%;
 }
 
 .project-command-line-stdout {

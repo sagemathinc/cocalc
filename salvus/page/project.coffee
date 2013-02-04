@@ -168,12 +168,13 @@ class ProjectPage
                             that.project.description = new_desc
 
         # Activate the command line
-        @container.find("form.project-command-line").submit () ->
-            try
-                that.command_line_exec($(@))
-            catch e
-                console.log(e)
-            return false
+        @container.find(".project-command-line-input").keypress (evt) ->
+            if evt.which == 13
+                try
+                    that.command_line_exec()
+                catch e
+                    console.log(e)
+                return false
 
 
         # Make it so typing something into the "create a new branch..." box
@@ -219,8 +220,9 @@ class ProjectPage
                     input.val("")
                     @reload()
 
-    command_line_exec: (form) =>
-        input = form.find("input")
+    command_line_exec: () =>
+        elt = @container.find(".project-command-line")
+        input = elt.find("input")
         command = input.val()
         command += "\npwd"
         input.val("")
@@ -257,8 +259,8 @@ class ProjectPage
 
                         output.stdout = if i == -1 then "" else output.stdout.slice(0,i)
                     # We display the output of the command.
-                    form.find(".project-command-line-stdout").text(output.stdout).show()
-                    form.find(".project-command-line-stderr").text(output.stderr).show()
+                    elt.find(".project-command-line-stdout").text(output.stdout).show()
+                    elt.find(".project-command-line-stderr").text(output.stderr).show()
                 @update_file_list_tab()
 
     branch_op: (opts) =>
@@ -503,7 +505,7 @@ class ProjectPage
         spinner.show().spin()
 
         # focus on the command line
-        @container.find("form.project-command-line").find("input").focus()
+        @container.find(".project-command-line").find("input").focus()
 
         salvus_client.project_directory_listing
             project_id : @project.project_id

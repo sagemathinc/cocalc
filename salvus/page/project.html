@@ -140,34 +140,33 @@
 	    </div>
 
 	    <div>
-	    <!-- Buttons for basic file operations -->
-	    <span class="project-file-tools pull-right">
-	      <span class="btn-group">
-		<a href="#move" class="btn btn-warning">Move</a>
-		<a href="#delete" class="btn btn-danger">Delete</a>
+	      <!-- command line prompt -->
+	      <span class="project-command-line">
+		<input class="project-command-line-input" type="text" placeholder="bash...">
+		<div class="project-command-line-spinner hide"></div>
+		<pre class="project-command-line-stderr hide"></pre>
+		<pre class="project-command-line-stdout hide"></pre>
 	      </span>
-	    </span>
+
+
+	      <!-- Buttons for basic file operations -->
+	      <span class="project-file-tools pull-right">
+		<span class="btn-group">
+		  <a href="#move" class="btn btn-warning">Move</a>
+		  <a href="#delete" class="btn btn-danger">Delete</a>
+		</span>
+	      </span>
+	    </div>
 
 	    <!-- The current path -->
-	    <span class="project-file-listing-current_path"></span>
-	    </div>
+	    <div class="project-file-listing-current_path"></div>
+
 
 	    <!-- List of files -->
 	    <div class="row">
 	      <div class="project-file-listing-spinner hide"></div>
 	      <div class="project-file-listing-file-list"></div>
 	    </div>
-
-	    <!-- command line prompt -->
-	    <form class="project-command-line">
-	      <span class="project-command-line">
-		<input class="project-command-line-input" type="text"
-		       placeholder="run a bash command here...">
-		<div class="project-command-line-spinner hide"></div>
-		<pre class="project-command-line-stderr hide"></pre>
-		<pre class="project-command-line-stdout hide"></pre>
-	      </span>
-	    </form>
 
 	  </div>
 	</div>
@@ -296,7 +295,7 @@
     <div class="span" style="width:100px;">
       <a class="project-file-name"></a>
     </div>
-    <div class="span smallish" style="width:100px;">
+    <div class="span smallish" style="width:120px;">
       <span class="project-file-last-mod-date">
       </span>
     </div>
