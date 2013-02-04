@@ -9,6 +9,7 @@ exports.alert_message = (opts={}) ->
         type    : 'default'
         message : defaults.required
         block   : undefined
+        timeout : 30
 
     if not opts.block?
         if opts.type == 'error'
@@ -31,7 +32,7 @@ exports.alert_message = (opts={}) ->
     c.prependTo("#alert-messages")
     c.click(() -> $(this).remove())
 
-    setTimeout((()->c.remove()), 10000)
+    setTimeout((()->c.remove()), opts.timeout*1000)
 
 # for testing/development
 # alert_message(type:'error',   message:"This is an error")

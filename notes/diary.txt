@@ -9598,14 +9598,26 @@ x - sort
 	Get this functionality back exactly as it was.
 
            [x] git-ls; option about whether or not to include dot-files
+           [x] define "project_directory_listing" function in client, which uses git-ls
+           [x] implement new directory browser in project.coffee and test.
+           [x] modify UI to use this new ls system.
 
-           [ ] define "project_directory_listing" message, which uses git-ls
+    [ ] file browser: show commit/last mod/size info
+    [ ] file browser: only show spinner after waiting a given amount of time.
+    [ ] file browser: refresh on running bash command
+    [ ] file browser: sort by time
+    [ ] file browser: show hidden files
+    [ ] file browser: refresh on reshow tab
+    [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
+    [ ] file browser: new file or directory -- implement
+    [ ] file browser: actions with files
 
-           [ ] define routing code in client.coffee, hub.coffee, project.coffee with stub in project.coffee, and test.
-           [ ] implement in project.coffee and test.
-           [ ] modify UI to use this new ls system.
+    [ ] projects: need a spinner while new project is being created
 
-    [ ] file browser: change current graphical file browser to use above function
+    [ ] projects: maybe provide a warning when you create a new project with the same title as an existing one
+
+    [ ] file editor: save on "clicking the x"
+    [ ] file editor: autosave with same interval as for worksheets
 
     [ ] When changing project title, should auto change the entry in the tab at the top.
 
@@ -9619,6 +9631,8 @@ x - sort
     [ ] worksheet persistence: warn before overwriting existing file with same name!
 
     [ ] worksheet persistence: saving to a path that doesn't exist should auto-create that path.
+
+    [ ] terminal: select font; easily change font size
 
     [ ] projects (page): graphically indicate which projects are currently open
     [ ] projects: have a way to explicitly close a project, which kills all processes, deletes all non-checked-in-files, etc.

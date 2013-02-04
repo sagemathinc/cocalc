@@ -127,7 +127,10 @@ class ProjectPage
         @create_editor()
         @create_consoles()
 
+        # current_path is a possibly empty list of directories, where
+        # each one is contained in the one before it.
         @current_path = []
+
         @reload()
 
         # Set the project id
@@ -453,58 +456,6 @@ class ProjectPage
                 cb?()
 
 
-    # Returns array of objects
-    #    {filename:..., is_file:..., commit:...reference to commit object if is_file true...}
-    # for the current working directory and branch.
-    # If the current_path is invalid, return the empty array.
-    #
-    # If the current_path is a file, returns the commit id of the last change to the file.
-    current_files: () =>
-        ignore_deleted_files = true
-        ignore_hidden_files = true
-
-        file_data = @meta.files[@meta.display_branch]
-        commits = @meta.logs[@meta.display_branch].commits
-        dir_exists = @meta.logs[@meta.display_branch].dir_exists
-        for segment in @current_path
-            file_data = file_data[segment]
-            if not file_data?
-                return []
-
-        # It's a file instead of a directory.
-        if typeof file_data == "string"
-            return file_data # the commit id
-
-        directories = []
-        files = []
-        for filename, d of file_data
-            # TODO -- make it possible to show hidden files via a checkbox
-            if ignore_hidden_files and filename[0] == '.'
-                continue
-            obj = {filename:filename}
-            if typeof d == 'string'  # a commit id -- consult the commit log
-                obj.commit = commits[d]
-                if ignore_deleted_files and obj.commit.modified_files[filename] == "D"
-                    continue
-                obj.is_file = true
-                files.push(obj)
-            else  # a directory
-                if ignore_deleted_files and not dir_exists[filename]
-                    continue
-                obj.is_file = false
-                directories.push(obj)
-
-        cmp = (a,b) ->
-            if a.filename < b.filename
-                return -1
-            else if a.filename == b.filename
-                return 0
-            else
-                return 1
-        directories.sort(cmp)
-        files.sort(cmp)
-        return directories.concat(files)
-
     # Return the string representation of the current path, as a
     # relative path from the root of the project.
     current_pathname: () => @current_path.join('/')
@@ -517,125 +468,91 @@ class ProjectPage
         t.append($("<a>").html(template_home_icon.clone().click(() =>
             @current_path=[]; @update_file_list_tab())))
 
-        file_data = @meta.files[@meta.display_branch]
         new_current_path = []
         that = @
         for segment in @current_path
-            file_data = file_data[segment]
             new_current_path.push(segment)
             t.append(template_segment_sep.clone())
             t.append($("<a>"
             ).text(segment
-            ).data("current_path",new_current_path[..]  # make a copy
+            ).data("current_path",new_current_path[..]  # [..] means "make a copy"
             ).click((elt) =>
                 @current_path = $(elt.target).data("current_path")
                 @update_file_list_tab()
             ))
 
-        if typeof file_data != "string"
-            # It's a directory, so put a link to create a new file or directory in it.
-            t.append(template_segment_sep.clone())
-            t.append(template_new_file_link.clone().data("current_path", @current_path).click( (elt) ->
-                that.new_file($(@).data("current_path").join('/'))
-            ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
+        # Put a link to create a new file or directory here.
+        t.append(template_segment_sep.clone())
+        t.append(template_new_file_link.clone().data("current_path", @current_path).click( (elt) ->
+            that.new_file($(@).data("current_path").join('/'))
+        ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
-    render_file_display: (path, cb) =>
-        salvus_client.exec
-            project_id : @project.project_id
-            command    : "cat"
-            args       : [path]
-            timeout    : 3
-            max_output : 100000
-            cb         : (err, output) =>
-                if err
-                    cb($("<div>").html(err))
-                else
-                    cb($("<pre style='background-color:#fff; padding:2ex; margin-left:2ex;'>").text(output.stdout))
-
-    xxx_render_file_display: (path, cb) =>
-        salvus_client.read_text_file_from_project
-            project_id : @project.project_id
-            timeout : 3
-            path : path
-            cb : (err, mesg) ->
-                if err
-                    cb($("<div>").html("Unable to load file..."))
-                else if mesg.event == 'error'
-                    cb($("<div>").html(mesg.error))
-                else
-                    cb($("<pre style='background-color:#fff; padding:2ex; margin-left:2ex;'>").text(mesg.content))
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: () =>
         # Update the display of the path above the listing or file preview
         @update_current_path()
-        @container.find(".project-file-listing-spinner").spin(false).hide()
+        spinner = @container.find(".project-file-listing-spinner")
+        spinner.show().spin()
 
-        # Now rendering the listing or file preview
-        file_or_listing = @container.find(".project-file-listing-file-list")
-        file_or_listing.empty()
-
-        current = @current_files()
-        that = @
-
-        # The path we are viewing.
-        path = @current_pathname()
-
-        @container.find(".project-file-tools a").removeClass("disabled")
-        if typeof current == "string"
-            # A file instead of a directory listing.
-
-            # Show a spinner if the file takes more than some amount of
-            # time to load from the server.
-            spinner = @container.find(".project-file-listing-spinner")
-            t = setTimeout((()->spinner.show().spin()), 500)
-
-            # Hide the command prompt
-            @container.find("span.project-command-line").hide()
-
-            @render_file_display path, (x) ->
-                clearTimeout(t)  # make sure not to show the spinner anyways.
+        salvus_client.project_directory_listing
+            project_id : @project.project_id
+            path       : @current_path.join('/')
+            cb         : (err, listing) =>
                 spinner.spin(false).hide()
-                file_or_listing.append(x)
-        else
-            # A directory listing (as an array)
+                if (err)
+                    alert_message(type:"error", message:err)
+                    return
 
-            # Show the command prompt
-            @container.find("span.project-command-line").show().find("pre").hide()
+                console.log(listing)
 
-            # Hide the edit button
-            @container.find(".project-file-tools a[href=#edit]").addClass("disabled")
+                # Now rendering the listing or file preview
+                file_or_listing = @container.find(".project-file-listing-file-list")
+                file_or_listing.empty()
 
-            # Hide the move and delete buttons if and only if this is the top level path
-            if path == ""
-                @container.find(".project-file-tools a[href=#move]").addClass("disabled")
-                @container.find(".project-file-tools a[href=#delete]").addClass("disabled")
+                # The path we are viewing.
+                path = @current_pathname()
 
-            # Show the files
-            for obj in current
-                if obj.is_file
-                    t = template_project_file.clone()
-                    t.find(".project-file-name").text(obj.filename)
-                    t.find(".project-file-last-edited").attr('title', obj.commit.date).timeago()
-                    t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
-                    # Clicking -- open the file in the editor
-                    if path != ""
-                        fname = path + '/' + obj.filename
+                @container.find(".project-file-tools a").removeClass("disabled")
+
+                # Show the command prompt
+                @container.find("span.project-command-line").show().find("pre").hide()
+
+                # Hide the edit button
+                @container.find(".project-file-tools a[href=#edit]").addClass("disabled")
+
+                # Hide the move and delete buttons if and only if this is the top level path
+                if path == ""
+                    @container.find(".project-file-tools a[href=#move]").addClass("disabled")
+                    @container.find(".project-file-tools a[href=#delete]").addClass("disabled")
+
+                that = @
+                # Show the files
+                for obj in listing['files']
+                    if obj.isdir? and obj.isdir
+                        t = template_project_directory.clone()
+                        t.find(".project-directory-name").text(obj.name)
+                        # Clicking to open the directory
+                        t.data('name', obj.name).click (e) ->
+                            that.current_path.push($(@).data('name'))
+                            that.update_file_list_tab()
+                            return false
                     else
-                        fname = obj.filename
-                    t.data('path',fname).click (e) ->
-                        that.open_file($(@).data('path'))
-                        return false
-                else
-                    t = template_project_directory.clone()
-                    t.find(".project-directory-name").text(obj.filename)
-                    # Clicking -- ppen the directory
-                    t.data('filename',obj.filename).click (e) ->
-                        that.current_path.push($(@).data('filename'))
-                        that.update_file_list_tab()
-                        return false
+                        t = template_project_file.clone()
+                        t.find(".project-file-name").text(obj.name)
 
-                file_or_listing.append(t)
+                        #TODO t.find(".project-file-last-edited").attr('title', obj.commit.date).timeago()
+                        #TODO t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
+
+                        # Clicking -- open the file in the editor
+                        if path != ""
+                            name = path + '/' + obj.name
+                        else
+                            name = obj.name
+                        t.data('name', name).click (e) ->
+                            that.open_file($(@).data('name'))
+                            return false
+                    file_or_listing.append(t)
 
     open_file: (path) =>
         ext = filename_extension(path)

@@ -1,3 +1,30 @@
+    render_file_display: (path, cb) =>
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : "cat"
+            args       : [path]
+            timeout    : 3
+            max_output : 100000
+            cb         : (err, output) =>
+                if err
+                    cb($("<div>").html(err))
+                else
+                    cb($("<pre style='background-color:#fff; padding:2ex; margin-left:2ex;'>").text(output.stdout))
+
+    xxx_render_file_display: (path, cb) =>
+        salvus_client.read_text_file_from_project
+            project_id : @project.project_id
+            timeout : 3
+            path : path
+            cb : (err, mesg) ->
+                if err
+                    cb($("<div>").html("Unable to load file..."))
+                else if mesg.event == 'error'
+                    cb($("<div>").html(mesg.error))
+                else
+                    cb($("<pre style='background-color:#fff; padding:2ex; margin-left:2ex;'>").text(mesg.content))
+
+
 # jQuery mod for detecting DOC removal
 # See http://stackoverflow.com/questions/2200494/jquery-trigger-event-when-an-element-is-removed-from-the-dom
 # Usage:   $('.thing').bind('destroyed', () -> )

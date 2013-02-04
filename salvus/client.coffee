@@ -932,6 +932,46 @@ class exports.Connection extends EventEmitter
                 opts.cb() # good
         )
 
+    #################################################
+    # File Management
+    #################################################
+    project_directory_listing: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : '.'
+            time       : false
+            start      : 0
+            limit      : 100
+            hidden     : false
+            cb         : required
+
+        args = []
+        if opts.time
+            args.push("--time")
+        if opts.hidden
+            args.push("--hidden")
+        args.push("--limit")
+        args.push(opts.limit)
+        args.push("--start")
+        args.push(opts.start)
+        if opts.path == ""
+            opts.path = "."
+        args.push(opts.path)
+        console.log(args)
+
+        # We add the changes to the worksheet to the repo.
+        @exec
+            project_id : opts.project_id
+            command    : ".git/salvus/git-ls"
+            args       : args
+            cb         : (err, output) ->
+                if err
+                    opts.cb(err)
+                else if output.exit_code
+                    opts.cb(output.stderr)
+                else
+                    opts.cb(err, misc.from_json(output.stdout))
+
 
 #################################################
 # Other account Management functionality shared between client and server
