@@ -228,7 +228,7 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : command
-            timeout    : 5
+            timeout    : 3
             max_output : 100000
             bash       : true
             path       : @current_pathname()
@@ -238,23 +238,27 @@ class ProjectPage
                 if err
                     alert_message(type:'error', message:err)
                 else
+                    # All this code below is to find the current path
+                    # after the command is executed, and also strip
+                    # the output of "pwd" from the output:
+                    j = i = output.stdout.length-2
+                    while i>=0 and output.stdout[i] != '\n'
+                        i -= 1
+                    cwd = output.stdout.slice(i+1, j+1)
+                    if cwd.slice(0,6) == "/home/"
+                        cwd = cwd.slice(7)
+                        k = cwd.indexOf('/')
+                        if k != -1
+                            cwd = cwd.slice(k+1)
+                            @current_path = cwd.split('/')
+                        else
+                            # HOME
+                            @current_path = []
+
+                        output.stdout = if i == -1 then "" else output.stdout.slice(0,i)
+                    # We display the output of the command.
                     form.find(".project-command-line-stdout").text(output.stdout).show()
                     form.find(".project-command-line-stderr").text(output.stderr).show()
-                console.log("output.stdout = '#{output.stdout}'")
-                j = i = output.stdout.length-2
-                while i>=0 and output.stdout[i] != '\n'
-                    i -= 1
-                cwd = output.stdout.slice(i+1, j+1)
-                console.log("'#{cwd}'")
-                if cwd.slice(0,6) == "/home/"
-                    cwd = cwd.slice(7)
-                    console.log(cwd)
-                    i = cwd.indexOf('/')
-                    if i != -1
-                        cwd = cwd.slice(i+1)
-                    console.log(cwd)
-                    @current_path = cwd.split('/')
-                    console.log(@current_path)
                 @update_file_list_tab()
 
     branch_op: (opts) =>
@@ -497,6 +501,9 @@ class ProjectPage
         @update_current_path()
         spinner = @container.find(".project-file-listing-spinner")
         spinner.show().spin()
+
+        # focus on the command line
+        @container.find("form.project-command-line").find("input").focus()
 
         salvus_client.project_directory_listing
             project_id : @project.project_id
