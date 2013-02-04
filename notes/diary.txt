@@ -9607,7 +9607,8 @@ x - sort
     [x] file browser: show size info
     [x] file browser: refresh on show tab
     [x] file browser: refresh on running bash command
-    [ ] file browser: It would be pretty cool if the path changed in response to cd'ing in the command line.
+-->    [ ] file browser: It would be pretty cool if the path changed in response to cd'ing in the command line.
+           can easily do this via 'command += "\npwd"' in project.coffee
     [ ] file browser: show whether or not current version of file is saved to repo
     [ ] file browser: the rows are too tall
     [ ] file browser: only show spinner after waiting a given amount of time.

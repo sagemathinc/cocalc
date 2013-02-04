@@ -222,6 +222,7 @@ class ProjectPage
     command_line_exec: (form) =>
         input = form.find("input")
         command = input.val()
+        command += "\npwd"
         input.val("")
         t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 1000)
         salvus_client.exec
@@ -232,7 +233,6 @@ class ProjectPage
             bash       : true
             path       : @current_pathname()
             cb         : (err, output) =>
-                @update_file_list_tab()
                 clearTimeout(t)
                 @container.find(".project-command-line-spinner").spin(false).hide()
                 if err
@@ -240,6 +240,22 @@ class ProjectPage
                 else
                     form.find(".project-command-line-stdout").text(output.stdout).show()
                     form.find(".project-command-line-stderr").text(output.stderr).show()
+                console.log("output.stdout = '#{output.stdout}'")
+                j = i = output.stdout.length-2
+                while i>=0 and output.stdout[i] != '\n'
+                    i -= 1
+                cwd = output.stdout.slice(i+1, j+1)
+                console.log("'#{cwd}'")
+                if cwd.slice(0,6) == "/home/"
+                    cwd = cwd.slice(7)
+                    console.log(cwd)
+                    i = cwd.indexOf('/')
+                    if i != -1
+                        cwd = cwd.slice(i+1)
+                    console.log(cwd)
+                    @current_path = cwd.split('/')
+                    console.log(@current_path)
+                @update_file_list_tab()
 
     branch_op: (opts) =>
         opts = defaults opts,
@@ -489,6 +505,9 @@ class ProjectPage
                 spinner.spin(false).hide()
                 if (err)
                     alert_message(type:"error", message:err)
+                    return
+
+                if not listing?
                     return
 
                 # Now rendering the listing or file preview
