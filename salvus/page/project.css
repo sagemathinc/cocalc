@@ -18,13 +18,11 @@
 }
 
 .project-file-name {
-    font-size:12pt;
-    font-weight:bold;
+
 }
 
 .project-directory-name {
-    font-size:12pt;
-    font-weight:bold;
+
 }
 
 .project-directory-link {
@@ -45,6 +43,15 @@
 
 .project-project_title {
     font-size:18pt;
+}
+
+.project-search-form-input {
+    width:13em;
+}
+
+.project-search-output  {
+    background-color:white;
+    font-family:monospace;
 }
 
 .project-project_description {

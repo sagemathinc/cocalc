@@ -9615,6 +9615,9 @@ x - sort
     [x] file browser: show whether or not current version of file is saved to repo; plus add icons for actions
     [x] file browser: the rows are too tall
     [x] file browser: sort by time
+
+    [x] (1:34) project search: simple, using grep with link to each file that appears with line of context.
+
     [ ] file browser: implement actions with files
     [ ] file browser: option to sort in alphabetical order
     [ ] file browser: get rid of big move/delete buttons near the top
@@ -9623,12 +9626,18 @@ x - sort
     [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
     [ ] file browser: new file or directory -- implement
     [ ] file browser: click to edit a file with any of these characters must work:'<>|,;$&\"''"
-    [ ] file browser: persistent command line history
-    [ ] file browser: command line -- tab completion of filenames in current path would be trivial, plus common commands (?), e.g., "git", "ls"
 
     [ ] project: when closing last project need to go back to project list
+    [ ] cell: comment/uncomment -- "Hello, i try to comment uncomment block of code on the sage notebook, but the schortcut are similar to some shortcut of firefox.
+for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : work but firefox change the page to the tab 3 or 4 why don't change it like: ctrl shift somethinelse?"
 
     [ ] project: the whole topbar well with title is a too-big waste of space.  Give it *more* info, but make it toggleable?
+
+    [ ] proejcts: the new project button should be to the LEFT
+
+    [ ] project: delete the "Only for temporary testing" and related code from project.coffee
+
+    [ ] project: restructure the code in the constructor for ProjectPage to be a bunch of @_init_foo()'s
 
     [ ] worksheet: create an empty (or corrupted) .salvus file and click on it.  don't get a good error...
         Also, closing the x after this happens doesn't get rid of the "loading worksheet..." message.
@@ -9717,6 +9726,11 @@ def f(reset  = button('Randomize', classes="btn-primary"),
 
 
 LATER:
+    [ ] file browser: persistent command line history
+    [ ] file browser: command line -- full bash tab completion using
+        the listing selector from code; this will be possible, but take a
+        while to implement.  Not for first release.
+
      [ ] interact: image point selector
      [ ] interact: labels/controls need to line up nicely
      [ ] interact: interrupt needs to do a proper roundtrip of
@@ -9730,6 +9744,8 @@ LATER:
      [ ] interact: extensible user controls
 
  [ ] mathjax jquery plugin -- give it a timeout!
+
+ [ ] cell: make interrupt better -- https://mail.google.com/mail/u/0/?shva=1#starred/13c3fa7cf94e9453
 
 
  [ ] foo? and foo?? followed by execute should do the right thing, not give error
@@ -9776,8 +9792,6 @@ LATER:
 
  [ ] browser must browse live directory, but give git-related info
      about each file -- last commit and whether or not it was checked in.
-
- [ ] basic search
 
  [ ] switches? -- useful for something in salvus? http://www.larentis.eu/switch/
      probably for settings page.

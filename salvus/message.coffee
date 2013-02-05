@@ -572,9 +572,9 @@ message
     path       : ''   # if relative, is a path under home; if absolute is what it is.
     command    : required
     args       : []
-    timeout    : 10   # time in seconds.
-    max_output : undefined
-    bash       : false  # if true, args are ignored and command is run as a bash command
+    timeout    : 10          # maximum allowed time, in seconds.
+    max_output : undefined   # maximum number of characters in the output
+    bash       : false       # if true, args are ignored and command is run as a bash command
 
 message
     event      : 'project_exec_output'

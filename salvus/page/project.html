@@ -60,18 +60,19 @@
 	    <!-- The project id -->
 	    <div class="project-id"></div>
 	    <!-- The current branch -->
-	    <div>branch: 
+	    <div>branch:
 	      <span class="bold project-branch"></span>
 	    </div>
+
 	    <!-- Search box -->
-	    <form class="project-search-form">
-	      <span class="project-search-form">
+	    <span class="project-search-form">
+	      <label>
+		rgrep
 		<input class="project-search-form-input search-query" type="text"
-                       placeholder="search...">
-		<div class="project-search-form-spinner hide"></div>
-		<div class="project-search-form-output hide"></div>
-	      </span>
-	    </form>
+		       placeholder="search file contents...">
+	      </label>
+	    </span>
+
 	  </div>
 
 	  <!-- Title of the project (editable) -->
@@ -242,7 +243,21 @@
 
 	<!-- Search -->
 	<div class="project-search hide">
-	  Output from doing searchers appears here.
+	  <div class="project-search-spinner hide">
+	  </div>
+	    <!-- Search box -->
+	    <div class="project-search-form row" style="margin-left:1em">
+	      <div>
+		<label>
+		  rgrep
+		  <input class="project-search-form-input search-query" type="text" style="width:80%;"
+			 placeholder="search file contents...">
+		</label>
+	      </div>
+	    </div>
+	  <div class="row">
+	    <div class="project-search-output well span11"></div>
+	  </div>
 	</div>
 
       </div>
@@ -346,6 +361,12 @@
   </span>
 
 
+  <div class="span9 project-search-result">
+    <b><a></a></b>
+    <span></span>
+  </div>
+
+
 </span>
 
 <span class="hide">
@@ -354,5 +375,4 @@
     <b><a href="">worksheet.sws</a></b>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="lighten"></span>
   </div>
-
 </span>

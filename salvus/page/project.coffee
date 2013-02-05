@@ -121,6 +121,9 @@ class ProjectPage
             label : @project.project_id
             onclose : () => delete project_pages[@project.project_id]
 
+        # Initialize the search form.
+        @init_search_form()
+
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
@@ -169,13 +172,20 @@ class ProjectPage
                             that.project.description = new_desc
 
         # Activate the command line
-        @container.find(".project-command-line-input").keypress (evt) ->
+        cmdline = @container.find(".project-command-line-input")
+        cmdline.keypress (evt) ->
             if evt.which == 13
                 try
                     that.command_line_exec()
                 catch e
                     console.log(e)
                 return false
+
+        # TODO: this will be for command line tab completion
+        #cmdline.keydown (evt) =>
+        #    if evt.which == 9
+        #        @command_line_tab_complete()
+        #        return false
 
 
         # Make it so typing something into the "create a new branch..." box
@@ -204,6 +214,76 @@ class ProjectPage
         @container.find(".project-save").click(() => @save_project(show_success_alert:true))
         @container.find(".project-close").click(@close_project_dialog)
         @container.find(".project-meta").click @reload
+
+    ########################################
+    # Search
+    ########################################
+
+    init_search_form: () =>
+        that = @
+        input_boxes = @container.find(".project-search-form-input")
+        input_boxes.keypress (evt) ->
+            if evt.which== 13
+                t = $(@)
+                # Sync the multiple search boxes
+                input_boxes.val(t.val())
+                try
+                    that.search(t.val())
+                catch e
+                    console.log(e)
+                return false
+
+    search: (query) =>
+        @display_tab("project-search")
+        search_output = @container.find(".project-search-output")
+        max_results = 300
+        max_output  = 110*max_results  # just in case
+        cmd = "rgrep " + query + " *"
+        search_output.text(cmd).append("<hr>")
+        spinner = @container.find(".project-search-spinner").show().spin()
+        that = @
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : cmd + " | cut -c 1-100"
+            timeout    : 3
+            max_output : max_output
+            bash       : true
+            cb         : (err, output) ->
+                spinner.spin(false).hide()
+                console.log(err, output)
+                if err
+                    search_output.append($("<div>").text("Search failed -- #{err}"))
+                    return
+                search_result = templates.find(".project-search-result")
+                console.log(search_result)
+                num_results = 0
+                results = output.stdout.split('\n')
+                if output.stdout.length >= max_output or results.length > max_results
+                    # TODO: make nicer
+                    search_output.append($("<div>NOTE: There were further results.  Try making your search more specific.</div><hr>"))
+                for line in results
+                    console.log(line)
+                    i = line.indexOf(":")
+                    console.log("i = ", i)
+                    if i != -1
+                        num_results += 1
+                        filename = line.slice(0,i)
+                        context  = trunc(line.slice(i+1),80)
+                        console.log(filename, context)
+                        r = search_result.clone()
+                        r.find("span").text(context)
+                        r.find("a").text(filename).data(filename: filename).click () ->
+                            that.open_file($(@).data('filename'))
+                        search_output.append(r)
+                        if num_results >= max_results
+                            break
+
+
+
+
+    ########################################
+    # ...?
+    ########################################
 
     git_commit: (input) =>
         @container.find(".project-commit-message-output").text("").hide()
@@ -263,6 +343,24 @@ class ProjectPage
                     elt.find(".project-command-line-stdout").text(output.stdout).show()
                     elt.find(".project-command-line-stderr").text(output.stderr).show()
                 @update_file_list_tab()
+
+    # command_line_tab_complete: () =>
+    #     elt = @container.find(".project-command-line")
+    #     input = elt.find("input")
+    #     cmd = input.val()
+    #     i = input.caret()
+    #     while i>=0
+    #         if /\s/g.test(cmd[i])  # is whitespace
+    #             break
+    #         i -= 1
+    #     symbol = cmd.slice(i+1)
+
+    #     # Here we do the actual completion.  This is very useless
+    #     # naive for now.  However, we will later implement 100% full
+    #     # bash completion on the VM host using pexpect (!).
+    #     if not @_last_listing?
+    #         return
+        
 
     branch_op: (opts) =>
         opts = defaults opts,
@@ -520,6 +618,8 @@ class ProjectPage
 
                 if not listing?
                     return
+
+                @_last_listing = listing
 
                 # Now rendering the listing or file preview
                 file_or_listing = @container.find(".project-file-listing-file-list")
