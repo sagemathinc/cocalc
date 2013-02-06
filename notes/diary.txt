@@ -9648,7 +9648,7 @@ x - sort
 
     [x] (0:03) worksheet: saving worksheet must work even if no changes
 
-    [ ] file browser: only show spinner after waiting a given amount of time.
+    [x] (0:06) file browser: only show spinner after waiting a given amount of time.
 
     [ ] projects: show whether or not each project is open
 

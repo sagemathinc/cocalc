@@ -311,7 +311,7 @@ class ProjectPage
         command = input.val()
         command += "\npwd"
         input.val("")
-        t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 1000)
+        t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 300)
         salvus_client.exec
             project_id : @project.project_id
             command    : command
@@ -606,7 +606,8 @@ class ProjectPage
         # Update the display of the path above the listing or file preview
         @update_current_path()
         spinner = @container.find(".project-file-listing-spinner")
-        spinner.show().spin()
+        
+        timer = setTimeout( (() -> spinner.show().spin()), 300 )
 
         # focus on the command line
         @container.find(".project-command-line").find("input").focus()
@@ -616,6 +617,7 @@ class ProjectPage
             path       : @current_path.join('/')
             time       : @_sort_by_time
             cb         : (err, listing) =>
+                clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err)
                     alert_message(type:"error", message:err)
