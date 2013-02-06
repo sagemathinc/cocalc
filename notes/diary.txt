@@ -9652,8 +9652,11 @@ x - sort
 
     [x] (0:19) projects: show whether or not each project is open
 
-    [ ] projects: do not send/store/etc. the entire commit history in the projects table; get rid of that.
+    [ ] (1:00) search: search for filenames first, then content; get rid of "rgrep", but maybe say something about it in results; make it use "-i" by default
+
+-->    [ ] (0:20+) projects: do not send/store/etc. the entire commit history in the projects table; get rid of that.
         only store the last commit and branch.  This is a huge badness for scalability as is.
+
 
     [ ] projects: namespace it, i.e., change all "projects-" to "salvus-projects-", etc. for HTML/CSS
 
@@ -9667,8 +9670,6 @@ x - sort
 
     [ ] command line in browser: tab completion
 
-    [ ] search: search for filenames first, then content
-    [ ] search: get rid of "rgrep", but maybe say something about it in results; make it use "-i" by default
     [ ] file browser: implement actions with files
     [ ] file browser: option to sort in alphabetical order
     [ ] file browser: get rid of big move/delete buttons near the top

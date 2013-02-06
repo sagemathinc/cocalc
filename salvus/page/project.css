@@ -6,7 +6,7 @@
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
-    height:1.7em;
+    /* height:1.7em; */
     padding-top:5px;
     padding-left:15px;
     padding-right:15px;
@@ -29,7 +29,7 @@
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
-    height:1.7em;
+/*    height:1.7em; */
     padding-top:5px;
     padding-left:15px;
     padding-right:15px;
@@ -46,12 +46,19 @@
 }
 
 .project-search-form-input {
-    width:13em;
+    width:20em;
 }
 
 .project-search-output  {
     background-color:white;
     font-family:monospace;
+}
+
+.project-search-output-command {
+   background-color:white;
+   font-family:monospace;
+   font-size:10pt;
+   color:#888;
 }
 
 .project-project_description {
@@ -153,9 +160,9 @@
 }
 
 .project-id {
-    color:#888;
+    color:#666;
     margin-right:2ex;
-    font-size:9pt;
+    font-size:10pt;
     font-family:monospace;
 }
 

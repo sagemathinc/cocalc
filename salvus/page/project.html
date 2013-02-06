@@ -56,25 +56,15 @@
     <div class="row">
       <div class="well span12">
 	<div class="span12">
-	  <div class="pull-right">
-	    <!-- Close button -->
-	    <div><a href="#close-project" class="btn btn-danger pull-right" style="margin-right:2em">Close <i class="icon-remove"> </i></a></div>
+	  <div class="pull-right"   style="margin-right:2em">
+	    Project
 	    <!-- The project id -->
-	    <div class="project-id"></div>
-	    <!-- The current branch -->
-	    <div>branch:
-	      <span class="bold project-branch"></span>
-	    </div>
-
-	    <!-- Search box -->
-	    <span class="project-search-form">
-	      <label>
-		rgrep
-		<input class="project-search-form-input search-query" type="text"
-		       placeholder="search file contents...">
-	      </label>
+	    <span class="project-id"></span>
+	    <!-- Close button -->
+	    <span class="btn-group">
+	      <a href="#save-project" class="btn btn-primary">Save <i class="icon-save"> </i></a>
+	      <a href="#close-project" class="btn btn-danger">Close <i class="icon-remove"> </i></a>
 	    </span>
-
 	  </div>
 
 	  <!-- Title of the project (editable) -->
@@ -94,6 +84,7 @@
     </div>
     <div class="row">
       <div class="span12 well">
+
 
 	<!-- Tabs -- place where you click on them -->
 	<ul class="nav nav-tabs project-pages">
@@ -127,7 +118,8 @@
 	  <li class="super-menu"><a href="#project-settings">Settings</a></li>
 
 	  <!-- Search -->
-	  <li class="super-menu"><a href="#project-search">Search</a></li>
+	  <li class="super-menu"><a href="#project-search"><input class="project-search-form-input search-query" type="text"
+		 placeholder="Search"></a></li>
 	</ul>
 
 	<!-- The actual screens that get revealed by each tab: -->
@@ -247,18 +239,9 @@
 	<div class="project-search hide">
 	  <div class="project-search-spinner hide">
 	  </div>
-	    <!-- Search box -->
-	    <div class="project-search-form row" style="margin-left:1em">
-	      <div>
-		<label>
-		  rgrep
-		  <input class="project-search-form-input search-query" type="text" style="width:80%;"
-			 placeholder="search file contents...">
-		</label>
-	      </div>
-	    </div>
 	  <div class="row">
 	    <div class="project-search-output well span11"></div>
+	    <div class="project-search-output-command well span11"></div>
 	  </div>
 	</div>
 

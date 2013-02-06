@@ -220,8 +220,6 @@ CREATE TABLE projects (
      public           boolean,  // whether or not the project is visible to everybody in the world
      last_edited      timestamp,// timestamp of last save of the project
 
-     files            varchar,  // (JSON) file tree for each branch (see message.coffee for format)
-     logs             varchar,  // (JSON) logs for each branch
      current_branch   varchar,  // string
      host             varchar,  // the host that has the project open (if it is open)
      user_id          int,      // UNIX user id for open project

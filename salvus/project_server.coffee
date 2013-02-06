@@ -69,8 +69,7 @@ has_bad_shell_chars = (s) ->
     return false
 
 
-# Script for computing logs of files
-gitlogs = fs.readFileSync('scripts/gitlogs')
+# Script for computing git-enhanced ls of a path
 gitls   = fs.readFileSync('scripts/git-ls')
 
 # Verify that path really describes something that would be a
@@ -213,13 +212,6 @@ extract_bundles = (project_id, bundles, cb) ->
 
         (c) ->
             fs.mkdir("#{repo_path}/.git/salvus", 0o700, c)
-
-        # Write script to get complete commit logs
-        (c) ->
-            winston.debug("Write script to get complete commit logs")
-            fs.writeFile("#{repo_path}/.git/salvus/gitlogs", gitlogs ,c)
-        (c) ->
-            fs.chmod("#{repo_path}/.git/salvus/gitlogs", 0o777, c)
         (c) ->
             winston.debug("Write script to get listing")
             fs.writeFile("#{repo_path}/.git/salvus/git-ls", gitls ,c)
@@ -502,67 +494,6 @@ commit = (opts) ->
     ], opts.cb)
 
 
-# Obtain all branches in this repo.
-get_branches = (path, cb) ->
-    child_process.exec "cd #{path} && git branch --no-color", (err, stdout, stderr) ->
-        if err
-            cb(err)
-        else
-            branches = []
-            current_branch = 'master'   # the default; gets changed below
-            for m in stdout.split('\n')
-                t = m.split(' ')
-                if t.length > 0
-                    branch = t[t.length-1]
-                    if branch.length > 0
-                        branches.push(branch)
-                        if t[0] == '*'
-                            current_branch = branch
-            cb(false, {branches:branches, current_branch:current_branch})
-
-# Obtain the file lists and logs for all the branches in the repo.
-get_files_and_logs = (project_id, cb) ->
-    branches = undefined
-    current_branch = undefined
-    files = undefined
-    logs  = undefined
-    path  = userpath(project_id)
-    async.series([
-        # Get the branches and the current branch
-        (cb) ->
-            get_branches path, (err, r) ->
-                if err
-                    cb(err)
-                else
-                    branches       = r.branches
-                    current_branch = r.current_branch
-                    if not branches? or not current_branch?
-                        cb("Error getting branches of git repo.")
-                    else
-                        cb()
-        # Get the list of all files and logs in each branch, as a JSON string
-        (cb) ->
-            exec_as_user
-                project_id : project_id
-                command    : '.git/salvus/gitlogs'
-                cb : (err, output) ->
-                    if err
-                        cb(err)
-                    else
-                        v = output.stdout.split('\n')
-                        if v.length != 3
-                            cb("Error getting list of files and logs: '#{path}', #{stderr}, v.length == #{v.length}")
-                        else
-                            logs  = v[0]
-                            files = v[1]
-                            cb()
-    ], (err) ->
-        if err
-            cb(err)
-        else
-            cb(false, {branches:branches, current_branch:current_branch, files:files, logs:logs})
-    )
-
 # Save the project
 events.save_project = (socket, mesg) ->
     path     = userpath(mesg.project_id)
@@ -593,7 +524,7 @@ events.save_project = (socket, mesg) ->
         # bundle containing these changes
         (cb) ->
             winston.debug("save_project -- bundle changes")
-            cmd = "diffbundler update #{path} #{bundles}"
+            cmd = "diffbundler create #{path} #{bundles}"
             winston.debug(cmd)
             child_process.exec(cmd, cb)
 
@@ -622,19 +553,6 @@ events.save_project = (socket, mesg) ->
                         task.n = n
                         tasks.push(task)
                         n += 1
-                    cb()
-
-        # Obtain the branches, logs, and file lists for the repo.
-        (cb) ->
-            winston.debug("save_project -- get branches, logs, and files")
-            get_files_and_logs mesg.project_id, (err, result) ->
-                winston.debug(err, result)
-                if err
-                    cb(err)
-                else
-                    response.files          = result.files
-                    response.logs           = result.logs
-                    response.current_branch = result.current_branch
                     cb()
 
         # Read and send the bundle files

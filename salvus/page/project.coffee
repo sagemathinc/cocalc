@@ -135,7 +135,6 @@ class ProjectPage
         @_sort_by_time = true
 
         @init_tabs()
-        @reload()
 
         @update_topbar()
 
@@ -143,7 +142,7 @@ class ProjectPage
         @create_consoles()
 
         # Set the project id
-        @container.find(".project-id").text(@project.project_id)
+        @container.find(".project-id").text(@project.project_id.slice(0,8))
 
         # Make it so editing the title and description of the project
         # sends a message to the hub.
@@ -239,12 +238,15 @@ class ProjectPage
 
     search: (query) =>
         @display_tab("project-search")
-        search_output = @container.find(".project-search-output")
+        search_output = @container.find(".project-search-output").empty()
         max_results = 300
         max_output  = 110*max_results  # just in case
-        cmd = "rgrep " + query + " *"
-        search_output.text(cmd).append("<hr>")
-        spinner = @container.find(".project-search-spinner").show().spin()
+        cmd = "find * -type f | grep -i " + query + "; rgrep -i " + query + " *"
+
+        @container.find(".project-search-output-command").text(cmd)
+
+        spinner = @container.find(".project-search-spinner")
+        timer = setTimeout(( () -> spinner.show().spin()), 300)
         that = @
         salvus_client.exec
             project_id : @project.project_id
@@ -252,25 +254,29 @@ class ProjectPage
             timeout    : 3
             max_output : max_output
             bash       : true
-            cb         : (err, output) ->
+            cb         : (err, output) =>
+                clearTimeout(timer)
                 spinner.spin(false).hide()
-                console.log(err, output)
                 if err
                     search_output.append($("<div>").text("Search failed -- #{err}"))
                     return
                 search_result = templates.find(".project-search-result")
-                console.log(search_result)
                 num_results = 0
                 results = output.stdout.split('\n')
                 if output.stdout.length >= max_output or results.length > max_results
                     # TODO: make nicer
                     search_output.append($("<div>NOTE: There were further results.  Try making your search more specific.</div><hr>"))
                 for line in results
-                    console.log(line)
                     i = line.indexOf(":")
-                    console.log("i = ", i)
-                    if i != -1
-                        num_results += 1
+                    num_results += 1
+                    if i == -1
+                        # the find part
+                        filename = line
+                        r = search_result.clone()
+                        r.find("a").text(filename).data(filename: filename).click () ->
+                            that.open_file($(@).data('filename'))
+                    else
+                        # the rgrep part
                         filename = line.slice(0,i)
                         context  = trunc(line.slice(i+1),80)
                         console.log(filename, context)
@@ -278,10 +284,10 @@ class ProjectPage
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: filename).click () ->
                             that.open_file($(@).data('filename'))
-                        search_output.append(r)
-                        if num_results >= max_results
-                            break
 
+                    search_output.append(r)
+                    if num_results >= max_results
+                        break
 
 
 
@@ -545,28 +551,6 @@ class ProjectPage
         top_navbar.set_button_label(@project.project_id, label)
         return @
 
-
-    reload: (cb) =>
-        salvus_client.get_project_meta
-            project_id : @project.project_id
-            cb  : (err, _meta) =>
-                if err
-                    alert_message(type:'error', message:err)
-                else
-                    files = from_json(_meta.files)
-                    logs = from_json(_meta.logs)
-                    branches = keys(files)
-                    branches.sort()
-                    @meta =
-                        files          : files
-                        logs           : logs
-                        current_branch : _meta.current_branch
-                        display_branch : _meta.current_branch  # start the same
-                        branches       : branches
-                    @update_file_list_tab()
-                    @update_commits_tab()
-                    @update_branches_tab()
-                cb?()
 
 
     # Return the string representation of the current path, as a

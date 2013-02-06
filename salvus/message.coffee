@@ -551,25 +551,6 @@ message
     current_branch : required
 
 
-# Request all meta information about a project (everything except the
-# actual project bundles)
-
-# client --> hub
-message
-    event      : 'get_project_meta'
-    id         : undefined
-    project_id : required
-
-# Message sent back to the client with the actual project metadata.
-# hub --> client
-message
-    event      : 'project_meta'
-    id         : required
-    project_id : required
-    files      : required
-    logs       : required
-    current_branch : required
-
 
 
 ######################################################################

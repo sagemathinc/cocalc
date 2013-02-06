@@ -724,21 +724,6 @@ class Client extends EventEmitter
             else
                 @push_to_client(message.file_written_to_project(id:mesg.id))
 
-    mesg_get_project_meta: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.get_meta (err, meta) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(
-                    message.project_meta
-                        id         : mesg.id
-                        project_id : mesg.project_id
-                        files      : meta.files
-                        logs       : meta.logs
-                        current_branch : meta.current_branch
-                )
-
     mesg_read_text_file_from_project: (mesg) =>
         project = new Project(mesg.project_id)
         project.read_file mesg.path, (err, content) =>
@@ -991,10 +976,6 @@ class Project
 
     _plus_one_host: (host, cb) ->
         database.score_compute_server(host:host, cb:cb, delta:+1)
-
-    # Get metadata about this project
-    get_meta: (cb) =>
-        database.get_project_meta(project_id:@project_id, cb:cb)
 
     _connect: (host, cb) ->
         if not host?
@@ -1374,7 +1355,6 @@ class Project
                 remaining_bundles = undefined
 
                 recv_bundles = (type, mesg) =>
-                    ## winston.debug("recv_bundles: #{type}")
                     switch type
                         when 'json'
                             if mesg.id == id
@@ -1404,13 +1384,6 @@ class Project
                                                 c()
                 socket.on 'mesg', recv_bundles
 
-            (c) =>
-                database.save_project_meta
-                    project_id     : @project_id
-                    files          : project_saved_mesg.files
-                    logs           : project_saved_mesg.logs
-                    current_branch : project_saved_mesg.current_branch
-                    cb             : c
         ], (err) =>
             @_remove_saving_lock()
             if socket? and recv_bundles?

@@ -1025,7 +1025,7 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'files', 'logs', 'current_branch', 'host']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'current_branch', 'host']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->
@@ -1118,36 +1118,6 @@ class exports.Salvus extends exports.Cassandra
                 number     : opts.number
             cb         : opts.cb
 
-    get_project_meta : (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-
-        @select_one
-            table      : 'projects'
-            columns    : ['files', 'logs', 'current_branch']
-            where      : { project_id:opts.project_id }
-            objectify  : true
-            cb         : opts.cb
-
-    save_project_meta : (opts) ->
-        opts = defaults opts,
-            project_id : required
-            files      : required   # string -- already in JSON format (extract explicitly by client)
-            logs       : required   # string -- already in JSON format (extract explicitly by client)
-            current_branch : required  # string
-            cb         : required
-
-        @update
-            table      : 'projects'
-            set        :
-                files    : opts.files
-                logs     : opts.logs
-                current_branch : opts.current_branch
-                last_edited : now()
-            where      :
-                project_id : opts.project_id
-            cb         : opts.cb
 
 
 array_of_strings_to_cql_list = (a) ->
