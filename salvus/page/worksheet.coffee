@@ -471,7 +471,7 @@ class Worksheet extends EventEmitter
                     project_id : @opts.project_id
                     path       : path
                     author     : require('account').account_settings.git_author()
-                    message    : "saved worksheet '#{@get_title()}'"
+                    message    : "Worksheet: '#{@get_title()}'"
                     cb         : cb
             (cb) =>
                 # TODO: save new git commit back to database -- but we will probably remove this later; too aggressive

@@ -121,6 +121,11 @@ class ProjectPage
             label : @project.project_id
             onclose : () => delete project_pages[@project.project_id]
 
+        # Initialize the close project button.
+        @container.find("a[href='#close-project']").click () =>
+            @close_project_dialog()
+            return false
+
         # Initialize the search form.
         @init_search_form()
 
@@ -212,7 +217,6 @@ class ProjectPage
 
         @container.find(".project-new-file").click(@new_file_dialog)
         @container.find(".project-save").click(() => @save_project(show_success_alert:true))
-        @container.find(".project-close").click(@close_project_dialog)
         @container.find(".project-meta").click @reload
 
     ########################################
@@ -466,13 +470,14 @@ class ProjectPage
     close_project_dialog: () =>
         salvus_client.close_project
             project_id : @project.project_id
-            cb         : (err, mesg) ->
+            cb         : (err, mesg) =>
                 if err
-                    alert_message(type:"error", message:"Connection error.")
+                    alert_message(type:"error", message:"Connection error closing project #{@project.title}.")
                 else if mesg.event == "error"
-                    alert_message(type:"error", message:mesg.error)
+                    alert_message(type:"error", message:mesg.error + " (closing project #{@project.title})")
                 else
-                    alert_message(type:"success", message: "Project closed.")
+                    alert_message(type:"success", message: "Project '#{@project.title}' closed.")
+                    top_navbar.remove_page(@project.project_id)
 
     new_file_dialog: () =>
         salvus_client.write_text_file_to_project

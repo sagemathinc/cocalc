@@ -875,7 +875,14 @@ class exports.Salvus extends exports.Cassandra
             project_id : required
             ttl        : required
             cb         : required
-        @uuid_value_store(name:'project_open_lock').set(uuid:opts.project_id, value:null, ttl:opts.ttl, cb:opts.cb)
+        @uuid_value_store(name:'project_open_lock').set(uuid:opts.project_id, value:true, ttl:opts.ttl, cb:opts.cb)
+
+    remove_project_opening_lock: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @uuid_value_store(name:'project_open_lock').delete(uuid:opts.project_id, cb:opts.cb)
+
 
     is_project_being_saved: (opts) ->
         opts = defaults opts,
@@ -888,7 +895,13 @@ class exports.Salvus extends exports.Cassandra
             project_id : required
             ttl        : required
             cb         : required
-        @uuid_value_store(name:'project_save_lock').set(uuid:opts.project_id, value:null, ttl:opts.ttl, cb:opts.cb)
+        @uuid_value_store(name:'project_save_lock').set(uuid:opts.project_id, value:true, ttl:opts.ttl, cb:opts.cb)
+
+    remove_project_saving_lock: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @uuid_value_store(name:'project_save_lock').delete(uuid:opts.project_id, cb:opts.cb)
 
     create_project: (opts) ->
         opts = defaults opts,

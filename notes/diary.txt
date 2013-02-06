@@ -9642,11 +9642,17 @@ x - sort
 
     [x] (0:05) bug when loging out -- doesn't close all open project tabs.
 
-    [ ] project: when open a project, open tabs for all open worksheets and xterms.
-
-    [ ] projects: creating new project must actually work
+    [ ] projects: fix busted "open project" implementation
 
     [ ] worksheet: saving worksheet must work even if no changes
+
+    [ ] file browser: escape to make output of command line go away.  maybe x too.
+
+
+    [ ] project: when open a project, open tabs for all currently open worksheets and xterms.
+
+    [ ] try to open a worksheet and console with net suddenly severed.  Get this displayed under console tab:
+        "Loading worksheet... Timeout after 15 seconds".   Also, the worksheet tab doesn't have any label at all.
 
     [ ] command line in browser: tab completion
 

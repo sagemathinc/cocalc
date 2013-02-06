@@ -417,7 +417,7 @@ events = {}
 
 # Open the project described by the given mesg, which was sent over
 # the socket.
-events.open_project = (socket, mesg) ->
+events.open_project = (socket, mesg)  ->
     # The first step in opening a project is to wait to receive all of
     # the bundle blobs.  We do the extract step below in _open_project2.
 

@@ -1040,20 +1040,26 @@ class Project
     # Returns the host that is currently hosting the project
     # (according to the database) or null if the project is not
     # currently on any host.
-    get_host: (cb) ->    # cb(err, host)
+    get_host: (cb) =>    # cb(err, host)
         database.get_project_host(project_id:@project_id, cb:cb)
 
-    _is_being_opened: (cb) ->    # cb(err, is_being_opened)
+    _is_being_opened: (cb) =>    # cb(err, is_being_opened)
         database.is_project_being_opened(project_id:@project_id, cb:cb)
 
-    _lock_for_opening: (ttl, cb) ->    # cb(err)
+    _lock_for_opening: (ttl, cb) =>    # cb(err)
         database.lock_project_for_opening(project_id:@project_id, ttl:ttl, cb:cb)
 
-    _is_being_saved: (cb) ->    # cb(err, is_being_opened)
+    _remove_opening_lock: (cb) =>
+        database.remove_project_opening_lock(project_id:@project_id, cb:cb)
+
+    _is_being_saved: (cb) =>    # cb(err, is_being_opened)
         database.is_project_being_saved(project_id:@project_id, cb:cb)
 
-    _lock_for_saving: (ttl, cb) ->    # cb(err)
+    _lock_for_saving: (ttl, cb) =>    # cb(err)
         database.lock_project_for_saving(project_id:@project_id, ttl:ttl, cb:cb)
+
+    _remove_saving_lock: (cb) =>
+        database.remove_project_saving_lock(project_id:@project_id, cb:cb)
 
     # Open the project (if necessary) and get a working socket connection to the project_server.
     socket: (cb) ->     # cb(err, socket)
@@ -1063,11 +1069,11 @@ class Project
             (c) =>
                 @open (err, _host) =>
                     if err
-                        winston.debug("project.socket -- error getting host from database -- #{err}")
+                        winston.debug("project.socket -- error opening project -- #{err}")
                         c(err)
                     else
                         host = _host
-                        winston.debug("project.socket -- choose host #{host}")
+                        winston.debug("project.socket -- deploy to host #{host}")
                         c()
             (c) =>
                 @_connect host, (err, _socket) =>
@@ -1116,7 +1122,25 @@ class Project
                     if err
                         c(true)  # failed -- don't try any further
                     else if is_being_opened
-                         c("Project #{@project_id} is currently being opened by another hub. Please try again later.")
+                        # In the rare case of two opens at the same
+                        # time, try again repeatedly, up to a total of
+                        # 10 seconds (after which user client will
+                        # have given up).
+                        total_time = 0
+                        delta = 200
+                        try_again = () =>
+                            @get_host (err, _host) ->
+                                if not err and _host?  # got it!
+                                    host = _host
+                                    c(true)
+                                else
+                                    delta += delta
+                                    if total_time + delta <= 10000
+                                        setTimeout(try_again, delta)
+                                    else
+                                        # give up.
+                                        c("Project #{@project_id} is currently being opened by another hub. Please try again in a few seconds. (#{err})")
+                        setTimeout(try_again, delta)
                     else
                         # Not open, not being opened, let's get on it!
                         # The 15 below is a timeout in seconds, after which our lock self-destructs.
@@ -1125,8 +1149,9 @@ class Project
             # We choose a project server host.
             (c) =>
                 winston.debug("open project -- choose a host")
-                @_choose_new_host (err, _host) ->
+                @_choose_new_host (err, _host) =>
                     if err
+                        @_remove_opening_lock()
                         c(err)
                     else
                         host = _host
@@ -1136,6 +1161,7 @@ class Project
             (c) =>
                 winston.debug("open project -- open on that host (='#{host}')")
                 @_open_on_host host, (err) =>
+                    @_remove_opening_lock()
                     if err
                         if host == 'localhost' or host == '127.0.0.1'
                             # debugging mode -- just give up instantly.
@@ -1296,7 +1322,7 @@ class Project
             # Determine which project_server is hosting this project.
             # If none, then there is nothing further to do.
             (c) =>
-                database.get_project_host project_id:@project_id, cb:(err, _host) ->
+                database.get_project_host project_id:@project_id, cb:(err, _host) =>
                     if err
                         c(err)
                     else
@@ -1385,7 +1411,8 @@ class Project
                     logs           : project_saved_mesg.logs
                     current_branch : project_saved_mesg.current_branch
                     cb             : c
-        ], (err) ->
+        ], (err) =>
+            @_remove_saving_lock()
             if socket? and recv_bundles?
                 socket.removeListener('mesg', recv_bundles)
             if not_open
@@ -1460,7 +1487,9 @@ class Project
                     host       : ""
                     cb         : c
 
-        ], (err) ->
+        ], (err) =>
+            @_remove_opening_lock()
+            @_remove_saving_lock()
             if err == 'ok'
                 cb()
             else
@@ -2629,8 +2658,6 @@ save_blobs_to_project = (opts) ->
         project_id : required
         blob_ids   : required
         cb         : required
-
-    console.log("SAVING ***all*** these blobs to project: ", to_json(opts))
 
     # ANTI-DOS measure -- don't allow more than 1000 blobs to be moved at once
     if opts.blob_ids.length > 1000
