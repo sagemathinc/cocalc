@@ -1025,7 +1025,7 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'files', 'logs', 'current_branch']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'files', 'logs', 'current_branch', 'host']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->

@@ -17,6 +17,10 @@
     background-color:lightyellow;
 }
 
+.projects-title {
+    font-weight: bold;
+}
+
 .projects-last_edited, .projects-description {
     color: #666;
 }
