@@ -34,7 +34,10 @@ process.on 'message', (opts, socket) ->
         cwd  : opts.cwd
         env  : env
 
-    setrlimit 'cpu',    {soft:opts.cputime,  hard:opts.cputime}
+    if opts.cputime
+        # If cputime is not 0, limit it for setrlimit:
+        setrlimit 'cpu',    {soft:opts.cputime,  hard:opts.cputime}
+
     setrlimit 'as',     {soft:opts.vmem*1000000,     hard:opts.vmem*1000000}
     setrlimit 'nofile', {soft:opts.numfiles, hard:opts.numfiles}
 

@@ -67,7 +67,7 @@ getuid = (user, cb) ->
 
 start_session = (socket, mesg) ->
     if not mesg.limits? or not mesg.limits.walltime?
-        socket.write_mesg('json', message.error(id:mesg.id, error:"mesg.limits.walltime *must* be defined"))
+        socket.write_mesg('json', message.error(id:mesg.id, error:"mesg.limits.walltime *must* be defined (though 0 is allowed for unlimited)"))
         return
 
     winston.info "start_session #{to_json(mesg)}"
@@ -122,8 +122,9 @@ start_session = (socket, mesg) ->
             # Give the socket to the child, along with the options.
             child.send(opts, socket)
 
-            # No session lives forever -- set a timer to kill the spawned child
-            setTimeout((() -> child.kill('SIGKILL')), mesg.limits.walltime*1000)
+            # Set a timer to kill the spawned child
+            if mesg.limits.walltime
+                setTimeout((() -> child.kill('SIGKILL')), mesg.limits.walltime*1000)
             winston.info "PARENT: forked off child to handle it"
 
 

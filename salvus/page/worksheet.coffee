@@ -120,8 +120,6 @@ class Worksheet extends EventEmitter
         @_new_blobs_helper(content, v)
         return v
 
-    worksheet_is_open: () => @element.closest(document.documentElement).length > 0
-
     _init_autosave: () =>
         # start autosaving, as long as a filename is set
         input = @element.find(".salvus-worksheet-filename")
@@ -443,6 +441,9 @@ class Worksheet extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    worksheet_is_open: () =>
+        return @element.closest(document.documentElement).length > 0
 
     # Return whatever filename the user has currently entered in the filename box.
     filename: () =>

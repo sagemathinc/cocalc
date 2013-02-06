@@ -2697,11 +2697,8 @@ enable_ping_timer = (opts) ->
     check_for_timeout = () ->
         d = ((new Date()) - opts.session.last_ping_time )/1000
         if  d > opts.timeout
-            winston.debug("killing!")
             clearInterval(timer)
             opts.session.kill()
-        else
-            winston.debug("nursing...")
 
     timer = setInterval(check_for_timeout, opts.timeout*1000)
 

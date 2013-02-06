@@ -120,6 +120,9 @@ class Console extends EventEmitter
         # Initialize buttons
         @_init_buttons()
 
+        # Initialize pinging the server to keep the console alive
+        @_init_session_ping()
+
         # delete scroll buttons except on mobile
         if not IS_MOBILE
             @element.find(".salvus-console-up").hide()
@@ -159,6 +162,9 @@ class Console extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
+    _init_session_ping: () =>
+        @opts.session.ping(@console_is_open)
+
     _init_codemirror: () ->
         that = @
         @terminal.custom_renderer = codemirror_renderer
@@ -278,6 +284,8 @@ class Console extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+    console_is_open: () =>  # not chainable
+        return @element.closest(document.documentElement).length > 0
 
     blur : () =>
         @is_focused = false

@@ -9634,7 +9634,7 @@ x - sort
          [x] client -- put a long ping in for a sage session that is sent periodically when a worksheet tab is *open*
          [x] hub -- kill session that doesn't get pinged
 
-    [ ] console: implement session stuff as above.  right now consoles are dead, since limit=0 ==> never work!
+    [x] (0:13) console: implement session ping kill stuff
 
     [ ] sage_server: killing hub seem to make python process go 100%!
 
