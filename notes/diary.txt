@@ -9636,15 +9636,9 @@ x - sort
 
     [x] (0:13) console: implement session ping kill stuff
 
-    [x] (0:14) sage_server: killing hub makes python process go 100%!
+    [x] (0:15) sage_server: killing hub makes python process go 100%!
 
-    [ ] cell: moving into a section (using ctrl-arrow) from below skips over bottom one in the section
-    [ ] cell: no way to move before top section
-    [ ] cell: no way to insert before top section
-
-    [ ] ? project: little worksheet/console buttons in the top bar too... ?
-    [ ] ? worksheet: put label back next to filename input ?
-    [ ] ? worksheet: a lock to make it hard to close?
+    [x] (0:02) console: get rid of countdown session timer
 
     [ ] project: when open a project, open tabs for all open worksheets and xterms.
 
@@ -9664,6 +9658,14 @@ x - sort
     [ ] file browser: show hidden files
     [ ] file browser: hide file extensions and when showing files, make the extension (and final dot) be in a lighter shade.
     [ ] file browser: new file or directory -- implement
+
+    [ ] cell: moving into a section (using ctrl-arrow) from below skips over bottom one in the section
+    [ ] cell: no way to move before top section
+    [ ] cell: no way to insert before top section
+
+    [ ] ? project: little worksheet/console buttons in the top bar too... ?
+    [ ] ? worksheet: put label back next to filename input ?
+    [ ] ? worksheet: a lock to make it hard to close?
 
     [ ] file editor: save on "clicking the x"
     [ ] file editor: autosave with same interval as for worksheets

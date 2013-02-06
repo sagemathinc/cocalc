@@ -150,7 +150,8 @@ class Console extends EventEmitter
         #########################
 
         # Start the countdown timer, which shows how long this session will last.
-        @_start_session_timer(opts.session.limits.walltime)
+        if opts.session.limits.walltime
+            @_start_session_timer(opts.session.limits.walltime)
 
         # Set the entire console to be draggable.
         if @opts.draggable
