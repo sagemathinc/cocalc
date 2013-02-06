@@ -282,15 +282,10 @@ sign_out = () ->
             if error
                 alert_message(type:"error", message:error)
             else
-                set_account_tab_label(false)
-                # Change the view in the account page to the "sign in" view.
-                show_page("account-sign_in")
-                #top_navbar.hide_page_button("projects")
-                top_navbar.hide_page_button("worksheet1")
-                #top_navbar.hide_page_button("worksheet2")
-                # TODO: have to remove a bunch of other pages
-
-                top_navbar.switch_to_page("account")
+                # Force a refresh, since otherwise there could be data
+                # left in the DOM, which could lead to a vulnerability
+                # or blead into the next login somehow.
+                window.location.reload(false)
 
 ################################################
 # Account settings

@@ -9640,13 +9640,13 @@ x - sort
 
     [x] (0:02) console: get rid of countdown session timer
 
+    [x] (0:05) bug when loging out -- doesn't close all open project tabs.
+
     [ ] project: when open a project, open tabs for all open worksheets and xterms.
 
-    [ ] hub: somewhere (?) put in an interval timer
-
     [ ] projects: creating new project must actually work
+
     [ ] worksheet: saving worksheet must work even if no changes
-    [ ] bug when loging out -- doesn't close all open project tabs.
 
     [ ] command line in browser: tab completion
 
