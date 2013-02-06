@@ -9642,9 +9642,16 @@ x - sort
 
     [x] (0:05) bug when loging out -- doesn't close all open project tabs.
 
-    [ ] projects: fix busted "open project" implementation
+    [x] (2:18) projects: fix busted "open project" implementation
 
-    [ ] worksheet: saving worksheet must work even if no changes
+    [x] (0:04) clean up a bunch of spurious users...
+
+    [x] (0:03) worksheet: saving worksheet must work even if no changes
+
+    [ ] file browser: only show spinner after waiting a given amount of time.
+
+    [ ] projects: show whether or not each project is open
+
 
     [ ] file browser: escape to make output of command line go away.  maybe x too.
 
@@ -9708,7 +9715,6 @@ x - sort
     [ ] commits: need to be able to browse, revert to.
     [ ] files/worksheets: browse through all past versions in a branch.
 
-    [ ] file browser: only show spinner after waiting a given amount of time.
     [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
     [ ] file browser: click to edit a file with any of these characters must work:'<>|,;$&\"''"
 

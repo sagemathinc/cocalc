@@ -943,6 +943,9 @@ class exports.Connection extends EventEmitter
                             if output.stdout.indexOf("Changes not staged for commit") != -1
                                 # OK
                                 cb()
+                            else if output.stdout.indexOf("nothing to commit (working directory clean)") != -1
+                                # OK
+                                cb()
                             else
                                 cb(output.stdout + output.stderr)
                         else
