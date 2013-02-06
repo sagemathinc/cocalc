@@ -9663,7 +9663,7 @@ x - sort
 
     [x] (0:29) ensure no use of root exec anywhere in project_server.coffee
 
-    [ ] in search, if there is exactly one file then grep behaves differently, confusing my script a lot!  worry about these special cases.
+    [x] (0:05) in search, if there is exactly one file then grep behaves differently, confusing my script a lot!  worry about these special cases.
 
     [ ] for commits: pass in information about that person doing the commit on the command line
     [ ] finish git_config (get rid of the stub with my name/email in project_server)

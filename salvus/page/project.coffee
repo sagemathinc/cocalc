@@ -241,7 +241,7 @@ class ProjectPage
         search_output = @container.find(".project-search-output").empty()
         max_results = 300
         max_output  = 110*max_results  # just in case
-        cmd = "find * -type f | grep -i " + query + "; rgrep -i " + query + " *"
+        cmd = "find * -type f | grep -i " + query + "; rgrep -H -i " + query + " *"
 
         @container.find(".project-search-output-command").text(cmd)
 
@@ -279,7 +279,6 @@ class ProjectPage
                         # the rgrep part
                         filename = line.slice(0,i)
                         context  = trunc(line.slice(i+1),80)
-                        console.log(filename, context)
                         r = search_result.clone()
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: filename).click () ->
