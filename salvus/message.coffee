@@ -530,7 +530,7 @@ message
     project_id             : required    # uuid of a project
     starting_bundle_number : undefined
     commit_mesg            : undefined   # If given, do a commit first
-    gitconfig              : undefined   # needed by project_server
+    author                 : undefined   # needed by project_server
     add_all                : false       # if true and *all* files before saving.
 
 # The project_saved message is sent to a hub by a project_server when

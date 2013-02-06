@@ -198,3 +198,6 @@ exports.trunc = (s, max_length) ->
         return s.slice(0,max_length-3) + "..."
     else
         return s
+
+exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
+

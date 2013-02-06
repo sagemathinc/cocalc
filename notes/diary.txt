@@ -9654,10 +9654,19 @@ x - sort
 
     [x] (1:00) search: search for filenames first, then content; get rid of "rgrep", but maybe say something about it in results; make it use "-i" by default
 
-    [x] (0:20) projects: do not send/store/etc. the entire commit history in the projects table; get rid of that.
-        only store the last commit and branch.  This is a huge badness for scalability as is.
+    [x] (0:20) projects: do not send/store/etc. the entire commit history in the projects table; get rid of that. only store the last commit and branch.  This is a huge badness for scalability as is.
 
-    [ ] Switch to the new diffbundler and get it to work with above changes.
+    [x] (2:00) Switch to the new diffbundler and get it to work with above changes. -- extension changed, etc., causing much confusion.
+
+      [x] on project creation, make a default gitconfig that describes the *project* (and its owner at some point)
+      [ ] project creation working; get rid of not cleaning up
+
+      [ ] for commits: pass in information about that person doing the commit on the command line
+
+      [ ] finish git_config (get rid of the stub with my name/email in project_server)
+      [ ] make sure code uses git_config option to exec_as_user when needed
+      [ ] ensure no use of root exec anywhere in project_server.coffee
+      [ ] test with >= 11 diff bundles
 
     [ ] projects: namespace it, i.e., change all "projects-" to "salvus-projects-", etc. for HTML/CSS
 

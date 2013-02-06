@@ -1054,7 +1054,7 @@ class Project
                         c(err)
                     else
                         host = _host
-                        winston.debug("project.socket -- deploy to host #{host}")
+                        winston.debug("project.socket -- deploy to host '#{host}'")
                         c()
             (c) =>
                 @_connect host, (err, _socket) =>
@@ -1146,7 +1146,9 @@ class Project
                     if err
                         if host == 'localhost' or host == '127.0.0.1'
                             # debugging mode -- just give up instantly.
-                            c(true)
+                            winston.debug("_open_on_host -- err opening on localhost '#{err}'")
+                            host = undefined  # so error messages will propagate below.
+                            c(err)
                             return
 
                         # Downvote this host, and try again.
@@ -1154,6 +1156,7 @@ class Project
                             if err
                                 # This is serious -- if we can't even connect to the database
                                 # to flag a host as down, then there is no point in going on.
+                                host = undefined  # so error messages will propagate below.
                                 c(true)
                             else
                                 # Try again.  This will not lead to infinite recursion since each
@@ -1161,6 +1164,7 @@ class Project
                                 # in the database, and eventually we'll run out of hosts.
                                 had_to_recurse = true
                                 @open(cb)
+                                host = undefined  # so error messages will propagate below.
                                 c()
                     else
                         # Finally, got it!
@@ -1172,7 +1176,7 @@ class Project
                 if host?  # if host got defined then done
                     cb(false, host)
                 else
-                    cb(err, host)
+                    cb(err)
         )
 
     # This is called by 'open' once we determine that the project is
@@ -1259,7 +1263,7 @@ class Project
 
             # Save where project is running to the database
             (c) =>
-                winston.debug("_open_on_host -- save where project running to database")
+                winston.debug("_open_on_host -- save where (='#{host}') project running to database")
                 database.set_project_host(project_id:@project_id, host:host, cb:c)
 
         ], cb)
@@ -1268,7 +1272,7 @@ class Project
     # zero (!) bundles to the project_bundles table.
     save: (opts) -> # cb(err) -- indicates when done
         opts = defaults opts,
-            account_id : undefined  # required only if commit_all is true
+            account_id : undefined  # required only if commit_mesg is given
             commit_mesg: undefined  # if defined will commit first before saving back to database.
             add_all    : false      # if true add everything we can to the repo before commiting.
             cb         : undefined
@@ -1340,6 +1344,11 @@ class Project
                     else
                         socket = s
                         c()
+
+            (c) =>
+                # TODO
+                save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
+                c()
 
             # Send message to project server requesting that it save
             # the the project and send back to us any bundle(s) that

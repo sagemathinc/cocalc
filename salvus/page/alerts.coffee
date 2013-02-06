@@ -28,7 +28,7 @@ exports.alert_message = (opts={}) ->
 
     if opts.block
         c.addClass('alert-block')
-    c.find(".message").html(opts.message)
+    c.find(".message").text(opts.message)
     c.prependTo("#alert-messages")
     c.click(() -> $(this).remove())
 

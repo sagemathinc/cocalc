@@ -71,6 +71,7 @@ has_bad_shell_chars = (s) ->
 
 # Script for computing git-enhanced ls of a path
 gitls   = fs.readFileSync('scripts/git-ls')
+diffbundler   = fs.readFileSync('scripts/diffbundler')
 
 # Verify that path really describes something that would be a
 # directory under userpath, rather than a shell injection attack
@@ -208,15 +209,25 @@ extract_bundles = (project_id, bundles, cb) ->
             winston.debug("create the bundle path")
             fs.mkdir("#{repo_path}", 0o700, c)
         (c) ->
+            if misc.len(bundles) == 0
+                winston.debug("create the initial default gitconfig")
+                fs.writeFile("#{repo_path}/.gitconfig", "[user]\n    name = Project #{project_id}\n    email = salvus@salv.us\n", c)  # TODO -- change to project owner
+            else
+                c()
+        (c) ->
             fs.mkdir("#{repo_path}/.git", 0o700, c)
-
         (c) ->
             fs.mkdir("#{repo_path}/.git/salvus", 0o700, c)
         (c) ->
             winston.debug("Write script to get listing")
-            fs.writeFile("#{repo_path}/.git/salvus/git-ls", gitls ,c)
+            fs.writeFile("#{repo_path}/.git/salvus/git-ls", gitls, c)
         (c) ->
             fs.chmod("#{repo_path}/.git/salvus/git-ls", 0o777, c)
+        (c) ->
+            winston.debug("Write script to get diff bundles")
+            fs.writeFile("#{repo_path}/.git/salvus/diffbundler", diffbundler, c)
+        (c) ->
+            fs.chmod("#{repo_path}/.git/salvus/diffbundler", 0o777, c)
     ]
 
     if misc.len(bundles) > 0
@@ -226,27 +237,13 @@ extract_bundles = (project_id, bundles, cb) ->
     n = 0
     for _, content of bundles
         task = (c) ->
-            filename = "#{bundle_path}/#{arguments.callee.n}.bundle"
+            filename = "#{bundle_path}/#{arguments.callee.n}.diffbundle"
             winston.debug("Writing bundle #{filename} out to disk")
             fs.writeFile(filename, arguments.callee.content, c)
         task.n = n
         task.content = content
         n += 1
         tasks.push(task)
-
-    # Now the bundle files are all in place.  Make the repository.
-    tasks.push((c) ->
-        if n == 0
-            # There were no bundles at all, so we make a new empty git repo.
-            cmd = "cd #{repo_path} && git init"
-            winston.debug(cmd)
-            child_process.exec(cmd, c)
-        else
-            # There were bundles -- extract them.
-            cmd = "diffbundler extract #{bundle_path} #{repo_path}"
-            winston.debug(cmd)
-            child_process.exec(cmd, c)
-    )
 
     # At this point everything is owned by root (the project_server),
     # so we change the repo so all files are owned by the given user,
@@ -256,6 +253,40 @@ extract_bundles = (project_id, bundles, cb) ->
     tasks.push((c) ->
         child_process.exec("chown -R #{uname}. #{repo_path} && chmod u+rw,og-rwx -R #{repo_path}", c)
     )
+
+    # Now the bundle files are all in place.  Make the repository.
+    tasks.push((c) ->
+        if n == 0
+            # There were no bundles at all, so we make a new empty git repo and add a file
+            async.series([
+                (cb) ->
+                    exec_as_user
+                        project_id : project_id
+                        command    : 'git'
+                        args       : ['init']
+                        cb         : cb
+                (cb) ->
+                    exec_as_user
+                        project_id : project_id
+                        command   : 'touch'
+                        args       : ['.gitignore']
+                        cb         : cb
+                (cb) ->
+                    exec_as_user
+                        project_id : project_id
+                        command   : 'git'
+                        args       : ['add', '.gitignore']
+                        cb         : cb
+            ], c)
+        else
+            # There were bundles -- extract them.
+            exec_as_user
+                project_id : project_id
+                command    : '.git/salvus/diffbundler'
+                args       : ['extract', bundle_path, repo_path]
+                cb         : c
+    )
+
 
     # Do all of the tasks laid out above.
     console.log("do #{tasks.length} tasks")
@@ -305,6 +336,8 @@ exec_as_user = (opts) ->
         bash       : false       # if true, ignore args and evaluate command as a bash command
         cb         : required
 
+    winston.debug(misc.to_json(opts))
+
     user = username(opts.project_id)
     home = userpath(opts.project_id)
 
@@ -326,7 +359,9 @@ exec_as_user = (opts) ->
     stdout = ''
     stderr = ''
     exit_code = undefined
-    winston.debug("opts.max_output = ", opts.max_output)
+
+    env = {HOME:home}
+
     async.series([
         (c) ->
             if opts.bash
@@ -350,20 +385,18 @@ exec_as_user = (opts) ->
                 if err
                     c(err)
                 else
-                    winston.debug("uid = #{id}")
                     uid = id
                     c()
         # Run the command with given args
         (c) ->
-            winston.debug("opts = #{misc.to_json({cwd:opts.path, uid:uid, gid:uid, env:{HOME:home}})}")
+            winston.debug("env = #{misc.to_json(env)}")
             r = child_process.spawn(opts.command, opts.args,
-                   {cwd:opts.path, uid:uid, gid:uid, env:{HOME:home}})
+                   {cwd:opts.path, uid:uid, gid:uid, env:env})
             stdout = ''
             r.stdout.on 'data', (data) ->
                 data = data.toString()
                 if opts.max_output?
                     if stdout.length < opts.max_output
-                        winston.debug(stdout.length, opts.max_output)
                         stdout += data.slice(0,opts.max_output - stdout.length)
                 else
                     stdout += data
@@ -394,7 +427,9 @@ exec_as_user = (opts) ->
                         c("killed command '#{opts.command}' (args=#{misc.to_json(opts.args)}) since it exceeded the timeout of #{opts.timeout}")
                 setTimeout(f, opts.timeout*1000)
     ], (err) ->
+        winston.debug("Result of command: stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
         opts.cb(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
+        # Do not litter:
         if opts.bash
             fs.unlink(tmpfilename)
     )
@@ -416,7 +451,6 @@ events.open_project = (socket, mesg)  ->
     mesg.bundles = misc.pairs_to_obj( [u, ""] for u in mesg.bundle_uuids )
     winston.debug(misc.to_json(mesg.bundles))
     n = misc.len(mesg.bundles)
-    winston.debug
     if n == 0
         winston.debug("open_project -- 0 bundles so skipping waiting")
         _open_project2(socket, mesg)
@@ -460,36 +494,45 @@ _open_project2 = (socket, mesg) ->
 # Commit all changes to files in the project, plus (if add_all is
 # true) add all new files that are not .gitignore'd to the current
 # branch, whatever it may be.
+#
 commit = (opts) ->
     opts = defaults opts,
-        user        : required
-        path        : required
+        project_id  : required
+        author      : required
         commit_mesg : required
-        gitconfig   : required
         cb          : required
         add_all     : false
     if opts.commit_mesg == ''
         opts.commit_mesg = '(no message)'
-    commit_file = "#{opts.path}/.git/salvus/COMMIT_MESG"
-    config_file = "#{opts.path}/.gitconfig"
+
     async.series([
         (cb) ->
-            fs.writeFile(config_file, opts.gitconfig, cb)
+            if not opts.add_all
+                cb()
+            exec_as_user
+                project_id : opts.project_id
+                command    : 'git'
+                args       : ['add', '.']
+                cb         : (err, output) ->
+                    if err
+                        cb(err + output?.stderr)
+                    else if output.exit_code
+                        cb(output.stderr)
+                    else
+                        cb()
         (cb) ->
-            fs.writeFile(commit_file, opts.commit_mesg, cb)
-        (cb) ->
-            #TODO -- change to exec as uid directly.
-            if opts.add_all
-                cmd = "su - #{opts.user} -c 'cd && git add . && git commit -a -F #{commit_file}'"
-            else
-                cmd = "su - #{opts.user} -c 'cd && git commit -a -F #{commit_file}'"
-            winston.debug(cmd)
-            child_process.exec cmd, (err, stdout, stderr) ->
-                winston.debug(err, stdout, stderr)
-                if err
-                    cb(stdout + stderr + " ") # " " just in case both stdout and stderr empty
-                else
-                    cb()
+            exec_as_user
+                project_id : opts.project_id
+                command    : 'git'
+                args       : ['commit', '-a', '-m', opts.commit_mesg, "--author", opts.author]
+                cb         : (err, output) ->
+                    console.log(err, misc.to_json(output))
+                    if err
+                        cb(err + output?.stderr)
+                    else if output.exit_code
+                        cb(output.stderr)
+                    else
+                        cb()
 
     ], opts.cb)
 
@@ -511,10 +554,9 @@ events.save_project = (socket, mesg) ->
         (cb) ->
             if mesg.commit_mesg?
                 commit
-                    user        : username(mesg.project_id)
-                    path        : path
+                    project_id  : mesg.project_id
+                    author      : mesg.author
                     commit_mesg : mesg.commit_mesg
-                    gitconfig   : mesg.gitconfig
                     add_all     : mesg.add_all
                     cb          : cb
             else
@@ -526,7 +568,13 @@ events.save_project = (socket, mesg) ->
             winston.debug("save_project -- bundle changes")
             cmd = "diffbundler create #{path} #{bundles}"
             winston.debug(cmd)
-            child_process.exec(cmd, cb)
+            exec_as_user
+                project_id : mesg.project_id
+                command    : '.git/salvus/diffbundler'
+                args       : ['create', path, bundles]
+                cb         : (err, output) ->
+                    winston.debug(misc.to_json(output))
+                    cb(err)
 
         # Determine which bundle files to send.  We may send some even
         # if none were created just now, due to the database not being
@@ -540,11 +588,12 @@ events.save_project = (socket, mesg) ->
                     cb(err)
                 else
                     n = mesg.starting_bundle_number
-                    while "#{n}.bundle" in files
+                    while "#{n}.diffbundle" in files
+                        winston.debug("Sending '#{n}.diffbundle'")
                         id = uuid.v4()
                         response.bundle_uuids[id] = n
                         task = (c) ->
-                            fs.readFile "#{bundles}/#{arguments.callee.n}.bundle", (err, data) ->
+                            fs.readFile "#{bundles}/#{arguments.callee.n}.diffbundle", (err, data) ->
                                 if err
                                     c(err)
                                 else

@@ -313,7 +313,7 @@ class AccountSettings
         )
 
     git_author: () =>
-        return "#{@settings.first_name} #{@settings.last_name} <#{@settings.email_address}>"
+        return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
 
     load_from_view: () ->
         if not @settings? or @settings == "error"
