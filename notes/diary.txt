@@ -9636,7 +9636,11 @@ x - sort
 
     [x] (0:13) console: implement session ping kill stuff
 
-    [ ] sage_server: killing hub seem to make python process go 100%!
+    [x] (0:14) sage_server: killing hub makes python process go 100%!
+
+    [ ] cell: moving into a section (using ctrl-arrow) from below skips over bottom one in the section
+    [ ] cell: no way to move before top section
+    [ ] cell: no way to insert before top section
 
     [ ] ? project: little worksheet/console buttons in the top bar too... ?
     [ ] ? worksheet: put label back next to filename input ?
