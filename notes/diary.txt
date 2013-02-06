@@ -9665,7 +9665,10 @@ x - sort
 
     [x] (0:05) in search, if there is exactly one file then grep behaves differently, confusing my script a lot!  worry about these special cases.
 
+    [x] (0:08) worksheet/file: saving when there were no changes
+
     [ ] for commits: pass in information about that person doing the commit on the command line
+
     [ ] finish git_config (get rid of the stub with my name/email in project_server)
     [ ] make sure code uses git_config option to exec_as_user when needed
     [ ] test with >= 11 diff bundles

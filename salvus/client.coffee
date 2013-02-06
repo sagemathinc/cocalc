@@ -905,7 +905,26 @@ class exports.Connection extends EventEmitter
         if opts.message == "undefined"
             opts.message = "Saved '#{opts.path}'"
 
+        nothing_to_do = false
         async.series([
+            (cb) =>
+                # Check to see if there are uncommited changes
+                @exec
+                    project_id : opts.project_id
+                    command    : 'git'
+                    args       : ['status', opts.path]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(output.stdout + output.stderr)
+                        else if output.stdout.indexOf('nothing to commit') != -1
+                            # DONE -- nothing further to do
+                            nothing_to_do = true
+                            cb(true)
+                        else
+                            # Add and commit as usual.
+                            cb()
             (cb) =>
                 # We add the changes to the worksheet to the repo.
                 @exec
@@ -929,18 +948,11 @@ class exports.Connection extends EventEmitter
                         if err
                             cb(err)
                         else if output.exit_code
-                            if output.stdout.indexOf("Changes not staged for commit") != -1
-                                # OK
-                                cb()
-                            else if output.stdout.indexOf("nothing to commit (working directory clean)") != -1
-                                # OK
-                                cb()
-                            else
-                                cb(output.stdout + output.stderr)
+                            cb(err + " -- " + misc.to_json(output))
                         else
                             cb()
         ], (err) =>
-            if err
+            if err and not nothing_to_do
                 opts.cb("Error saving '#{opts.path}' to the repository -- #{err}")
             else
                 opts.cb() # good
