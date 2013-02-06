@@ -9658,15 +9658,17 @@ x - sort
 
     [x] (2:00) Switch to the new diffbundler and get it to work with above changes. -- extension changed, etc., causing much confusion.
 
-      [x] on project creation, make a default gitconfig that describes the *project* (and its owner at some point)
-      [ ] project creation working; get rid of not cleaning up
+    [x] on project creation, make a default gitconfig that describes the *project* (and its owner at some point)
+    [x] project creation working; get rid of not cleaning up
 
-      [ ] for commits: pass in information about that person doing the commit on the command line
+    [x] (0:29) ensure no use of root exec anywhere in project_server.coffee
 
-      [ ] finish git_config (get rid of the stub with my name/email in project_server)
-      [ ] make sure code uses git_config option to exec_as_user when needed
-      [ ] ensure no use of root exec anywhere in project_server.coffee
-      [ ] test with >= 11 diff bundles
+    [ ] in search, if there is exactly one file then grep behaves differently, confusing my script a lot!  worry about these special cases.
+
+    [ ] for commits: pass in information about that person doing the commit on the command line
+    [ ] finish git_config (get rid of the stub with my name/email in project_server)
+    [ ] make sure code uses git_config option to exec_as_user when needed
+    [ ] test with >= 11 diff bundles
 
     [ ] projects: namespace it, i.e., change all "projects-" to "salvus-projects-", etc. for HTML/CSS
 

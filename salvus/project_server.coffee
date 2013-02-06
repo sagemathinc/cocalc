@@ -48,8 +48,9 @@ username = (project_id) ->
     if '..' in project_id or project_id.length != 36
         # a sanity check -- this should never ever be allowed to happen, ever.
         throw "invalid project id #{project_id}"
-    #return project_id.replace(/-/g,'')   # see also console_server.coffee
-    return project_id.slice(0,8)
+    # Return a for-sure safe username
+    return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')
+
 
 # The path to the home directory of the user associated with
 # the given project_id.
@@ -127,10 +128,8 @@ create_user = (project_id, quota, cb) ->
     async.series([
         # Create the user
         (cb) ->
-            cmd = "useradd -U #{uname}"
-            winston.debug(cmd)
-            child_process.exec cmd, (err, stdout, stderr) ->
-                cb(err)
+            winston.debug("useradd -U #{uname}")
+            child_process.execFile('useradd', ['-U', uname], {}, cb)
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
             try
@@ -147,9 +146,13 @@ create_user = (project_id, quota, cb) ->
                 cb("Invalid quota specification: #{quota}")
             else
                 # Everything is good, let's do it!
-                cmd = "setquota -u #{uname} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a"
-                winston.debug(cmd)
-                child_process.exec(cmd, cb)
+                winston.debug("setquota -u #{uname} #{disk_soft} #{disk_hard} #{inode_soft} #{inode_hard} -a && quotaon -a")
+                async.series([
+                    (c) ->
+                        child_process.execFile("setquota", ['-u', uname, disk_soft, disk_hard, inode_soft, inode_hard, '-a'], {}, c)
+                    (c) ->
+                        child_process.execFile("quotaon", ['-a'], {}, c)
+                ], cb)
     ], (err) ->
         if err
             # We attempted to make the user, but something went wrong along the way, so we better clean up!
@@ -170,20 +173,20 @@ delete_user_8 = (uname, cb) ->
     async.series([
         # Delete the UNIX user and their files.
         (cb) ->
-            child_process.exec("deluser --remove-home #{uname}", cb)
+            child_process.execFile("deluser", ['--remove-home', uname], {}, cb)
         # Delete the UNIX group (same as the user -- this is Linux).
         (cb) ->
-            child_process.exec("delgroup #{uname}", cb)
+            child_process.execFile("delgroup", [uname], {}, cb)
     ], cb)
 
 # Kill all processes running as a given user.
 killall_user = (uname, cb) ->
-    cmd = "killall -s 9 -u #{uname}"
-    winston.debug(cmd)
-    child_process.exec cmd, (err, stdout, stderr) ->
+    winston.debug("killall -s 9 -u #{uname}")
+    child_process.execFile("killall", ['-s', 9, '-u', uname], {}, () ->
         # We ignore the return error code, since even if there are no
         # processes at all, we get a return code of 1.
         cb()
+    )
 
 # Given an object called 'bundles' containing (in order) the possibly
 # empty collection of bundles that define a git repo, extract each
@@ -251,7 +254,11 @@ extract_bundles = (project_id, bundles, cb) ->
     # make them not visible to any other user that happens to have
     # a project running on this particular virtual machine.
     tasks.push((c) ->
-        child_process.exec("chown -R #{uname}. #{repo_path} && chmod u+rw,og-rwx -R #{repo_path}", c)
+        child_process.execFile("chown", ['-R', uname, repo_path], {}, c)
+    )
+
+    tasks.push((c) ->
+        child_process.execFile("chmod", ['u+rw,og-rwx', '-R', repo_path], {}, c)
     )
 
     # Now the bundle files are all in place.  Make the repository.
@@ -312,7 +319,7 @@ getuid = (user, cb) ->
     if id?
         cb(false, id)
     else
-        child_process.exec "id -u #{user}", (err, id, stderr) ->
+        child_process.execFile "id", ['-u', user], {}, (err, id, stderr) ->
             if err
                 cb(err)
             else
