@@ -9617,19 +9617,95 @@ x - sort
     [x] file browser: sort by time
 
     [x] (1:34) project search: simple, using grep with link to each file that appears with line of context.
+    [x] (0:15) bug: when reconnecting due to timeout, switches to list of all projects display.  Why? Probably has to do with login.
 
+    [x] (0:21) plan how to -- get rid of absolute session timeouts; instead kill any session that
+        sees no browser activity for that timeout amount of time.
+
+    [x] (0:09) sage_server: Get rid of *use* of the walltime and cputime
+          timeouts completely from sage_server, though leave the
+          implementation, since it was difficult to do and is well
+          tested, and is useful for, e.g., single cell.  Basically add
+          option of "0 = no time out"
+
+    [x] (0:09) hub, etc.: disable existing timeouts by setting to 0.
+
+    [x] (1:04) sessions: they should be running if and only if they are visibly open as a tab.
+         [x] client -- put a long ping in for a sage session that is sent periodically when a worksheet tab is *open*
+         [x] hub -- kill session that doesn't get pinged
+
+    [ ] console: implement session stuff as above.  right now consoles are dead, since limit=0 ==> never work!
+
+    [ ] sage_server: killing hub seem to make python process go 100%!
+
+    [ ] ? project: little worksheet/console buttons in the top bar too... ?
+    [ ] ? worksheet: put label back next to filename input ?
+    [ ] ? worksheet: a lock to make it hard to close?
+
+    [ ] project: when open a project, open tabs for all open worksheets and xterms.
+
+    [ ] hub: somewhere (?) put in an interval timer
+
+    [ ] projects: creating new project must actually work
+    [ ] worksheet: saving worksheet must work even if no changes
+    [ ] bug when loging out -- doesn't close all open project tabs.
+
+    [ ] command line in browser: tab completion
+
+    [ ] search: search for filenames first, then content
+    [ ] search: get rid of "rgrep", but maybe say something about it in results; make it use "-i" by default
     [ ] file browser: implement actions with files
     [ ] file browser: option to sort in alphabetical order
     [ ] file browser: get rid of big move/delete buttons near the top
-    [ ] file browser: only show spinner after waiting a given amount of time.
     [ ] file browser: show hidden files
-    [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
+    [ ] file browser: hide file extensions and when showing files, make the extension (and final dot) be in a lighter shade.
     [ ] file browser: new file or directory -- implement
+
+    [ ] file editor: save on "clicking the x"
+    [ ] file editor: autosave with same interval as for worksheets
+
+    [ ] worksheet persistence: saving to a path that doesn't exist should auto-create that path.  Just put "mkdir -p" in the save script.
+
+    [ ] worksheet: auto-number and size the section headings, subsections, etc.  This will be purely client side rendering.  Will get run
+        on load and new section creation (or deletion).
+
+    [ ] file browser: persistent command line history
+
+    [ ] project: download complete project as a zip/tar
+
+    [ ] project settings
+    [ ] worksheet settings
+    [ ] account settings
+    [ ] implement chat as immutable list of cells that scrolls away, with labeled names and default input the note.
+
+    [ ] note: wysiwyg
+    [ ] note: math typesetting
+
+    [ ] cell: add a 'lang' attribute to specify the language.
+    [ ] load/attach
+    [ ] cell modes: %cython
+    [ ] cell mode: %hide
+    [ ] cell mode: %hideall
+    [ ] cell mode: %time
+    [ ] cell mode: %latex
+    [ ] cell mode: %html
+    [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
+    [ ] cell: move the stopwatch to right side.
+
+    [ ] branch: switching needs to work
+    [ ] commits: need to be able to browse, revert to.
+    [ ] files/worksheets: browse through all past versions in a branch.
+
+    [ ] file browser: only show spinner after waiting a given amount of time.
+    [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
     [ ] file browser: click to edit a file with any of these characters must work:'<>|,;$&\"''"
 
     [ ] project: when closing last project need to go back to project list
+
     [ ] cell: comment/uncomment -- "Hello, i try to comment uncomment block of code on the sage notebook, but the schortcut are similar to some shortcut of firefox.
 for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : work but firefox change the page to the tab 3 or 4 why don't change it like: ctrl shift somethinelse?"
+
+    [ ] interact: forgot to put number by slider
 
     [ ] project: the whole topbar well with title is a too-big waste of space.  Give it *more* info, but make it toggleable?
 
@@ -9644,44 +9720,36 @@ for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : wo
 
     [ ] worksheet: "loading worksheet..." needs a spinner.  Also, it could do something if the size is large (?).
 
-    [ ] worksheet scalability: a 3MB (of output) worksheet takes a *noticeable* time to render.  If I could
-        redo *output* of cells to use codemirror, maybe it would be much faster?
+    [ ] worksheet scalability: a 3MB (of output) worksheet takes a *noticeable* time to render.
+        If I could redo *output* of cells to use codemirror, maybe it would be much faster?
+        And/or -- only show part of output with click to reveal rest.
 
-    [ ] projects: need a spinner while new project is being created
+    [ ] projects: need a spinner while new project is being created.
 
     [ ] projects: maybe provide a warning when you create a new project with the same title as an existing one
 
-    [ ] file editor: save on "clicking the x"
-    [ ] file editor: autosave with same interval as for worksheets
+    [ ] project: When changing project title, should auto change the entry in the tab at the top.
 
-    [ ] When changing project title, should auto change the entry in the tab at the top.
-
-    [ ] Style of project tab in the top should be different to distinguish projects from other stuff.
+    [ ] project: Style of project tab in the top should be different to distinguish projects from other stuff.
 
     [ ] worksheet persistence: make it so worksheet.save() succeeds in some way, no matter what... going so far as to store
-        in localStorage and saving on next connect.
+        in localStorage and saving on next connect.   Same for file save.
 
     [ ] TODO: add id's to worksheets --? otherwise, how will sync'ing work between clients?
 
     [ ] worksheet persistence: warn before overwriting existing file with same name!
-
-    [ ] worksheet persistence: saving to a path that doesn't exist should auto-create that path.
 
     [ ] terminal: select font; easily change font size
 
     [ ] projects (page): graphically indicate which projects are currently open
     [ ] projects: have a way to explicitly close a project, which kills all processes, deletes all non-checked-in-files, etc.
 
-    [ ] worksheet feature idea: could make it display the current working directory, updated after each compute.
+    [ ] worksheet: --  idea: could make it display the current working directory, updated after each compute.
         this could go in the upper right. the UI would have a link to browse the filesystem and change to another directory graphically.
 
     [ ] hub security: add in lots of checks about permissions to access projects, now that we have the db code.
 
     [ ] file browsing -- have both recently changed files and all files by directory...
-
-    [ ] when showing files, make the extension (and final dot) be in a lighter shade.
-
-    [ ] worksheet: auto-number the section headings, subsections, etc.  This will be purely client side rendering.
 
     [ ] crazy idea ?? account: rewrite the DB schema it to put all the settings
         (except the very few that have to be indexed!) into a single
@@ -9689,27 +9757,13 @@ for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : wo
 
     [ ] project idea: when opening a file in editor or worksheet, don't switch to view it if shift/alt/control also pressed:  http://stackoverflow.com/questions/2485345/javascript-or-jquery-event-handlers-for-ctrl-shift-mouse-left-button-click
 
+    [ ] interact: auto_update -- make it not delete the output on changes... ?
 
- [x] (0:15) bug: when reconnecting due to timeout, switches to list of all projects display.  Why? Probably has to do with login.
+    [ ] interact: update_args -- finish
 
- [ ] cell: add a 'lang' attribute to specify the language.
+    [ ] interact: make labels parse typeset math
 
- [ ] load/attach
- [ ] cell modes: %cython
- [ ] cell mode: %hide
- [ ] cell mode: %hideall
- [ ] cell mode: %time
- [ ] cell mode: %latex
- [ ] cell mode: %html
- [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
-
----------
-     [ ] interact: auto_update -- make it not delete the output on changes...
-     [ ] interact: update_args -- finish
-
-     [ ] interact: make labels parse typeset math
-
-     [ ] interact: subtle issue in setattr -- this doesn't work well for input_grid,
+    [ ] interact: subtle issue in setattr -- this doesn't work well for input_grid,
          do to coercion of that list...
             I._last_vals[arg] = value
 @interact
@@ -9722,107 +9776,54 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     if 'square' in interact.changed():
         salvus.tex(m^2)
 
- [ ] tab completion bug: "E.q_eigenform(20) - F.q[tab]" for E,F elliptic curves
 
+    [ ] tab completion bug: "E.q_eigenform(20) - F.q[tab]" for E,F elliptic curves
+    [ ] investigate: hint.css -- hint library in css (not js) --  http://kushagragour.in/lab/hint/
+    [ ] interact: image point selector
+    [ ] interact: labels/controls need to line up nicely
+    [ ] interact: interrupt needs to do a proper roundtrip of
+     messages before continuing otherwise we interrupt ourselves.
 
-LATER:
-    [ ] file browser: persistent command line history
-    [ ] file browser: command line -- full bash tab completion using
-        the listing selector from code; this will be possible, but take a
-        while to implement.  Not for first release.
+    [ ] interact: library interacts
+    [ ] interact: test mobile support
+    [ ] interact: draggable controls that save layout (?)
+    [ ] interact: hints (e.g., for input_box)
+    [ ] interact: make sure I don't re-introduce the bugs of http://trac.sagemath.org/sage_trac/ticket/14020
+    [ ] interact: extensible user controls
 
-     [ ] interact: image point selector
-     [ ] interact: labels/controls need to line up nicely
-     [ ] interact: interrupt needs to do a proper roundtrip of
-         messages before continuing otherwise we interrupt ourselves.
+    [ ] mathjax jquery plugin -- give it a timeout!
 
-     [ ] interact: library interacts
-     [ ] interact: test mobile support
-     [ ] interact: draggable controls that save layout (?)
-     [ ] interact: hints (e.g., for input_box)
-     [ ] interact: make sure I don't re-introduce the bugs of http://trac.sagemath.org/sage_trac/ticket/14020
-     [ ] interact: extensible user controls
+    [ ] cell: make interrupt better -- https://mail.google.com/mail/u/0/?shva=1#starred/13c3fa7cf94e9453
 
- [ ] mathjax jquery plugin -- give it a timeout!
+    [ ] foo? and foo?? followed by execute should do the right thing, not give error
+    [ ] foo? and foo?? need to give file location (and link!)
+    [ ] implement a show(...) command
+    [ ] cells: mobile needs to have some buttons: tab/esc/exec
+    [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
+    [ ] worksheet: undo
+    [ ] worksheet: typeset all output mode
+    [ ] worksheet: default systems other than sage
+    [ ] worksheet: buttons, which provide all feature to mobile.
+    [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
+    [ ] worksheet: import/export
+    [ ] worksheet: automatic typesetting
+    [ ] worksheet: automatic 2d graphics
+    [ ] worksheet: automatic 3d graphics
+    [ ] worksheet: hiding/showing cells
+    [ ] worksheet: load/attach functionality
+    [ ] worksheet: JSON view
+    [ ] worksheet: text view
+    [ ] publish: implement very basic functionality
+    [ ] click to show commit
+    [ ] browser must browse live directory, but give git-related info
+        about each file -- last commit and whether or not it was checked in.
+    [ ] switches? -- useful for something in salvus? http://www.larentis.eu/switch/    -- settings pages!
+    [ ] settings: whether or not lines wrap in codemirror.
+    [ ] failing to create a new project due to connection error, doesn't give a good error.
+    [ ] fail: os.chdir("/home/wstein/explicit"); g = require('/home/wstein/explicit/go2.sage')
+    [ ] require: leaves .pyc files laying around
 
- [ ] cell: make interrupt better -- https://mail.google.com/mail/u/0/?shva=1#starred/13c3fa7cf94e9453
+    [ ] worksheet: selecting range of cells.... that includes a section...
+    [ ] worksheet: ensure can insert cells everywhere, e.g., in new sections
 
-
- [ ] foo? and foo?? followed by execute should do the right thing, not give error
-
- [ ] foo? and foo?? need to give file location (and link!)
-
- [ ] implement a show(...) command
-
- [ ] get rid of absolute session timeouts; instead kill any session that
-     sees no browser activity for that timeout amount of time.
-
- [ ] cells: mobile needs to have some buttons: tab/esc/exec
- [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
-
- [ ] worksheet: undo
-
- [ ] worksheet: typeset all output mode
-
- [ ] worksheet: default systems other than sage
-
- [ ] worksheet: buttons, which provide all feature to mobile.
-
- [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
-
- [ ] worksheet: import/export
-
- [ ] worksheet: automatic typesetting
-
- [ ] worksheet: automatic 2d graphics
-
- [ ] worksheet: automatic 3d graphics
-
- [ ] worksheet: hiding/showing cells
-
- [ ] worksheet: load/attach functionality
-
- [ ] worksheet: JSON view
-
- [ ] worksheet: text view
-
- [ ] basic publish
-
- [ ] click to show commit
-
- [ ] browser must browse live directory, but give git-related info
-     about each file -- last commit and whether or not it was checked in.
-
- [ ] switches? -- useful for something in salvus? http://www.larentis.eu/switch/
-     probably for settings page.
-
- [ ] settings: whether or not lines wrap in codemirror.
-
- [ ] failing to create a new project due to connection error
-     doesn't give a good error.
-
- [ ] fail: os.chdir("/home/wstein/explicit")
-g = require('/home/wstein/explicit/go2.sage')
-
- [ ] 
-
-
-LATER:
- [ ] other ideas..
--->    [x] (7min) (it already works fine!) cell: salvus.execute_javascript -- implement it
-
-    -> [ ] implement sage session variables so we have a javascript
-           object tied to a variable defined in python with 'change'
-           event, which can have listeners registered on both sides.
-       [ ] using such variables, implement an @interact decorator.
-
- [x] worksheet: sections --- good enough for now, though a little remains
-      [x] () worksheet sections -- hide/show
-      [x] implement next/prev cell in presence of sections
-      [ ] insert cells everywhere, e.g., in new sections
-      [ ] make the heading font size make sense
-      [ ] Shift section both out *and* in
-      [x] delete section (kind of ugly)
-      [ ] selecting range of cells.... that includes a section...
-
- [ ] investigate : http://jschr.github.com/textillate/index.html
+    [ ] investigate : http://jschr.github.com/textillate/index.html

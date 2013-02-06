@@ -8,6 +8,13 @@ misc    = require("misc")
 defaults = misc.defaults
 required = defaults.required
 
+# This is the default time in *seconds* between pings sent by the
+# client to the server to indicate that a given session is being
+# actively viewed.  This variable is used by hub.coffee to set
+# its kill timeout, so do not change the name here without changing
+# it there.   It *is* safe to change the value.
+exports.DEFAULT_SESSION_PING_TIME = 60
+
 # JSON_CHANNEL is the channel used for JSON.  The hub imports this
 # file, so if this constant is ever changed (for some reason?), it
 # only has to be changed on this one line.  Moreover, channel
@@ -51,6 +58,22 @@ class Session extends EventEmitter
     kill: () ->
         @emit("close")
         @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
+
+    # Starts a ping interval timer that periodicially pings the server
+    # to indicate that this session is being actively viewed.  Pinging
+    # stops if the function continue_pinging() returns false.
+    # If the continue_pinging function is not defined, just ping server once.
+    ping: (continue_pinging) ->
+        if not continue_pinging?
+            @conn.send(message.ping_session(session_uuid:@session_uuid))
+            return
+        timer = undefined
+        ping = () =>
+            if continue_pinging()
+                @ping()
+            else
+                clearInterval(timer)
+        timer = setInterval(ping, exports.DEFAULT_SESSION_PING_TIME * 1000)
 
 ###
 #

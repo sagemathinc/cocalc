@@ -54,6 +54,18 @@ message
                               # efficiently sending and receiving
                               # non-JSON data (except channel
                               # '\u0000', which is JSON).
+                            #
+
+#
+# A period ping message must usually be sent by the client to keep a
+# worksheet/console open, except when worksheet/console is explicitly
+# put in a special (screen-like/nohup) mode.
+#
+# client --> hub
+message
+    event         : 'ping_session'
+    id            : undefined
+    session_uuid  : undefined
 
 
 # client --> hub

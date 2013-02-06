@@ -40,11 +40,13 @@ class Worksheet extends EventEmitter
             path        : undefined  # If given, is the default filename of the worksheet; containing directory is chdir'd on startup.
             project_id  : required
 
+
         @element = worksheet_template.clone()
         @element.data("worksheet", @)
         $(@opts.element).replaceWith(@element)
         @_init_title()
         @_init_description()
+        @_init_session_ping()
         @_cells = @element.find(".salvus-worksheet-cells")
         @_current_cell = @_append_new_cell()
         @_focus_cell(@_current_cell)
@@ -70,8 +72,8 @@ class Worksheet extends EventEmitter
 
     chdir: (path) =>
         @opts.session.execute_code
-            code : "os.chdir(salvus.data['path'])"
-            data : {path: path}
+            code     : "os.chdir(salvus.data['path'])"
+            data     : {path: path}
             preparse : false
 
     #######################################################################
@@ -95,6 +97,10 @@ class Worksheet extends EventEmitter
         @set_description(@opts.description)
         @_monitor_for_changes(@element.find(".salvus-worksheet-description"))
 
+    _init_session_ping: () =>
+        # Ping as long as the worksheet_is_open method returns true.
+        @opts.session.ping(@worksheet_is_open)
+
     _new_blobs_helper: (content, result) =>
         # walk the content tree finding blobs
         for c in content
@@ -114,6 +120,8 @@ class Worksheet extends EventEmitter
         @_new_blobs_helper(content, v)
         return v
 
+    worksheet_is_open: () => @element.closest(document.documentElement).length > 0
+
     _init_autosave: () =>
         # start autosaving, as long as a filename is set
         input = @element.find(".salvus-worksheet-filename")
@@ -123,7 +131,7 @@ class Worksheet extends EventEmitter
         if autosave
             save_if_changed = () ->
                 # Check to see if the worksheet has been closed, in which case we stop autosaving.
-                if that.element.closest(document.documentElement).length == 0
+                if not that.worksheet_is_open()
                     clearInterval(interval)
                     return
                 if that.has_unsaved_changes()

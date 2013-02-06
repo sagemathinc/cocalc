@@ -558,19 +558,37 @@ def drop_privileges(id, home, transient, username):
     sage.misc.misc.DOT_SAGE = home + '/.sage/'
 
 def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
+    """
+    This is run by the child process that is forked off on each new
+    connection.  It drops privileges, then handles the complete
+    compute session.
+
+    INPUT:
+
+    - ``conn`` -- the TCP connection
+    - ``home`` -- the home directory of the user
+    - ``username`` -- the username to drop privileges to
+    - ``cputime`` -- maximum cputime that the process is allowed to
+      run (implemented using setrlimit), or 0 for no limit.
+    - ``numfiles`` -- maximum number of files that this process is
+      allowed to create (implemented using setrlimit), or 0 for no limit.
+    - ``vmem`` -- maximum virtual memory that process has access to
+      (implemented using setrlimit); or 0 for no limit.
+    """
     pid = os.getpid()
     if home is not None:
         drop_privileges(uid, home, transient, username)
         pass
 
-    if cputime is not None:
+    if cputime:
         resource.setrlimit(resource.RLIMIT_CPU, (cputime,cputime))
-    if numfiles is not None:
+    if numfiles:
         resource.setrlimit(resource.RLIMIT_NOFILE, (numfiles,numfiles))
-    if vmem is not None:
+    if vmem:
         if os.uname()[0] == 'Linux':
             resource.setrlimit(resource.RLIMIT_AS, (vmem*1048576L, -1L))
     else:
+        # This is hardly necessary, since we only support Linux!
         #log.warning("Server not running on Linux, so there are NO memory constraints.")
         pass
 
@@ -622,10 +640,13 @@ def rmtree(path):
 
 class Connection(object):
     def __init__(self, pid, uid, home=None, maxtime=3600, transient=False):
+        # maxtime = 0 -- don't timeout ever
         self._pid = pid
         self._uid = uid
         self._home = home
         self._start_time = time.time()
+        if maxtime is None:
+            maxtime = 0
         self._maxtime = maxtime
         self._transient = transient
 
@@ -634,7 +655,9 @@ class Connection(object):
             self._pid, self._home, self._start_time, self._maxtime)
 
     def time_remaining(self):
-        if self._maxtime is not None:
+        if self._maxtime == 0:
+            return 2**31  # effectively infinite
+        else:
             return self._maxtime - (time.time() - self._start_time)
 
     def signal(self, sig):
@@ -661,6 +684,8 @@ class Connection(object):
                             pass
 
     def monitor(self, interval=1):
+        if self._maxtime == 0:
+            return
         try:
             while True:
                 tm = self.time_remaining()

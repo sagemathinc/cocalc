@@ -441,8 +441,19 @@ class Client extends EventEmitter
         else
             @push_to_client(message.error(id:mesg.id, error:"Unknown session #{mesg.session_uuid}"))
 
+    mesg_ping_session: (mesg) =>
+        s = console_sessions[mesg.session_uuid]
+        if s?
+            s.last_ping_time = new Date()
+            return
+        s = persistent_sage_sessions[mesg.session_uuid]
+        if s?
+            s.last_ping_time = new Date()
+            return
+        @push_to_client(message.error(id:mesg.id, error:"Pinged unknown session #{mesg.session_uuid}"))
+
     ######################################################
-    # Message: Introspections
+    # Message: introspections
     #   - completions of an identifier / methods on an object (may result in code evaluation)
     #   - docstring of function/object
     #   - source code of function/class
@@ -2661,14 +2672,49 @@ save_blobs_to_project = (opts) ->
 ########################################
 compute_sessions = {}
 
+# The ping timer for compute sessions is very simple:
+#     - an attribute 'last_ping_time', which client code must set periodicially
+#     - the input session must have a kill() method
+#     - an interval timer
+#     - if the timeout option is set to 0, the ping timer is not activated
+
+# This is the time in *seconds* until a session that not being actively pinged is killed.
+# This is a global var, since it must be
+DEFAULT_SESSION_KILL_TIMEOUT = 3 * client_lib.DEFAULT_SESSION_PING_TIME
+
+enable_ping_timer = (opts) ->
+    opts = defaults opts,
+        session : required
+        timeout : DEFAULT_SESSION_KILL_TIMEOUT    # time in *seconds* until session not being actively pinged is killed
+
+    if not opts.timeout
+        # do nothing -- this will keep other code cleaner
+        return
+
+    opts.session.last_ping_time = new Date()
+
+    timer = undefined
+    check_for_timeout = () ->
+        d = ((new Date()) - opts.session.last_ping_time )/1000
+        if  d > opts.timeout
+            winston.debug("killing!")
+            clearInterval(timer)
+            opts.session.kill()
+        else
+            winston.debug("nursing...")
+
+    timer = setInterval(check_for_timeout, opts.timeout*1000)
+
 ########################################
 # Persistent Sage Sessions
 ########################################
 persistent_sage_sessions = {}
 
+# The walltime and cputime are severly limited for not-logged in users, for now:
 SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
 
-SESSION_LIMITS = {cputime:120*60, walltime:1000*60, vmem:2000, numfiles:1000, quota:128}
+# The walltime and cputime are not limited for logged in users:
+SESSION_LIMITS = {cputime:0, walltime:0, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (client, mesg) ->
     winston.info('creating persistent sage session')
@@ -2721,11 +2767,14 @@ create_persistent_sage_session = (client, mesg) ->
         # Save sage_conn object so that when the user requests evaluation of
         # code in the session with this id, we use this.
         session =
-            conn : sage_conn
-            kill : () ->
+            conn           : sage_conn
+            kill           : () ->
                 if kill_message?
                     sage.send_signal(kill_message)
                 sage_conn.close()
+
+        enable_ping_timer(session : session)
+
         persistent_sage_sessions[session_uuid] = session
         compute_sessions[session_uuid] = session
         client.compute_session_uuids.push(session_uuid)
@@ -2810,6 +2859,8 @@ create_persistent_console_session = (client, mesg) ->
             console_session.closed = false
 
             console_session.on('end', ()->console_session.closed = true)
+
+            enable_ping_timer(session: console_session)
 
             console_session.port = console_server.port
             console_session.host = console_server.host
