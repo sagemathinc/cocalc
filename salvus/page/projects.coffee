@@ -139,7 +139,7 @@ close_create_project = () ->
     $("#projects-create_project-public").attr("checked", true)
     $("#projects-create_project-private").attr("checked", false)
 
-create_project.find(".close").click((event) -> console.log('foo'); close_create_project())
+create_project.find(".close").click((event) -> close_create_project())
 
 $("#projects-create_project-button-cancel").click((event) -> close_create_project())
 

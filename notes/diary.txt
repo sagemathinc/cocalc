@@ -9690,7 +9690,7 @@ x - sort
 
     [x] (1:05) projects: have a red button "Shutdown all projects" in upper right; plus restyle the projects page
 
--->    [ ] project: download complete project as a zip/tar
+    [ ] project: download complete project as a zip/tar
            * ui = button in upper right with download icon
            * ui = little button next to each project on projects page
            * could be special case of "download a directory" where path="".  Want that anyways.  Then
@@ -9704,7 +9704,13 @@ x - sort
 
     [ ] project: shutdown and save should save unsaved open worksheets
 
-    [ ] worksheet: default name for new worksheets:   worksheet/uuid8.salvus
+    [ ] worksheet: default name for new worksheets
+
+    [ ] make new worksheet (etc.) SCRATCH path configurable for user -- see worksheet.coffee.
+
+    [ ] projects: have a "search running projects" input field
+
+    [ ] project search: could take user to first match in file, in some cases.
 
     [ ] cell: tab completion dropdown should allow typing to search through it.
 

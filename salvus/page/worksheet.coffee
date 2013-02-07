@@ -13,6 +13,10 @@
 #
 ###########################################
 #
+#
+
+# TODO -- this could be made configurable for the user!
+SCRATCH        = 'scratch'
 
 {dirname}      = require('path')
 {EventEmitter} = require('events')
@@ -40,7 +44,6 @@ class Worksheet extends EventEmitter
             path        : undefined  # If given, is the default filename of the worksheet; containing directory is chdir'd on startup.
             project_id  : required
 
-
         @element = worksheet_template.clone()
         @element.data("worksheet", @)
         $(@opts.element).replaceWith(@element)
@@ -53,6 +56,7 @@ class Worksheet extends EventEmitter
 
         @_init_section_button()
         @_init_filename_save()
+
 
         if @opts.content?
             # Set the contents of the worksheet, then *delete* this
@@ -70,6 +74,9 @@ class Worksheet extends EventEmitter
 
         @_init_autosave()
 
+        if not @opts.path?
+            @_set_default_path()
+
     chdir: (path) =>
         @opts.session.execute_code
             code     : "os.chdir(salvus.data['path'])"
@@ -79,7 +86,20 @@ class Worksheet extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
-    #
+
+    _set_default_path: () =>
+        input = @element.find(".salvus-worksheet-filename")
+        if input.val() == ""
+            salvus_client.exec
+                project_id : @opts.project_id
+                command    : "mkdir"
+                args       : ["-p", SCRATCH]
+                cb         : (err, output) =>
+                    @chdir(SCRATCH)
+                    path = SCRATCH + '/' + uuid().slice(0,8)
+                    input.val(path)
+                    @save(path)
+
     _monitor_for_changes: (elt) =>
         elt.data("last", elt.html())
         elt.keyup () =>

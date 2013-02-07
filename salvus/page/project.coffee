@@ -705,7 +705,6 @@ class ProjectPage
             filename   : @project.title
 
     download_file: (path) =>
-        console.log("download '#{path}' from #{@project.project_id}")
         salvus_client.read_file_from_project
             project_id : @project.project_id
             path       : path
@@ -714,12 +713,10 @@ class ProjectPage
                     alert_message(type:"error", message:"#{err} -- #{misc.to_json(result)}")
                 else
                     url = result.url + "&download"
-                    console.log(url)
                     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                     setTimeout((() -> iframe.remove()), 1000)
 
     open_file_in_another_browser_tab: (path) =>
-        console.log("open in another tab '#{path}' from #{@project.project_id}")
         salvus_client.read_file_from_project
             project_id : @project.project_id
             path       : path

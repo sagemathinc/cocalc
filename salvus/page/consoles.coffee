@@ -305,6 +305,7 @@ class WorksheetSession extends Session
                 @_update_title_ui()
 
                 @worksheet.on 'save', (path) =>
+                    console.log 'save', path
                     @path = path
                     @_update_title_ui()
 
