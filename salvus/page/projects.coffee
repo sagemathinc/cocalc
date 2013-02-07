@@ -7,7 +7,7 @@
 {salvus_client} = require('salvus_client')
 {top_navbar}    = require('top_navbar')
 {alert_message} = require('alerts')
-{project_page}  = require('project')
+{project_page, download_project}  = require('project')
 
 top_navbar.on "switch_to_page-projects", () ->
     update_project_list?()
@@ -68,6 +68,33 @@ $("#projects-private-button").click (event) ->
 DEFAULT_MAX_PROJECTS = 20
 
 $("#projects-show_all").click( (event) -> update_project_view(true) )
+template = $("#projects-project_list_item_template")
+
+create_project_item = (project) ->
+    item = template.clone().show().data("project", project)
+
+    if project.public
+        item.find(".projects-public-icon").show()
+        item.find(".projects-private-icon").hide()
+    else
+        item.find(".projects-private-icon").show()
+        item.find(".projects-public-icon").hide()
+        item.addClass("private-project")
+    item.find(".projects-title").text(project.title)
+    if project.host != ""
+        item.find(".projects-active").show().tooltip(title:"This project is running on a server.", placement:"top", delay:500)
+    item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
+    item.find(".projects-description").text(project.description)
+    item.click (event) ->
+        open_project(project)
+        return false
+    item.find("a[href='#download-project']").click () ->
+        download_project
+            project_id : project.project_id
+            filename   : project.title
+        return false
+
+    return item
 
 update_project_view = (show_all=false) ->
     if not project_list?
@@ -85,25 +112,7 @@ update_project_view = (show_all=false) ->
         n += 1
         if not show_all and n > DEFAULT_MAX_PROJECTS
             break
-        template = $("#projects-project_list_item_template")
-        item = template.clone().show().data("project", project)
-
-        if project.public
-            item.find(".projects-public-icon").show()
-            item.find(".projects-private-icon").hide()
-        else
-            item.find(".projects-private-icon").show()
-            item.find(".projects-public-icon").hide()
-            item.addClass("private-project")
-        item.find(".projects-title").text(project.title)
-        if project.host != ""
-            item.find(".projects-active").show()
-        item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
-        item.find(".projects-description").text(project.description)
-        item.click (event) ->
-            open_project ($(@).data("project"))
-            return false
-        item.appendTo(X)
+        create_project_item(project).appendTo(X)
 
     if n > DEFAULT_MAX_PROJECTS and not show_all
         $("#projects-show_all").show()
@@ -151,3 +160,4 @@ $("#projects-create_project-button-create_project").click (event) ->
             else
                 update_project_list()
     close_create_project()
+

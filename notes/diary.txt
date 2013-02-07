@@ -9700,6 +9700,8 @@ x - sort
     [ ] project download options:
            * archive type: tar, tar.bz2, etc.
 
+-->    [ ] projects: have a red button "Shutdown all projects" in upper right
+
     [ ] worksheet: default name for new worksheets:   worksheet/uuid8.salvus
 
     [ ] cell: tab completion dropdown should allow typing to search through it.
@@ -9708,6 +9710,9 @@ x - sort
         project archive and upload it.  It could also take an
         arbitrary directory and make a project out of it.  And it can
         take a github/etc page and make that a project.
+
+
+    [ ] projects: search -- another button for only active projects
 
     [ ] project shutdown: it does *NOT* delete the user's files from /tmp, but it MUST.
 

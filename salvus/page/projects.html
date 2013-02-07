@@ -1,19 +1,26 @@
 <div class="container hide" id="projects">
   <div class="span11 well">
 
+    <div class="pull-right"   style="margin-right:2em">
+      <span class="btn-group">
+	<a href="#download-all-projects" class="btn btn-success">Download All <i class="icon-download-alt"> </i></a>
+	<a href="#close-all-projects" class="btn btn-danger">Shutdown All <i class="icon-remove"> </i></a>
+      </span>
+    </div>
+
     <div class="your-projects-title">
       <div class="span3">
 	<div style="margin-top:2px"><span class="big-only">Your </span><span id="projects-count"></span> <span class="big-only">Salvus </span>Projects</div>
       </div>
       <div class="span4">
-	<button class="btn btn-success btn-large span3" type="submit" id="new_project-button">New project</button>
+	<button class="btn btn-primary btn-large span3" type="submit" id="new_project-button">Create a New Project</button>
       </div>
     </div>
     <div class="row span10">
-      <input class="span6 projects-find-input" type="text" placeholder="Find a project...">
+      <input class="span3 projects-find-input" type="text" placeholder="Find a project...">
     </div>
     <div class="row span10">
-      <div class="span4"  style="margin-bottom:.5em">
+      <div class="span4"  style="margin-bottom:.5em; margin-left:0em;">
 	<div class="btn-group">
 	  <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
 	  <button class="btn btn-info btn-small" id="projects-public-button">Public</button>
@@ -26,16 +33,17 @@
       <br>
     </div>
     <div class="row span10 well well-small  project-link hide" id="projects-project_list_item_template">
-      <div class="span" style="width: 20px;">
+      <div class="span" style="width: 50px; margin-left:0px;">
 	<i class="icon-eye-open projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
 	<i class="icon-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+	<span class="projects-active hide"><i class="icon-bolt"> </i></span>
       </div>
       <div class="span3">
 	<a href="" class="projects-title"></a>
-	<span class="projects-active hide">(active)</span>
       </div>
       <div class="span2 projects-last_edited"></div>
       <div class="span4 projects-description"></div>
+      <a href="#download-project" class="pull-right btn-small btn btn-success"><i class="icon-download-alt"> </i></a>
     </div>
 
 
@@ -93,7 +101,7 @@
     </div>
     <!-- do it -->
     <div class="modal-footer">
-      <button class="btn btn-success btn-large" type="submit" data-dismiss="modal" id="projects-create_project-button-create_project">Create project</button>
+      <button class="btn btn-primary btn-large" type="submit" data-dismiss="modal" id="projects-create_project-button-create_project">Create Project</button>
       <button class="btn btn-large" data-dismiss="modal" id="projects-create_project-button-cancel">Cancel</button>
 
     </div>
