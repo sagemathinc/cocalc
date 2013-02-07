@@ -113,13 +113,14 @@ class TopNavbar  extends EventEmitter
     remove_page: (id) ->
         p = @pages[id]
         if p?
+            if p.onclose?
+                # save unsaved work, etc.
+                p.onclose()
             if p.button.hasClass("active")
                 @switch_to_next_available_page(id)
             # Now actually the page
             p.page.remove()
             p.button.remove()
-            if p.onclose?
-                p.onclose()
             delete @pages[id]
 
             # Now switch to the next page
