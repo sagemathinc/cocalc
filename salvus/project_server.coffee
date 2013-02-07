@@ -681,9 +681,10 @@ events.read_file_from_project = (socket, mesg) ->
     data = undefined
     path = userpath(mesg.project_id) + '/' + mesg.path
     winston.debug("** the path = ", path)
+    is_directory = undefined
     async.series([
         (cb) ->
-            # Check that the path is valid (in the user's directory).
+            winston.debug("Check that the path is valid (in the user's directory).")
             verify_that_path_is_valid mesg.project_id, path, (err, realpath) ->
                 if err
                     cb(err)
@@ -691,21 +692,39 @@ events.read_file_from_project = (socket, mesg) ->
                     path = realpath
                     cb()
         (cb) ->
-            # Determine whether the path is a directory or file.
+            winston.debug("Determine whether the path is a directory or file.")
             fs.stat path, (err, stats) ->
                 if err
                     cb(err)
                 else
-                    if stats.isDirectory()
-                        winston.debug("***DIRECTORY!***")
+                    is_directory = stats.isDirectory()
                     cb()
         (cb) ->
-            # Read the file into memory.
+            if is_directory
+                winston.debug("It is a directory, so archive it to /tmp/ (but not readable by anybody but root!!), and change path.")
+                target = '/tmp/a.tar.bz2'  # TODO
+                child_process.execFile 'tar', ['jcvf', target, path], (err, stdout, stderr) ->
+                    if err
+                        cb(err)
+                    else
+                        path = target
+                        cb()
+            else
+                cb()
+        (cb) ->
+            winston.debug("Read the file into memory.")
             fs.readFile path, (err, _data) ->
                 data = _data
                 cb(err)
+
         (cb) ->
-            # Send the file as a blob back to the hub.
+            if is_directory
+                winston.debug("It was a directory, so remove the temporary archive '#{path}'.")
+                fs.unlink(path, cb)
+            else
+                cb()
+        (cb) ->
+            winston.debug("Finally, we send the file as a blob back to the hub.")
             id = uuid.v4()
             socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id)
             socket.write_mesg 'blob', {uuid:id, blob:data}

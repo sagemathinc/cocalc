@@ -474,16 +474,6 @@ class ProjectPage
                 tab.target.hide()
                 tab.label.removeClass('active')
 
-    download_project: (opts={}) =>
-        console.log('attempting download of project')
-        salvus_client.read_file_from_project
-            project_id : @project.project_id
-            path       : "/"
-            archive    : "zip"
-            cb         : (err, result) =>
-                console.log("result:")
-                console.log(err, result)
-
     save_project: (opts={}) =>
         opts = defaults opts,
             commit_mesg : ""
@@ -733,16 +723,24 @@ class ProjectPage
                             return false
                     file_or_listing.append(t)
 
+    download_project: (opts={}) =>
+        download_project
+            project_id : @project.project_id
+            filename   : @project.title
+
     download_file: (path) =>
         console.log("download '#{path}' from #{@project.project_id}")
         salvus_client.read_file_from_project
             project_id : @project.project_id
             path       : path
             cb         : (err, result) =>
-                url = result.url + "&download"
-                console.log(url)
-                iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-                setTimeout((() -> iframe.remove()), 1000)
+                if err
+                    alert_message(type:"error", message:"#{err} -- #{misc.to_json(result)}")
+                else
+                    url = result.url + "&download"
+                    console.log(url)
+                    iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
+                    setTimeout((() -> iframe.remove()), 1000)
 
     open_file_in_another_browser_tab: (path) =>
         console.log("open in another tab '#{path}' from #{@project.project_id}")
@@ -939,3 +937,24 @@ project_page = exports.project_page = (project) ->
     project_pages[project.project_id] = p
     return p
 
+download_project = exports.download_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        filename   : required
+        archive    : undefined
+    if not opts.archive?
+        # TODO: take from settings
+        opts.archive = 'tar.bz2'
+
+    salvus_client.read_file_from_project
+        project_id : opts.project_id
+        path       : "/"
+        archive    : opts.archive
+        cb         : (err, result) =>
+            if err
+                alert_message(type:"error", message:"#{err} -- #{misc.to_json(result)}")
+            else
+                url = result.url + "&download"
+                url = url.replace('/?',  opts.filename + "." + opts.archive + '?')
+                iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
+                setTimeout((() -> iframe.remove()), 1000)

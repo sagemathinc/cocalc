@@ -9690,10 +9690,15 @@ x - sort
 
 -->    [ ] project: download complete project as a zip/tar
            * ui = button in upper right with download icon
-           * due to quota issues, important that download done by project_server, which is kind of annoying.
+           * ui = little button next to each project on projects page
            * could be special case of "download a directory" where path="".  Want that anyways.  Then
              I don't need a new message.
+           * result should have username (uuid) at top level of archive.
            * what format to use??   .tar.bz2?  .zip?  BOTH and let client decide...
+           * don't include the .git/salvus directory
+
+    [ ] project download options:
+           * archive type: tar, tar.bz2, etc.
 
     [ ] worksheet: default name for new worksheets:   worksheet/uuid8.salvus
 
