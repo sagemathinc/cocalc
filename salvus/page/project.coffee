@@ -119,7 +119,9 @@ class ProjectPage
         @container.top_navbar
             id    : @project.project_id
             label : @project.project_id
-            onclose : () => delete project_pages[@project.project_id]
+            onclose : () =>
+                @save_browser_local_data()
+                delete project_pages[@project.project_id]
 
         # Initialize the close project button.
         # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").
@@ -474,12 +476,18 @@ class ProjectPage
                 tab.target.hide()
                 tab.label.removeClass('active')
 
+    save_browser_local_data: () =>
+        @consoles.save()
+        @editor.save()
+
     save_project: (opts={}) =>
+        @save_browser_local_data()
         opts.project_id = @project.project_id
         opts.title = @project.title
         save_project(opts)
 
     close_project: (opts={}) =>
+        @save_browser_local_data()
         opts.title = @project.title
         opts.project_id = @project.project_id
         close_project(opts)
@@ -939,6 +947,11 @@ close_project = exports.close_project = (opts) ->
         show_success_alert : false
         cb                 : undefined
 
+    p = project_pages[opts.project_id]
+    if p?
+        # Close the project page if it is open.  This will first also save any locally edited data.
+        top_navbar.remove_page(opts.project_id)
+
     save_project
         project_id : opts.project_id
         show_success_alert : false
@@ -957,7 +970,6 @@ close_project = exports.close_project = (opts) ->
                     else
                         if opts.show_success_alert
                             alert_message(type:"success", message: "Shutdown project '#{opts.title}'.")
-                        top_navbar.remove_page(opts.project_id)
                     opts.cb?(err)
 
 

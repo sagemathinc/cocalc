@@ -9693,6 +9693,8 @@ x - sort
     [x] worksheet: default name for new worksheets
 
     [x] (0:05) disable the "use salvus now" box.
+    [x] (0:16) project: shutdown and save should save unsaved open worksheets
+
 
     [ ] project: download complete project as a zip/tar
            * ui = button in upper right with download icon
@@ -9705,8 +9707,6 @@ x - sort
 
     [ ] project download options:
            * archive type: tar, tar.bz2, etc.
-
-    [ ] project: shutdown and save should save unsaved open worksheets
 
     [ ] make new worksheet (etc.) SCRATCH path configurable for user -- see worksheet.coffee.
 

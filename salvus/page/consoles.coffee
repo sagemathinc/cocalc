@@ -56,8 +56,12 @@ class exports.Consoles
         if @counter?
             @counter.text(len(@tabs))
 
+    # Call the save() method on every open console
+    save: () =>
+        for i, tab of @tabs
+            tab.console.save()
 
-    # Close this tab.
+    # Close the tab with given id
     close: (id) =>
         tab = @tabs[id]
         if not tab? # nothing to do -- file isn't opened anymore
