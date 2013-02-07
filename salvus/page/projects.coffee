@@ -171,6 +171,7 @@ $("#projects-create_project-button-create_project").click (event) ->
 ################################################
 $("#projects").find("a[href=#close-all-projects]").click () ->
     close_all_projects()
+    return false
 
 close_all_projects = () ->
     salvus_client.get_projects
