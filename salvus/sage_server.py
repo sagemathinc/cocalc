@@ -306,7 +306,7 @@ class Salvus(object):
     def file(self, filename, show=True, done=False, download=False):
         """
         Sends a file to the browser and returns a uuid that can be
-        used to access the file (for 1 hour) at
+        used to access the file (for 10 minutes) at
 
                 /blobs/filename?uuid=the_uuid
 

@@ -9686,8 +9686,7 @@ x - sort
 
     [x] (0:40) project: when closing project, need to do show another project, etc.
 
-
-    [ ] project: BUG -- download only works at the root level, not in folders...  maybe filename wrong
+-->    [ ] project: BUG -- download only works at the root level, not in folders...  maybe filename wrong
 
     [ ] project: download complete project as a zip/tar
 
@@ -9757,6 +9756,8 @@ x - sort
 
     [ ] note: wysiwyg
     [ ] note: math typesetting
+
+    [ ] account settings: when set to 0, maybe make it clearer that this disables autosave, which is dangerous (!)
 
     [ ] cell: add a 'lang' attribute to specify the language.
     [ ] load/attach

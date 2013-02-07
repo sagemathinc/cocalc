@@ -744,9 +744,9 @@ class Client extends EventEmitter
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
-                # Store content in uuid:blob store and provide a temporary (valid for an hour) link to it.
+                # Store content in uuid:blob store and provide a temporary (valid for 10 minutes) link to it.
                 u = uuid.v4()
-                save_blob uuid:u, value:content.blob, ttl:3600, cb:(err) =>
+                save_blob uuid:u, value:content.blob, ttl:600, cb:(err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
@@ -2771,7 +2771,7 @@ create_persistent_sage_session = (client, mesg) ->
                         save_blob
                             uuid  : m.uuid
                             value : m.blob
-                            ttl   : 3600  # deleted after one hour
+                            ttl   : 600  # deleted after ten minutes
                             cb    : (err) ->
                                 # TODO: actually use this for something
                     else

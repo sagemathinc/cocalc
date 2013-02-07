@@ -702,7 +702,7 @@ class ProjectPage
 
                         download_button = t.find("a[href=#download-file]")
                         download_button.tooltip(title:"Download", placement:"right", delay:500)
-                        download_button.data('filename', obj.name)
+                        download_button.data('filename', path + "/" + obj.name)
                         download_button.click () ->
                             that.download_file($(@).data('filename'))
                             return false
