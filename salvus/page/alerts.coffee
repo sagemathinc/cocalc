@@ -9,7 +9,7 @@ exports.alert_message = (opts={}) ->
         type    : 'default'
         message : defaults.required
         block   : undefined
-        timeout : 4  # time in seconds
+        timeout : 2  # time in seconds
 
     $.pnotify
         title : ""

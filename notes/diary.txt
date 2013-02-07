@@ -9690,6 +9690,10 @@ x - sort
 
     [x] (1:05) projects: have a red button "Shutdown all projects" in upper right; plus restyle the projects page
 
+    [x] worksheet: default name for new worksheets
+
+    [x] (0:05) disable the "use salvus now" box.
+
     [ ] project: download complete project as a zip/tar
            * ui = button in upper right with download icon
            * ui = little button next to each project on projects page
@@ -9703,8 +9707,6 @@ x - sort
            * archive type: tar, tar.bz2, etc.
 
     [ ] project: shutdown and save should save unsaved open worksheets
-
-    [ ] worksheet: default name for new worksheets
 
     [ ] make new worksheet (etc.) SCRATCH path configurable for user -- see worksheet.coffee.
 
@@ -9933,3 +9935,5 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] worksheet: ensure can insert cells everywhere, e.g., in new sections
 
     [ ] investigate : http://jschr.github.com/textillate/index.html
+
+    [ ] single cell: re-enable single cell (see account.html)
