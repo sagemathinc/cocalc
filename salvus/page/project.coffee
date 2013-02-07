@@ -728,6 +728,15 @@ class ProjectPage
                 iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                 setTimeout((() -> iframe.remove()), 1000)
 
+    open_file_in_another_browser_tab: (path) =>
+        console.log("open in another tab '#{path}' from #{@project.project_id}")
+        salvus_client.read_file_from_project
+            project_id : @project.project_id
+            path       : path
+            cb         : (err, result) =>
+                window.open(result.url)
+
+
     open_file: (path) =>
         ext = filename_extension(path)
         switch ext
@@ -739,6 +748,8 @@ class ProjectPage
                         @consoles.display_tab(id)
                         return
                 @consoles.create_tab(type:"worksheet", path:path)
+            when "pdf"
+                @open_file_in_another_browser_tab(path)
             else
                 @editor.open(path)
                 @display_tab("project-editor")

@@ -9682,7 +9682,9 @@ x - sort
 
     [x] (2:09) file browser: ability to download a file. -- surprisingly hard, but solution is very, very nice.
 
-    [ ] file_browser: make certain types of files open in a new window (?) or download
+    [x] (0:12) file_browser: make certain types of files open in a new window (?) or download
+
+    [ ] project: BUG -- download only works at the root level, not in folders...  maybe filename wrong
 
     [ ] project: download complete project as a zip/tar
 
