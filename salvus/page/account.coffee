@@ -271,7 +271,7 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 sign_out = () ->
 
-    require('worksheet1').close_scratch_worksheet()
+    # require('worksheet1').close_scratch_worksheet()
 
     # Send a message to the server that the user explicitly
     # requested to sign out.  The server can clean up resources

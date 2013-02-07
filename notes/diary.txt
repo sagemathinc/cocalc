@@ -9684,6 +9684,9 @@ x - sort
 
     [x] (0:12) file_browser: make certain types of files open in a new window (?) or download
 
+    [x] (0:40) project: when closing project, need to do show another project, etc.
+
+
     [ ] project: BUG -- download only works at the root level, not in folders...  maybe filename wrong
 
     [ ] project: download complete project as a zip/tar
@@ -9772,8 +9775,6 @@ x - sort
 
     [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
     [ ] file browser: click to edit a file with any of these characters must work:'<>|,;$&\"''"
-
-    [ ] project: when closing last project need to go back to project list
 
     [ ] cell: comment/uncomment -- "Hello, i try to comment uncomment block of code on the sage notebook, but the schortcut are similar to some shortcut of firefox.
 for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : work but firefox change the page to the tab 3 or 4 why don't change it like: ctrl shift somethinelse?"

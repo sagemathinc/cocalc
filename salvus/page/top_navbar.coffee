@@ -84,15 +84,45 @@ class TopNavbar  extends EventEmitter
         @current_page_id = id
         @emit("switch_to_page-#{id}", id)
 
+    switch_to_next_available_page: (id) ->
+        # Switch to the next page after the page
+        # with given id, unless there is no such page,
+        # in which case, switch to the previous page.
+        # This is used, e.g., when closing a tab to select a new tab.
+        # This will never select the *settings tab*.
+        p = @pages[id]
+        next_button = p.button.next()
+        next = next_button.find("a")
+        nid = next.data('id')
+        if nid?
+            @switch_to_page(nid)
+        else
+            @switch_to_prev_available_page(id)
+
+    switch_to_prev_available_page: (id) ->
+        # There is always a previous page, because of the project page.
+        p = @pages[id]
+        prev_button = p.button.prev()
+        prev = prev_button.find("a")
+        id = prev.data('id')
+        if id?
+            @switch_to_page(id)
+
+
     # entirely remove the page
     remove_page: (id) ->
         p = @pages[id]
         if p?
+            if p.button.hasClass("active")
+                @switch_to_next_available_page(id)
+            # Now actually the page
             p.page.remove()
             p.button.remove()
             if p.onclose?
                 p.onclose()
             delete @pages[id]
+
+            # Now switch to the next page
 
     # make it so the navbar entry to go to a given page is hidden
     hide_page_button: (id) ->
@@ -135,10 +165,10 @@ $("#projects").top_navbar
 #    label   : "Worksheet2"
 #    close   : false
 
-$("#worksheet1").top_navbar
-    id      : "worksheet1"
-    label   : "Worksheet1"
-    close   : false
+#$("#worksheet1").top_navbar
+#    id      : "worksheet1"
+#    label   : "Worksheet1"
+#    close   : false
 
 $("#account").top_navbar
     id     : "account"
