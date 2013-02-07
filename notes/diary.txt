@@ -9672,7 +9672,9 @@ x - sort
     [x] projects: need a spinner while new project is being created.; also improve html of new project layout, e.g., the new project button should be to the LEFT
     [x] project_server: noticed and fixed a major mistake/bug in my exec_as_user function.
 
--->    [ ] notifications -- need a much better system that the crappy one now!
+    [x] (0:45) notifications -- need a much better system that the crappy one now!
+   * Bootstrap-notify: pretty boring/crappy.
+   * Pines -- This looks very, very nice: http://pinesframework.org/pnotify
 
     [ ] console -- clicking near the top doesn't work at all; can't focus, can't copy/paste, etc.; first 2-3 lines just don't work at all.
 

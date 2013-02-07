@@ -87,3 +87,8 @@ body { padding-top:60px; }
     display:none;
   }
 }
+
+.ui-pnotify-history-container {
+    position: fixed;
+}
+

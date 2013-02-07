@@ -9,7 +9,18 @@ exports.alert_message = (opts={}) ->
         type    : 'default'
         message : defaults.required
         block   : undefined
-        timeout : 30
+        timeout : 4  # time in seconds
+
+    $.pnotify
+        title : ""
+        type : opts.type
+        text  : opts.message
+        nonblock : false
+        animation_speed: "fast"
+        closer_hover : false
+        opacity : 0.9
+        delay : opts.timeout*1000
+    return
 
     if not opts.block?
         if opts.type == 'error'
