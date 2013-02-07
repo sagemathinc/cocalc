@@ -122,8 +122,15 @@ class ProjectPage
             onclose : () => delete project_pages[@project.project_id]
 
         # Initialize the close project button.
+        # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").
         @container.find("a[href='#close-project']").click () =>
             @close_project_dialog()
+            return false
+
+        # Initialize the save project button.
+        # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
+        @container.find("a[href='#save-project']").click () =>
+            @save_project()
             return false
 
         # Initialize the search form.
@@ -481,7 +488,7 @@ class ProjectPage
                 else if mesg.event == "error"
                     alert_message(type:"error", message:mesg.error + " (closing project #{@project.title})")
                 else
-                    alert_message(type:"success", message: "Project '#{@project.title}' closed.")
+                    alert_message(type:"success", message: "Stopped project '#{@project.title}'.")
                     top_navbar.remove_page(@project.project_id)
 
     new_file_dialog: () =>
@@ -660,15 +667,15 @@ class ProjectPage
                             t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
 
                         # Record whether or not the file is currently saved to the repo
-                        save_button = t.find("a[href=save-file]")
-                        if obj.mtime? and obj.commit?.date? and obj.mtime <= obj.commit.date
-                            # Saved, disable the button:
-                            save_button.addClass("disabled")
-                        else
-                            save_button.tooltip(title:"Save permanent snapshot", placement:"left", delay:500)
+                        #save_button = t.find("a[href=save-file]")
+                        #if obj.mtime? and obj.commit?.date? and obj.mtime <= obj.commit.date
+                        #    # Saved, disable the button:
+                        #    save_button.addClass("disabled")
+                        #else
+                        #    save_button.tooltip(title:"Save permanent snapshot", placement:"left", delay:500)
                             # Enable the button
-                            save_button.click () =>
-                                alert('save')
+                        #    save_button.click () =>
+                        #        alert('save')
 
                         move_button = t.find("a[href=move-file]")
                         move_button.tooltip(title:"Move or delete; copy to another project", placement:"top", delay:500)

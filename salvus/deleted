@@ -1,3 +1,65 @@
+    git_add_all: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+
+        @exec
+            project_id : opts.project_id
+            command    : 'git'
+            args       : ['add', '--all']
+            cb         : opts.cb
+
+    git_commit_all: (opts) =>
+        # Commit all modified files that are under revision control to the repo. 
+        opts = defaults opts,
+            project_id : required
+            author     : required
+            message    : "Saved all files."
+            cb         : undefined
+
+        nothing_to_do = false
+        async.series([
+            (cb) =>
+                # Check to see if there are uncommited changes
+                @exec
+                    project_id : opts.project_id
+                    command    : 'git'
+                    args       : ['status']
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(output.stdout + output.stderr)
+                        else if output.stdout.indexOf('nothing to commit') != -1
+                            # DONE -- nothing further to do
+                            nothing_to_do = true
+                            cb(true)
+                        else
+                            # Add and commit as usual.
+                            cb()
+            (cb) =>
+                @exec
+                    project_id : opts.project_id
+                    command    : 'git'
+                    args       : ['commit', '-a', '-m', opts.message, '--author', opts.author]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(err + " -- " + misc.to_json(output))
+                        else
+                            cb()
+        ], (err) =>
+            if err and not nothing_to_do
+                opts.cb("Error commiting all changed files under control to the repository -- #{err}")
+            else
+                opts.cb() # good
+        )
+
+
+########
+
+
         # Commit all changes
         (cb) ->
             winston.debug("save_project -- commit")

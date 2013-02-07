@@ -9667,11 +9667,23 @@ x - sort
 
     [x] (0:08) worksheet/file: saving when there were no changes
 
+    [x] test with >= 11 diff bundles
+
+    [x] projects: need a spinner while new project is being created.; also improve html of new project layout, e.g., the new project button should be to the LEFT
+    [x] project_server: noticed and fixed a major mistake/bug in my exec_as_user function.
+
+-->    [ ] notifications -- need a much better system that the crappy one now!
+
+    [ ] console -- clicking near the top doesn't work at all; can't focus, can't copy/paste, etc.; first 2-3 lines just don't work at all.
+
+    [ ] project server "save" must update the last commit time, but it doesn't right now.
+
+    [ ] sorting -- should sort by git save time, not filestamp, which is meaningless in case of close/open   (see http://stackoverflow.com/questions/1964470/whats-the-equivalent-of-use-commit-times-for-git).   I'm fine with just having *one* notion of timestamp.
+
     [ ] for commits: pass in information about that person doing the commit on the command line
 
     [ ] finish git_config (get rid of the stub with my name/email in project_server)
     [ ] make sure code uses git_config option to exec_as_user when needed
-    [ ] test with >= 11 diff bundles
 
     [ ] projects: namespace it, i.e., change all "projects-" to "salvus-projects-", etc. for HTML/CSS
 
@@ -9686,6 +9698,7 @@ x - sort
     [ ] command line in browser: tab completion
 
     [ ] file browser: implement actions with files
+    [ ] file browser: actually implement paging through pages of files!
     [ ] file browser: option to sort in alphabetical order
     [ ] file browser: get rid of big move/delete buttons near the top
     [ ] file browser: show hidden files
@@ -9747,8 +9760,6 @@ for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : wo
 
     [ ] project: the whole topbar well with title is a too-big waste of space.  Give it *more* info, but make it toggleable?
 
-    [ ] proejcts: the new project button should be to the LEFT
-
     [ ] project: delete the "Only for temporary testing" and related code from project.coffee
 
     [ ] project: restructure the code in the constructor for ProjectPage to be a bunch of @_init_foo()'s
@@ -9761,8 +9772,6 @@ for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : wo
     [ ] worksheet scalability: a 3MB (of output) worksheet takes a *noticeable* time to render.
         If I could redo *output* of cells to use codemirror, maybe it would be much faster?
         And/or -- only show part of output with click to reveal rest.
-
-    [ ] projects: need a spinner while new project is being created.
 
     [ ] projects: maybe provide a warning when you create a new project with the same title as an existing one
 

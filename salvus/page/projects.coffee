@@ -11,7 +11,7 @@
 
 top_navbar.on "switch_to_page-projects", () ->
     update_project_list?()
-    $("#projects-find-input").focus()
+    $(".projects-find-input").focus()
 
 project_list = undefined
 compute_search_data = () ->
@@ -32,10 +32,13 @@ update_project_list = exports.update_project_list = () ->
 salvus_client.on('project_list_updated', ((data) -> update_project_list()))
 
 # search as you type
-$("#projects-find-input").keyup((event) -> update_project_view())
+$(".projects-find-input").keyup (event) ->
+    update_project_view()
+    return false
+
 # search when you click a button (which must be uncommented in projects.html):
-#$("#projects-find-input").change((event) -> update_project_view())
-#$("#projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
+#$(".projects-find-input").change((event) -> update_project_view())
+#$(".projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
 
 select_filter_button = (which) ->
     for w in ['all', 'public', 'private']
@@ -72,7 +75,7 @@ update_project_view = (show_all=false) ->
     X = $("#projects-project_list")
     X.empty()
     $("#projects-count").html(project_list.length)
-    find_text = $("#projects-find-input").val().toLowerCase()
+    find_text = $(".projects-find-input").val().toLowerCase()
     n = 0
     for project in project_list
         if find_text != "" and project.search.indexOf(find_text) == -1
@@ -134,11 +137,13 @@ $("#projects-create_project-button-create_project").click (event) ->
     title = $("#projects-create_project-title").val()
     if title == ""
         title = "Untitled"
+    spinner = $(".projects-create-new-spinner").show().spin()
     salvus_client.create_project
         title       : title
         description : $("#projects-create_project-description").val()
         public      : $("#projects-create_project-public").is(":checked")
         cb : (error, mesg) ->
+            spinner.spin(false).hide()
             if error
                 alert_messgae(type:"error", message:"Unable to connect to server to create new project '#{title}'; please try again later.")
             else if mesg.event == "error"

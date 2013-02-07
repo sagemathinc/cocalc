@@ -372,6 +372,7 @@ exec_as_user = (opts) ->
     async.series([
         (c) ->
             if opts.bash
+                winston.debug("Write tmpfile that contains bash program.")
                 if opts.timeout?
                     # This ensures that everything involved with this
                     # command really does die no matter what; it's
@@ -385,20 +386,23 @@ exec_as_user = (opts) ->
                 opts.args = [tmpfilename]
             else
                 c()
+
         # Get the uid of the user; this will err if the project isn't currently
         # hosted on this project server.
         (c) ->
+            winston.debug("Get the user id")
             getuid user, (err, id) ->
                 if err
                     c(err)
                 else
                     uid = id
                     c()
-        # Run the command with given args
         (c) ->
-            winston.debug("env = #{misc.to_json(env)}")
+            winston.debug("Spawn the command #{opts.command} with given args #{opts.args}")
             r = child_process.spawn(opts.command, opts.args,
                    {cwd:opts.path, uid:uid, gid:uid, env:env})
+
+            winston.debug("Listen for stdout, stderr and exit events.")
             stdout = ''
             r.stdout.on 'data', (data) ->
                 data = data.toString()
@@ -414,27 +418,43 @@ exec_as_user = (opts) ->
                         stderr += data.slice(0,opts.max_output - stderr.length)
                 else
                     stderr += data
+
+            stderr_is_done = stdout_is_done = false
+
+            r.stderr.on 'end', () ->
+                stderr_is_done = true
+                finish()
+
+            r.stdout.on 'end', () ->
+                stdout_is_done = true
+                finish()
+
             r.on 'exit', (code) ->
                 exit_code = code
-                if opts.err_on_exit and code != 0
-                    c("command '#{opts.command}' (args=#{misc.to_json(opts.args)}) exited with nonzero code #{code}")
-                else
-                    if opts.max_output?
-                        if stdout.length >= opts.max_output
-                            stdout += " (truncated at #{opts.max_output} characters)"
-                        if stderr.length >= opts.max_output
-                            stderr += " (truncated at #{opts.max_output} characters)"
-                    c()
+                finish()
+
+            finish = () ->
+                if stdout_is_done and stderr_is_done and exit_code?
+                    if opts.err_on_exit and exit_code != 0
+                        c("command '#{opts.command}' (args=#{misc.to_json(opts.args)}) exited with nonzero code #{exit_code}")
+                    else
+                        if opts.max_output?
+                            if stdout.length >= opts.max_output
+                                stdout += " (truncated at #{opts.max_output} characters)"
+                            if stderr.length >= opts.max_output
+                                stderr += " (truncated at #{opts.max_output} characters)"
+                        c()
+
             if opts.timeout?
                 f = () ->
-                    console.log("in timeout function")
+                    winston.debug("in timeout function")
                     if r.exitCode == null
-                        # process did not exit yet -- kill
+                        winston.debug("process did not exit yet -- kill")
                         r.kill("SIGKILL")  # this does not kill the process group :-(
                         c("killed command '#{opts.command}' (args=#{misc.to_json(opts.args)}) since it exceeded the timeout of #{opts.timeout}")
                 setTimeout(f, opts.timeout*1000)
     ], (err) ->
-        winston.debug("Result of command: stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
+        winston.debug("Result of command: stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}; original cmd=#{misc.to_json(opts)}")
         opts.cb(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
         # Do not litter:
         if opts.bash
@@ -512,6 +532,7 @@ commit = (opts) ->
     if opts.commit_mesg == ''
         opts.commit_mesg = '(no message)'
 
+    nothing_to_do = false
     async.series([
         (cb) ->
             if not opts.add_all
@@ -519,13 +540,26 @@ commit = (opts) ->
             exec_as_user
                 project_id : opts.project_id
                 command    : 'git'
-                args       : ['add', '.']
+                args       : ['add', '--all']
                 cb         : (err, output) ->
-                    if err
-                        cb(err + output?.stderr)
-                    else if output.exit_code
-                        cb(output.stderr)
+                    if err or output.exit_code
+                        cb("#{err} -- #{misc.trunc(misc.to_json(output))}")
                     else
+                        cb()
+        (cb) ->
+            exec_as_user
+                project_id : opts.project_id
+                command    : 'git'
+                args       : ['status']
+                cb         : (err, output) ->
+                    if err or output.exit_code
+                        cb("#{err} -- #{misc.trunc(misc.to_json(output))}")
+                    else if output.stdout.indexOf('nothing to commit') != -1
+                        # DONE -- nothing further to do
+                        nothing_to_do = true
+                        cb(true)
+                    else
+                        # Add and commit as usual.
                         cb()
         (cb) ->
             exec_as_user
@@ -533,15 +567,17 @@ commit = (opts) ->
                 command    : 'git'
                 args       : ['commit', '-a', '-m', opts.commit_mesg, "--author", opts.author]
                 cb         : (err, output) ->
-                    console.log(err, misc.to_json(output))
-                    if err
-                        cb(err + output?.stderr)
-                    else if output.exit_code
-                        cb(output.stderr)
+                    if err or output?.exit_code
+                        cb("#{err} -- #{misc.trunc(misc.to_json(output))}")
                     else
                         cb()
+    ], (err) =>
+        if err and not nothing_to_do
+            opts.cb("Error commiting all changed files under control to the repository -- #{err}")
+        else
+            opts.cb() # good
+    )
 
-    ], opts.cb)
 
 
 # Save the project
@@ -550,10 +586,7 @@ events.save_project = (socket, mesg) ->
     bundles  = bundlepath(mesg.project_id)
     response = message.project_saved
         id             : mesg.id
-        files          : {master:{}}
-        logs           : {master:{}}
         bundle_uuids   : {}
-        current_branch : 'master'
 
     tasks    = []
     async.series([
@@ -572,9 +605,7 @@ events.save_project = (socket, mesg) ->
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
         (cb) ->
-            winston.debug("save_project -- bundle changes")
-            cmd = "diffbundler create #{path} #{bundles}"
-            winston.debug(cmd)
+            winston.debug("save_project -- bundle changes -- diffbundler create #{path} #{bundles}")
             exec_as_user
                 project_id : mesg.project_id
                 command    : '.git/salvus/diffbundler'

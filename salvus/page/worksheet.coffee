@@ -467,7 +467,7 @@ class Worksheet extends EventEmitter
                     timeout    : 10
                     cb         : cb
             (cb) =>
-                salvus_client.commit_file
+                salvus_client.git_commit_file
                     project_id : @opts.project_id
                     path       : path
                     author     : require('account').account_settings.git_author()

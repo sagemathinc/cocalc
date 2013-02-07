@@ -894,7 +894,9 @@ class exports.Connection extends EventEmitter
     #################################################
     # Git Commands
     #################################################
-    commit_file: (opts) =>
+
+    git_commit_file: (opts) =>
+        # Save just this one file in its own commit to the local git repo.
         opts = defaults opts,
             project_id : required
             path       : required
@@ -957,6 +959,8 @@ class exports.Connection extends EventEmitter
             else
                 opts.cb() # good
         )
+
+    
 
     #################################################
     # File Management

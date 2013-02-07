@@ -1292,6 +1292,8 @@ class Project
         recv_bundles       = undefined
         not_open = false
 
+        nothing_to_do = false
+
         async.series([
             # If project is already locked for saving (by this or
             # another hub), return an error.
@@ -1300,9 +1302,10 @@ class Project
                     if err
                         c(err)
                     else if is_being_saved
-                        c("Project can be saved at most once every 10 seconds.")
+                        nothing_to_do = true
+                        c(true)
                     else
-                        @_lock_for_saving(10, c)
+                        @_lock_for_saving(30, c)
 
             # Determine which project_server is hosting this project.
             # If none, then there is nothing further to do.
@@ -1394,6 +1397,9 @@ class Project
                 socket.on 'mesg', recv_bundles
 
         ], (err) =>
+            if err and nothing_to_do
+                opts.cb?()
+                return
             @_remove_saving_lock()
             if socket? and recv_bundles?
                 socket.removeListener('mesg', recv_bundles)

@@ -194,6 +194,8 @@ exports.path_split = (path) ->
 
 
 exports.trunc = (s, max_length) ->
+    if not max_length?
+        max_length = 1024
     if s.length > max_length
         return s.slice(0,max_length-3) + "..."
     else
