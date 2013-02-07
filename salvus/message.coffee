@@ -593,13 +593,18 @@ message
 
 # The read_file_from_project message is sent by the hub to request
 # that the project_server read a file from a project and send it back
-# to the hub as a blob.
-# hub --> project_server
+# to the hub as a blob.  Also sent by client to hub to request a file
+# or directory. If path is a directory, the optional archive field
+# specifies how to create a single file archive, with supported
+# options including:  'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'.
+# 
+# client --> hub --> project_server
 message
     event        : 'read_file_from_project'
     id           : undefined
     project_id   : required
     path         : required
+    archive      : undefined
 
 # The file_read_from_project message is sent by the project_server
 # when it finishes reading the file from disk.

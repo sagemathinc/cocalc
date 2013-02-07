@@ -9686,11 +9686,27 @@ x - sort
 
     [x] (0:40) project: when closing project, need to do show another project, etc.
 
--->    [ ] project: BUG -- download only works at the root level, not in folders...  maybe filename wrong
+    [x] (0:12) project: BUG -- download only works at the root level, not in folders...  maybe filename wrong
 
-    [ ] project: download complete project as a zip/tar
+-->    [ ] project: download complete project as a zip/tar
+           * ui = button in upper right with download icon
+           * due to quota issues, important that download done by project_server, which is kind of annoying.
+           * could be special case of "download a directory" where path="".  Want that anyways.  Then
+             I don't need a new message.
+           * what format to use??   .tar.bz2?  .zip?  BOTH and let client decide...
 
     [ ] worksheet: default name for new worksheets:   worksheet/uuid8.salvus
+
+    [ ] cell: tab completion dropdown should allow typing to search through it.
+
+    [ ] projects: add an "upload" button, which can take a downloaded
+        project archive and upload it.  It could also take an
+        arbitrary directory and make a project out of it.  And it can
+        take a github/etc page and make that a project.
+
+    [ ] project shutdown: it does *NOT* delete the user's files from /tmp, but it MUST.
+
+    [ ] opera: bug with cursor when evaluating input cells -- it doesn't go away; drive user crazy.
 
     [ ] project save: it really needs to indicate if there are any changed files... by maybe using select on the filesystem. Nontrivial, but worth it.
 

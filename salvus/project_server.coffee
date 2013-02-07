@@ -682,21 +682,30 @@ events.read_file_from_project = (socket, mesg) ->
     path = userpath(mesg.project_id) + '/' + mesg.path
     winston.debug("** the path = ", path)
     async.series([
-        # Check that the file is valid (in the user's directory).
         (cb) ->
+            # Check that the path is valid (in the user's directory).
             verify_that_path_is_valid mesg.project_id, path, (err, realpath) ->
                 if err
                     cb(err)
                 else
                     path = realpath
                     cb()
-        # Read the file into memory.
         (cb) ->
+            # Determine whether the path is a directory or file.
+            fs.stat path, (err, stats) ->
+                if err
+                    cb(err)
+                else
+                    if stats.isDirectory()
+                        winston.debug("***DIRECTORY!***")
+                    cb()
+        (cb) ->
+            # Read the file into memory.
             fs.readFile path, (err, _data) ->
                 data = _data
                 cb(err)
-        # Send the file as a blob back to the hub.
         (cb) ->
+            # Send the file as a blob back to the hub.
             id = uuid.v4()
             socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id)
             socket.write_mesg 'blob', {uuid:id, blob:data}

@@ -731,27 +731,32 @@ class Client extends EventEmitter
 
     mesg_read_text_file_from_project: (mesg) =>
         project = new Project(mesg.project_id)
-        project.read_file mesg.path, (err, content) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                t = content.blob.toString()
-                @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
+        project.read_file
+            path : mesg.path
+            cb   : (err, content) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    t = content.blob.toString()
+                    @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
 
     mesg_read_file_from_project: (mesg) =>
         project = new Project(mesg.project_id)
-        project.read_file mesg.path, (err, content) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                # Store content in uuid:blob store and provide a temporary (valid for 10 minutes) link to it.
-                u = uuid.v4()
-                save_blob uuid:u, value:content.blob, ttl:600, cb:(err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        the_url = "/blobs/#{mesg.path}?uuid=#{u}"
-                        @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
+        project.read_file
+            path    : mesg.path
+            archive : mesg.archive
+            cb      : (err, content) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    # Store content in uuid:blob store and provide a temporary (valid for 10 minutes) link to it.
+                    u = uuid.v4()
+                    save_blob uuid:u, value:content.blob, ttl:600, cb:(err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                            @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
         project = new Project(mesg.project_id)
@@ -1529,7 +1534,12 @@ class Project
     # used, e.g., for client-side editing, worksheets, etc.  This does
     # not pull the file from the database; instead, it loads it live
     # from the project_server virtual machine.
-    read_file: (path, cb) -> # cb(err, content_of_file)  -- indicates when done
+    read_file: (opts) -> # cb(err, content_of_file)  -- indicates when done
+        {path, archive, cb} = defaults opts,
+            path    : required
+            archive : undefined
+            cb      : required
+
         socket    = undefined
         id        = uuid.v4()
         data      = undefined
@@ -1546,7 +1556,7 @@ class Project
                         socket = _socket
                         c()
             (c) =>
-                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:@project_id, path:path)
+                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:@project_id, path:path, archive:archive)
                 socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
                     switch mesg.event
                         when 'error'

@@ -133,6 +133,12 @@ class ProjectPage
             @save_project()
             return false
 
+        # Initialize the save project button.
+        # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
+        @container.find("a[href='#download-project']").click () =>
+            @download_project()
+            return false
+
         # Initialize the search form.
         @init_search_form()
 
@@ -467,6 +473,16 @@ class ProjectPage
             else
                 tab.target.hide()
                 tab.label.removeClass('active')
+
+    download_project: (opts={}) =>
+        console.log('attempting download of project')
+        salvus_client.read_file_from_project
+            project_id : @project.project_id
+            path       : "/"
+            archive    : "zip"
+            cb         : (err, result) =>
+                console.log("result:")
+                console.log(err, result)
 
     save_project: (opts={}) =>
         opts = defaults opts,
