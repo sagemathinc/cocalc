@@ -9676,9 +9676,16 @@ x - sort
    * Bootstrap-notify: pretty boring/crappy.
    * Pines -- This looks very, very nice: http://pinesframework.org/pnotify
 
-    [ ] console -- clicking near the top doesn't work at all; can't focus, can't copy/paste, etc.; first 2-3 lines just don't work at all.
+    [x] (0:27) salvus.[tab] bonus create a salvus.notify feature that pops up a pnotify with same options
 
-    [ ] (0:20) salvus.[tab] bonus create a salvus.notify feature that pops up a pnotify with same options
+    [x] (0:15) move the worksheet/console buttons up to the top.
+
+    [ ] file browser: ability to download a file.
+
+    [ ] project: download complete project as a zip/tar
+
+
+    [ ] console -- clicking near the top doesn't work at all; can't focus, can't copy/paste, etc.; first 2-3 lines just don't work at all.
 
     [ ] cell: implement salvus.javascript(..., once=True) (on cell)
 
@@ -9728,8 +9735,6 @@ x - sort
         on load and new section creation (or deletion).
 
     [ ] file browser: persistent command line history
-
-    [ ] project: download complete project as a zip/tar
 
     [ ] project settings
     [ ] worksheet settings

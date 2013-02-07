@@ -136,6 +136,9 @@ class ProjectPage
         # Initialize the search form.
         @init_search_form()
 
+        # Initialize new worksheet/xterm/etc. console buttons
+        @init_console_buttons()
+
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
@@ -224,6 +227,19 @@ class ProjectPage
         @container.find(".project-new-file").click(@new_file_dialog)
         @container.find(".project-save").click(() => @save_project(show_success_alert:true))
         @container.find(".project-meta").click @reload
+
+    ########################################
+    # Console buttons
+    ########################################
+
+    init_console_buttons: () =>
+        @container.find("a[href=#new-command-line]").click () =>
+            @display_tab("project-consoles")
+            @consoles.create_tab(type:'command-line'); return false
+        @container.find("a[href=#new-worksheet]").click () =>
+            @display_tab("project-consoles")
+            @consoles.create_tab(type:'worksheet'); return false
+
 
     ########################################
     # Search
