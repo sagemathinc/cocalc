@@ -9678,6 +9678,10 @@ x - sort
 
     [ ] console -- clicking near the top doesn't work at all; can't focus, can't copy/paste, etc.; first 2-3 lines just don't work at all.
 
+    [ ] (0:20) salvus.[tab] bonus create a salvus.notify feature that pops up a pnotify with same options
+
+    [ ] cell: implement salvus.javascript(..., once=True) (on cell)
+
     [ ] project server "save" must update the last commit time, but it doesn't right now.
 
     [ ] sorting -- should sort by git save time, not filestamp, which is meaningless in case of close/open   (see http://stackoverflow.com/questions/1964470/whats-the-equivalent-of-use-commit-times-for-git).   I'm fine with just having *one* notion of timestamp.
@@ -9827,6 +9831,7 @@ def f(reset  = button('Randomize', classes="btn-primary"),
 
 
     [ ] tab completion bug: "E.q_eigenform(20) - F.q[tab]" for E,F elliptic curves
+    [ ] tab completion bug: "for E in cremona_opt[tab]"
     [ ] investigate: hint.css -- hint library in css (not js) --  http://kushagragour.in/lab/hint/
     [ ] interact: image point selector
     [ ] interact: labels/controls need to line up nicely
