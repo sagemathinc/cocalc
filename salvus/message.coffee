@@ -597,7 +597,7 @@ message
 # hub --> project_server
 message
     event        : 'read_file_from_project'
-    id           : required
+    id           : undefined
     project_id   : required
     path         : required
 

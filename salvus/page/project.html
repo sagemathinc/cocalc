@@ -63,7 +63,7 @@
 	    <!-- Close button -->
 	    <span class="btn-group">
 	      <a href="#save-project" class="btn btn-info">Save <i class="icon-save"> </i></a>
-	      <a href="#close-project" class="btn btn-danger">Stop <i class="icon-remove"> </i></a>
+	      <a href="#close-project" class="btn btn-danger">Shutdown <i class="icon-remove"> </i></a>
 	    </span>
 	  </div>
 
@@ -96,33 +96,37 @@
 	<!-- Tabs -- place where you click on them -->
 	<ul class="nav nav-tabs project-pages">
 	  <!-- Browse through files in the project -->
-	  <li class="active super-menu"><a href="#project-file-listing">Browse</a></li>
+	  <li class="active super-menu"><a href="#project-file-listing">File Browser</a></li>
 
 	  <!-- Use an interactive console in the project -->
 	  <li class="super-menu"><a href="#project-consoles">Sessions (<span class="project-consoles-count">0</span>)</a></li>
 
 	  <!-- File editor -->
-	  <li class="super-menu"><a href="#project-editor">Files (<span class="project-editor-file-count">0</span>)</a></li>
+	  <li class="super-menu"><a href="#project-editor">Editor (<span class="project-editor-file-count">0</span>)</a></li>
+
+
+	  <!-- Publications -->
+	  <li class="super-menu"><a href="#project-pubs">Publish (<span class="project-editor-publish-count">?</span>)</a></li>
+
 
 	  <!-- Chat about this project -->
 	  <li class="super-menu"><a href="#project-chats">Chat</a></li>
 
+	  <!-- Settings specific to this project -->
+	  <li class="super-menu"><a href="#project-settings">Settings</a></li>
+
 	  <!-- Git revision log of this project -->
-	  <li class="super-menu"><a href="#project-commits">Changes (<span class="project-editor-commit-count">?</span>)</a></li>
+<!--
+	  <li class="super-menu"><a href="#project-commits">Changes (<span class="project-editor-commit-count">?</span>)</a></li>-->
 
 	  <!-- Git branches -->
-	  <li class="super-menu"><a href="#project-branches">Branches (<span class="project-editor-branch-count">?</span>)</a></li>
+	  <li class="super-menu"><a href="#project-branches">Git (<span class="project-editor-branch-count">?</span>)</a></li>
 
 	  <!-- Git forks -->
 <!--
 	  <li class="super-menu"><a href="#project-forks">Forks</a></li>
 -->
 
-	  <!-- Publications -->
-	  <li class="super-menu"><a href="#project-pubs">Publish (<span class="project-editor-publish-count">?</span>)</a></li>
-
-	  <!-- Settings specific to this project -->
-	  <li class="super-menu"><a href="#project-settings">Settings</a></li>
 
 	  <!-- Search -->
 	  <li class="super-menu"><a href="#project-search"><input class="project-search-form-input search-query" type="text"
@@ -255,15 +259,6 @@
       </div>
     </div>
 
-    <div class="row hide" id="project-test-html"><br><br><br><br>
-      TESTS:
-      <div class="btn project-new-file">New File</div>
-      <div class="btn project-save">Save Project</div>
-      <div class="btn project-close">Close Project</div>
-      <div class="btn project-meta">Reload</div>
-      <br><br>
-    </div>
-
   </div>
 
   <div class="row span11 well well-small project-commit-single">
@@ -320,9 +315,9 @@
     <div class="pull-right">
       <span class="btn-group project-file-buttons">
 	<!--<a class="btn btn-primary btn-small" href="save-file"><i class="icon-save"> </i></a> -->
-	<a class="btn btn-info  btn-small" href="log-file"><i class="icon-backward"> </i></a>
-	<a class="btn btn-warning  btn-small" href="move-file"><i class="icon-external-link"> </i></a>
-	<a class="btn btn-success  btn-small" href="download-file"><i class="icon-download-alt"> </i></a>
+	<a class="btn btn-info  " href="#log-file"><i class="icon-time"> </i></a>
+	<a class="btn btn-warning " href="#move-file"><i class="icon-external-link"> </i></a>
+	<a class="btn btn-success " href="#download-file"><i class="icon-download-alt"> </i></a>
       </span>
     </div>
   </div>

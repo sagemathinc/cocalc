@@ -220,22 +220,15 @@ class ProjectPage
                 move_path_dialog.show(that)
             return false
 
-        ########################################
-        # Only for temporary testing
-        #########################################
-
-        @container.find(".project-new-file").click(@new_file_dialog)
-        @container.find(".project-save").click(() => @save_project(show_success_alert:true))
-        @container.find(".project-meta").click @reload
 
     ########################################
     # Console buttons
     ########################################
 
     init_console_buttons: () =>
-        @container.find("a[href=#new-command-line]").click () =>
+        @container.find("a[href=#new-xterm]").click () =>
             @display_tab("project-consoles")
-            @consoles.create_tab(type:'command-line'); return false
+            @consoles.create_tab(type:'xterm'); return false
         @container.find("a[href=#new-worksheet]").click () =>
             @display_tab("project-consoles")
             @consoles.create_tab(type:'worksheet'); return false
@@ -331,7 +324,6 @@ class ProjectPage
                     @container.find(".project-commit-message-output").text(mesg.error).show()
                 else
                     input.val("")
-                    @reload()
 
     command_line_exec: () =>
         elt = @container.find(".project-command-line")
@@ -426,8 +418,6 @@ class ProjectPage
                             c()  # success
             (c) =>
                 @save_project(cb:c)
-            (c) =>
-                @reload()
         ], opts.cb)
 
     init_tabs: () ->
@@ -490,22 +480,27 @@ class ProjectPage
                 if err
                     alert_message(type:"error", message:"Connection error saving project.")
                 else if mesg.event == "error"
+                    err = mesg.error
                     alert_message(type:"error", message:mesg.error)
                 else if opts.show_success_alert
                     alert_message(type:"success", message: "Project successfully saved.")
-                opts.cb?()
+                opts.cb?(err)
 
     close_project_dialog: () =>
-        salvus_client.close_project
-            project_id : @project.project_id
-            cb         : (err, mesg) =>
+        @save_project
+            cb : (err) =>
                 if err
-                    alert_message(type:"error", message:"Connection error closing project #{@project.title}.")
-                else if mesg.event == "error"
-                    alert_message(type:"error", message:mesg.error + " (closing project #{@project.title})")
-                else
-                    alert_message(type:"success", message: "Stopped project '#{@project.title}'.")
-                    top_navbar.remove_page(@project.project_id)
+                    return
+                salvus_client.close_project
+                    project_id : @project.project_id
+                    cb         : (err, mesg) =>
+                        if err
+                            alert_message(type:"error", message:"Connection error closing project #{@project.title}.")
+                        else if mesg.event == "error"
+                            alert_message(type:"error", message:mesg.error + " (closing project #{@project.title})")
+                        else
+                            alert_message(type:"success", message: "Stopped project '#{@project.title}'.")
+                            top_navbar.remove_page(@project.project_id)
 
     new_file_dialog: () =>
         salvus_client.write_text_file_to_project
@@ -537,7 +532,7 @@ class ProjectPage
                         commit_mesg : "Created a new file."
                         cb : (err, mesg) =>
                             if not err and mesg.event != 'error'
-                                @reload()
+                                @update_file_list_tab()
 
     load_from_server: (opts) ->
         opts = defaults opts,
@@ -693,17 +688,24 @@ class ProjectPage
                         #    save_button.click () =>
                         #        alert('save')
 
-                        move_button = t.find("a[href=move-file]")
+
+                        that = @
+
+                        move_button = t.find("a[href=#move-file]")
                         move_button.tooltip(title:"Move or delete; copy to another project", placement:"top", delay:500)
 
-                        log_button = t.find("a[href=log-file]")
+                        log_button = t.find("a[href=#log-file]")
                         if obj.commit?
                             log_button.tooltip(title:"Previous versions", placement:"top", delay:500)
                         else
                             log_button.addClass("disabled")
 
-                        download_button = t.find("a[href=download-file]")
+                        download_button = t.find("a[href=#download-file]")
                         download_button.tooltip(title:"Download", placement:"right", delay:500)
+                        download_button.data('filename', obj.name)
+                        download_button.click () ->
+                            that.download_file($(@).data('filename'))
+                            return false
 
                         # Clicking -- open the file in the editor
                         if path != ""
@@ -714,6 +716,17 @@ class ProjectPage
                             that.open_file($(@).data('name'))
                             return false
                     file_or_listing.append(t)
+
+    download_file: (path) =>
+        console.log("download '#{path}' from #{@project.project_id}")
+        salvus_client.read_file_from_project
+            project_id : @project.project_id
+            path       : path
+            cb         : (err, result) =>
+                url = result.url + "&download"
+                console.log(url)
+                iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
+                setTimeout((() -> iframe.remove()), 1000)
 
     open_file: (path) =>
         ext = filename_extension(path)
@@ -879,7 +892,8 @@ class ProjectPage
             # Reload the files/branches/etc to take into account new commit, file deletions, etc.
             (cb) =>
                 clearTimeout(spin_timer)
-                @reload(cb)
+                @update_file_list_tab()
+                cb()
 
         ], (err) ->
             if err

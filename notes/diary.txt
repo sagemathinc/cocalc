@@ -9680,10 +9680,19 @@ x - sort
 
     [x] (0:15) move the worksheet/console buttons up to the top.
 
-    [ ] file browser: ability to download a file.
+    [x] (2:09) file browser: ability to download a file. -- surprisingly hard, but solution is very, very nice.
+
+    [ ] file_browser: make certain types of files open in a new window (?) or download
 
     [ ] project: download complete project as a zip/tar
 
+    [ ] worksheet: default name for new worksheets:   worksheet/uuid8.salvus
+
+    [ ] project save: it really needs to indicate if there are any changed files... by maybe using select on the filesystem. Nontrivial, but worth it.
+
+    [ ] download: extend to directories
+
+    [ ] download: extend to multiple selected files (?)
 
     [ ] console -- clicking near the top doesn't work at all; can't focus, can't copy/paste, etc.; first 2-3 lines just don't work at all.
 

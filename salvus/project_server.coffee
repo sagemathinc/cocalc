@@ -530,7 +530,7 @@ commit = (opts) ->
         cb          : required
         add_all     : false
     if opts.commit_mesg == ''
-        opts.commit_mesg = '(no message)'
+        opts.commit_mesg = 'no message'
 
     nothing_to_do = false
     async.series([

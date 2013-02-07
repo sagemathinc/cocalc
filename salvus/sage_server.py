@@ -303,19 +303,34 @@ class Salvus(object):
         self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
         return self
 
-    def file(self, filename, show=True, done=False):
+    def file(self, filename, show=True, done=False, download=False):
         """
         Sends a file to the browser and returns a uuid that can be
-        used to access the file (for up to 1 minute) at
-        /blobs/filename?uuid=the_uuid
+        used to access the file (for 1 hour) at
+
+                /blobs/filename?uuid=the_uuid
 
         If show is true (the default), the browser will show the file
         as well, or provide a link to it.
+
+        If you instead use the URL
+
+               /blobs/filename?uuid=the_uuid&download
+
+        the server will include a header that tells the browser to
+        download the file to disk instead of displaying it.
+
+        If show=False, also returns the url.  This can be useful for
+        constructing custom HTML that directly accesses blobs.
         """
         file_uuid = str(uuid.uuid4())
         self._conn.send_file(file_uuid, filename)
         self._conn.send_json(message.output(id=self._id, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
-        return file_uuid
+        if not show:
+            url = "/blobs/%s?uuid=%s"%(filename, file_uuid)
+            if download:
+                url += '?download'
+            return url
 
     def html(self, html, done=False):
         self._conn.send_json(message.output(html=str(html), id=self._id, done=done))

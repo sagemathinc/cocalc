@@ -73,7 +73,8 @@ init_http_server = () ->
         if pathname != '/alive'
             winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
 
-        switch pathname.split('/')[1]
+        segments = pathname.split('/')
+        switch segments[1]
             when "cookies"
                 cookies = new Cookies(req, res)
                 conn = clients[query.id]
@@ -103,7 +104,11 @@ init_http_server = () ->
                         res.writeHead(404, {'Content-Type':'text/plain'})
                         res.end("404 blob #{query.uuid} not found")
                     else
-                        res.writeHead(200, {'Content-Type':mime.lookup(pathname)})
+                        header = {'Content-Type':mime.lookup(pathname)}
+                        if query.download?
+                            # tell browser to download the link as a file instead of displaying it in browser
+                            header['Content-disposition'] = 'attachment; filename=' + segments[segments.length-1]
+                        res.writeHead(200, header)
                         res.end(data, 'utf-8')
             else
                 res.end('hub server')
@@ -741,12 +746,12 @@ class Client extends EventEmitter
             else
                 # Store content in uuid:blob store and provide a temporary (valid for an hour) link to it.
                 u = uuid.v4()
-                save_blob uuid:u, value:content, ttl:3600, cb:(err) ->
+                save_blob uuid:u, value:content.blob, ttl:3600, cb:(err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        url = "/blobs/#{mesg.path}?uuid=#{u}"
-                        @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:url))
+                        the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                        @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
         project = new Project(mesg.project_id)
