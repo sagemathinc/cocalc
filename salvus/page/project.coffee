@@ -124,13 +124,13 @@ class ProjectPage
         # Initialize the close project button.
         # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").
         @container.find("a[href='#close-project']").click () =>
-            @close_project_dialog()
+            @close_project(show_success_alert:true)
             return false
 
         # Initialize the save project button.
         # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
         @container.find("a[href='#save-project']").click () =>
-            @save_project()
+            @save_project(show_success_alert:true)
             return false
 
         # Initialize the save project button.
@@ -475,38 +475,14 @@ class ProjectPage
                 tab.label.removeClass('active')
 
     save_project: (opts={}) =>
-        opts = defaults opts,
-            commit_mesg : ""
-            cb          : undefined
-            show_success_alert : false
-        salvus_client.save_project
-            project_id : @project.project_id
-            commit_mesg : opts.commit_mesg
-            cb         : (err, mesg) ->
-                if err
-                    alert_message(type:"error", message:"Connection error saving project.")
-                else if mesg.event == "error"
-                    err = mesg.error
-                    alert_message(type:"error", message:mesg.error)
-                else if opts.show_success_alert
-                    alert_message(type:"success", message: "Project successfully saved.")
-                opts.cb?(err)
+        opts.project_id = @project.project_id
+        opts.title = @project.title
+        save_project(opts)
 
-    close_project_dialog: () =>
-        @save_project
-            cb : (err) =>
-                if err
-                    return
-                salvus_client.close_project
-                    project_id : @project.project_id
-                    cb         : (err, mesg) =>
-                        if err
-                            alert_message(type:"error", message:"Connection error closing project #{@project.title}.")
-                        else if mesg.event == "error"
-                            alert_message(type:"error", message:mesg.error + " (closing project #{@project.title})")
-                        else
-                            alert_message(type:"success", message: "Stopped project '#{@project.title}'.")
-                            top_navbar.remove_page(@project.project_id)
+    close_project: (opts={}) =>
+        opts.title = @project.title
+        opts.project_id = @project.project_id
+        close_project(opts)
 
     new_file_dialog: () =>
         salvus_client.write_text_file_to_project
@@ -958,3 +934,52 @@ download_project = exports.download_project = (opts) ->
                 url = url.replace('/?',  opts.filename + "." + opts.archive + '?')
                 iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                 setTimeout((() -> iframe.remove()), 1000)
+
+close_project = exports.close_project = (opts) ->
+    opts = defaults opts,
+        project_id         : required
+        title              : required
+        show_success_alert : false
+        cb                 : undefined
+
+    save_project
+        project_id : opts.project_id
+        show_success_alert : false
+        title      : opts.title
+        cb : (err) =>
+            if err
+                alert_message(type:"error", message:"Not closing project, since there was an issue saving the project. -- #{err}")
+                return
+            salvus_client.close_project
+                project_id : opts.project_id
+                cb         : (err, mesg) =>
+                    if err
+                        alert_message(type:"error", message:"Connection error closing project #{opts.title}.")
+                    else if mesg.event == "error"
+                        alert_message(type:"error", message:mesg.error + " (closing project #{opts.title})")
+                    else
+                        if opts.show_success_alert
+                            alert_message(type:"success", message: "Shutdown project '#{opts.title}'.")
+                        top_navbar.remove_page(opts.project_id)
+                    opts.cb?(err)
+
+
+save_project = exports.save_project = (opts) ->
+    opts = defaults opts,
+        project_id  : required
+        title       : required
+        commit_mesg : ""
+        cb          : undefined
+        show_success_alert : false
+    salvus_client.save_project
+        project_id : opts.project_id
+        commit_mesg : opts.commit_mesg
+        cb         : (err, mesg) ->
+            if err
+                alert_message(type:"error", message:"Connection error saving project '#{opts.title}'.")
+            else if mesg.event == "error"
+                err = mesg.error
+                alert_message(type:"error", message:"Error saving project '#{opts.title}' -- #{mesg.error}")
+            else if opts.show_success_alert
+                alert_message(type:"success", message: "Saved project '#{opts.title}'.")
+            opts.cb?(err)

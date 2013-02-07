@@ -1,32 +1,32 @@
 <div class="container hide" id="projects">
   <div class="span11 well">
 
-    <div class="pull-right"   style="margin-right:2em">
+    <button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:15em">Create a New Project</button>
+    <div class="pull-right" style="margin-right:2em">
+	<span class="btn-group">
+	  <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
+	  <button class="btn btn-info btn-small" id="projects-public-button">Public</button>
+	  <button class="btn btn-info btn-small" id="projects-private-button">Private</button>
+	</span>
+	&nbsp;	&nbsp;
+      <input class="span3 projects-find-input search-query" type="text" placeholder="Find a project...">
+	&nbsp;	&nbsp;
       <span class="btn-group">
 	<a href="#download-all-projects" class="btn btn-success">Download All <i class="icon-download-alt"> </i></a>
 	<a href="#close-all-projects" class="btn btn-danger">Shutdown All <i class="icon-remove"> </i></a>
       </span>
     </div>
 
-    <div class="your-projects-title">
-      <div class="span3">
-	<div style="margin-top:2px"><span class="big-only">Your </span><span id="projects-count"></span> <span class="big-only">Salvus </span>Projects</div>
-      </div>
-      <div class="span4">
-	<button class="btn btn-primary btn-large span3" type="submit" id="new_project-button">Create a New Project</button>
+<!--    <div class="your-projects-title">
+	<div style="margin-top:2px"><span class="big-only">Your </span><span id="projects-count"></span> <span class="big-only"> </span>Projects</div>
+    </div>
+    <div class="row span10" style="margin-bottom:0em;margin-top:2em;">
+      <div class="span4"  style="margin-left:0px">
+	<button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:20em">Create a New Project</button>
       </div>
     </div>
+-->
     <div class="row span10">
-      <input class="span3 projects-find-input" type="text" placeholder="Find a project...">
-    </div>
-    <div class="row span10">
-      <div class="span4"  style="margin-bottom:.5em; margin-left:0em;">
-	<div class="btn-group">
-	  <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
-	  <button class="btn btn-info btn-small" id="projects-public-button">Public</button>
-	  <button class="btn btn-info btn-small" id="projects-private-button">Private</button>
-	</div>
-      </div>
       <div class="span1 ">
 	<span class="projects-create-new-spinner hide"></span>
       </div>

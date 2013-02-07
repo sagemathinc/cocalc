@@ -9688,6 +9688,8 @@ x - sort
 
     [x] (0:12) project: BUG -- download only works at the root level, not in folders...  maybe filename wrong
 
+    [x] (1:05) projects: have a red button "Shutdown all projects" in upper right; plus restyle the projects page
+
 -->    [ ] project: download complete project as a zip/tar
            * ui = button in upper right with download icon
            * ui = little button next to each project on projects page
@@ -9700,7 +9702,7 @@ x - sort
     [ ] project download options:
            * archive type: tar, tar.bz2, etc.
 
--->    [ ] projects: have a red button "Shutdown all projects" in upper right
+    [ ] project: shutdown and save should save unsaved open worksheets
 
     [ ] worksheet: default name for new worksheets:   worksheet/uuid8.salvus
 

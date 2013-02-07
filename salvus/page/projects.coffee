@@ -7,7 +7,8 @@
 {salvus_client} = require('salvus_client')
 {top_navbar}    = require('top_navbar')
 {alert_message} = require('alerts')
-{project_page, download_project}  = require('project')
+{misc}          = require('misc')
+{project_page, download_project, close_project}  = require('project')
 
 top_navbar.on "switch_to_page-projects", () ->
     update_project_list?()
@@ -26,6 +27,8 @@ update_project_list = exports.update_project_list = () ->
                 project_list = mesg.projects
                 compute_search_data()
                 update_project_view()
+            else
+                alert_message(type:"error", message:"Problem getting updated list of projects. #{error}. #{misc.to_json(mesg)}")
 
 
 # update caused by update happenin on some other client
@@ -65,7 +68,7 @@ $("#projects-private-button").click (event) ->
     update_project_view()
 
 
-DEFAULT_MAX_PROJECTS = 20
+DEFAULT_MAX_PROJECTS = 50
 
 $("#projects-show_all").click( (event) -> update_project_view(true) )
 template = $("#projects-project_list_item_template")
@@ -101,7 +104,7 @@ update_project_view = (show_all=false) ->
         return
     X = $("#projects-project_list")
     X.empty()
-    $("#projects-count").html(project_list.length)
+    # $("#projects-count").html(project_list.length)
     find_text = $(".projects-find-input").val().toLowerCase()
     n = 0
     for project in project_list
@@ -161,3 +164,31 @@ $("#projects-create_project-button-create_project").click (event) ->
                 update_project_list()
     close_create_project()
 
+
+
+################################################
+# Shutdown all projects button
+################################################
+$("#projects").find("a[href=#close-all-projects]").click () ->
+    close_all_projects()
+
+close_all_projects = () ->
+    salvus_client.get_projects
+        cb : (err, mesg) ->
+            if err or mesg.event != 'all_projects'
+                alert_message(type:"error", message:"Unable to get list of projects. #{error}. #{misc.to_json(mesg)}")
+            else
+                # TODO -- use async.parallel, etc.? to know when done, and refresh as we go.
+                for project in mesg.projects
+                    if project.host != ""
+                        close_project
+                            project_id : project.project_id
+                            title      : project.title
+                            show_success_alert : true
+                            cb : (err) ->
+                                update_project_list()
+
+
+################################################
+# Download all projects button
+################################################

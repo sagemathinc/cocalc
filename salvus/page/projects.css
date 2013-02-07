@@ -1,5 +1,6 @@
 .your-projects-title {
     font-size: 18pt;
+    font-weight:bold;
     line-height: 18pt;
 }
 
@@ -26,10 +27,9 @@
 }
 
 .projects-find-input {
-    margin-bottom:1em; margin-top:1em; margin-left:4em;
 }
 
 .projects-active {
-    color:darkorange;
+    color:red;
     font-size:13pt;
 }
