@@ -24,6 +24,12 @@ For debugging (as normal user, do):
 #########################################################################################
 
 
+# This can be useful, just in case.
+def log(s):
+    debug_log = open("/tmp/debug.log",'a')
+    debug_log.write(s+'\n')
+    debug_log.flush()
+
 # We import the notebook interact, which we will monkey patch below,
 # first, since importing later causes trouble in sage>=5.6.
 import sagenb.notebook.interact
@@ -331,6 +337,53 @@ class Salvus(object):
             if download:
                 url += '?download'
             return url
+
+    def execute(self, code, namespace=None, preparse=True):
+        if namespace is None:
+            namespace = self.namespace
+        for start, stop, block in parsing.divide_into_blocks(code):
+            if preparse:
+                block = parsing.preparse_code(block)
+            sys.stdout.reset(); sys.stderr.reset()
+            try:
+                exec compile(block, '', 'single') in namespace
+            except:
+                sys.stdout.flush()
+                sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
+                traceback.print_exc()
+                sys.stderr.flush()
+
+    def execute_with_cell_decorators(self, cell_decorators, code):
+        """
+        salvus.execute_with_cell_decorators is used when evaluating code blocks that are set to any non-default cell_decorator.
+        """
+        import inspect
+        if isinstance(cell_decorators, str):
+            cell_decorators = [cell_decorators]
+
+        cell_decorators = [eval(cell_decorator, self.namespace) for cell_decorator in cell_decorators]
+
+        for cell_decorator in cell_decorators:
+            # eval is for backward compatibility
+            if not hasattr(cell_decorator, 'eval') and hasattr(cell_decorator, 'before'):
+                cell_decorator.before(code)
+
+        for cell_decorator in reversed(cell_decorators):
+            if hasattr(cell_decorator, 'eval'):   # eval is for backward compatibility
+                code = cell_decorator.eval(code, self.namespace)
+                print code
+                code = ''
+            else:
+                code = cell_decorator(code)
+            if code is None:
+                code = ''
+
+        if code != '':
+            self.execute(code)
+
+        for cell_decorator in cell_decorators:
+            if not hasattr(cell_decorator, 'eval') and hasattr(cell_decorator, 'after'):
+                cell_decorator.after(code)
 
     def html(self, html, done=False):
         self._conn.send_json(message.output(html=str(html), id=self._id, done=done))
@@ -659,20 +712,26 @@ def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     import time; import random; random.seed(time.time())
 
     while True:
-        typ, mesg = conn.recv()
-        #print 'INFO:child%s: received message "%s"'%(pid, mesg)
-        event = mesg['event']
-        if event == 'terminate_session':
+        try:
+            typ, mesg = conn.recv()
+            #print 'INFO:child%s: received message "%s"'%(pid, mesg)
+            event = mesg['event']
+            if event == 'terminate_session':
+                return
+            elif event == 'execute_code':
+                execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
+            elif event == 'introspect':
+                try:
+                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
+                except KeyboardInterrupt:
+                    pass
+            else:
+                raise RuntimeError("invalid message '%s'"%mesg)
+        except socket.error as (errno, msg):
             return
-        elif event == 'execute_code':
-            execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
-        elif event == 'introspect':
-            try:
-                introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
-            except KeyboardInterrupt:
-                pass
-        else:
-            raise RuntimeError("invalid message '%s'"%mesg)
+        except:
+            pass
+
 
 def introspect(conn, id, line, preparse):
     salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works -- note that Salvus(...) modifies namespace.

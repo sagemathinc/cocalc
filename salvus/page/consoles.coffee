@@ -336,4 +336,4 @@ class WorksheetSession extends Session
         return @worksheet.has_unsaved_changes()
 
     save: () =>
-        @worksheet.save(@worksheet.filename())
+        @worksheet?.save(@worksheet?.filename())

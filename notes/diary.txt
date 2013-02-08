@@ -9693,8 +9693,42 @@ x - sort
     [x] worksheet: default name for new worksheets
 
     [x] (0:05) disable the "use salvus now" box.
-    [x] (0:16) project: shutdown and save should save unsaved open worksheets
+    [x] (0:25) project: shutdown and save should save unsaved open worksheets
 
+    [ ] sage_sessions are mysteriously stopping -- but repeatable via my cell mode test.
+
+    [ ] (3:47) cell mode: %generic  -- ran into big python bug; am sick; had to come up with a notion of "cell decorators".
+
+    [ ] cell modes: %cython
+    [ ] cell mode: %hide
+    [ ] cell mode: %hideall
+    [ ] cell mode: %time
+    [ ] cell mode: %latex
+    [ ] cell mode: %html
+
+    [ ] this doesn't work at all: gap.eval('2+3')
+
+    [ ] sage_session: need a clear indicator passed back to the client when there is a segfault or other condition that terminates the process.
+        E.g., this little script -- in sage -- will cause a segfault, but it is confusing to debug since the session just dies.
+        I just wasted 1:20 confused by this!!
+~$ more test0.sage
+def pw(s):
+    return '%s ^ %s'%(s,s)
+def py(s):
+    print eval(s)
+def tm(s):
+    eval(s)
+s ='5'
+tm('py(pw(s))')
+-------------
+def h(x):
+    return x + "+" + x
+def g(s):
+    return eval(s)
+g("g(h(s))")
+
+    [ ] no projects -- a message about what to do
+    [ ] no worksheets -- a message about what to do
 
     [ ] project: download complete project as a zip/tar
            * ui = button in upper right with download icon
@@ -9720,7 +9754,6 @@ x - sort
         project archive and upload it.  It could also take an
         arbitrary directory and make a project out of it.  And it can
         take a github/etc page and make that a project.
-
 
     [ ] projects: search -- another button for only active projects
 
@@ -9797,12 +9830,6 @@ x - sort
 
     [ ] cell: add a 'lang' attribute to specify the language.
     [ ] load/attach
-    [ ] cell modes: %cython
-    [ ] cell mode: %hide
-    [ ] cell mode: %hideall
-    [ ] cell mode: %time
-    [ ] cell mode: %latex
-    [ ] cell mode: %html
     [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
     [ ] cell: move the stopwatch to right side.
 
@@ -9816,7 +9843,7 @@ x - sort
     [ ] cell: comment/uncomment -- "Hello, i try to comment uncomment block of code on the sage notebook, but the schortcut are similar to some shortcut of firefox.
 for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : work but firefox change the page to the tab 3 or 4 why don't change it like: ctrl shift somethinelse?"
 
-    [ ] interact: forgot to put number by slider
+    [ ] interact: need to stylize, e.g., put number next to slider, instead of next to
 
     [ ] project: the whole topbar well with title is a too-big waste of space.  Give it *more* info, but make it toggleable?
 

@@ -906,20 +906,45 @@ class Cell extends EventEmitter
     set_session: (session) ->
         @opts.session = session
 
+    _parse_cell_decorators: (code) ->
+        # Each consecutive line that starts with a percent defines a
+        # mode.  The first line not starting with a percent, ends the modes.
+        data = [[],null]
+        i = 0
+        while i < code.length and code[i] == "%"
+            i = code.indexOf('\n')
+            if i == -1
+                i = code.length
+            data[0].push(code.slice(1, i))
+            code = code.slice(i+1)
+            i = 0
+
+        data[1] = code # remaining code
+        return {
+            code : 'salvus.execute_with_cell_decorators(*salvus.data)'
+            data : data
+        }
+
     execute: () =>
         @_close_on_action()
         if not @opts.session
             throw "Attempt to execute code on a cell whose session has not been set."
         @emit 'execute'
         code = $.trim(@_editor.getValue())
+        data = undefined
         if code == ""
             # easy special case -- empty input
             @delete_output()
             return
+        if code[0] == '%'
+            # special user-specified percent mode
+            {code, data} = @_parse_cell_decorators(code)
+            console.log("special mode: #{to_json(code)}, #{to_json(data)}")
         first_message = true
         s = setTimeout( (() => @prepare_stopwatch()), 250)
         @_last_execute_uuid = @opts.session.execute_code
             code     : code
+            data     : data
             preparse : true
             cb       : (mesg) =>
                 clearTimeout(s)

@@ -387,11 +387,11 @@ class exports.Connection extends EventEmitter
         opts.cb(false, session)
 
     execute_code: (opts={}) ->
-        opts = defaults(opts, code:defaults.required, cb:null, preparse:true, allow_cache:true)
+        opts = defaults(opts, code:defaults.required, cb:null, preparse:true, allow_cache:true, data:undefined)
         uuid = misc.uuid()
         if opts.cb?
             @execute_callbacks[uuid] = opts.cb
-        @send(message.execute_code(id:uuid, code:opts.code, preparse:opts.preparse, allow_cache:opts.allow_cache))
+        @send(message.execute_code(id:uuid, code:opts.code, preparse:opts.preparse, allow_cache:opts.allow_cache, data:opts.data))
         return uuid
 
     # introspection
