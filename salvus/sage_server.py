@@ -386,11 +386,11 @@ class Salvus(object):
             if not hasattr(cell_decorator, 'eval') and hasattr(cell_decorator, 'after'):
                 cell_decorator.after(code)
 
-    def html(self, html, done=False):
-        self._conn.send_json(message.output(html=str(html), id=self._id, done=done))
+    def html(self, html, done=False, once=None):
+        self._conn.send_json(message.output(html=str(html), id=self._id, done=done, once=once))
         return self
 
-    def tex(self, obj, display=False, done=False):
+    def tex(self, obj, display=False, done=False, once=None):
         """
         Display obj nicely using TeX rendering.
 
@@ -400,13 +400,13 @@ class Salvus(object):
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
         tex = obj if isinstance(obj, str) else self.namespace['latex'](obj)
-        self._conn.send_json(message.output(tex={'tex':tex, 'display':display}, id=self._id, done=done))
+        self._conn.send_json(message.output(tex={'tex':tex, 'display':display}, id=self._id, done=done, once=once))
         return self
 
     def start_executing(self):
         self._conn.send_json(message.output(done=False, id=self._id))
 
-    def stdout(self, output, done=False):
+    def stdout(self, output, done=False, once=None):
         """
         Send the string output (or str(output) if output is not a
         string) to the standard output stream of the compute cell.
@@ -417,10 +417,10 @@ class Salvus(object):
 
         """
         stdout = output if isinstance(output, str) else str(output)
-        self._conn.send_json(message.output(stdout=stdout, done=done, id=self._id))
+        self._conn.send_json(message.output(stdout=stdout, done=done, id=self._id, once=once))
         return self
 
-    def stderr(self, output, done=False):
+    def stderr(self, output, done=False, once=None):
         """
         Send the string output (or str(output) if output is not a
         string) to the standard error stream of the compute cell.
@@ -431,7 +431,7 @@ class Salvus(object):
 
         """
         stderr = output if isinstance(output, str) else str(output)
-        self._conn.send_json(message.output(stderr=stderr, done=done, id=self._id))
+        self._conn.send_json(message.output(stderr=stderr, done=done, id=self._id, once=once))
         return self
 
     def _execute_interact(self, id, vals):
@@ -440,11 +440,11 @@ class Salvus(object):
         else:
             sage_salvus.interacts[id](vals)
 
-    def interact(self, f, done=False, **kwds):
+    def interact(self, f, done=False, once=None, **kwds):
         I = sage_salvus.InteractCell(f, **kwds)
         self._conn.send_json(message.output(
             interact = I.jsonable(),
-            id=self._id, done=done))
+            id=self._id, done=done, once=once))
         return sage_salvus.InteractFunction(I)
 
     def javascript(self, code, once=True, coffeescript=False, done=False, obj=None):
@@ -486,7 +486,7 @@ class Salvus(object):
         kwds['coffeescript'] = True
         return self.javascript(*args, **kwds)
 
-    def notify(self, **kwds):
+    def notify(self, once=None, **kwds):
         """
         Display a graphical notification using the pnotify Javascript library.
 
@@ -524,10 +524,13 @@ class Salvus(object):
         obj = {}
         for k, v in kwds.iteritems():
             obj[k] = sage_salvus.jsonable(v)
-        self.javascript("$.pnotify(obj)", obj=obj)
+        self.javascript("$.pnotify(obj)", once=once, obj=obj)
 
     def execute_javascript(self, code, coffeescript=False, data=None):
         """
+        Tell the browser to execute javascript.  Basically the same as
+        salvus.javascript with once=True (the default), except this
+        isn't tied to a particular cell.
         """
         self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, data=data))
         return self

@@ -9708,7 +9708,7 @@ x - sort
 
     [x] (0:13) coffeescript/javascript: honor the "once" attribute
 
--->    [ ] messages -- support once for everything
+    [x] (0:06) messages -- support once for everything
 
     [x] (0:12) cell modes: %coffeescript
 
