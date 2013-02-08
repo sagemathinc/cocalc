@@ -1083,3 +1083,18 @@ for f in interact_controls:
     interact.controls.__dict__[f] = interact_functions[f]
 
 
+##########################################################################################
+# Cell decorators -- aka "percent modes"
+##########################################################################################
+
+import sage.misc.html
+_html = sage.misc.html.HTML()
+
+class HTML:
+    def __call__(self, s, *args, **kwds):
+        salvus.html(s, *args, **kwds)
+    def table(self):
+        pass
+
+html = HTML()
+html.iframe = _html.iframe  # written in a way that works fine

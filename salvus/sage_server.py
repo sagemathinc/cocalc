@@ -902,9 +902,7 @@ def serve(port, host):
     import sage.all
 
     # Monkey patch the html command.
-    def html(*args, **kwds):
-        namespace['salvus'].html(*args, **kwds)
-    sage.all.html = sage.misc.html.html = sage.interacts.library.html = html
+    sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
 
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?

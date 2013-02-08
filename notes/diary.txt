@@ -9697,14 +9697,18 @@ x - sort
 
     [ ] sage_sessions are mysteriously stopping -- but repeatable via my cell mode test.
 
-    [ ] (3:47) cell mode: %generic  -- ran into big python bug; am sick; had to come up with a notion of "cell decorators".
+    [x] (3:47) cell mode: %generic  -- ran into big python bug; am sick; had to come up with a notion of "cell decorators".
+
+    [ ] cell mode: %html
+            [x] html.iframe
+            [ ] html.table
+            [ ] html -- math parsing content (?)
 
     [ ] cell modes: %cython
     [ ] cell mode: %hide
     [ ] cell mode: %hideall
     [ ] cell mode: %time
     [ ] cell mode: %latex
-    [ ] cell mode: %html
 
     [ ] this doesn't work at all: gap.eval('2+3')
 
@@ -9726,6 +9730,8 @@ def h(x):
 def g(s):
     return eval(s)
 g("g(h(s))")
+----
+It's http://bugs.python.org/issue7985 -- see 
 
     [ ] no projects -- a message about what to do
     [ ] no worksheets -- a message about what to do
@@ -9964,3 +9970,9 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] investigate : http://jschr.github.com/textillate/index.html
 
     [ ] single cell: re-enable single cell (see account.html)
+
+    [ ] hub: "ulimit -n" keep hitting this in testing -- https://github.com/sockjs/sockjs-node/issues/94
+        I need to (1) up the number i
+               /etc/security/limits.conf
+        on servers, and *two* 
+        make sure to clean up after file descriptors *much* more vigilantly -- I do nothing now.
