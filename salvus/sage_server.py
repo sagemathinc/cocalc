@@ -130,7 +130,7 @@ class Message(object):
     def execute_javascript(self, code, data=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None: m['stdout'] = stdout
@@ -143,6 +143,7 @@ class Message(object):
         if obj is not None: m['obj'] = json.dumps(obj)
         if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
         if done is not None: m['done'] = done
+        if once is not None: m['once'] = once
         return m
 
     def introspect_completions(self, id, completions, target):
@@ -309,7 +310,7 @@ class Salvus(object):
         self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
         return self
 
-    def file(self, filename, show=True, done=False, download=False):
+    def file(self, filename, show=True, done=False, download=False, once=None):
         """
         Sends a file to the browser and returns a uuid that can be
         used to access the file (for 10 minutes) at
@@ -331,7 +332,7 @@ class Salvus(object):
         """
         file_uuid = str(uuid.uuid4())
         self._conn.send_file(file_uuid, filename)
-        self._conn.send_json(message.output(id=self._id, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
+        self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
         if not show:
             url = "/blobs/%s?uuid=%s"%(filename, file_uuid)
             if download:
@@ -378,7 +379,7 @@ class Salvus(object):
             if code is None:
                 code = ''
 
-        if code != '':
+        if code != '' and isinstance(code, str):
             self.execute(code)
 
         for cell_decorator in cell_decorators:
@@ -475,7 +476,7 @@ class Salvus(object):
         """
         if obj is None:
             obj = {}
-        self._conn.send_json(message.output(javascript={'code':code, 'once':once, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj))
+        self._conn.send_json(message.output(javascript={'code':code, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj, once=once))
         return self
 
     def coffeescript(self, *args, **kwds):
@@ -909,6 +910,9 @@ def serve(port, host):
     #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
     exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
+
+    for name in ['coffeescript', 'javascript']:
+        namespace[name] = getattr(sage_salvus, name)
 
     t = time.time()
     s.listen(128)

@@ -9700,9 +9700,17 @@ x - sort
     [x] (3:47) cell mode: %generic  -- ran into big python bug; am sick; had to come up with a notion of "cell decorators".
 
     [ ] cell mode: %html
-            [x] html.iframe
-            [ ] html.table
+            [x] cell mode: html.iframe
+            [ ] (0:05) html.table
             [ ] html -- math parsing content (?)
+
+    [x] (0:17) mathjax jQuery plugin -- option to parse through and proces stext with $'s, etc.
+
+    [x] (0:13) coffeescript/javascript: honor the "once" attribute
+
+-->    [ ] messages -- support once for everything
+
+    [x] (0:12) cell modes: %coffeescript
 
     [ ] cell modes: %cython
     [ ] cell mode: %hide

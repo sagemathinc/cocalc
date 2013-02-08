@@ -827,13 +827,14 @@ class Cell extends EventEmitter
         # Save this output message in case the cell is serialized in
         # its current state.  Note that we only record nonempty
         # messages that we want to appear when we reload the cell.
+        # In particular, a message with mesg.once true will not be saved.
         m = {}
         for x, y of mesg
             # No point in saving certain data, e.g., event just tags that it is output,
             # done is used to know when computation completes (no comp done here), etc.
             if x not in ['id', 'event', 'done', 'session_uuid', 'interact']
                 m[x] = y
-        if len(m) > 0
+        if len(m) > 0 and not mesg.once
             # changed in a way that would benefit from saving
             @emit 'changed', {output:mesg}
             @_persistent_output_messages.push(m)
@@ -869,15 +870,20 @@ class Cell extends EventEmitter
         e = templates.find(".salvus-cell-output-#{opts.stream}").clone()
         if e.length != 1
             throw "ERROR -- missing template with class .salvus-cell-output-#{opts.stream}"
+
         @_output.append(e)
         switch opts.stream
             when 'stdout', 'stderr'
                 e.text(opts.value)
             when 'html'
-                e.html(opts.value)
+                e.html(opts.value).mathjax()
             when 'tex'
-                e.text(opts.value).data('value', opts.value).mathjax(
-                                        tex: opts.value.tex, display:opts.value.display)
+                arg = {tex:opts.value.tex}
+                if opts.value.display
+                    arg.display = true
+                else
+                    arg.inline = true
+                e.text(opts.value).data('value', opts.value).mathjax(arg)
             when 'file'
                 if opts.value.show
                     target = "/blobs/#{opts.value.filename}?uuid=#{opts.value.uuid}"
@@ -939,7 +945,6 @@ class Cell extends EventEmitter
         if code[0] == '%'
             # special user-specified percent mode
             {code, data} = @_parse_cell_decorators(code)
-            console.log("special mode: #{to_json(code)}, #{to_json(data)}")
         first_message = true
         s = setTimeout( (() => @prepare_stopwatch()), 250)
         @_last_execute_uuid = @opts.session.execute_code

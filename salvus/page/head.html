@@ -50,10 +50,19 @@
   <script type="text/javascript" src="/coffeescript/coffee-script.js"></script>
 
   <!-- MathJax -->
-<!--  <script type="text/x-mathjax-config">
+  <!--  <script type="text/x-mathjax-config">
    /* MathJax.Hub.Config({showProcessingMessages: false, messageStyle:"none" }) */
   </script>
--->
+  -->
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+       tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+       },
+    });
+  </script>
   <script type="text/javascript" src="/mathjax/MathJax.js?config=TeX-AMS_HTML"></script>
 
   <!-- JSON Editor -->

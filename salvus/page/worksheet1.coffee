@@ -1225,26 +1225,3 @@ exports.close_scratch_worksheet = () ->
         views.worksheet.remove()
         delete views.worksheet
 
-####################################################
-# MathJax jQuery plugin
-####################################################
-$.fn.extend
-    mathjax: (opts={}) ->
-        opts = defaults opts,
-            tex : undefined
-            display : false
-        @each () ->
-            t = $(this)
-            if opts.tex?
-                tex = opts.tex
-            else
-                tex = t.html()
-            if opts.display
-                tex = "$${#{tex}}$$"
-            else
-                tex = "\\({#{tex}}\\)"
-            element = t.html(tex)
-            #MathJax.Hub.Typeset(element[0]) #, () -> element.show())
-            MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])#  , () -> element.show()])
-
-

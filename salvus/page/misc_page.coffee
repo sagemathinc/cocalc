@@ -3,19 +3,6 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-# jQuery plugin for spinner (/spin/spin.min.js)
-$.fn.spin = (opts) ->
-    @each ->
-        $this = $(this)
-        data = $this.data()
-        if data.spinner
-            data.spinner.stop()
-            delete data.spinner
-        if opts isnt false
-            data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
-    this
-
-
 exports.local_diff = (before, after) ->
     # Return object
     #
@@ -62,3 +49,45 @@ exports.human_readable_size = (bytes) ->
         return "#{b/10}M"
     b = Math.floor(bytes/100000000)
     return "#{b/10}G"
+
+
+#############################################
+# Plugins
+#############################################
+{required, defaults} = require('misc')
+
+# jQuery plugin for spinner (/spin/spin.min.js)
+$.fn.spin = (opts) ->
+    @each ->
+        $this = $(this)
+        data = $this.data()
+        if data.spinner
+            data.spinner.stop()
+            delete data.spinner
+        if opts isnt false
+            data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
+    this
+
+
+
+# MathJax jQuery plugin
+$.fn.extend
+    mathjax: (opts={}) ->
+        opts = defaults opts,
+            tex : undefined
+            display : false
+            inline  : false
+        @each () ->
+            t = $(this)
+            if opts.tex?
+                tex = opts.tex
+            else
+                tex = t.html()
+            if opts.display
+                tex = "$${#{tex}}$$"
+            else if opts.inline
+                tex = "\\({#{tex}}\\)"
+            element = t.html(tex)
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])
+
+

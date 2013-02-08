@@ -1098,3 +1098,22 @@ class HTML:
 
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
+
+
+def coffeescript(s):
+    """
+    Execute code using CoffeeScript.
+
+    You may either pass in a string or use this as a cell decorator,
+    i.e., put %coffeescript at the top of a cell.
+    """
+    return salvus.coffeescript(s)
+
+def javascript(s):
+    """
+    Execute code using JavaScript.
+
+    You may either pass in a string or use this as a cell decorator,
+    i.e., put %javascript at the top of a cell.
+    """
+    return salvus.javascript(s)
