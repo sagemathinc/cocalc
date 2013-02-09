@@ -9714,6 +9714,7 @@ x - sort
 
     [x] (1:00) cell mode: %latex
 
+
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
           - diff/change events
@@ -9741,6 +9742,16 @@ Trace
 debug: BUG ****************************************************************************
 
 
+    [ ] bug in HUB:
+
+debug: BUG ****************************************************************************
+debug: Uncaught exception: TypeError: Object #<Socket> has no method 'kill'
+Trace
+    at process.daemon.pidFile (/home/wstein/salvus/salvus/node_modules/hub.js:4030:15)
+    at process.EventEmitter.emit (events.js:126:20)
+debug: BUG ****************************************************************************
+
+
     [ ] this doesn't work at all: gap.eval('2+3')
 
     [ ] sage_session: need a clear indicator passed back to the client when there is a segfault or other condition that terminates the process.
@@ -9762,10 +9773,13 @@ def g(s):
     return eval(s)
 g("g(h(s))")
 ----
-It's http://bugs.python.org/issue7985 -- see 
+It's http://bugs.python.org/issue7985 -- see
 
     [ ] no projects -- a message about what to do
     [ ] no worksheets -- a message about what to do
+
+    [ ] %coffeescript mode -- tab/versus spaces and codemirror seem to cause major trouble!  notice in for loop
+
 
     [ ] project: download complete project as a zip/tar
            * ui = button in upper right with download icon
@@ -10003,7 +10017,37 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] hub: "ulimit -n" keep hitting this in testing -- https://github.com/sockjs/sockjs-node/issues/94
         I need to (1) up the number i
                /etc/security/limits.conf
-        on servers, and *two* 
+        on servers, and *two*
         make sure to clean up after file descriptors *much* more vigilantly -- I do nothing now.
 
     [ ] better compression wih clojure? http://closure-compiler.appspot.com/
+
+    [ ] consider removing  jquery.transit plugin if I don't end up using it.
+
+    [ ] 3d idea: mathbox https://github.com/unconed/MathBox.js
+
+    [ ] 3d CSS investigation one.
+           -- http://www.clicktorelease.com/code/css3dclouds/#
+           -- http://www.netmagazine.com/features/20-stunning-examples-css-3d-transforms
+           -- jQuery plugin for 3d transforms; I could use this to easily (?) implement
+              a 3d viewer??? https://github.com/rstacruz/jquery.transit
+              I've included it by default in salvus.
+        I should do a very, very simple proof of concept 3d renderer showing all the pieces.
+          input: a JSON object that describes a 3d scene in terms of primitives.
+              For starters, our only primitive will be a black triangle given by
+                  coordinates of the 3 vertices.  worry about normal later.
+Here's the trivial demo (in 2 cells):
+%html
+<div id="viewport" style="height:5em; border:1px solid black">
+</div>
+
+%coffeescript
+viewport = $("#viewport")
+_triangle = $('<div class="salvus-3d-arrow-up">')
+v = []
+viewport.empty()
+triangle = (v1, v2, v3) ->
+ i = Math.random()*100
+ _triangle.clone().css(rotateY:10*i, rotateX:20*i, translate: [20+5*Math.random(), 30+10*Math.random()]).appendTo(viewport)
+for i in [1...10000]
+ triangle()

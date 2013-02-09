@@ -21,6 +21,7 @@ alerts.coffee
 
 feedback.coffee
 
+3d.coffee
 cell.coffee
 
 worksheet.coffee
