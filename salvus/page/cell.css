@@ -21,7 +21,7 @@
 }
 
 .salvus-cell-insert-above {
-    height: 3px;
+    height: 5px;
 }
 
 .salvus-cell-insert-above:hover {
@@ -29,7 +29,7 @@
 }
 
 .salvus-cell-insert-below {
-    height: 3px;
+    height: 5px;
 }
 
 .salvus-cell-insert-below:hover {
@@ -43,20 +43,22 @@
 
 .salvus-cell-input {
     min-height       : 1.5em;
-    border           : 2px solid #e0e0e0;
+    border           : 3px solid #e0e0e0;
+    margin-left      : 1em;
 }
 
 .salvus-cell-input-selected {
     min-height       : 1.5em;
-    border: 2px solid #99f;
+    border: 3px solid #99f;
     box-shadow: 3px 3px 1px #bbf;
 }
 
 .salvus-cell-output {
-    background-color : #fafafa;
+    background-color : #fff; /* #fafafa; */
     overflow-y       : auto;
     overflow-x       : auto;
-    padding: .2em;
+    margin-left      : 2em;
+    padding          : 1ex;
 }
 
 .salvus-cell-output-stdout {

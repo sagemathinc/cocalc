@@ -371,7 +371,7 @@ class Salvus(object):
 
         for cell_decorator in reversed(cell_decorators):
             if hasattr(cell_decorator, 'eval'):   # eval is for backward compatibility
-                code = cell_decorator.eval(code, self.namespace)
+                code = cell_decorator.eval(code, globals=self.namespace, locals=self.namespace)
                 print code
                 code = ''
             else:
@@ -716,23 +716,27 @@ def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     import time; import random; random.seed(time.time())
 
     while True:
-        typ, mesg = conn.recv()
-        #print 'INFO:child%s: received message "%s"'%(pid, mesg)
-        event = mesg['event']
-        if event == 'terminate_session':
-            return
-        elif event == 'execute_code':
-            try:
-                execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
-            except:
-                pass
-        elif event == 'introspect':
-            try:
-                introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
-            except KeyboardInterrupt:
-                pass
-        else:
-            raise RuntimeError("invalid message '%s'"%mesg)
+        try:
+            typ, mesg = conn.recv()
+            #print 'INFO:child%s: received message "%s"'%(pid, mesg)
+            event = mesg['event']
+            if event == 'terminate_session':
+                return
+            elif event == 'execute_code':
+                try:
+                    execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
+                except:
+                    pass
+            elif event == 'introspect':
+                try:
+                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
+                except:
+                    pass
+            else:
+                raise RuntimeError("invalid message '%s'"%mesg)
+        except KeyboardInterrupt:
+            # SIGINT can come at any time.
+            pass
 
 
 def introspect(conn, id, line, preparse):
@@ -905,6 +909,9 @@ def serve(port, host):
 
     # Monkey patch the html command.
     sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
+
+    # Monkey patch latex.eval, so that %latex works in worksheets
+    sage.misc.latex.latex.eval = sage_salvus.latex0
 
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?

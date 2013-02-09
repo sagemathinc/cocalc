@@ -9712,15 +9712,34 @@ x - sort
 
     [x] (0:50) note: math typesetting
 
-    [ ] note: paste as plain text; pasting html is annoying.
-    [ ] note: tab and shift-enter to move to input cell
-    [ ] note: add "\sage{...}".
+    [x] (1:00) cell mode: %latex
+
+    [ ] make a salvus math-enabled jQuery plugin for *uniformity*
+        this *will* be the wysiwig editor, but start small!
+          - diff/change events
+          - mathjax typesetting
+          - tab/shift-enter event
+          - shift-tab event
+          - cursor on top/bottom edge events
+          - mini-buttons?
+          - paste as plain text; pasting html is annoying.
+          - \sage{...} like in sagetex, which caches result; will specially highlight part computing until done: embedded compute stuff ==> *very* interesting!
 
     [ ] cell modes: %cython
     [ ] cell mode: %hide
     [ ] cell mode: %hideall
     [ ] cell mode: %time
-    [ ] cell mode: %latex
+
+    [ ] diffbundler: doesn't clean up tmp.  UGLY!
+    [ ] diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?
+Getting this is hub... track this all down and *decide* what to do to scale:
+debug: BUG ****************************************************************************
+debug: Uncaught exception: Error: First argument needs to be a number, array or string.
+Trace
+    at process.daemon.pidFile (/home/wstein/salvus/salvus/node_modules/hub.js:4030:15)
+    at process.EventEmitter.emit (events.js:126:20)
+debug: BUG ****************************************************************************
+
 
     [ ] this doesn't work at all: gap.eval('2+3')
 

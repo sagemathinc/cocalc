@@ -1117,3 +1117,31 @@ def javascript(s):
     i.e., put %javascript at the top of a cell.
     """
     return salvus.javascript(s)
+
+def latex0(s=None, **kwds):
+    """
+    Create and display an arbitrary LaTeX document as a png image in the Salvus Notebook.
+
+    In addition to directly calling latex.eval, you may put %latex (or %latex.eval(density=75, ...etc...))
+    at the top of a cell, which will typeset everything else in the cell.
+    """
+    if s is None:
+        return lambda t : latex0(t, **kwds)
+    import os
+    if 'filename' not in kwds:
+        import tempfile
+        delete_file = True
+        kwds['filename'] = tempfile.mkstemp(suffix=".png")[1]
+    else:
+        delete_file = False
+    if 'locals' not in kwds:
+        kwds['locals'] = salvus.namespace
+    if 'globals' not in kwds:
+        kwds['globals'] = salvus.namespace
+    sage.misc.latex.Latex.eval(sage.misc.latex.latex, s, **kwds)
+    salvus.file(kwds['filename'], once=False)
+    if delete_file:
+        os.unlink(kwds['filename'])
+    return ''
+
+latex0.__doc__ +=  sage.misc.latex.Latex.eval.__doc__
