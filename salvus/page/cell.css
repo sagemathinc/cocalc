@@ -17,7 +17,7 @@
     color            : #333;
     border           : 1px solid white;
     min-height       : 1.5em;
-    overflow-y       : auto;
+/*    overflow-y       : auto; */
 }
 
 .salvus-cell-insert-above {
@@ -38,7 +38,7 @@
 
 
 .salvus-cell-note:hover {
-    border: 1px dashed #999;
+    border: 1px dashed #fff;
 }
 
 .salvus-cell-input {
@@ -56,6 +56,7 @@
     background-color : #fafafa;
     overflow-y       : auto;
     overflow-x       : auto;
+    padding: .2em;
 }
 
 .salvus-cell-output-stdout {

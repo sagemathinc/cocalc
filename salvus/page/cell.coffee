@@ -139,14 +139,18 @@ class Cell extends EventEmitter
         # make note fire change event when changed
         @_note = @element.find(".salvus-cell-note")
         #@_note.tooltip(delay:1000, title:"Write a note about this cell.")
+
+        @_note.data('raw', @opts.note)
         if @opts.note != ""
-            @_note.html(@opts.note)
+            @_note.html(@opts.note).mathjax()
+
         @_note.css('max-height', @opts.note_max_height)
         that = @
         @_note.live('focus', ->
-            $this = $(this)
-            $this.data('before', $this.html())
-        ).live('paste blur keyup', () ->
+            t = $(this)
+            x = t.data("raw")
+            t.html(x).data('before', x)
+        ).live('paste blur keyup', (evt) ->
             if not that._note_change_timer_is_set
                 that._note_change_timer_is_set = true
                 setTimeout( (() ->
@@ -159,7 +163,9 @@ class Cell extends EventEmitter
                     ),
                     that.opts.note_change_timer
                 )
-        )
+        ).blur () ->
+            that._note.data('raw', that._note.html())
+            $(@).mathjax()
 
     _initialize_input: () ->
         @_input = @element.find(".salvus-cell-input")
@@ -679,7 +685,7 @@ class Cell extends EventEmitter
     to_obj: () =>
         obj =
             id     : @opts.id
-            note   : @_note.html()
+            note   : @_note.data('raw')
             input  : @_editor.getValue()
             output : @_persistent_output_messages
 

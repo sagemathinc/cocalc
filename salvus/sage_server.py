@@ -716,25 +716,23 @@ def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     import time; import random; random.seed(time.time())
 
     while True:
-        try:
-            typ, mesg = conn.recv()
-            #print 'INFO:child%s: received message "%s"'%(pid, mesg)
-            event = mesg['event']
-            if event == 'terminate_session':
-                return
-            elif event == 'execute_code':
-                execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
-            elif event == 'introspect':
-                try:
-                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
-                except KeyboardInterrupt:
-                    pass
-            else:
-                raise RuntimeError("invalid message '%s'"%mesg)
-        except socket.error as (errno, msg):
+        typ, mesg = conn.recv()
+        #print 'INFO:child%s: received message "%s"'%(pid, mesg)
+        event = mesg['event']
+        if event == 'terminate_session':
             return
-        except:
-            pass
+        elif event == 'execute_code':
+            try:
+                execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
+            except:
+                pass
+        elif event == 'introspect':
+            try:
+                introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
+            except KeyboardInterrupt:
+                pass
+        else:
+            raise RuntimeError("invalid message '%s'"%mesg)
 
 
 def introspect(conn, id, line, preparse):

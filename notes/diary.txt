@@ -9695,8 +9695,6 @@ x - sort
     [x] (0:05) disable the "use salvus now" box.
     [x] (0:25) project: shutdown and save should save unsaved open worksheets
 
-    [ ] sage_sessions are mysteriously stopping -- but repeatable via my cell mode test.
-
     [x] (3:47) cell mode: %generic  -- ran into big python bug; am sick; had to come up with a notion of "cell decorators".
 
     [ ] cell mode: %html
@@ -9711,6 +9709,12 @@ x - sort
     [x] (0:06) messages -- support once for everything
 
     [x] (0:12) cell modes: %coffeescript
+
+    [x] (0:50) note: math typesetting
+
+    [ ] note: paste as plain text; pasting html is annoying.
+    [ ] note: tab and shift-enter to move to input cell
+    [ ] note: add "\sage{...}".
 
     [ ] cell modes: %cython
     [ ] cell mode: %hide
@@ -9838,8 +9842,6 @@ It's http://bugs.python.org/issue7985 -- see
     [ ] implement chat as immutable list of cells that scrolls away, with labeled names and default input the note.
 
     [ ] note: wysiwyg
-    [ ] note: math typesetting
-
     [ ] account settings: when set to 0, maybe make it clearer that this disables autosave, which is dangerous (!)
 
     [ ] cell: add a 'lang' attribute to specify the language.
@@ -9984,3 +9986,5 @@ def f(reset  = button('Randomize', classes="btn-primary"),
                /etc/security/limits.conf
         on servers, and *two* 
         make sure to clean up after file descriptors *much* more vigilantly -- I do nothing now.
+
+    [ ] better compression wih clojure? http://closure-compiler.appspot.com/

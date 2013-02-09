@@ -142,7 +142,6 @@ class exports.Editor
 
     # Save the branch to disk, but do not do any sort of git commit.
     save: (filename) =>
-        console.log("save #{filename}")
         if not filename?
             # if filename not given, save all files
             for filename in keys(@tabs)
