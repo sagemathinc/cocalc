@@ -1145,3 +1145,34 @@ def latex0(s=None, **kwds):
     return ''
 
 latex0.__doc__ +=  sage.misc.latex.Latex.eval.__doc__
+
+
+class Time:
+    """
+    Time execution of code exactly once in Salvus by:
+
+    - putting %time at the top of a cell to time execution of the entire cell
+    - put %time at the beginning of line to time execution of just that line
+    - write time('some code') to executation of the contents of the string.
+
+    If you want to time repeated execution of code for benchmarking purposes, use
+    the timeit command instead.
+    """
+    def before(self, code):
+        from sage.all import walltime, cputime
+        self._start_walltime = walltime()
+        self._start_cputime = cputime()
+
+    def after(self, code):
+        from sage.all import walltime, cputime
+        print "CPU time: %.2f s, Wall time: %.2f s"%(walltime(self._start_walltime), cputime(self._start_cputime))
+        self._start_cputime = self._start_walltime = None
+
+    def __call__(self, code):
+        from sage.all import walltime, cputime
+        not_as_cell_decorator = self._start_cputime is None
+        if not_as_cell_decorator:
+            self.before(code)
+        salvus.execute(code)
+        if not_as_cell_decorator:
+            self.after(code)

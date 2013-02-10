@@ -913,6 +913,9 @@ def serve(port, host):
     # Monkey patch latex.eval, so that %latex works in worksheets
     sage.misc.latex.latex.eval = sage_salvus.latex0
 
+    # Monkey patch in a time command, so that %time works.
+    sage.all.time = sage_salvus.Time()
+
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?
     #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace

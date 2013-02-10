@@ -9726,10 +9726,20 @@ x - sort
           - paste as plain text; pasting html is annoying.
           - \sage{...} like in sagetex, which caches result; will specially highlight part computing until done: embedded compute stuff ==> *very* interesting!
 
-    [ ] cell modes: %cython
-    [ ] cell mode: %hide
-    [ ] cell mode: %hideall
-    [ ] cell mode: %time
+    [ ] cell decorator: %cython
+    [ ] cell decorator: %hide
+    [ ] cell decorator: %hideall
+
+-->    [ ] cell decorator: %time
+
+    [ ] cell decorator: %timeit   (could include plot in output!)
+
+    [ ] line decorators?  if anything else on line (except comment),
+        then impacts only that line, so %time would work on a single
+        line, as would %python, etc.  The hard part is deciding when
+        the line ends.
+
+    [ ] cell decorators -- tab completion gets confused by % in "%foo".
 
     [ ] diffbundler: doesn't clean up tmp.  UGLY!
     [ ] diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?
@@ -9751,6 +9761,11 @@ Trace
     at process.EventEmitter.emit (events.js:126:20)
 debug: BUG ****************************************************************************
 
+
+    [ ] this line appears twice in sage_server.py; refactor relevant code:
+                   for start, stop, block in parsing.divide_into_blocks(code):
+
+    [ ] MAYBE: changing the autosave interval doesn't seem to take effect until refreshing.
 
     [ ] this doesn't work at all: gap.eval('2+3')
 
