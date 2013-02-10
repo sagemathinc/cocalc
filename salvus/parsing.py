@@ -125,7 +125,12 @@ def end_of_expr(s):
         i += 1
     return i
 
+# The dec_args dict will leak memory over time.  However, it only
+# contains code that was entered, so it should never get big.  It
+# seems impossible to know for sure whether a bit of code will be
+# eventually needed later, so this leakiness seems necessary.
 dec_counter = 0
+dec_args = {}
 def divide_into_blocks(code):
     global dec_counter
     code, literals, state = strip_string_literals(code)
@@ -147,14 +152,15 @@ def divide_into_blocks(code):
                 # then code decorators impacts the rest of the code.
                 sexpr = expr.strip()
                 if i == 0 and (len(sexpr) == 0 or sexpr.startswith('#')):
-                    new_line = '%ssalvus.execute_with_code_decorators(*salvus._decs[%s])'%(line[:i], dec_counter)
+                    new_line = '%ssalvus.execute_with_code_decorators(*_salvus_parsing.dec_args[%s])'%(line[:i], dec_counter)
                     expr = ('\n'.join(code[len(v)+1:]))%literals
                     done = True
                 else:
                     # Expr is nonempty -- code decorator only impacts this line
-                    new_line = '%ssalvus.execute_with_code_decorators(*salvus._decs[%s])'%(line[:i], dec_counter)
+                    new_line = '%ssalvus.execute_with_code_decorators(*_salvus_parsing.dec_args[%s])'%(line[:i], dec_counter)
 
                 decs[dec_counter] = ([line[i+2:j]%literals], expr)
+                dec_args[dec_counter] = ([line[i+2:j]%literals], expr)
                 dec_counter += 1
             else:
                 new_line = line
@@ -199,8 +205,7 @@ def divide_into_blocks(code):
         else:
             i += 1
 
-    return blocks, decs
-
+    return blocks
 
 
 

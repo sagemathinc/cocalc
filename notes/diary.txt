@@ -9727,7 +9727,11 @@ x - sort
         the decorator part of the line ends.
 
     [x] (0:13) code decorator: %file
-    [x] (0:33) code decorator: %timeit   (could include plot in output?)
+    [x] (0:33) code decorator: %timeit
+
+    [x] (0:20) code decorator issue: stuff between Salvus object creations fails... so don't put the string in a salvus object.
+    [x] (0:20) output buffering -- flush buffer before sending any messages that result in other types of output.
+
 
     [ ] code decorator: %cython
     [ ] code decorator: %hide
@@ -9737,7 +9741,7 @@ x - sort
 
 
     [ ] code decorator: %sh, %bash, %system -- shell
-    [ ] code decorator: %capture -- make sys.stdout and sys.stderr /dev/null; have an optional argument so output sent to a file, e.g., 
+    [ ] code decorator: %capture -- make sys.stdout and sys.stderr /dev/null; have an optional argument so output sent to a file, e.g.,
          %capture
          %capture(stdout='out')
          %capture(stderr='err')
@@ -9753,7 +9757,7 @@ x - sort
 
     [ ] code decorators -- tab completion gets confused by % in "%foo".
 
-    [x] (0:20) output buffering -- flush buffer before sending any messages that result in other types of output.
+    [ ] cells: move (control-arrow) should move all cells with checkbox checked.
 
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
@@ -10090,3 +10094,15 @@ triangle = (v1, v2, v3) ->
  _triangle.clone().css(rotateY:10*i, rotateX:20*i, translate: [20+5*Math.random(), 30+10*Math.random()]).appendTo(viewport)
 for i in [1...10000]
  triangle()
+
+
+
+    [ ] code decorator bug or issue: this fails do to locals/scoping issues.   I think this is fixable with some very careful thought, but there
+        are much more important issues, as this is only a problem do to me making % code decorators way more powerful.
+def f(n,m): 
+    %time n/m
+f(2,3)
+
+@interact
+def f(n=[10,100,500], m=[10,100,500]):
+    %timeit n*m

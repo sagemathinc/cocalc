@@ -309,7 +309,6 @@ class Salvus(object):
     def __init__(self, conn, id, data=None):
         self._conn = conn
         self._id   = id
-        self._decs = {}
         self.data = data
         self.namespace = namespace
         namespace['salvus'] = self   # beware of circular ref?
@@ -357,8 +356,7 @@ class Salvus(object):
         if namespace is None:
             namespace = self.namespace
 
-        blocks, decs = parsing.divide_into_blocks(code)
-        self._decs.update(decs)
+        blocks = parsing.divide_into_blocks(code)
 
         for start, stop, block in blocks:
             if preparse:
@@ -918,6 +916,8 @@ def serve(port, host):
     sagenb.notebook.interact.interact = sage_salvus.interact
     for k,v in sage_salvus.interact_functions.iteritems():
         namespace[k] = sagenb.notebook.interact.__dict__[k] = v
+
+    namespace['_salvus_parsing'] = parsing
 
     # Actually import sage now.  This must happen after the interact
     # import because of library interacts.
