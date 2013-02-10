@@ -9727,15 +9727,29 @@ x - sort
         the decorator part of the line ends.
 
     [x] (0:13) code decorator: %file
+    [x] (0:33) code decorator: %timeit   (could include plot in output?)
 
     [ ] code decorator: %cython
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
 
-    idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
+* idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
 
 
-    [ ] code decorator: %timeit   (could include plot in output!)
+    [ ] code decorator: %sh, %bash, %system -- shell
+    [ ] code decorator: %capture -- make sys.stdout and sys.stderr /dev/null; have an optional argument so output sent to a file, e.g., 
+         %capture
+         %capture(stdout='out')
+         %capture(stderr='err')
+         %capture(stdout='out, stderr='err')
+    [ ] code decorator: %perl
+    [ ] code decorator: %prun
+    [ ] code decorator: %python
+    [ ] code decorator: %python3: run cell body using "python3" (totally separate session)
+    [ ] code decorator: %ruby
+    [ ] code decorator: %script: run cell body with the script specified in the first line.
+    [ ] code decorator: %%timeit: time the execution of the cell (extension of %timeit).
+    [ ] code decorator: ?? %%sx: run cell with system shell and capture process output (cell extension of %sx). ??
 
     [ ] code decorators -- tab completion gets confused by % in "%foo".
 

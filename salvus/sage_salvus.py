@@ -1205,3 +1205,34 @@ def file(path):
         %file(a+b[0]+'.'+b[1])  rest of line goes in 'filename.txt'
     """
     return lambda content: open(path,'w').write(content)
+
+
+def timeit(*args, **kwds):
+    """
+    Time execution of a command or block of commands.  This command has been
+    enhanced for Salvus so you may use it as a code decorator as well, e.g.,
+
+        %timeit 2+3
+
+    and
+
+        %timeit(number=10, preparse=False)  2^3
+
+    and
+
+        %timeit(preparse=False)
+
+        [rest of the cell]
+
+    Here is the original docstring for timeit:
+
+    """
+    def go(code, **kwds):
+        print sage.misc.sage_timeit.sage_timeit(code, globals_dict=salvus.namespace, **kwds)
+    if len(args) == 0:
+        return lambda code : go(code, **kwds)
+    else:
+        go(*args)
+
+# TODO: these need to also give the argspec
+timeit.__doc__ += sage.misc.sage_timeit.sage_timeit.__doc__
