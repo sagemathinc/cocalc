@@ -919,11 +919,12 @@ class Cell extends EventEmitter
         @opts.session = session
 
     _parse_cell_decorators: (code) ->
-        # Each consecutive line that starts with a percent defines a
-        # mode.  The first line not starting with a percent, ends the modes.
+        # Each consecutive line that starts with a "%%" defines a
+        # cell decorator, which is a "code decorator" for an entire
+        # clel.  The first line not starting with %% ends setting the modes.
         data = [[],null]
         i = 0
-        while i < code.length and code[i] == "%"
+        while i+1 < code.length and code[i] == "%"  # and code[i+1] == "%"
             i = code.indexOf('\n')
             if i == -1
                 i = code.length
@@ -932,8 +933,9 @@ class Cell extends EventEmitter
             i = 0
 
         data[1] = code # remaining code
+        console.log(data)
         return {
-            code : 'salvus.execute_with_cell_decorators(*salvus.data)'
+            code : 'salvus.execute_with_code_decorators(*salvus.data)'
             data : data
         }
 
@@ -948,7 +950,7 @@ class Cell extends EventEmitter
             # easy special case -- empty input
             @delete_output()
             return
-        if code[0] == '%'
+        if code.length >= 2 and code[0] == '%'# and code[1] == '%'
             # special user-specified percent mode
             {code, data} = @_parse_cell_decorators(code)
         first_message = true

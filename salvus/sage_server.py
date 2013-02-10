@@ -297,6 +297,7 @@ class Salvus(object):
     def __init__(self, conn, id, data=None):
         self._conn = conn
         self._id   = id
+        self._decs = {}
         self.data = data
         self.namespace = namespace
         namespace['salvus'] = self   # beware of circular ref?
@@ -343,7 +344,10 @@ class Salvus(object):
         if namespace is None:
             namespace = self.namespace
 
-        for start, stop, block in parsing.divide_into_blocks(code):
+        blocks, decs = parsing.divide_into_blocks(code)
+        self._decs.update(decs)
+
+        for start, stop, block in blocks:
             if preparse:
                 block = parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
@@ -356,37 +360,37 @@ class Salvus(object):
                 sys.stderr.flush()
                 break
 
-    def execute_with_cell_decorators(self, cell_decorators, code):
+    def execute_with_code_decorators(self, code_decorators, code, preparse=True):
         """
-        salvus.execute_with_cell_decorators is used when evaluating code blocks that are set to any non-default cell_decorator.
+        salvus.execute_with_code_decorators is used when evaluating code blocks that are set to any non-default code_decorator.
         """
         import inspect
-        if isinstance(cell_decorators, str):
-            cell_decorators = [cell_decorators]
+        if isinstance(code_decorators, str):
+            code_decorators = [code_decorators]
 
-        cell_decorators = [eval(cell_decorator, self.namespace) for cell_decorator in cell_decorators]
+        code_decorators = [eval(code_decorator, self.namespace) for code_decorator in code_decorators]
 
-        for cell_decorator in cell_decorators:
+        for i, code_decorator in enumerate(code_decorators):
             # eval is for backward compatibility
-            if not hasattr(cell_decorator, 'eval') and hasattr(cell_decorator, 'before'):
-                cell_decorator.before(code)
+            if not hasattr(code_decorator, 'eval') and hasattr(code_decorator, 'before'):
+                code_decorators[i] = code_decorator.before(code)
 
-        for cell_decorator in reversed(cell_decorators):
-            if hasattr(cell_decorator, 'eval'):   # eval is for backward compatibility
-                code = cell_decorator.eval(code, globals=self.namespace, locals=self.namespace)
+        for code_decorator in reversed(code_decorators):
+            if hasattr(code_decorator, 'eval'):   # eval is for backward compatibility
+                code = code_decorator.eval(code, globals=self.namespace, locals=self.namespace)
                 print code
                 code = ''
             else:
-                code = cell_decorator(code)
+                code = code_decorator(code)
             if code is None:
                 code = ''
 
         if code != '' and isinstance(code, str):
-            self.execute(code)
+            self.execute(code, preparse=preparse)
 
-        for cell_decorator in cell_decorators:
-            if not hasattr(cell_decorator, 'eval') and hasattr(cell_decorator, 'after'):
-                cell_decorator.after(code)
+        for code_decorator in code_decorators:
+            if not hasattr(code_decorator, 'eval') and hasattr(code_decorator, 'after'):
+                code_decorator.after(code)
 
     def html(self, html, done=False, once=None):
         self._conn.send_json(message.output(html=str(html), id=self._id, done=done, once=once))

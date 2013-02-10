@@ -99,9 +99,39 @@ def strip_string_literals(code, state=None):
 
     return "".join(new_code), literals, (in_quote, raw)
 
+def end_of_expr(s):
+    # TODO
+    j = s.find(' ')
+    return j
+
+dec_counter = 0
 def divide_into_blocks(code):
+    global dec_counter
     code, literals, state = strip_string_literals(code)
     code = [x for x in code.splitlines() if x.strip()]  # remove blank lines
+
+    # Compute the line-level code decorators.
+    c = list(code)
+    try:
+        v = []
+        k = 0
+        decs = {}
+        for line in code:
+            # NOTE: strip_string_literals maps % to %%, because %foo is used for python string templating.
+            if line.lstrip().startswith('%%'):
+                i = line.find("%")
+                j = end_of_expr(line[i+2:]) + i+2
+                new_line = '%ssalvus.execute_with_code_decorators(*salvus._decs[%s])'%(line[:i], dec_counter)
+                decs[dec_counter] = ([line[i+2:j]%literals], line[j:]%literals)
+                dec_counter += 1
+            else:
+                new_line = line
+            v.append(new_line)
+        code = v
+    except Exception, mesg:
+        code = c
+
+    # Compute the blocks
     i = len(code)-1
     blocks = []
     while i >= 0:
@@ -135,7 +165,7 @@ def divide_into_blocks(code):
         else:
             i += 1
 
-    return blocks
+    return blocks, decs
 
 
 

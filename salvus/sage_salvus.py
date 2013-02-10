@@ -1158,10 +1158,14 @@ class Time:
     If you want to time repeated execution of code for benchmarking purposes, use
     the timeit command instead.
     """
+    def __init__(self, start=False):
+        if start:
+            from sage.all import walltime, cputime
+            self._start_walltime = walltime()
+            self._start_cputime = cputime()
+
     def before(self, code):
-        from sage.all import walltime, cputime
-        self._start_walltime = walltime()
-        self._start_cputime = cputime()
+        return Time(start=True)
 
     def after(self, code):
         from sage.all import walltime, cputime
@@ -1170,9 +1174,10 @@ class Time:
 
     def __call__(self, code):
         from sage.all import walltime, cputime
-        not_as_cell_decorator = self._start_cputime is None
-        if not_as_cell_decorator:
+        not_as_decorator = self._start_cputime is None
+        if not_as_decorator:
             self.before(code)
         salvus.execute(code)
-        if not_as_cell_decorator:
+        if not_as_decorator:
             self.after(code)
+

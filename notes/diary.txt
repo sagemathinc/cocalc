@@ -9721,10 +9721,10 @@ x - sort
 
     [x] (0:02) salvus.execute -- execution of a cell should stop on any block that causes an exception
 
-    [ ] line decorators?  if anything else on line (except comment),
+-->    [ ] line decorators?  if anything else on line (except comment),
         then impacts only that line, so %time would work on a single
         line, as would %python, etc.  The hard part is deciding when
-        the line ends.
+        the decorator part of the line ends.
 
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
