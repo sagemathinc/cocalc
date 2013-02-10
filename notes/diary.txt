@@ -9721,10 +9721,21 @@ x - sort
 
     [x] (0:02) salvus.execute -- execution of a cell should stop on any block that causes an exception
 
--->    [ ] line decorators?  if anything else on line (except comment),
+    [x] (2:38) line decorators?  if anything else on line (except comment),
         then impacts only that line, so %time would work on a single
         line, as would %python, etc.  The hard part is deciding when
         the decorator part of the line ends.
+
+    [ ] code decorator: %cython
+    [ ] code decorator: %hide
+    [ ] code decorator: %hideall
+    [ ] implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
+
+    [ ] code decorator: %timeit   (could include plot in output!)
+
+    [ ] code decorators -- tab completion gets confused by % in "%foo".
+
+    [x] (0:20) output buffering -- flush buffer before sending any messages that result in other types of output.
 
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
@@ -9736,15 +9747,6 @@ x - sort
           - mini-buttons?
           - paste as plain text; pasting html is annoying.
           - \sage{...} like in sagetex, which caches result; will specially highlight part computing until done: embedded compute stuff ==> *very* interesting!
-
-    [ ] code decorator: %cython
-    [ ] code decorator: %hide
-    [ ] code decorator: %hideall
-    [ ] implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
-
-    [ ] code decorator: %timeit   (could include plot in output!)
-
-    [ ] code decorators -- tab completion gets confused by % in "%foo".
 
     [ ] diffbundler: doesn't clean up tmp.  UGLY!
     [ ] diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?

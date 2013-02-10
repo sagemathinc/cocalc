@@ -207,7 +207,7 @@ def client1(port, hostname):
     conn.send_json(message.terminate_session())
     print "\nExiting Sage client."
 
-class OutputStream(object):
+class BufferedOutputStream(object):
     def __init__(self, f, flush_size=4096, flush_interval=.1):
         self._f = f
         self._buf = ''
@@ -220,6 +220,7 @@ class OutputStream(object):
 
     def write(self, output):
         self._buf += output
+        self.flush()
         t = time.time()
         if ((len(self._buf) >= self._flush_size) or
                   (t - self._last_flush_time >= self._flush_interval)):
@@ -227,6 +228,9 @@ class OutputStream(object):
             self._last_flush_time = t
 
     def flush(self, done=False):
+        if not self._buf and not done:
+            # no point in sending an empty message
+            return
         self._f(self._buf, done=done)
         self._buf = ''
 
@@ -291,6 +295,14 @@ namespace = Namespace({})
 class Salvus(object):
     Namespace = Namespace
 
+    def _flush_stdio(self):
+        """
+        Flush the standard output streams.  This should be called before sending any message
+        that produces output.
+        """
+        sys.stdout.flush()
+        sys.stderr.flush()
+
     def __repr__(self):
         return ''
 
@@ -333,6 +345,7 @@ class Salvus(object):
         """
         file_uuid = str(uuid.uuid4())
         self._conn.send_file(file_uuid, filename)
+        self._flush_stdio()
         self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
         if not show:
             url = "/blobs/%s?uuid=%s"%(filename, file_uuid)
@@ -393,6 +406,7 @@ class Salvus(object):
                 code_decorator.after(code)
 
     def html(self, html, done=False, once=None):
+        self._flush_stdio()
         self._conn.send_json(message.output(html=str(html), id=self._id, done=done, once=once))
         return self
 
@@ -405,6 +419,7 @@ class Salvus(object):
         - obj -- latex string or object that is automatically be converted to TeX
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
+        self._flush_stdio()
         tex = obj if isinstance(obj, str) else self.namespace['latex'](obj)
         self._conn.send_json(message.output(tex={'tex':tex, 'display':display}, id=self._id, done=done, once=once))
         return self
@@ -448,6 +463,7 @@ class Salvus(object):
 
     def interact(self, f, done=False, once=None, **kwds):
         I = sage_salvus.InteractCell(f, **kwds)
+        self._flush_stdio()
         self._conn.send_json(message.output(
             interact = I.jsonable(),
             id=self._id, done=done, once=once))
@@ -624,8 +640,8 @@ def execute(conn, id, code, data, preparse):
 
     try:
         streams = (sys.stdout, sys.stderr)
-        sys.stdout = OutputStream(salvus.stdout)
-        sys.stderr = OutputStream(salvus.stderr)
+        sys.stdout = BufferedOutputStream(salvus.stdout)
+        sys.stderr = BufferedOutputStream(salvus.stderr)
         try:
             # initialize more salvus functionality
             sage_salvus.salvus = salvus
