@@ -354,6 +354,7 @@ class Salvus(object):
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
                 traceback.print_exc()
                 sys.stderr.flush()
+                break
 
     def execute_with_cell_decorators(self, cell_decorators, code):
         """
