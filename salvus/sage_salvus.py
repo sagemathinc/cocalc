@@ -1181,3 +1181,27 @@ class Time:
         if not_as_decorator:
             self.after(code)
 
+time = Time()
+
+
+def file(path):
+    """
+    Code decorator to write to a file.  Use as follows:
+
+        %file('filename') put this line in the file
+
+    or
+
+        %file('filename')
+        everything in the rest of the
+        cell goes into the file with given name.
+
+
+    As with all code decorators in Salvus, the arguments to file can
+    be an arbitrary expression.  For examples,
+
+        a = 'file'; b = ['name', 'txt']
+
+        %file(a+b[0]+'.'+b[1])  rest of line goes in 'filename.txt'
+    """
+    return lambda content: open(path,'w').write(content)

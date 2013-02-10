@@ -9721,15 +9721,19 @@ x - sort
 
     [x] (0:02) salvus.execute -- execution of a cell should stop on any block that causes an exception
 
-    [x] (2:38) line decorators?  if anything else on line (except comment),
+    [x] (2:38) line decorators --  if anything else on line (except comment),
         then impacts only that line, so %time would work on a single
         line, as would %python, etc.  The hard part is deciding when
         the decorator part of the line ends.
 
+    [x] (0:13) code decorator: %file
+
     [ ] code decorator: %cython
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
-    [ ] implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
+
+    idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
+
 
     [ ] code decorator: %timeit   (could include plot in output!)
 
