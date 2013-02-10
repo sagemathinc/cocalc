@@ -100,9 +100,30 @@ def strip_string_literals(code, state=None):
     return "".join(new_code), literals, (in_quote, raw)
 
 def end_of_expr(s):
-    # TODO
-    j = s.find(' ')
-    return j
+    """
+    The input string s is a code expression that contains no strings (they have been stripped).
+    Find the end of the expression that starts at the beginning of s by finding the first whitespace
+    at which the parenthesis and brackets are matched.
+
+    The returned index is the position *after* the expression.
+    """
+    i = 0
+    parens = 0
+    brackets = 0
+    while i<len(s):
+        c = s[i]
+        if c == '(':
+            parens += 1
+        elif c == '[':
+            brackets += 1
+        elif c == ')':
+            parens -= 1
+        elif c == ']':
+            brackets -= 1
+        elif parens == 0 and brackets == 0 and (c == ' ' or c == '\t'):
+            return i
+        i += 1
+    return i
 
 dec_counter = 0
 def divide_into_blocks(code):
@@ -114,19 +135,32 @@ def divide_into_blocks(code):
     c = list(code)
     try:
         v = []
-        k = 0
         decs = {}
         for line in code:
+            done = False
             # NOTE: strip_string_literals maps % to %%, because %foo is used for python string templating.
             if line.lstrip().startswith('%%'):
                 i = line.find("%")
                 j = end_of_expr(line[i+2:]) + i+2
-                new_line = '%ssalvus.execute_with_code_decorators(*salvus._decs[%s])'%(line[:i], dec_counter)
-                decs[dec_counter] = ([line[i+2:j]%literals], line[j:]%literals)
+                expr = line[j:]%literals
+                # Special case -- if % starts line *and* expr is empty (or a comment),
+                # then code decorators impacts the rest of the code.
+                sexpr = expr.strip()
+                if i == 0 and (len(sexpr) == 0 or sexpr.startswith('#')):
+                    new_line = '%ssalvus.execute_with_code_decorators(*salvus._decs[%s])'%(line[:i], dec_counter)
+                    expr = ('\n'.join(code[len(v)+1:]))%literals
+                    done = True
+                else:
+                    # Expr is nonempty -- code decorator only impacts this line
+                    new_line = '%ssalvus.execute_with_code_decorators(*salvus._decs[%s])'%(line[:i], dec_counter)
+
+                decs[dec_counter] = ([line[i+2:j]%literals], expr)
                 dec_counter += 1
             else:
                 new_line = line
             v.append(new_line)
+            if done:
+                break
         code = v
     except Exception, mesg:
         code = c
@@ -311,9 +345,7 @@ def introspect(code, namespace, preparse=True):
                     # TODO: This will not be needed when
                     # this code is re-written to parse using an
                     # AST, instead of using this lame hack.
-                    print "obj = ", obj
                     obj = guess_last_expression(obj)
-                    print "obj = ", obj
                     O = eval(obj if not preparse else preparse_code(obj), namespace)
             finally:
                 signal.signal(signal.SIGALRM, signal.SIG_IGN)

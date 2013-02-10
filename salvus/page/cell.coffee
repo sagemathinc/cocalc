@@ -918,7 +918,8 @@ class Cell extends EventEmitter
     set_session: (session) ->
         @opts.session = session
 
-    _parse_cell_decorators: (code) ->
+    # NOT USED...
+    XXX_parse_cell_decorators: (code) ->
         # Each consecutive line that starts with a "%%" defines a
         # cell decorator, which is a "code decorator" for an entire
         # clel.  The first line not starting with %% ends setting the modes.
@@ -950,9 +951,6 @@ class Cell extends EventEmitter
             # easy special case -- empty input
             @delete_output()
             return
-        if code.length >= 2 and code[0] == '%'# and code[1] == '%'
-            # special user-specified percent mode
-            {code, data} = @_parse_cell_decorators(code)
         first_message = true
         s = setTimeout( (() => @prepare_stopwatch()), 250)
         @_last_execute_uuid = @opts.session.execute_code

@@ -9737,13 +9737,14 @@ x - sort
           - paste as plain text; pasting html is annoying.
           - \sage{...} like in sagetex, which caches result; will specially highlight part computing until done: embedded compute stuff ==> *very* interesting!
 
-    [ ] cell decorator: %cython
-    [ ] cell decorator: %hide
-    [ ] cell decorator: %hideall
+    [ ] code decorator: %cython
+    [ ] code decorator: %hide
+    [ ] code decorator: %hideall
+    [ ] implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
 
-    [ ] cell decorator: %timeit   (could include plot in output!)
+    [ ] code decorator: %timeit   (could include plot in output!)
 
-    [ ] cell decorators -- tab completion gets confused by % in "%foo".
+    [ ] code decorators -- tab completion gets confused by % in "%foo".
 
     [ ] diffbundler: doesn't clean up tmp.  UGLY!
     [ ] diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?
@@ -9810,6 +9811,8 @@ It's http://bugs.python.org/issue7985 -- see
            * archive type: tar, tar.bz2, etc.
 
     [ ] make new worksheet (etc.) SCRATCH path configurable for user -- see worksheet.coffee.
+
+    [ ] cell: joining (control-backspace) puts too much space between output lines
 
     [ ] projects: have a "search running projects" input field
 
