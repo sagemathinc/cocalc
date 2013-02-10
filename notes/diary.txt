@@ -9729,11 +9729,22 @@ x - sort
     [x] (0:13) code decorator: %file
     [x] (0:33) code decorator: %timeit
 
-    [x] (0:20) code decorator issue: stuff between Salvus object creations fails... so don't put the string in a salvus object.
+    [x] (0:25) code decorator issue: stuff between Salvus object creations fails... so don't put the string in a salvus object.
     [x] (0:20) output buffering -- flush buffer before sending any messages that result in other types of output.
 
+    [x] (1:14) code decorator: %capture -- make sys.stdout and sys.stderr /dev/null; have an optional argument so output sent to a file, e.g.,
+         %capture
+         %capture(stdout='out')
+         %capture(stderr='err')
+         %capture(stdout='out, stderr='err')
 
     [ ] code decorator: %cython
+
+    [ ] code decorator: %mat -- easy way to make a matrix
+def mat(s):
+    globals()['m'] = matrix(2,[1,2,3,4])
+%mat m 1,2;3,4 GF(7)
+
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
 
@@ -9741,11 +9752,6 @@ x - sort
 
 
     [ ] code decorator: %sh, %bash, %system -- shell
-    [ ] code decorator: %capture -- make sys.stdout and sys.stderr /dev/null; have an optional argument so output sent to a file, e.g.,
-         %capture
-         %capture(stdout='out')
-         %capture(stderr='err')
-         %capture(stdout='out, stderr='err')
     [ ] code decorator: %perl
     [ ] code decorator: %prun
     [ ] code decorator: %python

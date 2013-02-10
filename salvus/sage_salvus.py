@@ -1236,3 +1236,81 @@ def timeit(*args, **kwds):
 
 # TODO: these need to also give the argspec
 timeit.__doc__ += sage.misc.sage_timeit.sage_timeit.__doc__
+
+
+class Capture:
+    def __init__(self, stdout, stderr, append, echo):
+        self.v = (stdout, stderr, append, echo)
+
+    def before(self, code):
+        (stdout, stderr, append, echo) = self.v
+        self._orig_stdout_f = orig_stdout_f = sys.stdout._f
+        if stdout is not None:
+            if not hasattr(stdout, 'write'):
+                stdout = open(stdout, 'a' if append else 'w')
+            def f(buf, done):
+                stdout.write(buf)
+                if echo:
+                    orig_stdout_f(buf, done)
+                elif done:
+                    orig_stdout_f('', done)
+            sys.stdout._f = f
+        elif not echo:
+            def f(buf,done):
+                if done:
+                    orig_stdout_f('',done)
+            sys.stdout._f = f
+
+        self._orig_stderr_f = orig_stderr_f = sys.stderr._f
+        if stderr is not None:
+            if not hasattr(stderr, 'write'):
+                stderr = open(stderr, 'a' if append else 'w')
+            def g(buf, done):
+                stderr.write(buf)
+                if echo:
+                    orig_stderr_f(buf, done)
+                elif done:
+                    orig_stderr_f('', done)
+            sys.stderr._f = g
+        elif not echo:
+            def g(buf,done):
+                if done:
+                    orig_stderr_f('',done)
+            sys.stderr._f = g
+
+        return self
+
+    def __call__(self, code):
+        salvus.execute(code)
+
+
+    def after(self, code):
+        sys.stdout._f = self._orig_stdout_f
+        sys.stderr._f = self._orig_stderr_f
+
+
+def capture(code=None, stdout=None, stderr=None, append=False, echo=False):
+    """
+    Capture or ignore the output from evaluating the given code.
+
+    (SALVUS only)
+
+    Use capture as a code decorator by placing either %capture or
+    %capture(optional args) it at the beginning of a cell or at the
+    beginning of a line.  If you use just plane %capture then stdout
+    and stderr are completely ignored.  If you use %capture(args)
+    you can redirect or echo stdout and stderr to files.  For example,
+
+       %capture(stdout='filename.txt', stderr='filename2.txt', append=False, echo=True)
+
+    INPUT:
+
+    - stdout -- string (or object with write method) to send stdout output to
+    - stderr -- string (or object with write method) to send stderr output to
+    - append -- (default: False) if stdout/stderr are a string, open in append mode
+    - echo -- (default: False) if True, also echo stdout/stderr to the notebook.
+    """
+    if code is None:
+        return Capture(stdout=stdout, stderr=stderr, append=append, echo=echo)
+    else:
+        raise NotImplementedError
