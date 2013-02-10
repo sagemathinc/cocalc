@@ -4,7 +4,7 @@
 #                                                                                #
 ##################################################################################
 
-import copy, sys
+import copy, os, sys
 
 salvus = None
 
@@ -1314,3 +1314,50 @@ def capture(code=None, stdout=None, stderr=None, append=False, echo=False):
         return Capture(stdout=stdout, stderr=stderr, append=append, echo=echo)
     else:
         raise NotImplementedError
+
+
+def cython(code=None, **kwds):
+    """
+    Code decorate to easily include Cython code in the Salvus notebook.
+
+    Just put %cython at the top of a cell, and the rest is compiled as Cython code.
+    You can pass options to cython by typing "%cython(... var=value...)" instead.
+
+    This is a wrapper around Sage's cython function, whose docstring is:
+
+    
+    """
+    if code is None:
+        return lambda code: cython(code, **kwds)
+    import sage.misc.misc
+    path = sage.misc.misc.tmp_dir()
+    filename = os.path.join(path, 'a.pyx')
+    open(filename, 'w').write(code)
+
+    if 'annotate' not in kwds:
+        kwds['annotate'] = True
+    import sage.misc.cython
+    modname, path = sage.misc.cython.cython(filename, **kwds)
+
+    try:
+    	sys.path.insert(0,path)
+    	module = __import__(modname)
+    finally:
+    	del sys.path[0]
+
+    import inspect
+    for name, value in inspect.getmembers(module):
+        if not name.startswith('_'):
+            salvus.namespace[name] = value
+
+    files = os.listdir(path)
+    html_filename = None
+    for n in files:
+        ext = os.path.splitext(n)[1]
+        if ext.startswith('.html'):
+            html_filename = os.path.join(path, n)
+    if html_filename is not None:
+        html_url = salvus.file(html_filename, show=False)
+        salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code >> </a>"%html_url)
+
+cython.__doc__ += sage.misc.cython.cython.__doc__

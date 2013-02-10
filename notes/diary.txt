@@ -9738,7 +9738,9 @@ x - sort
          %capture(stderr='err')
          %capture(stdout='out, stderr='err')
 
-    [ ] code decorator: %cython
+    [x] (0:56) code decorator: %cython
+
+    [ ] config option: initial number of empty cells in a worksheet
 
     [ ] code decorator: %mat -- easy way to make a matrix
 def mat(s):
