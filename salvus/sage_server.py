@@ -4,7 +4,7 @@ sage_server.py -- unencrypted forking TCP server that can run as root,
                create accounts on the fly, and serve sage as those
                accounts, using protobuf messages.
 
-For debugging (as normal user, do):
+For debugging (as root user, do):
 
     killemall sage_server.py && sage --python sage_server.py -p 6000 --host 127.0.0.1
 
@@ -342,6 +342,7 @@ class Salvus(object):
     def execute(self, code, namespace=None, preparse=True):
         if namespace is None:
             namespace = self.namespace
+
         for start, stop, block in parsing.divide_into_blocks(code):
             if preparse:
                 block = parsing.preparse_code(block)
@@ -626,15 +627,9 @@ def execute(conn, id, code, data, preparse):
             namespace['sage_salvus'] = sage_salvus
         except:
             traceback.print_exc()
-        for start, stop, block in parsing.divide_into_blocks(code):
-            if preparse:
-                block = parsing.preparse_code(block)
-            sys.stdout.reset(); sys.stderr.reset()
-            try:
-                exec compile(block, '', 'single') in namespace
-            except:
-                sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
-                traceback.print_exc()
+
+        salvus.execute(code, namespace=namespace, preparse=preparse)
+        
     finally:
         # there must be exactly one done message
         if sys.stderr._buf:
