@@ -9760,13 +9760,13 @@ x - sort
 
 * idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
 
-    [x] code decorators: %perl, %ruby, !
+    [x] (2:03) code decorators: %perl, %ruby, !   [[took a long time, since I got very confused about !, since there was a crappy implemention before...]]
 
-    [ ] code decorator: %sh -- the one in sage sucks.
+    [x] (0:08) code decorator: %sh 
+
     [ ] code decorator: %prun
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
-
 
 
     [ ] attach command -- it doesn't work with weird error.

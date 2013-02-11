@@ -146,9 +146,9 @@ def divide_into_blocks(code):
         for line in code:
             done = False
 
-            # Transform shell escape into script('/bin/bash') decorator.
+            # Transform shell escape into sh decorator.
             if line.lstrip().startswith('!'):
-                line = line.replace('!', "%%script('/bin/bash') ", 1)
+                line = line.replace('!', "%%sh ", 1)
 
             # Check for cell decorator
             # NOTE: strip_string_literals maps % to %%, because %foo is used for python string templating.

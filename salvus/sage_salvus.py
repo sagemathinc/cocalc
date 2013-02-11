@@ -1548,3 +1548,33 @@ def ruby(code):
     NOTE: No state is preserved between calls.  Each call is a separate process.
     """
     script('sage-native-execute ruby')(code)
+
+def sh(code):
+    """
+    Run a bash script in Salvus.
+
+    EXAMPLES:
+
+    Use as a code decorator on a single line::
+
+        %sh pwd
+
+    and multiline
+
+        %sh
+        echo "hi"
+        pwd
+        ls -l
+
+    You can also just directly call it::
+
+        sh('pwd')
+
+    The output is printed. To capture it, use capture
+
+        %capture(stdout='output')
+        %sh pwd
+
+    After that, the variable output contains the current directory
+    """
+    return script('/bin/bash')(code)
