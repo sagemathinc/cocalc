@@ -9764,7 +9764,7 @@ x - sort
 
     [x] (0:08) code decorator: %sh 
 
--->    [ ] code decorator: %prun
+    [x] (1:55) code decorator: %prun
 
     [ ] can't interrupt:  make ugly file "stats", then "!cat stats"
 

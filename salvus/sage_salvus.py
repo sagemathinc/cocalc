@@ -1605,8 +1605,7 @@ def prun(code):
     from sage.misc.all import tmp_filename
 
     filename = tmp_filename()
-    #code = preparse("from sage.all import *\n" + code)
-    cProfile.run(code, filename)
+    cProfile.runctx(salvus.namespace['preparse'](code), salvus.namespace, locals(), filename)
 
     @interact
     def f(title = text_control('', "<h1>Salvus Profiler</h1>"),
@@ -1615,19 +1614,13 @@ def prun(code):
                                      ('cumulative', 'total time spent in this and all subfunctions (from invocation till exit)'),
                                      ('module', 'name of the module that contains the function'),
                                      ('name', 'name of the function')
-                                     ], width="100%", default='cumulative')),
-          sort2=("then sort by", selector([('calls', 'number of calls to the function'),
-                                     ('time', ' total time spent in the function'),
-                                     ('cumulative', 'total time spent in this and all subfunctions (from invocation till exit)'),
-                                     ('module', 'name of the module that contains the function'),
-                                     ('name', 'name of the function')
-                                     ], default='module')),
+                                     ], width="100%", default='time')),
           strip_dirs=True):
         try:
             p = pstats.Stats(filename)
             if strip_dirs:
                 p.strip_dirs()
-            p.sort_stats(sort, sort2)
+            p.sort_stats(sort)
             p.print_stats()
         except Exception, msg:
             print msg
