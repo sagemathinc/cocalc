@@ -35,13 +35,8 @@ def get_input(prompt):
         return None
 
 def preparse_code(code):
-    if code.lstrip().startswith('!'):
-        # shell escape (TODO: way better)
-        code = 'print os.popen(eval("%r")).read()'%code[1:]
-    else:
-        import sage.all_cmdline
-        code = sage.all_cmdline.preparse(code)
-    return code
+    import sage.all_cmdline
+    return sage.all_cmdline.preparse(code)
 
 def strip_string_literals(code, state=None):
     new_code = []
@@ -150,6 +145,12 @@ def divide_into_blocks(code):
         v = []
         for line in code:
             done = False
+
+            # Transform shell escape into script('/bin/bash') decorator.
+            if line.lstrip().startswith('!'):
+                line = line.replace('!', "%%script('/bin/bash') ", 1)
+
+            # Check for cell decorator
             # NOTE: strip_string_literals maps % to %%, because %foo is used for python string templating.
             if line.lstrip().startswith('%%'):
                 i = line.find("%")

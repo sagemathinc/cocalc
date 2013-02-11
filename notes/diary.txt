@@ -9756,17 +9756,20 @@ x - sort
 
     [x] percent mode -- issue with space/tab delimiter in single-line modeEXAMPLES:
     [x] code decorators -- should run preparser before eval'ing them.
+    [x] (1:03) code decorator: %load -- read in file and execute -- absolutely no point in this!; spent a while documenting via emails...
 
 * idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
 
+    [x] code decorators: %perl, %ruby, !
+
+    [ ] code decorator: %sh -- the one in sage sucks.
     [ ] code decorator: %prun
-    [ ] code decorator: %perl
-    [ ] code decorator: %ruby
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
-    [x] (1:03) code decorator: %load -- read in file and execute -- absolutely no point in this!
-    [ ] code decorator: %attach
 
+
+
+    [ ] attach command -- it doesn't work with weird error.
 
     [ ] worksheet and console tabs need icons instead of (or in addition to) color.
 

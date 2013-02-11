@@ -1397,7 +1397,7 @@ class script:
     Code decorator to run an arbitrary shell command with input from a
     cell in Salvus.
 
-    Pput %script('shell command line') or %script(['command', 'arg1',
+    Put %script('shell command line') or %script(['command', 'arg1',
     'arg2', ...])  by itself on a line in a cell, and the command line
     is run with stdin the rest of the contents of the cell.  You can
     also use script in single line mode, e.g.,::
@@ -1420,14 +1420,12 @@ class script:
 
     and s.stdout will now be the output string.
 
-    You may also specify the shell environment with the env keyword::
-
-    
+    You may also specify the shell environment with the env keyword.
     """
     def __init__(self, args, env=None):
         self._args = args
         self._env = env
-    def __call__(self, code):
+    def __call__(self, code=''):
         import subprocess
         try:
             s = None
@@ -1464,14 +1462,13 @@ def python(code):
 
 def python3(code):
     """
-    Code decorator to run code in a pure Python3 mode session, which is restricted
-    to just this one evaluation (right now).
+    Code decorator to run code in a pure Python3 mode session.
 
     To use this, put %python3 by itself in a cell so that it applies to
     the rest of the cell, or put it at the beginning of a line to
     run just that line using python3.
 
-    You can combine this with capture, if you would like to capture
+    You can combine %python3 with capture, if you would like to capture
     the output to a variable.  For example::
 
         %capture(stdout='p3')
@@ -1480,6 +1477,74 @@ def python3(code):
         print(x)
 
     Afterwards, p3 contains the output '{1, 2, 3}' and the variable x
-    in the controlling Sage session is in now way impacted.
+    in the controlling Sage session is in no way impacted.
+
+    NOTE: No state is preserved between calls.  Each call is a separate process.
     """
     script('sage-native-execute python3 -E')(code)
+
+def perl(code):
+    """
+    Code decorator to run code in a Perl session.
+
+    To use this, put %perl by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using perl.
+
+    EXAMPLE:
+
+    A perl cell::
+
+        %perl
+        $apple_count = 5;
+        $count_report = "There are $apple_count apples.";
+        print "The report is: $count_report\n";
+
+    Or use %perl on one line::
+
+        %perl  $apple_count = 5;  $count_report = "There are $apple_count apples."; print "The report is: $count_report\n";
+
+    You can combine %perl with capture, if you would like to capture
+    the output to a variable.  For example::
+
+        %capture(stdout='p')
+        %perl print "hi"
+
+    Afterwards, p contains 'hi'.
+
+    NOTE: No state is preserved between calls.  Each call is a separate process.
+    """
+    script('sage-native-execute perl')(code)
+
+
+def ruby(code):
+    """
+    Code decorator to run code in a Ruby session.
+
+    To use this, put %ruby by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using ruby.
+
+    EXAMPLE:
+
+    A ruby cell::
+
+        %ruby
+        lang = "ruby"
+        print "Hello from #{lang}!"
+
+    Or use %ruby on one line::
+
+        %ruby lang = "ruby"; print "Hello from #{lang}!"
+
+    You can combine %ruby with capture, if you would like to capture
+    the output to a variable.  For example::
+
+        %capture(stdout='p')
+        %ruby lang = "ruby"; print "Hello from #{lang}!"
+
+    Afterwards, p contains 'Hello from ruby!'.
+
+    NOTE: No state is preserved between calls.  Each call is a separate process.
+    """
+    script('sage-native-execute ruby')(code)
