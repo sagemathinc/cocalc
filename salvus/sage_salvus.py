@@ -1441,3 +1441,14 @@ class script:
                     os.kill(s.pid, 9)
                 except OSError:
                     pass
+
+def python(code):
+    """
+    Code decorator to run code in pure Python mode, without it being
+    preparsed by the Sage preparser.  Otherwise, nothing changes.
+
+    To use this, put %python by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    disable preparsing just for that line.
+    """
+    salvus.execute(code, preparse=False)

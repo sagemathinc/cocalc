@@ -9756,18 +9756,18 @@ x - sort
 
     [x] (0:03) legacy % modes don't work since I used "globals" instead of "locals".
 
-    [ ] sage's show_identifiers should be explicitly re-initialized after imports and monkey patches
-
+    [x] (0:11) code decorator: %python
+    [ ] code decorator: %python3: run cell body using "python3" (totally separate session)
     [ ] code decorator: %file.read -- read in cell contents from a file before executing.
 
     [ ] code decorator: %perl
     [ ] code decorator: %prun
-    [ ] code decorator: %python
-    [ ] code decorator: %python3: run cell body using "python3" (totally separate session)
     [ ] code decorator: %ruby
 
     [ ] cell codemirror: no tabs!
     [ ] input: -- a modal input command like Python's -- for the browser!
+
+    [ ] sage's show_identifiers should be explicitly re-initialized after imports and monkey patches
 
     [ ] cells: move (control-arrow) should move all cells with checkbox checked.
 
