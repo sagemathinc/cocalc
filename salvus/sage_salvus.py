@@ -639,7 +639,7 @@ def sage_eval(x):
 class ParseValue:
     def __init__(self, type):
         self._type = type
-        
+
     def _eval(self, value):
         return sage_eval(value)
 
@@ -731,7 +731,7 @@ def text_control(default='', label='', classes=None):
             pass
 
     We animate a picture into view:
- 
+
         @interact
         def f(size=[10,15,..,30], speed=[1,2,3,4]):
             for k in range(size):
@@ -1279,7 +1279,8 @@ class Capture:
         self._orig_stdout_f = orig_stdout_f = sys.stdout._f
         if stdout is not None:
             if hasattr(stdout, 'write'):
-                write = stdout.write
+                def write_stdout(buf):
+                    stdout.write(buf)
             elif isinstance(stdout, str):
                 if (stdout not in salvus.namespace) or not append:
                     salvus.namespace[stdout] = ''
@@ -1305,7 +1306,8 @@ class Capture:
         self._orig_stderr_f = orig_stderr_f = sys.stderr._f
         if stderr is not None:
             if hasattr(stderr, 'write'):
-                write = stderr.write
+                def write_stderr(buf):
+                    stderr.write(buf)
             elif isinstance(stderr, str):
                 if (stderr not in salvus.namespace) or not append:
                     salvus.namespace[stderr] = ''
@@ -1354,7 +1356,7 @@ def cython(code=None, **kwds):
 
     This is a wrapper around Sage's cython function, whose docstring is:
 
-    
+
     """
     if code is None:
         return lambda code: cython(code, **kwds)
@@ -1578,3 +1580,54 @@ def sh(code):
     After that, the variable output contains the current directory
     """
     return script('/bin/bash')(code)
+
+
+def prun(code):
+    """
+    Use %prun followed by a block of code to profile execution of that
+    code.  This will display the resulting profile, along with a menu
+    to select how to sort the data.
+
+    EXAMPLES:
+
+    Profile computing a tricky integral (on a single line)::
+
+        %prun integrate(sin(x^2),x)
+
+    Profile a block of code::
+
+        %prun
+        E = EllipticCurve([1..5])
+        v = E.anlist(10^5)
+        r = E.rank()
+    """
+    import cProfile, pstats
+    from sage.misc.all import tmp_filename
+
+    filename = tmp_filename()
+    #code = preparse("from sage.all import *\n" + code)
+    cProfile.run(code, filename)
+
+    @interact
+    def f(title = text_control('', "<h1>Salvus Profiler</h1>"),
+          sort=("First sort by", selector([('calls', 'number of calls to the function'),
+                                     ('time', ' total time spent in the function'),
+                                     ('cumulative', 'total time spent in this and all subfunctions (from invocation till exit)'),
+                                     ('module', 'name of the module that contains the function'),
+                                     ('name', 'name of the function')
+                                     ], width="100%", default='cumulative')),
+          sort2=("then sort by", selector([('calls', 'number of calls to the function'),
+                                     ('time', ' total time spent in the function'),
+                                     ('cumulative', 'total time spent in this and all subfunctions (from invocation till exit)'),
+                                     ('module', 'name of the module that contains the function'),
+                                     ('name', 'name of the function')
+                                     ], default='module')),
+          strip_dirs=True):
+        try:
+            p = pstats.Stats(filename)
+            if strip_dirs:
+                p.strip_dirs()
+            p.sort_stats(sort, sort2)
+            p.print_stats()
+        except Exception, msg:
+            print msg

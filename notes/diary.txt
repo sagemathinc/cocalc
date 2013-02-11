@@ -9764,15 +9764,27 @@ x - sort
 
     [x] (0:08) code decorator: %sh 
 
-    [ ] code decorator: %prun
+-->    [ ] code decorator: %prun
+
+    [ ] can't interrupt:  make ugly file "stats", then "!cat stats"
+
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
+
+    [ ] code decorator: %debug (?)
 
 
     [ ] attach command -- it doesn't work with weird error.
 
     [ ] worksheet and console tabs need icons instead of (or in addition to) color.
 
+    [ ] tmp files -- either each sage session fork gets its own temp directory/cleaner, or i have to do away with using forking.
+        Because I'm creating lots of tempfiles that will only be cleaned up on exit.
+
+    [ ] interact -- very serious BUG/issue.  Make a simple interact like this, pound on a button, and watch session "hang".
+@interact
+def f(n=[1,2,3]):
+    print n
 
 
     [ ] config option: initial number of empty cells in a worksheet
@@ -9785,6 +9797,8 @@ x - sort
     [ ] cells: move (control-arrow) should move all cells with checkbox checked.
 
     [ ] worksheet: auto-restart when session dies, with notification
+
+    [ ] worksheet: delete trailing whitespace menu option?
 
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
