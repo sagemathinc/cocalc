@@ -9754,6 +9754,10 @@ x - sort
 
     [x] (0:21) code decorators: change capture so capture(stdout='foo') sets the global variable foo!  And capture(stdout=open('foo','w')) is how to send output to a file.
 
+    [x] (0:03) legacy % modes don't work since I used "globals" instead of "locals".
+
+    [ ] sage's show_identifiers should be explicitly re-initialized after imports and monkey patches
+
     [ ] code decorator: %file.read -- read in cell contents from a file before executing.
 
     [ ] code decorator: %perl
