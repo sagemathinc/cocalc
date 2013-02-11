@@ -20,10 +20,11 @@ Editor for files in a project
     font-size: 18px;
 }
 
-.salvus-editor-textarea {
-    width:100%;
-    border: 2px solid #99f;
-    box-shadow: 4px 4px 2px #bbf;
+.salvus-editor-codemirror {
+    border: 2px solid #aaa;
+    box-shadow: 6px 6px 3px #ccc;
+    margin-left:1em;
+    padding:1ex;
 }
 
 .salvus-editor-button-bar {

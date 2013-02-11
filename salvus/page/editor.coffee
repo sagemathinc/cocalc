@@ -8,22 +8,34 @@
 {EventEmitter} = require('events')
 {alert_message} = require('alerts')
 
-file_associations =
-    txt    :
-        editor : "codemirror"
-        opts   : {mode   : "text"}
+codemirror_associations =
+    coffee : 'coffeescript'
+    css    : 'css'
+    diff   : 'diff'
+    ecl    : 'ecl'
+    html   : 'htmlmixed'
+    js     : 'javascript'
+    lua    : 'lua'
+    md     : 'markdown'
+    php    : 'php'
+    py     : 'python'
+    pyx    : 'python'
+    r      : 'r'
+    rpm    : 'rpm'
+    rst    : 'rst'
+    sage   : 'python'
+    sh     : 'shell'
+    spyx   : 'python'
+    txt    : 'text'
+    xml    : 'xml'
+    yaml   : 'yaml'
+    ''     : 'text'
 
-    py     :
-        editor : "codemirror"
-        opts   : {mode   : "python"}
-
-    sagews :
-        editor : "worksheet"
-        opts   : {mode : "sage"}
-
-    ''     :  # other
-        editor : "codemirror"
-        opts   : {mode: "text"}
+file_associations = {}
+for ext, mode of codemirror_associations
+    file_associations[ext] =
+        editor : 'codemirror'
+        opts   : {mode:mode}
 
 templates = $("#salvus-editor-templates")
 
@@ -134,7 +146,6 @@ class exports.Editor
                 @active_tab = tab
                 tab.link.addClass("active")
                 tab.editor.element.show()
-                # TODO!
                 @element.find(".btn-group").children().removeClass('disabled')
             else
                 tab.link.removeClass("active")
@@ -188,10 +199,8 @@ class exports.Editor
         if not x?
             x = file_associations['']
         switch x.editor
-            when "codemirror"
+            when "codemirror", undefined   # codemirror is the default... since it is the only thing implemented now.  JSON will be next, since I have that plugin.
                 editor = new CodeMirrorEditor(x.opts)
-            when "worksheet"
-                editor = new WorksheetEditor(x.opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
@@ -243,22 +252,30 @@ class FileEditor extends EventEmitter
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (opts) ->
-        @opts = defaults opts,
+        opts = @opts = defaults opts,
             mode         : required
             line_numbers : true
             indent_unit  : 4
             tab_size     : 4
             smart_indent : true
             undo_depth   : 100
+            editor_max_height: "40em"
+            match_brackets: true
 
         @element = templates.find(".salvus-editor-codemirror").clone()
+
         @codemirror = CodeMirror.fromTextArea @element.find("textarea")[0],
-            mode        : opts.mode
-            lineNumbers : opts.line_numbers
-            indentUnit  : opts.indent_unit
-            tabSave     : opts.tab_size
-            smartIndent : opts.smart_indent
-            undoDepth   : opts.undo_depth
+            firstLineNumber : 1
+            autofocus       : false
+            mode            : opts.mode
+            lineNumbers     : opts.line_numbers
+            indentUnit      : opts.indent_unit
+            tabSave         : opts.tab_size
+            smartIndent     : opts.smart_indent
+            undoDepth       : opts.undo_depth
+            matchBrackets   : opts.match_brackets
+
+        $(@codemirror.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
     _get: () =>
         return @codemirror.getValue()
@@ -276,12 +293,4 @@ class CodeMirrorEditor extends FileEditor
     remove: () =>
         @element.remove()
 
-
-###############################################
-# Worksheet based editor
-###############################################
-class WorksheetEditor extends FileEditor
-    constructor: (opts) ->
-        @opts = defaults opts,
-            mode : required
 

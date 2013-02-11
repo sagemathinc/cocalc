@@ -9766,14 +9766,34 @@ x - sort
 
     [x] (0:28) worksheet and console tabs need icons instead of (or in addition to) color.
 
-    [ ] worksheet title tab: needs a spinner when there is action (css icon?) or javascript spinner...?
+-->    [ ] worksheet title tab: needs a spinner when there is action (css icon?) or javascript spinner...?
 
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
 
-    [ ] code decorator: %pdb (?)/  %debug    -- the debug() command I wrote for the notebook doesn't work at all.
-    [ ] attach command -- it doesn't work with weird error.
 
+    [x] file editor: bold black line around outside of editor
+    [x] file editor: line numbers on left (respect the mode setting)
+
+    [x] (0:37) file editor: syntax highlighting for several file types (just start it)
+
+    [ ] file editor: need to just merge this in with "Sessions" or "Consoles"; it is too confusing/complicated
+        being separate.  Actually, pull the stuff from consoles to this, since editor seems right.  And,
+        when opening doc have little icons or something for alternative ways.  Pretty standard stuff.
+
+    [ ] file editor: save on "clicking the x"
+    [ ] file editor: autosave with same interval as for worksheets
+
+    [ ] file editor(?)/cell(def): CodeMirror -- tab should not send '\t' but instead '    '
+
+    [ ] file editor (advanced): split view
+    [ ] file editor (advanced): live preview (esp. for html, .md,; latex, etc.)
+    [ ] file editor (advanced): action -- run (for certain file types)
+
+
+    [ ] code decorator: %pdb (?)/  %debug    -- the debug() command I wrote for the notebook doesn't work at all.
+
+    [ ] attach command -- it doesn't work with weird error.
 
     [ ] bug -- can't interrupt:  make ugly file "stats", then "!cat stats"
 
@@ -9785,10 +9805,10 @@ x - sort
 def f(n=[1,2,3]):
     print n
 
-
     [ ] config option: initial number of empty cells in a worksheet
 
     [ ] cell codemirror: no tabs!
+
     [ ] input: -- a modal input command like Python's -- for the browser!
 
     [ ] sage's show_identifiers should be explicitly re-initialized after imports and monkey patches
@@ -9941,10 +9961,6 @@ It's http://bugs.python.org/issue7985 -- see
     [ ] ? project: little worksheet/console buttons in the top bar too... ?
     [ ] ? worksheet: put label back next to filename input ?
     [ ] ? worksheet: a lock to make it hard to close?
-
-    [ ] file editor: save on "clicking the x"
-    [ ] file editor: autosave with same interval as for worksheets
-
     [ ] worksheet persistence: saving to a path that doesn't exist should auto-create that path.  Just put "mkdir -p" in the save script.
 
     [ ] worksheet: auto-number and size the section headings, subsections, etc.  This will be purely client side rendering.  Will get run

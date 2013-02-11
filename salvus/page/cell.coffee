@@ -48,7 +48,7 @@ class Cell extends EventEmitter
             # language mode of the input editor
             editor_mode           : "python"
             # whether to display line numbers in the input code editor
-            editor_line_numbers   : false
+            editor_line_numbers   : true
             # number of spaces to indent in the code editor
             editor_indent_spaces  : 4
             # whether or not to wrap lines in the code editor
