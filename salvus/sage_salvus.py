@@ -1316,7 +1316,7 @@ capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
 def cython(code=None, **kwds):
     """
-    Code decorate to easily include Cython code in the Salvus notebook.
+    Code decorator to easily include Cython code in the Salvus notebook.
 
     Just put %cython at the top of a cell, and the rest is compiled as Cython code.
     You can pass options to cython by typing "%cython(... var=value...)" instead.
@@ -1359,3 +1359,54 @@ def cython(code=None, **kwds):
         salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code >> </a>"%html_url)
 
 cython.__doc__ += sage.misc.cython.cython.__doc__
+
+
+class script:
+    r"""
+    Code decorator to run an arbitrary shell command with input from a
+    cell in Salvus.
+
+    Pput %script('shell command line') or %script(['command', 'arg1',
+    'arg2', ...])  by itself on a line in a cell, and the command line
+    is run with stdin the rest of the contents of the cell.  You can
+    also use script in single line mode, e.g.,::
+
+        %script('gp -q') factor(2^97 - 1)
+
+    or
+
+        %script(['gp', '-q'])   factor(2^97 - 1)
+
+    will launch a gp session, feed 'factor(2^97-1)' into stdin, and
+    display the resulting factorization.
+
+    NOTE: the result is stored in the attribute "stdout", so you can do::
+
+        s = script('gp -q')
+        %s factor(2^97-1)
+        s.stdout
+        '\n[11447 1]\n\n[13842607235828485645766393 1]\n\n'
+
+    and s.stdout will now be the output string.
+    """
+    def __init__(self, args):
+        self._args = args
+    def __call__(self, code):
+        import subprocess
+        try:
+            s = subprocess.Popen(self._args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
+                                 stderr=subprocess.STDOUT, shell=isinstance(self._args, str))
+            s.stdin.write(code); s.stdin.close()
+        finally:
+            try:
+                self.stdout = s.stdout.read()
+                sys.stdout.write(self.stdout)
+            finally:
+                try:
+                    os.system("pkill -TERM -P %s"%s.pid)
+                except OSError:
+                    pass
+               	try:
+                    os.kill(s.pid, 9)
+                except OSError:
+                    pass

@@ -218,6 +218,9 @@ class BufferedOutputStream(object):
     def reset(self):
         self._last_flush_time = time.time()
 
+    def fileno(self):
+        return 0
+
     def write(self, output):
         self._buf += output
         self.flush()
@@ -935,7 +938,7 @@ def serve(port, host):
     exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
 
-    for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython']:
+    for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython', 'script']:
         namespace[name] = getattr(sage_salvus, name)
 
     t = time.time()
