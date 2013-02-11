@@ -9754,23 +9754,25 @@ x - sort
 
     [x] (0:13) %script -- env support?
 
-    [ ] percent mode -- issue with space/tab delimiter in single-line mode
+    [x] percent mode -- issue with space/tab delimiter in single-line modeEXAMPLES:
+    [x] code decorators -- should run preparser before eval'ing them.
 
 * idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
 
-
-    [ ] config option: initial number of empty cells in a worksheet
-
+    [ ] code decorator: %prun
+    [ ] code decorator: %perl
+    [ ] code decorator: %ruby
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
+    [x] (1:03) code decorator: %load -- read in file and execute -- absolutely no point in this!
+    [ ] code decorator: %attach
 
-    [ ] code decorators -- should run preparser before eval'ing them.
 
-    [ ] code decorator: %file.read -- read in cell contents from a file before executing.
+    [ ] worksheet and console tabs need icons instead of (or in addition to) color.
 
-    [ ] code decorator: %perl
-    [ ] code decorator: %prun
-    [ ] code decorator: %ruby
+
+
+    [ ] config option: initial number of empty cells in a worksheet
 
     [ ] cell codemirror: no tabs!
     [ ] input: -- a modal input command like Python's -- for the browser!
@@ -10076,6 +10078,7 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] worksheet: ensure can insert cells everywhere, e.g., in new sections
 
     [ ] investigate : http://jschr.github.com/textillate/index.html
+    [ ] idea: use overlay.js from codemirror to highlight %latex
 
     [ ] single cell: re-enable single cell (see account.html)
 
