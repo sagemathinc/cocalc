@@ -21,7 +21,6 @@ codemirror_associations =
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
-    rpm    : 'rpm'
     rst    : 'rst'
     sage   : 'python'
     sh     : 'shell'
@@ -67,7 +66,7 @@ class exports.Editor
 
         @element.find("a[href=#close]").addClass('disabled').click () ->
             if not $(@).hasClass("disabled")
-                that.close(that.active_tab.filename, true)
+                that.close(that.active_tab.filename)
             return false
 
         @element.find("a[href=#reload]").addClass('disabled').click () ->
@@ -92,23 +91,21 @@ class exports.Editor
         @load(filename)
 
     # Close this tab.  If it has unsaved changes, the user will be warned.
-    close: (filename, warn) =>
-        tab = @tabs[filename]
-        if not tab? # nothing to do -- file isn't opened anymore
-            return
-        if warn and tab.editor.has_unsaved_changes()
-            @warn_user filename, (proceed) =>
-                @close(filename, false)
+    close: (filename) =>
+        @save filename, (err) =>
+            if not err
+                tab = @tabs[filename]
+                if not tab? # nothing to do -- file isn't opened anymore
+                    return
+                tab.link.remove()
+                tab.editor.remove()
+                delete @tabs[filename]
+                @update_counter()
 
-        tab.link.remove()
-        tab.editor.remove()
-        delete @tabs[filename]
-        @update_counter()
-
-        names = keys(@tabs)
-        if names.length > 0
-            # select new tab
-            @display_tab(names[0])
+                names = keys(@tabs)
+                if names.length > 0
+                    # select new tab
+                    @display_tab(names[0])
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -152,11 +149,12 @@ class exports.Editor
                 tab.editor.hide()
 
     # Save the branch to disk, but do not do any sort of git commit.
-    save: (filename) =>
-        if not filename?
-            # if filename not given, save all files
+    save: (filename, cb) =>       # cb(err)
+        if not filename?  # if filename not given, save all files
+            tasks = []
             for filename in keys(@tabs)
-                @save(filename)
+                tasks.push((c) => @save(filename, c))
+            async.series(tasks, cb)
             return
 
         tab = @tabs[filename]
@@ -170,9 +168,13 @@ class exports.Editor
             cb         : (err, mesg) =>
                 if err
                     alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
+                    cb?(err)
                 else if mesg.event == 'error'
                     alert_message(type:"error", message:"Error saving #{filename} -- #{to_json(mesg.error)}")
-                # TODO -- change some state to reflect success, e.g., disable save button
+                    cb?(mesg.error)
+                else
+                    cb?()
+                    # TODO -- change some state to reflect success, e.g., disable save button
 
     # Load a file from the backend if there is a tab for this file;
     # otherwise does nothing.

@@ -9777,11 +9777,12 @@ x - sort
 
     [x] (0:37) file editor: syntax highlighting for several file types (just start it)
 
-    [ ] file editor: need to just merge this in with "Sessions" or "Consoles"; it is too confusing/complicated
+    [ ] file editor: do I need to just merge this in with "Sessions" or "Consoles"?; is it too confusing/complicated
         being separate.  Actually, pull the stuff from consoles to this, since editor seems right.  And,
         when opening doc have little icons or something for alternative ways.  Pretty standard stuff.
 
-    [ ] file editor: save on "clicking the x"
+    [x] file editor: save on "clicking the x"
+
     [ ] file editor: autosave with same interval as for worksheets
 
     [ ] file editor(?)/cell(def): CodeMirror -- tab should not send '\t' but instead '    '
