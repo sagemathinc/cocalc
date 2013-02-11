@@ -9761,22 +9761,21 @@ x - sort
 * idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
 
     [x] (2:03) code decorators: %perl, %ruby, !   [[took a long time, since I got very confused about !, since there was a crappy implemention before...]]
-
-    [x] (0:08) code decorator: %sh 
-
+    [x] (0:08) code decorator: %sh
     [x] (1:55) code decorator: %prun
 
-    [ ] can't interrupt:  make ugly file "stats", then "!cat stats"
+    [x] (0:28) worksheet and console tabs need icons instead of (or in addition to) color.
+
+    [ ] worksheet title tab: needs a spinner when there is action (css icon?) or javascript spinner...?
 
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
 
-    [ ] code decorator: %debug (?)
-
-
+    [ ] code decorator: %pdb (?)/  %debug    -- the debug() command I wrote for the notebook doesn't work at all.
     [ ] attach command -- it doesn't work with weird error.
 
-    [ ] worksheet and console tabs need icons instead of (or in addition to) color.
+
+    [ ] bug -- can't interrupt:  make ugly file "stats", then "!cat stats"
 
     [ ] tmp files -- either each sage session fork gets its own temp directory/cleaner, or i have to do away with using forking.
         Because I'm creating lots of tempfiles that will only be cleaned up on exit.

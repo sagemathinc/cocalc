@@ -11,6 +11,19 @@ async = require("async")
 
 templates = $("#salvus-consoles-templates")
 
+icons =
+    worksheet : 'icon-file-alt'
+    console   : 'icon-credit-card'
+
+class FilenameTab
+    constructor: () ->
+        @element = templates.find(".salvus-console-filename-tab").clone()
+    set_icon: (type) =>  # type is 'worksheet' or 'console'
+        @element.find("i").addClass(icons[type])
+        
+    title: (html) =>
+        @element.find(".salvus-consoles-tab-title").html(html)
+
 class exports.Consoles
     constructor: (opts) ->
         opts = defaults opts,
@@ -105,12 +118,13 @@ class exports.Consoles
             type = opts.type
 
         # create the tab UI element
-        link = templates.find(".super-menu").clone().show()
+        filename_tab = new FilenameTab()
+        link = filename_tab.element
 
         opts =
             project_id : @project_id
             session_id : session_id
-            title_ui   : link.find(".salvus-consoles-tab-title")  # gets set by xterm protocol
+            filename_tab : filename_tab
             path       : opts.path
 
         # create the actual console.
@@ -155,11 +169,11 @@ class Session
         opts = defaults opts,
             project_id : required
             session_id : required
-            title_ui   : required
+            filename_tab   : required
             path       : undefined
         @project_id = opts.project_id
         @session_id = opts.session_id
-        @title_ui = opts.title_ui
+        @filename_tab = opts.filename_tab
         @path = opts.path
 
         @init()
@@ -187,7 +201,8 @@ class Session
 class CommandLineSession extends Session
     init : () =>
         @element = templates.find(".salvus-consoles-command-line").clone()
-        @title_ui.text("cmdline")
+        @filename_tab.title("cmdline")
+        @filename_tab.set_icon('console')
 
         # Enable the command line prompt.
         that = @
@@ -244,8 +259,8 @@ class XTermSession extends Session
                     @console = @element.data("console")
                     @element = @console.element
 
-        # TODO -- more systematic
-        @title_ui.html("<font color='darkgreen'>console</font>")
+        @filename_tab.title("Console")
+        @filename_tab.set_icon('console')
 
 class WorksheetSession extends Session
     init : () =>
@@ -306,11 +321,11 @@ class WorksheetSession extends Session
 
                 @worksheet = @element.data("worksheet")
                 @element   = @worksheet.element
-                @_update_title_ui()
+                @_update_filename_tab()
 
                 @worksheet.on 'save', (path) =>
                     @path = path
-                    @_update_title_ui()
+                    @_update_filename_tab()
 
                 cb()
 
@@ -321,7 +336,7 @@ class WorksheetSession extends Session
                 alert_message(type:"error", message:msg)
         )
 
-    _update_title_ui : () ->
+    _update_filename_tab : () ->
         if @path?
             if filename_extension(@path) == "salvus"
                 path = @path.slice(0,-7)
@@ -329,7 +344,8 @@ class WorksheetSession extends Session
                 path = @path
         else
             path = "worksheet"
-        @title_ui.html("<font color='darkblue'>#{path}</font>")
+        @filename_tab.title("#{path}")
+        @filename_tab.set_icon('worksheet')
 
     has_unsaved_changes: () =>
         return @worksheet.has_unsaved_changes()
