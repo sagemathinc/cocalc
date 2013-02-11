@@ -9740,14 +9740,6 @@ x - sort
 
     [x] (0:56) code decorator: %cython
 
-    [ ] config option: initial number of empty cells in a worksheet
-
-    [ ] code decorator: %hide
-    [ ] code decorator: %hideall
-
-* idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
-
-
     [x] (0:05) code decorator: %sh, %bash, %system -- shell; plus fix issue with capture only being half-done
 
     [x] (1:05) code decorator: %script: run cell body with the script specified in the first line.
@@ -9759,6 +9751,21 @@ x - sort
     [x] (0:11) code decorator: %python
 
     [x] (0:07) code decorator: %python3: run cell body using "python3" (totally separate session)
+
+    [x] (0:13) %script -- env support?
+
+    [ ] percent mode -- issue with space/tab delimiter in single-line mode
+
+* idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
+
+
+    [ ] config option: initial number of empty cells in a worksheet
+
+    [ ] code decorator: %hide
+    [ ] code decorator: %hideall
+
+    [ ] code decorators -- should run preparser before eval'ing them.
+
     [ ] code decorator: %file.read -- read in cell contents from a file before executing.
 
     [ ] code decorator: %perl

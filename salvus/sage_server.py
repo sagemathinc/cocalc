@@ -381,6 +381,9 @@ class Salvus(object):
         if isinstance(code_decorators, str):
             code_decorators = [code_decorators]
 
+        if preparse:
+            code_decorators = map(parsing.preparse_code, code_decorators)
+
         code_decorators = [eval(code_decorator, self.namespace) for code_decorator in code_decorators]
 
         for i, code_decorator in enumerate(code_decorators):

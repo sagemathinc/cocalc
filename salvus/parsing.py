@@ -148,13 +148,12 @@ def divide_into_blocks(code):
     c = list(code)
     try:
         v = []
-        decs = {}
         for line in code:
             done = False
             # NOTE: strip_string_literals maps % to %%, because %foo is used for python string templating.
             if line.lstrip().startswith('%%'):
                 i = line.find("%")
-                j = end_of_expr(line[i+2:]) + i+2
+                j = end_of_expr(line[i+2:]) + i+2  + 1 # +1 for the space or tab delimiter
                 expr = line[j:]%literals
                 # Special case -- if % starts line *and* expr is empty (or a comment),
                 # then code decorators impacts the rest of the code.
@@ -167,7 +166,6 @@ def divide_into_blocks(code):
                     # Expr is nonempty -- code decorator only impacts this line
                     new_line = '%ssalvus.execute_with_code_decorators(*_salvus_parsing.dec_args[%s])'%(line[:i], dec_counter)
 
-                decs[dec_counter] = ([line[i+2:j]%literals], expr)
                 dec_args[dec_counter] = ([line[i+2:j]%literals], expr)
                 dec_counter += 1
             else:

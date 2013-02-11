@@ -1419,16 +1419,25 @@ class script:
         '\n[11447 1]\n\n[13842607235828485645766393 1]\n\n'
 
     and s.stdout will now be the output string.
+
+    You may also specify the shell environment with the env keyword::
+
+    
     """
-    def __init__(self, args):
+    def __init__(self, args, env=None):
         self._args = args
+        self._env = env
     def __call__(self, code):
         import subprocess
         try:
-            s = subprocess.Popen(self._args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
-                                 stderr=subprocess.STDOUT, shell=isinstance(self._args, str))
+            s = None
+            s = subprocess.Popen(self._args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, shell=isinstance(self._args, str),
+                                 env=self._env)
             s.stdin.write(code); s.stdin.close()
         finally:
+            if s is None:
+                return
             try:
                 self.stdout = s.stdout.read()
                 sys.stdout.write(self.stdout)
@@ -1473,4 +1482,4 @@ def python3(code):
     Afterwards, p3 contains the output '{1, 2, 3}' and the variable x
     in the controlling Sage session is in now way impacted.
     """
-    script('unset PYTHONPATH; unset PYTHONHOME; sage-native-execute python3')(code)
+    script('sage-native-execute python3 -E')(code)
