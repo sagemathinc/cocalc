@@ -4,6 +4,14 @@ parser.py
 Code for parsing Sage code blocks sensibly.
 """
 
+#########################################################################################
+#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#                                                                                       #
+#  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
+#                                                                                       #
+#                  http://www.gnu.org/licenses/                                         #
+#########################################################################################
+
 import string
 import traceback
 

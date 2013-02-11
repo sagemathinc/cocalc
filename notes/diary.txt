@@ -9752,9 +9752,9 @@ x - sort
 
     [x] (1:05) code decorator: %script: run cell body with the script specified in the first line.
 
-    [ ] code decorators: change capture so capture(stdout='foo') sets the global variable foo!  And capture(stdout=open('foo','w')) is how to send output to a file.
+    [x] (0:21) code decorators: change capture so capture(stdout='foo') sets the global variable foo!  And capture(stdout=open('foo','w')) is how to send output to a file.
 
-    [ ] code decorator: %file.read -- read in cell contents from a file before executing. 
+    [ ] code decorator: %file.read -- read in cell contents from a file before executing.
 
     [ ] code decorator: %perl
     [ ] code decorator: %prun

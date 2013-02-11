@@ -10,19 +10,18 @@ For debugging (as root user, do):
 
 """
 
-# This file must be GPL'd (if salvus is redistributed...) because it
-# imports the Sage library.  This file is not directly imported by
-# anything else; the Python process it runs is used over a TCP
-# connection.  So nothing viral here.
+# NOTE: This file must be GPL'd (if salvus is redistributed...)
+# because it imports the Sage library.  This file is not directly
+# imported by anything else in Salvus; the Python process it runs is
+# used over a TCP connection.
 
-########################################################################################
-#       Copyright (C) 2012 William Stein <wstein@gmail.com>
-#
-#  Distributed under the terms of the GNU General Public License (GPL), version 2+
-#
-#                  http://www.gnu.org/licenses/
 #########################################################################################
-
+#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#                                                                                       #
+#  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
+#                                                                                       #
+#                  http://www.gnu.org/licenses/                                         #
+#########################################################################################
 
 # This can be useful, just in case.
 def log(s):

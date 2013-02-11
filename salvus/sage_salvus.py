@@ -4,6 +4,15 @@
 #                                                                                #
 ##################################################################################
 
+#########################################################################################
+#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#                                                                                       #
+#  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
+#                                                                                       #
+#                  http://www.gnu.org/licenses/                                         #
+#########################################################################################
+
+
 import copy, os, sys
 
 salvus = None
@@ -1240,24 +1249,27 @@ timeit.__doc__ += sage.misc.sage_timeit.sage_timeit.__doc__
 
 class Capture:
     """
-    Capture or ignore the output from evaluating the given code.
-
-    (SALVUS only)
+    Capture or ignore the output from evaluating the given code. (SALVUS only).
 
     Use capture as a code decorator by placing either %capture or
-    %capture(optional args) it at the beginning of a cell or at the
+    %capture(optional args) at the beginning of a cell or at the
     beginning of a line.  If you use just plane %capture then stdout
     and stderr are completely ignored.  If you use %capture(args)
-    you can redirect or echo stdout and stderr to files.  For example,
+    you can redirect or echo stdout and stderr to variables or
+    files.  For example if you start a cell with this line::
 
-       %capture(stdout='filename.txt', stderr='filename2.txt', append=False, echo=True)
+       %capture(stdout='output', stderr=open('error','w'), append=True, echo=True)
+
+    then stdout is appended (because append=True) to the global
+    variable output, stderr is written to the file 'error', and the
+    output is still displayed in the output portion of the cell (echo=True).
 
     INPUT:
 
-    - stdout -- string (or object with write method) to send stdout output to
-    - stderr -- string (or object with write method) to send stderr output to
-    - append -- (default: False) if stdout/stderr are a string, open in append mode
-    - echo -- (default: False) if True, also echo stdout/stderr to the notebook.
+    - stdout -- string (or object with write method) to send stdout output to (string=name of variable)
+    - stderr -- string (or object with write method) to send stderr output to (string=name of variable)
+    - append -- (default: False) if stdout/stderr are a string, append to corresponding variable
+    - echo   -- (default: False) if True, also echo stdout/stderr to the output cell.
     """
     def __init__(self, stdout, stderr, append, echo):
         self.v = (stdout, stderr, append, echo)
@@ -1266,10 +1278,19 @@ class Capture:
         (stdout, stderr, append, echo) = self.v
         self._orig_stdout_f = orig_stdout_f = sys.stdout._f
         if stdout is not None:
-            if not hasattr(stdout, 'write'):
-                stdout = open(stdout, 'a' if append else 'w')
+            if hasattr(stdout, 'write'):
+                write = stdout.write
+            elif isinstance(stdout, str):
+                if (stdout not in salvus.namespace) or not append:
+                    salvus.namespace[stdout] = ''
+                if not isinstance(salvus.namespace[stdout], str):
+                    salvus.namespace[stdout] = str(salvus.namespace[stdout])
+                def write_stdout(buf):
+                    salvus.namespace[stdout] += buf
+            else:
+                raise TypeError, "stdout must be None, a string, or have a write method"
             def f(buf, done):
-                stdout.write(buf)
+                write_stdout(buf)
                 if echo:
                     orig_stdout_f(buf, done)
                 elif done:
@@ -1283,20 +1304,30 @@ class Capture:
 
         self._orig_stderr_f = orig_stderr_f = sys.stderr._f
         if stderr is not None:
-            if not hasattr(stderr, 'write'):
-                stderr = open(stderr, 'a' if append else 'w')
-            def g(buf, done):
-                stderr.write(buf)
+            if hasattr(stderr, 'write'):
+                write = stderr.write
+            elif isinstance(stderr, str):
+                if (stderr not in salvus.namespace) or not append:
+                    salvus.namespace[stderr] = ''
+                if not isinstance(salvus.namespace[stderr], str):
+                    salvus.namespace[stderr] = str(salvus.namespace[stderr])
+                def write_stderr(buf):
+                    salvus.namespace[stderr] += buf
+            else:
+                raise TypeError, "stderr must be None, a string, or have a write method"
+            def f(buf, done):
+                write_stderr(buf)
                 if echo:
                     orig_stderr_f(buf, done)
                 elif done:
                     orig_stderr_f('', done)
-            sys.stderr._f = g
+            sys.stderr._f = f
         elif not echo:
-            def g(buf,done):
+            def f(buf,done):
                 if done:
                     orig_stderr_f('',done)
-            sys.stderr._f = g
+            sys.stderr._f = f
+
 
         return self
 
