@@ -9742,30 +9742,24 @@ x - sort
 
     [ ] config option: initial number of empty cells in a worksheet
 
-    [ ] code decorator: %mat -- easy way to make a matrix
-def mat(s):
-    globals()['m'] = matrix(2,[1,2,3,4])
-%mat m 1,2;3,4 GF(7)
-
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
 
 * idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
 
 
-    [ ] code decorator: %sh, %bash, %system -- shell
+    [x] code decorator: %sh, %bash, %system -- shell; plus fix issue with capture only being half-done
+    [ ] code decorator: %script: run cell body with the script specified in the first line.
+
     [ ] code decorator: %perl
     [ ] code decorator: %prun
     [ ] code decorator: %python
     [ ] code decorator: %python3: run cell body using "python3" (totally separate session)
     [ ] code decorator: %ruby
-    [ ] code decorator: %script: run cell body with the script specified in the first line.
-    [ ] code decorator: %%timeit: time the execution of the cell (extension of %timeit).
-    [ ] code decorator: ?? %%sx: run cell with system shell and capture process output (cell extension of %sx). ??
-
-    [ ] code decorators -- tab completion gets confused by % in "%foo".
 
     [ ] cells: move (control-arrow) should move all cells with checkbox checked.
+
+    [ ] worksheet: auto-restart when session dies, with notification
 
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
@@ -10114,3 +10108,11 @@ f(2,3)
 @interact
 def f(n=[10,100,500], m=[10,100,500]):
     %timeit n*m
+
+WILD AND CRAZY IDEAS
+
+    [ ] code decorator: %mat -- easy way to make a matrix?
+def mat(s):
+    globals()['m'] = matrix(2,[1,2,3,4])
+%mat m 1,2;3,4 GF(7)
+

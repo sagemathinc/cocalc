@@ -1239,6 +1239,26 @@ timeit.__doc__ += sage.misc.sage_timeit.sage_timeit.__doc__
 
 
 class Capture:
+    """
+    Capture or ignore the output from evaluating the given code.
+
+    (SALVUS only)
+
+    Use capture as a code decorator by placing either %capture or
+    %capture(optional args) it at the beginning of a cell or at the
+    beginning of a line.  If you use just plane %capture then stdout
+    and stderr are completely ignored.  If you use %capture(args)
+    you can redirect or echo stdout and stderr to files.  For example,
+
+       %capture(stdout='filename.txt', stderr='filename2.txt', append=False, echo=True)
+
+    INPUT:
+
+    - stdout -- string (or object with write method) to send stdout output to
+    - stderr -- string (or object with write method) to send stderr output to
+    - append -- (default: False) if stdout/stderr are a string, open in append mode
+    - echo -- (default: False) if True, also echo stdout/stderr to the notebook.
+    """
     def __init__(self, stdout, stderr, append, echo):
         self.v = (stdout, stderr, append, echo)
 
@@ -1280,7 +1300,9 @@ class Capture:
 
         return self
 
-    def __call__(self, code):
+    def __call__(self, code=None, stdout=None, stderr=None, append=False, echo=False):
+        if code is None:
+            return Capture(stdout=stdout, stderr=stderr, append=append, echo=echo)
         salvus.execute(code)
 
 
@@ -1289,31 +1311,7 @@ class Capture:
         sys.stderr._f = self._orig_stderr_f
 
 
-def capture(code=None, stdout=None, stderr=None, append=False, echo=False):
-    """
-    Capture or ignore the output from evaluating the given code.
-
-    (SALVUS only)
-
-    Use capture as a code decorator by placing either %capture or
-    %capture(optional args) it at the beginning of a cell or at the
-    beginning of a line.  If you use just plane %capture then stdout
-    and stderr are completely ignored.  If you use %capture(args)
-    you can redirect or echo stdout and stderr to files.  For example,
-
-       %capture(stdout='filename.txt', stderr='filename2.txt', append=False, echo=True)
-
-    INPUT:
-
-    - stdout -- string (or object with write method) to send stdout output to
-    - stderr -- string (or object with write method) to send stderr output to
-    - append -- (default: False) if stdout/stderr are a string, open in append mode
-    - echo -- (default: False) if True, also echo stdout/stderr to the notebook.
-    """
-    if code is None:
-        return Capture(stdout=stdout, stderr=stderr, append=append, echo=echo)
-    else:
-        raise NotImplementedError
+capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
 
 def cython(code=None, **kwds):
