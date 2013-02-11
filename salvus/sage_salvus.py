@@ -1452,3 +1452,25 @@ def python(code):
     disable preparsing just for that line.
     """
     salvus.execute(code, preparse=False)
+
+def python3(code):
+    """
+    Code decorator to run code in a pure Python3 mode session, which is restricted
+    to just this one evaluation (right now).
+
+    To use this, put %python3 by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using python3.
+
+    You can combine this with capture, if you would like to capture
+    the output to a variable.  For example::
+
+        %capture(stdout='p3')
+        %python3
+        x = set([1,2,3])
+        print(x)
+
+    Afterwards, p3 contains the output '{1, 2, 3}' and the variable x
+    in the controlling Sage session is in now way impacted.
+    """
+    script('unset PYTHONPATH; unset PYTHONHOME; sage-native-execute python3')(code)

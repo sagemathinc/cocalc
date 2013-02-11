@@ -9757,7 +9757,8 @@ x - sort
     [x] (0:03) legacy % modes don't work since I used "globals" instead of "locals".
 
     [x] (0:11) code decorator: %python
-    [ ] code decorator: %python3: run cell body using "python3" (totally separate session)
+
+    [x] (0:07) code decorator: %python3: run cell body using "python3" (totally separate session)
     [ ] code decorator: %file.read -- read in cell contents from a file before executing.
 
     [ ] code decorator: %perl
