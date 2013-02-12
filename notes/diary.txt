@@ -10174,3 +10174,17 @@ def mat(s):
     globals()['m'] = matrix(2,[1,2,3,4])
 %mat m 1,2;3,4 GF(7)
 
+
+   [ ] worksheet: make it easy to hide all input cells completely from a worksheet for note taking.  
+
+   [ ] mathjax macros -- all in sage, plus easy to add more.
+
+   [ ] note: when using it, I really wish there were syntax highlighting, paren matching, etc... maybe it should be *latex* mode codemirror?  But what about markup.  Ugh.  Or... it could switch modes easily.  Hmm.   I could make it *automatically* embed little auto-expanding code-mirrors everywhere that there are $$'s...   Or, while typing, hit $ and suddenly a little codemirror appears, hit $ again as 0,0 entry, and it centers.   
+
+   [ ] worksheet: they must have "pages", like a spreadsheet has pages.  This would be a boon to organization. 
+
+
+   
+
+ 
+
