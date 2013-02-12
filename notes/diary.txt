@@ -9766,10 +9766,12 @@ x - sort
 
     [x] (0:28) worksheet and console tabs need icons instead of (or in addition to) color.
 
--->    [ ] worksheet title tab: needs a spinner when there is action (css icon?) or javascript spinner...?
+    [ ] worksheet title tab: needs a spinner when there is action (css icon?) or javascript spinner...?
 
     [ ] code decorator: %hide
     [ ] code decorator: %hideall
+
+    [ ] project: clicking "shutdown" results in "async is not defined" error, probably due to saving everything.
 
 
     [x] file editor: bold black line around outside of editor
