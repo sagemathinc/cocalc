@@ -609,6 +609,17 @@ events.save_project = (socket, mesg) ->
             else
                 cb()
 
+        # Garbage collect the git repo, since we are about to call
+        # diffbundler, and we do not want to store non garbage collected
+        # data in the database forever.
+        (cb) ->
+            exec_as_user
+                project_id : mesg.project_id
+                command    : 'git gc'   # do not do --aggressive, because it doesn't scale well, and has little payoff
+                cb         : (err, output) ->
+                    winston.debug(misc.to_json(output))
+                    cb(err)
+
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
         (cb) ->

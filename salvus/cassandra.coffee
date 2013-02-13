@@ -1123,3 +1123,28 @@ class exports.Salvus extends exports.Cassandra
 array_of_strings_to_cql_list = (a) ->
     '(' + ("'#{x}'" for x in a).join(',') + ')'
 
+exports.db_test1 = (n, m) ->
+    # Store n large strings of length m in the uuid:value store, then delete them.
+    # This is to test how the database performs when hit by such load.
+
+    value = ''
+    possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    for i in [1...m]
+        value += possible.charAt(Math.floor(Math.random() * possible.length))
+
+    S = exports.Salvus
+    database = new S keyspace:'test', cb:() ->
+        kv = database.key_value_store(name:'db_test1')
+
+        tasks = []
+        for i in [1...n]
+            tasks.push (cb) ->
+                console.log("set #{i}")
+                kv.set(key:i, value:value, ttl:60, cb:cb)
+        for i in [1...n]
+            tasks.push (cb) ->
+                console.log("delete #{i}")
+                kv.delete(key:i, cb:cb)
+
+        async.series tasks, (cb) ->
+            console.log('done!')

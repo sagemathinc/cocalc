@@ -9803,7 +9803,7 @@ x - sort
 
     [x] project: clicking "shutdown" results in "async is not defined" error, probably due to saving everything.
 
-    [x] diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?
+    [x] (0:20) diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?
 Getting this is hub... track this all down and *decide* what to do to scale:
 debug: BUG ****************************************************************************
 debug: Uncaught exception: Error: First argument needs to be a number, array or string.
@@ -9813,6 +9813,40 @@ Trace
 debug: BUG ****************************************************************************
 
     [ ] diffbundler: doesn't clean up tmp.  UGLY!
+
+    [ ] project storage strategy -- think this through:
+
+ - Using diffbundler with *many* small commits does not scale.  It's 20
+   seconds for 400 commits.  This what I designed and implemented now
+   is *not* an option. Period.
+ - Using compressed tar is not an option, since it is too slow and redundant,
+   since its compressing a compressed .git directory.  Not an option.
+ - There's multiple issues:
+     - backup in case of instant failure; want to minimize lost work
+       <--- could solve via rsync'ing the /home directory periodically
+       or some other redundant filesystem approach later.
+       could also solve at the vm level via snapshots...
+     - safely storing project as it evolves.
+     - git doesn't store subprojects
+ - I can deal with subprojects later, and in a good way, but parsing
+   them properly, displaying extra info in the projects page, etc.
+   That's hard, but it is *the* way to do this right. And it will be
+   maximally efficient.
+ - The solution for diffbundler is to not start a new bundle until an
+   existing bundle exceeds a size threshold.  Until that is hit, just
+   keep remaking the last bundle and saving just that one back.  That
+   works.
+
+    [x] (0:16) project storage optimizations: run "git gc" first.; took a long time to convince myself this worked, but instant to write
+
+    [ ] project_server.coffee -- make it wait until .git/index.lock does not exist before running a git command
+
+    [ ] project storage optimizations: keep refreshing bundle until it exceeds a size threshold
+
+
+    [ ] file browser: gui must clearly warn users about files that won't be saved (yet).
+
+    [ ] file browser: view all past versions of a file -- http://superuser.com/questions/157663/despite-the-fact-that-git-does-not-store-file-deltas-can-you-still-rollback-to
 
     [ ] project_server/hub: opening "more cell decorators" just fails; doesn't even make account. Serious bug.
 
