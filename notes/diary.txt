@@ -9393,6 +9393,38 @@ debug: hub --> client: {"event":"account_creation_failed","id":"dd80c104-80c3-4a
 --------------
 
 
+
+
+------
+
+VM's
+     # check that no base vm is running
+     virsh --connect qemu:///session list --all
+     export PREV=salvus; export NAME=combinat; qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+       # IMPORTANT!
+       sudo chown og-rwx -R salvus
+
+       sudo apt-get update; sudo apt-get upgrade;
+       sudo reboot -h now
+       cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
+       . salvus-env
+
+
+# for example:
+       ./build.py --build_stunnel --build_nodejs --build_nodejs_packages --build_haproxy --build_nginx --build_cassandra --build_python_packages
+
+     virsh --connect qemu:///session undefine $NAME
+     virsh --connect qemu:///session destroy $NAME
+     virsh --connect qemu:///session list --all
+
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py
+
+
+
+----
 NEW FOCUS:
 
 I'm going to try to make Salvus basically usable, and ignore a lot of
@@ -9769,7 +9801,20 @@ x - sort
     [x] (0:37) file editor: syntax highlighting for several file types (just start it)
     [x] file editor: save on "clicking the x"
 
--->    [ ] project: clicking "shutdown" results in "async is not defined" error, probably due to saving everything.
+    [x] project: clicking "shutdown" results in "async is not defined" error, probably due to saving everything.
+
+    [x] diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?
+Getting this is hub... track this all down and *decide* what to do to scale:
+debug: BUG ****************************************************************************
+debug: Uncaught exception: Error: First argument needs to be a number, array or string.
+Trace
+    at process.daemon.pidFile (/home/wstein/salvus/salvus/node_modules/hub.js:4030:15)
+    at process.EventEmitter.emit (events.js:126:20)
+debug: BUG ****************************************************************************
+
+    [ ] diffbundler: doesn't clean up tmp.  UGLY!
+
+    [ ] project_server/hub: opening "more cell decorators" just fails; doesn't even make account. Serious bug.
 
     [ ] worksheet: make it easy to hide all input cells completely from a worksheet for note taking.
 
@@ -9836,15 +9881,6 @@ def f(n=[1,2,3]):
           - paste as plain text; pasting html is annoying.
           - \sage{...} like in sagetex, which caches result; will specially highlight part computing until done: embedded compute stuff ==> *very* interesting!
 
-    [ ] diffbundler: doesn't clean up tmp.  UGLY!
-    [ ] diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?
-Getting this is hub... track this all down and *decide* what to do to scale:
-debug: BUG ****************************************************************************
-debug: Uncaught exception: Error: First argument needs to be a number, array or string.
-Trace
-    at process.daemon.pidFile (/home/wstein/salvus/salvus/node_modules/hub.js:4030:15)
-    at process.EventEmitter.emit (events.js:126:20)
-debug: BUG ****************************************************************************
 
 
     [ ] bug in HUB:
@@ -10065,6 +10101,8 @@ def f(reset  = button('Randomize', classes="btn-primary"),
         salvus.tex(m^2)
 
 
+    [ ] worksheet: be able to print a worksheet nicely
+
     [ ] tab completion bug: "E.q_eigenform(20) - F.q[tab]" for E,F elliptic curves
     [ ] tab completion bug: "for E in cremona_opt[tab]"
     [ ] investigate: hint.css -- hint library in css (not js) --  http://kushagragour.in/lab/hint/
@@ -10170,10 +10208,18 @@ f(2,3)
 def f(n=[10,100,500], m=[10,100,500]):
     %timeit n*m
 
+
+
+    [ ] build bug: salvus/salvus/data/local/etc/tinc doesn't get created.
+
+
+
+
 WILD AND CRAZY IDEAS
 
     [ ] code decorator: %mat -- easy way to make a matrix?
 def mat(s):
     globals()['m'] = matrix(2,[1,2,3,4])
 %mat m 1,2;3,4 GF(7)
+
 

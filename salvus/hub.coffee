@@ -1220,6 +1220,19 @@ class Project
                     else
                         # bundles is an array of Buffers
                         bundles = result
+
+                        # TODO -- this is terrifying and lame, but better than nothing:
+                        #   If a bundle is *lost*, just use the bundles up to it.
+                        bundles2 = []
+                        for i in [0...bundles.length]
+                            if bundles[i]?
+                                bundles2.push(bundles[i])
+                            else
+                                # lost bundle
+                                winston.debug("LOST BUNDLES -- discarding all after #{i}th of #{bundles.length-1}!")
+                                break
+                        bundles = bundles2
+
                         # Make a corresponding list of temporary
                         # uuid's that will be used when sending the
                         # bundles.
@@ -1252,7 +1265,7 @@ class Project
             (c) ->
                 winston.debug("_open_on_host -- start sending bundles as blobs")
                 for i in [0...bundles.length]
-                    socket.write_mesg 'blob', {uuid:bundles.uuids[i],blob:bundles[i]}
+                    socket.write_mesg 'blob', {uuid:bundles.uuids[i], blob:bundles[i]}
                 c()
 
             # Wait for the project server to respond with success

@@ -5,6 +5,7 @@
 #
 ####################################################################
 
+assert = require('assert')
 
 ######################################################################
 # Our TCP messaging system.  We send a message by first
@@ -72,6 +73,8 @@ exports.enable_mesg = enable_mesg = (socket) ->
             when 'json'
                 send('j' + JSON.stringify(data))
             when 'blob'
+                assert(data.uuid?, "data object *must* have a uuid attribute")
+                assert(data.blob?, "data object *must* have a blob attribute")
                 send(Buffer.concat([new Buffer('b'), new Buffer(data.uuid), new Buffer(data.blob)]))
             else
                 throw("unknown message type '#{type}'")

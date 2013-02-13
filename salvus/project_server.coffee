@@ -173,10 +173,16 @@ delete_user_8 = (uname, cb) ->
     async.series([
         # Delete the UNIX user and their files.
         (cb) ->
-            child_process.execFile("deluser", ['--remove-home', uname], {}, cb)
+            child_process.execFile "deluser", ['--remove-home', uname], {}, (err) ->
+                if err
+                    winston.debug("deluser error: #{err}")
+                cb(err)
         # Delete the UNIX group (same as the user -- this is Linux).
         (cb) ->
-            child_process.execFile("delgroup", [uname], {}, cb)
+            child_process.execFile "delgroup", [uname], {}, (err) ->
+                if err
+                    winston.debug("delgroup error: #{err}")
+                cb(err)
     ], cb)
 
 # Kill all processes running as a given user.
@@ -291,6 +297,7 @@ extract_bundles = (project_id, bundles, cb) ->
                 project_id : project_id
                 command    : '.git/salvus/diffbundler'
                 args       : ['extract', bundle_path, repo_path]
+                timeout    : 30
                 cb         : c
     )
 
