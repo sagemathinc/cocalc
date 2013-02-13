@@ -2,6 +2,8 @@
 # Editor for files in a project
 ##################################################
 
+async = require('async')
+
 {trunc, to_json, keys, defaults, required, filename_extension, len} = require('misc')
 
 {salvus_client} = require('salvus_client')
