@@ -9843,11 +9843,25 @@ debug: BUG *********************************************************************
 
     [x] (1:00) project_server.coffee -- make it wait until .git/index.lock does not exist before running a git command
 
+    [ ] worksheet: need a way to do cross-worksheet linking...
+
+    [ ] worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
+
+    [ ] cell: double click output to reveal editor code (?) -- at least make it a configurable action.
+
+    [ ] worksheet: buttons at top to control checkbox state -- all/none/hide.
+
+    [ ] codemirror editor highlighting: make it so % modes can change highlighting.
+
     [ ] dangerous dedup idea: make the uuid key for the blob store a hash of the blob, so repeatedly storing the same blob doesn't cost at all.... but
         then deleting it must be instead "take max of lifetime" cause multiple users will have shared blobs.   INTERESTING.
 
+    [ ] project: (idea, maybe bad) move contents of ".git" to ".salvus" and put .salvus in gitignore.  Then it will be dead easy to just replace ".git" by a new repo.
+
     [ ] in hub:                 # TODO
                 save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
+
+    [ ] way to create a new worksheet **in a directory **
 
     [ ] file browser: gui must clearly warn users about files that won't be saved (yet).
 

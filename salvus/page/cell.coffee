@@ -944,6 +944,7 @@ class Cell extends EventEmitter
         }
 
     execute: () =>
+        @show('output')
         @_close_on_action()
         if not @opts.session
             throw "Attempt to execute code on a cell whose session has not been set."

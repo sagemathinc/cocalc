@@ -1624,3 +1624,23 @@ def prun(code):
             p.print_stats()
         except Exception, msg:
             print msg
+
+
+####################################################
+# Display of 2d graphics objects
+####################################################
+
+def show(obj, svg=True, **kwds):
+    from sage.plot.graphics import Graphics, GraphicsArray
+    if isinstance(obj, (Graphics, GraphicsArray)):
+        from sage.misc.all import tmp_filename
+        t = tmp_filename() + ('.svg' if svg else '.png')
+        obj.save(t, **kwds)
+        salvus.file(t)
+    else:
+        salvus.tex(obj, display=True, **kwds)
+
+# Make it so plots plot themselves correctly when they call their repr.
+from sage.plot.graphics import Graphics
+Graphics.show = show
+
