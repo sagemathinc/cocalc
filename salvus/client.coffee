@@ -1,12 +1,19 @@
 {EventEmitter} = require('events')
 
-require('async')  # just so it can be used in page.
+async = require('async')  # don't delete even if not used below, since this needs to be available to page/
 
 message = require("message")
 misc    = require("misc")
 
 defaults = misc.defaults
 required = defaults.required
+
+# This is the default time in *seconds* between pings sent by the
+# client to the server to indicate that a given session is being
+# actively viewed.  This variable is used by hub.coffee to set
+# its kill timeout, so do not change the name here without changing
+# it there.   It *is* safe to change the value.
+exports.DEFAULT_SESSION_PING_TIME = 60
 
 # JSON_CHANNEL is the channel used for JSON.  The hub imports this
 # file, so if this constant is ever changed (for some reason?), it
@@ -52,6 +59,22 @@ class Session extends EventEmitter
         @emit("close")
         @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
 
+    # Starts a ping interval timer that periodicially pings the server
+    # to indicate that this session is being actively viewed.  Pinging
+    # stops if the function continue_pinging() returns false.
+    # If the continue_pinging function is not defined, just ping server once.
+    ping: (continue_pinging) ->
+        if not continue_pinging?
+            @conn.send(message.ping_session(session_uuid:@session_uuid))
+            return
+        timer = undefined
+        ping = () =>
+            if continue_pinging()
+                @ping()
+            else
+                clearInterval(timer)
+        timer = setInterval(ping, exports.DEFAULT_SESSION_PING_TIME * 1000)
+
 ###
 #
 # A Sage session, which links the client to a running Sage process;
@@ -90,6 +113,39 @@ class SageSession extends Session
     introspect: (opts) ->
         opts.session_uuid = @session_uuid
         @conn.introspect(opts)
+
+# TODO -- for 'interact2'
+# 
+#     variable: (opts) ->
+#         opts = defaults opts,
+#             name      : required
+#             namespace : 'globals()'
+#         return SageSessionVariable(@, opts.name, opts.namespace)
+
+# class SageSessionVariable extends EventEmitter
+#     constructor: (@session, @name, @namespace, cb) ->
+#         @uuid = misc.uuid()
+#         @session.execute_code
+#             code : "sage_salvus.register_variable(salvus.data['name'], eval(salvus.data['namespace']), salvus.data['uuid'])"
+#             data :
+#                 name      : @name
+#                 namespace : @namespace
+#                 uuid      : @uuid
+#             preparse : false
+#             cb       : cb
+
+#     set : (value, cb) =>
+#         @session.execute_code
+#             code     :
+#             cb       :
+#             preparse : false
+
+#     get : (cb) =>  # cb(err, value) -- value must be JSON-able
+#         @session.execute_code
+#             code :
+#             cb   :
+#             preparse : false
+
 
 ###
 #
@@ -276,11 +332,18 @@ class exports.Connection extends EventEmitter
             timeout : 10          # how long until give up on getting a new session
             type    : "sage"      # "sage", "console"
             params  : undefined   # extra params relevant to the session
+            project_id : undefined # project that this session starts in (TODO: make required)
             cb      : required    # cb(error, session)  if error is defined it is a string
 
         @call
-            message : message.start_session(limits:opts.limits, type:opts.type, params:opts.params)
+            message : message.start_session
+                limits     : opts.limits
+                type       : opts.type
+                params     : opts.params
+                project_id : opts.project_id
+
             timeout : opts.timeout
+
             cb      : (error, reply) =>
                 if error
                     opts.cb(error)
@@ -324,11 +387,11 @@ class exports.Connection extends EventEmitter
         opts.cb(false, session)
 
     execute_code: (opts={}) ->
-        opts = defaults(opts, code:defaults.required, cb:null, preparse:true, allow_cache:true)
+        opts = defaults(opts, code:defaults.required, cb:null, preparse:true, allow_cache:true, data:undefined)
         uuid = misc.uuid()
         if opts.cb?
             @execute_callbacks[uuid] = opts.cb
-        @send(message.execute_code(id:uuid, code:opts.code, preparse:opts.preparse, allow_cache:opts.allow_cache))
+        @send(message.execute_code(id:uuid, code:opts.code, preparse:opts.preparse, allow_cache:opts.allow_cache, data:opts.data))
         return uuid
 
     # introspection
@@ -624,6 +687,321 @@ class exports.Connection extends EventEmitter
         @call
             message: message.update_project_data(project_id:opts.project_id, data:opts.data)
             cb : opts.cb
+
+    open_project: (opts) ->
+        opts = defaults opts,
+            project_id   : required
+            cb           : required
+        @call
+            message :
+                message.open_project
+                    project_id : opts.project_id
+            cb : opts.cb
+
+    save_project: (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            commit_mesg : undefined
+            add_all     : undefined
+            cb          : required
+        @call
+            message :
+                message.save_project
+                    project_id  : opts.project_id
+                    commit_mesg : opts.commit_mesg
+                    add_all     : opts.add_all
+            cb : opts.cb
+
+    close_project: (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            cb          : required
+        @call
+            message :
+                message.close_project
+                    project_id  : opts.project_id
+            cb : opts.cb
+
+    write_text_file_to_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            content    : required
+            timeout    : 10
+            cb         : required
+        @call
+            message :
+                message.write_text_file_to_project
+                    project_id : opts.project_id
+                    path       : opts.path
+                    content    : opts.content
+            timeout : opts.timeout
+            cb : opts.cb
+
+    read_text_file_from_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required
+            timeout    : 10
+
+        @call
+            message :
+                message.read_text_file_from_project
+                    project_id : opts.project_id
+                    path       : opts.path
+            timeout : opts.timeout
+            cb : opts.cb
+
+    # Like "read_text_file_from_project" above, except the callback
+    # message gives a temporary url from which the file can be
+    # downloaded using standard AJAX.
+    read_file_from_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            archive    : undefined   # when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
+            cb         : required
+        @call
+            message :
+                message.read_file_from_project
+                    project_id : opts.project_id
+                    path       : opts.path
+                    archive    : opts.archive
+            cb : opts.cb
+
+    move_file_in_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            src        : required
+            dest       : required
+            cb         : required
+        @call
+            message :
+                message.move_file_in_project
+                    project_id : opts.project_id
+                    src        : opts.src
+                    dest       : opts.dest
+            cb : opts.cb
+
+    make_directory_in_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required
+        @call
+            message :
+                message.make_directory_in_project
+                    project_id : opts.project_id
+                    path       : opts.path
+            cb : opts.cb
+
+    remove_file_from_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required
+        @call
+            message :
+                message.remove_file_from_project
+                    project_id : opts.project_id
+                    path       : opts.path
+            cb : opts.cb
+
+    move_file_in_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            src        : required
+            dest       : required
+            cb         : required
+        @call
+            message :
+                message.move_file_in_project
+                    project_id : opts.project_id
+                    src        : opts.src
+                    dest       : opts.dest
+            cb : opts.cb
+
+    project_branch_op: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            branch     : required
+            op         : required
+            cb         : required
+        @call
+            message : message["#{opts.op}_project_branch"]
+                project_id : opts.project_id
+                branch     : opts.branch
+            cb : opts.cb
+
+
+    stopped_editing_file: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            filename   : required
+            cb         : undefined
+        @call
+            message : message.stopped_editing_file
+                project_id : opts.project_id
+                filename   : opts.filename
+            cb      : opts.cb
+
+
+    ######################################################################
+    # Blob management
+    ######################################################################
+    save_blobs_to_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            blob_ids   : required   # array
+            cb         : undefined
+        @call
+            message : message.save_blobs_to_project
+                project_id : opts.project_id
+                blob_ids   : opts.blob_ids
+            cb : opts.cb
+
+    ######################################################################
+    # Execute a program in a given project
+    ######################################################################
+    exec: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : ''
+            command    : required
+            args       : []
+            timeout    : 10
+            max_output : undefined
+            bash       : false
+            cb         : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
+
+        @call
+            message : message.project_exec
+                project_id : opts.project_id
+                path       : opts.path
+                command    : opts.command
+                args       : opts.args
+                timeout    : opts.timeout
+                max_output : opts.max_output
+                bash       : opts.bash
+            timeout : opts.timeout
+            cb      : (err, mesg) ->
+                if err
+                    opts.cb(err)
+                else if mesg.event == 'error'
+                    opts.cb(mesg.error)
+                else
+                    opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code})
+
+    #################################################
+    # Git Commands
+    #################################################
+
+    git_commit_file: (opts) =>
+        # Save just this one file in its own commit to the local git repo.
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            author     : required
+            message    : undefined
+            cb         : undefined      # (err)
+
+        if opts.message == "undefined"
+            opts.message = "Saved '#{opts.path}'"
+
+        nothing_to_do = false
+        async.series([
+            (cb) =>
+                # Check to see if there are uncommited changes
+                @exec
+                    project_id : opts.project_id
+                    command    : 'git'
+                    args       : ['status', opts.path]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(output.stdout + output.stderr)
+                        else if output.stdout.indexOf('nothing to commit') != -1
+                            # DONE -- nothing further to do
+                            nothing_to_do = true
+                            cb(true)
+                        else
+                            # Add and commit as usual.
+                            cb()
+            (cb) =>
+                # We add the changes to the worksheet to the repo.
+                @exec
+                    project_id : opts.project_id
+                    command    : "git"
+                    args       : ["add", opts.path]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(output.stdout + output.stderr)
+                        else
+                            cb()
+            (cb) =>
+                # We commit just the file that changed.
+                @exec
+                    project_id : opts.project_id
+                    command    : "git"
+                    args       : ["commit", "-m", opts.message, opts.path, "--author", opts.author]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(err + " -- " + misc.to_json(output))
+                        else
+                            cb()
+        ], (err) =>
+            if err and not nothing_to_do
+                opts.cb("Error saving '#{opts.path}' to the repository -- #{err}")
+            else
+                opts.cb() # good
+        )
+
+    
+
+    #################################################
+    # File Management
+    #################################################
+    project_directory_listing: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : '.'
+            time       : false
+            start      : 0
+            limit      : 100
+            hidden     : false
+            cb         : required
+
+        args = []
+        if opts.time
+            args.push("--time")
+        if opts.hidden
+            args.push("--hidden")
+        args.push("--limit")
+        args.push(opts.limit)
+        args.push("--start")
+        args.push(opts.start)
+        if opts.path == ""
+            opts.path = "."
+        args.push(opts.path)
+
+        # We add the changes to the worksheet to the repo.
+        @exec
+            project_id : opts.project_id
+            command    : ".git/salvus/git-ls"
+            args       : args
+            cb         : (err, output) ->
+                if err
+                    opts.cb(err)
+                else if output.exit_code
+                    opts.cb(output.stderr)
+                else
+                    opts.cb(err, misc.from_json(output.stdout))
 
 
 #################################################

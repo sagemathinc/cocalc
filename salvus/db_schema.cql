@@ -21,7 +21,8 @@ CREATE TABLE key_value (
 
 CREATE TABLE compute_servers (
     host varchar PRIMARY KEY,
-    running boolean
+    running boolean,
+    score int
 );
 
 CREATE INDEX ON compute_servers (running);
@@ -89,6 +90,7 @@ CREATE TABLE accounts (
     first_name      varchar,
     last_name       varchar,
     email_address   varchar,
+    gitconfig       varchar,   // if empty or undefined, make simple default from first_name, last_name, email_address.
 
     password_hash   varchar,
     password_change_wait_until  timestamp,
@@ -105,6 +107,8 @@ CREATE TABLE accounts (
     connect_Github     varchar,
     connect_Google     varchar,
     connect_Dropbox    varchar,
+
+    autosave           int,
 
     enable_tooltips    boolean
 );
@@ -204,7 +208,8 @@ CREATE TABLE successful_sign_ins (
 
 
 ////////////////////////////////////////////
-// Projects
+// Projects -- see the appropriate section
+// of message.coffee for how projects work.
 ////////////////////////////////////////////
 
 CREATE TABLE projects (
@@ -212,18 +217,41 @@ CREATE TABLE projects (
      account_id       uuid,          // id of the owner of this project
      title            varchar,
      description      varchar,
-     public           boolean,       // whether or not the project is visible to everybody in the world
-     last_edited      timestamp,
-     content          blob,          // binary data of the project, e.g., git bundle, etc.
+     public           boolean,  // whether or not the project is visible to everybody in the world
+     last_edited      timestamp,// timestamp of last save of the project
+
+     current_branch   varchar,  // string
+     host             varchar,  // the host that has the project open (if it is open)
+     user_id          int,      // UNIX user id for open project
+     quota            varchar,  // (JSON) {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
+     idle_timeout     int,      // timeout in seconds until the project is killed if there is no activity.
 );
+
 CREATE INDEX ON projects(account_id);
+
+// select * from project_bundles where project_id=0 order by number;
+
+CREATE TABLE project_bundles (
+     project_id  uuid,
+     number      int ,
+     bundle      blob,
+     PRIMARY KEY (project_id, number)
+);
 
 CREATE TABLE project_users (
      project_id       uuid,
      account_id       uuid,
-     mode             varchar,        // 'owner' (all powerful), 'collaborator' (read write), 'viewer' (read only)
+     mode             varchar,        // 'owner' (all powerful), 'collaborator' (read/write), 'viewer' (read only)
      PRIMARY KEY (project_id, account_id)
 );
+
+/* Table of persistent blobs attached to a project. */
+CREATE TABLE project_blobs (
+     blob_id     uuid,
+     project_id  uuid,
+     PRIMARY KEY(blob_id)
+);
+CREATE INDEX ON project_blobs(project_id);
 
 
 ////////////////////////////////////////////

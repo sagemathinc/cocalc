@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/jquery/jquery-ui/css/humanity/jquery-ui.css">
 
   <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/font-awesome/css/font-awesome.min.css" rel="stylesheet">
   <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
 
   <!-- CODEMIRROR3 -->
@@ -17,10 +18,60 @@
   <script src="/codemirror3/lib/codemirror.js"></script>
   <script src="/codemirror3/lib/util/matchbrackets.js"></script>
   <script src="/codemirror3/lib/util/foldcode.js"></script>
-  <script src="/codemirror3/mode/python/python.js"></script>
-  <script src="/codemirror3/mode/shell/shell.js"></script>
-  <script src="/codemirror3/mode/javascript/javascript.js"></script>
+
+  <script src="/codemirror3/mode/clike/clike.js"></script>
+  <script src="/codemirror3/mode/clojure/clojure.js"></script>
   <script src="/codemirror3/mode/coffeescript/coffeescript.js"></script>
+  <script src="/codemirror3/mode/commonlisp/commonlisp.js"></script>
+  <script src="/codemirror3/mode/css/css.js"></script>
+  <script src="/codemirror3/mode/diff/diff.js"></script>
+  <script src="/codemirror3/mode/ecl/ecl.js"></script>
+  <script src="/codemirror3/mode/erlang/erlang.js"></script>
+  <script src="/codemirror3/mode/gfm/gfm.js"></script>
+  <script src="/codemirror3/mode/go/go.js"></script>
+  <script src="/codemirror3/mode/groovy/groovy.js"></script>
+  <script src="/codemirror3/mode/haskell/haskell.js"></script>
+  <script src="/codemirror3/mode/haxe/haxe.js"></script>
+  <script src="/codemirror3/mode/htmlembedded/htmlembedded.js"></script>
+  <script src="/codemirror3/mode/htmlmixed/htmlmixed.js"></script>
+  <script src="/codemirror3/mode/http/http.js"></script>
+  <script src="/codemirror3/mode/javascript/javascript.js"></script>
+  <script src="/codemirror3/mode/jinja2/jinja2.js"></script>
+  <script src="/codemirror3/mode/less/less.js"></script>
+  <script src="/codemirror3/mode/lua/lua.js"></script>
+  <script src="/codemirror3/mode/markdown/markdown.js"></script>
+  <script src="/codemirror3/mode/mysql/mysql.js"></script>
+  <script src="/codemirror3/mode/ntriples/ntriples.js"></script>
+  <script src="/codemirror3/mode/ocaml/ocaml.js"></script>
+  <script src="/codemirror3/mode/pascal/pascal.js"></script>
+  <script src="/codemirror3/mode/perl/perl.js"></script>
+  <script src="/codemirror3/mode/php/php.js"></script>
+  <script src="/codemirror3/mode/pig/pig.js"></script>
+  <script src="/codemirror3/mode/plsql/plsql.js"></script>
+  <script src="/codemirror3/mode/properties/properties.js"></script>
+  <script src="/codemirror3/mode/python/python.js"></script>
+  <script src="/codemirror3/mode/r/r.js"></script>
+  <script src="/codemirror3/mode/rst/rst.js"></script>
+  <script src="/codemirror3/mode/ruby/ruby.js"></script>
+  <script src="/codemirror3/mode/rust/rust.js"></script>
+  <script src="/codemirror3/mode/scheme/scheme.js"></script>
+  <script src="/codemirror3/mode/shell/shell.js"></script>
+  <script src="/codemirror3/mode/sieve/sieve.js"></script>
+  <script src="/codemirror3/mode/smalltalk/smalltalk.js"></script>
+  <script src="/codemirror3/mode/smarty/smarty.js"></script>
+  <script src="/codemirror3/mode/sparql/sparql.js"></script>
+  <script src="/codemirror3/mode/stex/stex.js"></script>
+  <script src="/codemirror3/mode/tiddlywiki/tiddlywiki.js"></script>
+  <script src="/codemirror3/mode/tiki/tiki.js"></script>
+  <script src="/codemirror3/mode/vb/vb.js"></script>
+  <script src="/codemirror3/mode/vbscript/vbscript.js"></script>
+  <script src="/codemirror3/mode/velocity/velocity.js"></script>
+  <script src="/codemirror3/mode/verilog/verilog.js"></script>
+  <script src="/codemirror3/mode/xml/xml.js"></script>
+  <script src="/codemirror3/mode/xquery/xquery.js"></script>
+  <script src="/codemirror3/mode/yaml/yaml.js"></script>
+  <script src="/codemirror3/mode/z80/z80.js"></script>
+
 
 
   <script type="text/javascript" src="/jquery/jquery.min.js"></script>
@@ -29,6 +80,12 @@
   <!-- Countdown timer jQuery plugin -->
   <script type="text/javascript" src="/jquery/plugins/countdown/jquery.countdown.min.js"></script>
   <link rel="stylesheet" href="/jquery/plugins/countdown/jquery.countdown.css">
+
+  <!-- Timeago jQuery plugin -->
+  <script type="text/javascript" src="/jquery/plugins/jquery.timeago.min.js"></script>
+
+  <!-- Caret Position jQuery plugin -->
+  <script type="text/javascript" src="/jquery/plugins/caret/jquery.caret.js"></script>
 
   <!-- Activity spinner --> 
   <script type="text/javascript" src="/spin/spin.min.js"></script>
@@ -43,10 +100,19 @@
   <script type="text/javascript" src="/coffeescript/coffee-script.js"></script>
 
   <!-- MathJax -->
-<!--  <script type="text/x-mathjax-config">
+  <!--  <script type="text/x-mathjax-config">
    /* MathJax.Hub.Config({showProcessingMessages: false, messageStyle:"none" }) */
   </script>
--->
+  -->
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+       tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+       },
+    });
+  </script>
   <script type="text/javascript" src="/mathjax/MathJax.js?config=TeX-AMS_HTML"></script>
 
   <!-- JSON Editor -->
@@ -62,18 +128,23 @@
   <script type="text/javascript" src="/raphael/raphael-svg-import.js"></script>
   -->
 
+  <!-- Pnotify: Awesome notification framework from http://pinesframework.org/pnotify -->
+  <script type="text/javascript" src="/pnotify/jquery.pnotify.min.js"></script>
+  <link href="/pnotify/jquery.pnotify.default.css" media="all" rel="stylesheet" type="text/css" />
+  <link href="/pnotify/jquery.pnotify.default.icons.css" media="all" rel="stylesheet" type="text/css" />
+
   <!-- Deck.JS: http://imakewebthings.com/deck.js/ -->
   <link rel="stylesheet" href="/deck/core/deck.core.css">
   <link rel="stylesheet" href="/deck/extensions/menu/deck.menu.css">
   <link rel="stylesheet" href="/deck/extensions/navigation/deck.navigation.css">
   <link rel="stylesheet" href="/deck/extensions/status/deck.status.css">
-  <link rel="stylesheet" href="/deck/extensions/hash/deck.hash.css">
+<!--  <link rel="stylesheet" href="/deck/extensions/hash/deck.hash.css">-->
   <link rel="stylesheet" href="/deck/extensions/scale/deck.scale.css">
   <link rel="stylesheet" href="/deck/themes/style/salvus.css">
   <link rel="stylesheet" href="/deck/themes/transition/fade.css">
   <script src="/deck/modernizr.custom.js"></script>
   <script src="/deck/core/deck.core.min.js"></script>
-  <script src="/deck/extensions/hash/deck.hash.js"></script>
+<!--  <script src="/deck/extensions/hash/deck.hash.js"></script>-->
   <script src="/deck/extensions/menu/deck.menu.js"></script>
   <script src="/deck/extensions/status/deck.status.js"></script>
   <script src="/deck/extensions/navigation/deck.navigation.js"></script>
@@ -81,6 +152,10 @@
 
   <!-- XTerm terminal emulator -->
   <script type="text/javascript" src="/term/term.js"></script>
+
+  <!-- 3D Transforms jQuery Plugin: http://ricostacruz.com/jquery.transit/ -->
+  <script type="text/javascript" src="/jquery/plugins/jquery.transit.min.js"></script>
+
 
   <!-- The Salvus library and its dependencies -->
   <script type="text/javascript" src="/salvus.js"></script>

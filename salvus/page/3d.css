@@ -1,0 +1,11 @@
+/* 3d -- move to 3d.css/3d.coffee/3d.html later */
+
+.salvus-3d-arrow-up {
+    width: 0;
+    height: 0;
+    border-left: 50px solid transparent;
+    border-right: 50px solid transparent;
+    border-bottom: 50px solid black;
+    position :absolute;
+}
+

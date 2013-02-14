@@ -8,7 +8,6 @@
 # consistency, defaults, and avoid errors from typos, etc.
 #
 ###
-#
 
 misc     = require('misc')
 defaults = misc.defaults
@@ -38,6 +37,8 @@ message
 message
     event        : 'start_session'
     type         : required           # "sage", "console";  later this could be "R", "octave", etc.
+    # TODO: project_id should be required
+    project_id   : undefined          # the project that this session will start in
     params       : undefined          # extra parameters that control the type of session
     id           : undefined
     limits       : undefined
@@ -53,6 +54,18 @@ message
                               # efficiently sending and receiving
                               # non-JSON data (except channel
                               # '\u0000', which is JSON).
+                            #
+
+#
+# A period ping message must usually be sent by the client to keep a
+# worksheet/console open, except when worksheet/console is explicitly
+# put in a special (screen-like/nohup) mode.
+#
+# client --> hub
+message
+    event         : 'ping_session'
+    id            : undefined
+    session_uuid  : undefined
 
 
 # client --> hub
@@ -113,10 +126,12 @@ message
     html         : undefined   # arbitrary html stream
     tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
     javascript   : undefined   # javascript code evaluation stream -- see also 'execute_javascript' to run code that is not saved as part of the output
+    interact     : undefined   # create an interact layout defined by a JSON object
     obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
     file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://salv.us/blobs/filename?uuid=[the uuid]
     done         : false       # the sequences of messages for a given code evaluation is done.
     session_uuid : undefined   # the uuid of the session that produced this output
+    once         : undefined   # if given, message is transient; it is not saved by the worksheet, etc.
 
 # This message tells the client to execute the given Javascript code
 # in the browser.  (For safety, the client may choose to ignore this
@@ -342,6 +357,7 @@ exports.unrestricted_account_settings =
     email_new_features   : required
     email_maintenance    : required
     enable_tooltips      : required
+    autosave             : required   # time in seconds or 0 to disable
 
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
@@ -353,6 +369,7 @@ exports.account_settings_defaults =
     connect_Github     : ''
     connect_Google     : ''
     connect_Dropbox    : ''
+    autosave           : 30
 
 # client <--> hub
 message(
@@ -367,16 +384,16 @@ message(
 )
 
 message
-    event : "account_settings_saved"
+    event : 'account_settings_saved'
     id    : undefined
 
 message
-    event : "error"
+    event : 'error'
     id    : undefined
     error : undefined
 
 message
-    event : "success"
+    event : 'success'
     id    : undefined
 
 ############################################
@@ -442,10 +459,291 @@ message
 
 
 
-############################################
-# Projects
-#############################################
 
+###################################################################################
+#
+# Project Server <---> Hub interaction
+#
+# These messages are mainly focused on working with individual projects.
+#
+# Architecture:
+#
+#   * The database stores a files object (with the file tree), logs
+#     (of each branch) and a sequence of git bundles that when
+#     combined together give the complete history of the repository.
+#     Total disk usage per project is limited by hard/soft disk quota,
+#     and includes the space taken by the revision history (the .git
+#     directory).
+#
+#   * A project should only be opened by at most one project_server at
+#     any given time (not implemented: if this is violated then we'll
+#     merge the resulting conflicting repo's.)
+#
+#   * Which project_server that has a project opened is stored in the
+#     database.  If a hub cannot connect to a given project server,
+#     the hub assigns a new project_server for the project and opens
+#     the project on the new project_server.  (The error also gets
+#     logged to the database.)  All hubs will use this new project
+#     server henceforth.
+#
+###################################################################################
+
+# The open_project message causes the project_server to create a new
+# project or prepare to receive one (as a sequence of blob messages)
+# from a hub.
+#
+# hub --> project_server
+message
+    event        : 'open_project'
+    id           : required
+    project_id   : required  # uuid of the project, which impacts
+                             # where project is extracted, etc.
+    bundle_uuids : required  # Array of uuid's of the bundles that
+                             # will be sent as blobs; if length 0,
+                             # makes a new repo with empty .gitignore.
+    quota        : required  # Maximum amount of disk space/inodes this
+                             # project can use.  This is an object
+                             #    {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
+    idle_timeout : required  # A time in seconds; if the project_server
+                             # does not receive any messages related
+                             # to this project for this many seconds,
+                             # then it does the same thing as when
+                             # receiving a 'close_project' message.
+
+# A project_server sends the project_opened message to the hub once
+# the project_server has received and unbundled all bundles that
+# define a project.
+# project_server --> hub
+message
+    event : 'project_opened'
+    id    : required
+
+# A hub sends the save_project message to a project_server to request
+# that the project_server save a snapshot of this project.  On
+# success, the project_server will respond by sending a project_saved
+# message then sending individual the bundles n.bundle for n >=
+# starting_bundle_number.
+#
+# client --> hub --> project_server
+message
+    event                  : 'save_project'
+    id                     : undefined
+    project_id             : required    # uuid of a project
+    starting_bundle_number : undefined
+    commit_mesg            : undefined   # If given, do a commit first
+    author                 : undefined   # needed by project_server
+    add_all                : false       # if true and *all* files before saving.
+    bundle_size_threshold  : 5000000     # Only make a new bundle when current bundle exceeds this size
+
+# The project_saved message is sent to a hub by a project_server when
+# the project_servers creates a new snapshot of the project in
+# response to a save_project message.
+# project_server --> hub
+message
+    event          : 'project_saved'
+    id             : required       # message id, which matches the save_project message
+    bundle_uuids   : required       # {uuid:bundle_number, uuid:bundle_number, ...} -- bundles are sent as blobs in separate messages.
+
+
+
+
+######################################################################
+# Execute a program in a given project
+######################################################################
+
+# client --> project
+message
+    event      : 'project_exec'
+    id         : undefined
+    project_id : required
+    path       : ''   # if relative, is a path under home; if absolute is what it is.
+    command    : required
+    args       : []
+    timeout    : 10          # maximum allowed time, in seconds.
+    max_output : undefined   # maximum number of characters in the output
+    bash       : false       # if true, args are ignored and command is run as a bash command
+
+message
+    event      : 'project_exec_output'
+    id         : required
+    stdout     : required
+    stderr     : required
+    exit_code  : required
+
+
+
+#############################################################################
+
+# A hub sends this message to the project_server to request that the
+# project_server close the project.  This immediately deletes all files
+# and clears up all resources allocated for this project.  So make
+# sure to send a save_project message first!
+#
+# client --> hub --> project_server
+message
+    event         : 'close_project'
+    id            : undefined
+    project_id    : required
+
+# A project_server sends this message in response to a close_project
+# message, to indicate that files have been cleaned up and relevant
+# processes killed.
+# project_server --> hub
+message
+    event : 'project_closed'
+    id    : required     # id of message (matches close_project message above)
+
+# The read_file_from_project message is sent by the hub to request
+# that the project_server read a file from a project and send it back
+# to the hub as a blob.  Also sent by client to hub to request a file
+# or directory. If path is a directory, the optional archive field
+# specifies how to create a single file archive, with supported
+# options including:  'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'.
+# 
+# client --> hub --> project_server
+message
+    event        : 'read_file_from_project'
+    id           : undefined
+    project_id   : required
+    path         : required
+    archive      : undefined
+
+# The file_read_from_project message is sent by the project_server
+# when it finishes reading the file from disk.
+# project_server --> hub
+message
+    event        : 'file_read_from_project'
+    id           : required
+    data_uuid    : required  # The project_server will send the raw data of the file as a blob with this uuid.
+
+# hub --> client
+message
+    event        : 'temporary_link_to_file_read_from_project'
+    id           : required
+    url          : required
+
+# The client sends this message to the hub in order to write (or
+# create) a plain text file (binary files not allowed, since sending
+# them via JSON makes no sense).
+# client --> hub
+message
+    event        : 'read_text_file_from_project'
+    id           : undefined
+    project_id   : required
+    path         : required
+
+# hub --> client
+message
+    event        : 'text_file_read_from_project'
+    id           : required
+    content      : required
+
+# client --> hub --> project_server
+message
+    event        : 'make_directory_in_project'
+    id           : required
+    project_id   : required
+    path         : required
+
+# project_server --> hub --> client
+message
+    event        : 'directory_made_in_project'
+    id           : required
+
+# client --> hub --> project_server
+message
+    event        : 'move_file_in_project'
+    id           : undefined
+    project_id   : required
+    src          : required
+    dest         : required
+
+# project_server --> hub --> client
+message
+    event        : 'file_moved_in_project'
+    id           : required
+
+# client --> hub --> project_server
+message
+    event        : 'remove_file_from_project'
+    id           : undefined
+    project_id   : required
+    path         : required
+
+
+# The write_file_to_project message is sent from the hub to the
+# project_server to tell the project_server to write a file to a
+# project.  If the path includes directories that don't exists,
+# they are automatically created (this is in fact the only way
+# to make a new directory).
+# hub --> project_server
+message
+    event        : 'write_file_to_project'
+    id           : required
+    project_id   : required
+    path         : required
+    data_uuid    : required  # hub sends raw data as a blob with this uuid immediately.
+
+# The client sends this message to the hub in order to write (or
+# create) a plain text file (binary files not allowed, since sending
+# them via JSON makes no sense).
+# client --> hub
+message
+    event        : 'write_text_file_to_project'
+    id           : undefined
+    project_id   : required
+    path         : required
+    content      : required
+
+# The file_written_to_project message is sent by a project_server to
+# confirm successful write of the file to the project.
+# project_server --> hub
+message
+    event        : 'file_written_to_project'
+    id           : required
+
+############################################
+# Permament blob store
+############################################
+
+# Remove ttl from a blob and associate the blob with a project.
+message
+    event       : 'save_blobs_to_project'
+    id          : undefined   # message id, as usual
+    project_id  : required    # id of project that contains blob associated to
+    blob_ids    : required   # list of blobs to attach permanently to the project
+
+############################################
+# Branches
+############################################
+# client --> hub
+message
+    event        : 'create_project_branch'
+    id           : undefined
+    project_id   : required
+    branch       : required
+
+message
+    event        : 'checkout_project_branch'
+    id           : undefined
+    project_id   : required
+    branch       : required
+
+message
+    event         : 'delete_project_branch'
+    id            : undefined
+    project_id   : required
+    branch        : required
+
+message
+    event         : 'merge_project_branch'
+    id            : undefined
+    project_id   : required
+    branch        : required
+
+############################################
+# Managing multiple projects
+############################################
 
 # client --> hub
 message
@@ -480,11 +778,9 @@ message
     project_id : required
     data       : required     # an object; sets the fields in this object, and leaves alone the rest
 
-# hub --> client
-#
 # When project data is changed by one client, the following is sent to
 # all clients that have access to this project (owner or collaborator).
-#
+# hub --> client
 message
     event      : 'project_data_updated'
     id         : undefined

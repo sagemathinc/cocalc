@@ -1,42 +1,51 @@
 <div class="container hide" id="projects">
   <div class="span11 well">
 
-    <div class="your-projects-title">
-      <div class="span5">
-	<div style="margin-top:2px"><span class="big-only">Your </span><span id="projects-count"></span> <span class="big-only">Salvus </span>Projects</div>
+    <button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:15em">Create a New Project</button>
+    <div class="pull-right" style="margin-right:2em">
+	<span class="btn-group">
+	  <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
+	  <button class="btn btn-info btn-small" id="projects-public-button">Public</button>
+	  <button class="btn btn-info btn-small" id="projects-private-button">Private</button>
+	</span>
+	&nbsp;	&nbsp;
+      <input class="span3 projects-find-input search-query" type="text" placeholder="Find a project...">
+	&nbsp;	&nbsp;
+      <span class="btn-group">
+	<a href="#download-all-projects" class="btn btn-success">Download All <i class="icon-download-alt"> </i></a>
+	<a href="#close-all-projects" class="btn btn-danger">Shutdown All <i class="icon-remove"> </i></a>
+      </span>
+    </div>
+
+<!--    <div class="your-projects-title">
+	<div style="margin-top:2px"><span class="big-only">Your </span><span id="projects-count"></span> <span class="big-only"> </span>Projects</div>
+    </div>
+    <div class="row span10" style="margin-bottom:0em;margin-top:2em;">
+      <div class="span4"  style="margin-left:0px">
+	<button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:20em">Create a New Project</button>
       </div>
-      <div class="span4">
-	<button class="btn btn-success btn-large pull-right span3" type="submit" id="new_project-button">New project</button>
-      </div>
     </div>
+-->
     <div class="row span10">
-      <hr>
-    </div>
-    <div class="row span10">
-      <form class="form-search">
-	<input class="span6 search-query" type="text" placeholder="Find a project..." id="projects-find-input">
-        <!--<button class="btn">Search</button>-->
-      </form>
-    </div>
-    <div class="row span10">
-      <div class="btn-group">
-	<button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
-	<button class="btn btn-info btn-small" id="projects-public-button">Public</button>
-	<button class="btn btn-info btn-small" id="projects-private-button">Private</button>
+      <div class="span1 ">
+	<span class="projects-create-new-spinner hide"></span>
       </div>
       <br>
     </div>
     <div class="row span10 well well-small  project-link hide" id="projects-project_list_item_template">
-      <div class="span" style="width: 20px;">
+      <div class="span" style="width: 50px; margin-left:0px;">
 	<i class="icon-eye-open projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
 	<i class="icon-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+	<span class="projects-active hide"><i class="icon-bolt"> </i></span>
       </div>
       <div class="span3">
 	<a href="" class="projects-title"></a>
       </div>
-      <div class="span2 projects-last_edited">42 minutes ago</div>
+      <div class="span2 projects-last_edited"></div>
       <div class="span4 projects-description"></div>
+      <a href="#download-project" class="pull-right btn-small btn btn-success"><i class="icon-download-alt"> </i></a>
     </div>
+
 
     <span id="projects-project_list">
 
@@ -44,38 +53,38 @@
 
     <div class="row span12">
       <br>
-      <button class="btn btn-info btn-large" id="projects-show_all">Show all matching projects...</button>      
+      <button class="btn btn-info btn-large" id="projects-show_all">Show all matching projects...</button>
     </div>
 
 
   </div>
 
-</div>  
+</div>
 
 
 <!-- Create new project -->
 <div class="modal hide" id="projects-create_project" tabindex="-1" role="dialog" aria-hidden="true">
- <form> 
-  <div class="modal-header big-only">
-    <button type="button" class="close" data-dismiss="modal">×</button>
-    <h2>Create a New Project</h2>
-  </div>
+  <form>
+    <div class="modal-header big-only">
+      <button type="button" class="close" data-dismiss="modal">×</button>
+      <h2>Create a New Project</h2>
+    </div>
     <div class="modal-body">
 
       <!-- title -->
-      <div class="row span6">
+      <div class="row span5">
 	<h4 class="big-only">Title</h4>
-	<input class="span6 offset1" placeholder="Untitled" id="projects-create_project-title">
+	<input class="span5 offset1" type="text" placeholder="Untitled" id="projects-create_project-title">
       </div>
 
       <!-- description -->
-      <div class="row span6">
+      <div class="row span5">
 	<h4 class="big-only">Description <span class="lighten">(optional)</span></h4>
-	<input class="span6 offset1" type="text" placeholder="Description" id="projects-create_project-description">
+	<input class="span5 offset1" type="text" placeholder="Description" id="projects-create_project-description">
       </div>
 
       <!-- public? -->
-      <div class="row span6">
+      <div class="row span5">
 	<hr class="big-only">
 	<label class="radio">
 	  <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public" checked>
@@ -86,16 +95,16 @@
 	  <input type="radio" name="projects-create_project-public" value="private">
 	  <h4><i class="icon-lock"></i> Private</h4>
 	  <span class="big-only lighten">You choose who can see and modify this project.</span>
-	</label>	
+	</label>
       </div>
 
-  </div>
-  <!-- do it -->
-  <div class="modal-footer">
-    <button class="btn btn-success btn-large" type="submit" data-dismiss="modal" id="projects-create_project-button-create_project">Create project</button>
-    <button class="btn btn-large" data-dismiss="modal" id="projects-create_project-button-cancel">Cancel</button>
+    </div>
+    <!-- do it -->
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-large" type="submit" data-dismiss="modal" id="projects-create_project-button-create_project">Create Project</button>
+      <button class="btn btn-large" data-dismiss="modal" id="projects-create_project-button-cancel">Cancel</button>
 
-  </div>
+    </div>
   </form>
 
 </div>
@@ -103,21 +112,19 @@
 
 
 <!--
-<div class="modal"  tabindex="-1" role="dialog" aria-hidden="true">
-<form action="" method="post" class="modal" id="form">
-  <div class="modal-header">
-    <button class="close" data-dismiss="modal">×</button>
-    <h3>New User</h3>
-  </div>
-  <div class="modal-body">
-    <label>Name <input name="name" required></label>
-    <label>Email <input name="email" required></label>
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-primary" type="submit">Save Changes</button>
-  </div>
-</form>
-</div>
+    <div class="modal"  tabindex="-1" role="dialog" aria-hidden="true">
+      <form action="" method="post" class="modal" id="form">
+	<div class="modal-header">
+	  <button class="close" data-dismiss="modal">×</button>
+	  <h3>New User</h3>
+	</div>
+	<div class="modal-body">
+	  <label>Name <input name="name" required></label>
+	  <label>Email <input name="email" required></label>
+	</div>
+	<div class="modal-footer">
+	  <button class="btn btn-primary" type="submit">Save Changes</button>
+	</div>
+      </form>
+    </div>
 -->
-
-</div>

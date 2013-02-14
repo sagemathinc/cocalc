@@ -10,13 +10,16 @@
 # (c) William Stein, University of Washington
 #
 #########################################################################
-#
 
-COMPUTE_SERVER_PORTS =
+exports.COMPUTE_SERVER_PORTS = COMPUTE_SERVER_PORTS =
     compute : 5999
     sage    : 6000
     console : 6001
     project : 6002
+
+# This is used for project servers.
+MAX_SCORE = 3
+MIN_SCORE = -3   # if hit, server is considered busted.
 
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
@@ -90,6 +93,25 @@ class UUIDStore
             cb    : opts.cb
         return opts.uuid
 
+    # change the ttl of an existing entry -- requires re-insertion, which wastes network bandwidth...
+    set_ttl: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            ttl  : 0         # no ttl
+            cb   : undefined
+
+        @get
+            uuid : opts.uuid
+            cb : (err, value) =>
+                if err
+                    opts.cb(err)
+                else if value?
+                    @set
+                        uuid : opts.uuid
+                        value : value      # note -- the implicit conversion between buf and string is *necessary*, sadly.
+                        ttl   : opts.ttl
+                        cb    : opts.cb
+
     get: (opts) ->
         opts = defaults opts,
             uuid : required
@@ -100,8 +122,18 @@ class UUIDStore
             table   : @_table
             columns : ['value']
             where   : {name:@opts.name, uuid:opts.uuid}
-            cb      : (error, results) =>
-                opts.cb(error, if results.length == 1 then @_from_db(results[0][0]))
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb(false, undefined)
+                    else
+                        r = results[0][0]
+                        if r == null
+                            opts.cb(false, undefined)
+                        else
+                            opts.cb(false, @_from_db(r))
 
     delete: (opts) ->
         opts = defaults opts,
@@ -252,6 +284,7 @@ class exports.Cassandra extends EventEmitter
             keyspace : undefined
             timeout  : 3000
 
+        @keyspace = opts.keyspace
         console.log("keyspace = #{opts.keyspace}")
         @conn = new helenus.ConnectionPool(
             hosts     :  opts.hosts
@@ -380,6 +413,21 @@ class exports.Cassandra extends EventEmitter
                 opts.cb(error, x)
         )
 
+    # Exactly like select (above), but gives an error if there is not exactly one
+    # row in the table that matches the condition.
+    select_one: (opts={}) ->
+        cb = opts.cb
+        opts.cb = (err, results) ->
+            if err
+                cb(err)
+            else if results.length == 0
+                cb("No row in table '#{opts.table}' matched condition '#{opts.where}'")
+            else if results.length > 1
+                cb("More than one row in table '#{opts.table}' matched condition '#{opts.where}'")
+            else
+                cb(false, results[0])
+        @select(opts)
+
     cql: (query, vals, cb) ->
         #winston.debug(query, vals)
         @conn.cql(query, vals, (error, results) =>
@@ -407,18 +455,18 @@ class exports.Salvus extends exports.Cassandra
     # here.  This is something we will actually look at.
     #####################################
     log: (opts={}) ->
-        opts = defaults(opts,
+        opts = defaults opts,
             event : required    # string
             value : required    # object (will be JSON'd)
             ttl   : undefined
             cb    : undefined
-        )
-        @update(
+
+        @update
             table :'central_log'
             set   : {event:opts.event, value:to_json(opts.value)}
             where : {'time':now()}
             cb    : opts.cb
-        )
+
 
     get_log: (opts={}) ->
         opts = defaults(opts,
@@ -433,7 +481,7 @@ class exports.Salvus extends exports.Cassandra
         # @select yet, and I don't want to spend a lot of time on this
         # right now. maybe just write query using CQL.
 
-        @select(
+        @select
             table   : 'central_log'
             where   : where
             columns : ['time', 'event', 'value']
@@ -442,29 +490,83 @@ class exports.Salvus extends exports.Cassandra
                     cb(error)
                 else
                     cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
-        )
-
-
 
     #####################################
     # Managing compute servers
     #####################################
+    # if keyspace is test, and there are no compute servers, returns
+    # 'localhost' no matter what, since often when testing we don't
+    # put an entry in the database.
     running_compute_servers: (opts={}) ->
         opts = defaults opts,
             cb   : required
-            type : required    # 'sage', 'console', 'project', 'compute'
-        @select(table:'compute_servers', columns:['host'], where:{running:true}, cb:(error, results) ->
-            opts.cb(error, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type]} for x in results)
-        )
+            type : required    # 'sage', 'console', 'project', 'compute', etc.
+            min_score : MIN_SCORE
 
-    random_compute_server: (opts={}) -> # cb(error, random running sage server) or if there are no running sage servers, then cb(undefined)
+        @select
+            table   : 'compute_servers'
+            columns : ['host', 'score']
+            where   : {running:true, score:{'>':opts.min_score}}
+            cb      : (err, results) =>
+                if results.length == 0 and @keyspace == 'test'
+                    # This is used when testing the compute servers
+                    # when not run as a daemon so there is not entry
+                    # in the database.
+                    opts.cb(err, [{host:'localhost', port:COMPUTE_SERVER_PORTS[opts.type], score:0}])
+                else
+                    opts.cb(err, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type], score:x[1]} for x in results)
+
+    # cb(error, random running sage server) or if there are no running
+    # sage servers, then cb(undefined).  We only consider servers whose
+    # score is strictly greater than opts.min_score.
+    random_compute_server: (opts={}) ->
         opts = defaults opts,
-            cb   : required
-            type : required
+            cb        : required
+            type      : required
+
         @running_compute_servers
             type : opts.type
-            cb   : (error, res) -> opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
+            cb   : (error, res) ->
+                opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
 
+    # Adjust the score on a compute server.  It's possible that two
+    # different servers could change this at the same time, thus
+    # messing up the score slightly.  However, the score is a rough
+    # heuristic, not a bank account balance, so I'm not worried.
+    # TODO: The score algorithm -- a simple integer delta -- is
+    # trivial; there is a (provably?) better approach used by
+    # Cassandra that I'll implement in the future.
+    score_compute_server: (opts) ->
+        opts = defaults opts,
+            host  : required
+            delta : required
+            cb    : undefined
+        new_score = undefined
+        async.series([
+            (cb) =>
+                @select
+                    table   : 'compute_servers'
+                    columns : ['score']
+                    where   : {host:opts.host}
+                    cb      : (err, results) ->
+                        if err
+                            cb(err)
+                            return
+                        if results.length == 0
+                            cb("No compute server '#{opts.host}'")
+                        new_score = results[0][0] + opts.delta
+                        cb()
+            (cb) =>
+                if new_score >= MIN_SCORE and new_score <= MAX_SCORE
+                    @update
+                        table : 'compute_servers'
+                        set   : {score : new_score}
+                        where : {host  : opts.host}
+                        cb    : cb
+                else
+                    # new_score is outside the allowed range, so we do nothing.
+                    cb()
+        ], opts.cb)
 
     #####################################
     # User plans (what features they get)
@@ -475,7 +577,7 @@ class exports.Salvus extends exports.Cassandra
             cb      : required
         @select
             table  : 'plans'
-            where  : {'plan_id':opts.plan_id}
+            where  : {plan_id:opts.plan_id}
             columns: ['plan_id', 'name', 'description', 'price', 'current', 'stateless_exec_limits',
                       'session_limit', 'storage_limit', 'max_session_time', 'ram_limit', 'support_level']
             objectify: true
@@ -528,7 +630,8 @@ class exports.Salvus extends exports.Cassandra
                              'plan_id', 'plan_starttime',
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
-                             'connect_Github', 'connect_Google', 'connect_Dropbox']
+                             'connect_Github', 'connect_Google', 'connect_Dropbox',
+                             'autosave']
         )
         where = {}
         if opts.account_id?
@@ -702,13 +805,113 @@ class exports.Salvus extends exports.Cassandra
     #############
     # Projects
     ############
+    #
+    get_gitconfig: (opts) ->
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @select
+            table      : 'accounts'
+            columns    : ['gitconfig', 'first_name', 'last_name', 'email_address']
+            objectify  : true
+            where      : {account_id : opts.account_id}
+            cb         : (err, results) ->
+                if err
+                    opts.cb(err)
+                else if results.length == 0
+                    opts.cb("There is no account with id #{opts.account_id}.")
+                else
+                    r = results[0]
+                    if r.gitconfig? and r.gitconfig.length > 0
+                        gitconfig = r.gitconfig
+                    else
+                        # Make a github out of first_name, last_name, email_address
+                        gitconfig = "[user]\n    name = #{r.first_name} #{r.last_name}\n    email = #{r.email_address}\n"
+                    opts.cb(false, gitconfig)
+
+    get_project_host: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @select
+            table   : 'projects'
+            where   : {project_id: opts.project_id}
+            columns : ['host']
+            cb : (err, results) ->
+                if err
+                    opts.cb(err)
+                else if results.length == 0
+                    opts.cb("There is no project with ID #{opts.project_id}.")  # error
+                else
+                    host = results[0][0]
+                    # We also support "" for the host not being
+                    # defined, since some drivers, e.g., cqlsh do not
+                    # support setting a column to null.
+                    if not host? or not host
+                        host = undefined
+                    opts.cb(false, host)
+
+    set_project_host: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            host       : undefined   # undefined is meaningful, and means "not on a host" (as does "")
+            cb         : required
+        @update
+            table : 'projects'
+            set   :
+                host : opts.host
+            where :
+                project_id : opts.project_id
+            cb    : opts.cb
+
+    is_project_being_opened: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @uuid_value_store(name:'project_open_lock').get(uuid:opts.project_id, cb:opts.cb)
+
+    lock_project_for_opening: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            ttl        : required
+            cb         : required
+        @uuid_value_store(name:'project_open_lock').set(uuid:opts.project_id, value:true, ttl:opts.ttl, cb:opts.cb)
+
+    remove_project_opening_lock: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @uuid_value_store(name:'project_open_lock').delete(uuid:opts.project_id, cb:opts.cb)
+
+
+    is_project_being_saved: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @uuid_value_store(name:'project_save_lock').get(uuid:opts.project_id, cb:opts.cb)
+
+    lock_project_for_saving: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            ttl        : required
+            cb         : required
+        @uuid_value_store(name:'project_save_lock').set(uuid:opts.project_id, value:true, ttl:opts.ttl, cb:opts.cb)
+
+    remove_project_saving_lock: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @uuid_value_store(name:'project_save_lock').delete(uuid:opts.project_id, cb:opts.cb)
+
     create_project: (opts) ->
         opts = defaults opts,
             project_id  : required
             account_id  : required  # owner
             title       : required
-            description : undefined
+            description : undefined  # optional
             public      : required
+            quota       : required
+            idle_timeout: required
             cb          : undefined
 
         async.series([
@@ -722,7 +925,11 @@ class exports.Salvus extends exports.Cassandra
                         last_edited : now()
                         description : opts.description
                         public      : opts.public
+                        quota       : opts.quota
+                        idle_timeout: opts.idle_timeout
+                        current_branch : 'master'
                     where : {project_id: opts.project_id}
+                    json  : ['quota']
                     cb    : (error, result) ->
                         if error
                             opts.cb(error)
@@ -746,6 +953,22 @@ class exports.Salvus extends exports.Cassandra
                             opts.cb(false)
                             cb()
         ])
+
+    delete_project: (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            cb          : undefined
+        async.series([
+            (cb) =>
+                @delete(table:'projects', where:{project_id : opts.project_id}, cb:cb)
+            (cb) =>
+                @delete(table:'project_bundles', where:{project_id : opts.project_id}, cb:cb)
+            (cb) =>
+                @delete(table:'project_users', where:{project_id : opts.project_id}, cb:cb)
+        ], (err) ->
+            if opts.cb?
+                opts.cb(err)
+        )
 
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
@@ -772,14 +995,21 @@ class exports.Salvus extends exports.Cassandra
             (cb) =>
                 @get_projects_with_ids
                     ids : (x[0] for x in projects)
-                    cb : (error, results) ->
+                    cb  : (error, results) ->
                         if error
                             opts.cb(error)
                             cb(true)
                         else
-                            if projects.length > 0
-                                for i in [0...projects.length-1]
-                                    results[i].mode = projects[i].mode
+                            # The following is a little awkward and is done this way only
+                            # because of the potential for inconsistency in the database, e.g.,
+                            # project_id's in the project_users table that shouldn't be there
+                            # since the project was deleted but something nasty happened before
+                            # everything else related to that project was deleted.
+                            modes = {}
+                            for p in projects
+                                modes[p.project_id] = p.mode
+                            for r in results
+                                r.mode = modes[r.project_id]
                             opts.cb(false, results)
                             cb()
         ])
@@ -795,7 +1025,7 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'current_branch', 'host']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->
@@ -819,10 +1049,102 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(false, results)
 
+    # Returns the largest index of any bundle associated with the
+    # given project, or -1 if there are no bundles yet.
+    largest_project_bundle_index: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @cql("select number from project_bundles where project_id=? order by number desc limit 1",
+             [opts.project_id],
+             (err, results) ->
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb(err, -1)
+                    else
+                        opts.cb(err, results[0].get('number').value)
+        )
 
+    get_project_open_info: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @select
+            table      : 'projects'
+            columns    : ['quota', 'idle_timeout']
+            json       : ['quota']
+            objectify  : true
+            cb         : (err, results) ->
+                if err
+                    opts.cb(err)
+                else if results.length == 0
+                    opts.cb("No project in the database with id #{project_id}")
+                else
+                    opts.cb(false, results[0])
+
+    get_project_bundles: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+
+        @select
+            table      : 'project_bundles'
+            columns    : ['number', 'bundle']
+            where      : { project_id:opts.project_id }
+            cb         : (err, results) ->
+                if err
+                    opts.cb(err)
+                else
+                    v = []
+                    for r in results
+                        v[r[0]] = new Buffer(r[1], 'hex')
+                    opts.cb(err, v)
+
+    save_project_bundle: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            number     : required
+            bundle     : required
+            cb         : required
+
+        @update
+            table      : 'project_bundles'
+            set        :
+                bundle : opts.bundle.toString('hex')
+            where      :
+                project_id : opts.project_id
+                number     : opts.number
+            cb         : opts.cb
 
 
 
 array_of_strings_to_cql_list = (a) ->
     '(' + ("'#{x}'" for x in a).join(',') + ')'
 
+exports.db_test1 = (n, m) ->
+    # Store n large strings of length m in the uuid:value store, then delete them.
+    # This is to test how the database performs when hit by such load.
+
+    value = ''
+    possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    for i in [1...m]
+        value += possible.charAt(Math.floor(Math.random() * possible.length))
+
+    S = exports.Salvus
+    database = new S keyspace:'test', cb:() ->
+        kv = database.key_value_store(name:'db_test1')
+
+        tasks = []
+        for i in [1...n]
+            tasks.push (cb) ->
+                console.log("set #{i}")
+                kv.set(key:i, value:value, ttl:60, cb:cb)
+        for i in [1...n]
+            tasks.push (cb) ->
+                console.log("delete #{i}")
+                kv.delete(key:i, cb:cb)
+
+        async.series tasks, (cb) ->
+            console.log('done!')

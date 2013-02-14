@@ -1,4 +1,4 @@
-defaults = require("misc").defaults
+{defaults, to_json} = require("misc")
 
 types = ['error', 'default', 'success', 'info']
 
@@ -8,7 +8,28 @@ exports.alert_message = (opts={}) ->
     opts = defaults opts,
         type    : 'default'
         message : defaults.required
-        block   : false
+        block   : undefined
+        timeout : 2  # time in seconds
+
+    $.pnotify
+        title : ""
+        type : opts.type
+        text  : opts.message
+        nonblock : false
+        animation_speed: "fast"
+        closer_hover : false
+        opacity : 0.9
+        delay : opts.timeout*1000
+    return
+
+    if not opts.block?
+        if opts.type == 'error'
+            opts.block = true
+        else
+            opts.block = false
+
+    if typeof opts.message != "string"
+        opts.message = to_json(opts.message)
 
     if opts.type not in types
         alert("Unknown alert_message type #{opts.type}.")
@@ -18,11 +39,11 @@ exports.alert_message = (opts={}) ->
 
     if opts.block
         c.addClass('alert-block')
-    c.find(".message").html(opts.message)
+    c.find(".message").text(opts.message)
     c.prependTo("#alert-messages")
     c.click(() -> $(this).remove())
 
-    setTimeout((()->c.remove()), 5000)
+    setTimeout((()->c.remove()), opts.timeout*1000)
 
 # for testing/development
 # alert_message(type:'error',   message:"This is an error")

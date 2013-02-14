@@ -4,6 +4,14 @@ parser.py
 Code for parsing Sage code blocks sensibly.
 """
 
+#########################################################################################
+#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#                                                                                       #
+#  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
+#                                                                                       #
+#                  http://www.gnu.org/licenses/                                         #
+#########################################################################################
+
 import string
 import traceback
 
@@ -27,13 +35,8 @@ def get_input(prompt):
         return None
 
 def preparse_code(code):
-    if code.lstrip().startswith('!'):
-        # shell escape (TODO: way better)
-        code = 'print os.popen(eval("%r")).read()'%code[1:]
-    else:
-        import sage.all_cmdline
-        code = sage.all_cmdline.preparse(code)
-    return code
+    import sage.all_cmdline
+    return sage.all_cmdline.preparse(code)
 
 def strip_string_literals(code, state=None):
     new_code = []
@@ -99,9 +102,83 @@ def strip_string_literals(code, state=None):
 
     return "".join(new_code), literals, (in_quote, raw)
 
+def end_of_expr(s):
+    """
+    The input string s is a code expression that contains no strings (they have been stripped).
+    Find the end of the expression that starts at the beginning of s by finding the first whitespace
+    at which the parenthesis and brackets are matched.
+
+    The returned index is the position *after* the expression.
+    """
+    i = 0
+    parens = 0
+    brackets = 0
+    while i<len(s):
+        c = s[i]
+        if c == '(':
+            parens += 1
+        elif c == '[':
+            brackets += 1
+        elif c == ')':
+            parens -= 1
+        elif c == ']':
+            brackets -= 1
+        elif parens == 0 and brackets == 0 and (c == ' ' or c == '\t'):
+            return i
+        i += 1
+    return i
+
+# The dec_args dict will leak memory over time.  However, it only
+# contains code that was entered, so it should never get big.  It
+# seems impossible to know for sure whether a bit of code will be
+# eventually needed later, so this leakiness seems necessary.
+dec_counter = 0
+dec_args = {}
 def divide_into_blocks(code):
+    global dec_counter
     code, literals, state = strip_string_literals(code)
     code = [x for x in code.splitlines() if x.strip()]  # remove blank lines
+
+    # Compute the line-level code decorators.
+    c = list(code)
+    try:
+        v = []
+        for line in code:
+            done = False
+
+            # Transform shell escape into sh decorator.
+            if line.lstrip().startswith('!'):
+                line = line.replace('!', "%%sh ", 1)
+
+            # Check for cell decorator
+            # NOTE: strip_string_literals maps % to %%, because %foo is used for python string templating.
+            if line.lstrip().startswith('%%'):
+                i = line.find("%")
+                j = end_of_expr(line[i+2:]) + i+2  + 1 # +1 for the space or tab delimiter
+                expr = line[j:]%literals
+                # Special case -- if % starts line *and* expr is empty (or a comment),
+                # then code decorators impacts the rest of the code.
+                sexpr = expr.strip()
+                if i == 0 and (len(sexpr) == 0 or sexpr.startswith('#')):
+                    new_line = '%ssalvus.execute_with_code_decorators(*_salvus_parsing.dec_args[%s])'%(line[:i], dec_counter)
+                    expr = ('\n'.join(code[len(v)+1:]))%literals
+                    done = True
+                else:
+                    # Expr is nonempty -- code decorator only impacts this line
+                    new_line = '%ssalvus.execute_with_code_decorators(*_salvus_parsing.dec_args[%s])'%(line[:i], dec_counter)
+
+                dec_args[dec_counter] = ([line[i+2:j]%literals], expr)
+                dec_counter += 1
+            else:
+                new_line = line
+            v.append(new_line)
+            if done:
+                break
+        code = v
+    except Exception, mesg:
+        code = c
+
+    # Compute the blocks
     i = len(code)-1
     blocks = []
     while i >= 0:
@@ -136,7 +213,6 @@ def divide_into_blocks(code):
             i += 1
 
     return blocks
-
 
 
 
@@ -281,9 +357,7 @@ def introspect(code, namespace, preparse=True):
                     # TODO: This will not be needed when
                     # this code is re-written to parse using an
                     # AST, instead of using this lame hack.
-                    print "obj = ", obj
                     obj = guess_last_expression(obj)
-                    print "obj = ", obj
                     O = eval(obj if not preparse else preparse_code(obj), namespace)
             finally:
                 signal.signal(signal.SIGALRM, signal.SIG_IGN)

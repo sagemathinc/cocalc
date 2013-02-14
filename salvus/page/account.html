@@ -23,6 +23,9 @@
 <div class="container" id="account">
 
   <div class="row hide" id="account-sign_in">
+    <div class="span6">
+    </div>
+<!--
     <div class="span6 well well-cell">
       <label class="checkbox">
 	<input type="checkbox" id="create_account-agreed_to_terms">
@@ -32,10 +35,10 @@
       <div class="btn-group">
         <a class="btn btn-success">execute</a><a class="btn btn-info">tab</a><a class="btn btn-danger">interrupt</a><a class="btn btn-warning">clear</a>
       </div>
-      <span class="account-cell0"></span>
       <br>
-      <span class="account-console0">CONSOLE</span>
+      <span class="account-cell0"></span>
     </div>
+-->
     <div class="span4 well">
       <form id="sign_in-form">
 	<h4>Sign in (or <a href="#account-create_account">create an account</a>) for worksheets, projects, and more</h4><br>
@@ -76,13 +79,13 @@
       <input class="span4" type="text" placeholder="First name" id="create_account-first_name"><br>
       <input class="span4" type="text" placeholder="Last name" id="create_account-last_name"><br>
       <input class="span4" type="email" placeholder="Email" id="create_account-email_address"><br>
-      <input class="span4 salvus-password-meter" type="password" placeholder="Password" id="create_account-password"><br><br>
+      <input class="span4 salvus-password-meter" type="password" placeholder="Password" id="create_account-password">
       <label class="checkbox">
 	<input type="checkbox" id="create_account-agreed_to_terms">
 	I agree to <a href="#link-terms" data-toggle="modal">Salvus Terms</a>
       </label>
       <br>
-      <button class="btn btn-primary span3" type="submit" id="create_account-button">Create account</button>
+      <button class="btn btn-success btn-large span3" type="submit" id="create_account-button">Create account for free</button>
 
 
 
@@ -134,13 +137,13 @@
 
 	    <div class="span5 well">
 	      <div class="row">
-		<div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated.">Evaluate key</div>
+		<div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Evaluate key</div>
 		<div class="row span3">
 		  <select id="account-settings-evaluate_key">
 		    <option value="shift-enter">Shift-Enter (enter for newline)</option>
 		    <option value="enter">Enter (shift-enter for newline)</option>
 		  </select>
-		  <br><span class="lighten">(After saving this setting, you will have to refresh the page before it takes effect.)</span>
+		  <br><span class="lighten"></span>
 		</div>
 		<br><br>
 		<div class="hide row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
@@ -152,6 +155,17 @@
 		    <option value="maxima">Maxima</option>
 		    <option value="gap">GAP</option> -->
 		  </select>
+		</div>
+	      </div>
+	      <div class="row">
+		<div class="row span2" rel="tooltip" title="Your files will be automatically saved every autosave seconds.  All past versions of files are retained, so you can always undo a save. Set autosave to 0 to disable.">
+		  Autosave interval (in seconds)
+		</div>
+		<div class="row span1">
+		  <input id="account-settings-autosave" type="text" class="span1">
+		</div>
+		<div class="row span2">
+		  <div id="account-settings-autosave-slider"></div>
 		</div>
 	      </div>
 	    </div>

@@ -7,11 +7,12 @@
 {salvus_client} = require('salvus_client')
 {top_navbar}    = require('top_navbar')
 {alert_message} = require('alerts')
-{project_page}  = require('project')
+{misc}          = require('misc')
+{project_page, download_project, close_project}  = require('project')
 
 top_navbar.on "switch_to_page-projects", () ->
     update_project_list?()
-    $("#projects-find-input").focus()
+    $(".projects-find-input").focus()
 
 project_list = undefined
 compute_search_data = () ->
@@ -26,16 +27,21 @@ update_project_list = exports.update_project_list = () ->
                 project_list = mesg.projects
                 compute_search_data()
                 update_project_view()
+            else
+                alert_message(type:"error", message:"Problem getting updated list of projects. #{error}. #{misc.to_json(mesg)}")
 
 
 # update caused by update happenin on some other client
 salvus_client.on('project_list_updated', ((data) -> update_project_list()))
 
 # search as you type
-$("#projects-find-input").keyup((event) -> update_project_view())
+$(".projects-find-input").keyup (event) ->
+    update_project_view()
+    return false
+
 # search when you click a button (which must be uncommented in projects.html):
-#$("#projects-find-input").change((event) -> update_project_view())
-#$("#projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
+#$(".projects-find-input").change((event) -> update_project_view())
+#$(".projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
 
 select_filter_button = (which) ->
     for w in ['all', 'public', 'private']
@@ -54,25 +60,52 @@ $("#projects-all-button").click (event) ->
 $("#projects-public-button").click (event) ->
     only_public = true
     select_filter_button('public')
-    update_project_view()        
+    update_project_view()
 
 $("#projects-private-button").click (event) ->
     only_public = false
     select_filter_button('private')
-    update_project_view()        
+    update_project_view()
 
 
-DEFAULT_MAX_PROJECTS = 20
+DEFAULT_MAX_PROJECTS = 50
 
 $("#projects-show_all").click( (event) -> update_project_view(true) )
+template = $("#projects-project_list_item_template")
+
+create_project_item = (project) ->
+    item = template.clone().show().data("project", project)
+
+    if project.public
+        item.find(".projects-public-icon").show()
+        item.find(".projects-private-icon").hide()
+    else
+        item.find(".projects-private-icon").show()
+        item.find(".projects-public-icon").hide()
+        item.addClass("private-project")
+    item.find(".projects-title").text(project.title)
+    if project.host != ""
+        item.find(".projects-active").show().tooltip(title:"This project is running on a server.", placement:"top", delay:500)
+    item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
+    item.find(".projects-description").text(project.description)
+    item.click (event) ->
+        open_project(project)
+        return false
+    item.find("a[href='#download-project']").click () ->
+        download_project
+            project_id : project.project_id
+            filename   : project.title
+        return false
+
+    return item
 
 update_project_view = (show_all=false) ->
     if not project_list?
         return
     X = $("#projects-project_list")
     X.empty()
-    $("#projects-count").html(project_list.length)
-    find_text = $("#projects-find-input").val().toLowerCase()
+    # $("#projects-count").html(project_list.length)
+    find_text = $(".projects-find-input").val().toLowerCase()
     n = 0
     for project in project_list
         if find_text != "" and project.search.indexOf(find_text) == -1
@@ -82,22 +115,7 @@ update_project_view = (show_all=false) ->
         n += 1
         if not show_all and n > DEFAULT_MAX_PROJECTS
             break
-        template = $("#projects-project_list_item_template")
-        item = template.clone().show().data("project", project)
-
-        if project.public
-            item.find(".projects-public-icon").show()
-            item.find(".projects-private-icon").hide()
-        else
-            item.find(".projects-private-icon").show()
-            item.find(".projects-public-icon").hide()
-            item.addClass("private-project")
-        item.find(".projects-title").text(project.title)
-        item.find(".projects-description").text(project.description)
-        item.click (event) ->
-            open_project ($(@).data("project"))
-            return false
-        item.appendTo(X)
+        create_project_item(project).appendTo(X)
 
     if n > DEFAULT_MAX_PROJECTS and not show_all
         $("#projects-show_all").show()
@@ -105,7 +123,7 @@ update_project_view = (show_all=false) ->
         $("#projects-show_all").hide()
 
 open_project = (project) ->
-    project_page(project.project_id).set_model(project)
+    project_page(project)
     top_navbar.switch_to_page(project.project_id)
 
 
@@ -121,7 +139,7 @@ close_create_project = () ->
     $("#projects-create_project-public").attr("checked", true)
     $("#projects-create_project-private").attr("checked", false)
 
-create_project.find(".close").click((event) -> console.log('foo'); close_create_project())
+create_project.find(".close").click((event) -> close_create_project())
 
 $("#projects-create_project-button-cancel").click((event) -> close_create_project())
 
@@ -131,13 +149,47 @@ $("#projects-create_project-button-create_project").click (event) ->
     title = $("#projects-create_project-title").val()
     if title == ""
         title = "Untitled"
+    spinner = $(".projects-create-new-spinner").show().spin()
     salvus_client.create_project
         title       : title
         description : $("#projects-create_project-description").val()
         public      : $("#projects-create_project-public").is(":checked")
         cb : (error, mesg) ->
+            spinner.spin(false).hide()
             if error
-                alert_message("Error creating project: #{error}")
+                alert_messgae(type:"error", message:"Unable to connect to server to create new project '#{title}'; please try again later.")
+            else if mesg.event == "error"
+                alert_message(type:"error", message:mesg.error)
             else
                 update_project_list()
     close_create_project()
+
+
+
+################################################
+# Shutdown all projects button
+################################################
+$("#projects").find("a[href=#close-all-projects]").click () ->
+    close_all_projects()
+    return false
+
+close_all_projects = () ->
+    salvus_client.get_projects
+        cb : (err, mesg) ->
+            if err or mesg.event != 'all_projects'
+                alert_message(type:"error", message:"Unable to get list of projects. #{error}. #{misc.to_json(mesg)}")
+            else
+                # TODO -- use async.parallel, etc.? to know when done, and refresh as we go.
+                for project in mesg.projects
+                    if project.host != ""
+                        close_project
+                            project_id : project.project_id
+                            title      : project.title
+                            show_success_alert : true
+                            cb : (err) ->
+                                update_project_list()
+
+
+################################################
+# Download all projects button
+################################################

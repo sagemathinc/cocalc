@@ -14,6 +14,7 @@
 #
 #################################################################
 
+child_process  = require 'child_process'
 async          = require 'async'
 fs             = require 'fs'
 net            = require 'net'
@@ -25,6 +26,7 @@ winston        = require 'winston'
 {to_json, from_json, defaults, required}   = require 'misc'
 
 
+# TODO -- this is no longer used
 makedirs = (path, uid, gid, cb) ->
     # TODO: this should split the path and make sure everything is
     # made along the way like in Python, but I'm going to wait on
@@ -52,55 +54,79 @@ makedirs = (path, uid, gid, cb) ->
                         cb(); c()
     ])
 
+# NOTE: This getuid is like a function of the same name in
+# project_server; however, we cannot cache results here, since
+# the project_server could allocate/unallocate the project and
+# change the uid.
+getuid = (user, cb) ->
+    child_process.exec "id -u #{user}", (err, id, stderr) ->
+        if err
+            cb(err)
+        else
+            cb(false, parseInt(id))
+
 start_session = (socket, mesg) ->
     if not mesg.limits? or not mesg.limits.walltime?
-        socket.write_mesg('json', message.error(id:mesg.id, error:"mesg.limits.walltime *must* be defined"))
+        socket.write_mesg('json', message.error(id:mesg.id, error:"mesg.limits.walltime *must* be defined (though 0 is allowed for unlimited)"))
         return
 
     winston.info "start_session #{to_json(mesg)}"
+
     opts = defaults mesg.params,
-        home    : required
         rows    : 24
         cols    : 80
         command : undefined
         args    : ['--norc']
         ps1     : '\\w\\$ '
         path    : process.env.PATH
-        cwd     : undefined          # starting PATH -- default is computed below
+        cwd     : undefined          # starting PATH (need not be home directory)
+
+    if mesg.project_id.length != 36
+        winston.debug("suspicious project_id (=#{mesg.project_id}) -- bailing")
+        return
+    #username = mesg.project_id.replace(/-/g,'')  # see also project_server.coffee:username
+    username = mesg.project_id.slice(0,8)
 
     opts.cputime  = mesg.limits.cputime
     opts.vmem     = mesg.limits.vmem
     opts.numfiles = mesg.limits.numfiles
-
-    if process.getuid() == 0  # root
-        winston.debug "running as root, so forking with reduced privileges"
-        opts.uid = Math.floor(2000 + Math.random()*1000)  # TODO: just for testing; hub/database will *have* to assign this soon
-        opts.gid = opts.uid
-        opts.home = "/tmp/salvus/#{opts.home}"
-    else
-        opts.home = process.env.HOME
-        opts.cwd = opts.home
+    opts.home = "/home/#{username}"
 
     if not opts.cwd?
-        opts.cwd = opts.home
+        opts.cwd = "/home/#{username}"
 
-    # If opts.home does not exist, create it and set the right
-    # permissions before dropping privileges:
-    makedirs opts.home, opts.uid, opts.gid, (err) ->
+    winston.debug "start_session opts = #{to_json(opts)}"
+
+    # Ensure that the given user exists.  If not, send an error.  The
+    # hub should always ensure the user exists before starting a session.
+    getuid username, (err, uid) ->
         if err
-            winston.error "ERROR: #{err}" # no way to report error further... yet
+            # TODO: no way to report error further... yet
+            winston.error "ERROR: #{err}"
         else
-            # Fork of a child process that drops privileges and does all further work to handle a connection.
+            winston.debug("Starting console session for user #{username} with uid #{uid}")
+            opts.uid = uid
+            opts.gid = uid
+
+            # Fork off a child process that drops privileges and does
+            # all further work to handle a connection.
             child = child_process.fork(__dirname + '/console_server_child.js', [])
-            # Send the pid of the child back
+
+            # Send the pid of the child to the client (the connected hub)
             socket.write_mesg('json', message.session_description({pid:child.pid, limits:mesg.limits}))
-            # Disable use of the socket for sending/receiving messages.
+
+            # Disable use of the socket for sending/receiving messages, since
+            # it will be only used for raw xterm stuff hence.
             misc_node.disable_mesg(socket)
-            # Give the socket to the child, along with the options
+
+            # Give the socket to the child, along with the options.
             child.send(opts, socket)
-            # No session lives forever -- set a timer to kill the spawned child
-            setTimeout((() -> child.kill('SIGKILL')), mesg.limits.walltime*1000)
+
+            # Set a timer to kill the spawned child
+            if mesg.limits.walltime
+                setTimeout((() -> child.kill('SIGKILL')), mesg.limits.walltime*1000)
             winston.info "PARENT: forked off child to handle it"
+
 
 handle_client = (socket, mesg) ->
     try
@@ -132,7 +158,7 @@ server = net.createServer (socket) ->
     # Receive a single message:
     misc_node.enable_mesg(socket)
     socket.on 'mesg', (type, mesg) ->
-        winston.debug "received control mesg #{mesg}"
+        winston.debug "received control mesg #{to_json(mesg)}"
         handle_client(socket, mesg)
 
 # Start listening for connections on the socket.

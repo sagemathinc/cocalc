@@ -2,6 +2,7 @@ scratch.css
 worksheet1.css
 worksheet-cm.css
 
+3d.css
 cell.css
 worksheet.css
 slideshow.css
@@ -10,6 +11,8 @@ console.css
 account.css
 projects.css
 project.css
+editor.css
+consoles.css
 top_navbar.css
 
 
@@ -18,7 +21,31 @@ top_navbar.css
 }
 
 .lighten {
-    color: #888;
+    color: #666;
+}
+
+.small {
+    font-size:9pt;
+}
+
+.smallish {
+    font-size:10pt;
+}
+
+.large {
+    font-size:16pt;
+}
+
+.Large {
+    font-size:18pt;
+}
+
+.huge {
+    font-size:22pt;
+}
+
+.bold {
+    font-weight: bold;
 }
 
 .close {
@@ -26,6 +53,9 @@ top_navbar.css
 }
 
 
+.center {
+    text-align:center;
+}
 
 
 
@@ -59,6 +89,7 @@ body { padding-top:60px; }
   }
 }
 
-
-
+.ui-pnotify-history-container {
+    position: fixed;
+}
 

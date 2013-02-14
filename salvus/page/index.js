@@ -21,16 +21,21 @@ alerts.coffee
 
 feedback.coffee
 
+3d.coffee
 cell.coffee
+
 worksheet.coffee
 console.coffee
 
-# must come after cell.coffee
+# account.coffee must come after cell.coffee
 account.coffee
 
-worksheet1.coffee
-worksheet2.coffee
 
+worksheet1.coffee
+#worksheet2.coffee
+
+editor.coffee
+consoles.coffee
 project.coffee
 projects.coffee
 

@@ -1,21 +1,56 @@
 .salvus-worksheet {
-    border           : 1px solid #aaa;
+    border           : 2px solid #aaa;
     background-color : #fff;
-    padding          : 10px;
+    padding          : 20px;
     margin           : 10px;
     box-shadow       : 6px 6px 3px #888;
     padding-bottom   : 25px;
+ /*   overflow: auto;
+    max-height: 40em; */
+}
+
+.salvus-worksheet-running {
+    border : 2px dashed #8a8;
 }
 
 .salvus-worksheet-cells {
-    border   : 1px solid #888;
-
+   /* border   : 1px solid #888; */
 }
 
 .salvus-worksheet-title {
+    text-align:center;
+    font-size:32pt;
 }
 
 .salvus-worksheet-description {
-   color : #888;
+   color : #444;
+    text-align:center
 }
 
+
+.salvus-worksheet-section {
+    padding-top:1em;
+    padding-bottom:1em;
+}
+
+.salvus-worksheet-section-show {
+    color       : #666;
+    font-size: 24pt;
+}
+
+.salvus-worksheet-section-hide {
+    color       : #666;
+    font-size: 24pt;
+}
+
+.salvus-worksheet-section-title-user {
+    font-weight: bold;
+    font-size: 18pt;
+}
+.salvus-worksheet-section-cells {
+    margin-left:3em;
+}
+
+.salvus-worksheet-section-title {
+    margin-left:-1em;
+}

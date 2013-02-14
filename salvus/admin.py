@@ -561,6 +561,9 @@ class Cassandra(Process):
                     i = r.find('%s:'%k)
                     if i == -1:
                         raise ValueError("no configuration option '%s'"%k)
+                    if r[i-2] == "#":
+                        i = i - 2
+
                     j = r[i:].find('\n')
                     if j == -1:
                         j = len(r)
@@ -1188,13 +1191,13 @@ class Services(object):
             log.info("Recording compute server in Cassandra")
             import cassandra
             if action in ['start', 'restart']:
-                log.info("Recording Compute server START in Cassandra")
+                log.info("Recording compute server START in Cassandra")
                 try:
                     cassandra.record_that_compute_server_started(address)
                 except RuntimeError, msg:
                     print msg
             elif action == 'stop':
-                log.info("Recording Compute server STOP in Cassandra")
+                log.info("Recording compute server STOP in Cassandra")
                 try:
                     cassandra.record_that_compute_server_stopped(address)
                 except RuntimeError, msg:

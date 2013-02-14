@@ -1,66 +1,357 @@
 
-<span class="hide">
 
-  <div class="container" id="project-template">
+<!-- Modal dialogs for manipulating paths -->
 
-    <div class="well">
-      <h4>
-	<span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
-	<span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-	<span class="project-project_title-text">Project Title</span>
-      </h4>
-      <div class="project-project_description">
-	Description of Project
+<div id="project-delete-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+      <button type="button" class="close btn-close">
+	<font size=+3>×</font>
+      </button>
+      <h4>Delete <span class="project-delete-path-dialog-filename">filename</span>?</h4>
+    </div>
+    <div class="modal-body">
+      <form>
+	<div class="center">
+	  <input type="text" style="width:80%" placeholder="Why?  (optional)">
+	</div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-close">Cancel</button>
+      <button class="btn btn-danger btn-submit">Delete</button>
+    </div>
+</div>
+
+<div id="project-move-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+      <button type="button" class="close" aria-hidden="true">
+	<font size=+3>×</font>
+      </button>
+      <h4>Move <span contenteditable="true" class="project-move-path-dialog-filename">filename</span></h4>
+    </div>
+    <!-- TODO: clicking on path below could give a path browser... -->
+    <h5 style="margin-left:2ex">New path or filename:</h5>
+      <div class="center">
+	<form>
+	  <input type="text" style="width:80%" name="new-filename" value="">
+	</form>
+      </div>
+      <div class="center">
+	<form>
+	  <input type="text" style="width:80%" name="why" placeholder="Why? (optional)">
+	</form>
+      </div>
+      <div class="modal-footer">
+      <button class="btn btn-close">Cancel</button>
+      <button class="btn btn-warning btn-submit">Move</button>
+    </div>
+</div>
+
+
+<!-- The actual project file browser, etc., interface -->
+
+<span id="salvus-project-templates" class="hide">
+
+  <div class="container salvus-project">
+    <div class="row">
+      <div class="well span12">
+	<div class="span12">
+	  <div class="pull-right"   style="margin-right:2em">
+	    Project
+	    <!-- The project id -->
+	    <span class="project-id"></span>
+	    <!-- Close button -->
+	    <span class="btn-group">
+	      <a href="#save-project" class="btn btn-info">Save <i class="icon-save"> </i></a>
+	      <a href="#download-project" class="btn btn-success">Download <i class="icon-download-alt"> </i></a>
+	      <a href="#close-project" class="btn btn-danger">Shutdown <i class="icon-remove"> </i></a>
+	    </span>
+	  </div>
+
+	  <!-- Title of the project (editable) -->
+	  <h4>
+	    <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
+	    <span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+	    <span class="project-project_title" contenteditable="true"></span>
+	  </h4>
+
+
+	  <!-- Description of the project (editable) -->
+	  <div class="project-project_description" contenteditable="true">
+	  </div>
+
+	<!-- buttons to create new consoles -->
+	<div class="pull-left" style="margin-top:1em;">
+	  <a class="btn btn-primary" href="#new-worksheet"><i class="icon-plus"></i> Worksheet&nbsp;&nbsp;&nbsp; <i class="icon-file-alt"></i></a>
+	  <a class="btn btn-success" href="#new-xterm"><i class="icon-plus"></i> Console&nbsp;&nbsp;&nbsp; <i class="icon-credit-card"></i></a>
+	  <!-- <a class="btn btn-success" href="#new-command-line"><i class="icon-plus"> </i> cmdline</a> -->
+	</div>
+
+	</div>
       </div>
     </div>
-    <div class="span11 well">
-      <ul class="nav nav-tabs">
-	<li class="active super-menu"><a href="#project-file_list" data-toggle="tab">Files</a></li>
-	<li class="super-menu"><a href="#project-settings" data-toggle="tab">Settings</a></li>
-	<li><a href="#">worksheet.sws</a></li>
-	<li><a href="#">worksheet2.sws</a></li>
-	<li><a href="#">script.sage</a></li>
-	<li><a href="#">worksheet3.sws</a></li>
-	<li><a href="#">worksheet4.sws</a></li>
-	<li><a href="#">script2.sage</a></li>
-	<li><a href="#">foo_bar.py</a></li>
-	<li><a href="#">foo_bar123.py</a></li>
-	<li><a href="#">worksheet.sws</a></li>
-	<li><a href="#">worksheet2.sws</a></li>
-	<li><a href="#">script.sage</a></li>
-	<li><a href="#">worksheet3.sws</a></li>
-      </ul>
+    <div class="row">
+      <div class="span12 well">
 
-      <div class="project-file-listing">
 
-	<div class="row span10 well well-small  project-file-link" id="project-file-link-template">
-	  <div class="span5">
-	    <a href="" class="project-file-name">worksheet.sws</a>
+	<!-- Tabs -- place where you click on them -->
+	<ul class="nav nav-tabs project-pages">
+	  <!-- Browse through files in the project -->
+	  <li class="active super-menu"><a href="#project-file-listing">File Browser</a></li>
+
+	  <!-- Use an interactive console in the project -->
+	  <li class="super-menu"><a href="#project-consoles">Sessions (<span class="project-consoles-count">0</span>)</a></li>
+
+	  <!-- File editor -->
+	  <li class="super-menu"><a href="#project-editor">Editor (<span class="project-editor-file-count">0</span>)</a></li>
+
+
+	  <!-- Publications -->
+	  <li class="super-menu"><a href="#project-pubs">Publish (<span class="project-editor-publish-count">?</span>)</a></li>
+
+
+	  <!-- Chat about this project -->
+	  <li class="super-menu"><a href="#project-chats">Chat</a></li>
+
+	  <!-- Settings specific to this project -->
+	  <li class="super-menu"><a href="#project-settings">Settings</a></li>
+
+	  <!-- Git revision log of this project -->
+<!--
+	  <li class="super-menu"><a href="#project-commits">Changes (<span class="project-editor-commit-count">?</span>)</a></li>-->
+
+	  <!-- Git branches -->
+	  <li class="super-menu"><a href="#project-branches"><i class="icon-time"> </i> <!--(<span class="project-editor-branch-count">?</span>)--></a></li>
+
+	  <!-- Git forks -->
+<!--
+	  <li class="super-menu"><a href="#project-forks">Forks</a></li>
+-->
+
+
+	  <!-- Search -->
+	  <li class="super-menu"><a href="#project-search"><input class="project-search-form-input search-query" type="text"
+		 placeholder="Search"></a></li>
+	</ul>
+
+	<!-- The actual screens that get revealed by each tab: -->
+
+	<!-- List of all files in the project, which is browsable -->
+	<div class="project-file-listing">
+	  <div class="row">
+	    <div class="span2 pull-right hide">  <!-- TODO -- hid! -->
+	      <label for="project-commits-branch">
+		<select name="project-commits-branch" class="project-commits-branch"></select>
+		<!--<div class="lighten">(shown branch)</div>-->
+	      </label>
+	    </div>
+
+	    <div>
+	      <!-- command line prompt -->
+	      <span class="project-command-line">
+		<input class="project-command-line-input" type="text" placeholder="bash...">
+		<div class="project-command-line-spinner hide"></div>
+		<pre class="project-command-line-stderr hide"></pre>
+		<pre class="project-command-line-stdout hide"></pre>
+	      </span>
+
+
+	      <!-- Buttons for basic file operations -->
+	      <span class="project-file-tools pull-right">
+		<span class="btn-group">
+		  <a href="#move" class="btn btn-warning">Move</a>
+		  <a href="#delete" class="btn btn-danger">Delete</a>
+		</span>
+	      </span>
+	    </div>
+
+	    <!-- The current path -->
+	    <div class="project-file-listing-current_path"></div>
+
+
+	    <!-- List of files -->
+	    <div class="row">
+	      <div class="project-file-listing-spinner hide"></div>
+	      <div class="project-file-listing-file-list"></div>
+	    </div>
+
 	  </div>
-	  <div class="span2 project-file-last_edited">42 minutes ago</div>
 	</div>
-	<div class="row span10 well well-small  project-file-link" id="project-file-link-template">
-	  <div class="span5">
-	    <a href="" class="project-file-name">worksheet.sws</a>
-	  </div>
-	  <div class="span2 project-file-last_edited">42 minutes ago</div>
+
+	<!-- Open files in this project. -->
+	<div class="project-editor hide">
 	</div>
-	<div class="row span10 well well-small  project-file-link" id="project-file-link-template">
-	  <div class="span5">
-	    <a href="" class="project-file-name">worksheet.sws</a>
-	  </div>
-	  <div class="span2 project-file-last_edited">42 minutes ago</div>
+
+	<!-- Consoles on this project (multiple tabs, of course) -->
+	<div class="project-consoles hide">
 	</div>
-	<div class="row span10 well well-small  project-file-link" id="project-file-link-template">
-	  <div class="span5">
-	    <a href="" class="project-file-name">worksheet.sws</a>
+
+
+	<!-- Chatroom/logs for this project -->
+	<div class="project-chats hide">
+	  Chat sessions here
+	</div>
+
+	<!-- Publications of this project -->
+	<div class="project-pubs hide">
+	  <b>Not yet implemented:</b> A publication is a specific
+	  state of the project, as defined by a commit in some branch,
+	  a choice of file as the "home page", and a user-specified
+	  name.  There is a url associated to the publication
+	  (https://salv.us/userid/name), a way to browse user
+	  publications, etc.  When a visitor requests the publication,
+	  a copy of the project (at the given state) is opened on some
+	  project server, and visitor can interact with the home page.
+	  This can enable browsing in the project, e.g., through the
+	  sections of a book.  The pages for pubs will displays
+	  statistics (like google analytics?) about visitors to the
+	  pub.  It will also allow for requiring login, a secret word,
+	  etc.  It will also allow for data collection, e.g., one type
+	  of pub can be a homework assignment for students in a
+	  course.
+	</div>
+
+	<!-- Git history log for this project -->
+	<div class="project-commits hide">
+	  <div class="row">
+	    <div class="project-commits-list">
+	    </div>
 	  </div>
-	  <div class="span2 project-file-last_edited">42 minutes ago</div>
+	</div>
+
+	<!-- Git branches -->
+	<div class="project-branches hide">
+	  <form>
+	    <input type="text">
+	  </form>
+	  <div class="project-branches-list"></div>
+	</div>
+
+	<!-- Git forks -->
+	<div class="project-forks hide">
+	  Known forks of this project listed here.
+	</div>
+
+	<!-- Page to configure the settings for this project -->
+	<div class="project-settings hide">  <!-- hidden by default -->
+	  <b>Not yet implemented:</b>
+	  <ul>
+	    <li> Which tabs ("Browser, Console, editor, etc.") are
+	    displayed and in what order.</li>
+	    <li> Line numbers. Editor autosave. Editor autocommit.  Inherit from global. </li>
+	    <li> Which console session buttons to list -- could depend a lot on particular project.</li>
+	    <li> Whether project is public or private </li>
+	    <li> Collaborators </li>
+	    <li> Compute resource limitations </li>
+	  </ul>
+
+	</div>
+
+	<!-- Search -->
+	<div class="project-search hide">
+	  <div class="project-search-spinner hide">
+	  </div>
+	  <div class="row">
+	    <div class="project-search-output well span11"></div>
+	    <div class="project-search-output-command well span11"></div>
+	  </div>
 	</div>
 
       </div>
-
     </div>
+
+  </div>
+
+  <div class="row span11 well well-small project-commit-single">
+    <div class="span7">
+      <div class="row">
+	<div class="project-commit-single-message"></div>
+      </div>
+      <div class="row">
+	<span class="project-commit-single-author"></span>
+	&nbsp;&nbsp;<span class="project-commit-single-date lighten"></span>
+      </div>
+    </div>
+    <div class="span1">
+      <div class="project-commit-single-sha"></div>
+    </div>
+  </div>
+
+  <div class="row span11 well well-small project-branch-single">
+    <div class="row">
+      <div class="span6 project-branch-single-name"></div>
+      <div class="pull-right">
+	<div class="btn-group">
+	  <a href="#checkout" class="btn btn-primary">Checkout</a>
+  	  <!-- <a href="#compare" class="btn btn-info">Compare</a>-->
+	  <a href="#merge" class="btn btn-warning">Merge</a>
+	  <a href="#delete" class="btn btn-danger">Delete</a>
+	</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row span11 well well-small project-file-link">
+    <div class="span" style="width: 10px;">
+      <input type="checkbox">
+    </div>
+    <div class="span" style="width: 20px;">
+      <i class="icon-file">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+    </div>
+    <div class="span" style="width:150px;">
+      <a class="project-file-name"></a>
+    </div>
+    <div class="span smallish" style="width:140px;">
+      <span class="project-file-last-mod-date">
+      </span>
+    </div>
+    <div class="span smallish" style="width:25px;">
+      <span class="project-file-size">
+      </span>
+    </div>
+    <div class="span4 lighten smallish">
+      <span class="project-file-last-commit-date-container"><span class="project-file-last-commit-date"></span></span>
+      (<a class="project-file-last-commit-message lighten"></a>)
+    </div>
+    <div class="pull-right">
+      <span class="btn-group project-file-buttons">
+	<!--<a class="btn btn-primary btn-small" href="save-file"><i class="icon-save"> </i></a> -->
+	<a class="btn btn-info  " href="#log-file"><i class="icon-time"> </i></a>
+	<a class="btn btn-warning " href="#move-file"><i class="icon-external-link"> </i></a>
+	<a class="btn btn-success " href="#download-file"><i class="icon-download-alt"> </i></a>
+      </span>
+    </div>
+  </div>
+  <div class="row span11 well well-small project-directory-link">
+    <div class="span" style="width: 10px;">
+      <input type="checkbox">
+    </div>
+    <div class="span" style="width: 20px;">
+      <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+    </div>
+    <div class="span2">
+      <a class="project-directory-name"></a>
+    </div>
+  </div>
+
+  <a class="project-home-icon btn btn-info">
+    <i class="icon-home"> </i>
+  </a>
+
+  <a class="project-new-file-link  btn btn-warning" rel="tooltip" title="Create a new file here">
+    <span class="project-new-file-icon">
+      <i class="icon-plus"> </i>
+    </span>
+  </a>
+
+  <span class="project-segment-sep lighten">
+    &nbsp; / &nbsp;
+  </span>
+
+
+  <div class="span9 project-search-result">
+    <b><a></a></b>
+    <span></span>
   </div>
 
 
@@ -72,5 +363,4 @@
     <b><a href="">worksheet.sws</a></b>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="lighten"></span>
   </div>
-
 </span>

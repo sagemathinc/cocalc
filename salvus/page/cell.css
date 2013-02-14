@@ -1,6 +1,6 @@
 .CodeMirror {
     height           : auto;
-    background-color : #ffffe8;
+    background-color : #ffffff;
 }
 
 .CodeMirror-scroll {
@@ -10,13 +10,6 @@
 }
 
 .salvus-cell {
-    border     : 2px solid lightgrey;
-    background : white;
-}
-
-.salvus-cell-selected {
-    border: 2px solid #99f;
-    /* box-shadow: 4px 4px 2px #bbf; */
 }
 
 .salvus-cell-note {
@@ -24,18 +17,48 @@
     color            : #333;
     border           : 1px solid white;
     min-height       : 1.5em;
-    overflow-y       : auto;
+/*    overflow-y       : auto; */
 }
 
-.salvus-cell-editor {
+.salvus-cell-insert-above {
+    height: 5px;
+}
+
+.salvus-cell-insert-above:hover {
+    background-color : #99f;
+}
+
+.salvus-cell-insert-below {
+    height: 5px;
+}
+
+.salvus-cell-insert-below:hover {
+    background-color : #99f;
+}
+
+
+.salvus-cell-note:hover {
+    border: 1px dashed #fff;
+}
+
+.salvus-cell-input {
     min-height       : 1.5em;
-    border           : 2px solid #e0e0e0;
+    border           : 3px solid #e0e0e0;
+    margin-left      : 1em;
+}
+
+.salvus-cell-input-selected {
+    min-height       : 1.5em;
+    border: 3px solid #99f;
+    box-shadow: 3px 3px 1px #bbf;
 }
 
 .salvus-cell-output {
-    background-color : #f8f8f8;
+    background-color : #fff; /* #fafafa; */
     overflow-y       : auto;
     overflow-x       : auto;
+    margin-left      : 2em;
+    padding          : 1ex;
 }
 
 .salvus-cell-output-stdout {
@@ -55,3 +78,108 @@
 
 .salvus-cell-output-tex {
 }
+
+.salvus-cell-output-interact {
+    padding: 1em;
+    margin: 1em;
+    background-color: #f8f8f8;
+    border: 1px solid #e0e0e0;
+    box-shadow: 3px 3px 1px #ccc;
+}
+
+
+.salvus-cell-checkbox {
+    position:absolute;
+    margin-left:-1.1em;
+    margin-top:.1em;
+/*    border: 1px solid #white; */
+}
+
+.salvus-cell-checkbox:hover {
+/*    border: 1px dashed #888; */
+}
+
+/*.salvus-cell-checkbox {
+    border : 1px solid #999;
+    width: 1em;
+    height: 1.35em;
+    margin-left:-1.2em;
+    margin-top:.3em;
+    position:absolute;
+}
+
+.salvus-cell-checkbox:hover {
+    border : 1px dashed #777;
+}
+*/
+
+.salvus-cell-stopwatch {
+    margin-left : -11ex;
+    position    : absolute;
+    font-size   : 10pt;
+    padding     : 1px;
+    color       : #222;
+    background-color : #ddd;
+    opacity     : 0.5;
+}
+
+.salvus-cell-stopwatch-running {
+    background-color : #8f8;
+}
+
+.salvus-cell-stopwatch-waiting {
+    background-color : #ff8;
+}
+
+
+.salvus-cell-introspect {
+    padding          : 0px;
+
+    background-color : #eee;
+    z-index          : 999;
+    position         : absolute;
+    opacity          : 0.92;
+
+    width            : 100ex;
+
+    border           : 2px solid grey;
+    box-shadow       : 8px 8px 4px #888;
+}
+
+.salvus-cell-introspect-title {
+    font-size        : 18pt;
+    padding          : 1ex;
+    border-bottom    : 1px solid grey;
+}
+
+.salvus-cell-introspect-content {
+    font-size        : 10pt;
+    font-family      : "Courier New";
+    background-color : #fffff8;
+    white-space      : pre;
+    padding          : 1ex;
+    max-height       : 600px;
+    overflow         : auto;
+}
+
+.salvus-cell-introspect-close {
+    font-size : 20pt;
+    padding-right:1ex;
+    padding-top:.8ex;
+}
+
+.salvus-cell-introspect-close:hover {
+    color            : white;
+    background-color :  orange;
+}
+
+
+.salvus-cell-interact-control-grid {
+    border : 1px solid grey;
+    display: inline-block;
+    margin: 1ex;
+    padding: 1ex;
+    box-shadow: 3px 3px 1px #ccc;
+}
+
+

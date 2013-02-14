@@ -1,1 +1,1 @@
-watch2 *.coffee page/* ./make_coffee
+watch2 *.coffee page/*.html page/*.coffee page/*.css ./make_coffee

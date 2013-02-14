@@ -95,10 +95,11 @@ class Console extends EventEmitter
         @set_title(@opts.title)
 
         # Create the new Terminal object -- this is defined in
-        # static/term.js -- it's a nearly complete implemenation of
+        # static/term/term.js -- it's a nearly complete implementation of
         # the xterm protocol.
         @terminal = new Terminal(@opts.cols, @opts.rows)
-        # this is needed by the custom renderer, if it is used.
+
+        # this object (=@) is needed by the custom renderer, if it is used.
         @terminal.salvus_console = @
 
         that = @
@@ -119,6 +120,9 @@ class Console extends EventEmitter
         # Initialize buttons
         @_init_buttons()
 
+        # Initialize pinging the server to keep the console alive
+        @_init_session_ping()
+
         # delete scroll buttons except on mobile
         if not IS_MOBILE
             @element.find(".salvus-console-up").hide()
@@ -131,19 +135,23 @@ class Console extends EventEmitter
         # Plug the remote session into the terminal.
 
         # The user types in the terminal, so we send the text to the remote server:
-        @terminal.on 'data',  (data) => @session.write_data(data)
+        @terminal.on 'data',  (data) =>
+            #console.log("user typed: '#{data}' into #{@opts.session.session_uuid}")
+            @session.write_data(data)
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
 
         # The remote server sends data back to us to display:
-        @session.on 'data',  (data) => @terminal.write(data)
+        @session.on 'data',  (data) =>
+            @terminal.write(data)
 
 
         #########################
 
         # Start the countdown timer, which shows how long this session will last.
-        @_start_session_timer(opts.session.limits.walltime)
+        if opts.session.limits.walltime
+            @_start_session_timer(opts.session.limits.walltime)
 
         # Set the entire console to be draggable.
         if @opts.draggable
@@ -155,6 +163,9 @@ class Console extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
+    _init_session_ping: () =>
+        @opts.session.ping(@console_is_open)
+
     _init_codemirror: () ->
         that = @
         @terminal.custom_renderer = codemirror_renderer
@@ -210,8 +221,8 @@ class Console extends EventEmitter
         @element.find(".salvus-console-terminal").replaceWith(@terminal.element)
         ter = $(@terminal.element)
         ter.on('click', () => @focus())
-        # Focus/blur handler.
 
+        # Focus/blur handler.
         if IS_MOBILE  # so keyboard appears
             if @opts.renderer == 'ttyjs'
                 @mobile_target = @element.find(".salvus-console-for-mobile")
@@ -225,13 +236,12 @@ class Console extends EventEmitter
                         @blur()
                 )
         else
-            $(document).on('click', (e) =>
+            $(document).on 'click', (e) =>
                 t = $(e.target)
                 if t.hasParent($(@terminal.element)).length > 0
                     @focus()
                 else
                     @blur()
-            )
 
     _init_buttons: () ->
         editor = @terminal.editor
@@ -275,6 +285,8 @@ class Console extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+    console_is_open: () =>  # not chainable
+        return @element.closest(document.documentElement).length > 0
 
     blur : () =>
         @is_focused = false

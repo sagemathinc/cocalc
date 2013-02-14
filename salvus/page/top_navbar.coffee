@@ -27,9 +27,10 @@ class TopNavbar  extends EventEmitter
             label         : required   # jquery object that is placed in the button
             'class'       : undefined  # classes to apply to label
             insert_after  : undefined  # if given, the page is inserted after the page with given id.
-            insert_before : undefined  # if given, the page is inserted after the page with given id.
+            insert_before : undefined  # if given, the page is inserted before the page with given id.
             pull_right    : false      # if true, place button in the right-hand side group of buttons.
             close         : true       # if true, include a "close" x.
+            onclose       : undefined  # called if defined when the page is closed
 
         button = @button_template.clone()
         if opts.pull_right
@@ -38,14 +39,14 @@ class TopNavbar  extends EventEmitter
         else
             @buttons.append(button)
             #button.after(@divider_template.clone())
-        @pages[opts.id] = {page:opts.page, button:button}
+        @pages[opts.id] = {page:opts.page, button:button, onclose:opts.onclose}
 
         a = button.find("a")
         a.data("id", opts.id)
         that = @
         a.click((event) -> that.switch_to_page($(this).data("id")); return false)
 
-        @set_button_label(opts.id, opts.label, opts['class'], opts['close'])
+        @set_button_label(opts.id, opts.label, opts.class, opts.close)
 
     set_button_label: (id, label, klass, close=true) ->
         button = @pages[id].button
@@ -83,21 +84,54 @@ class TopNavbar  extends EventEmitter
         @current_page_id = id
         @emit("switch_to_page-#{id}", id)
 
+    switch_to_next_available_page: (id) ->
+        # Switch to the next page after the page
+        # with given id, unless there is no such page,
+        # in which case, switch to the previous page.
+        # This is used, e.g., when closing a tab to select a new tab.
+        # This will never select the *settings tab*.
+        p = @pages[id]
+        next_button = p.button.next()
+        next = next_button.find("a")
+        nid = next.data('id')
+        if nid?
+            @switch_to_page(nid)
+        else
+            @switch_to_prev_available_page(id)
+
+    switch_to_prev_available_page: (id) ->
+        # There is always a previous page, because of the project page.
+        p = @pages[id]
+        prev_button = p.button.prev()
+        prev = prev_button.find("a")
+        id = prev.data('id')
+        if id?
+            @switch_to_page(id)
+
+
     # entirely remove the page
     remove_page: (id) ->
         p = @pages[id]
         if p?
+            if p.onclose?
+                # save unsaved work, etc.
+                p.onclose()
+            if p.button.hasClass("active")
+                @switch_to_next_available_page(id)
+            # Now actually the page
             p.page.remove()
             p.button.remove()
             delete @pages[id]
 
+            # Now switch to the next page
+
     # make it so the navbar entry to go to a given page is hidden
     hide_page_button: (id) ->
-        @pages[id].button.hide()
+        @pages[id]?.button.hide()
 
     # make it so the navbar entry to go to a given page is shown
     show_page_button: (id) ->
-        @pages[id].button.show()
+        @pages[id]?.button.show()
 
     # TODO -- ?
     have_unsaved_changes: (id) ->
@@ -127,15 +161,15 @@ $("#projects").top_navbar
     label   : "Projects"
     close   : false
 
-$("#worksheet2").top_navbar
-    id      : "worksheet2"
-    label   : "Worksheet2"
-    close   : false
+#$("#worksheet2").top_navbar
+#    id      : "worksheet2"
+#    label   : "Worksheet2"
+#    close   : false
 
-$("#worksheet1").top_navbar
-    id      : "worksheet1"
-    label   : "Worksheet1"
-    close   : false
+#$("#worksheet1").top_navbar
+#    id      : "worksheet1"
+#    label   : "Worksheet1"
+#    close   : false
 
 $("#account").top_navbar
     id     : "account"

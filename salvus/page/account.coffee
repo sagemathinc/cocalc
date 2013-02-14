@@ -85,6 +85,37 @@ $("#account-settings-cancel-changes-button").click((event) -> account_settings.s
 
 $("#account-settings-tab").find("form").click((event) -> return false)
 
+$("#account-settings-autosave-slider").slider
+    animate : true
+    min     : 0
+    max     : 300
+    step    : 15
+    value   : 30
+    change  : (event, ui) ->
+        $("#account-settings-autosave").val(ui.value)
+
+
+$("#account-settings-autosave").keyup () ->
+    t = $(@)
+    x = t.val()
+    last = t.data('last')
+    if x == last
+        return
+    if x.length == 0
+        return
+    s = parseInt(x)
+    if not (s >=0 and s <= 1000000)
+        s = parseInt(last)
+    else
+        t.data('last', x)
+    # Verify that input makes sense
+
+    # Move slider as best we can
+    $("#account-settings-autosave-slider").slider('value', s)
+
+    # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
+    t.val(s)
+
 
 ################################################
 # Tooltips
@@ -116,10 +147,9 @@ top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 $("#create_account-button").click((event) ->
     destroy_create_account_tooltips()
 
-    opts = {}
+    opts = {agreed_to_terms:$("#create_account-agreed_to_terms").is(":checked") == "on"}
     for field in create_account_fields
         opts[field] = $("#create_account-#{field}").val()
-        opts['agreed_to_terms'] = $("#create_account-agreed_to_terms").is(":checked") # special case
         opts.cb = (error, mesg) ->
             if error
                 alert_message(type:"error", message: "There was an unexpected error trying to create a new account.  Please try again later.")
@@ -199,6 +229,7 @@ sign_in = () ->
                     # should never ever happen
                     alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
+first_login = true
 signed_in = (mesg) ->
     # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
@@ -211,14 +242,25 @@ signed_in = (mesg) ->
             show_page("account-settings")
             # change the navbar title from "Sign in" to "first_name last_name"
             set_account_tab_label(true, mesg.first_name, mesg.last_name)
-            #top_navbar.show_page_button("projects")
-            top_navbar.show_page_button("worksheet1")
-            top_navbar.switch_to_page("worksheet1")
-            require('worksheet1').load_scratch_worksheet()
-            #TEMPORARY -- for writing new cell/worksheet/etc. code
-            top_navbar.show_page_button("worksheet2")
-            top_navbar.switch_to_page("worksheet2")
+            top_navbar.show_page_button("projects")
+
+            #####
+            # DISABLE worksheet1 -- enable this maybe when finishing worksheets port
+            # 
+            #top_navbar.show_page_button("worksheet1")
             # Load the default worksheet (for now)
+            #require('worksheet1').load_scratch_worksheet()
+
+            # If this is the initial login, switch to the project
+            # page.  We do this because if the user's connection is
+            # flakie, they might get dropped and re-logged-in multiple
+            # times, and we definitely don't want to switch to the
+            # projects page in that case.  Also, if they explicitly
+            # log out, then log back in as another user, seeing
+            # the account page by default in that case makes sense.
+            if first_login and top_navbar.current_page_id == 'account'
+                first_login = false
+                top_navbar.switch_to_page("projects")
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.
@@ -229,7 +271,7 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 sign_out = () ->
 
-    require('worksheet1').close_scratch_worksheet()
+    # require('worksheet1').close_scratch_worksheet()
 
     # Send a message to the server that the user explicitly
     # requested to sign out.  The server can clean up resources
@@ -240,15 +282,10 @@ sign_out = () ->
             if error
                 alert_message(type:"error", message:error)
             else
-                set_account_tab_label(false)
-                # Change the view in the account page to the "sign in" view.
-                show_page("account-sign_in")
-                #top_navbar.hide_page_button("projects")
-                top_navbar.hide_page_button("worksheet1")
-                top_navbar.hide_page_button("worksheet2")
-                # TODO: have to remove a bunch of other pages
-
-                top_navbar.switch_to_page("account")
+                # Force a refresh, since otherwise there could be data
+                # left in the DOM, which could lead to a vulnerability
+                # or blead into the next login somehow.
+                window.location.reload(false)
 
 ################################################
 # Account settings
@@ -275,6 +312,8 @@ class AccountSettings
             cb()
         )
 
+    git_author: () =>
+        return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
 
     load_from_view: () ->
         if not @settings? or @settings == "error"
@@ -287,6 +326,10 @@ class AccountSettings
                     val = element.is(":checked")
                 when 'connect_Github', 'connect_Google', 'connect_Dropbox'
                     val = (element.val() == "unlink")
+                when 'autosave'
+                    val = parseInt(element.val())
+                    if not (val >= 0 and val <= 1000000)
+                        val = 30
                 else
                     val = element.val()
             @settings[prop] = val
@@ -330,6 +373,9 @@ class AccountSettings
                 when 'support_level'
                     element.text(value)
                     $("#feedback-support-level").text(value)
+                when 'autosave'
+                    $("#account-settings-autosave-slider").slider('value', value)
+                    $("#account-settings-autosave").val(value)
                 else
                     set(element, value)
 
@@ -531,13 +577,14 @@ $("a[href='#account-settings-upgrade']").click (event) ->
 ################################################
 
 $("#account").find(".account-cell0").salvus_cell
-    note_value          : "Write Sage code &dArr;"
+    note                : "Write Sage code &dArr;"
+    input               : "\n"
     editor_line_numbers : true
-    editor_value        : "\n"
     editor_max_height   : "10em"
 
 elt = $("#account").find(".account-console0")
 if not elt.data('initialized')
+    return # TODO -- this needs to get implemented
     elt.data('initialized',true)
     salvus_client.new_session
         limits : {}

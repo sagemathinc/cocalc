@@ -12,7 +12,6 @@
 #         make_coffee && echo "require('hub').start_server()" | coffee
 #
 ##############################################################################
-#
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
@@ -49,6 +48,12 @@ uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
+# defaults
+# TEMPORARY until we flesh out the account types
+DEFAULTS =
+    quota        : {disk:{soft:128, hard:256}, inode:{soft:4096, hard:8192}}
+    idle_timeout : 3600
+
 # module scope variables:
 http_server        = null
 database           = null
@@ -68,7 +73,8 @@ init_http_server = () ->
         if pathname != '/alive'
             winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
 
-        switch pathname.split('/')[1]
+        segments = pathname.split('/')
+        switch segments[1]
             when "cookies"
                 cookies = new Cookies(req, res)
                 conn = clients[query.id]
@@ -84,13 +90,13 @@ init_http_server = () ->
             when "alive"
                 res.end('')
             when "blobs"
-                #console.log("serving a blob: #{misc.to_json(query)}")
+                #winston.debug("serving a blob: #{misc.to_json(query)}")
                 if not query.uuid?
                     res.writeHead(500, {'Content-Type':'text/plain'})
                     res.end("internal error: #{error}")
                     return
                 get_blob uuid:query.uuid, cb:(error, data) ->
-                    #console.log("query got back: #{error}, #{misc.to_json(data)}")
+                    #winston.debug("query got back: #{error}, #{misc.to_json(data)}")
                     if error
                         res.writeHead(500, {'Content-Type':'text/plain'})
                         res.end("internal error: #{error}")
@@ -98,7 +104,11 @@ init_http_server = () ->
                         res.writeHead(404, {'Content-Type':'text/plain'})
                         res.end("404 blob #{query.uuid} not found")
                     else
-                        res.writeHead(200, {'Content-Type':mime.lookup(pathname)})
+                        header = {'Content-Type':mime.lookup(pathname)}
+                        if query.download?
+                            # tell browser to download the link as a file instead of displaying it in browser
+                            header['Content-disposition'] = 'attachment; filename=' + segments[segments.length-1]
+                        res.writeHead(200, header)
                         res.end(data, 'utf-8')
             else
                 res.end('hub server')
@@ -123,7 +133,7 @@ class Client extends EventEmitter
         @account_id = undefined
 
         # The persistent sessions that this client started.
-        # TODO: For now,these are all terminated when the client disconnects. 
+        # TODO: For now,these are all terminated when the client disconnects.
         @compute_session_uuids = []
 
         @cookies = {}
@@ -134,13 +144,13 @@ class Client extends EventEmitter
         @conn.on("data", @handle_data_from_client)
         @conn.on "close", () =>
             for session_uuid in @compute_session_uuids
-                console.log("KILLING -- #{session_uuid}?")
+                winston.debug("KILLING -- #{session_uuid}?")
                 # TODO: there will be a special property to not delete certain of these later.
                 session = compute_sessions[session_uuid]
                 if session? and session.kill?
-                    console.log("Actually killing -- #{session_uuid}")
+                    winston.debug("Actually killing -- #{session_uuid}")
                     session.kill()
-                    # pid     = session.pid; console.log("Killing session with pid=#{pid}")
+                    # pid     = session.pid; winston.debug("Killing session with pid=#{pid}")
                     # sage.send_signal
                     #     host   : session.conn.host
                     #     port   : session.conn.port
@@ -182,7 +192,7 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client: #{to_safe_str(mesg)}") if mesg.event != 'pong'
+        winston.debug("hub --> client (#{@account_id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
@@ -403,6 +413,7 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
+
         switch mesg.type
             when 'sage'
                 create_persistent_sage_session(@, mesg)
@@ -435,8 +446,19 @@ class Client extends EventEmitter
         else
             @push_to_client(message.error(id:mesg.id, error:"Unknown session #{mesg.session_uuid}"))
 
+    mesg_ping_session: (mesg) =>
+        s = console_sessions[mesg.session_uuid]
+        if s?
+            s.last_ping_time = new Date()
+            return
+        s = persistent_sage_sessions[mesg.session_uuid]
+        if s?
+            s.last_ping_time = new Date()
+            return
+        @push_to_client(message.error(id:mesg.id, error:"Pinged unknown session #{mesg.session_uuid}"))
+
     ######################################################
-    # Message: Introspections
+    # Message: introspections
     #   - completions of an identifier / methods on an object (may result in code evaluation)
     #   - docstring of function/object
     #   - source code of function/class
@@ -469,7 +491,7 @@ class Client extends EventEmitter
             return
 
         @signed_out()
-        #console.log("after signed_out, account_id = #{@account_id}")
+        #winston.debug("after signed_out, account_id = #{@account_id}")
         @invalidate_remember_me
             cb:(error) =>
                 winston.debug("signing out: #{mesg.id}, #{error}")
@@ -532,11 +554,11 @@ class Client extends EventEmitter
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to load the scratch worksheet from the server."))
             return
-        #console.log(@account_id)
+        #winston.debug(@account_id)
         database.uuid_value_store(name:"scratch_worksheets").get
             uuid : @account_id
             cb   : (error, data) =>
-                console.log("error=#{error}, data=#{data}")
+                #winston.debug("error=#{error}, data=#{data}")
                 if error
                     @push_to_client(message.error(id:mesg.id, error:error))
                 else
@@ -571,25 +593,58 @@ class Client extends EventEmitter
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
             return
 
-        @error_to_client(id: mesg.id, error: "Project creation is temporarily disabled.")
-        return
-        
+        #@error_to_client(id: mesg.id, error: "Project creation is temporarily disabled.")
+        #return
+
         project_id = uuid.v4()
-        # create project in database
-        database.create_project
-            project_id  : project_id
-            account_id  : @account_id
-            title       : mesg.title
-            description : mesg.description
-            public      : mesg.public
-            cb          : (error, result) =>
-                if error
-                    @error_to_client(id: mesg.id, error: "Failed to insert new project into the database.")
+        project = undefined
+
+        async.series([
+            # create project in database
+            (cb) =>
+                database.create_project
+                    project_id  : project_id
+                    account_id  : @account_id
+                    title       : mesg.title
+                    description : mesg.description
+                    public      : mesg.public
+                    quota       : DEFAULTS.quota   # TODO -- account based
+                    idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
+                    cb          : cb
+
+            # open, save, close project on a compute server, to initialize the
+            # git repos, etc.
+            # TODO: we might as an optimization just leave it open initially,
+            # since the user is likely to want to use it right after creating it.
+            (cb) =>
+                project = new Project(project_id)
+                project.open(cb)
+            (cb) =>
+                project.save
+                    account_id  : @account_id
+                    add_all     : true
+                    commit_mesg : "new project"
+                    cb          : cb
+            (cb) =>
+                project.close(cb)
+        ], (error) =>
+            if error
+                winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
+                @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
+                # Delete half-created project from database, since we just wasted space and
+                # this half-initialized project will confuse client code.
+                if project?
+                    project.delete()
                 else
-                    @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                    push_to_clients  # push a message to all other clients logged in as this user.
-                        where : {account_id:@account_id,  exclude: [@conn.id]}
-                        mesg  : message.project_list_updated()
+                    # project object not even created -- just clean up database
+                    database.delete_project(project_id:project_id)  # do not bother with callback
+            else
+                winston.debug("Successfully created project #{project_id}: #{misc.to_json(mesg)}")
+                @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
+                push_to_clients  # push a message to all other clients logged in as this user.
+                    where : {account_id:@account_id,  exclude: [@conn.id]}
+                    mesg  : message.project_list_updated()
+        )
 
     mesg_get_projects: (mesg) =>
         if not @account_id?
@@ -607,13 +662,16 @@ class Client extends EventEmitter
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
 
     mesg_update_project_data: (mesg) =>
+        winston.debug("mesg_update_project_data")
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
             return
-        project_is_owned_by
+
+        user_has_write_access_to_project
             project_id : mesg.project_id
             account_id : @account_id
             cb: (error, ok) =>
+                winston.debug("mesg_update_project_data -- cb")
                 if error
                     @error_to_client(id:mesg.id, error:error)
                     return
@@ -625,11 +683,13 @@ class Client extends EventEmitter
                     for field in ['title', 'description', 'public']
                         if mesg.data[field]?
                             data[field] = mesg.data[field]
+                    winston.debug("mesg_update_project_data -- about to call update")
                     database.update
                         table   : "projects"
                         where   : {project_id:mesg.project_id}
                         set     : data
                         cb      : (error, result) =>
+                            winston.debug("mesg_update_project_data -- cb2 #{error}, #{result}")
                             if error
                                 @error_to_client(id:mesg.id, error:"Database error changing properties of the project with id #{mesg.project_id}.")
                             else
@@ -637,39 +697,156 @@ class Client extends EventEmitter
                                     where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
-
-project_is_owned_by = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        account_id : required
-        cb : required         # input: (error, result) where if defined result is true or false
-
-    database.count
-        table : 'projects'
-        where : {project_id: opts.project_id, account_id: opts.account_id}
-        cb : (error, n) ->
-            if error
-                opts.cb(error)
-            else
-                opts.cb(false, n==1)
-
-    database.select
-        table   : 'projects'
-        columns : ['account_id']
-        where   : {project_id : opts.project_id}
-        cb : (error, result) ->
-            if error
-                opts.cb(error, false)
-            else
-                if result.length == 0
-                    opts.cb("There is no project with id #{mesg.project_id}.", false)
+    mesg_save_project: (mesg) =>
+        # TODO -- permissions!
+        project = new Project(mesg.project_id)
+        project.save
+            account_id  : @account_id
+            add_all     : mesg.add_all
+            commit_mesg : mesg.commit_mesg
+            cb          : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
                 else
-                    if result[0][0] != opts.account_id
-                        opts.cb(false, false)  # not an error -- just account_id does not own it.
-                    else:
-                        opts.cb(false, true)
+                    @push_to_client(message.success(id:mesg.id))
 
+    mesg_close_project: (mesg) =>
+        # TODO -- permissions!
+        project = new Project(mesg.project_id)
+        project.close (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
 
+    mesg_write_text_file_to_project: (mesg) =>
+        # TODO -- permissions!
+        #winston.debug("**** mesg_write_text_file_to_project")
+        project = new Project(mesg.project_id)
+        project.write_file mesg.path, mesg.content, (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.file_written_to_project(id:mesg.id))
+
+    mesg_read_text_file_from_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.read_file
+            path : mesg.path
+            cb   : (err, content) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    t = content.blob.toString()
+                    @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
+
+    mesg_read_file_from_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.read_file
+            path    : mesg.path
+            archive : mesg.archive
+            cb      : (err, content) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    # Store content in uuid:blob store and provide a temporary (valid for 10 minutes) link to it.
+                    u = uuid.v4()
+                    save_blob uuid:u, value:content.blob, ttl:600, cb:(err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                            @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
+
+    mesg_move_file_in_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.move_file mesg.src, mesg.dest, (err, content) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.file_moved_in_project(id:mesg.id))
+
+    mesg_make_directory_in_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.make_directory mesg.path, (err, content) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.directory_made_in_project(id:mesg.id))
+
+    mesg_remove_file_from_project: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.remove_file mesg.path, (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
+
+    mesg_create_project_branch: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.branch_op mesg.branch, 'create', (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
+
+    mesg_checkout_project_branch: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.branch_op mesg.branch, 'checkout', (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
+
+    mesg_delete_project_branch: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.branch_op mesg.branch, 'delete', (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
+
+    mesg_merge_project_branch: (mesg) =>
+        project = new Project(mesg.project_id)
+        project.branch_op mesg.branch, 'merge', (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                resp.id = mesg.id
+                @push_to_client(resp)
+
+    mesg_project_exec: (mesg) =>
+        (new Project(mesg.project_id)).exec mesg, (err, resp) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(resp)
+
+    ################################################
+    # Blob Management
+    ################################################
+    mesg_save_blobs_to_project: (mesg) =>
+        user_has_write_access_to_project
+            project_id : mesg.project_id
+            account_id : @account_id
+            cb : (err, t) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else if not t
+                    @error_to_client(id:mesg.id, error:"Cannot save blobs, since user does not have write access to this project.")
+                else
+                    save_blobs_to_project
+                        project_id : mesg.project_id
+                        blob_ids   : mesg.blob_ids
+                        cb         : (err) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:err)
+                            else:
+                                @push_to_client(message.success(id:mesg.id))
 
 ##############################
 # Create the SockJS Server
@@ -763,19 +940,850 @@ push_to_clients = (opts) ->
             if opts.to?
                 dest = dest.concat(opts.to)
 
-            # IMPORTANT TODO: extend to use database and inter-hub communication
-            console.log("dest = #{dest}")
-            for i of clients
-                console.log("current client id: #{i}")
+            # *MAJOR IMPORTANT TODO*: extend to use database and inter-hub communication
             for id in dest
-                console.log(id)
-                clients[id]?.push_to_client(opts.mesg)
+                client = clients[id]
+                if client?
+                    winston.debug("pushing a message to client #{id}")
+                    client.push_to_client(opts.mesg)
+                else
+                    winston.debug("not pushing message to client #{id} since not actually connected")
             opts.cb?(false)
             cb()
 
 
     ])
 
+
+##############################
+# Working with projects
+##############################
+
+class Project
+    constructor: (@project_id) ->
+        if not @project_id?
+            throw "When creating Project, the project_id must be defined"
+
+    ##############################################
+    # Database state stuff
+    ##############################################
+    _choose_new_host: (cb) ->
+        # For now we just choose a host at random.  In the long run,
+        # we may experiment with other load balancing algorithms, and
+        # take into account properties of the project itself.  For
+        # example, we will have an "infinite uptime" option.
+        database.random_compute_server type:'project', cb:(err, hostinfo) ->
+            #winston.debug("*** #{err}, #{misc.to_json(hostinfo)}")
+            if err
+                cb(err)
+            else if not hostinfo?
+                cb("No project servers are currently available.")
+            else
+                cb(false, hostinfo.host)
+
+    _minus_one_host: (host, cb) ->
+        database.score_compute_server(host:host, cb:cb, delta:-1)
+
+    _plus_one_host: (host, cb) ->
+        database.score_compute_server(host:host, cb:cb, delta:+1)
+
+    _connect: (host, cb) ->
+        if not host?
+            throw "BUG -- host must be defined"
+
+        if @_socket? and @_socket.host == host
+            cb(false, @_socket.socket)
+            return
+
+        socket = net.connect {host:host, port:cass.COMPUTE_SERVER_PORTS.project}, () =>
+            winston.debug("!! connected to #{misc.to_json(host)}")
+            # connected
+            misc_node.enable_mesg(socket)
+            # We cache the connection for later.  We only cache a
+            # connection to *one* host, since a project is only
+            # supposed to ever be hosted on one compute server.
+            @_socket = {host:host, socket:socket}
+            cb(false, socket)
+
+        # There are numerous actions that require adding a listener to
+        # the socket, sending blobs, then removing it.  Since many of
+        # these could happen simultaneously, I'm upping the max
+        # listeners a bit, just in case.
+        socket.setMaxListeners(30)
+
+        socket.once 'error', (err) =>
+            if err == 'ECONNREFUSED'
+                # An error occured connecting -- this suggests
+                # that the relevant project server is down.
+                cb(err)
+
+        # Make sure not to cache the socket in case anything goes wrong with it.
+        socket.once 'close', () =>
+            if @_socket?
+                delete @_socket
+        socket.once 'end', () =>
+            if @_socket?
+                delete @_socket
+        socket.once 'timeout', () =>
+            if @_socket?
+                delete @_socket
+
+    # Returns the host that is currently hosting the project
+    # (according to the database) or null if the project is not
+    # currently on any host.
+    get_host: (cb) =>    # cb(err, host)
+        database.get_project_host(project_id:@project_id, cb:cb)
+
+    _is_being_opened: (cb) =>    # cb(err, is_being_opened)
+        database.is_project_being_opened(project_id:@project_id, cb:cb)
+
+    _lock_for_opening: (ttl, cb) =>    # cb(err)
+        database.lock_project_for_opening(project_id:@project_id, ttl:ttl, cb:cb)
+
+    _remove_opening_lock: (cb) =>
+        database.remove_project_opening_lock(project_id:@project_id, cb:cb)
+
+    _is_being_saved: (cb) =>    # cb(err, is_being_opened)
+        database.is_project_being_saved(project_id:@project_id, cb:cb)
+
+    _lock_for_saving: (ttl, cb) =>    # cb(err)
+        database.lock_project_for_saving(project_id:@project_id, ttl:ttl, cb:cb)
+
+    _remove_saving_lock: (cb) =>
+        database.remove_project_saving_lock(project_id:@project_id, cb:cb)
+
+    # Open the project (if necessary) and get a working socket connection to the project_server.
+    socket: (cb) ->     # cb(err, socket)
+        host   = undefined
+        socket = undefined
+        async.series([
+            (c) =>
+                @open (err, _host) =>
+                    if err
+                        winston.debug("project.socket -- error opening project -- #{err}")
+                        c(err)
+                    else
+                        host = _host
+                        winston.debug("project.socket -- deploy to host '#{host}'")
+                        c()
+            (c) =>
+                @_connect host, (err, _socket) =>
+                    if err
+                        winston.debug("project.socket -- error connecting to project server #{err}")
+                        c(err)
+                    else
+                        socket = _socket
+                        winston.debug("project.socket -- got a socket connection to the project_server")
+                        c()
+        ], (err) ->
+            if err
+                cb(err)
+            else
+                cb(false, socket)
+        )
+
+    # Open the project on some host if it is not already opened. If it
+    # is currently being opened by this or another hub, we return an
+    # error.  (The client can choose to show some sort of notification
+    # and retry after waiting a moment.)
+    open: (cb) ->   # cb(err, host)
+        if not cb?
+            throw "cb must be defined"
+        host = undefined
+        had_to_recurse = false
+        async.series([
+            # First, we check in the database to see if the project is
+            # already opened on a compute server, and if so, return
+            # that host.
+            (c) =>
+                winston.debug("open project -- get host")
+                @get_host (err, _host) ->
+                    host = _host
+                    if err
+                        c(true) # failed -- done
+                    else if _host?
+                        c(true) # done
+                    else
+                        c()
+
+            # Is anybody else trying to open this project right now?
+            (c) =>
+                winston.debug("open project -- check if anybody else opening project right now")
+                @_is_being_opened (err, is_being_opened) =>
+                    if err
+                        c(true)  # failed -- don't try any further
+                    else if is_being_opened
+                        # In the rare case of two opens at the same
+                        # time, try again repeatedly, up to a total of
+                        # 10 seconds (after which user client will
+                        # have given up).
+                        total_time = 0
+                        delta = 200
+                        try_again = () =>
+                            @get_host (err, _host) ->
+                                if not err and _host?  # got it!
+                                    host = _host
+                                    c(true)
+                                else
+                                    delta += delta
+                                    if total_time + delta <= 10000
+                                        setTimeout(try_again, delta)
+                                    else
+                                        # give up.
+                                        c("Project #{@project_id} is currently being opened by another hub. Please try again in a few seconds. (#{err})")
+                        setTimeout(try_again, delta)
+                    else
+                        # Not open, not being opened, let's get on it!
+                        # The 15 below is a timeout in seconds, after which our lock self-destructs.
+                        @_lock_for_opening(15, c)
+
+            # We choose a project server host.
+            (c) =>
+                winston.debug("open project -- choose a host")
+                @_choose_new_host (err, _host) =>
+                    if err
+                        @_remove_opening_lock()
+                        c(err)
+                    else
+                        host = _host
+                        c()
+
+            # Open the project on that host
+            (c) =>
+                winston.debug("open project -- open on that host (='#{host}')")
+                @_open_on_host host, (err) =>
+                    @_remove_opening_lock()
+                    if err
+                        if host == 'localhost' or host == '127.0.0.1'
+                            # debugging mode -- just give up instantly.
+                            winston.debug("_open_on_host -- err opening on localhost '#{err}'")
+                            host = undefined  # so error messages will propagate below.
+                            c(err)
+                            return
+
+                        # Downvote this host, and try again.
+                        @_minus_one_host host, (err) =>
+                            if err
+                                # This is serious -- if we can't even connect to the database
+                                # to flag a host as down, then there is no point in going on.
+                                host = undefined  # so error messages will propagate below.
+                                c(true)
+                            else
+                                # Try again.  This will not lead to infinite recursion since each
+                                # time it is called, we just successfully flagged a host as down
+                                # in the database, and eventually we'll run out of hosts.
+                                had_to_recurse = true
+                                @open(cb)
+                                host = undefined  # so error messages will propagate below.
+                                c()
+                    else
+                        # Finally, got it!
+                        # Upvote this host, since it worked.
+                        @_plus_one_host(host)
+                        c()
+        ], (err) ->
+            if not had_to_recurse   # the recursive call will call cb
+                if host?  # if host got defined then done
+                    cb(false, host)
+                else
+                    cb(err)
+        )
+
+    # This is called by 'open' once we determine that the project is
+    # not already opened, and also we determine on which host we plan
+    # to open the project.
+    _open_on_host: (host, cb) ->
+        socket  = undefined
+        id      = uuid.v4()   # used to tag communication with the project server
+        bundles = undefined
+        quota   = undefined
+        idle_timeout = undefined
+
+        async.series([
+            # Get a connection to the project server.
+            (c) =>
+                winston.debug("_open_on_host - get a connection to the project server.")
+                @_connect host, (err, s) ->
+                    if err
+                        c(err)
+                    else
+                        socket = s
+                        c()
+
+            # Get each bundle blob from the database in preparation to
+            # send it to the project_server.
+            (c) =>
+                winston.debug("_open_on_host - get bundle blobs from the database.")
+                database.get_project_bundles project_id:@project_id, cb:(err, result) ->
+                    if err
+                        c(err)
+                    else
+                        # bundles is an array of Buffers
+                        bundles = result
+
+                        # TODO -- this is terrifying and lame, but better than nothing:
+                        #   If a bundle is *lost*, just use the bundles up to it.
+                        bundles2 = []
+                        for i in [0...bundles.length]
+                            if bundles[i]?
+                                bundles2.push(bundles[i])
+                            else
+                                # lost bundle
+                                winston.debug("LOST BUNDLES -- discarding all after #{i}th of #{bundles.length-1}!")
+                                break
+                        bundles = bundles2
+
+                        # Make a corresponding list of temporary
+                        # uuid's that will be used when sending the
+                        # bundles.
+                        bundles.uuids = (uuid.v4() for i in [0...bundles.length])
+                        c()
+
+            # Get meta information about the project that is needed to open the project.
+            (c) =>
+                winston.debug("_open_on_host -- get meta information about the project that is needed to open the project.")
+                database.get_project_open_info project_id:@project_id, cb:(err, result) ->
+                    if err
+                        c(err)
+                    else
+                        {quota, idle_timeout} = result
+                        c()
+
+            # Send open_project mesg.
+            (c) =>
+                winston.debug("_open_on_host -- Send open_project mesg")
+                mesg_open_project = message.open_project
+                    id           : id
+                    project_id   : @project_id
+                    bundle_uuids : bundles.uuids
+                    quota        : quota
+                    idle_timeout : idle_timeout
+                socket.write_mesg 'json', mesg_open_project
+                c()
+
+            # Starting sending the bundles as blobs.
+            (c) ->
+                winston.debug("_open_on_host -- start sending bundles as blobs")
+                for i in [0...bundles.length]
+                    socket.write_mesg 'blob', {uuid:bundles.uuids[i], blob:bundles[i]}
+                c()
+
+            # Wait for the project server to respond with success
+            # (having received all blobs) or failure (something went wrong).
+            (c) ->
+                winston.debug("_open_on_host -- wait for the project server to respond")
+                socket.recv_mesg id:id, type:'json', timeout:30, cb:(mesg) ->
+                    winston.debug("_open_on_host -- received response #{misc.to_json(mesg)}")
+                    switch mesg.event
+                        when 'error'
+                            # something went wrong...
+                            c(mesg.error)
+                        when 'project_opened'
+                            # finally, got it.
+                            c()
+                        else
+                            c("Expected a 'project_opened' message, but got a '#{mesg.event}' message instead.")
+
+            # Save where project is running to the database
+            (c) =>
+                winston.debug("_open_on_host -- save where (='#{host}') project running to database")
+                database.set_project_host(project_id:@project_id, host:host, cb:c)
+
+        ], cb)
+
+    # Save the project to the database.  This involves saving at least
+    # zero (!) bundles to the project_bundles uuid:blob table.
+    save: (opts) -> # cb(err) -- indicates when done
+        opts = defaults opts,
+            account_id : undefined  # required only if commit_mesg is given
+            commit_mesg: undefined  # if defined will commit first before saving back to database.
+            add_all    : false      # if true add everything we can to the repo before commiting.
+            cb         : undefined
+
+        id = uuid.v4() # used to tag communication with the project server
+
+        save_mesg = message.save_project
+            id                     : id
+            project_id             : @project_id
+            starting_bundle_number : 0  # will get changed below
+            commit_mesg            : opts.commit_mesg
+            add_all                : opts.add_all
+
+        socket             = undefined
+        host               = undefined
+        project_saved_mesg = undefined
+        recv_bundles       = undefined
+        not_open = false
+
+        nothing_to_do = false
+
+        async.series([
+            # If project is already locked for saving (by this or
+            # another hub), return an error.
+            (c) =>
+                @_is_being_saved (err, is_being_saved) =>
+                    if err
+                        c(err)
+                    else if is_being_saved
+                        nothing_to_do = true
+                        c(true)
+                    else
+                        @_lock_for_saving(30, c)
+
+            # Determine which project_server is hosting this project.
+            # If none, then there is nothing further to do.
+            (c) =>
+                database.get_project_host project_id:@project_id, cb:(err, _host) =>
+                    if err
+                        c(err)
+                    else
+                        if not _host?
+                            not_open = true
+                            c(true)
+                        else
+                            host = _host
+                            c()
+
+            # Get the user's name and email for the commit message
+            (c) =>
+                database.get_gitconfig account_id:opts.account_id, cb:(err, gitconfig) ->
+                    if err
+                        c(err)
+                    else
+                        save_mesg.gitconfig = gitconfig
+                        c()
+
+            # Find the index of the largest bundle that we already have in the database
+            (c) =>
+                database.largest_project_bundle_index project_id:@project_id, cb:(err, n) ->
+                    if err
+                        c(err)
+                    else
+                        save_mesg.starting_bundle_number = n + 1
+                        c()
+
+            # Connect to the project server that is hosting this project right now.
+            (c) =>
+                @_connect host, (err, s) ->
+                    if err
+                        c(err)
+                    else
+                        socket = s
+                        c()
+
+            (c) =>
+                # TODO
+                save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
+                c()
+
+            # Send message to project server requesting that it save
+            # the the project and send back to us any bundle(s) that
+            # it creates when saving the project.
+            (c) =>
+                socket.write_mesg 'json', save_mesg
+                c()
+
+            # Listen for bundles, find out how many bundles to expect
+            # and receive the bundles.
+            (c) =>
+                bundle_uuids      = undefined
+                remaining_bundles = undefined
+
+                recv_bundles = (type, mesg) =>
+                    switch type
+                        when 'json'
+                            if mesg.id == id
+                                switch mesg.event
+                                    when 'error'
+                                        c(mesg.error)
+                                    when 'project_saved'
+                                        project_saved_mesg = mesg
+                                        bundle_uuids       = mesg.bundle_uuids
+                                        remaining_bundles  = misc.len(bundle_uuids)
+                                        if remaining_bundles == 0
+                                            # done -- no need to wait for any blobs
+                                            c()
+                        when 'blob'
+                            if bundle_uuids? and bundle_uuids[mesg.uuid]?
+                                database.save_project_bundle
+                                    project_id : @project_id
+                                    number     : bundle_uuids[mesg.uuid]
+                                    bundle     : mesg.blob
+                                    cb         : (err) ->
+                                        if err
+                                            c(err)
+                                        else
+                                            remaining_bundles -= 1
+                                            if remaining_bundles == 0
+                                                # done -- we have received and *saved* all bundles to the database successfully
+                                                c()
+                socket.on 'mesg', recv_bundles
+
+        ], (err) =>
+            if err and nothing_to_do
+                opts.cb?()
+                return
+            @_remove_saving_lock()
+            if socket? and recv_bundles?
+                socket.removeListener('mesg', recv_bundles)
+            if not_open
+                opts.cb?()
+            else
+                opts.cb?(err)
+        )
+
+    delete: (cb) =>
+        @close(() => database.delete_project(project_id:@project_id, cb:cb))
+
+    # Close the project.  This does *NOT* save the project first; it
+    # just immediately kills all processes and clears all disk space.
+    close: (cb) =>  # cb(err) -- indicates when done
+        id     = uuid.v4()
+        socket = undefined
+        host   = undefined
+
+        async.series([
+            # Get project's current host
+            (c) =>
+                database.get_project_host project_id:@project_id, cb: (err, _host) ->
+                    if err
+                        c(true)
+                    else
+                        if not _host?      # not currently hosted somewhere, so "done" but no error.
+                            c('ok')
+                        else
+                            host = _host
+                            c()
+
+            # Connect to the project server that is hosting this project right now.
+            (c) =>
+                @_connect host, (err, s) ->
+                    if err
+                        c(err)
+                    else
+                        socket = s
+                        c()
+
+            # Put a lock, so nobody tries to save or open this project while we are closing.
+            # 15 seconds should be plenty of time.
+            (c) =>
+                winston.debug("project close: -- lock")
+                @_lock_for_opening(15, ->)
+                @_lock_for_saving(15, c)
+
+            # Send the close message
+            (c) =>
+                winston.debug("project close: -- send close message")
+                socket.write_mesg 'json', message.close_project(id: id, project_id: @project_id)
+                c()
+
+            # And wait for response from project server
+            (c) =>
+                winston.debug("project close: -- waiting for response from project server")
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
+                    switch mesg.event
+                        when 'error'
+                            c(mesg.error)
+                        when 'project_closed'
+                            c() # successfully closed project
+                        else
+                            c("BUG closing project -- unknown mesg event type '#{mesg.event}'")
+
+            # Store in the database that the project is not allocated
+            # on any host.
+            (c) =>
+                winston.debug("project close -- store that project is closed")
+                database.set_project_host
+                    project_id : @project_id
+                    host       : ""
+                    cb         : c
+
+        ], (err) =>
+            @_remove_opening_lock()
+            @_remove_saving_lock()
+            if err == 'ok'
+                cb()
+            else
+                cb(err)
+        )
+
+    # Tag the input message mesg with a uuid and this project_id, then
+    # send it to the project server hosting this project (or create
+    # one if there is none right now).  Finally do the standard:
+    # cb(err, response_mesg).  If err is true, then there was an error
+    # getting a socket to the project server in the first place; if
+    # err is false, then it is still possible that response_mesg.event
+    # == 'error' due to the project server having issues.
+    call: (opts) =>
+        opts = defaults opts,
+            message : required
+            timeout : 10
+            cb      : required
+
+        socket = undefined
+        id     = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err,_socket) ->
+                    if err
+                        opts.cb(err)
+                        c(true)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                if not opts.message.id?
+                    opts.message.id = id
+                opts.message.project_id = @project_id
+                socket.write_mesg 'json', opts.message
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:opts.message.id, timeout:opts.timeout, cb:(mesg) ->
+                    opts.cb(false, mesg)
+                    c()
+        ])
+
+    # Read a file from a project into memory on the hub.  This is
+    # used, e.g., for client-side editing, worksheets, etc.  This does
+    # not pull the file from the database; instead, it loads it live
+    # from the project_server virtual machine.
+    read_file: (opts) -> # cb(err, content_of_file)  -- indicates when done
+        {path, archive, cb} = defaults opts,
+            path    : required
+            archive : undefined
+            cb      : required
+
+        socket    = undefined
+        id        = uuid.v4()
+        data      = undefined
+        data_uuid = undefined
+
+        async.series([
+            # Get a socket connection to the project host.  This will open
+            # the project if it isn't already opened.
+            (c) =>
+                @socket (err, _socket) ->
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:@project_id, path:path, archive:archive)
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
+                    switch mesg.event
+                        when 'error'
+                            c(mesg.error)
+                        when 'file_read_from_project'
+                            data_uuid = mesg.data_uuid
+                            c()
+                        else
+                            c("Unknown mesg event '#{mesg.event}'")
+
+            (c) =>
+                socket.recv_mesg type: 'blob', id:data_uuid, timeout:10, cb:(_data) ->
+                    data = _data
+                    c()
+
+        ], (err) ->
+            if err
+                cb(err)
+            else
+                cb(false, data)
+        )
+
+    # Write a file to a compute node.  This is used when saving during
+    # client-side editing, for worksheets, etc.  This does not
+    # directly change anything in the database -- it only impacts the
+    # files on the compute node.  This does not trigger a save (which
+    # would change the database).
+    write_file: (path, data, cb) ->   # cb(err)
+        socket    = undefined
+        id        = uuid.v4()
+        data_uuid = uuid.v4()
+
+        async.series([
+            (c) =>
+                @socket (err, _socket) ->
+                    #winston.debug("@socket returned: #{err}, #{_socket}")
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                mesg = message.write_file_to_project
+                    id         : id
+                    project_id : @project_id
+                    path       : path
+                    data_uuid  : data_uuid
+                # winston.debug("mesg = #{misc.to_json(mesg)}")
+                socket.write_mesg 'json', mesg
+                socket.write_mesg 'blob', {uuid:data_uuid, blob:data}
+                c()
+
+            (c) =>
+                socket.recv_mesg type: 'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'file_written_to_project'
+                            c()
+                        when 'error'
+                            c(mesg.error)
+                        else
+                            c("Unexpected message type '#{mesg.event}'")
+        ], cb)
+
+    make_directory: (path, cb) ->
+        socket = undefined
+        id     = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err, _socket) ->
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+            (c) =>
+                m = message.make_directory_in_project
+                    id         : id
+                    project_id : @project_id
+                    path       : path
+                socket.write_mesg 'json', m
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'directory_made_in_project'
+                            c()
+                        when 'error'
+                            c(mesg.error)
+                        else
+                            c("Unexpected message type '#{mesg.event}'")
+        ], cb)
+
+    # Move a file or directory
+    move_file: (src, dest, cb) ->
+        winston.debug("MOVE: #{src} --> #{dest}")
+        socket = undefined
+        id     = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err, _socket) ->
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                m = message.move_file_in_project
+                    id         : id
+                    project_id : @project_id
+                    src        : src
+                    dest       : dest
+                socket.write_mesg 'json', m
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'file_moved_in_project'
+                            c()
+                        when 'error'
+                            c(mesg.error)
+                        else
+                            c("Unexpected message type '#{mesg.event}'")
+        ], cb)
+
+    # Remove a file or directory
+    remove_file: (path, cb) =>
+        id = uuid.v4()
+        @call
+            message: message.remove_file_from_project
+                id         : id
+                project_id : @project_id
+                path       : path
+            cb : cb
+
+    # Branch op
+    branch_op : (branch, op, cb) =>
+        @call
+            message: message["#{op}_project_branch"]
+                branch      : branch
+                project_id  : @project_id
+            cb : cb
+
+    # Exec a command
+    exec : (mesg, cb) =>
+        @call
+            message : mesg
+            cb      : cb
+            timeout : mesg.timeout
+
+########################################
+# Permissions related to projects
+########################################
+#
+
+# Return the access that account_id has to project_id.  The
+# possibilities are 'none', 'owner', 'collaborator', 'viewer'
+get_project_access = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required        # cb(err, mode)
+    database.select
+        table : 'project_users'
+        where : {project_id : opts.project_id,  account_id: opts.account_id}
+        columns : ['mode']
+        cb : (err, results) ->
+            if err
+                opts.cb(err)
+            else
+                if results.length == 0
+                    opts.cb(false, null)
+                else
+                    opts.cb(false, results[0][0])
+
+user_owns_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required         # input: (error, result) where if defined result is true or false
+    get_project_access
+        project_id : opts.project_id
+        account_id : opts.account_id
+        cb : (err, mode) ->
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, mode == 'owner')
+
+user_has_write_access_to_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required        # cb(err, true or false)
+    get_project_access
+        project_id : opts.project_id
+        account_id : opts.account_id
+        cb : (err, mode) ->
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, mode in ['owner', 'collaborator'])
+
+user_has_read_access_to_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        account_id : required
+        cb : required        # cb(err, true or false)
+    get_project_access
+        project_id : opts.project_id
+        account_id : opts.account_id
+        cb : (err, mode) ->
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, mode != 'none')
 
 ########################################
 # Passwords
@@ -860,7 +1868,7 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
 #############################################################################
 sign_in = (client, mesg) =>
-    #console.log("sign_in")
+    #winston.debug("sign_in")
     sign_in_error = (error) ->
         client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
 
@@ -1021,7 +2029,7 @@ is_valid_password = (password) ->
     if not valid
         return [valid, reason]
     password_strength = zxcvbn.zxcvbn(password)  # note -- this is synchronous (but very fast, I think)
-    #console.log("password strength = #{password_strength}")
+    #winston.debug("password strength = #{password_strength}")
     if password_strength.score < MIN_ALLOWED_PASSWORD_STRENGTH
         return [false, "Choose a password that isn't very weak."]
     return [true, '']
@@ -1593,7 +2601,7 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 emailjs = require('emailjs')
 email_server = null
 
-# here's how I test this function:  require('hub').send_email(subject:'subject', body:'body', to:'wstein@gmail.com', cb:console.log)
+# here's how I test this function:  require('hub').send_email(subject:'subject', body:'body', to:'wstein@gmail.com', cb:winston.debug)
 exports.send_email = send_email = (opts={}) ->
     opts = defaults(opts,
         subject : required
@@ -1640,14 +2648,15 @@ exports.send_email = send_email = (opts={}) ->
 
 save_blob = (opts) ->
     opts = defaults opts,
-        uuid  : required
+        uuid  : undefined  # if not give, is generated; function always returns the uuid that was used
         value : required   # NOTE: value *must* be a Buffer.
         ttl   : undefined
-        cb    : undefined
+        cb    : required
     if opts.value.length >= 10000000
-        # PRIMITIVE anti-DOS measure
-        return
-    database.uuid_blob_store(name:"blobs").set(opts)
+        # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
+        opts.cb("Blobs must be at most 10MB, but you tried to store one of size #{opts.value.length} bytes")
+    else
+        return database.uuid_blob_store(name:"blobs").set(opts)
 
 get_blob = (opts) ->
     opts = defaults opts,
@@ -1655,22 +2664,100 @@ get_blob = (opts) ->
         cb   : required
     database.uuid_blob_store(name:"blobs").get(opts)
 
+
+# For each element of the array blob_ids, (1) add an entry to the project_blobs
+# table associated it to the given project *and* (2) remove its ttl.
+# An object can only be saved to one project.
+_save_blobs_to_project_cache = {}
+save_blobs_to_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        blob_ids   : required
+        cb         : required
+
+    # ANTI-DOS measure -- don't allow more than 1000 blobs to be moved at once
+    if opts.blob_ids.length > 1000
+        cb("At most 1000 blobs may be saved to a project at once.")
+
+    blob_store = database.uuid_blob_store(name:"blobs")
+
+    tasks = []
+    for id in opts.blob_ids
+        if _save_blobs_to_project_cache[id]?
+            continue
+        tasks.push (cb) =>
+            async.series([
+                (cb) =>
+                    # 1. Ensure there is an entry in the project_blobs table.
+                    database.update
+                        table : 'project_blobs'
+                        where : {blob_id : id}
+                        set   : {project_id : opts.project_id}
+                        cb    : cb
+                (cb) =>
+                    # 2. Remove ttl
+                    blob_store.set_ttl
+                        uuid  : id
+                        cb    : cb
+                (cb) =>
+                    # Record in a local cache that we already made
+                    # this object permanent, so we'll not hit the
+                    # database again for this id.
+                    _save_blobs_to_project_cache[id] = null
+                    cb()
+            ], cb)
+
+    # Carry out all the above tasks in parallel.
+    async.parallel(tasks, opts.cb)
+
 ########################################
 # Compute Sessions (of various types)
 ########################################
 compute_sessions = {}
+
+# The ping timer for compute sessions is very simple:
+#     - an attribute 'last_ping_time', which client code must set periodicially
+#     - the input session must have a kill() method
+#     - an interval timer
+#     - if the timeout option is set to 0, the ping timer is not activated
+
+# This is the time in *seconds* until a session that not being actively pinged is killed.
+# This is a global var, since it must be
+DEFAULT_SESSION_KILL_TIMEOUT = 3 * client_lib.DEFAULT_SESSION_PING_TIME
+
+enable_ping_timer = (opts) ->
+    opts = defaults opts,
+        session : required
+        timeout : DEFAULT_SESSION_KILL_TIMEOUT    # time in *seconds* until session not being actively pinged is killed
+
+    if not opts.timeout
+        # do nothing -- this will keep other code cleaner
+        return
+
+    opts.session.last_ping_time = new Date()
+
+    timer = undefined
+    check_for_timeout = () ->
+        d = ((new Date()) - opts.session.last_ping_time )/1000
+        if  d > opts.timeout
+            clearInterval(timer)
+            opts.session.kill()
+
+    timer = setInterval(check_for_timeout, opts.timeout*1000)
 
 ########################################
 # Persistent Sage Sessions
 ########################################
 persistent_sage_sessions = {}
 
+# The walltime and cputime are severly limited for not-logged in users, for now:
 SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
 
-SESSION_LIMITS = {cputime:10*60, walltime:30*60, vmem:2000, numfiles:1000, quota:128}
+# The walltime and cputime are not limited for logged in users:
+SESSION_LIMITS = {cputime:0, walltime:0, vmem:2000, numfiles:1000, quota:128}
 
 create_persistent_sage_session = (client, mesg) ->
-    winston.log('creating persistent sage session')
+    winston.info('creating persistent sage session')
     # generate a uuid
     session_uuid = uuid.v4()
     client.cap_session_limits(mesg.limits)
@@ -1704,8 +2791,12 @@ create_persistent_sage_session = (client, mesg) ->
                             else
                                 client.push_to_client(m)
                     when 'blob'
-                        # TODO: should we use a callback so that we notify about whether or not this worked? We could...
-                        save_blob(uuid:m.uuid, value:m.blob, ttl:60)  # deleted after 60 seconds
+                        save_blob
+                            uuid  : m.uuid
+                            value : m.blob
+                            ttl   : 600  # deleted after ten minutes
+                            cb    : (err) ->
+                                # TODO: actually use this for something
                     else
                         raise("unknown message type '#{type}'")
             cb: ->
@@ -1716,11 +2807,14 @@ create_persistent_sage_session = (client, mesg) ->
         # Save sage_conn object so that when the user requests evaluation of
         # code in the session with this id, we use this.
         session =
-            conn : sage_conn
-            kill : () ->
+            conn           : sage_conn
+            kill           : () ->
                 if kill_message?
                     sage.send_signal(kill_message)
                 sage_conn.close()
+
+        enable_ping_timer(session : session)
+
         persistent_sage_sessions[session_uuid] = session
         compute_sessions[session_uuid] = session
         client.compute_session_uuids.push(session_uuid)
@@ -1783,7 +2877,7 @@ connect_to_existing_console_session = (client, mesg) ->
         client.push_to_client(message.session_connected(id:mesg.id, data_channel:channel))
 
 create_persistent_console_session = (client, mesg) ->
-    winston.log('creating a console session for user with account_id #{account_id}')
+    winston.debug("creating a console session for user with account_id #{client.account_id}")
     session_uuid = uuid.v4()
 
     if not mesg.params?
@@ -1791,35 +2885,40 @@ create_persistent_console_session = (client, mesg) ->
 
     # Cap limits on the console session.
     client.cap_session_limits(mesg.limits)
-    # Determine the home directory
-    # TODO: when we have projects this will be /tmp/project-id; for now use session_uuid
-    # home is a relative path under wherever the console_server has been configured to store home dirs
-    if not mesg.params.home?
-        mesg.params.home = session_uuid
 
     database.random_compute_server(type:'console', cb:(error, console_server) ->
+        winston.debug(to_json(error) + to_json(console_server))
         if error
             client.push_to_client(message.error(id:mesg.id, error:error))
             return
+
         console_session = net.connect {port:console_server.port, host:console_server.host}, () ->
-            # store the console_session, so other clients can potentially tune in (TODO: also store something in database)
+
+            # store the console_session, so other clients can
+            # potentially tune in (TODO: also store something in database)
             console_session.closed = false
+
             console_session.on('end', ()->console_session.closed = true)
+
+            enable_ping_timer(session: console_session)
 
             console_session.port = console_server.port
             console_session.host = console_server.host
             console_session.account_id = client.account_id
             console_sessions[session_uuid] = console_session
-
             compute_sessions[session_uuid] = console_session
-            
             client.compute_session_uuids.push(session_uuid)
 
-            # Send session configuration
+            # Add functionality to TCP socket so that we can send JSON messages
             misc_node.enable_mesg(console_session)
+
+            # Send session configuration as a JSON message
             console_session.write_mesg('json', mesg)
+            winston.debug("console session -- wrote config message (=#{to_json(mesg)}")
+
             # Get back pid of child
             console_session.once 'mesg', (type, resp) ->
+                winston.debug("Console session -- get back pid of child #{type}, #{to_json(resp)}")
                 misc_node.disable_mesg(console_session)
 
                 if resp.event == 'error'
@@ -1953,18 +3052,9 @@ program.usage('[start/stop/restart/status] [options]')
 if program._name == 'hub.js'
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
-        console.log("BUG ****************************************************************************")
-        console.log("Uncaught exception: " + err)
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
         console.trace()
-        console.log("BUG ****************************************************************************")
+        winston.debug("BUG ****************************************************************************")
 
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
-
-
-
-
-
-
-
-
-

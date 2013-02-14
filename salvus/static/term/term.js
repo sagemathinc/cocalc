@@ -351,8 +351,16 @@ function getSelectionHtml() { /* from http://stackoverflow.com/questions/5222814
     return html;
 }
 
+Terminal.keys_are_bound = false;
 Terminal.bindKeys = function() {
   if (Terminal.focus) return;
+
+   /* It is critical that we only bind to the keyboard once.
+      If we bind more than once, than multiple terms on the same
+      page will result in multiple key data being sent.
+    */
+  if (Terminal.keys_are_bound) return;
+  Terminal.keys_are_bound = true;
   on(document, 'keydown', function(ev) {
     if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
       return false;
@@ -373,6 +381,7 @@ Terminal.bindKeys = function() {
       return Terminal.focus.keyPress(ev);
     }
   }, true);
+
 };
 
 /*Terminal.bindKeys = function() {
@@ -2021,7 +2030,7 @@ Terminal.prototype.writeln = function(data) {
 
 Terminal.prototype.keyDown = function(ev) {
   var key;
-/*    log("keydown: " + ev); */
+/*    console.log("keydown: " + ev);  */
   switch (ev.keyCode) {
     // backspace
     case 8:

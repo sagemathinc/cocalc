@@ -1,0 +1,49 @@
+<!--
+Editor for files in a project
+-->
+
+<span id="salvus-editor-templates" class="hide">
+
+  <!-- Template for the entire editor, both tabs and the actual content -->
+  <div class="salvus-editor">
+
+    <div class="row salvus-editor-button-bar">
+      <div class="span7">
+	<!-- The editor tabs go in this ul: -->
+	<ul class="nav nav-tabs">
+	</ul>
+      </div>
+
+      <!-- The file actions toolbar -->
+      <div class="pull-right">
+	<span class="btn-group">
+	  <a href="#save" class="btn btn-small btn-primary">Save</a>
+	  <a href="#reload" class="btn btn-small btn-warning">Reload</a>
+	  <a href="#move" class="btn btn-small btn-warning">Move</a>
+	  <a href="#delete" class="btn btn-small btn-danger">Delete</a>
+	</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- The editor content gets displayed here -->
+      <div class="salvus-editor-content">
+      </div>
+    </div>
+  </div>
+
+  <!-- Template for the tab at the top of the editor with filename and an x -->
+  <li class="super-menu">
+    <a>
+      <span class="salvus-editor-tab-filename"></span>
+      <span class="salvus-editor-close-button-x">×</span>
+    </a>
+  </li>
+
+  <!-- Template for the codemirror text editor -->
+  <div class="salvus-editor-codemirror well">
+    <textarea></textarea>
+  </div>
+
+
+</span>

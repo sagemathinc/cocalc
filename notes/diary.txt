@@ -8835,7 +8835,7 @@ NEXT:
          need for storing database.
 -->     [x] Try out my uuid:blob store in hub to see how/if it works!
 
---> 
+-->
      [ ] Make another component called "project_server" and move some functionality
          from console_server there?  It would do the following:
                 - set quota for a uid/gid
@@ -8848,6 +8848,197 @@ NEXT:
                 - create git bundle from path and send it to hub
                 - lxc management if I use lxc.
           [ ] project = git bundle in database of limited size, etc.
+
+(excellent git bundle tutorial: http://git-scm.com/2010/03/10/bundles.html)
+
+
+If I store the repo as a *sequence* of bundles instead of a single
+one, then some things might scale better:
+
+    - checkout is more complicated, and maybe takes a little longer
+      (prob not much)
+
+    - saving is easy -- just save a tiny bundle (using a tag)
+
+    - even a huge repo would be releatively easy to store as several
+      small ones that get spread around the distributed DB
+
+    - extracting would mean sending a series of files and extracting
+      them in order.
+
+    - extracting happens rarely in practice, but saving would be very
+      common.
+
+    - given the way cassandra works with compaction, this is probably
+      massively better.
+
+
+[ ] TASK: Give a complete working example that does all this:
+
+1. Creating a simple minimal repo with 2 branches
+mkdir repo; cd repo
+git init
+echo "" > .gitignore
+git add .gitignore
+git commit -m 'init'
+git branch snapshots
+git checkout snapshots
+echo "foo" > bar
+git add bar
+git commit -m 'added a file to snapshots'
+git checkout master
+echo "bar" > foo
+git add foo
+git commit -m "a foo to master"
+
+2. Bundle it up with both branch (--all): 0.bundle
+
+git bundle create ~/tmp/0.bundle --all
+
+3. Extract it elsewhere (with all branches present -- requires small script to automate)
+
+# we will make use of this script -- "~/tmp/pull_all" -- to get *all* the branches:
+#!/bin/bash
+for branch in `git branch -a | grep remotes | grep -v HEAD | grep -v master`; do
+    git branch --track ${branch##*/} $branch
+    git tag -f last $branch
+done
+
+# OK, here it is:
+
+git clone ~/tmp/0.bundle repo2
+cd repo2
+~/tmp/pull_all
+
+4. Make changes to both branch
+
+git mv foo foo2
+git commit -a -m "move a file"
+git checkout snapshots
+git mv bar bar2
+git commit -a -m "move a file too"
+
+5. Make another bundle with the new commits: 1.bundle
+
+git bundle create ../1.bundle last..master last..snapshots
+
+# or?
+
+git bundle create ../1.bundle ^last --all
+
+
+6. Recreate repo from just 0.bundle and 1.bundle with both branches present
+
+git clone ~/tmp/0.bundle repo3
+cd repo3
+~/tmp/pull_all
+
+
+
+7. Make commits to both branches
+
+8. Make another bundle with the new commits: 2.bundle
+
+9. Recreate repo from 0.bundle, 1.bundle, and 2.bundle with both branches.
+
+
+
+HINTS
+
+
+1. Make bundle
+   (must make in a nonempty repo)
+
+Tag branches:
+      git tag -f last-save master
+
+Bundle repo (all branches):
+
+      git bundle create file.bundle --all
+
+(only takes about 3 seconds on the full salvus history!)
+
+2. Extract the bundle:
+
+      git clone file.bundle dest_path
+
+Then run this script to get *all* the branches:
+
+#!/bin/bash
+for branch in `git branch -a | grep remotes | grep -v HEAD | grep -v master`; do
+    git branch --track ${branch##*/} $branch
+done
+
+
+---
+
+====================================================================
+
+I'm going to figure this out for the master branch only... for now.
+
+[x] TASK: Give a complete working example that does all this:
+
+1. Creating a simple minimal repo with 1 master branch
+mkdir repo; cd repo
+git init
+echo "" > .gitignore
+git add .gitignore
+git commit -m 'init'
+
+2. Bundle it up with both branch (--all): 0.bundle
+
+git bundle create ~/tmp/0.bundle master --all
+
+3. Extract it elsewhere (with all branches present -- requires small script to automate)
+
+git clone ~/tmp/0.bundle repo2
+cd repo2
+git tag -f last
+
+4. Make change
+
+echo "bar" > foo
+git add --all
+git commit -a -m "made a file"
+
+5. Make another bundle with the new commits: 1.bundle
+
+git bundle create ~/tmp/1.bundle last..master
+
+6. Recreate repo from just 0.bundle and 1.bundle with both branches present
+
+git clone ~/tmp/0.bundle repo3
+cd repo3
+git pull ~/tmp/1.bundle master
+git tag -f last
+
+7. Make another commit
+echo "bar2" > foo
+git commit -a -m "modified file"
+
+8. Make another bundle with the new commit: 2.bundle
+git bundle create ~/tmp/2.bundle last..master
+
+9. Recreate repo from 0.bundle, 1.bundle, and 2.bundle with both branches.
+git clone ~/tmp/0.bundle repo4
+cd repo4
+git pull ~/tmp/1.bundle master
+git pull ~/tmp/2.bundle master
+
+
+
+* USING git from node: http://stackoverflow.com/questions/5955891/has-anyone-implemented-a-git-clone-or-interface-library-using-nodejs
+
+    * maybe this is best:  https://github.com/sentientwaffle/gift
+    * Actually *this* is probably best for now:
+
+sys = require 'sys'
+{exec} = require 'child_process'
+exec "git status", (error, stdout, stderr) -> sys.puts(stdout)
+
+================================================================
+
+----
 
      [ ] add signal_sent reply to sage_server.py (message.signal_sent)
      [ ] add option to all these session servers that is a hard limit on the max number of spawned sessions;
@@ -8878,8 +9069,8 @@ I'm also setting up a new machine to run salvus:
 SOON:
 
   [ ] Deploy new version? -- next week
-  [ ] rewrite the about page to just explain how to use it.  the page
-  there right now was a fine BLOG post, but that's all it should be.
+  [x] rewrite the about page to just explain how to use it.  the page
+      there right now was a fine BLOG post, but that's all it should be.
   [ ] busy signal in notebook title of webpage when computing.
   [ ] don't forget %cython mode.
 
@@ -8887,3 +9078,1185 @@ SOON:
 LATER:
  [ ] fun warm up -- better icons: http://fortawesome.github.com/Font-Awesome/
  [ ] upgrade bootstrap: http://blog.getbootstrap.com/2012/12/08/bootstrap-2-2-2-released/
+
+================================================================
+
+Dec 28, 2012 at 7:15am -- back to work on salvus after a long break...
+
+--> [x] (23 min) database returns localhost for compute server in case nothing defined.
+
+[ ] project_server:
+    [x] (7min) create_user (in project_server) --
+    [x] (1min) delete_user (in project_server)
+    [x] (8min) finish open_project
+    [x] (1:06) extract_bundles (see code from andrew)
+    [x] (27min) save_project
+    [x] (7min) close_project
+    [x] (34min) disk quotas when creating user
+    [x] (30min) read over/document
+    [x] (54min) get_files and logs
+    [x] (41min) parsing files object -- external script that converts to JSON format? and
+        parsing logs -- make an external script that gets the log in JSON format, so async
+    [x] (15min) read/write file to project
+
+[ ] hub:
+    [x] (20min) function stubs
+-->    [x] (1h:42min spent) open_project:
+          - check in db if open already
+          - if open already, return location
+             - if not, record start open in db, choose machine, connect,
+            grab bundles from DB, send, record successful opening in
+            database.
+    [x] get_project_host
+    [x] save_project
+    [x] close_project
+    [x] open_file
+    [x] save_file
+
+[x] database:
+    [x] database.get_project_host
+
+
+Next steps:
+
+[x] write "create_new_project" in hub
+
+[x] read through message code related to projects
+
+[x] read through project_server code
+[x] read through hub project_server-related code
+[x] read through project_server - database code
+
+
+[x] get everything to compile (coffeescript)
+[x] get everything to start up
+
+Then slowly add functionality to client:
+
+    [x] make projects view the default
+    [x] create a new project
+    [x] correctly show last time project was changed
+    [x] create new (empty) file
+
+    [x] (40min) Issue: when this happens "Attempting to make user failed -- Error: Command failed: /bin/sh: 1: setquota: not found"
+	due to forgetting to install quota, the user doesn't get an error message.  But they should.   Fix.
+
+    [x] (6min)  test opening project saving, closing, re-opening
+
+    [x] (2h41) list of files -- make the value be the id of the commit, not of the object. fix a *lot* of robustness issues.
+
+    [x] (20min)  make that file list and log get saved correctly to database now. (I had the order backwards)
+
+    [x] (55min) get_project_meta (so get list of files, logs, branches, etc.)
+    [x] save file
+    [x] save project
+    [ ] debug - read file from project (client)
+    [ ] debug - read file from project (message)
+    [ ] debug - read file from project (hub); uses blobstore.
+    [ ] debug - move file
+    [ ] debug - remove file / directory
+
+    [ ] open session on project (some new code in hub)
+
+    [ ] (maybe later) change messages to provide subject and body for commit messages, as an option.
+
+[ ] gui page client:
+
+   [x] change generated log so that the commit id's are the keys of an object.
+
+   [x] project page -- sort: first directories then files, both in alphabetical order by default (but
+       would be very nice to sort by last modification someday... but maybe viewing
+       by commits is just as good)
+   [x] project page -- show current path at top
+
+   [x] project page -- click on directory to open path
+
+   [x] project_page -- enhance look of new file link.
+   [ ] project_page -- clicking on file but not on a particular link should open directory/file
+
+   [x] project page -- implement button to create new file in cwd (very badly done)
+
+
+   [x] (1h 58min) project_page -- display commit log for current branch; plus fix numerous other little things
+   [x] (15min) log -- need to also store list of commits in order, since json object *NOT* ordered!
+       example, see log of e78c20fc731d45bd8ab97f1dc5e7ae1e.
+   [x] (5min) BUG -- never do .text(... timeago...) !
+
+   [x] (8min) project.coffee -- change it so project constructor function takes project object only.
+
+   [x] (17min) project client -- make it so editing title (and desc) of project sends appropriate message.
+
+   [x] (1.5hours for this and two below) BUG: s.restart('compute') (and other things) make my "w" script go haywire.
+   [x] BUG -- the update_project_data message results in 5-6 messages back from the hub.  BUG.
+   [x] BUG -- when creating a new project, make sure to
+       open/close/save it once, so that files and logs are defined.
+
+   [x] (1:09) project: menu to switch viewed branches
+
+   [x] (20min) projects: page listing all branches
+
+   [x] (1:20+) projects: make a new branch (ui/part 1)
+
+   [x] (3:37) projects: make a new branch (part 2)
+
+   [x] (0:27) projects: change current branch in deployed path (and database)
+
+   [x] (0:27) project -- delete branch; merge branches
+
+-->[ ] refactor hub code to use new "call" method.
+(5.5 hours) ---->[x] clicking on a file (instead of a directory) shows page on that file
+----->  [x] remove file.
+
+   [x] (11min) BUG -- get rid of weird slash in html on every page
+   [x] (4min) project -- put correct filename in delete dialog
+   [x] (7min) project -- put correct filename in rename and move dialogs
+   [x] (28min) project -- Refactor modal dialog code
+   [x] (38min) project -- move file ui code
+   [x] (1:20) project -- make it so move file works (sends message to hub, etc.)
+
+-----
+
+-->  [x] (3 hours) enhance files data structure to somehow make it easy to indicate whether or not a file/directory currently exists.... and also worry about scalability and test it.
+
+(30min) WAIT, I seriously messed up with this design!  It simply does not
+scale.  yes, it is fast once everything is loaded and parsed, but even
+for the salvus repo, this takes *seconds*.  And every commit takes a
+second.  It could be optimized so some things are faster... but this
+will just result in complicated code... that doesn't genuinely scale,
+by design.  I can't believe I thought this would work -- it's naive
+and violates basic design constraints of salvus.  That said, I now
+know what functionality I need.  In order to have a browser, I just
+need something that computes the current_file object.  This can be
+done with a message with some parameters.  Then basically everything
+else stays the same, except that that the gitlogs script disappears
+(which tooks day(s) to write and rewrite...), and everything goes
+O(1), but with the constant the latency for connecting to the project_server.
+Since that latency is there for every cell evaluation, etc., it has to be
+small anyways, or the whole system is unusable.   So... the high priority
+plan right now is to implement the following, the redo UI to use it:
+
+
+Sort of functionality I need.
+  [ ] message project_path_info, that takes a project, branch, and path
+       and returns info about it.  If the path resolves to a file, it
+       returns info about that file, including some sort of preview (not too big);
+       if the path resolves to a directory, it returns list of filenames
+       in the directory, along with meta-information about each, including
+       last commit to change, file status, etc., etc.
+
+   [ ] project_commits_info, takes a project, branch, and ranges and returns
+       info about those commits, along with the total number of commits.
+
+   [ ] project_commit_info, takes project, branch, and commit id, and returns
+       info about that one commit.
+Once the above are done and working, I can delete what I did already with gitlogs, etc.
+
+How to implement:
+
+   [x] project: exec a command
+
+which runs arbitrary command, with timeout, etc.
+
+
+
+-->   [ ] I feel like I've fixated too much on doing something github like, which
+   Salvus *isn't*.   I'm going to take a step back and implement a console -- which
+   will be a real step forward in functionality -- and from using that, see what
+   would feel most ** natural ** for file browsing.  SALVUS IS NOT GITHUB!
+
+------
+
+   [ ] with project = salvus repo, get this when trying to send:
+
+debug: _open_on_host -- Send open_project mesg
+debug: _open_on_host -- start sending bundles as blobs
+debug: BUG ****************************************************************************
+debug: Uncaught exception: Error: First argument needs to be a number, array or string.
+Trace
+    at process.daemon.pidFile (/home/wstein/salvus/salvus/node_modules/hub.js:3741:15)
+    at process.EventEmitter.emit (events.js:126:20)
+debug: BUG ****************************************************************************
+
+
+---------------
+   EDITOR:
+
+   [x] (12min) project: show number of open files in Editor title.
+   [x] (20min) change home icon to a button (maybe with icon in it); plus find some bugs
+   [x] (13min) saving a file with a space in the filename fails (from editor)
+   [x] (3 hours) commit current repo; somewhat involved UI stuff
+   [x] (5min) project status tab -- update status on showing tab
+   [x] (10min) fix that closing then re-opening project dies -- should be easy.
+   [x] (1:15min) Get rid of edit button in browser and make clicking on file just bring it up in editor.
+
+-->   [x] I want terminal functionality in projects.  that's my goal for today.
+
+    [x] extend console session so that hub can specify the username
+
+    [x] console: tab bar too skinny.
+    [x] console: closing active tab doesn't delete/hide corresponding console
+    [x] console: HOME environ variable is wrong
+
+    [x] console BUG -- if n xterms are open, then get n echos of input back; even if close xterms.
+
+    [x] make username shorter, e.g., first 8 characters of uuid
+
+
+
+
+
+TONS OF ISSUES:
+
+    [ ] console: often very slow to FOCUS
+
+    [ ] console: ls needs colors; to fix this need to have
+        a template for the home directory, including a .bashrc, and make
+        sure that it is read on startup
+
+    [ ] xterm console titlebar doesn't work.
+
+    [ ] console: overwrite mode instead of insert mode by default; annoying
+    [ ] console: replace countdown timer by live ping
+
+
+   [ ] console: if screen skinny then on desktop in codemirror mode, it gets all weird and doesn't work; actually resizing is needed...
+
+   [ ] browser doesn't show paths in a directory if there are no files in that directory.
+       confusing.  it should really just browse the current live files, not something
+       checked in.  SEriously.
+
+
+   [ ] include "run command here..." even when showing file preview; in that case just run in dir that contains file;
+
+   [ ] editor: warn_user about unsaved changes
+
+----------
+
+   [ ] oops -- the css in project.css isn't prefixed with "salvus".
+
+   [ ] project -- buttons for sessions -- don't use on android since don't *fit*
+   [ ] project -- title/description must be nonempty (otherwise can't click to edit them)
+
+   [ ] checkbox -- show deleted files (differently)
+
+   [ ] checkbox -- show hidden files (starting with dot)
+   [ ] button to rollback a specific past commit
+
+   [ ] project_server -- make sure exec_as_user is used as much as possible.
+
+   [ ] html preview -- implement computer_server side code that can compute
+       an html preview for any file; use that when clicking around...
+
+   [ ] project -- big warning before deleting a branch. (?)
+
+   [ ] save versus commit -- oops.  I need option to save without commiting working files, e.g., thisis needed in create_project in project.coffee
+
+   [ ] show last commit message for each branch
+   [ ] project file list -- make it possible to show hidden files via a checkbox
+
+   [ ] the "about x hours ago" thing doesn't work at all on ipad!?
+
+   [ ] basic project settings page (?)
+
+   [ ] need a spinner when loading project list
+
+   [ ] open console on a project
+   [ ] view file
+   [ ] open worksheet in a project
+
+   [ ] BUG -- once there are 10 bundles things don't work...
+   [ ] BUG -- this filename broke filename listing: mkdir "this is 'a' cool! ar\"rse directory"
+
+   [ ] TODO: may want to ensure that first 8 characters of project uuid determines it when creating new projects...?
+
+
+   [ ] Feature: Easy ability to delete projects, with a screen to get them back within 30 days (say).
+       Use a ttl when nobody left who cares about the project.
+
+   [ ] when project logs/files, etc. are updated, message should go out to certain clients
+       with new data... maybe.
+
+[ ] make it possible to show hidden files via a checkbox
+[ ] swap in andrew ohana's new bundler
+[ ] set the current branch on opening project (maybe)?
+[ ] make admin.py purge password after 30 minutes of inactivity.
+
+[ ] when searching list of projects, and search is nontrivial, put an indicator that results are restricted (else it can be confusing!)
+
+ [x] account creation broken!
+debug: hub --> client: {"event":"account_creation_failed","id":"dd80c104-80c3-4a82-a2a9-aee7ef2d9e2d","reason":{"agreed_to_terms":"Agree to the Salvus Terms of Service."}}
+
+
+--> [x] be able to load cython files
+
+
+--------------
+
+
+
+
+------
+
+VM's
+     # check that no base vm is running
+     virsh --connect qemu:///session list --all
+     export PREV=salvus; export NAME=combinat; qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+       # IMPORTANT!
+       sudo chown og-rwx -R salvus
+
+       sudo apt-get update; sudo apt-get upgrade;
+       sudo reboot -h now
+       cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
+       . salvus-env
+
+
+# for example:
+       ./build.py --build_stunnel --build_nodejs --build_nodejs_packages --build_haproxy --build_nginx --build_cassandra --build_python_packages
+
+     virsh --connect qemu:///session undefine $NAME
+     virsh --connect qemu:///session destroy $NAME
+     virsh --connect qemu:///session list --all
+
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py
+
+
+
+----
+NEW FOCUS:
+
+I'm going to try to make Salvus basically usable, and ignore a lot of
+the little bugs and polish, and focus more on getting features
+working, and only then move on to polish and bug fixing.  What I must do:
+
+ [x] worksheets (very basic!)
+
+ [x] (45min) worksheet: BUG "range(2000)" shows no output; 'a'*4093 nothing, but 'a'*4092 works.; works fine in old worksheet.2
+
+ [x] (20min) make blue be around compute input only and be present only when editor is focused
+
+ [x] (23 min) make the startup timer for a cell appear only once the computation starts; generally make timer really nice
+
+ [x] (17min) cursor keys to move between cells
+
+ [x] (10min?) when evaluation is requested change the stopwatch to be green... but say "wait..."
+ [x] (33min) cell: make execute cell instant/trivial when input is empty; also make it clearer that a computation is currently running.
+
+ [x] (6min) worksheet: fix bug where first input cell is whacked
+
+ [x] (20min) worksheet: control cursor keys to move cells; also start adding in events for worksheet
+
+ [x] (25min) implement click timer to interrrupt; also escape; more keyboard shortcut foundations.
+
+ [x] (31min) worksheet: backspace to delete cell
+
+ [x] (18min) worksheet: control-enter -- insert new cell after
+
+ [x] (11min) join cells
+
+ [x] (4min) worksheet: join cells shouldn't delete all output
+
+ [x] (17min) worksheet: split cells
+
+ [x] (19min) worksheet: blue line to insert new cell
+
+ [x] (10min) worksheet: alt-enter = evaluate and do not move cursor.
+
+ [x] (57min) include "font awesome" icon set
+
+ [x] (3 hours) cells: tab completion
+
+ [x] (21 minutes) sage_server -- USERNAME environ variable needs to not be "root"; DOT_SAGE, SAGE_TMP need to be right after privilege drop
+
+ [x] worksheet: very, very basic interacts
+      [x] (20min) worksheet interact -- add a new "interact" message type
+      [x] (2:19min) make it analyze the function and make all controls input boxes.
+
+ [ ] worksheet: implement full interact controls
+-->  [x] (30min) interact: monkey patch sagenb so that sage.all.interact = salvus.interact, etc.; plus make our interact a decorator too.
+
+     [x] (1 hour?) interact: re-structure the code so it will be easy to define new controls.
+
+     [x] (15 min) interact: input_box (return to submit) and re-organize some of the javascript side code
+     [x] (1:50) interact: add a new command that enables one to set or delete the value
+         of any variable in a layout control from python.
+
+     [x] (15min) interact: implement checkbox, plus refactor and improve code
+     [x] (8min) interact: add checkbox auto-detect
+     [x] (15min) interact: autodetect for all controls
+
+     [x] (8min) interact: read-only controls, so only set_interact_var can change
+     [x] (20min) interact: interact.foo to get the value of foo?
+
+     [x] (5h:41min) interact: selector plus a lot of other feature
+         improvements overall, plus added extra features to selector
+         that aren't in sage.
+
+     [x] (15min) interact: make the vars that trigger re-evaluation known.
+     [x] interact: automatic defaults
+
+     [x] interact: interact.controls.[tab] to see all controls.
+
+     [x] (26min) interact: button control
+     [x] interact: text_control
+     [x] (1:23) interact: color_selector control
+
+     [x] (2:25) interact: slider control
+
+     [x] (0:36) interact: range_slider control
+
+     [x] (0:18) interact -- need html('...') to work in sage library via monkey patch
+
+     [x] (2:33) interact: input_grid
+
+     [x] (0:45) interact: support width option and a style option.
+
+     [x] (0:51) interact: support layout option
+
+     [x] (1:30) mostly done -- interact: that special-button-to-submit mode  (auto_update)
+
+---------------------------------------
+
+worksheet: persistence
+
+  (***)[ ] cell: serialization to JSON
+		   - look at old code for this
+		   - migrate
+		   - test via console message
+             [x] (45min) cell --> obj
+             [x] obj --> cell
+
+  (**) [x] worksheet: serialization to JSON
+           - first do a simple version without sections, etc., to test cell --> obj
+           [x] (1:15) worksheet to_obj
+           [x] (0:45) obj --> worksheet
+           [x] (3:00 -- yep) testing using localStorage and fixing bugs
+
+  (*)  [ ] saving worksheet to file:
+I need to decide on a design for graphics display.
+A *natural* solution is just to have the graphics be in the same working directory as the worksheet,
+just like with a command prompt... but that just doesn't work, since it makes plot(sin) impossible --
+either I use uuid's or force the user to name every plot, which is a non-starter.  If I use uuid's
+they leak.
+
+I could do the following:
+   1. increase the ttl for images in the uuid:value store used to
+      transmit files to '1 hour' (say) -- way more than worksheet
+      autosave interval
+   2. when saving a worksheet, any embedded binary objects (e.g., svg's) will be
+      placed there via salvus.file.  The output message looks like this (say):
+       {"file":{"show":true,"uuid":"d32f6780-01e3-4076-9eb8-d47b2024f250","filename":"a.svg"}}
+   3. when a "save_worksheet" message is sent from the client to the hub, the hub
+      scans the json desc of the worksheet for the uuid's of files and ensures that copies
+      of those objects are made to a uuid:value table associated to the project, i.e,
+      the name of the table is the project_id.  These do not expire... since the old
+      version of the worksheet needs these to be displayed... so this makes sense.
+   4. We will limit the number (and size) of objects in the table associated to a given project.
+   5. Users can have an option to clear all objects associated to a project.. browse objects by data/size... see them....
+   6. They can also scan their *current* worksheets, and clear all objects except those referenced
+      by worksheets.
+
+           [ ] message:
+                  - require a filename to save worksheet. use existing write_text_file function
+                  - add message to copy a list of objects from temporary to permanent uuid:value store
+                    handling this just involves:
+                          (1) removing the ttl
+                          (2) copying the uuid (and blob size) into a new table associated to the project.
+           [ ] client
+           [ ] hub
+           [ ] project_server
+           [ ] gui
+
+    [x] (1:05) worksheet persistence: write client code to save worksheet to filesystem (UI -- just use a text input pre-filed with the filename... for now)
+
+    [x] (0:34) worksheet persistence: write client code so when you click on a worksheet file it opens the worksheet (rather than codemirror editor)
+           (involved: modify consoles.create_tab to take filename option, pass it to worksheet, and the worksheet can load, etc. )
+
+    [x] (0:04) worksheet persistence: set the filename field when loading worksheet
+    [x] worksheet persistence: if there is already a loaded worksheet with a given filename, just use that tab.
+    [x] worksheet persistence: change "save" button state to disabled right after save; change back when worksheet *changes* (?).
+    [x] worksheets --closing a tab suddenly broken; easy traceback to debug; "filename" versus id
+    [x] worksheet persistence: set tab title when file saved
+
+    [x] worksheet persistence: write code as above to persist blobs
+       - hub: change db query to determine write access... then test saving blobs
+       - also, support bounding cassandra log file more effectively.
+
+    [x] worksheet persist optimization: make sure to initialize the _saved_blobs to all blobs on worksheet load
+
+    [x] worksheet persistence: make it so chdir to containing directory of worksheet file on startup.
+
+    [x] worksheet persistence: it says it has unsaved changes on initial load, but shouldn't.; save button should do nothing when disabled
+
+    [x] worksheet persistence: autosave
+            -- make sure to modify db schema
+            -- changing title and desc must make worksheet dirty
+            -- same for section headings
+
+    [x] worksheet persistence: save unsaved changes -- confirmation if you click the x:  NO, instead I will save on close, and if there is no filename, deal with that somehow.
+
+    [ ] file browser: function to give list of files/directories in a
+                      path, and for each the current revision control
+                      status (last mod, commit message); make this a
+                      pager function, since there could be a million
+                      files in a path.  This *must* be fast, so
+                      calling git 50 times (which takes a second) is
+                      not acceptable!
+
+           [x] (0:10) figure out how to do it efficiently
+git log --name-status client.coffee hub.coffee  # SPECIFIC list of files!
+# I have code to parse output of this in the gitlogs file.
+
+    [x] comment out status tab -- too confusing. (should delete later)
+
+    [x] account: ability to change autosave interval in settings page **
+
+-->        [x] (1:46) write something like gitlogs to work on a given path; call it "git-ls".  MUST BE FAST.
+               INPUT: path, ordering
+               OUTPUT: JSON string with keys the filenames, and values objects that given info about *all* files in this directory, e.g.,
+x - file or directory?
+x - last modification time
+x - size in bytes
+x - last commit id
+x - last commit message
+x - sort
+
+           [x] make git-ls get copied to .git/salvus path
+
+	--> [x] OOPS, I removed the "commit everything first" functionality completely this morning (?) from the save project_server command (and
+	corresponding messages).  In fact, that's exactly what I want.... at least for a special "salvus" branch.
+	Get this functionality back exactly as it was.
+
+           [x] git-ls; option about whether or not to include dot-files
+           [x] define "project_directory_listing" function in client, which uses git-ls
+           [x] implement new directory browser in project.coffee and test.
+           [x] modify UI to use this new ls system.
+
+    [x] file browser: show commit info
+    [x] file browser: show last change info
+    [x] file browser: show size info
+    [x] file browser: refresh on show tab
+    [x] file browser: refresh on running bash command
+    [x] file browser: It would be pretty cool if the path changed in response to cd'ing in the command line.
+           can easily do this via 'command += "\npwd"' in project.coffee
+    [x] file browser: make the command line be in *focus*, since nothing else is.
+    [x] file browser: move the command line
+
+    [x] file browser: show whether or not current version of file is saved to repo; plus add icons for actions
+    [x] file browser: the rows are too tall
+    [x] file browser: sort by time
+
+    [x] (1:34) project search: simple, using grep with link to each file that appears with line of context.
+    [x] (0:15) bug: when reconnecting due to timeout, switches to list of all projects display.  Why? Probably has to do with login.
+
+    [x] (0:21) plan how to -- get rid of absolute session timeouts; instead kill any session that
+        sees no browser activity for that timeout amount of time.
+
+    [x] (0:09) sage_server: Get rid of *use* of the walltime and cputime
+          timeouts completely from sage_server, though leave the
+          implementation, since it was difficult to do and is well
+          tested, and is useful for, e.g., single cell.  Basically add
+          option of "0 = no time out"
+
+    [x] (0:09) hub, etc.: disable existing timeouts by setting to 0.
+
+    [x] (1:04) sessions: they should be running if and only if they are visibly open as a tab.
+         [x] client -- put a long ping in for a sage session that is sent periodically when a worksheet tab is *open*
+         [x] hub -- kill session that doesn't get pinged
+
+    [x] (0:13) console: implement session ping kill stuff
+
+    [x] (0:15) sage_server: killing hub makes python process go 100%!
+
+    [x] (0:02) console: get rid of countdown session timer
+
+    [x] (0:05) bug when loging out -- doesn't close all open project tabs.
+
+    [x] (2:18) projects: fix busted "open project" implementation
+
+    [x] (0:04) clean up a bunch of spurious users...
+
+    [x] (0:03) worksheet: saving worksheet must work even if no changes
+
+    [x] (0:06) file browser: only show spinner after waiting a given amount of time.
+
+    [x] (0:19) projects: show whether or not each project is open
+
+    [x] (1:00) search: search for filenames first, then content; get rid of "rgrep", but maybe say something about it in results; make it use "-i" by default
+
+    [x] (0:20) projects: do not send/store/etc. the entire commit history in the projects table; get rid of that. only store the last commit and branch.  This is a huge badness for scalability as is.
+
+    [x] (2:00) Switch to the new diffbundler and get it to work with above changes. -- extension changed, etc., causing much confusion.
+
+    [x] on project creation, make a default gitconfig that describes the *project* (and its owner at some point)
+    [x] project creation working; get rid of not cleaning up
+
+    [x] (0:29) ensure no use of root exec anywhere in project_server.coffee
+
+    [x] (0:05) in search, if there is exactly one file then grep behaves differently, confusing my script a lot!  worry about these special cases.
+
+    [x] (0:08) worksheet/file: saving when there were no changes
+
+    [x] test with >= 11 diff bundles
+
+    [x] projects: need a spinner while new project is being created.; also improve html of new project layout, e.g., the new project button should be to the LEFT
+    [x] project_server: noticed and fixed a major mistake/bug in my exec_as_user function.
+
+    [x] (0:45) notifications -- need a much better system that the crappy one now!
+   * Bootstrap-notify: pretty boring/crappy.
+   * Pines -- This looks very, very nice: http://pinesframework.org/pnotify
+
+    [x] (0:27) salvus.[tab] bonus create a salvus.notify feature that pops up a pnotify with same options
+
+    [x] (0:15) move the worksheet/console buttons up to the top.
+
+    [x] (2:09) file browser: ability to download a file. -- surprisingly hard, but solution is very, very nice.
+
+    [x] (0:12) file_browser: make certain types of files open in a new window (?) or download
+
+    [x] (0:40) project: when closing project, need to do show another project, etc.
+
+    [x] (0:12) project: BUG -- download only works at the root level, not in folders...  maybe filename wrong
+
+    [x] (1:05) projects: have a red button "Shutdown all projects" in upper right; plus restyle the projects page
+
+    [x] worksheet: default name for new worksheets
+
+    [x] (0:05) disable the "use salvus now" box.
+    [x] (0:25) project: shutdown and save should save unsaved open worksheets
+
+    [x] (3:47) cell mode: %generic  -- ran into big python bug; am sick; had to come up with a notion of "cell decorators".
+
+    [ ] cell mode: %html
+            [x] cell mode: html.iframe
+            [ ] (0:05) html.table
+            [ ] html -- math parsing content (?)
+
+    [x] (0:17) mathjax jQuery plugin -- option to parse through and proces stext with $'s, etc.
+
+    [x] (0:13) coffeescript/javascript: honor the "once" attribute
+
+    [x] (0:06) messages -- support once for everything
+
+    [x] (0:12) cell modes: %coffeescript
+
+    [x] (0:50) note: math typesetting
+
+    [x] (1:00) cell mode: %latex
+
+    [x] (0:28) cell decorator: %time
+
+    [x] (0:12) this line appears twice in sage_server.py; refactor relevant code:
+                   for start, stop, block in parsing.divide_into_blocks(code):
+
+    [x] (0:02) salvus.execute -- execution of a cell should stop on any block that causes an exception
+
+    [x] (2:38) line decorators --  if anything else on line (except comment),
+        then impacts only that line, so %time would work on a single
+        line, as would %python, etc.  The hard part is deciding when
+        the decorator part of the line ends.
+
+    [x] (0:13) code decorator: %file
+    [x] (0:33) code decorator: %timeit
+
+    [x] (0:25) code decorator issue: stuff between Salvus object creations fails... so don't put the string in a salvus object.
+    [x] (0:20) output buffering -- flush buffer before sending any messages that result in other types of output.
+
+    [x] (1:14) code decorator: %capture -- make sys.stdout and sys.stderr /dev/null; have an optional argument so output sent to a file, e.g.,
+         %capture
+         %capture(stdout='out')
+         %capture(stderr='err')
+         %capture(stdout='out, stderr='err')
+
+    [x] (0:56) code decorator: %cython
+
+    [x] (0:05) code decorator: %sh, %bash, %system -- shell; plus fix issue with capture only being half-done
+
+    [x] (1:05) code decorator: %script: run cell body with the script specified in the first line.
+
+    [x] (0:21) code decorators: change capture so capture(stdout='foo') sets the global variable foo!  And capture(stdout=open('foo','w')) is how to send output to a file.
+
+    [x] (0:03) legacy % modes don't work since I used "globals" instead of "locals".
+
+    [x] (0:11) code decorator: %python
+
+    [x] (0:07) code decorator: %python3: run cell body using "python3" (totally separate session)
+
+    [x] (0:13) %script -- env support?
+
+    [x] percent mode -- issue with space/tab delimiter in single-line modeEXAMPLES:
+    [x] code decorators -- should run preparser before eval'ing them.
+    [x] (1:03) code decorator: %load -- read in file and execute -- absolutely no point in this!; spent a while documenting via emails...
+
+* idea -- implement all code decorator ideas here, e.g., file: http://ipython.org/ipython-doc/stable/whatsnew/version0.13.html#cell-magics
+
+    [x] (2:03) code decorators: %perl, %ruby, !   [[took a long time, since I got very confused about !, since there was a crappy implemention before...]]
+    [x] (0:08) code decorator: %sh
+    [x] (1:55) code decorator: %prun
+    [x] (0:28) worksheet and console tabs need icons instead of (or in addition to) color.
+    [x] file editor: bold black line around outside of editor
+    [x] file editor: line numbers on left (respect the mode setting)
+    [x] (0:37) file editor: syntax highlighting for several file types (just start it)
+    [x] file editor: save on "clicking the x"
+
+    [x] project: clicking "shutdown" results in "async is not defined" error, probably due to saving everything.
+
+    [x] (0:20) diffbundler: doesn't work when there are hundreds of changes...  MAYBE this is a bad idea?
+Getting this is hub... track this all down and *decide* what to do to scale:
+debug: BUG ****************************************************************************
+debug: Uncaught exception: Error: First argument needs to be a number, array or string.
+Trace
+    at process.daemon.pidFile (/home/wstein/salvus/salvus/node_modules/hub.js:4030:15)
+    at process.EventEmitter.emit (events.js:126:20)
+debug: BUG ****************************************************************************
+
+    [ ] diffbundler: doesn't clean up tmp.  UGLY!
+
+    [ ] project storage strategy -- think this through:
+
+ - Using diffbundler with *many* small commits does not scale.  It's 20
+   seconds for 400 commits.  This what I designed and implemented now
+   is *not* an option. Period.
+ - Using compressed tar is not an option, since it is too slow and redundant,
+   since its compressing a compressed .git directory.  Not an option.
+ - There's multiple issues:
+     - backup in case of instant failure; want to minimize lost work
+       <--- could solve via rsync'ing the /home directory periodically
+       or some other redundant filesystem approach later.
+       could also solve at the vm level via snapshots...
+     - safely storing project as it evolves.
+     - git doesn't store subprojects
+ - I can deal with subprojects later, and in a good way, but parsing
+   them properly, displaying extra info in the projects page, etc.
+   That's hard, but it is *the* way to do this right. And it will be
+   maximally efficient.
+ - The solution for diffbundler is to not start a new bundle until an
+   existing bundle exceeds a size threshold.  Until that is hit, just
+   keep remaking the last bundle and saving just that one back.  That
+   works.
+
+    [x] (0:16) project storage optimizations: run "git gc" first.; took a long time to convince myself this worked, but instant to write
+
+    [x] (1:35) project storage optimizations: keep refreshing bundle until it exceeds a size threshold
+
+    [ ] in hub:                 # TODO
+                save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
+
+    [ ] (0:12) project_server.coffee -- make it wait until .git/index.lock does not exist before running a git command
+
+
+    [ ] file browser: gui must clearly warn users about files that won't be saved (yet).
+
+    [ ] file browser: view all past versions of a file -- http://superuser.com/questions/157663/despite-the-fact-that-git-does-not-store-file-deltas-can-you-still-rollback-to
+
+    [ ] project_server/hub: opening "more cell decorators" just fails; doesn't even make account. Serious bug.
+
+    [ ] worksheet: make it easy to hide all input cells completely from a worksheet for note taking.
+
+    [ ] mathjax: macros -- all those in sage, plus easy to add more.
+
+    [ ] cell note/mathjax: when using it, I really wish there were syntax highlighting, paren matching, etc... maybe it should be *latex* mode codemirror?  But what about markup.  Ugh.  Or... it could switch modes easily.  Hmm.   I could make it *automatically* embed little auto-expanding code-mirrors everywhere that there are $$'s...   Or, while typing, hit $ and suddenly a little codemirror appears, hit $ again as 0,0 entry, and it centers.
+
+    [ ] worksheet: they must have "pages", like a spreadsheet has pages.  This would be a boon to organization.
+
+    [ ] worksheet title tab: needs a spinner when there is action (css icon?) or javascript spinner...?
+
+    [ ] code decorator: %hide
+    [ ] code decorator: %hideall
+
+    [ ] file editor: do I need to just merge this in with "Sessions" or "Consoles"?; is it too confusing/complicated
+        being separate.  Actually, pull the stuff from consoles to this, since editor seems right.  And,
+        when opening doc have little icons or something for alternative ways.  Pretty standard stuff.
+
+    [ ] file editor: autosave with same interval as for worksheets
+
+    [ ] file editor(?)/cell(def): CodeMirror -- tab should not send '\t' but instead '    '
+
+    [ ] file editor (advanced): split view
+    [ ] file editor (advanced): live preview (esp. for html, .md,; latex, etc.)
+    [ ] file editor (advanced): action -- run (for certain file types)
+
+
+    [ ] code decorator: %pdb (?)/  %debug    -- the debug() command I wrote for the notebook doesn't work at all.
+
+    [ ] attach command -- it doesn't work with weird error.
+
+    [ ] bug -- can't interrupt:  make ugly file "stats", then "!cat stats"
+
+    [ ] tmp files -- either each sage session fork gets its own temp directory/cleaner, or i have to do away with using forking.
+        Because I'm creating lots of tempfiles that will only be cleaned up on exit.
+
+    [ ] interact -- very serious BUG/issue.  Make a simple interact like this, pound on a button, and watch session "hang".
+@interact
+def f(n=[1,2,3]):
+    print n
+
+    [ ] config option: initial number of empty cells in a worksheet
+
+    [ ] cell codemirror: no tabs!
+
+    [ ] input: -- a modal input command like Python's -- for the browser!
+
+    [ ] sage's show_identifiers should be explicitly re-initialized after imports and monkey patches
+
+    [ ] cells: move (control-arrow) should move all cells with checkbox checked.
+
+    [ ] worksheet: auto-restart when session dies, with notification
+
+    [ ] worksheet: delete trailing whitespace menu option?
+
+    [ ] make a salvus math-enabled jQuery plugin for *uniformity*
+        this *will* be the wysiwig editor, but start small!
+          - diff/change events
+          - mathjax typesetting
+          - tab/shift-enter event
+          - shift-tab event
+          - cursor on top/bottom edge events
+          - mini-buttons?
+          - paste as plain text; pasting html is annoying.
+          - \sage{...} like in sagetex, which caches result; will specially highlight part computing until done: embedded compute stuff ==> *very* interesting!
+
+
+
+    [ ] bug in HUB:
+
+debug: BUG ****************************************************************************
+debug: Uncaught exception: TypeError: Object #<Socket> has no method 'kill'
+Trace
+    at process.daemon.pidFile (/home/wstein/salvus/salvus/node_modules/hub.js:4030:15)
+    at process.EventEmitter.emit (events.js:126:20)
+debug: BUG ****************************************************************************
+
+
+    [ ] MAYBE: changing the autosave interval doesn't seem to take effect until refreshing.
+
+    [ ] this doesn't work at all: gap.eval('2+3')
+
+    [ ] sage_session: need a clear indicator passed back to the client when there is a segfault or other condition that terminates the process.
+        E.g., this little script -- in sage -- will cause a segfault, but it is confusing to debug since the session just dies.
+        I just wasted 1:20 confused by this!!
+~$ more test0.sage
+def pw(s):
+    return '%s ^ %s'%(s,s)
+def py(s):
+    print eval(s)
+def tm(s):
+    eval(s)
+s ='5'
+tm('py(pw(s))')
+-------------
+def h(x):
+    return x + "+" + x
+def g(s):
+    return eval(s)
+g("g(h(s))")
+----
+It's http://bugs.python.org/issue7985 -- see
+
+    [ ] no projects -- a message about what to do
+    [ ] no worksheets -- a message about what to do
+
+    [ ] %coffeescript mode -- tab/versus spaces and codemirror seem to cause major trouble!  notice in for loop
+
+
+    [ ] project: download complete project as a zip/tar
+           * ui = button in upper right with download icon
+           * ui = little button next to each project on projects page
+           * could be special case of "download a directory" where path="".  Want that anyways.  Then
+             I don't need a new message.
+           * result should have username (uuid) at top level of archive.
+           * what format to use??   .tar.bz2?  .zip?  BOTH and let client decide...
+           * don't include the .git/salvus directory
+
+    [ ] project download options:
+           * archive type: tar, tar.bz2, etc.
+
+    [ ] make new worksheet (etc.) SCRATCH path configurable for user -- see worksheet.coffee.
+
+    [ ] cell: joining (control-backspace) puts too much space between output lines
+
+    [ ] projects: have a "search running projects" input field
+
+    [ ] project search: could take user to first match in file, in some cases.
+
+    [ ] cell: tab completion dropdown should allow typing to search through it.
+
+    [ ] projects: add an "upload" button, which can take a downloaded
+        project archive and upload it.  It could also take an
+        arbitrary directory and make a project out of it.  And it can
+        take a github/etc page and make that a project.
+
+    [ ] projects: search -- another button for only active projects
+
+    [ ] project shutdown: it does *NOT* delete the user's files from /tmp, but it MUST.
+
+    [ ] opera: bug with cursor when evaluating input cells -- it doesn't go away; drive user crazy.
+
+    [ ] project save: it really needs to indicate if there are any changed files... by maybe using select on the filesystem. Nontrivial, but worth it.
+
+    [ ] download: extend to directories
+
+    [ ] download: extend to multiple selected files (?)
+
+    [ ] console -- clicking near the top doesn't work at all; can't focus, can't copy/paste, etc.; first 2-3 lines just don't work at all.
+
+    [ ] cell: implement salvus.javascript(..., once=True) (on cell)
+
+    [ ] project server "save" must update the last commit time, but it doesn't right now.
+
+    [ ] sorting -- should sort by git save time, not filestamp, which is meaningless in case of close/open   (see http://stackoverflow.com/questions/1964470/whats-the-equivalent-of-use-commit-times-for-git).   I'm fine with just having *one* notion of timestamp.
+
+    [ ] for commits: pass in information about that person doing the commit on the command line
+
+    [ ] finish git_config (get rid of the stub with my name/email in project_server)
+    [ ] make sure code uses git_config option to exec_as_user when needed
+
+    [ ] projects: namespace it, i.e., change all "projects-" to "salvus-projects-", etc. for HTML/CSS
+
+    [ ] file browser: escape to make output of command line go away.  maybe x too.
+
+
+    [ ] project: when open a project, open tabs for all currently open worksheets and xterms.
+
+    [ ] try to open a worksheet and console with net suddenly severed.  Get this displayed under console tab:
+        "Loading worksheet... Timeout after 15 seconds".   Also, the worksheet tab doesn't have any label at all.
+
+    [ ] command line in browser: tab completion
+
+    [ ] file browser: implement actions with files
+    [ ] file browser: actually implement paging through pages of files!
+    [ ] file browser: option to sort in alphabetical order
+    [ ] file browser: get rid of big move/delete buttons near the top
+    [ ] file browser: show hidden files
+    [ ] file browser: hide file extensions and when showing files, make the extension (and final dot) be in a lighter shade.
+    [ ] file browser: new file or directory -- implement
+
+    [ ] cell: moving into a section (using ctrl-arrow) from below skips over bottom one in the section
+    [ ] cell: no way to move before top section
+    [ ] cell: no way to insert before top section
+
+    [ ] ? project: little worksheet/console buttons in the top bar too... ?
+    [ ] ? worksheet: put label back next to filename input ?
+    [ ] ? worksheet: a lock to make it hard to close?
+    [ ] worksheet persistence: saving to a path that doesn't exist should auto-create that path.  Just put "mkdir -p" in the save script.
+
+    [ ] worksheet: auto-number and size the section headings, subsections, etc.  This will be purely client side rendering.  Will get run
+        on load and new section creation (or deletion).
+
+    [ ] file browser: persistent command line history
+
+    [ ] project settings
+    [ ] worksheet settings
+    [ ] account settings
+    [ ] implement chat as immutable list of cells that scrolls away, with labeled names and default input the note.
+
+    [ ] note: wysiwyg
+    [ ] account settings: when set to 0, maybe make it clearer that this disables autosave, which is dangerous (!)
+
+    [ ] cell: add a 'lang' attribute to specify the language.
+    [ ] load/attach
+    [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
+    [ ] cell: move the stopwatch to right side.
+
+    [ ] branch: switching needs to work
+    [ ] commits: need to be able to browse, revert to.
+    [ ] files/worksheets: browse through all past versions in a branch.
+
+    [ ] file browser: try to load for at most 5 seconds; if fail, display warning and used a *cached* display if possible, or nothing otherwise
+    [ ] file browser: click to edit a file with any of these characters must work:'<>|,;$&\"''"
+
+    [ ] cell: comment/uncomment -- "Hello, i try to comment uncomment block of code on the sage notebook, but the schortcut are similar to some shortcut of firefox.
+for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : work but firefox change the page to the tab 3 or 4 why don't change it like: ctrl shift somethinelse?"
+
+    [ ] interact: need to stylize, e.g., put number next to slider, instead of next to
+
+    [ ] project: the whole topbar well with title is a too-big waste of space.  Give it *more* info, but make it toggleable?
+
+    [ ] project: delete the "Only for temporary testing" and related code from project.coffee
+
+    [ ] project: restructure the code in the constructor for ProjectPage to be a bunch of @_init_foo()'s
+
+    [ ] worksheet: create an empty (or corrupted) .salvus file and click on it.  don't get a good error...
+        Also, closing the x after this happens doesn't get rid of the "loading worksheet..." message.
+
+    [ ] worksheet: "loading worksheet..." needs a spinner.  Also, it could do something if the size is large (?).
+
+    [ ] worksheet scalability: a 3MB (of output) worksheet takes a *noticeable* time to render.
+        If I could redo *output* of cells to use codemirror, maybe it would be much faster?
+        And/or -- only show part of output with click to reveal rest.
+
+    [ ] projects: maybe provide a warning when you create a new project with the same title as an existing one
+
+    [ ] project: When changing project title, should auto change the entry in the tab at the top.
+
+    [ ] project: Style of project tab in the top should be different to distinguish projects from other stuff.
+
+    [ ] worksheet persistence: make it so worksheet.save() succeeds in some way, no matter what... going so far as to store
+        in localStorage and saving on next connect.   Same for file save.
+
+    [ ] TODO: add id's to worksheets --? otherwise, how will sync'ing work between clients?
+
+    [ ] worksheet persistence: warn before overwriting existing file with same name!
+
+    [ ] terminal: select font; easily change font size
+
+    [ ] projects (page): graphically indicate which projects are currently open
+    [ ] projects: have a way to explicitly close a project, which kills all processes, deletes all non-checked-in-files, etc.
+
+    [ ] worksheet: --  idea: could make it display the current working directory, updated after each compute.
+        this could go in the upper right. the UI would have a link to browse the filesystem and change to another directory graphically.
+
+    [ ] hub security: add in lots of checks about permissions to access projects, now that we have the db code.
+
+    [ ] file browsing -- have both recently changed files and all files by directory...
+
+    [ ] crazy idea ?? account: rewrite the DB schema it to put all the settings
+        (except the very few that have to be indexed!) into a single
+        JSON object.  This will be much easier to deal with.
+
+    [ ] project idea: when opening a file in editor or worksheet, don't switch to view it if shift/alt/control also pressed:  http://stackoverflow.com/questions/2485345/javascript-or-jquery-event-handlers-for-ctrl-shift-mouse-left-button-click
+
+    [ ] interact: auto_update -- make it not delete the output on changes... ?
+
+    [ ] interact: update_args -- finish
+
+    [ ] interact: make labels parse typeset math
+
+    [ ] interact: subtle issue in setattr -- this doesn't work well for input_grid,
+         do to coercion of that list...
+            I._last_vals[arg] = value
+@interact
+def f(reset  = button('Randomize', classes="btn-primary"),
+      square = button("Square"),
+      m      = input_grid(4,4,default=0, width=5, label="m =", to_value=matrix)):
+    if 'reset' in interact.changed():
+        print "randomize"
+        interact.m = [[random() for _ in range(4)] for _ in range(4)]
+    if 'square' in interact.changed():
+        salvus.tex(m^2)
+
+
+    [ ] worksheet: be able to print a worksheet nicely
+
+    [ ] tab completion bug: "E.q_eigenform(20) - F.q[tab]" for E,F elliptic curves
+    [ ] tab completion bug: "for E in cremona_opt[tab]"
+    [ ] investigate: hint.css -- hint library in css (not js) --  http://kushagragour.in/lab/hint/
+    [ ] interact: image point selector
+    [ ] interact: labels/controls need to line up nicely
+    [ ] interact: interrupt needs to do a proper roundtrip of
+     messages before continuing otherwise we interrupt ourselves.
+
+    [ ] interact: library interacts
+    [ ] interact: test mobile support
+    [ ] interact: draggable controls that save layout (?)
+    [ ] interact: hints (e.g., for input_box)
+    [ ] interact: make sure I don't re-introduce the bugs of http://trac.sagemath.org/sage_trac/ticket/14020
+    [ ] interact: extensible user controls
+
+    [ ] mathjax jquery plugin -- give it a timeout!
+
+    [ ] cell: make interrupt better -- https://mail.google.com/mail/u/0/?shva=1#starred/13c3fa7cf94e9453
+
+    [ ] foo? and foo?? followed by execute should do the right thing, not give error
+    [ ] foo? and foo?? need to give file location (and link!)
+    [ ] implement a show(...) command
+    [ ] cells: mobile needs to have some buttons: tab/esc/exec
+    [ ] worksheet: drag and drop cells (or groups) by their handle, to move.
+    [ ] worksheet: undo
+    [ ] worksheet: typeset all output mode
+    [ ] worksheet: default systems other than sage
+    [ ] worksheet: buttons, which provide all feature to mobile.
+    [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
+    [ ] worksheet: import/export
+    [ ] worksheet: automatic typesetting
+    [ ] worksheet: automatic 2d graphics
+    [ ] worksheet: automatic 3d graphics
+    [ ] worksheet: hiding/showing cells
+    [ ] worksheet: load/attach functionality
+    [ ] worksheet: JSON view
+    [ ] worksheet: text view
+    [ ] publish: implement very basic functionality
+    [ ] click to show commit
+    [ ] browser must browse live directory, but give git-related info
+        about each file -- last commit and whether or not it was checked in.
+    [ ] switches? -- useful for something in salvus? http://www.larentis.eu/switch/    -- settings pages!
+    [ ] settings: whether or not lines wrap in codemirror.
+    [ ] failing to create a new project due to connection error, doesn't give a good error.
+    [ ] fail: os.chdir("/home/wstein/explicit"); g = require('/home/wstein/explicit/go2.sage')
+    [ ] require: leaves .pyc files laying around
+
+    [ ] worksheet: selecting range of cells.... that includes a section...
+    [ ] worksheet: ensure can insert cells everywhere, e.g., in new sections
+
+    [ ] investigate : http://jschr.github.com/textillate/index.html
+    [ ] idea: use overlay.js from codemirror to highlight %latex
+
+    [ ] single cell: re-enable single cell (see account.html)
+
+    [ ] hub: "ulimit -n" keep hitting this in testing -- https://github.com/sockjs/sockjs-node/issues/94
+        I need to (1) up the number i
+               /etc/security/limits.conf
+        on servers, and *two*
+        make sure to clean up after file descriptors *much* more vigilantly -- I do nothing now.
+
+    [ ] better compression wih clojure? http://closure-compiler.appspot.com/
+
+    [ ] consider removing  jquery.transit plugin if I don't end up using it.
+
+    [ ] 3d idea: mathbox https://github.com/unconed/MathBox.js
+
+    [ ] 3d CSS investigation one.
+           -- http://www.clicktorelease.com/code/css3dclouds/#
+           -- http://www.netmagazine.com/features/20-stunning-examples-css-3d-transforms
+           -- jQuery plugin for 3d transforms; I could use this to easily (?) implement
+              a 3d viewer??? https://github.com/rstacruz/jquery.transit
+              I've included it by default in salvus.
+        I should do a very, very simple proof of concept 3d renderer showing all the pieces.
+          input: a JSON object that describes a 3d scene in terms of primitives.
+              For starters, our only primitive will be a black triangle given by
+                  coordinates of the 3 vertices.  worry about normal later.
+Here's the trivial demo (in 2 cells):
+%html
+<div id="viewport" style="height:5em; border:1px solid black">
+</div>
+
+%coffeescript
+viewport = $("#viewport")
+_triangle = $('<div class="salvus-3d-arrow-up">')
+v = []
+viewport.empty()
+triangle = (v1, v2, v3) ->
+ i = Math.random()*100
+ _triangle.clone().css(rotateY:10*i, rotateX:20*i, translate: [20+5*Math.random(), 30+10*Math.random()]).appendTo(viewport)
+for i in [1...10000]
+ triangle()
+
+
+
+    [ ] code decorator bug or issue: this fails do to locals/scoping issues.   I think this is fixable with some very careful thought, but there
+        are much more important issues, as this is only a problem do to me making % code decorators way more powerful.
+def f(n,m):
+    %time n/m
+f(2,3)
+
+@interact
+def f(n=[10,100,500], m=[10,100,500]):
+    %timeit n*m
+
+
+
+    [ ] build bug: salvus/salvus/data/local/etc/tinc doesn't get created.
+
+
+
+
+WILD AND CRAZY IDEAS
+
+    [ ] code decorator: %mat -- easy way to make a matrix?
+def mat(s):
+    globals()['m'] = matrix(2,[1,2,3,4])
+%mat m 1,2;3,4 GF(7)
+
+

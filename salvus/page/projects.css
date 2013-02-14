@@ -1,5 +1,6 @@
 .your-projects-title {
     font-size: 18pt;
+    font-weight:bold;
     line-height: 18pt;
 }
 
@@ -17,7 +18,18 @@
     background-color:lightyellow;
 }
 
+.projects-title {
+    font-weight: bold;
+}
+
 .projects-last_edited, .projects-description {
     color: #666;
 }
 
+.projects-find-input {
+}
+
+.projects-active {
+    color:red;
+    font-size:13pt;
+}

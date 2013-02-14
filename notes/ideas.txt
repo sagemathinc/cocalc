@@ -1,3 +1,30 @@
+[ ] embed worksheets in pdf --
+
+       Can you provide a brief sketch of how, along with links?  I can
+       tie this together for Salvus (a new Sage notebook style
+       project, from scratch, that I've been working on for the last 6
+       months) -- I'm spending quite a bit of time every day working
+       on Salvus, and a lot of what I'm doing is a lot more work than
+       what you're asking for above.  By designing this in from the
+       start, it'll be easier than adding it later.
+        --> I wrote example code for this 4 years ago or so and put it up on trac:
+            http://trac.sagemath.org/sage_trac/ticket/4825
+
+
+[ ] interacts, from jason:  https://mail.google.com/mail/u/0/?shva=1#inbox/13be165887dec055
+   "And here's a version that uses underscore.js's throttle function to give better interactivity (by not overwhelming the server with update requests):
+http://aleph.sagemath.org/?q=42838fa4-2d54-406d-bea3-7ed531f96312&lang=sage"
+
+[ ] from harald, keyboard shortcuts -- "no, maybe through some 3rd
+    party extensions. but there is one shortcut which is valid for all
+    of them: "?" which pops up a nice overview :-) i searched a bit
+    ,there seems to be even an ecosystem of tools, that help you
+    learning the shortcuts. e.g. keyrocket for gmail:
+    https://chrome.google.com/webstore/detail/keyrocket-for-gmail/dmocchgkijnbjdjkmlglaemjhhdiobbp?hl=en-US
+    ... http://www.veodin.com/keyrocket/ or something similar for
+    salvus!?  but i guess, that's not high on your priority list, but
+    interesting nontheless that such tools exist."
+
 [ ] diagram library/web app -- http://www.jgraph.com/; very impressive javascript implementation; also very expensive.
 
 [ ] I could easily install the "compute_server" on *any* computer

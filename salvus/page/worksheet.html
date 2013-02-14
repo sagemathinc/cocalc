@@ -1,8 +1,32 @@
 <span id="salvus-worksheet-templates" class="hide">
   <div class="salvus-worksheet">
-    <div class="well hide salvus-worksheet-countdown pull-right" rel="tooltip" title="Time until this session expires and the backend process terminates."></div>
-    <h2 class="salvus-worksheet-title" contenteditable="true"></h2>
-    <h4 class="salvus-worksheet-description" contenteditable="true"></h4>
+
+    <div class="salvus-worksheet-controls row">
+	<input type="text" class="salvus-worksheet-filename span3 pull-right" placeholder="Choose a filename..."></input>
+      <div class="span3">
+	<a href="#save" class="btn btn-info"><i class="icon-save"></i> Save</a>
+	<a href="#section" class="btn">Section</a>
+      </div>
+    </div>
+
+    <div class="well hide salvus-worksheet-countdown pull-right" rel="tooltip"
+                title="Time until this session expires and the backend process terminates."></div>
+
+    <h1 class="salvus-worksheet-title" contenteditable="true"></h1>
+
+    <h3 class="salvus-worksheet-description" contenteditable="true"></h3>
+
     <div class="salvus-worksheet-cells"></div>
+
   </div>
+
+  <div class="salvus-worksheet-section">
+    <div class="salvus-worksheet-section-title">
+      <i class="icon-caret-down salvus-worksheet-section-hide"></i>
+      <i class="icon-caret-right hide salvus-worksheet-section-show"></i>
+      <span class="salvus-worksheet-section-title-user" contenteditable="true">Section</span>
+    </div>
+    <div class="salvus-worksheet-section-cells"></div>
+  </div>
+
 </span>

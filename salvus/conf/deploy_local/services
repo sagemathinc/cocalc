@@ -2,7 +2,7 @@
 
 #  import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts
 
-[cassandra] {'cluster_name':'salvus1'}
+[cassandra] {'cluster_name':'salvus1', 'commitlog_total_space_in_mb':'512'}
 localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 
 [nginx]

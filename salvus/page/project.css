@@ -1,18 +1,204 @@
+.project-file-tools {
+    margin-left:2em;
+}
+
 .project-file-link {
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
+    /* height:1.7em; */
+    padding-top:5px;
+    padding-left:15px;
+    padding-right:15px;
+    padding-bottom:0px;
 }
 
 .project-file-link:hover {
     background-color:#efe;
 }
 
+.project-file-name {
+
+}
+
+.project-directory-name {
+
+}
+
+.project-directory-link {
+    background-color:#ffffff;
+    margin-top:0px;
+    margin-bottom:0px;
+/*    height:1.7em; */
+    padding-top:5px;
+    padding-left:15px;
+    padding-right:15px;
+    padding-bottom:0px;
+}
+
+.project-directory-link:hover {
+    background-color:#efe;
+}
+
+
 .project-project_title {
     font-size:18pt;
+}
+
+.project-search-form-input {
+    width:20em;
+}
+
+.project-search-output  {
+    background-color:white;
+    font-family:monospace;
+}
+
+.project-search-output-command {
+   background-color:white;
+   font-family:monospace;
+   font-size:10pt;
+   color:#888;
 }
 
 .project-project_description {
     font-size:12pt;
     color: #666;
 }
+
+.project-file-listing-cwd {
+    background-color:#fff;
+    font-size:12pt;
+    font-weight:bold;
+}
+
+.project-file-listing-file-list {
+    margin:2em;
+}
+
+.project-commits-branch {
+    font-weight:bold;
+    width:12ex;
+}
+
+.project-commit-single-message {
+    font-size: 12pt;
+    font-weight: bold;
+}
+
+.project-commit-single-author {
+    font-size: 9pt;
+}
+
+.project-commit-single-date {
+    font-size: 9pt;
+}
+
+
+.project-commit-single-sha {
+    font-family: monospace;
+    font-size: 9pt;
+}
+
+.project-commit-single {
+    background-color:#ffffff;
+    margin-top:0px;
+    margin-bottom:0px;
+}
+
+.project-commit-single:hover {
+    background-color:#efe;
+}
+
+.project-branch-single {
+    background-color:#ffffff;
+    margin-top:0px;
+    margin-bottom:0px;
+}
+
+.project-branch-single-current {
+    background-color:#9f9;
+}
+
+
+.project-branch-single-name {
+    font-weight:bold;
+}
+
+.project-file-listing-current_path {
+    margin-left:25px;
+}
+
+.project-move-path-dialog-filename {
+    background-color:#fff;
+    padding:5px;
+    border: 1px solid #aaa;
+}
+
+
+.project-command-line-input {
+    margin-top:0em;
+    margin-left:2em;
+    width:70%;
+}
+
+.project-command-line-stdout {
+    margin-left:2em;
+    background-color:#fff;
+    color:#333;
+    font-size:10pt;
+    max-height:12em;
+    overflow:auto;
+}
+.project-command-line-stderr {
+    margin-left:2em;
+    background-color:#fff;
+    color:#922;
+    font-size:10pt;
+    max-height:12em;
+    overflow:auto;
+}
+
+.project-id {
+    color:#666;
+    margin-right:2ex;
+    font-size:10pt;
+    font-family:monospace;
+}
+
+
+.project-commit-message-input {
+    width:100%;
+}
+
+.project-commit-command-input {
+    width:100%;
+}
+
+.project-commit-message-output {
+    background-color:#fff;
+    color:#e87011;
+    padding:1em;
+    border: solid 1px red;
+    width:100%;
+}
+
+.project-git-status-output {
+    background-color:#fff;
+    border: 2px solid #99f;
+    box-shadow: 4px 4px 2px #bbf;
+    max-height:16em;
+    overflow:auto;
+    width:100%;
+    padding:1em;
+}
+
+.project-commit-command-output {
+    background-color:#fff;
+    color:#222;
+    padding:1em;
+    border: solid 1px blue;
+    width:100%;
+}
+
+

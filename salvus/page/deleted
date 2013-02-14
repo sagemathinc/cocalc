@@ -1,3 +1,78 @@
+    render_file_display: (path, cb) =>
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : "cat"
+            args       : [path]
+            timeout    : 3
+            max_output : 100000
+            cb         : (err, output) =>
+                if err
+                    cb($("<div>").html(err))
+                else
+                    cb($("<pre style='background-color:#fff; padding:2ex; margin-left:2ex;'>").text(output.stdout))
+
+    xxx_render_file_display: (path, cb) =>
+        salvus_client.read_text_file_from_project
+            project_id : @project.project_id
+            timeout : 3
+            path : path
+            cb : (err, mesg) ->
+                if err
+                    cb($("<div>").html("Unable to load file..."))
+                else if mesg.event == 'error'
+                    cb($("<div>").html(mesg.error))
+                else
+                    cb($("<pre style='background-color:#fff; padding:2ex; margin-left:2ex;'>").text(mesg.content))
+
+
+# jQuery mod for detecting DOC removal
+# See http://stackoverflow.com/questions/2200494/jquery-trigger-event-when-an-element-is-removed-from-the-dom
+# Usage:   $('.thing').bind('destroyed', () -> )
+$.event.special.destroyed =
+    remove: (o) ->
+        if o.handler
+            o.handler()
+
+
+
+    _next_cell0 : (cell) ->
+        next = cell.element.next()
+        if next.length == 0
+            elt = cell.element.parent().closest(".salvus-unit")
+            n = elt.next()
+            if n.length == 0
+                elt = elt.parent().closest(".salvus-unit")
+            else
+                elt = n
+        else
+            elt = next
+        while elt.length > 0
+            if elt.hasClass("salvus-cell")
+                return elt.data("cell")
+            n = elt.find(".salvus-cell")
+            if n.length > 0
+                return $(n[0]).data("cell")
+            n = elt.next()
+            if n.length == 0
+                elt = elt.parent().closest(".salvus-unit")
+            else
+                elt = n
+
+
+        prev = cell.element.prev()
+        if prev.length == 0
+            elt = cell.element.parent().closest(".salvus-unit").prev()
+        else
+            elt = prev
+        while elt.length > 0
+            if elt.hasClass("salvus-cell")
+                return elt.data("cell")
+            n = elt.find(".salvus-cell")
+            if n.length > 0
+                return $(n[n.length-1]).data("cell")
+            n = elt.prev()
+            if n.length == 0
+                elt = elt.parent().closest(".salvus-unit").prev()
         if IS_ANDROID
             submit = (ev) =>
                 alert(ev.keyCode)

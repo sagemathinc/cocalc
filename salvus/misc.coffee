@@ -13,6 +13,9 @@ exports.merge = (dest, objs ...) ->
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
 
+# Returns a random integer in the range, inclusive (like in Python)
+exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
+
 # modifies target in place, so that the properties of target are the
 # same as those of upper_bound, and each is <=.
 exports.min_object = (target, upper_bounds) ->
@@ -181,4 +184,22 @@ exports.deep_copy = (obj) ->
         newInstance[key] = exports.clone obj[key]
 
     return newInstance
+
+# Split a pathname.  Returns an object {head:..., tail:...} where tail is
+# everything after the final slash.  Either part may be empty.
+# (Same as os.path.split in Python.)
+exports.path_split = (path) ->
+    v = path.split('/')
+    return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
+
+
+exports.trunc = (s, max_length) ->
+    if not max_length?
+        max_length = 1024
+    if s.length > max_length
+        return s.slice(0,max_length-3) + "..."
+    else
+        return s
+
+exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
 
