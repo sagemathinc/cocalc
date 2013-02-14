@@ -9839,9 +9839,12 @@ debug: BUG *********************************************************************
 
     [x] (0:16) project storage optimizations: run "git gc" first.; took a long time to convince myself this worked, but instant to write
 
-    [ ] project_server.coffee -- make it wait until .git/index.lock does not exist before running a git command
+    [x] (1:35) project storage optimizations: keep refreshing bundle until it exceeds a size threshold
 
-    [ ] project storage optimizations: keep refreshing bundle until it exceeds a size threshold
+    [ ] in hub:                 # TODO
+                save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
+
+    [ ] (0:12) project_server.coffee -- make it wait until .git/index.lock does not exist before running a git command
 
 
     [ ] file browser: gui must clearly warn users about files that won't be saved (yet).

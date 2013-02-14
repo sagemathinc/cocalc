@@ -1292,7 +1292,7 @@ class Project
         ], cb)
 
     # Save the project to the database.  This involves saving at least
-    # zero (!) bundles to the project_bundles table.
+    # zero (!) bundles to the project_bundles uuid:blob table.
     save: (opts) -> # cb(err) -- indicates when done
         opts = defaults opts,
             account_id : undefined  # required only if commit_mesg is given

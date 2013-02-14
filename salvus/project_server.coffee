@@ -60,6 +60,8 @@ userpath = (project_id) ->
 bundlepath = (project_id) ->
     return "#{userpath(project_id)}/.git/salvus/bundles"
 
+tmppath = (project_id) ->
+    return "#{userpath(project_id)}/.git/salvus/tmp"
 
 # Check for dangerous characters in a string.
 BAD_SHELL_INJECTION_CHARS = '<>|,;$&"\''
@@ -228,6 +230,8 @@ extract_bundles = (project_id, bundles, cb) ->
         (c) ->
             fs.mkdir("#{repo_path}/.git/salvus", 0o700, c)
         (c) ->
+            fs.mkdir(tmppath(project_id), 0o700, c)
+        (c) ->
             winston.debug("Write script to get listing")
             fs.writeFile("#{repo_path}/.git/salvus/git-ls", gitls, c)
         (c) ->
@@ -356,7 +360,7 @@ exec_as_user = (opts) ->
     home = userpath(opts.project_id)
 
     if opts.bash
-        tmpfilename = "/#{bundlepath(opts.project_id)}/#{uuid.v4()}"
+        tmpfilename = "/#{home}/.git/salvus/tmp/#{uuid.v4()}"
     else
         s = opts.command.split(/\s+/g) # split on whitespace
         if opts.args.length == 0 and s.length > 1
@@ -586,6 +590,21 @@ commit = (opts) ->
     )
 
 
+get_last_bundle_filename = (project_id, cb) ->   # cb(err, name)
+    path = bundlepath(project_id)
+    exec_as_user  # TODO: do it directly in node instead of shell...
+        project_id : project_id
+        command    : "ls -1 #{path}|sort -n|tail -1"
+        bash       : true
+        cb         : (err, output) ->
+            if err
+                cb(err)
+            else
+                name = output.stdout.slice(0,output.stdout.length-1)     # get rid of trailing \n
+                if name == ""
+                    cb(false, undefined)
+                else
+                    cb(false, path + '/' + name)
 
 # Save the project
 events.save_project = (socket, mesg) ->
@@ -595,6 +614,8 @@ events.save_project = (socket, mesg) ->
         id             : mesg.id
         bundle_uuids   : {}
 
+    remade_last_bundle = false
+    last_bundle_filename = undefined
     tasks    = []
     async.series([
         # Commit everything first, if requested
@@ -609,6 +630,10 @@ events.save_project = (socket, mesg) ->
             else
                 cb()
 
+        # NOTE: It is important to garbage collect, make bundles,
+        # etc., because the user may have typed "git commit"
+        # explicitly themselves a few times before save is called.
+
         # Garbage collect the git repo, since we are about to call
         # diffbundler, and we do not want to store non garbage collected
         # data in the database forever.
@@ -619,6 +644,39 @@ events.save_project = (socket, mesg) ->
                 cb         : (err, output) ->
                     winston.debug(misc.to_json(output))
                     cb(err)
+
+        # If the last bundle is below a certain size threshhold,
+        # delete it, since we'll be recreating it.  First, get name of the file:
+        (cb) ->
+            winston.debug("save_project -- delete last bundle if it is too small.")
+            get_last_bundle_filename mesg.project_id, (err, name) ->
+                if err
+                    cb(err)
+                else
+                    last_bundle_filename = name
+                    cb()
+
+        (cb) ->
+            winston.debug("Actually delete the last file, if necessary")
+            if not last_bundle_filename?  # no bundles yet
+                winston.debug("No last bundle file.")
+                cb()
+            else
+                # get size
+                winston.debug("getting size")
+                fs.lstat last_bundle_filename, (err, stats) ->
+                    if err
+                        winston.debug("error -- #{err}")
+                        cb(err)
+                    else
+                        winston.debug("got: #{err}, #{stats.size}")
+                        if stats.size <= mesg.bundle_size_threshold
+                            winston.debug("Last bundle is too small, os deleting it.")
+                            remade_last_bundle = true
+                            fs.unlink(last_bundle_filename, cb)
+                        else
+                            winston.debug("Leaving it and moving on to the next one.")
+                            cb()
 
         # If necessary (e.g., there were changes) create an additional
         # bundle containing these changes
@@ -644,6 +702,12 @@ events.save_project = (socket, mesg) ->
                     cb(err)
                 else
                     n = mesg.starting_bundle_number
+                    # If we remade the last bundle, then we subtract 1
+                    # to ensure that the last bundle is resent (this
+                    # is slightly sloppy; in rare cases this could
+                    # result in needlessly sending another bundle).
+                    if remade_last_bundle
+                        n -= 1
                     while "#{n}.diffbundle" in files
                         winston.debug("Sending '#{n}.diffbundle'")
                         id = uuid.v4()

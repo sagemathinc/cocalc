@@ -597,7 +597,7 @@ class ProjectPage
         # Update the display of the path above the listing or file preview
         @update_current_path()
         spinner = @container.find(".project-file-listing-spinner")
-        
+
         timer = setTimeout( (() -> spinner.show().spin()), 300 )
 
         # focus on the command line
@@ -611,6 +611,7 @@ class ProjectPage
                 clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err)
+                    console.log('a', err)
                     alert_message(type:"error", message:err)
                     return
 

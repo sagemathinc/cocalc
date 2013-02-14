@@ -533,6 +533,7 @@ message
     commit_mesg            : undefined   # If given, do a commit first
     author                 : undefined   # needed by project_server
     add_all                : false       # if true and *all* files before saving.
+    bundle_size_threshold  : 5000000     # Only make a new bundle when current bundle exceeds this size
 
 # The project_saved message is sent to a hub by a project_server when
 # the project_servers creates a new snapshot of the project in
