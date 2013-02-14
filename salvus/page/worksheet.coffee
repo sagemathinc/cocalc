@@ -517,7 +517,7 @@ class Worksheet extends EventEmitter
                 else
                     cb()
         ], (err) =>
-            if err
+            if err and err.indexOf('nothing to commit') == -1
                 alert_message(type:"error", message:"Failed to save worksheet to #{path} -- #{err}")
             else
                 @has_unsaved_changes(false)

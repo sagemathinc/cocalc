@@ -63,6 +63,9 @@ bundlepath = (project_id) ->
 tmppath = (project_id) ->
     return "#{userpath(project_id)}/.git/salvus/tmp"
 
+git0 = (project_id) ->
+    return "/home/#{username(project_id)}/.git/salvus/git0"
+
 # Check for dangerous characters in a string.
 BAD_SHELL_INJECTION_CHARS = '<>|,;$&"\''
 has_bad_shell_chars = (s) ->
@@ -75,6 +78,7 @@ has_bad_shell_chars = (s) ->
 # Script for computing git-enhanced ls of a path
 gitls   = fs.readFileSync('scripts/git-ls')
 diffbundler   = fs.readFileSync('scripts/diffbundler')
+git0_script   = fs.readFileSync('scripts/git0')
 
 # Verify that path really describes something that would be a
 # directory under userpath, rather than a shell injection attack
@@ -241,6 +245,11 @@ extract_bundles = (project_id, bundles, cb) ->
             fs.writeFile("#{repo_path}/.git/salvus/diffbundler", diffbundler, c)
         (c) ->
             fs.chmod("#{repo_path}/.git/salvus/diffbundler", 0o777, c)
+        (c) ->
+            winston.debug("Write wrapped git command")
+            fs.writeFile("#{repo_path}/.git/salvus/git0", git0_script, c)
+        (c) ->
+            fs.chmod("#{repo_path}/.git/salvus/git0", 0o777, c)
     ]
 
     if misc.len(bundles) > 0
@@ -550,7 +559,7 @@ commit = (opts) ->
                 cb()
             exec_as_user
                 project_id : opts.project_id
-                command    : 'git'
+                command    : git0(opts.project_id)
                 args       : ['add', '--all']
                 cb         : (err, output) ->
                     if err or output.exit_code
@@ -560,7 +569,7 @@ commit = (opts) ->
         (cb) ->
             exec_as_user
                 project_id : opts.project_id
-                command    : 'git'
+                command    : git0(opts.project_id)
                 args       : ['status']
                 cb         : (err, output) ->
                     if err or output.exit_code
@@ -575,7 +584,7 @@ commit = (opts) ->
         (cb) ->
             exec_as_user
                 project_id : opts.project_id
-                command    : 'git'
+                command    : git0(opts.project_id)
                 args       : ['commit', '-a', '-m', opts.commit_mesg, "--author", opts.author]
                 cb         : (err, output) ->
                     if err or output?.exit_code
@@ -640,7 +649,7 @@ events.save_project = (socket, mesg) ->
         (cb) ->
             exec_as_user
                 project_id : mesg.project_id
-                command    : 'git gc'   # do not do --aggressive, because it doesn't scale well, and has little payoff
+                command    : "#{git0(mesg.project_id) } gc"   # do not do "--aggressive", because it doesn't scale well, and has little payoff
                 cb         : (err, output) ->
                     winston.debug(misc.to_json(output))
                     cb(err)
@@ -671,7 +680,7 @@ events.save_project = (socket, mesg) ->
                     else
                         winston.debug("got: #{err}, #{stats.size}")
                         if stats.size <= mesg.bundle_size_threshold
-                            winston.debug("Last bundle is too small, os deleting it.")
+                            winston.debug("Last bundle is below size threshold, so recreating it.")
                             remade_last_bundle = true
                             fs.unlink(last_bundle_filename, cb)
                         else
