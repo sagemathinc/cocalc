@@ -56,6 +56,12 @@ class Worksheet extends EventEmitter
 
         @_init_section_button()
         @_init_filename_save()
+        @_init_show_code_button()
+        @_init_hide_code_button()
+        @_init_show_note_button()
+        @_init_hide_note_button()
+        @_init_show_output_button()
+        @_init_hide_output_button()
 
 
         if @opts.content?
@@ -238,6 +244,67 @@ class Worksheet extends EventEmitter
                     for x in group
                         section_cells.append(x.element)
                 group = []
+
+    _init_hide_code_button: () =>
+        @element.find("a[href=#hide-code]").click () =>
+            @_hide_code()
+            return false
+
+    _init_show_code_button: () =>
+        @element.find("a[href=#show-code]").click () =>
+            @_show_code()
+            return false
+
+    _hide_code: () =>
+        for c in @cells()
+            if c.checkbox()
+                c.hide('editor')
+
+    _show_code: () =>
+        for c in @cells()
+            if c.checkbox()
+                c.show('editor')
+
+    _init_hide_note_button: () =>
+        @element.find("a[href=#hide-note]").click () =>
+            @_hide_note()
+            return false
+
+    _init_show_note_button: () =>
+        @element.find("a[href=#show-note]").click () =>
+            @_show_note()
+            return false
+
+    _hide_note: () =>
+        for c in @cells()
+            if c.checkbox()
+                c.hide('note')
+
+    _show_note: () =>
+        for c in @cells()
+            if c.checkbox()
+                c.show('note')
+
+
+    _init_hide_output_button: () =>
+        @element.find("a[href=#hide-output]").click () =>
+            @_hide_output()
+            return false
+
+    _init_show_output_button: () =>
+        @element.find("a[href=#show-output]").click () =>
+            @_show_output()
+            return false
+
+    _hide_output: () =>
+        for c in @cells()
+            if c.checkbox()
+                c.hide('output')
+
+    _show_output: () =>
+        for c in @cells()
+            if c.checkbox()
+                c.show('output')
 
     _focus_cell : (cell) ->
         if @_current_cell?

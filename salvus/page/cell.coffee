@@ -770,13 +770,16 @@ class Cell extends EventEmitter
     # component) if it was hidden; this does not impact which
     # components are hidden/shown.
     show: (e) ->
+        console.log("SHOW")
         if not e?
+            console.log(1)
             @element.show()
             return
         switch e
             when 'note'
                 @_note.show()
             when 'editor'
+                @element.find(".salvus-cell-input").show()
                 $(@_editor.getWrapperElement()).show()
                 @_editor.refresh()
             when 'output'

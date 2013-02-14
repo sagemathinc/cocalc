@@ -9843,6 +9843,9 @@ debug: BUG *********************************************************************
 
     [x] (1:00) project_server.coffee -- make it wait until .git/index.lock does not exist before running a git command
 
+    [ ] dangerous dedup idea: make the uuid key for the blob store a hash of the blob, so repeatedly storing the same blob doesn't cost at all.... but
+        then deleting it must be instead "take max of lifetime" cause multiple users will have shared blobs.   INTERESTING.
+
     [ ] in hub:                 # TODO
                 save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
 
