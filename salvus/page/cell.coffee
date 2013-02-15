@@ -58,7 +58,7 @@ class Cell extends EventEmitter
             # whether to do bracket matching in the code editor
             editor_match_brackets : true
             # css maximum height of code editor (scroll bars appear beyond this)
-            editor_max_height     : "40em"
+            editor_max_height     : "30em"
 
             keys                  :
                 # key that causes code to be executed
@@ -75,7 +75,7 @@ class Cell extends EventEmitter
             # maximum height of output (scroll bars appear beyond this)
             output_max_height     : "40em"
             # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
-            output_line_wrapping  : false
+            output_line_wrapping  : true
             # show output stopwatch during code evaluation.
             stopwatch             : true
 
@@ -286,7 +286,7 @@ class Cell extends EventEmitter
             'overflow-wrap': 'break-word'
 
     _output_line_wrapping_off: ->
-        @_output.removeClass('white-space word-wrap overflow-wrap')
+        @_output.removeClass('word-wrap overflow-wrap').css('white-space':'pre')
 
     _interrupt: =>
         if @element.find('.salvus-cell-stopwatch').hasClass('salvus-cell-stopwatch-running')

@@ -819,13 +819,13 @@ events.read_file_from_project = (socket, mesg) ->
             winston.debug("Hash = #{id}")
             cb()
 
-        (cb) ->
-            winston.debug("Send hash of file to hub to see whether or not we really need to send the file itself; it might already be known.")
-            cb()
+        # (cb) ->
+        #     winston.debug("Send hash of file to hub to see whether or not we really need to send the file itself; it might already be known.")
+        #     cb()
 
-        (cb) ->
-            winston.debug("Get message back from hub -- do we send file or not?")
-            cb()
+        # (cb) ->
+        #     winston.debug("Get message back from hub -- do we send file or not?")
+        #     cb()
 
 
         (cb) ->

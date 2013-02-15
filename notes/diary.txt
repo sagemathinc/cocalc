@@ -9873,6 +9873,8 @@ debug: BUG *********************************************************************
 
     [x] (0:18) monkey patch (or otherwise change) the default figsize for plots to actually make sense for salvus.  it is way, way too big by default.
 
+    [x] (0:06) cells: tweak height and wordwrap option and make it on by default.
+
     [ ] try to make worksheet/etc save on refresh or leave page!  Kind of critical...
 
     [ ] replace " (this temporary link expires in a minute)" with an actual countdown timer (easy to do, right?!) -- this comes from, e.g., salvus.file('foo.sage')

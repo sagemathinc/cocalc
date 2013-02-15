@@ -57,7 +57,7 @@
 
 .salvus-cell-output {
     background-color : #fff; /* #fafafa; */
-    overflow-y       : auto;
+    /*overflow-y       : auto; */
     overflow-x       : auto;
     margin-left      : 2em;
     padding          : 1ex;
