@@ -1,6 +1,11 @@
 {defaults, to_json} = require("misc")
 
 types = ['error', 'default', 'success', 'info']
+default_timeout =
+    error   : 5
+    default : 2
+    success : 2
+    info    : 3
 
 $("#alert-templates").hide()
 
@@ -9,7 +14,9 @@ exports.alert_message = (opts={}) ->
         type    : 'default'
         message : defaults.required
         block   : undefined
-        timeout : 2  # time in seconds
+        timeout : undefined  # time in seconds
+    if not opts.timeout?
+        opts.timeout = default_timeout[opts.type]
 
     $.pnotify
         title : ""

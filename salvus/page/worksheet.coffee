@@ -83,11 +83,15 @@ class Worksheet extends EventEmitter
         if not @opts.path?
             @_set_default_path()
 
-    chdir: (path) =>
+        @_last_path = @opts.path
+
+    chdir: (path, cb) =>
         @opts.session.execute_code
+            # os.chdir(os.environ['HOME']); os.makedirs(salvus.data['path']) if not os.path.exists(salvus.data['path']) else None; 
             code     : "os.chdir(salvus.data['path'])"
             data     : {path: path}
             preparse : false
+            cb       : (err) -> cb?(err)
 
     #######################################################################
     # Private Methods
@@ -557,14 +561,19 @@ class Worksheet extends EventEmitter
 
     # Save the worksheet to the given path.
     save: (path) =>
-        if path == ""
+        if path == "" or not path?
             alert_message(type:'error', message:"You must enter a filename in order to save your worksheet.")
             return
         if filename_extension(path) != 'salvus'
             path += '.salvus'
-        @emit "save", path
         obj = @to_obj()
         async.series([
+            (cb) =>
+                salvus_client.makedirs
+                    project_id : @opts.project_id
+                    path       : dirname(path)
+                    cb         : cb
+
             (cb) =>
                 salvus_client.write_text_file_to_project
                     project_id : @opts.project_id
@@ -577,8 +586,12 @@ class Worksheet extends EventEmitter
                     project_id : @opts.project_id
                     path       : path
                     author     : require('account').account_settings.git_author()
-                    message    : "Worksheet: '#{@get_title()}'"
+                    message    : "Save worksheet '#{path}'"
                     cb         : cb
+            (cb) =>
+                # notify anyone who cares that a successful save with a given path took place
+                @emit "save", path
+                cb()
             (cb) =>
                 # TODO: save new git commit back to database -- but we will probably remove this later; too aggressive
                 salvus_client.save_project
@@ -602,11 +615,27 @@ class Worksheet extends EventEmitter
                                 cb()
                 else
                     cb()
+
+            (cb) =>
+                # If path changed since the last successful save, delete that previous path.
+                if @_last_path? and path != @_last_path
+                    salvus_client.remove_file_from_project
+                        project_id : @opts.project_id
+                        path       : @_last_path
+                        cb         : cb
+                else
+                    cb()
+
+            (cb) =>
+                @chdir(dirname(path))
+                cb()
+
         ], (err) =>
             if err and err.indexOf('nothing to commit') == -1
                 alert_message(type:"error", message:"Failed to save worksheet to #{path} -- #{err}")
             else
                 @has_unsaved_changes(false)
+            @_last_path = path
         )
 
 
@@ -638,6 +667,7 @@ class Worksheet extends EventEmitter
     # convert worksheet to object
     to_obj: () =>
         obj =
+            type        : 'worksheet'
             title       : @get_title()
             description : @get_description()
             content     : (@_to_obj(c) for c in @_cells.children())

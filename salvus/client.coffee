@@ -796,17 +796,17 @@ class exports.Connection extends EventEmitter
                     path       : opts.path
             cb : opts.cb
 
-    remove_file_from_project: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : required
-        @call
-            message :
-                message.remove_file_from_project
-                    project_id : opts.project_id
-                    path       : opts.path
-            cb : opts.cb
+    # remove_file_from_project: (opts) ->
+    #     opts = defaults opts,
+    #         project_id : required
+    #         path       : required
+    #         cb         : required
+    #     @call
+    #         message :
+    #             message.remove_file_from_project
+    #                 project_id : opts.project_id
+    #                 path       : opts.path
+    #         cb : opts.cb
 
     move_file_in_project: (opts) ->
         opts = defaults opts,
@@ -893,9 +893,75 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code})
 
+    makedirs: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : undefined      # (err)
+        @exec
+            project_id : opts.project_id
+            command    : 'mkdir'
+            args       : ['-p', opts.path]
+            cb         : opts.cb
+
+    remove_file_from_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : undefined      # (err)
+        @exec
+            project_id : opts.project_id
+            command    : 'rm'
+            args       : ['-rf', opts.path]
+            cb         : opts.cb
+
     #################################################
     # Git Commands
     #################################################
+
+    git_remove_file: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            author     : required
+            message    : undefined
+            cb         : undefined      # (err)
+
+        if not opts.message?
+            opts.message = "Remove '#{opts.path}'"
+
+        async.series([
+            (cb) =>
+                @exec
+                    project_id : opts.project_id
+                    command    : '.git/salvus/git0'
+                    args       : ['rm', '-rf', opts.path]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(output.stdout + output.stderr)
+                        else
+                            cb()
+            (cb) =>
+                # We commit just the file that changed.
+                @exec
+                    project_id : opts.project_id
+                    command    : '.git/salvus/git0'
+                    args       : ["commit", "-a", "-m", opts.message, "--author", opts.author]
+                    cb         : (err, output) ->
+                        if err
+                            cb(err)
+                        else if output.exit_code
+                            cb(err + " -- " + misc.to_json(output))
+                        else
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb("Error removing '#{opts.path}' -- #{err}")
+            else
+                opts.cb()
+        )
 
     git_commit_file: (opts) =>
         # Save just this one file in its own commit to the local git repo.

@@ -9875,14 +9875,24 @@ debug: BUG *********************************************************************
 
     [x] (0:06) cells: tweak height and wordwrap option and make it on by default.
 
-    [ ] (0:07) worksheet: buttons at top to control checkbox state -- all/none/hide. -- at least put a checkbox icon next to "all"
+    [x] (0:07) worksheet: buttons at top to control checkbox state -- all/none/hide. -- at least put a checkbox icon next to "all"
 
+    [x] (1:38) worksheet: changing name should save, then move.; and chdir.
+
+    [x] (0:01) salvus obj filetype -- needs a type:'worksheet', etc.  so I can have foo.salvus be many possible things.
 
     [ ] file browser: implement support for directory download
     [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
     [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.
     [ ] worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
 
+    [ ] in hub:                 # TODO
+                save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
+
+    [ ] way to create a new worksheet **in a directory **
+
+    [ ] investigatee making control bar for worksheet fixed at top like top_navbar.
+        use bootstrap-dropdown.js to add a menu in the top navbar that includes all group of cell actions as well.
 
 
     [ ] worksheet: delete section heading could be:
@@ -9897,11 +9907,6 @@ debug: BUG *********************************************************************
     [ ] projects list: the shutdown, download, etc., -- should be controlled by a checkbox.
 
     [ ] ability to get/set value of note/editor/output components of a cell.  See code template in place in sage_server.py
-
-    [ ] in hub:                 # TODO
-                save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
-
-    [ ] way to create a new worksheet **in a directory **
 
     [ ] file browser: gui must clearly warn users about files that won't be saved (yet).
 
