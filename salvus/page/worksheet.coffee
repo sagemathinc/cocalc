@@ -62,7 +62,7 @@ class Worksheet extends EventEmitter
         @_init_hide_note_button()
         @_init_show_output_button()
         @_init_hide_output_button()
-
+        @_init_check_all_button()
 
         if @opts.content?
             # Set the contents of the worksheet, then *delete* this
@@ -305,6 +305,21 @@ class Worksheet extends EventEmitter
         for c in @cells()
             if c.checkbox()
                 c.show('output')
+
+
+
+    _init_check_all_button: () =>
+        @element.find("a[href=#check-all]").click () =>
+            @_check_all()
+            return false
+
+    _check_all: () =>
+        if @_check_all_last?
+            @_check_all_last = not @_check_all_last
+        else
+            @_check_all_last = true
+        for c in @cells()
+            c.checkbox(@_check_all_last)
 
     _focus_cell : (cell) ->
         if @_current_cell?

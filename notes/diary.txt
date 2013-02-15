@@ -9851,12 +9851,16 @@ debug: BUG *********************************************************************
 
     [ ] worksheet: buttons at top to control checkbox state -- all/none/hide.
 
+    [ ] cell mode: %auto -- special case!
+
     [ ] codemirror editor highlighting: make it so % modes can change highlighting.
 
     [ ] dangerous dedup idea: make the uuid key for the blob store a hash of the blob, so repeatedly storing the same blob doesn't cost at all.... but
         then deleting it must be instead "take max of lifetime" cause multiple users will have shared blobs.   INTERESTING.
 
     [ ] project: (idea, maybe bad) move contents of ".git" to ".salvus" and put .salvus in gitignore.  Then it will be dead easy to just replace ".git" by a new repo.
+
+    [ ] projects list: the shutdown, download, etc., -- should be controlled by a checkbox.
 
     [ ] in hub:                 # TODO
                 save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
