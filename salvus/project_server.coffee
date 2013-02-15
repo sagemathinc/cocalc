@@ -27,6 +27,8 @@ daemon         = require 'start-stop-daemon'
 net            = require 'net'
 fs             = require 'fs'
 uuid           = require 'node-uuid'
+crypto         = require('crypto')
+
 
 async          = require 'async'
 
@@ -773,6 +775,7 @@ events.read_file_from_project = (socket, mesg) ->
     path = userpath(mesg.project_id) + '/' + mesg.path
     winston.debug("** the path = ", path)
     is_directory = undefined
+    id = undefined
     async.series([
         (cb) ->
             winston.debug("Check that the path is valid (in the user's directory).")
@@ -802,11 +805,28 @@ events.read_file_from_project = (socket, mesg) ->
                         cb()
             else
                 cb()
+
+
         (cb) ->
             winston.debug("Read the file into memory.")
             fs.readFile path, (err, _data) ->
                 data = _data
                 cb(err)
+
+        (cb) ->
+            winston.debug("Compute hash of file.")
+            id = misc_node.uuidsha1(data)
+            winston.debug("Hash = #{id}")
+            cb()
+
+        (cb) ->
+            winston.debug("Send hash of file to hub to see whether or not we really need to send the file itself; it might already be known.")
+            cb()
+
+        (cb) ->
+            winston.debug("Get message back from hub -- do we send file or not?")
+            cb()
+
 
         (cb) ->
             if is_directory
@@ -816,12 +836,11 @@ events.read_file_from_project = (socket, mesg) ->
                 cb()
         (cb) ->
             winston.debug("Finally, we send the file as a blob back to the hub.")
-            id = uuid.v4()
             socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id)
             socket.write_mesg 'blob', {uuid:id, blob:data}
             cb()
     ], (err) ->
-        if err
+        if err and err != 'file already known'
             socket.write_mesg 'json', message.error(id:mesg.id, error:err)
     )
 

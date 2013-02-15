@@ -46,6 +46,21 @@ LIMITS = {'cputime':60, 'walltime':60, 'vmem':2000, 'numfiles':1000, 'quota':128
 #log = logging.getLogger('sage_server')
 #log.setLevel(logging.INFO)
 
+import hashlib
+def uuidsha1(data):
+    sha1sum = hashlib.sha1()
+    sha1sum.update(data)
+    s = sha1sum.hexdigest()
+    t = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+    r = list(t)
+    j = 0
+    for i in range(len(t)):
+        if t[i] == 'x':
+            r[i] = s[j]; j += 1
+        elif t[i] == 'y':
+            r[i] = hex( (int(s[j],16)&0x3) |0x8)[-1]; j += 1
+    return ''.join(r)
+
 # A tcp connection with support for sending various types of messages, especially JSON.
 class ConnectionJSON(object):
     def __init__(self, conn):
@@ -62,13 +77,13 @@ class ConnectionJSON(object):
     def send_json(self, m):
         self._send('j' + json.dumps(m))
 
-    def send_blob(self, uuid, blob):
-        uuid = str(uuid)
-        assert len(uuid) == 36
+    def send_blob(self, blob):
+        uuid = uuidsha1(blob)
         self._send('b' + uuid + blob)
+        return uuid
 
-    def send_file(self, uuid, filename):
-        self.send_blob(uuid, open(filename).read())  # TODO: could stream instead of reading into memory...
+    def send_file(self, filename):
+        return self.send_blob(open(filename, 'rb').read())
 
     def _recv(self, n):
         #print "_recv(%s)"%n
@@ -344,8 +359,7 @@ class Salvus(object):
         If show=False, also returns the url.  This can be useful for
         constructing custom HTML that directly accesses blobs.
         """
-        file_uuid = str(uuid.uuid4())
-        self._conn.send_file(file_uuid, filename)
+        file_uuid = self._conn.send_file(filename)
         self._flush_stdio()
         self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
         if not show:
@@ -594,9 +608,11 @@ class Salvus(object):
             del sys.path[0]
         return module
 
-    def _import_file(self, filename, content, **opts):
-        base,ext = os.path.splitext(filename)
-        py_file_base = str(uuid.uuid4()).replace('-','_')
+    def _import_code(self, content, **opts):
+        while True:
+            py_file_base = str(uuid.uuid4()).replace('-','_')
+            if not os.path.exists(py_file_base + '.py'):
+                break
         try:
             open(py_file_base+'.py', 'w').write(content)
             import sys
@@ -607,17 +623,18 @@ class Salvus(object):
                 del sys.path[0]
         finally:
             os.unlink(py_file_base+'.py')
+            os.unlink(py_file_base+'.pyc')
         return mod
 
     def _sage(self, filename, **opts):
         import sage.misc.preparser
         content = "from sage.all import *\n" + sage.misc.preparser.preparse_file(open(filename).read())
-        return self._import_file(filename, content, **opts)
+        return self._import_code(content, **opts)
 
     def _spy(self, filename, **opts):
         import sage.misc.preparser
         content = "from sage.all import Integer, RealNumber, PolynomialRing\n" + sage.misc.preparser.preparse_file(open(filename).read())
-        return self._import_file(filename, content, **opts)
+        return self._import_code(content, **opts)
 
     def _py(self, filename, **opts):
         return __import__(filename)

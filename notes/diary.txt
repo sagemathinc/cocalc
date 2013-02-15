@@ -9854,18 +9854,36 @@ debug: BUG *********************************************************************
         I will instead just first implement "%auto" at start of cell.
        (and) code decorator: %hide, %hideall
 
-    [ ] (0:06) Write a coffeescript "strip_string_literals" (??) -- spent time evaluating this; do-able, but maybe should avoid, since will be work for client
+    [x] (0:10) require: leaves .pyc files laying around
 
-    [ ] dedup idea: make the uuid key for the blob store a hash of the blob, so repeatedly storing the same blob doesn't cost at all.... but
+
+    [x] (2:00) de-dup idea: make the uuid key for the blob store a hash of the blob, so repeatedly storing the same blob doesn't cost at all.... but
         then deleting it must be instead "take max of lifetime" cause multiple users will have shared blobs.   INTERESTING.
+        Issues:
+             - this uuid stuff happens in both project_server and in sage_server.py (in send_file/send_blob), so have to code in 2 places/languages
+             - better worry about getting false data from sage_server or possibly project server, so hub should recompute the hash.
+
+       [x] (1:45) STEP 1: *only* reduce storage by switching clients to use sha1-based uuid
+             * for project_server.
+             * for sage server
+
+    [ ] try to make worksheet/etc save on refresh or leave page!  Kind of critical...
+
+    [ ] replace " (this temporary link expires in a minute)" with an actual countdown timer (easy to do, right?!) -- this comes from, e.g., salvus.file('foo.sage')
+
+    [ ] project_server/hub/bundles: I just noticed that when it resends a bundle it is using a new uuid.  The result *might* be that
+        we never ever delete the bundles we are over-writing.  That would be very bad.   FIX.
+
+        We could name the diffbundle uuid based on the project id *and* its number and things would take care of themselves.
+        Subprojects would have their own id's.
 
     [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.
+
+    [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
 
     [ ] %coffeescript mode -- tab/versus spaces and codemirror seem to cause major trouble!  notice in for loop
 
     [ ] worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
-
-    [ ] cell: double click output to reveal editor code (?) -- at least make it a configurable action.
 
     [ ] worksheet: buttons at top to control checkbox state -- all/none/hide.
 
@@ -10213,13 +10231,32 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] settings: whether or not lines wrap in codemirror.
     [ ] failing to create a new project due to connection error, doesn't give a good error.
     [ ] fail: os.chdir("/home/wstein/explicit"); g = require('/home/wstein/explicit/go2.sage')
-    [ ] require: leaves .pyc files laying around
 
     [ ] worksheet: selecting range of cells.... that includes a section...
     [ ] worksheet: ensure can insert cells everywhere, e.g., in new sections
 
 
-IDEAS... needed
+IDEAS...
+
+      [ ] STEP 2 (later commit): reduce network, by first checking for object hash before resaving. Might or might not use this message.  Be sure to update ttl...
+message
+    event        : 'blob_status'
+    id           : required
+    uuid         : required
+    is_known     : undefined
+
+This is worrisome/complicated, so leave it for later!
+    [ ] feature idea -- cell annotation (another component like acrobat notes?)
+
+
+    [ ] cell: double click output to reveal editor code (?) -- at least make it a configurable action.
+
+
+
+    [ ] (0:06) Write a coffeescript "strip_string_literals" (??) -- spent time evaluating this; do-able, but maybe should avoid, since will be work for client
+        Use this to make %auto more flexible, say.
+
+
     [ ] worksheet: need a way to do cross-worksheet linking...
 
     [ ] investigate : http://jschr.github.com/textillate/index.html

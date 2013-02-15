@@ -616,6 +616,7 @@ message
     id           : required
     data_uuid    : required  # The project_server will send the raw data of the file as a blob with this uuid.
 
+
 # hub --> client
 message
     event        : 'temporary_link_to_file_read_from_project'

@@ -109,3 +109,21 @@ exports.disable_mesg = (socket) ->
         socket.removeListener('data', socket._listen_for_mesg)
         delete socket._listen_for_mesg
 
+
+# Compute a uuid v4 from the Sha-1 hash of data.
+crypto = require('crypto')
+exports.uuidsha1 = (data) ->
+    sha1sum = crypto.createHash('sha1')
+    sha1sum.update(data)
+    s = sha1sum.digest('hex')
+    i = -1
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) ->
+        i += 1
+        switch c
+            when 'x'
+                return s[i]
+            when 'y'
+                # take 8 + low order 3 bits of hex number.
+                return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
+    )
+
