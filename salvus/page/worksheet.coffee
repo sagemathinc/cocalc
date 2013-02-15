@@ -318,6 +318,10 @@ class Worksheet extends EventEmitter
             @_check_all_last = not @_check_all_last
         else
             @_check_all_last = true
+        if @_check_all_last
+            $("a[href=#check-all]").find('i').addClass('icon-check').removeClass('icon-check-empty')
+        else
+            $("a[href=#check-all]").find('i').addClass('icon-check-empty').removeClass('icon-check')
         for c in @cells()
             c.checkbox(@_check_all_last)
 

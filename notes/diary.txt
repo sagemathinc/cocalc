@@ -9875,21 +9875,24 @@ debug: BUG *********************************************************************
 
     [x] (0:06) cells: tweak height and wordwrap option and make it on by default.
 
+    [ ] (0:07) worksheet: buttons at top to control checkbox state -- all/none/hide. -- at least put a checkbox icon next to "all"
+
+
+    [ ] file browser: implement support for directory download
+    [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
+    [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.
+    [ ] worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
+
+
+
+    [ ] worksheet: delete section heading could be:
+          (1) a button, *and* (2) caused by just deleting content of heading
+
     [ ] try to make worksheet/etc save on refresh or leave page!  Kind of critical...
 
     [ ] replace " (this temporary link expires in a minute)" with an actual countdown timer (easy to do, right?!) -- this comes from, e.g., salvus.file('foo.sage')
 
-    [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.
-
-    [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
-
     [ ] %coffeescript mode -- tab/versus spaces and codemirror seem to cause major trouble!  notice in for loop
-
-    [ ] worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
-
-    [ ] worksheet: buttons at top to control checkbox state -- all/none/hide.
-
-    [ ] codemirror editor highlighting: make it so % modes can change highlighting.
 
     [ ] projects list: the shutdown, download, etc., -- should be controlled by a checkbox.
 
