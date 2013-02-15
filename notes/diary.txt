@@ -9812,9 +9812,7 @@ Trace
     at process.EventEmitter.emit (events.js:126:20)
 debug: BUG ****************************************************************************
 
-    [ ] diffbundler: doesn't clean up tmp.  UGLY!
-
-    [ ] project storage strategy -- think this through:
+    [x] project storage strategy -- think this through:
 
  - Using diffbundler with *many* small commits does not scale.  It's 20
    seconds for 400 commits.  This what I designed and implemented now
@@ -9842,6 +9840,8 @@ debug: BUG *********************************************************************
     [x] (1:35) project storage optimizations: keep refreshing bundle until it exceeds a size threshold
 
     [x] (1:00) project_server.coffee -- make it wait until .git/index.lock does not exist before running a git command
+
+    [x] (0:04) diffbundler: doesn't clean up tmp.  ===> it turns out that this was fixed in upgrading diffbundler. 
 
     [ ] worksheet: need a way to do cross-worksheet linking...
 
@@ -9926,6 +9926,7 @@ def f(n=[1,2,3]):
     [ ] worksheet: auto-restart when session dies, with notification
 
     [ ] worksheet: delete trailing whitespace menu option?
+
 
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
