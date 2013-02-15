@@ -9841,9 +9841,27 @@ debug: BUG *********************************************************************
 
     [x] (1:00) project_server.coffee -- make it wait until .git/index.lock does not exist before running a git command
 
-    [x] (0:04) diffbundler: doesn't clean up tmp.  ===> it turns out that this was fixed in upgrading diffbundler. 
+    [x] (0:04) diffbundler: doesn't clean up tmp.  ===> it turns out that this was fixed in upgrading diffbundler.
 
-    [ ] worksheet: need a way to do cross-worksheet linking...
+    [x] BAD --project: (idea, maybe bad) move contents of ".git" to ".salvus" and put .salvus in gitignore.  Then it will be dead easy to just replace ".git" by a new repo.
+        This would break the save model, cause havoc, etc. -- the right solution is to fully support subprojects.
+
+    [x] (1:10) cell mode: %auto -- special case!;  if I cell line begins with %auto, and it is not in a string, run that cell....
+        *OR* instead could just have a message as part of output rendering which is "evaluate this cell again on load",
+        then make %auto use this... so it only has an impact if it has been used once... and it could be enabled in other ways.
+        NO, too flakie.  Will be confusing, esp., if one deletes all output.
+        I need to write a javascript version of "strip_string_literals", anyways.
+        I will instead just first implement "%auto" at start of cell.
+       (and) code decorator: %hide, %hideall
+
+    [ ] (0:06) Write a coffeescript "strip_string_literals" (??) -- spent time evaluating this; do-able, but maybe should avoid, since will be work for client
+
+    [ ] dedup idea: make the uuid key for the blob store a hash of the blob, so repeatedly storing the same blob doesn't cost at all.... but
+        then deleting it must be instead "take max of lifetime" cause multiple users will have shared blobs.   INTERESTING.
+
+    [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.
+
+    [ ] %coffeescript mode -- tab/versus spaces and codemirror seem to cause major trouble!  notice in for loop
 
     [ ] worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
 
@@ -9851,16 +9869,11 @@ debug: BUG *********************************************************************
 
     [ ] worksheet: buttons at top to control checkbox state -- all/none/hide.
 
-    [ ] cell mode: %auto -- special case!
-
     [ ] codemirror editor highlighting: make it so % modes can change highlighting.
 
-    [ ] dangerous dedup idea: make the uuid key for the blob store a hash of the blob, so repeatedly storing the same blob doesn't cost at all.... but
-        then deleting it must be instead "take max of lifetime" cause multiple users will have shared blobs.   INTERESTING.
-
-    [ ] project: (idea, maybe bad) move contents of ".git" to ".salvus" and put .salvus in gitignore.  Then it will be dead easy to just replace ".git" by a new repo.
-
     [ ] projects list: the shutdown, download, etc., -- should be controlled by a checkbox.
+
+    [ ] ability to get/set value of note/editor/output components of a cell.  See code template in place in sage_server.py
 
     [ ] in hub:                 # TODO
                 save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
@@ -9882,9 +9895,6 @@ debug: BUG *********************************************************************
     [ ] worksheet: they must have "pages", like a spreadsheet has pages.  This would be a boon to organization.
 
     [ ] worksheet title tab: needs a spinner when there is action (css icon?) or javascript spinner...?
-
-    [ ] code decorator: %hide
-    [ ] code decorator: %hideall
 
     [ ] file editor: do I need to just merge this in with "Sessions" or "Consoles"?; is it too confusing/complicated
         being separate.  Actually, pull the stuff from consoles to this, since editor seems right.  And,
@@ -9979,9 +9989,6 @@ It's http://bugs.python.org/issue7985 -- see
     [ ] no projects -- a message about what to do
     [ ] no worksheets -- a message about what to do
 
-    [ ] %coffeescript mode -- tab/versus spaces and codemirror seem to cause major trouble!  notice in for loop
-
-
     [ ] project: download complete project as a zip/tar
            * ui = button in upper right with download icon
            * ui = little button next to each project on projects page
@@ -9989,7 +9996,7 @@ It's http://bugs.python.org/issue7985 -- see
              I don't need a new message.
            * result should have username (uuid) at top level of archive.
            * what format to use??   .tar.bz2?  .zip?  BOTH and let client decide...
-           * don't include the .git/salvus directory
+           * don't include the .git/salvus directory (?)
 
     [ ] project download options:
            * archive type: tar, tar.bz2, etc.
@@ -10210,6 +10217,10 @@ def f(reset  = button('Randomize', classes="btn-primary"),
 
     [ ] worksheet: selecting range of cells.... that includes a section...
     [ ] worksheet: ensure can insert cells everywhere, e.g., in new sections
+
+
+IDEAS... needed
+    [ ] worksheet: need a way to do cross-worksheet linking...
 
     [ ] investigate : http://jschr.github.com/textillate/index.html
     [ ] idea: use overlay.js from codemirror to highlight %latex

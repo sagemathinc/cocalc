@@ -118,9 +118,15 @@ class Cell extends EventEmitter
             for e in @opts.hide
                 @hide(e)
 
+        @_execute_if_auto()
+
     #######################################################################
     # Private Methods
     #######################################################################
+
+    _execute_if_auto: () ->
+        if $.trim(@input()).slice(0,5) == '%auto'
+            @execute()
 
     _initialize_checkbox: () ->
         @_checkbox = @element.find(".salvus-cell-checkbox").find("input")
@@ -686,7 +692,7 @@ class Cell extends EventEmitter
         obj =
             id     : @opts.id
             note   : @_note.data('raw')
-            input  : @_editor.getValue()
+            input  : @input()
             output : @_persistent_output_messages
 
         if not obj.note or obj.note.length == 0
@@ -770,7 +776,6 @@ class Cell extends EventEmitter
     # component) if it was hidden; this does not impact which
     # components are hidden/shown.
     show: (e) ->
-        console.log("SHOW")
         if not e?
             console.log(1)
             @element.show()
@@ -784,6 +789,11 @@ class Cell extends EventEmitter
                 @_editor.refresh()
             when 'output'
                 @_output.show()
+            when 'checkbox'
+                @element.find(".salvus-cell-checkbox").show()
+            when 'insert'
+                @element.find(".salvus-cell-insert-above").show()
+                @element.find(".salvus-cell-insert-below").show()
             else
                 throw "unknown component #{e}"
         return @
@@ -949,7 +959,7 @@ class Cell extends EventEmitter
         if not @opts.session
             throw "Attempt to execute code on a cell whose session has not been set."
         @emit 'execute'
-        code = $.trim(@_editor.getValue())
+        code = $.trim(@input())
         data = undefined
         if code == ""
             # easy special case -- empty input

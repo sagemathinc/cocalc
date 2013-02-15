@@ -5,6 +5,7 @@
     margin           : 10px;
     box-shadow       : 6px 6px 3px #888;
     padding-bottom   : 25px;
+    border-radius: 5px;
  /*   overflow: auto;
     max-height: 40em; */
 }

@@ -378,7 +378,7 @@ class Salvus(object):
         salvus.execute_with_code_decorators is used when evaluating code blocks that are set to any non-default code_decorator.
         """
         import inspect
-        if isinstance(code_decorators, str):
+        if isinstance(code_decorators, (str, unicode)):
             code_decorators = [code_decorators]
 
         if preparse:
@@ -401,7 +401,7 @@ class Salvus(object):
             if code is None:
                 code = ''
 
-        if code != '' and isinstance(code, str):
+        if code != '' and isinstance(code, (str, unicode)):
             self.execute(code, preparse=preparse)
 
         for code_decorator in code_decorators:
@@ -635,6 +635,15 @@ class Salvus(object):
         if ext == ".py":
             return self._py(filename, **opts)
         raise NotImplementedError("require file of type %s not implemented"%ext)
+
+    def note(self, id, val=None):
+        raise NotImplementedError
+
+    def editor(self, id, val=None):
+        raise NotImplementedError
+
+    def output(self, id, val=None):
+        raise NotImplementedError
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
@@ -940,7 +949,9 @@ def serve(port, host):
     exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
 
-    for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython', 'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show']:
+    for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
+                 'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
+                 'hide', 'hideall', 'cell']:
         namespace[name] = getattr(sage_salvus, name)
 
     t = time.time()

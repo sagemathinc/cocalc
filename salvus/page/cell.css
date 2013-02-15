@@ -45,12 +45,14 @@
     min-height       : 1.5em;
     border           : 3px solid #e0e0e0;
     margin-left      : 1em;
+    border-radius: 5px;
 }
 
 .salvus-cell-input-selected {
     min-height       : 1.5em;
     border: 3px solid #99f;
-    box-shadow: 3px 3px 1px #bbf;
+    border-radius: 5px;
+    /*box-shadow: 3px 3px 1px #bbf; */
 }
 
 .salvus-cell-output {
