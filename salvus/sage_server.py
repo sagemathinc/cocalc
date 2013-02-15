@@ -957,13 +957,18 @@ def serve(port, host):
     # Monkey patch the html command.
     sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
 
+    # Set a useful figsize default; the matplotlib one is not notebook friendly.
+    import sage.plot.graphics
+    sage.plot.graphics.Graphics.SHOW_OPTIONS['figsize']=[8,4]
+
     # Monkey patch latex.eval, so that %latex works in worksheets
     sage.misc.latex.latex.eval = sage_salvus.latex0
 
     # Doing an integral start embedded ECL; unfortunately, it can
     # easily get put in a broken state after fork that impacts future forks... ?
     #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
-    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy" in namespace
+
+    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy;" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
 
     for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
