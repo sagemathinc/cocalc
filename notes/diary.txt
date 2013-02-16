@@ -9901,6 +9901,10 @@ debug: BUG *********************************************************************
 
     [x] (1:30) math in title and subtitle of worksheet; first steps toward "salvus math-enabled jquery plugin" for uniform editing.
 
+    [x] disable "create branch" input form
+
+    [ ] unify "sessions" and "editor"
+
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
           - diff/change events

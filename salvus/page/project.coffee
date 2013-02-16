@@ -212,9 +212,9 @@ class ProjectPage
 
         # Make it so typing something into the "create a new branch..." box
         # makes a new branch.
-        @container.find(".project-branches").find('form').submit () ->
-            that.branch_op(branch:$(@).find("input").val(), op:'create')
-            return false
+        #@container.find(".project-branches").find('form').submit () ->
+        #    that.branch_op(branch:$(@).find("input").val(), op:'create')
+        #    return false
 
         file_tools = @container.find(".project-file-tools")
 
