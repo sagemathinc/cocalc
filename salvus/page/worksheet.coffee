@@ -54,6 +54,8 @@ class Worksheet extends EventEmitter
         @_current_cell = @_append_new_cell()
         @_focus_cell(@_current_cell)
 
+        @_init_check_all_button()
+        @_init_execute_cells_button()
         @_init_section_button()
         @_init_filename_save()
         @_init_show_code_button()
@@ -62,7 +64,6 @@ class Worksheet extends EventEmitter
         @_init_hide_note_button()
         @_init_show_output_button()
         @_init_hide_output_button()
-        @_init_check_all_button()
 
         if @opts.content?
             # Set the contents of the worksheet, then *delete* this
@@ -260,14 +261,12 @@ class Worksheet extends EventEmitter
             return false
 
     _hide_code: () =>
-        for c in @cells()
-            if c.checkbox()
-                c.hide('editor')
+        for c in @selected_cells()
+            c.hide('editor')
 
     _show_code: () =>
-        for c in @cells()
-            if c.checkbox()
-                c.show('editor')
+        for c in @selected_cells()
+            c.show('editor')
 
     _init_hide_note_button: () =>
         @element.find("a[href=#hide-note]").click () =>
@@ -280,14 +279,12 @@ class Worksheet extends EventEmitter
             return false
 
     _hide_note: () =>
-        for c in @cells()
-            if c.checkbox()
-                c.hide('note')
+        for c in @selected_cells()
+            c.hide('note')
 
     _show_note: () =>
-        for c in @cells()
-            if c.checkbox()
-                c.show('note')
+        for c in @selected_cells()
+            c.show('note')
 
 
     _init_hide_output_button: () =>
@@ -301,14 +298,12 @@ class Worksheet extends EventEmitter
             return false
 
     _hide_output: () =>
-        for c in @cells()
-            if c.checkbox()
-                c.hide('output')
+        for c in @selected_cells()
+            c.hide('output')
 
     _show_output: () =>
-        for c in @cells()
-            if c.checkbox()
-                c.show('output')
+        for c in @selected_cells()
+            c.show('output')
 
 
 
@@ -328,6 +323,15 @@ class Worksheet extends EventEmitter
             $("a[href=#check-all]").find('i').addClass('icon-check-empty').removeClass('icon-check')
         for c in @cells()
             c.checkbox(@_check_all_last)
+
+    _init_execute_cells_button: () =>
+        @element.find("a[href=#execute-cells]").click () =>
+            @_execute_cells()
+            return false
+
+    _execute_cells: () =>
+        for c in @selected_cells()
+            c.execute()
 
     _focus_cell : (cell) ->
         if @_current_cell?
@@ -355,7 +359,8 @@ class Worksheet extends EventEmitter
             last = elt
 
 
-    _append_new_cell: () -> @_insert_new_cell(location:'end')
+    _append_new_cell: () ->
+        @_insert_new_cell(location:'end')
 
     _new_cell: (obj) =>
         opts = copy(@opts.cell_opts)
@@ -366,6 +371,9 @@ class Worksheet extends EventEmitter
             opts.id = uuid()
 
         cell = new Cell(opts)
+
+        cell.on 'focus', =>
+            @_last_focused_cell = cell
 
         cell.on 'execute-running', =>
             @element.addClass("salvus-worksheet-running")
@@ -551,6 +559,14 @@ class Worksheet extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    selected_cells: () =>
+        # Return array of all cells with checkboxes, or if there are none checked,
+        # return the last focused cell.
+        v = (c for c in @cells() when c.checkbox())
+        if v.length == 0 and @_last_focused_cell?
+            v = [@_last_focused_cell]
+        return v
 
     worksheet_is_open: () =>
         return @element.closest(document.documentElement).length > 0
