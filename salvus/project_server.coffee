@@ -81,6 +81,7 @@ has_bad_shell_chars = (s) ->
 gitls   = fs.readFileSync('scripts/git-ls')
 diffbundler   = fs.readFileSync('scripts/diffbundler')
 git0_script   = fs.readFileSync('scripts/git0')
+shell_completions_script   = fs.readFileSync('scripts/shell_completions.py')
 
 # Verify that path really describes something that would be a
 # directory under userpath, rather than a shell injection attack
@@ -247,11 +248,18 @@ extract_bundles = (project_id, bundles, cb) ->
             fs.writeFile("#{repo_path}/.git/salvus/diffbundler", diffbundler, c)
         (c) ->
             fs.chmod("#{repo_path}/.git/salvus/diffbundler", 0o777, c)
+
         (c) ->
             winston.debug("Write wrapped git command")
             fs.writeFile("#{repo_path}/.git/salvus/git0", git0_script, c)
         (c) ->
             fs.chmod("#{repo_path}/.git/salvus/git0", 0o777, c)
+
+        (c) ->
+            winston.debug("Write wrapped git command")
+            fs.writeFile("#{repo_path}/.git/salvus/shell_completions.py", shell_completions_script, c)
+        (c) ->
+            fs.chmod("#{repo_path}/.git/salvus/shell_completions.py", 0o777, c)
     ]
 
     if misc.len(bundles) > 0

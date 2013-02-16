@@ -9884,8 +9884,13 @@ debug: BUG *********************************************************************
     [x] (0:52) worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
 
     [ ] file browser: implement support for directory download
-
     [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
+
+    [ ] standard bashrc that includes running bash, colors, ". /etc/bash_completion", etc.!
+
+    [ ] command line completions functionality
+    [ ] command line in browser: tab completion
+
 
 
 
@@ -10083,8 +10088,6 @@ It's http://bugs.python.org/issue7985 -- see
 
     [ ] try to open a worksheet and console with net suddenly severed.  Get this displayed under console tab:
         "Loading worksheet... Timeout after 15 seconds".   Also, the worksheet tab doesn't have any label at all.
-
-    [ ] command line in browser: tab completion
 
     [ ] file browser: implement actions with files
     [ ] file browser: actually implement paging through pages of files!
