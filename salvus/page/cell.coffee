@@ -15,6 +15,8 @@
 {alert_message} = require('alerts')
 
 
+COMPONENTS = ['note', 'editor', 'output', 'checkbox', 'insert-above', 'insert-below']
+
 # templates
 templates     = $("#salvus-cell-templates")
 cell_template = templates.find(".salvus-cell")
@@ -36,7 +38,7 @@ class Cell extends EventEmitter
             # initial value of the output area (JSON)
             output                : undefined
 
-            # subarray of ['note','editor','output', 'checkbox', 'insert']; if given, hides
+            # subarray of COMPONENTS (see definition at top of this file); if given, hides
             # the given components when the cell is created
             hide                  : undefined
 
@@ -688,20 +690,27 @@ class Cell extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
+    hidden_components: () =>
+        # return list of components of the cell that have been hidden
+        return (c for c in COMPONENTS when not @component(c).is(":visible"))
+
     to_obj: () =>
         obj =
             id     : @opts.id
             note   : @_note.data('raw')
             input  : @input()
             output : @_persistent_output_messages
+            hide   : @hidden_components()
 
+        # optimize-- could do during construction...
         if not obj.note or obj.note.length == 0
             delete obj.note
         if not obj.input or obj.input.length == 0
             delete obj.input
         if not obj.output or obj.output.length == 0
             delete obj.output
-
+        if obj.hide? and obj.hide.length == 0
+            delete obj.hide
         return obj
 
     checkbox: (checked) =>
@@ -768,6 +777,23 @@ class Cell extends EventEmitter
             @_input.removeClass("salvus-cell-input-selected")
         return @
 
+    component: (e) ->
+        if not e?
+            return @element
+        switch e
+            when 'note'
+                return @_note
+            when 'editor'
+                return @element.find(".salvus-cell-input")
+            when 'output'
+                return @_output
+            when 'checkbox'
+                return @element.find(".salvus-cell-checkbox")
+            when 'insert-above'
+                return @element.find(".salvus-cell-insert-above")
+            when 'insert-below'
+                return @element.find(".salvus-cell-insert-below")
+
     # Show an individual component of the cell:
     #
     #       cell.show("note"), cell.show("editor"), cell.show("output").
@@ -776,27 +802,10 @@ class Cell extends EventEmitter
     # component) if it was hidden; this does not impact which
     # components are hidden/shown.
     show: (e) ->
-        if not e?
-            console.log(1)
-            @element.show()
-            return
-        switch e
-            when 'note'
-                @_note.show()
-            when 'editor'
-                @element.find(".salvus-cell-input").show()
-                $(@_editor.getWrapperElement()).show()
-                @_editor.refresh()
-            when 'output'
-                @_output.show()
-            when 'checkbox'
-                @element.find(".salvus-cell-checkbox").show()
-            when 'insert'
-                @element.find(".salvus-cell-insert-above").show()
-                @element.find(".salvus-cell-insert-below").show()
-            else
-                throw "unknown component #{e}"
-        return @
+        c = @component(e).show()
+        if e == 'editor'
+            @_editor.refresh()
+        return c
 
     # Hide an individual component of the cell --
     #
@@ -806,24 +815,7 @@ class Cell extends EventEmitter
     # component); this does not impact which individual components are
     # hidden/shown.
     hide: (e) ->
-        if not e?
-            @element.hide()
-            return
-        switch e
-            when 'note'
-                @_note.hide()
-            when 'editor'
-                @element.find(".salvus-cell-input").hide()
-            when 'output'
-                @_output.hide()
-            when 'checkbox'
-                @element.find(".salvus-cell-checkbox").hide()
-            when 'insert'
-                @element.find(".salvus-cell-insert-above").hide()
-                @element.find(".salvus-cell-insert-below").hide()
-            else
-                throw "unknown component #{e}"
-        return @
+        return @component(e).hide()
 
     delete_output: () ->
         # Delete the array of all received output messages

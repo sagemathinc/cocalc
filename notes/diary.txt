@@ -9881,10 +9881,15 @@ debug: BUG *********************************************************************
 
     [x] (0:01) salvus obj filetype -- needs a type:'worksheet', etc.  so I can have foo.salvus be many possible things.
 
+    [x] (0:52) worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
+
     [ ] file browser: implement support for directory download
+
     [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
+
+
+
     [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.
-    [ ] worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
 
     [ ] in hub:                 # TODO
                 save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
