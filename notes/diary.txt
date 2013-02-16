@@ -9899,9 +9899,23 @@ debug: BUG *********************************************************************
              [x] (0:10) on project open, do "modtimes --restore"; before project close, do "modtimes --save"
              [x] (1:03) make scripts/modtimes actually work and test; it can do the "git add; git commit" on its data file.
 
+    [x] (1:30) math in title and subtitle of worksheet; first steps toward "salvus math-enabled jquery plugin" for uniform editing.
+
+    [ ] make a salvus math-enabled jQuery plugin for *uniformity*
+        this *will* be the wysiwig editor, but start small!
+          - diff/change events
+          - mathjax typesetting
+          - tab/shift-enter event
+          - shift-tab event
+          - cursor on top/bottom edge events
+          - mini-buttons?
+          - paste as plain text; pasting html is annoying.
+          - \sage{...} like in sagetex, which caches result; will specially highlight part computing until done: embedded compute stuff ==> *very* interesting!
+
+
+
     [ ] refactor project_server copy files from scripts directory stuff.
 
-    [ ] math in title and subtitle of worksheet
 
     [ ] file browser: implement support for directory download
     [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
@@ -9990,17 +10004,6 @@ def f(n=[1,2,3]):
 
     [ ] worksheet: delete trailing whitespace menu option?
 
-
-    [ ] make a salvus math-enabled jQuery plugin for *uniformity*
-        this *will* be the wysiwig editor, but start small!
-          - diff/change events
-          - mathjax typesetting
-          - tab/shift-enter event
-          - shift-tab event
-          - cursor on top/bottom edge events
-          - mini-buttons?
-          - paste as plain text; pasting html is annoying.
-          - \sage{...} like in sagetex, which caches result; will specially highlight part computing until done: embedded compute stuff ==> *very* interesting!
 
 
 

@@ -122,12 +122,24 @@ class Worksheet extends EventEmitter
                 elt.data("last", h)
 
     _init_title: () =>
+        title = @element.find(".salvus-worksheet-title")
         @set_title(@opts.title)
-        @_monitor_for_changes(@element.find(".salvus-worksheet-title"))
+
+        title.make_editable
+            onchange : (obj, diff) -> # TODO: do something with this.
+                console.log(obj, diff)
+
+        @_monitor_for_changes(title)
+
 
     _init_description: () =>
+        description = @element.find(".salvus-worksheet-description")
+
         @set_description(@opts.description)
-        @_monitor_for_changes(@element.find(".salvus-worksheet-description"))
+        @_monitor_for_changes(description)
+
+        description.make_editable
+            onchange: (obj, diff) ->  # TODO: do something with this.
 
     _init_session_ping: () =>
         # Ping as long as the worksheet_is_open method returns true.
@@ -254,6 +266,8 @@ class Worksheet extends EventEmitter
             section = @_new_section()
             @has_unsaved_changes(true)
             section.insertBefore(group[0].element)
+            section.find(".salvus-worksheet-section-title-user").make_editable()  # do not call until object is visible.
+
             section_cells = section.find(".salvus-worksheet-section-cells")
             for x in group
                 section_cells.append(x.element)
@@ -545,7 +559,7 @@ class Worksheet extends EventEmitter
         c = $(c)
         if c.hasClass("salvus-worksheet-section")
             # It is a section
-            title = c.find(".salvus-worksheet-section-title-user").html()
+            title = c.find(".salvus-worksheet-section-title-user").data('raw')
             content = (@_to_obj(d) for d in $(c.find(".salvus-worksheet-section-cells")[0]).children())
             return {title: title,  content: content, id:c.attr("id")}
         else
@@ -561,6 +575,7 @@ class Worksheet extends EventEmitter
                 section = @_new_section(id: c.id, title:c.title)
                 section_cells = section.find(".salvus-worksheet-section-cells")
                 elt.append(section)
+                section.find(".salvus-worksheet-section-title-user").make_editable()  # do not call until object is visible.
                 # Now append the cells (and sections) inside this section
                 @_append_content(section_cells, c.content)
             else
@@ -726,13 +741,13 @@ class Worksheet extends EventEmitter
         @element.find(".salvus-worksheet-title").html(title)
 
     get_title: () =>
-        @element.find(".salvus-worksheet-title").html()
+        @element.find(".salvus-worksheet-title").data('raw')
 
     set_description: (description) ->
         @element.find(".salvus-worksheet-description").html(description)
 
     get_description: (description) ->
-        @element.find(".salvus-worksheet-description").html()
+        @element.find(".salvus-worksheet-description").data('raw')
 
     set_session: (session) ->
         @opts.session = session

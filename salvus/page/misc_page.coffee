@@ -3,7 +3,7 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-exports.local_diff = (before, after) ->
+local_diff = exports.local_diff = (before, after) ->
     # Return object
     #
     #    {pos:index_into_before, orig:"substring of before starting at pos", repl:"what to replace string by"}
@@ -70,7 +70,7 @@ $.fn.spin = (opts) ->
 
 
 
-# MathJax jQuery plugin
+# MathJax some code -- jQuery plugin
 $.fn.extend
     mathjax: (opts={}) ->
         opts = defaults opts,
@@ -89,5 +89,58 @@ $.fn.extend
                 tex = "\\({#{tex}}\\)"
             element = t.html(tex)
             MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])
+            return t
+
+# Mathjax-enabled Contenteditable Editor plugin
+$.fn.extend
+    make_editable: (opts={}) ->
+        @each () ->
+            opts = defaults opts,
+                onchange : undefined   # function that gets called with a diff when content changes
+                interval : 250         # milliseconds interval between sending update change events about content
+
+            t = $(this)
+            t.attr('contenteditable', true)
+            t.data
+                raw  : t.html()
+                mode : 'view'
+            t.mathjax()
+
+            t.live 'focus', ->
+                if t.data('mode') == 'edit'
+                    return
+                t.data('mode', 'edit')
+                t = $(this)
+                x = t.data('raw')
+                t.html(x).data('before', x)
+                #controls = $("<span class='editor-controls'><br><hr><a class='btn'>bold</a><a class='btn'>h1</a><a class='btn'>h2</a></span>")
+                #t.append(controls)
+
+            t.blur () ->
+                t = $(this)
+                #t.find('.editor-controls').remove()
+                t.data
+                    raw  : t.html()
+                    mode : 'view'
+                t.mathjax()
+
+            t.live 'paste blur keyup', (evt) ->
+                t = $(this)
+                if opts.onchange? and not t.data('change-timer')
+                    t.data('change-timer', true)
+                    setTimeout( (() ->
+                        t.data('change-timer', false)
+                        before = t.data('before')
+                        if t.data('mode') == 'edit'
+                            now = t.html()
+                        else
+                            now = t.data('raw')
+                        if before isnt now
+                            opts.onchange(t, local_diff(before, now))
+                            t.data('before', now)
+                        ),
+                        opts.interval
+                    )
 
 
+            return t

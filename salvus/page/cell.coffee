@@ -144,36 +144,12 @@ class Cell extends EventEmitter
             @emit "insert-new-cell-after"
 
     _initialize_note: () ->
-        # make note fire change event when changed
         @_note = @element.find(".salvus-cell-note")
-        #@_note.tooltip(delay:1000, title:"Write a note about this cell.")
-
-        @_note.data('raw', @opts.note)
-        if @opts.note != ""
-            @_note.html(@opts.note).mathjax()
-
+        @_note.html(@opts.note)
         @_note.css('max-height', @opts.note_max_height)
-        that = @
-        @_note.live('focus', ->
-            t = $(this)
-            x = t.data("raw")
-            t.html(x).data('before', x)
-        ).live('paste blur keyup', (evt) ->
-            if not that._note_change_timer_is_set
-                that._note_change_timer_is_set = true
-                setTimeout( (() ->
-                    that._note_change_timer_is_set = false
-                    before = that._note.data('before')
-                    now    = that._note.html()
-                    if before isnt now
-                        that.emit('change', {'note':local_diff(before, now)})
-                        that._note.data('before', now)
-                    ),
-                    that.opts.note_change_timer
-                )
-        ).blur () ->
-            that._note.data('raw', that._note.html())
-            $(@).mathjax()
+        @_note.make_editable
+            onchange : (obj, diff) =>
+                @emit('change', {'note':diff})
 
     _initialize_input: () ->
         @_input = @element.find(".salvus-cell-input")
