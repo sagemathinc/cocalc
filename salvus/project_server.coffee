@@ -344,6 +344,14 @@ extract_bundles = (project_id, bundles, cb) ->
                 cb         : c
     )
 
+    tasks.push (c) ->
+        winston.debug("**** Restoring modification times ****")
+        exec_as_user
+            project_id : project_id
+            command    : '.git/salvus/modtimes'
+            args       : ['--restore']
+            timeout    : 15
+            cb         : c
 
     # Do all of the tasks laid out above.
     console.log("do #{tasks.length} tasks")
@@ -657,9 +665,9 @@ events.save_project = (socket, mesg) ->
     last_bundle_filename = undefined
     tasks    = []
     async.series([
-        # Commit everything first, if requested
         (cb) ->
             if mesg.commit_mesg?
+                winston.debug("Commit everything first.")
                 commit
                     project_id  : mesg.project_id
                     author      : mesg.author
@@ -668,6 +676,16 @@ events.save_project = (socket, mesg) ->
                     cb          : cb
             else
                 cb()
+
+
+        (cb) ->
+            winston.debug("****   Save modification times.   ****")
+            exec_as_user
+                project_id : mesg.project_id
+                command    : '.git/salvus/modtimes'
+                args       : ['--save']
+                timeout    : 15
+                cb         : cb
 
         # NOTE: It is important to garbage collect, make bundles,
         # etc., because the user may have typed "git commit"

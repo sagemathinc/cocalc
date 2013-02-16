@@ -5,11 +5,13 @@
 The modification times are stored under git in the file .gitmtimes. 
 """
 
+import os
+
 def save_modtimes(path):
-    print "saving modtimes"
+    print "saving modtimes for '%s'"%path
 
 def restore_modtimes(path):
-    print "restoring modtimes"
+    print "restoring modtimes for '%s'"%path
 
 if __name__ == "__main__":
     import argparse
@@ -21,6 +23,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if isinstance(args.path, list):
         args.path = args.path[0]
+
+    if args.path is None:
+        args.path = os.environ['HOME']
 
     if args.save:
         save_modtimes(args.path)

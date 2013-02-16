@@ -9895,9 +9895,8 @@ debug: BUG *********************************************************************
         Stored in .salvus/modtimes.pickle, which is under git (so we don't have to store it separately in the database);
         if it exists -- will be used when restoring project.
         Steps to implement:
-             [ ] (0:10) project_server -- modtimes; write a simple python script called scripts/modtimes that does almost nothing, but takes command line args as below.; and make it so script gets copied over
-             [ ] on project open, do "modtimes --restore"
-             [ ] before project close, do "modtimes --save"   # non-fatal on failure
+             [x] (0:10) project_server -- modtimes; write a simple python script called scripts/modtimes that does almost nothing, but takes command line args as below.; and make it so script gets copied over
+             [x] (0:10) on project open, do "modtimes --restore"; before project close, do "modtimes --save"
              [ ] make scripts/modtimes actually work and test; it can do the "git add; git commit" on its data file.
 
     [ ] refactor project_server copy files from scripts directory stuff.
