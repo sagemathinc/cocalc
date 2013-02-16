@@ -57,6 +57,7 @@ class Worksheet extends EventEmitter
         @_init_check_all_button()
         @_init_execute_cells_button()
         @_init_section_button()
+        @_init_remove_section_button()
         @_init_filename_save()
         @_init_show_code_button()
         @_init_hide_code_button()
@@ -187,7 +188,7 @@ class Worksheet extends EventEmitter
             return false
 
     _init_section_button: () =>
-        @element.find("a[href=#section]").click () =>
+        @element.find("a[href=#create-section]").click () =>
             @_create_section()
             return false
 
@@ -227,6 +228,7 @@ class Worksheet extends EventEmitter
 
     _create_section: () =>
         group = []
+        groups = []
         n = 0
         cells = @cells()
         for c in cells
@@ -242,13 +244,25 @@ class Worksheet extends EventEmitter
             if end_group
                 if group.length > 0
                     # found a new group
-                    section = @_new_section()
-                    @has_unsaved_changes(true)
-                    section.insertBefore(group[0].element)
-                    section_cells = section.find(".salvus-worksheet-section-cells")
-                    for x in group
-                        section_cells.append(x.element)
+                    groups.push(group)
                 group = []
+
+        if groups.length == 0 and @_last_focused_cell?
+            groups = [[@_last_focused_cell]]
+
+        for group  in groups
+            section = @_new_section()
+            @has_unsaved_changes(true)
+            section.insertBefore(group[0].element)
+            section_cells = section.find(".salvus-worksheet-section-cells")
+            for x in group
+                section_cells.append(x.element)
+
+    _init_remove_section_button: () =>
+        @element.find("a[href=#remove-section]").click () =>
+            # TODO
+            alert_message(type:'error', message:"remove-section: not implemented yet")
+            return false
 
     _init_hide_code_button: () =>
         @element.find("a[href=#hide-code]").click () =>

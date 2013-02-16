@@ -9883,7 +9883,9 @@ debug: BUG *********************************************************************
 
     [x] (0:52) worksheet/cell: make it so the hidden/shown state of components of a cell is saved as part of obj repr
 
--->    [ ] worksheet: add evaluate button, so I can test on mobile; ALSO, make it so if no cells selected, last selected one is used for cell group ops.
+    [x] worksheet: add evaluate button, so I can test on mobile; ALSO, make it so if no cells selected, last selected one is used for cell group ops.
+
+    [x] section: refactor a bit and make it do something useful when nothing selected.
 
     [ ] file browser: redo file mod date stuff to use git timestamp if it is there, otherwise mod time; also don't put directories all first.
 
