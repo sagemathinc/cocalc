@@ -9889,7 +9889,11 @@ debug: BUG *********************************************************************
 
     [x] standard bashrc that includes running bash, colors, ". /etc/bash_completion", etc.!
 
-    [ ] file browser: redo file mod date stuff to use git timestamp if it is there, otherwise mod time; also don't put directories all first.
+    [x] (0:15) file browser: don't put folders first by default; also update the project status when notified that a project was successfully closed.
+
+-->    [ ] file browser: when saving project, also store modtimes of all files; and when restoring project, set all the modtimes back.
+
+
     [ ] file browser: implement support for directory download
     [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
     [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.

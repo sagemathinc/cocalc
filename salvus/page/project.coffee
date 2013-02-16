@@ -970,6 +970,7 @@ close_project = exports.close_project = (opts) ->
                     else
                         if opts.show_success_alert
                             alert_message(type:"success", message: "Shutdown project '#{opts.title}'.")
+                            require('projects').update_project_list()
                     opts.cb?(err)
 
 
