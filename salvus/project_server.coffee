@@ -351,7 +351,10 @@ extract_bundles = (project_id, bundles, cb) ->
             command    : '.git/salvus/modtimes'
             args       : ['--restore']
             timeout    : 15
-            cb         : c
+            cb         : (err) ->
+                if err
+                    winston.debug(err)
+                c() # non-fatal
 
     # Do all of the tasks laid out above.
     console.log("do #{tasks.length} tasks")
@@ -683,9 +686,12 @@ events.save_project = (socket, mesg) ->
             exec_as_user
                 project_id : mesg.project_id
                 command    : '.git/salvus/modtimes'
-                args       : ['--save']
+                args       : ['--save', '--commit']
                 timeout    : 15
-                cb         : cb
+                cb         : (err) ->
+                    if err
+                        winston.debug(err)
+                    cb() # non-fatal
 
         # NOTE: It is important to garbage collect, make bundles,
         # etc., because the user may have typed "git commit"

@@ -9897,9 +9897,11 @@ debug: BUG *********************************************************************
         Steps to implement:
              [x] (0:10) project_server -- modtimes; write a simple python script called scripts/modtimes that does almost nothing, but takes command line args as below.; and make it so script gets copied over
              [x] (0:10) on project open, do "modtimes --restore"; before project close, do "modtimes --save"
-             [ ] make scripts/modtimes actually work and test; it can do the "git add; git commit" on its data file.
+             [x] (1:03) make scripts/modtimes actually work and test; it can do the "git add; git commit" on its data file.
 
     [ ] refactor project_server copy files from scripts directory stuff.
+
+    [ ] math in title and subtitle of worksheet
 
     [ ] file browser: implement support for directory download
     [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO

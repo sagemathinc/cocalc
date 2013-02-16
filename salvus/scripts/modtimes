@@ -2,22 +2,62 @@
 """
 (c) William Stein, 2013
 
-The modification times are stored under git in the file .gitmtimes. 
+The modification times are stored under git in the file .salvus/mtimes.json
 """
 
-import os
+import json, os
 
-def save_modtimes(path):
-    print "saving modtimes for '%s'"%path
+FILENAME = '.salvus/modtimes.json'
+dir, file = os.path.split(FILENAME)
 
-def restore_modtimes(path):
-    print "restoring modtimes for '%s'"%path
+def save_obj(mtimes, commit):
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    open(FILENAME, 'w').write(json.dumps(mtimes, separators=(',\n',':')))
+    if commit:
+        cmd = "git add %s; git commit %s -m 'Save file modification times.'"%(FILENAME, FILENAME)
+        print cmd
+        os.system(cmd)
+
+def load_obj():
+    try:
+        return json.loads(open(FILENAME).read())
+    except Exception, msg:
+        # important that this be non-fatal, in case user deleted this file or something... since mtime is not that critical of info.
+        print msg
+        print "NON-FATAL ERROR: Unable to restore modification; leaving as they are."
+        return {}
+
+def compute_mtimes(path='.', obj=None):
+    if obj is None:
+        obj = []
+    if os.path.split(path)[1] == '.git':
+        return obj
+    for X in os.listdir(path):
+        if X == file:  # don't bother storing modtimes of cache file, so that if nothing changed, we don't have a pointless commit.
+            continue
+        fullpath = os.path.join(path, X)
+        if fullpath.endswith('.git'):
+            continue
+        obj.append([fullpath, os.path.getmtime(fullpath)])
+        if os.path.isdir(fullpath):
+            compute_mtimes(fullpath, obj)
+    return obj
+
+def set_mtimes(obj):
+    for fullpath, mtime in obj:
+        try:
+            os.utime(fullpath, (-1, mtime))
+        except Exception, msg:
+            print "non-fatal", msg
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="modtimes -- save or restore modification times of all files/directories under this path")
     parser.add_argument('--save', help='save modification times', action='store_true')
     parser.add_argument('--restore', help='restore modification times', action='store_true')
+    parser.add_argument('--commit', help='if specified, then git add cache file and do git commit.', action='store_true')
     parser.add_argument('path', nargs='?', help='save or restore modification times of all files/directories under this path')
 
     args = parser.parse_args()
@@ -25,11 +65,14 @@ if __name__ == "__main__":
         args.path = args.path[0]
 
     if args.path is None:
-        args.path = os.environ['HOME']
+        args.path = os.path.abspath('.')
+
+    os.chdir(args.path)
 
     if args.save:
-        save_modtimes(args.path)
+        save_obj(compute_mtimes(), args.commit)
 
     if args.restore:
-        restore_modtimes(args.path)
+        set_mtimes(load_obj())
+
 
