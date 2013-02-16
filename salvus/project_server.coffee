@@ -81,6 +81,7 @@ has_bad_shell_chars = (s) ->
 gitls   = fs.readFileSync('scripts/git-ls')
 diffbundler   = fs.readFileSync('scripts/diffbundler')
 git0_script   = fs.readFileSync('scripts/git0')
+modtimes_script   = fs.readFileSync('scripts/modtimes')
 shell_completions_script   = fs.readFileSync('scripts/shell_completions.py')
 bashrc = fs.readFileSync('scripts/bashrc')
 
@@ -261,6 +262,12 @@ extract_bundles = (project_id, bundles, cb) ->
             fs.writeFile("#{repo_path}/.git/salvus/git0", git0_script, c)
         (c) ->
             fs.chmod("#{repo_path}/.git/salvus/git0", 0o777, c)
+
+        (c) ->
+            winston.debug("Writing modtimes command")
+            fs.writeFile("#{repo_path}/.git/salvus/modtimes", modtimes_script, c)
+        (c) ->
+            fs.chmod("#{repo_path}/.git/salvus/modtimes", 0o777, c)
 
         (c) ->
             winston.debug("Write wrapped git command")

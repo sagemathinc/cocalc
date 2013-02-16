@@ -9891,8 +9891,16 @@ debug: BUG *********************************************************************
 
     [x] (0:15) file browser: don't put folders first by default; also update the project status when notified that a project was successfully closed.
 
--->    [ ] file browser: when saving project, also store modtimes of all files; and when restoring project, set all the modtimes back.
+-->    [ ] (0:17 planning) file browser: when saving project, also store modtimes of all files; and when restoring project, set all the modtimes back.
+        Stored in .salvus/modtimes.pickle, which is under git (so we don't have to store it separately in the database);
+        if it exists -- will be used when restoring project.
+        Steps to implement:
+             [ ] (0:10) project_server -- modtimes; write a simple python script called scripts/modtimes that does almost nothing, but takes command line args as below.; and make it so script gets copied over
+             [ ] on project open, do "modtimes --restore"
+             [ ] before project close, do "modtimes --save"   # non-fatal on failure
+             [ ] make scripts/modtimes actually work and test; it can do the "git add; git commit" on its data file.
 
+    [ ] refactor project_server copy files from scripts directory stuff.
 
     [ ] file browser: implement support for directory download
     [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO

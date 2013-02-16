@@ -16,7 +16,6 @@ For each file, we compute the following information:
          - date
          - message
          - sha
-
 """
 
 import json, os, subprocess, sys, uuid
