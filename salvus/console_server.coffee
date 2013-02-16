@@ -76,7 +76,7 @@ start_session = (socket, mesg) ->
         rows    : 24
         cols    : 80
         command : undefined
-        args    : ['--norc']
+        args    : []
         ps1     : '\\w\\$ '
         path    : process.env.PATH
         cwd     : undefined          # starting PATH (need not be home directory)

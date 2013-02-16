@@ -246,7 +246,7 @@ class XTermSession extends Session
             limits     : {walltime:60*15}
             type       : "console"
             project_id : @project_id
-            params     : {command:'bash', args:['--norc'], ps1:"\\w\\$ "}
+            params     : {command:'bash', args:['--rcfile', '.git/salvus/bashrc'], ps1:"\\w\\$ "}
             cb : (err, session) =>
                 if err
                     @element.text(err)

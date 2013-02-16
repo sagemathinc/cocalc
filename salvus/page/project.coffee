@@ -611,7 +611,6 @@ class ProjectPage
                 clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err)
-                    console.log('a', err)
                     alert_message(type:"error", message:err)
                     return
 

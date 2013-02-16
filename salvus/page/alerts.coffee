@@ -18,6 +18,19 @@ exports.alert_message = (opts={}) ->
     if not opts.timeout?
         opts.timeout = default_timeout[opts.type]
 
+    if typeof opts.message != "string"
+        opts.message = to_json(opts.message)
+
+    if not opts.block?
+        if opts.type == 'error'
+            opts.block = true
+        else
+            opts.block = false
+
+    if opts.type not in types
+        alert("Unknown alert_message type #{opts.type}.")
+        return
+
     $.pnotify
         title : ""
         type : opts.type
@@ -29,28 +42,15 @@ exports.alert_message = (opts={}) ->
         delay : opts.timeout*1000
     return
 
-    if not opts.block?
-        if opts.type == 'error'
-            opts.block = true
-        else
-            opts.block = false
+    # c = $("#alert-templates .alert-#{opts.type}").clone()
 
-    if typeof opts.message != "string"
-        opts.message = to_json(opts.message)
+    # if opts.block
+    #     c.addClass('alert-block')
+    # c.find(".message").text(opts.message)
+    # c.prependTo("#alert-messages")
+    # c.click(() -> $(this).remove())
 
-    if opts.type not in types
-        alert("Unknown alert_message type #{opts.type}.")
-        return
-
-    c = $("#alert-templates .alert-#{opts.type}").clone()
-
-    if opts.block
-        c.addClass('alert-block')
-    c.find(".message").text(opts.message)
-    c.prependTo("#alert-messages")
-    c.click(() -> $(this).remove())
-
-    setTimeout((()->c.remove()), opts.timeout*1000)
+    # setTimeout((()->c.remove()), opts.timeout*1000)
 
 # for testing/development
 # alert_message(type:'error',   message:"This is an error")

@@ -589,7 +589,7 @@ if not elt.data('initialized')
     salvus_client.new_session
         limits : {}
         type : 'console'
-        params : {command:'bash', args:['--norc'], ps1:"salvus:\\w\\$ "}
+        params : {command:'bash', args:[], ps1:"salvus:\\w\\$ "}
         cb : (err, session) ->
             if err
                 console.log "Error starting console session: #{err}"

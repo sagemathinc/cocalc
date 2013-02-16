@@ -82,6 +82,7 @@ gitls   = fs.readFileSync('scripts/git-ls')
 diffbundler   = fs.readFileSync('scripts/diffbundler')
 git0_script   = fs.readFileSync('scripts/git0')
 shell_completions_script   = fs.readFileSync('scripts/shell_completions.py')
+bashrc = fs.readFileSync('scripts/bashrc')
 
 # Verify that path really describes something that would be a
 # directory under userpath, rather than a shell injection attack
@@ -138,7 +139,13 @@ create_user = (project_id, quota, cb) ->
         # Create the user
         (cb) ->
             winston.debug("useradd -U #{uname}")
-            child_process.execFile('useradd', ['-U', uname], {}, cb)
+            child_process.execFile 'useradd', ['-U', uname], {}, (err) ->
+                if err
+                    delete_user_8 uname, (err) ->
+                        child_process.execFile('useradd', ['-U', uname], {}, cb)
+                else
+                    cb()
+
         # Set the quota, being careful to check for validity of the quota specification.
         (cb) ->
             try
@@ -260,6 +267,12 @@ extract_bundles = (project_id, bundles, cb) ->
             fs.writeFile("#{repo_path}/.git/salvus/shell_completions.py", shell_completions_script, c)
         (c) ->
             fs.chmod("#{repo_path}/.git/salvus/shell_completions.py", 0o777, c)
+
+        (c) ->
+            winston.debug("Write special bashrc")
+            fs.writeFile("#{repo_path}/.git/salvus/bashrc", bashrc, c)
+        (c) ->
+            fs.chmod("#{repo_path}/.git/salvus/bashrc", 0o777, c)
     ]
 
     if misc.len(bundles) > 0
