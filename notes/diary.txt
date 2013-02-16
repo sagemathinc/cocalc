@@ -9892,11 +9892,11 @@ debug: BUG *********************************************************************
     [ ] file browser: redo file mod date stuff to use git timestamp if it is there, otherwise mod time; also don't put directories all first.
     [ ] file browser: implement support for directory download
     [ ] project_server: see this line -- target = '/tmp/a.tar.bz2'  # TODO
+    [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.
+
 
     [ ] command line completions functionality
     [ ] command line in browser: tab completion
-
-    [ ] support git subprojects -- extend whole bundling idea to also bundle each subproject in the same way.  This could be very, very powerful.
 
     [ ] in hub:                 # TODO
                 save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
