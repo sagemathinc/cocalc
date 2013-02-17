@@ -9916,6 +9916,12 @@ debug: BUG *********************************************************************
 
     [x] (0:19) when switch to a tab, the console should get focused automatically
 
+    [x] (0:10) move that bash prompt over
+
+    [ ] worksheet focus -- if never ever, choose first cell; also not last eval but last focused
+
+    [ ] syntax highlighting for c/c++ code (?)
+
     [ ] make it so for editor.create_tab, one can specify the
            editor to use; only fallback to the table if nothing
            specified; I want to be able to open .salvus files in

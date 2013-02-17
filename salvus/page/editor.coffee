@@ -352,7 +352,7 @@ class CodeMirrorEditor extends FileEditor
         @codemirror?.refresh()
 
     focus: () =>
-        @codemirror?.focus()
+        setTimeout((() => @codemirror?.focus()), 50)
         @codemirror?.refresh()
 
 class Terminal extends FileEditor
