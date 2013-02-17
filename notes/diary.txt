@@ -9912,7 +9912,7 @@ debug: BUG *********************************************************************
        [x] (0:32) make it so open files can also support consoles and make them open there instead
        [x] (1:30) same, but for worksheets
        [x] (0:33) buttons for new worksheet/console
--->       [ ] remove that big space between tabs and editor.
+       [x] remove that big space between tabs and editor.
        [ ] make it so for editor.create_tab, one can specify the
            editor to use; only fallback to the table if nothing
            specified; I want to be able to open .salvus files in

@@ -21,12 +21,13 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror {
-    border: 2px solid #aaa;
-    box-shadow: 6px 6px 3px #ccc;
-    margin-left:1em;
-    padding:1ex;
+    border: 1px solid #aaa;
+    box-shadow: 6px 6px 3px #888;
+    margin: 10px;
+    margin-top: 0px;
+    padding:5px;
 }
 
 .salvus-editor-button-bar {
-    margin-bottom:1em;
+    margin-bottom:0em;
 }
