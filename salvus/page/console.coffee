@@ -301,7 +301,7 @@ class Console extends EventEmitter
             e.removeClass('salvus-console-focus').addClass('salvus-console-blur')
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
-    focus : () =>
+    focus: () =>
         @is_focused = true
         if IS_MOBILE
             $(document).on('keydown', @mobile_keydown)

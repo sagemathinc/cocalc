@@ -161,6 +161,7 @@ class exports.Editor
                 @active_tab = tab
                 tab.link.addClass("active")
                 tab.editor.element.show()
+                tab.editor.focus()
                 @element.find(".btn-group").children().removeClass('disabled')
             else
                 tab.link.removeClass("active")
@@ -291,6 +292,8 @@ class FileEditor extends EventEmitter
 
     has_unsaved_changes: () => false # TODO
 
+    focus: () => # TODO in derived class
+
     _get: () =>
         throw("TODO: implement _get in derived class")
 
@@ -345,8 +348,12 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.setValue(content)
 
     show: () =>
-        @element.show()
-        @codemirror.refresh()
+        @element?.show()
+        @codemirror?.refresh()
+
+    focus: () =>
+        @codemirror?.focus()
+        @codemirror?.refresh()
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, opts) ->
@@ -382,6 +389,9 @@ class Terminal extends FileEditor
         return 'history saving not yet implemented'
 
     _set: (content) =>  # TODO
+
+    focus: () =>
+        setTimeout((() => @console?.focus()), 50)
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, opts) ->
@@ -440,6 +450,9 @@ class Worksheet extends FileEditor
                 if new_filename != @filename
                     @editor.change_tab_filename(@filename, new_filename)
                     @filename = new_filename
+
+    focus: () =>
+        @worksheet?.focus()
 
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, opts) ->

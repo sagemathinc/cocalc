@@ -9914,7 +9914,7 @@ debug: BUG *********************************************************************
 
     [x] (0:02) editor: need to switch to tab when opening file before doing anything more.
 
--->    [ ] when switch to a tab, the console should get focused automatically
+    [x] (0:19) when switch to a tab, the console should get focused automatically
 
     [ ] make it so for editor.create_tab, one can specify the
            editor to use; only fallback to the table if nothing

@@ -589,6 +589,9 @@ class Worksheet extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
+    focus: () =>
+        @_focus_cell(@_current_cell)
+
     selected_cells: () =>
         # Return array of all cells with checkboxes, or if there are none checked,
         # return the last focused cell.
