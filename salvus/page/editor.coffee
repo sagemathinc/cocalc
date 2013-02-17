@@ -161,11 +161,11 @@ class exports.Editor
                 @active_tab = tab
                 tab.link.addClass("active")
                 tab.editor.element.show()
-                tab.editor.focus()
                 @element.find(".btn-group").children().removeClass('disabled')
             else
                 tab.link.removeClass("active")
                 tab.editor.hide()
+        setTimeout(@active_tab.editor.focus, 150)
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -252,7 +252,11 @@ class exports.Editor
             editor   : editor
             filename : filename
         @display_tab(filename)
-        @element.find(".salvus-editor-content").append(editor.element.hide())
+        @element.find(".salvus-editor-content").append(editor.element.show())
+        f = () =>
+            console.log("editor.focus()")
+            editor.focus()
+        setTimeout(f, 500)
         @update_counter()
         return @tabs[filename]
 
@@ -352,7 +356,7 @@ class CodeMirrorEditor extends FileEditor
         @codemirror?.refresh()
 
     focus: () =>
-        setTimeout((() => @codemirror?.focus()), 50)
+        @codemirror?.focus()
         @codemirror?.refresh()
 
 class Terminal extends FileEditor
@@ -391,7 +395,7 @@ class Terminal extends FileEditor
     _set: (content) =>  # TODO
 
     focus: () =>
-        setTimeout((() => @console?.focus()), 50)
+        @console?.focus()
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, opts) ->

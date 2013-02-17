@@ -589,9 +589,14 @@ class Worksheet extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
-    focus: () =>
-        @_focus_cell(@_current_cell)
+    current_cell: () =>
+         if not @_current_cell?
+            @_current_cell = @_cells.find(".salvus-cell:first").data('cell')
+        return @_current_cell
 
+    focus: () =>
+        @_focus_cell(@current_cell())
+ 
     selected_cells: () =>
         # Return array of all cells with checkboxes, or if there are none checked,
         # return the last focused cell.
@@ -724,6 +729,8 @@ class Worksheet extends EventEmitter
     # the worksheet part of the DOM from scratching using this
     # content.
     set_content: (content) =>
+        @_current_cell = undefined
+        
         # Delete everything from the worksheet contents DOM.
         @_cells.children().remove()
 
