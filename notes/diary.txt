@@ -9922,7 +9922,14 @@ debug: BUG *********************************************************************
 
     [x] (0:45) syntax highlighting for c/c++ code (?); ran into a few issues/breakfast, etc.
 
-    [ ] new worksheet/terminal -- instead of scratch, should just appear in the *current* path.
+    [x] (0:16) new worksheet/terminal -- instead of scratch, should just appear in the *current* path.
+
+    [ ] hide/show toggles -- take whatever first checked one is,
+        toggle that, and set all other checked ones to the same thing.
+        Simple and half the buttons.
+
+
+    [ ] file browser -- something to visually indicate which files are open
 
     [ ] make it so for editor.create_tab, one can specify the
            editor to use; only fallback to the table if nothing

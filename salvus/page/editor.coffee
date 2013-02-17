@@ -174,7 +174,6 @@ class exports.Editor
             else
                 tab.link.removeClass("active")
                 tab.editor.hide()
-        setTimeout(@active_tab.editor.focus, 150)
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -263,7 +262,7 @@ class exports.Editor
         @display_tab(filename)
         @element.find(".salvus-editor-content").append(editor.element.show())
         @update_counter()
-        setTimeout(editor.focus, 100)
+        setTimeout(editor.focus, 250)
         return @tabs[filename]
 
     change_tab_filename: (old_filename, new_filename) =>

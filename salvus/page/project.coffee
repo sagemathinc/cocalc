@@ -236,14 +236,18 @@ class ProjectPage
     init_console_buttons: () =>
         @container.find("a[href=#new-terminal]").click () =>
             @display_tab("project-editor")
-            filename = "scratch/#{uuid().slice(0,8)}.salvus-terminal"
+            filename = "#{@current_pathname()}/#{uuid().slice(0,8)}.salvus-terminal"
+            if filename[0] == '/'
+                filename = filename.slice(1)
             tab = @editor.create_tab(filename)
             tab.editor.val('')
             return false
 
         @container.find("a[href=#new-worksheet]").click () =>
             @display_tab("project-editor")
-            filename = "scratch/#{uuid().slice(0,8)}.salvus-worksheet"
+            filename = "#{@current_pathname()}/#{uuid().slice(0,8)}.salvus-worksheet"
+            if filename[0] == '/'
+                filename = filename.slice(1)
             tab = @editor.create_tab(filename)
             tab.editor.val('')
             return false
