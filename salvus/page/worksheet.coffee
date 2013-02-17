@@ -590,13 +590,13 @@ class Worksheet extends EventEmitter
     #######################################################################
 
     current_cell: () =>
-         if not @_current_cell?
+        if not @_current_cell?
             @_current_cell = @_cells.find(".salvus-cell:first").data('cell')
         return @_current_cell
 
     focus: () =>
         @_focus_cell(@current_cell())
- 
+
     selected_cells: () =>
         # Return array of all cells with checkboxes, or if there are none checked,
         # return the last focused cell.
