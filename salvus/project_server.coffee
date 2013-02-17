@@ -896,6 +896,29 @@ events.read_file_from_project = (socket, mesg) ->
             socket.write_mesg 'json', message.error(id:mesg.id, error:err)
     )
 
+# Make sure that that the directory containing the file indicated by the path exists
+# and has the right permissions. 
+ensure_containing_directory_exists = (project_id, uid, path, cb) ->   # cb(err)
+    dir = misc.path_split(path).head
+
+    fs.exists dir, (exists) ->
+        if exists
+            cb()
+        else
+            async.series([
+                (cb) ->
+                    # Some extra paranoia...
+                    p = userpath(project_id)
+                    if dir.slice(0, p.length) != p
+                        cb("Path '#{dir}' must be in home directory '#{p}'")
+                    else
+                        cb()
+                (cb) ->
+                    fs.mkdir(dir, 0o700, cb)
+                (cb) ->
+                    fs.chown(dir, uid, uid, cb)
+            ], cb)
+
 # Write a file to the project
 events.write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
@@ -914,10 +937,8 @@ events.write_file_to_project = (socket, mesg) ->
                         if err
                             c(err)
                         else
-                            mesg.path = realpath
+                            path = realpath
                             c()
-                (c) ->
-                    fs.writeFile(path, value.blob, c)
                 (c) ->
                     getuid user, (err, id) ->
                         if err
@@ -925,6 +946,10 @@ events.write_file_to_project = (socket, mesg) ->
                         else
                             uid = id
                             c()
+                (c) ->
+                    ensure_containing_directory_exists(mesg.project_id, uid, path, c)
+                (c) ->
+                    fs.writeFile(path, value.blob, c)
                 # Set the permissions on the file to the correct user (instead of root)
                 (c) ->
                     fs.chown(path, uid, uid, c)
