@@ -127,7 +127,7 @@ class Worksheet extends EventEmitter
 
         title.make_editable
             onchange : (obj, diff) -> # TODO: do something with this.
-                console.log(obj, diff)
+                #console.log(obj, diff)
 
         @_monitor_for_changes(title)
 
@@ -185,8 +185,8 @@ class Worksheet extends EventEmitter
     _init_filename_save: () =>
         input = @element.find(".salvus-worksheet-filename")
         if @opts.path?
-            if filename_extension(@opts.path) == 'salvus'
-                input.val(@opts.path.slice(0,-7))
+            if filename_extension(@opts.path) == 'salvus-worksheet'
+                input.val(@opts.path.slice(0,-17))
             else
                 input.val(@opts.path)
         input.keypress (evt) =>
@@ -609,8 +609,8 @@ class Worksheet extends EventEmitter
         if path == "" or not path?
             alert_message(type:'error', message:"You must enter a filename in order to save your worksheet.")
             return
-        if filename_extension(path) != 'salvus'
-            path += '.salvus'
+        if filename_extension(path) != 'salvus-worksheet'
+            path += '.salvus-worksheet'
         obj = @to_obj()
         async.series([
             (cb) =>
@@ -712,7 +712,6 @@ class Worksheet extends EventEmitter
     # convert worksheet to object
     to_obj: () =>
         obj =
-            type        : 'worksheet'
             title       : @get_title()
             description : @get_description()
             content     : (@_to_obj(c) for c in @_cells.children())

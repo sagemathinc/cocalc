@@ -54,18 +54,18 @@
 
   <div class="container salvus-project">
     <div class="row">
-      <div class="well span12">
+      <div class="well span12" style="margin-left:0em;">
 	<div class="span12">
 	  <div class="pull-right"   style="margin-right:2em">
-	    Project
-	    <!-- The project id -->
-	    <span class="project-id"></span>
 	    <!-- Close button -->
 	    <span class="btn-group">
 	      <a href="#save-project" class="btn btn-info">Save <i class="icon-save"> </i></a>
 	      <a href="#download-project" class="btn btn-success">Download <i class="icon-download-alt"> </i></a>
 	      <a href="#close-project" class="btn btn-danger">Shutdown <i class="icon-remove"> </i></a>
-	    </span>
+	    </span><br>
+	    <!-- The project id -->
+	    Project
+	    <span class="project-id"></span>
 	  </div>
 
 	  <!-- Title of the project (editable) -->
@@ -75,35 +75,33 @@
 	    <span class="project-project_title" contenteditable="true"></span>
 	  </h4>
 
-
 	  <!-- Description of the project (editable) -->
 	  <div class="project-project_description" contenteditable="true">
 	  </div>
-
-	<!-- buttons to create new consoles -->
-	<div class="pull-left" style="margin-top:1em;">
-	  <a class="btn btn-primary" href="#new-worksheet"><i class="icon-plus"></i> Worksheet&nbsp;&nbsp;&nbsp; <i class="icon-file-alt"></i></a>
-	  <a class="btn btn-success" href="#new-xterm"><i class="icon-plus"></i> Console&nbsp;&nbsp;&nbsp; <i class="icon-credit-card"></i></a>
-	  <!-- <a class="btn btn-success" href="#new-command-line"><i class="icon-plus"> </i> cmdline</a> -->
-	</div>
 
 	</div>
       </div>
     </div>
     <div class="row">
-      <div class="span12 well">
+	<!-- buttons to create new consoles -->
+	<div class="pull-right">
+	  <span class="btn-group">
+	    <a class="btn btn-primary" href="#new-worksheet">New Worksheet&nbsp;&nbsp; <i class="icon-file-alt"></i></a>
+	    <a class="btn btn-success" href="#new-xterm">New Terminal&nbsp;&nbsp; <i class="icon-credit-card"></i></a>
+	  </span>
+	</div>
 
 
 	<!-- Tabs -- place where you click on them -->
 	<ul class="nav nav-tabs project-pages">
 	  <!-- Browse through files in the project -->
-	  <li class="active super-menu"><a href="#project-file-listing">File Browser</a></li>
+	  <li class="active super-menu"><a href="#project-file-listing">Browse</a></li>
 
 	  <!-- Use an interactive console in the project -->
-	  <li class="super-menu"><a href="#project-consoles">Sessions (<span class="project-consoles-count">0</span>)</a></li>
+<!--	  <li class="super-menu"><a href="#project-consoles">Sessions (<span class="project-consoles-count">0</span>)</a></li> -->
 
 	  <!-- File editor -->
-	  <li class="super-menu"><a href="#project-editor">Editor (<span class="project-editor-file-count">0</span>)</a></li>
+	  <li class="super-menu"><a href="#project-editor">Edit (<span class="project-editor-file-count">0</span>)</a></li>
 
 
 	  <!-- Publications -->
@@ -120,8 +118,10 @@
 <!--
 	  <li class="super-menu"><a href="#project-commits">Changes (<span class="project-editor-commit-count">?</span>)</a></li>-->
 
-	  <!-- Git branches -->
-	  <li class="super-menu"><a href="#project-branches"><i class="icon-time"> </i> <!--(<span class="project-editor-branch-count">?</span>)--></a></li>
+	  <!-- Git branches --><!--(<span class="project-editor-branch-count">?</span>)-->
+<!--
+	  <li class="super-menu"><a href="#project-branches"><i class="icon-time"> </i> </a></li>
+-->
 
 	  <!-- Git forks -->
 <!--
@@ -149,7 +149,7 @@
 	    <div>
 	      <!-- command line prompt -->
 	      <span class="project-command-line">
-		<input class="project-command-line-input" type="text" placeholder="bash...">
+		bash: <input class="project-command-line-input" type="text" placeholder="enter a bash command...">
 		<div class="project-command-line-spinner hide"></div>
 		<pre class="project-command-line-stderr hide"></pre>
 		<pre class="project-command-line-stdout hide"></pre>
@@ -157,12 +157,14 @@
 
 
 	      <!-- Buttons for basic file operations -->
+<!--
 	      <span class="project-file-tools pull-right">
 		<span class="btn-group">
 		  <a href="#move" class="btn btn-warning">Move</a>
 		  <a href="#delete" class="btn btn-danger">Delete</a>
 		</span>
 	      </span>
+-->
 	    </div>
 
 	    <!-- The current path -->
@@ -293,7 +295,7 @@
     </div>
   </div>
 
-  <div class="row span11 well well-small project-file-link">
+  <div class="row span12 well well-small project-file-link">
     <div class="span" style="width: 10px;">
       <input type="checkbox">
     </div>

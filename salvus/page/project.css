@@ -136,9 +136,13 @@
 }
 
 
+.project-command-line {
+    margin-left:2em;
+}
+
 .project-command-line-input {
     margin-top:0em;
-    margin-left:2em;
+    margin-left:1em;
     width:70%;
 }
 

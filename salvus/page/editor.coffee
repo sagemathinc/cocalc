@@ -4,11 +4,11 @@
 
 async = require('async')
 
-{trunc, to_json, keys, defaults, required, filename_extension, len} = require('misc')
-
 {salvus_client} = require('salvus_client')
-{EventEmitter} = require('events')
+{EventEmitter}  = require('events')
 {alert_message} = require('alerts')
+
+{trunc, from_json, to_json, keys, defaults, required, filename_extension, len} = require('misc')
 
 codemirror_associations =
     coffee : 'coffeescript'
@@ -37,6 +37,22 @@ for ext, mode of codemirror_associations
     file_associations[ext] =
         editor : 'codemirror'
         opts   : {mode:mode}
+
+file_associations['salvus-terminal'] =
+    editor : 'terminal'
+    opts   : {}
+
+file_associations['salvus-worksheet'] =
+    editor : 'worksheet'
+    opts   : {}
+
+file_associations['salvus-spreadsheet'] =
+    editor : 'spreadsheet'
+    opts   : {}
+
+file_associations['salvus-slideshow'] =
+    editor : 'slideshow'
+    opts   : {}
 
 templates = $("#salvus-editor-templates")
 
@@ -150,7 +166,7 @@ class exports.Editor
                 tab.link.removeClass("active")
                 tab.editor.hide()
 
-    # Save the branch to disk, but do not do any sort of git commit.
+    # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
         if not filename?  # if filename not given, save all files
             tasks = []
@@ -162,11 +178,18 @@ class exports.Editor
         tab = @tabs[filename]
         if not tab?
             return
+
+        content = tab.editor.val()
+        if not content?
+            # do not overwrite file in case editor isn't initialized
+            alert_message(type:"error", message:"Editor of '#{filename}' not initialized, so nothing to save.")
+            return
+
         salvus_client.write_text_file_to_project
             project_id : @project_id
             timeout    : 5   # possibly adjust dynamically based on filesize
             path       : filename
-            content    : tab.editor.val()
+            content    : content
             cb         : (err, mesg) =>
                 if err
                     alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
@@ -203,22 +226,43 @@ class exports.Editor
         if not x?
             x = file_associations['']
         switch x.editor
-            when "codemirror", undefined   # codemirror is the default... since it is the only thing implemented now.  JSON will be next, since I have that plugin.
-                editor = new CodeMirrorEditor(x.opts)
+            # codemirror is the default... since it is the only thing implemented now.  JSON will be next, since I have that plugin.
+            when 'codemirror', undefined
+                editor = new CodeMirrorEditor(@, filename, x.opts)
+            when 'terminal'
+                editor = new Terminal(@, filename, x.opts)
+            when 'worksheet'
+                editor = new Worksheet(@, filename, x.opts)
+            when 'spreadsheet'
+                editor = new Spreadsheet(@, filename,  x.opts)
+            when 'slideshow'
+                editor = new Slideshow(@, filename, x.opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
         link = templates.find(".super-menu").clone().show()
         link.find(".salvus-editor-tab-filename").text(filename) #trunc(filename,15))
-        link.find(".salvus-editor-close-button-x").click () =>
-            @close(filename)
-        tab = {link:link, editor:editor, filename:filename}
+        link.find(".salvus-editor-close-button-x").click () => @close(filename)
         link.find("a").click () => @display_tab(filename)
         @nav_tabs.append(link)
         @element.find(".salvus-editor-content").append(editor.element.hide())
-        @tabs[filename] = tab
+        @tabs[filename] =
+            link     : link
+            editor   : editor
+            filename : filename
         @update_counter()
-        return tab
+        return @tabs[filename]
+
+    change_tab_filename: (old_filename, new_filename) =>
+        tab = @tabs[old_filename]
+        if not tab?
+            # TODO -- fail silently or this?
+            alert_message(type:"error", message:"change_tab_filename (bug): attempt to change #{old_filename} to #{new_filename}, but there is no tab #{old_filename}")
+            return
+        tab.filename = new_filename
+        tab.link.find(".salvus-editor-tab-filename").text(new_filename)
+        delete @tabs[old_filename]
+        @tabs[new_filename] = tab
 
 
 ###############################################
@@ -233,6 +277,8 @@ class exports.Editor
 #
 
 class FileEditor extends EventEmitter
+    constructor: (@editor, @filename, opts) ->
+
     val: (content) =>
         if not content?
             # If content not defined, returns current value.
@@ -244,18 +290,27 @@ class FileEditor extends EventEmitter
     has_unsaved_changes: () => false # TODO
 
     _get: () =>
-        throw("TODO: implement _get")
+        throw("TODO: implement _get in derived class")
 
     _set: (content) =>
-        @_
-        throw("TODO: implement _set")
+        throw("TODO: implement _set in derived class")
+
+
+    show: () =>
+        @element.show()
+
+    hide: () =>
+        @element.hide()
+
+    remove: () =>
+        @element.remove()
 
 
 ###############################################
 # Codemirror-based File Editor
 ###############################################
 class CodeMirrorEditor extends FileEditor
-    constructor: (opts) ->
+    constructor: (@editor, @filename, opts) ->
         opts = @opts = defaults opts,
             mode         : required
             line_numbers : true
@@ -291,10 +346,103 @@ class CodeMirrorEditor extends FileEditor
         @element.show()
         @codemirror.refresh()
 
-    hide: () =>
-        @element.hide()
+class Terminal extends FileEditor
+    constructor: (@editor, @filename, opts) ->
+        opts = @opts = defaults opts,{}  # nothing yet
+        @connect_to_server()
 
-    remove: () =>
-        @element.remove()
+    connect_to_server: (cb) =>
+        @element = $("<div>Connecting to console server...</div>")  # TODO -- make much nicer
+        salvus_client.new_session
+            timeout    : 15  # make longer later -- TODO -- mainly for testing!
+            limits     : { walltime : 60*15 }
+            type       : 'console'
+            project_id : @editor.project_id
+            params     : {command:'bash', args:['--rcfile', '.git/salvus/bashrc']}
+            cb : (err, session) =>
+                if err
+                    @element.text(err)   # TODO--nicer
+                    alert_message(type:'error', message:err)
+                else
+                    @element.salvus_console
+                        title   : "Terminal"
+                        session : session,
+                        cols    : 100
+                        rows    : 24
+                    @console = @element.data("console")
+                    @element = @console.element
+                cb?(err)
 
+        # TODO
+        #@filename_tab.set_icon('console')
 
+    _get: () =>  # TODO
+        return 'history saving not yet implemented'
+
+    _set: (content) =>  # TODO
+
+class Worksheet extends FileEditor
+    constructor: (@editor, @filename, opts) ->
+        opts = @opts = defaults opts,{}  # nothing yet
+
+        @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
+
+        @connect_to_server()
+
+    connect_to_server: (cb) =>
+        salvus_client.new_session
+            timeout    : 15
+            limits     : {walltime: 60*15}
+            type       : "sage"
+            project_id : @editor.project_id
+            cb : (err, _session) =>
+                if err
+                    @element.text(err)  # TODO -- nicer
+                    alert_message(type:'error', message:err)
+                    @session = undefined
+                else
+                    @session = _session
+                cb?(err)
+
+    _get: () =>
+        if @worksheet?
+            obj = @worksheet.to_obj()
+            # Make JSON nice, so more human readable *and* more diff friendly (for git).
+            return JSON.stringify(obj, null, '\t')
+        else
+            return undefined
+
+    _set: (content) =>
+        content = $.trim(content)
+        if content.length > 0
+            {title, description, content} = from_json(content)
+        else
+            title = "Untitled"
+            description = "No description"
+            content = undefined
+
+        @connect_to_server (err) =>
+            if err
+                return
+            @element.salvus_worksheet
+                title       : title
+                description : description
+                content     : content
+                path        : @filename
+                session     : @session
+                project_id  : @editor.project_id
+
+            @worksheet = @element.data("worksheet")
+            @element   = @worksheet.element
+            @worksheet.on 'save', (new_filename) =>
+                @editor.change_tab_filename(@filename, new_filename)
+
+class Spreadsheet extends FileEditor
+    constructor: (@editor, @filename, opts) ->
+        opts = @opts = defaults opts,{}
+        @element = $("<div>Salvus spreadsheet not implemented yet.</div>")
+
+class Slideshow extends FileEditor
+    constructor: (@editor, @filename, opts) ->
+        opts = @opts = defaults opts,{}
+        @element = $("<div>Salvus slideshow not implemented yet.</div>")

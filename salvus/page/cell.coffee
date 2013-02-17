@@ -42,6 +42,9 @@ class Cell extends EventEmitter
             # the given components when the cell is created
             hide                  : undefined
 
+            # If given, and hide is undefined, show only these components
+            show                  : undefined
+
             # milliseconds interval between sending update change events about note
             note_change_timer     : 250
             # maximum height of note part of cell.
@@ -86,6 +89,9 @@ class Cell extends EventEmitter
 
             # a session -- needed to execute code in a cell
             session               : undefined
+
+        if @opts.show? and not @opts.hide?
+            @opts.hide = (x for x in COMPONENTS when x not in @opts.show)
 
         if not @opts.element?
             @opts.element = $("<div>")
@@ -359,8 +365,9 @@ class Cell extends EventEmitter
 
         # Create place for the output stream to appear
         output = elt.find(".salvus-cell-interact-output")
+
         o = output.salvus_cell
-            hide    : ['note', 'editor', 'checkbox', 'insert']
+            show    : ['output']
             session : @opts.session
         output_cell = o.data('cell')
         current_id = undefined
@@ -791,7 +798,10 @@ class Cell extends EventEmitter
     # component); this does not impact which individual components are
     # hidden/shown.
     hide: (e) ->
-        return @component(e).hide()
+        c = @component(e)
+        if not c?
+            throw "unknown cell component -- '#{e}'"
+        return c.hide()
 
     delete_output: () ->
         # Delete the array of all received output messages

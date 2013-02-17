@@ -20,7 +20,6 @@ class FilenameTab
         @element = templates.find(".salvus-console-filename-tab").clone()
     set_icon: (type) =>  # type is 'worksheet' or 'console'
         @element.find("i").addClass(icons[type])
-        
     title: (html) =>
         @element.find(".salvus-consoles-tab-title").html(html)
 

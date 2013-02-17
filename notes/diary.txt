@@ -9903,7 +9903,32 @@ debug: BUG *********************************************************************
 
     [x] disable "create branch" input form
 
-    [ ] unify "sessions" and "editor"
+    [ ] BUG worksheet: moving it (via rename and save) must chdir; it seems it doesn't.
+
+    [ ] (0:10) project creation: make modal nicer
+
+    [ ] project: unify "sessions" and "editor"
+       [x] read through code of each
+       [x] (0:32) make it so open files can also support consoles and make them open there instead
+    -->   [ ] same, but for worksheets
+       [ ] buttons for new worksheet/console
+       [ ] remove consoles.html/css/coffee
+
+       [ ] change title for editor to "open files"
+       [ ] make it so for editor.create_tab, one can specify the
+           editor to use; only fallback to the table if nothing
+           specified; I want to be able to open .salvus files in
+           codemirror....
+
+    [ ] interact: vertical spacing got jacked in move.
+
+    [ ] terminal: saving/restoring history and current working directory
+         --> file.terminal will contain a session_id, so we can reconnect to an existing session if it hasn't timed out.
+             (same with worksheets, right?)
+
+    [ ] terminal: should cd to the directory containing the .salvus-terminal file on startup
+
+    [ ] in editor.coffee: change "@worksheet.on 'save', (new_filename)" to a single unified way of renaming files?  include a hook to chdir, e.g., for terminal.
 
     [ ] make a salvus math-enabled jQuery plugin for *uniformity*
         this *will* be the wysiwig editor, but start small!
