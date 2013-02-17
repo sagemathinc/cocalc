@@ -9924,10 +9924,10 @@ debug: BUG *********************************************************************
 
     [x] (0:16) new worksheet/terminal -- instead of scratch, should just appear in the *current* path.
 
-    [ ] hide/show toggles -- take whatever first checked one is,
-        toggle that, and set all other checked ones to the same thing.
+    [x] (0:26) hide/show toggles -- take whatever first checked one is, toggle that, and set all other checked ones to the same thing.
         Simple and half the buttons.
 
+    [ ] section/checkbox -- checkbox to the left of a section could check everything in that section (?)
 
     [ ] file browser -- something to visually indicate which files are open
 

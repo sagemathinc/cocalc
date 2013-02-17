@@ -59,12 +59,10 @@ class Worksheet extends EventEmitter
         @_init_section_button()
         @_init_remove_section_button()
         @_init_filename_save()
-        @_init_show_code_button()
-        @_init_hide_code_button()
-        @_init_show_note_button()
-        @_init_hide_note_button()
-        @_init_show_output_button()
-        @_init_hide_output_button()
+        @_init_toggle_code_button()
+        @_init_toggle_note_button()
+        @_init_toggle_output_button()
+        @element.find(".salvus-worksheet-controls-label").hide()
 
         if @opts.content?
             # Set the contents of the worksheet, then *delete* this
@@ -278,62 +276,34 @@ class Worksheet extends EventEmitter
             alert_message(type:'error', message:"remove-section: not implemented yet")
             return false
 
-    _init_hide_code_button: () =>
-        @element.find("a[href=#hide-code]").click () =>
-            @_hide_code()
+    _init_toggle_code_button: () =>
+        @element.find("a[href=#toggle-code]").click () =>
+            @_toggle_component('editor')
             return false
 
-    _init_show_code_button: () =>
-        @element.find("a[href=#show-code]").click () =>
-            @_show_code()
+    _toggle_component: (name) =>
+        mode = undefined
+        for c in @selected_cells()
+            if not mode?
+                if name in c.hidden_components()
+                    mode = 'show'
+                else
+                    mode = 'hide'
+            if mode == 'show'
+                c.show(name)
+            else
+                c.hide(name)
+
+    _init_toggle_note_button: () =>
+        @element.find("a[href=#toggle-note]").click () =>
+            @_toggle_component('note')
+            @_toggle_note()
             return false
 
-    _hide_code: () =>
-        for c in @selected_cells()
-            c.hide('editor')
-
-    _show_code: () =>
-        for c in @selected_cells()
-            c.show('editor')
-
-    _init_hide_note_button: () =>
-        @element.find("a[href=#hide-note]").click () =>
-            @_hide_note()
+    _init_toggle_output_button: () =>
+        @element.find("a[href=#toggle-output]").click () =>
+            @_toggle_component('output')
             return false
-
-    _init_show_note_button: () =>
-        @element.find("a[href=#show-note]").click () =>
-            @_show_note()
-            return false
-
-    _hide_note: () =>
-        for c in @selected_cells()
-            c.hide('note')
-
-    _show_note: () =>
-        for c in @selected_cells()
-            c.show('note')
-
-
-    _init_hide_output_button: () =>
-        @element.find("a[href=#hide-output]").click () =>
-            @_hide_output()
-            return false
-
-    _init_show_output_button: () =>
-        @element.find("a[href=#show-output]").click () =>
-            @_show_output()
-            return false
-
-    _hide_output: () =>
-        for c in @selected_cells()
-            c.hide('output')
-
-    _show_output: () =>
-        for c in @selected_cells()
-            c.show('output')
-
-
 
     _init_check_all_button: () =>
         @element.find("a[href=#check-all]").click () =>
