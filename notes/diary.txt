@@ -9932,9 +9932,15 @@ debug: BUG *********************************************************************
 
     [x] (0:03) file browser: very long filenames wreak havoc; just break in same way we break cell output.
 
-    [ ] BUG in bash single prompt: can't run gcc -- probably need to run bashrc or something first(?)
+    [x] (1:15) interact: vertical spacing got jacked in move.  [was difficult to fix until I dub in with the webkit debugger]
+ 
+    [ ] interact: fix that labels for controls aren't next to the controls... (might as well, since I'm into the code now)
 
-    [ ] interact: vertical spacing got jacked in move.
+    [ ] interact: bug where it hangs easily...
+
+    [ ] projects: completely deal with git subprojects
+
+    [ ] BUG in bash single prompt: can't run gcc -- probably need to run bashrc or something first(?)
 
     [ ] worksheet: add button to *delete* all selected cells.  If 0 cells left, will create a new one.
         do a save before the delete, since this is dangerous.

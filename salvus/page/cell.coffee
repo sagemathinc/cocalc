@@ -59,7 +59,7 @@ class Cell extends EventEmitter
             # whether or not to wrap lines in the code editor
             editor_line_wrapping  : true
             # undo depth for code editor
-            editor_undo_depth     : 40
+            editor_undo_depth     : 50
             # whether to do bracket matching in the code editor
             editor_match_brackets : true
             # css maximum height of code editor (scroll bars appear beyond this)
@@ -93,6 +93,9 @@ class Cell extends EventEmitter
         if @opts.show? and not @opts.hide?
             @opts.hide = (x for x in COMPONENTS when x not in @opts.show)
 
+        else if not @opts.hide?
+            @opts.hide = []
+
         if not @opts.element?
             @opts.element = $("<div>")
 
@@ -107,11 +110,11 @@ class Cell extends EventEmitter
 
         @element = cell_template.clone()
 
+        @_initialize_output()
         @_initialize_checkbox()
         @_initialize_insert()
         @_initialize_note()
         @_initialize_input()
-        @_initialize_output()
 
         @element.data("cell", @)
         $(@opts.element).replaceWith(@element)
@@ -265,7 +268,6 @@ class Cell extends EventEmitter
 
     _output_line_wrapping_on: ->
         @_output.css
-            'white-space'  : 'pre-wrap'
             'word-wrap'    : 'break-word'
             'overflow-wrap': 'break-word'
 
@@ -365,10 +367,10 @@ class Cell extends EventEmitter
 
         # Create place for the output stream to appear
         output = elt.find(".salvus-cell-interact-output")
-
         o = output.salvus_cell
             show    : ['output']
             session : @opts.session
+
         output_cell = o.data('cell')
         current_id = undefined
         done = true
@@ -414,11 +416,6 @@ class Cell extends EventEmitter
 
         for c in created_controls
             c.data('refresh')?()
-
-        #for control in desc.controls
-        #    c = @_interact_control(control, update)
-        #    controls.append(c)
-        #    c.data('refresh')?()
 
         elt.attr('style', desc.style)
 

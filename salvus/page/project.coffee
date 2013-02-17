@@ -673,7 +673,6 @@ class ProjectPage
                         if ext != ''
                             t.find(".project-file-name-extension").text('.' + ext)
                             if file_associations[ext]? and file_associations[ext].icon?
-                                console.log("changing icon for #{obj.name}")
                                 t.find(".project-file-icon").removeClass("icon-file").addClass(file_associations[ext].icon)
 
                         if obj.mtime?

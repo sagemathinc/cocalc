@@ -86,7 +86,7 @@
     margin: 1em;
     background-color: #f8f8f8;
     border: 1px solid #e0e0e0;
-    box-shadow: 3px 3px 1px #ccc;
+    box-shadow: 3px 3px 3px 3px #ccc;
 }
 
 
@@ -100,20 +100,6 @@
 .salvus-cell-checkbox:hover {
 /*    border: 1px dashed #888; */
 }
-
-/*.salvus-cell-checkbox {
-    border : 1px solid #999;
-    width: 1em;
-    height: 1.35em;
-    margin-left:-1.2em;
-    margin-top:.3em;
-    position:absolute;
-}
-
-.salvus-cell-checkbox:hover {
-    border : 1px dashed #777;
-}
-*/
 
 .salvus-cell-stopwatch {
     margin-left : -10.5ex;
