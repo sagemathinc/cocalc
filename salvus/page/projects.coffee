@@ -148,11 +148,14 @@ create_project.on("shown", () -> $("#projects-create_project-title").focus())
 $("#projects-create_project-button-create_project").click (event) ->
     title = $("#projects-create_project-title").val()
     if title == ""
-        title = "Untitled"
+        title = $("#projects-create_project-title").attr("placeholder")
+    description = $("#projects-create_project-description").val()
+    if description == ""
+        description = $("#projects-create_project-description").attr("placeholder")
     spinner = $(".projects-create-new-spinner").show().spin()
     salvus_client.create_project
         title       : title
-        description : $("#projects-create_project-description").val()
+        description : description
         public      : $("#projects-create_project-public").is(":checked")
         cb : (error, mesg) ->
             spinner.spin(false).hide()
