@@ -51,7 +51,7 @@ class TopNavbar  extends EventEmitter
     set_button_label: (id, label, klass, close=true) ->
         button = @pages[id].button
         a = button.find("a")
-        a.find(".button-label").html(label + " &raquo;")
+        a.find(".button-label").html(label)# + " &raquo;")
         close_button = a.find(".close-button")
         if close
             close_button.data("id", id)
