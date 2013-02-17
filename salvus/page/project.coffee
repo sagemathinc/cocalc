@@ -9,7 +9,7 @@
 {alert_message} = require('alerts')
 {series}        = require('async')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = require('misc')
-{Editor}        = require('editor')
+{file_associations, Editor} = require('editor')
 {Consoles}      = require('consoles')
 {scroll_top, human_readable_size}    = require('misc_page')
 
@@ -662,7 +662,19 @@ class ProjectPage
                             return false
                     else
                         t = template_project_file.clone()
-                        t.find(".project-file-name").text(obj.name)
+
+                        if obj.name.indexOf('.') != -1
+                            ext = filename_extension(obj.name)
+                            name = obj.name.slice(0,obj.name.length - ext.length - 1)
+                        else
+                            ext = ''
+                            name = obj.name
+                        t.find(".project-file-name").text(name)
+                        if ext != ''
+                            t.find(".project-file-name-extension").text('.' + ext)
+                            if file_associations[ext]? and file_associations[ext].icon?
+                                console.log("changing icon for #{obj.name}")
+                                t.find(".project-file-icon").removeClass("icon-file").addClass(file_associations[ext].icon)
 
                         if obj.mtime?
                             date = (new Date(obj.mtime*1000)).toISOString()

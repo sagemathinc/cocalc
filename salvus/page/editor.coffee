@@ -41,7 +41,7 @@ codemirror_associations =
     yaml   : 'yaml'
     ''     : 'text'
 
-file_associations = {}
+file_associations = exports.file_associations = {}
 for ext, mode of codemirror_associations
     file_associations[ext] =
         editor : 'codemirror'
@@ -49,10 +49,12 @@ for ext, mode of codemirror_associations
 
 file_associations['salvus-terminal'] =
     editor : 'terminal'
+    icon   : 'icon-credit-card'
     opts   : {}
 
 file_associations['salvus-worksheet'] =
     editor : 'worksheet'
+    icon   : 'icon-list-ul'
     opts   : {}
 
 file_associations['salvus-spreadsheet'] =

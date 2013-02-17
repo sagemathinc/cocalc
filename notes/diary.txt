@@ -9927,20 +9927,32 @@ debug: BUG *********************************************************************
     [x] (0:26) hide/show toggles -- take whatever first checked one is, toggle that, and set all other checked ones to the same thing.
         Simple and half the buttons.
 
+
+    [x] (0:23) file browser: hide file extensions and when showing files, make the extension (and final dot) be in a lighter shade.
+
+    [ ] file browser: very long filenames wreak havoc; just break in same way we break cell output.
+
+    [ ] BUG in bash single prompt: can't run gcc -- probably need to run bashrc or something first(?)
+
+    [ ] interact: vertical spacing got jacked in move.
+
+    [ ] worksheet: add button to *delete* all selected cells.  If 0 cells left, will create a new one.
+        do a save before the delete, since this is dangerous.
+
+    [ ] unify save/move for all file types in editor
+          in particular -- worksheet: moving it (via rename and save) must chdir; it seems it doesn't.
+
     [ ] section/checkbox -- checkbox to the left of a section could check everything in that section (?)
 
-    [ ] file browser -- something to visually indicate which files are open
+    [ ] file browser -- something to visually indicate which files are currently open (?)
 
     [ ] make it so for editor.create_tab, one can specify the
            editor to use; only fallback to the table if nothing
            specified; I want to be able to open .salvus files in
            codemirror....
+
     [ ] worksheet/console -- move trivial template to editor.html
 
-    [ ] unify save/move for all file types in editor
-          in particular -- worksheet: moving it (via rename and save) must chdir; it seems it doesn't.
-
-    [ ] interact: vertical spacing got jacked in move.
     [ ] remove consoles.html/css/coffee
 
     [ ] terminal: saving/restoring history and current working directory
@@ -10162,7 +10174,6 @@ It's http://bugs.python.org/issue7985 -- see
     [ ] file browser: option to sort in alphabetical order
     [ ] file browser: get rid of big move/delete buttons near the top
     [ ] file browser: show hidden files
-    [ ] file browser: hide file extensions and when showing files, make the extension (and final dot) be in a lighter shade.
     [ ] file browser: new file or directory -- implement
 
     [ ] cell: moving into a section (using ctrl-arrow) from below skips over bottom one in the section

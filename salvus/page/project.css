@@ -18,7 +18,11 @@
 }
 
 .project-file-name {
+    font-weight:bold;
+}
 
+.project-file-name-extension {
+    color:#999;
 }
 
 .project-directory-name {
