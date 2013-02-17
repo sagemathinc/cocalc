@@ -8,7 +8,7 @@
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 {series}        = require('async')
-{filename_extension, defaults, required, to_json, from_json, trunc, keys} = require('misc')
+{filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = require('misc')
 {Editor}        = require('editor')
 {Consoles}      = require('consoles')
 {scroll_top, human_readable_size}    = require('misc_page')
@@ -234,13 +234,19 @@ class ProjectPage
     ########################################
 
     init_console_buttons: () =>
-        @container.find("a[href=#new-xterm]").click () =>
-            @display_tab("project-consoles")
-            @consoles.create_tab(type:'xterm'); return false
-        @container.find("a[href=#new-worksheet]").click () =>
-            @display_tab("project-consoles")
-            @consoles.create_tab(type:'worksheet'); return false
+        @container.find("a[href=#new-terminal]").click () =>
+            @display_tab("project-editor")
+            filename = "scratch/#{uuid().slice(0,8)}.salvus-terminal"
+            tab = @editor.create_tab(filename)
+            tab.editor.val('')
+            return false
 
+        @container.find("a[href=#new-worksheet]").click () =>
+            @display_tab("project-editor")
+            filename = "scratch/#{uuid().slice(0,8)}.salvus-worksheet"
+            tab = @editor.create_tab(filename)
+            tab.editor.val('')
+            return false
 
     ########################################
     # Search

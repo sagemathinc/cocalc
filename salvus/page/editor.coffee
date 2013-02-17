@@ -241,9 +241,10 @@ class exports.Editor
                 throw("Unknown editor type '#{x.editor}'")
 
         link = templates.find(".super-menu").clone().show()
-        link.find(".salvus-editor-tab-filename").text(filename) #trunc(filename,15))
-        link.find(".salvus-editor-close-button-x").click () => @close(filename)
-        link.find("a").click () => @display_tab(filename)
+        link_filename = link.find(".salvus-editor-tab-filename")
+        link_filename.text(filename) #trunc(filename,15))
+        link.find(".salvus-editor-close-button-x").click () => @close(link_filename.text())
+        link.find("a").click () => @display_tab(link_filename.text())
         @nav_tabs.append(link)
         @element.find(".salvus-editor-content").append(editor.element.hide())
         @tabs[filename] =
@@ -436,6 +437,7 @@ class Worksheet extends FileEditor
             @element   = @worksheet.element
             @worksheet.on 'save', (new_filename) =>
                 @editor.change_tab_filename(@filename, new_filename)
+                @filename = new_filename
 
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, opts) ->

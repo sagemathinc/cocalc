@@ -9910,17 +9910,17 @@ debug: BUG *********************************************************************
     [ ] project: unify "sessions" and "editor"
        [x] read through code of each
        [x] (0:32) make it so open files can also support consoles and make them open there instead
-    -->   [ ] same, but for worksheets
-       [ ] buttons for new worksheet/console
-       [ ] remove consoles.html/css/coffee
-
-       [ ] change title for editor to "open files"
+       [x] (1:30) same, but for worksheets
+       [x] (0:33) buttons for new worksheet/console
+-->       [ ] remove that big space between tabs and editor.
        [ ] make it so for editor.create_tab, one can specify the
            editor to use; only fallback to the table if nothing
            specified; I want to be able to open .salvus files in
            codemirror....
+       [ ] worksheet/console -- move trivial template to editor.html
 
     [ ] interact: vertical spacing got jacked in move.
+    [ ] remove consoles.html/css/coffee
 
     [ ] terminal: saving/restoring history and current working directory
          --> file.terminal will contain a session_id, so we can reconnect to an existing session if it hasn't timed out.
