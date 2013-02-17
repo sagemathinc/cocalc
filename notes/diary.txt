@@ -9903,21 +9903,27 @@ debug: BUG *********************************************************************
 
     [x] disable "create branch" input form
 
-    [ ] BUG worksheet: moving it (via rename and save) must chdir; it seems it doesn't.
+    [x] (0:10) project creation: make modal nicer
 
-    [ ] (0:10) project creation: make modal nicer
-
-    [ ] project: unify "sessions" and "editor"
+    [x] project: unify "sessions" and "editor"
        [x] read through code of each
        [x] (0:32) make it so open files can also support consoles and make them open there instead
        [x] (1:30) same, but for worksheets
        [x] (0:33) buttons for new worksheet/console
        [x] remove that big space between tabs and editor.
-       [ ] make it so for editor.create_tab, one can specify the
+
+    [x] (0:02) editor: need to switch to tab when opening file before doing anything more.
+
+-->    [ ] when switch to a tab, the console should get focused automatically
+
+    [ ] make it so for editor.create_tab, one can specify the
            editor to use; only fallback to the table if nothing
            specified; I want to be able to open .salvus files in
            codemirror....
-       [ ] worksheet/console -- move trivial template to editor.html
+    [ ] worksheet/console -- move trivial template to editor.html
+
+    [ ] unify save/move for all file types in editor
+          in particular -- worksheet: moving it (via rename and save) must chdir; it seems it doesn't.
 
     [ ] interact: vertical spacing got jacked in move.
     [ ] remove consoles.html/css/coffee

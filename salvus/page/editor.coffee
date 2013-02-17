@@ -246,11 +246,12 @@ class exports.Editor
         link.find(".salvus-editor-close-button-x").click () => @close(link_filename.text())
         link.find("a").click () => @display_tab(link_filename.text())
         @nav_tabs.append(link)
-        @element.find(".salvus-editor-content").append(editor.element.hide())
         @tabs[filename] =
             link     : link
             editor   : editor
             filename : filename
+        @display_tab(filename)
+        @element.find(".salvus-editor-content").append(editor.element.hide())
         @update_counter()
         return @tabs[filename]
 
@@ -436,8 +437,9 @@ class Worksheet extends FileEditor
             @worksheet = @element.data("worksheet")
             @element   = @worksheet.element
             @worksheet.on 'save', (new_filename) =>
-                @editor.change_tab_filename(@filename, new_filename)
-                @filename = new_filename
+                if new_filename != @filename
+                    @editor.change_tab_filename(@filename, new_filename)
+                    @filename = new_filename
 
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, opts) ->
