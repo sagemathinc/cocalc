@@ -19,10 +19,16 @@
 
 .project-file-name {
     font-weight:bold;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .project-file-name-extension {
     color:#999;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .project-directory-name {

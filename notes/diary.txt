@@ -9930,7 +9930,7 @@ debug: BUG *********************************************************************
 
     [x] (0:23) file browser: hide file extensions and when showing files, make the extension (and final dot) be in a lighter shade.
 
-    [ ] file browser: very long filenames wreak havoc; just break in same way we break cell output.
+    [x] (0:03) file browser: very long filenames wreak havoc; just break in same way we break cell output.
 
     [ ] BUG in bash single prompt: can't run gcc -- probably need to run bashrc or something first(?)
 
