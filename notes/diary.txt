@@ -9920,7 +9920,9 @@ debug: BUG *********************************************************************
 
     [x] (0:39) worksheet focus -- if never ever, choose first cell; also not last eval but last focused
 
-    [ ] syntax highlighting for c/c++ code (?)
+    [x] (0:45) syntax highlighting for c/c++ code (?); ran into a few issues/breakfast, etc.
+
+    [ ] new worksheet/terminal -- instead of scratch, should just appear in the *current* path.
 
     [ ] make it so for editor.create_tab, one can specify the
            editor to use; only fallback to the table if nothing

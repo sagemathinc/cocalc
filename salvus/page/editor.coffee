@@ -11,10 +11,18 @@ async = require('async')
 {trunc, from_json, to_json, keys, defaults, required, filename_extension, len} = require('misc')
 
 codemirror_associations =
+    c      : 'text/x-c'
+    'c++'  : 'text/x-c++src'
+    cpp    : 'text/x-c++src'
+    cc     : 'text/x-c++src'
+    csharp : 'text/x-csharp'
+    'c#'   : 'text/x-csharp'
+    java   : 'text/x-java'
     coffee : 'coffeescript'
     css    : 'css'
     diff   : 'diff'
     ecl    : 'ecl'
+    h      : 'text/x-c++hdr'
     html   : 'htmlmixed'
     js     : 'javascript'
     lua    : 'lua'
@@ -25,6 +33,7 @@ codemirror_associations =
     r      : 'r'
     rst    : 'rst'
     sage   : 'python'
+    scala  : 'text/x-scala'
     sh     : 'shell'
     spyx   : 'python'
     txt    : 'text'
@@ -253,11 +262,8 @@ class exports.Editor
             filename : filename
         @display_tab(filename)
         @element.find(".salvus-editor-content").append(editor.element.show())
-        f = () =>
-            console.log("editor.focus()")
-            editor.focus()
-        setTimeout(f, 500)
         @update_counter()
+        setTimeout(editor.focus, 100)
         return @tabs[filename]
 
     change_tab_filename: (old_filename, new_filename) =>
