@@ -346,11 +346,8 @@ class Cell extends EventEmitter
 
     _set_interact_var: (control_desc) =>
         var0 = control_desc.var
-        console.log("control_desc = ", to_json(control_desc))
         panel = @_output.closest('.salvus-cell-output-interact')
-        console.log("panel = ", panel)
         controls = panel.find(".salvus-cell-interact-var-#{var0}")
-        console.log("controls = ", controls)
         if controls.length > 0
             # There is already (at least) one control location with this name
             for C in controls
@@ -363,7 +360,6 @@ class Cell extends EventEmitter
                     $(C).append(new_control)
                     new_control.data('refresh')?()
         else
-            console.log("no controls with this name")
             # No controls with this name or even place to put it.
             row = $("<div class='row-fluid'></div>")
             container = $("<div class='span12 salvus-cell-interact-var-#{var0}'></div>")

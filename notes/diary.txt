@@ -9944,7 +9944,56 @@ debug: BUG *********************************************************************
 
     [x] (0:36) interact: setting variables
 
-    [ ] projects: completely deal with git subprojects
+    [x] (2:00) projects: completely deal with git subprojects -- come up with a plan
+     I experimented with saving the diffbundles in the parent repo
+     itself, and this is totally not viable, since storage space
+     completely blows up, since git isn't *that* good at compressing
+     differences between binary files, even with "git gc --aggressive".
+     So it seems that the only viable option is to store lots of bundles.
+     This would be easy to solve were it not for branches in
+     /home/username/.  
+
+Proposal:
+
+.git/salvus/bundles/
+   0.diffbundle
+   1.diffbundle
+   w/
+      0.diffbundle
+      bar/
+          0.diffbundle
+          1.diffbundle
+          2.diffbundle
+
+Change the database schema:
+
+CREATE TABLE project_bundles (
+     project_id  uuid,
+     path        varchar,
+     number      int,
+     bundle      blob,
+     PRIMARY KEY (project_id, path, number)
+);
+
+
+messages: in addition to the number, we send the path.
+
+So need code to:
+
+     [ ] multi-diffbundler create -- build the above directory structure from
+         a working directory, and have output a list of pairs
+         (path,number) that were modified or created.
+
+     [ ] multi-diffbundler extract -- given above directory structure,
+	 extract the corresponding working directory
+
+     [ ] save above to the database
+
+     [ ] load above from the database
+
+
+
+-----
 
     [ ] if close last file in editor, go back to browser automatically
 
@@ -9952,6 +10001,8 @@ debug: BUG *********************************************************************
 @interact
 def f(n=10**100):
     print n
+
+    [ ] editor: autofocus on switching tabs doesn't work again.
 
     [ ] note: control-up/down in note field should also move the cell
 
