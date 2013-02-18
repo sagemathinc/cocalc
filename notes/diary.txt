@@ -9984,12 +9984,13 @@ So need code to:
 
      [x] (1:57) multi-diffbundler -- be able to set a size threshhold, and output a list of path/to/new/7.diffbundle that were modified or created.
 
-     [ ] multi-diffbundler extract -- given above directory structure,
-	 extract the corresponding working directory
+     [x] (0:16) multi-diffbundler extract -- given above directory structure, extract the corresponding working directory
 
-     [ ] save above to the database
+-->     [ ] switch project_server to use multi-diffbundler instead, but not store extra info to database yet.
 
-     [ ] load above from the database
+     [ ] save extra info to the database
+
+     [ ] load extra info from the database
 
      [ ] multi-diffbundler -- if I wrote it using node, it would
          probably scale *massively* better as the number of repos goes

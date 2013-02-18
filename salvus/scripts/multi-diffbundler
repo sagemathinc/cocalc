@@ -76,32 +76,35 @@ def newest_bundle_filename(path):
     else:
         return None
 
-def create_multidiffbundle(src, target, thresh, new_bundles):
-    if path_exists(join(src, '.git')):
+def create_multidiffbundle(working_dir, bundler_dir, thresh, new_bundles):
+    if path_exists(join(working_dir, '.git')):
         last_bundle = None
-        last_bundlename = newest_bundle_filename(target)
+        last_bundlename = newest_bundle_filename(bundler_dir)
         # Try making a new bundle first
-        cmd([diffbundler, 'create', src, target], dry_run=False)
-        new_bundlename = newest_bundle_filename(target)
+        cmd([diffbundler, 'create', working_dir, bundler_dir], dry_run=False)
+        new_bundlename = newest_bundle_filename(bundler_dir)
         if new_bundlename != last_bundlename:
             # There were changes to the repo that we had not already bundled up.
             # First, check if we should merge the last two bundles.
             if thresh > 0 and last_bundlename is not None and getsize(last_bundlename)/1000000.0 < thresh:
                 os.unlink(last_bundlename)
                 os.unlink(new_bundlename)
-                cmd([diffbundler, 'create', src, target], dry_run=False)
+                cmd([diffbundler, 'create', working_dir, bundler_dir], dry_run=False)
                 new_bundles.append(last_bundlename)
             else:
                 new_bundles.append(new_bundlename)
 
-    for path in listdir(src):
-        p = join(src, path)
+    for path in listdir(working_dir):
+        p = join(working_dir, path)
         if isdir(p) and not islink(p):
-            create_multidiffbundle(p, join(target, path), thresh, new_bundles)
+            create_multidiffbundle(p, join(bundler_dir, path), thresh, new_bundles)
 
-def extract_multidiffbundle(src, target, thresh):
-    print "extract"
-
+def extract_multidiffbundle(bundle_dir, working_dir):
+    if os.path.exists(working_dir):
+        cmd([diffbundler, 'extract', bundle_dir, working_dir], dry_run=False)
+    for path in listdir(bundle_dir):
+        if isdir(path):
+            extract_multidiffbundle(join(bundle_dir, path), join(working_dir, path))
 
 #########################################################################################################
 
@@ -141,7 +144,7 @@ if __name__ == '__main__':
         print json.dumps(new_bundles, separators=(',',':'))
     elif 'extractdir' in args:
         bundledir = cleanup_path(args.bundledir)
-    	extract_multidiffbundle(bundledir, cleanup_path(args.extractdir), args.thresh)
+    	extract_multidiffbundle(bundledir, cleanup_path(args.extractdir))
     elif 'test' in sys.argv:
         test()
     else:
