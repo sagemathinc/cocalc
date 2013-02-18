@@ -32,49 +32,79 @@
 
 
   <!-- Interact -->
-  <div class="salvus-cell-output-interact well">
-    <table style="width:100%">
-      <tr>
-	<td></td>
-	<td><div class="salvus-cell-interact-controls-top"></div></td>
-	<td></td>
-      </tr>
-      <tr>
-	<td><div class="salvus-cell-interact-controls-left"></div></td>
-	<td><div class="salvus-cell-interact-output"></div></td>
-	<td><div class="salvus-cell-interact-controls-right"></div></td>
-      </tr>
-      <tr>
-	<td></td>
-	<td><div class="salvus-cell-interact-controls-bottom"></div></td>
-	<td></td>
-      </tr>
-    </table>
+  <div class="salvus-cell-output-interact container-fluid">
   </div>
+
+  <div class="salvus-cell-output-interact-simple-layout">
+    <span class="salvus-cell-interact-controls-top">
+    </span>
+    <div class="row-fluid">
+      <div class="span12">
+	<div class="salvus-cell-interact-output"></div>
+      </div>
+    </div>
+  </div>
+
+<!--
+  <div class="salvus-cell-output-interact-complicated-layout">
+    <div class="row-fluid">
+      <div class="span12">
+	<div class="salvus-cell-interact-controls-top">
+	</div>
+      </div>
+    </div>
+    <div class="row-fluid">
+      <div class="span3">
+	LEFT: <div class="salvus-cell-interact-controls-left"></div>
+      </div>
+      <div class="span6">
+	OUTPUT: <div class="salvus-cell-interact-output"></div>
+      </div>
+      <div class="span3">
+	RIGHT: <div class="salvus-cell-interact-controls-right"></div>
+      </div>
+    </div>
+    <div class="row-fluid">
+      <div class="offset3 span6">
+	BOTTOM: <div class="salvus-cell-interact-controls-bottom"></div>
+      </div>
+    </div>
+  </div>
+-->
 
   <!-- Interact: input-box -->
   <span class="salvus-cell-interact-control-input-box">
-    <label>
-      <span class="salvus-cell-interact-label"></span>
-      <input type="text"></input>
-    </label>
+    <div class="row-fluid">
+      <div class="span12">
+	<div class="span2">
+	  <span class="salvus-cell-interact-label"></span>
+	</div>
+	<div class="span10">
+	  <input type="text" class="span12"></input>
+	</div>
+      </div>
+    </div>
   </span>
+
 
   <!-- Interact: checkbox -->
-  <span class="salvus-cell-interact-control-checkbox-xxx">
-    <label>
-      <span class="salvus-cell-interact-label"></span>
-      <input type="checkbox"></input>
-    </label>
+  <span class="salvus-cell-interact-control-checkbox">
+    <div class="row-fluid">
+      <div class="span2">
+	<span class="salvus-cell-interact-label"></span>
+      </div>
+      <div class="span10">
+	<input type="checkbox"></input>
+      </div>
+    </div>
   </span>
-
-  <div class="salvus-cell-interact-control-checkbox" style="width:100%">
-    <label> <input type="checkbox"></input> <span class="salvus-cell-interact-label"></span> </label>
-  </div>
 
   <!-- Interact: selector -->
   <span class="salvus-cell-interact-control-selector">
-    <label> <span class="salvus-cell-interact-label"></span> <span class="salvus-cell-interact-control-content"></span></label>
+    <label>
+      <span class="salvus-cell-interact-label"></span>
+      <span class="salvus-cell-interact-control-content"></span>
+    </label>
   </span>
 
   <!-- Interact: button -->
@@ -102,15 +132,22 @@
   </span>
 
   <!-- Interact: slider -->
-  <span class="salvus-cell-interact-control-slider">
-    <label>
-      <span class="salvus-cell-interact-label"></span>
-      <div class="salvus-cell-interact-control-content">
-	<div></div>
-	<span class="salvus-cell-interact-control-value"></span>
+  <div class="salvus-cell-interact-control-slider">
+    <span class=" salvus-cell-interact-control-content">
+      <div class="row-fluid">
+	<div class="span2">
+	  <div class="salvus-cell-interact-label"></div>
+	</div>
+	<div class="span8 pull-left">
+	  <div class="salvus-cell-interact-control-slider"></div>
+	</div>
+	<div class="span2">
+	  <div class="salvus-cell-interact-control-value"></div>
+	</div>
       </div>
-    </label>
-  </span>
+    </span>
+  </div>
+
 
   <!-- Interact: range-slider -->
   <span class="salvus-cell-interact-control-range-slider">

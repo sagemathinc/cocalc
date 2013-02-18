@@ -9933,8 +9933,15 @@ debug: BUG *********************************************************************
     [x] (0:03) file browser: very long filenames wreak havoc; just break in same way we break cell output.
 
     [x] (1:15) interact: vertical spacing got jacked in move.  [was difficult to fix until I dub in with the webkit debugger]
- 
-    [ ] interact: fix that labels for controls aren't next to the controls... (might as well, since I'm into the code now)
+
+-->    [ ] interact: fix that labels for controls aren't next to the controls... (might as well, since I'm into the code now)
+
+    [ ] if close last file in editor, go back to browser automatically
+
+    [ ] interact bug: this should not go "scientific"
+@interact
+def f(n=10**100):
+    print n
 
     [ ] interact: bug where it hangs easily...
 

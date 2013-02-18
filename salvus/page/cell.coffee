@@ -362,6 +362,8 @@ class Cell extends EventEmitter
         control.remove()
 
     _initialize_interact: (elt, desc) =>
+        elt.append(templates.find(".salvus-cell-output-interact-simple-layout").clone())
+
         # Canonicalize width
         desc.width = parse_width(desc.width)
 
@@ -396,6 +398,19 @@ class Cell extends EventEmitter
             v[c.var] = c
 
         created_controls = []
+
+        console.log(desc.layout)
+        controls = elt.find(".salvus-cell-interact-controls-top")
+        controls.data("update", update)
+        for row in desc.layout['top']
+            console.log(row)
+            arg = row[0]
+            if v[arg]?
+                c = @_interact_control(v[arg], update)
+                controls.append(c)
+                created_controls.push(c)
+
+        ###
         for pos in ['top', 'bottom', 'left', 'right']
             controls = elt.find(".salvus-cell-interact-controls-#{pos}")
             controls.data("update", update)
@@ -413,6 +428,7 @@ class Cell extends EventEmitter
                             created_controls.push(c)
                             tr.append(td)
                     controls.append(t)
+        ###
 
         for c in created_controls
             c.data('refresh')?()
@@ -435,7 +451,7 @@ class Cell extends EventEmitter
         if control.length == 0
             throw("Unknown interact control '#{desc.control_type}'")
         if desc.label?
-            control.find(".salvus-cell-interact-label").html(desc.label)
+            control.find(".salvus-cell-interact-label").html(desc.label).mathjax()
 
         control.addClass("salvus-cell-interact-var-#{desc.var}")
 
@@ -460,6 +476,7 @@ class Cell extends EventEmitter
                     send(input.val())
                 if desc.readonly
                     input.attr('readonly', 'readonly')
+                input.width(desc.width)
 
 
             when 'checkbox'
@@ -540,12 +557,10 @@ class Cell extends EventEmitter
 
             when 'slider'
                 content = control.find(".salvus-cell-interact-control-content")
-                slider = content.find("div")
+                slider = content.find(".salvus-cell-interact-control-slider")
                 value = control.find(".salvus-cell-interact-control-value")
-                if desc.width
-                    content.width(desc.width)
-                else
-                    content.css('min-width','20em')
+                if desc.width?
+                    slider.width(desc.width)
                 slider.slider
                     animate : desc.animate
                     min     : 0
@@ -1130,3 +1145,4 @@ parse_width = (width) ->
             return "#{width}ex"
         else
             return width
+
