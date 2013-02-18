@@ -1,57 +1,21 @@
 #!/usr/bin/env python
-"""
- 2094  mkdir x
- 2095  cd x
- 2096  git init x
- 2097  git init 
- 2098  ls
- 2099  rm -rf x
- 2100  ls
- 2101  touch abc
- 2102  git add abc
- 2103  git commit -a -m "init"
- 2104  mkdir y
- 2105  cd y
- 2106  git init
- 2107  touch xyz
- 2108  git add xyz
- 2109  git commit -a -m "init"
- 2110  git log
- 2111  cd ..
- 2112  ls
- 2113  git log
- 2114  ls
- 2115  git status
- 2116  git add .
- 2117  git commit -a -m "add y"
- 2118  git log
- 2119  ls
- 2120  git show HEAD
- 2121  cd ..
- 2122  ls
- 2123  ls x
- 2124  ./multi-diffbundler create x z
- 2125  ls
- 2126  ls z
- 2127  ./multi-diffbundler extract z w
- 2128  ls
- 2129  ls w
- 2130  ls x
- 2131  ls z
-"""
 
-import os, sys
-join    = os.path.join
-isdir   = os.path.isdir
-listdir = os.listdir
+import json, os, sys
+
+join        = os.path.join
+isdir       = os.path.isdir
+islink       = os.path.islink
+listdir     = os.listdir
 path_exists = os.path.exists
+splitext    = os.path.splitext
+getsize     = os.path.getsize
 
 from subprocess import Popen, PIPE
 
 multi_diffbundler = os.path.abspath(os.path.realpath(__file__))
 diffbundler = join(os.path.split(multi_diffbundler)[0], 'diffbundler')
 
-def cmd(args, dry_run=False):
+def cmd(args, dry_run=False, wait=True):
     if isinstance(args, str):
         shell = True
         print args
@@ -61,11 +25,17 @@ def cmd(args, dry_run=False):
     if dry_run:
         return
     out = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=shell)
-    e = out.wait()
-    print out.stdout.read()
-    print out.stderr.read()
-    if e:
-        sys.exit(e)
+    if wait:
+        e = out.wait()
+        stdout = out.stdout.read()
+        stderr =  out.stderr.read()
+        print stdout,
+        print stderr,
+        if e:
+            sys.exit(e)
+        return {'stdout':stdout, 'stderr':stderr}
+    else:
+        return out
 
 def test():
     target = '/tmp/test'  # stupid
@@ -75,7 +45,18 @@ def test():
     cmd("git init; echo 'foo'>123; git add 123; git commit -a -m 'init'")
     cmd("mkdir x; cd x; git init; touch abc; git add abc; git commit -a -m 'init'; git branch test")
     cmd("mkdir x/y; cd x/y; git init; touch abc; git add abc; git commit -a -m 'init'")
+    cmd("git add .; git commit -a -m 'add subdirs'")
     cmd("mkdir -p .git/salvus/bundles/")
+    cmd([multi_diffbundler, 'create', target, join(target, '.git/salvus/bundles')])
+    cmd("touch abc; git add abc; git commit -a -m 'abc'")
+    cmd([multi_diffbundler, 'create', target, join(target, '.git/salvus/bundles')])
+    # Now make a big random file in x/y/ and add to repo
+    cmd("cd x/y; head -c 15000000 /dev/urandom > big_file; git add big_file; git commit -a -m 'big file added'")
+    cmd([multi_diffbundler, 'create', target, join(target, '.git/salvus/bundles')])
+    # And make another, which must force creation of a new bundle 1.diffbundle.
+    cmd("cd x/y; head -c 15000000 /dev/urandom > big_file; git add big_file; git commit -a -m 'big file added'")
+    cmd([multi_diffbundler, 'create', target, join(target, '.git/salvus/bundles')])
+    # Now immediately do another save; now the 1.diffbundle should not be considered new.
     cmd([multi_diffbundler, 'create', target, join(target, '.git/salvus/bundles')])
 
 def cleanup_path(path):
@@ -85,23 +66,53 @@ def cleanup_path(path):
         raise ValueError("'%s' is not a directory"%path)
     return os.path.realpath(path)
 
-def create_multidiffbundle(src, target):
-    # TODO -- delete last bundle file in target if too small (?)
-    # TODO -- track what is created
-    if path_exists(join(src, '.git')):
-        cmd([diffbundler, 'create', src, target], dry_run=False)
-    for path in listdir(src):
-        if isdir(join(src, path)):
-            create_multidiffbundle(join(src,path), join(target, path))
+def newest_bundle_filename(path):
+    if not os.path.exists(path):
+        return None
+    v = [int(splitext(filename)[0]) for filename in listdir(path) if not isdir(join(path, filename))]
+    v.sort()
+    if len(v) > 0:
+        return join(path, "%s.diffbundle"%v[-1])
+    else:
+        return None
 
-def extract_multidiffbundle(src, target):
+def create_multidiffbundle(src, target, thresh, new_bundles):
+    if path_exists(join(src, '.git')):
+        last_bundle = None
+        last_bundlename = newest_bundle_filename(target)
+        # Try making a new bundle first
+        cmd([diffbundler, 'create', src, target], dry_run=False)
+        new_bundlename = newest_bundle_filename(target)
+        if new_bundlename != last_bundlename:
+            # There were changes to the repo that we had not already bundled up.
+            # First, check if we should merge the last two bundles.
+            if thresh > 0 and last_bundlename is not None and getsize(last_bundlename)/1000000.0 < thresh:
+                os.unlink(last_bundlename)
+                os.unlink(new_bundlename)
+                cmd([diffbundler, 'create', src, target], dry_run=False)
+                new_bundles.append(last_bundlename)
+            else:
+                new_bundles.append(new_bundlename)
+
+    for path in listdir(src):
+        p = join(src, path)
+        if isdir(p) and not islink(p):
+            create_multidiffbundle(p, join(target, path), thresh, new_bundles)
+
+def extract_multidiffbundle(src, target, thresh):
     print "extract"
+
+
+#########################################################################################################
+
 
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description=
             'Utility script for managing git repositories that may contain other git repositories, stored in diffbundles')
+
+    parser.add_argument('--thresh', help='threshhold in megabytes for creating new bundles', default=10, type=int, dest='thresh')
 
     subparsers = parser.add_subparsers()
 
@@ -125,10 +136,12 @@ if __name__ == '__main__':
 
     if 'repodir' in args:
         bundledir = cleanup_path(args.bundledir)
-        create_multidiffbundle(cleanup_path(args.repodir), bundledir)
+        new_bundles = []
+        create_multidiffbundle(cleanup_path(args.repodir), bundledir, args.thresh, new_bundles)
+        print json.dumps(new_bundles, separators=(',',':'))
     elif 'extractdir' in args:
         bundledir = cleanup_path(args.bundledir)
-    	extract_multidiffbundle(bundledir, cleanup_path(args.extractdir))
+    	extract_multidiffbundle(bundledir, cleanup_path(args.extractdir), args.thresh)
     elif 'test' in sys.argv:
         test()
     else:

@@ -89,12 +89,13 @@ def get_shas(refs_dir):
         for l in f:
             ret.add(l.split(' ')[0])
         f.close()
-    return ret
+    return list(sorted(ret))
 
 class SelfCleaningTempDir(str):
 
     def __new__(self):
-        return str.__new__(self, tempfile.mkdtemp())
+        path = tempfile.mkdtemp()
+        return str.__new__(self, path)
 
     def __enter__(self):
         return self
@@ -139,7 +140,7 @@ class DiffBundler(object):
         except AttributeError:
             pass
         self._len = 0
-        for f in os.listdir(self.bundle_dir):
+        for f in sorted(os.listdir(self.bundle_dir)):
             try:
                 if f.endswith('.diffbundle'):
                     self._len = max(self._len, int(f[:-11])+1)
@@ -215,7 +216,7 @@ class DiffBundler(object):
             headsf = open(os.path.join(tmpd, 'heads'), 'w')
             tagsf = open(os.path.join(tmpd, 'tags'), 'w')
 
-            for ref in git_stdout(repo_dir, 'show-ref', '--head'):
+            for ref in sorted(git_stdout(repo_dir, 'show-ref', '--head')):
                 sha, name = ref.split(' ')
 
                 if name.startswith(REFSHEADS):
@@ -242,8 +243,10 @@ class DiffBundler(object):
             tagsf.close()
 
             if not self:
-                args = '--all'
+                args = ['--all']
 
+            # disable making a new (useless) diffbundle if there is a stash.
+            args = [x for x in args if not x.endswith('..refs/stash')]
             bundle = bool(args)
 
             if self:

@@ -9982,9 +9982,7 @@ So need code to:
 
      [x] (0:52) multi-diffbundler create -- build the above directory structure from a working directory, 
 
-     [ ] multi-diffbundler -- be able to set a size threshhold.
-
-     [ ] multi-diffbundler -- output a list of pairs (path,number) that were modified or created.
+     [x] (1:57) multi-diffbundler -- be able to set a size threshhold, and output a list of path/to/new/7.diffbundle that were modified or created.
 
      [ ] multi-diffbundler extract -- given above directory structure,
 	 extract the corresponding working directory
@@ -9993,7 +9991,9 @@ So need code to:
 
      [ ] load above from the database
 
-
+     [ ] multi-diffbundler -- if I wrote it using node, it would
+         probably scale *massively* better as the number of repos goes
+         up... because it could launch all the diffbundlers at once.  LATER.
 
 -----
 
