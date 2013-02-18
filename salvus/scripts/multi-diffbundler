@@ -1,0 +1,133 @@
+#!/usr/bin/env python
+"""
+ 2094  mkdir x
+ 2095  cd x
+ 2096  git init x
+ 2097  git init 
+ 2098  ls
+ 2099  rm -rf x
+ 2100  ls
+ 2101  touch abc
+ 2102  git add abc
+ 2103  git commit -a -m "init"
+ 2104  mkdir y
+ 2105  cd y
+ 2106  git init
+ 2107  touch xyz
+ 2108  git add xyz
+ 2109  git commit -a -m "init"
+ 2110  git log
+ 2111  cd ..
+ 2112  ls
+ 2113  git log
+ 2114  ls
+ 2115  git status
+ 2116  git add .
+ 2117  git commit -a -m "add y"
+ 2118  git log
+ 2119  ls
+ 2120  git show HEAD
+ 2121  cd ..
+ 2122  ls
+ 2123  ls x
+ 2124  ./multi-diffbundler create x z
+ 2125  ls
+ 2126  ls z
+ 2127  ./multi-diffbundler extract z w
+ 2128  ls
+ 2129  ls w
+ 2130  ls x
+ 2131  ls z
+"""
+
+import os, sys
+join    = os.path.join
+isdir   = os.path.isdir
+listdir = os.listdir
+path_exists = os.path.exists
+
+from subprocess import Popen, PIPE
+
+def cmd(args, dry_run=False):
+    if isinstance(args, str):
+        shell = True
+        print args
+    else:
+        print ' '.join(args)
+        shell = False
+    if dry_run:
+        return
+    out = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=shell)
+    e = out.wait()
+    print out.stdout.read()
+    print out.stderr.read()
+    if e:
+        sys.exit(e)
+
+def test():
+    mdb = os.path.abspath(os.path.realpath(__file__))
+    target = '/tmp/test'  # stupid
+    cmd(["rm","-rf", target])
+    cmd(["mkdir", "-p", target])
+    os.chdir(target)
+    cmd("git init; echo 'foo'>123; git add 123; git commit -a -m 'init'")
+    cmd("mkdir x; cd x; git init; touch abc; git add abc; git commit -a -m 'init'")
+    cmd("mkdir -p .git/salvus/bundles/")
+    cmd([mdb, 'create', target, join(target, '.git/salvus/bundles')])
+
+
+def cleanup_path(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    elif not os.path.isdir(path):
+        raise ValueError("'%s' is not a directory"%path)
+    return os.path.realpath(path)
+
+def create_multidiffbundle(src, target):
+    # TODO -- delete last bundle file in target if too small (?)
+    # TODO -- track what is created
+    if path_exists(join(src, '.git')):
+        cmd(['diffbundler', 'create', src, target], dry_run=True)
+    for path in listdir(src):
+        if isdir(join(src, path)):
+            create_multidiffbundle(join(src,path), join(target, path))
+
+def extract_multidiffbundle(src, target):
+    print "extract"
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description=
+            'Utility script for managing git repositories that may contain other git repositories, stored in diffbundles')
+
+    subparsers = parser.add_subparsers()
+
+    test_parser = subparsers.add_parser('test', help='run a test (involves creating a directory /tmp/test/)')
+
+    create_parser = subparsers.add_parser('create',
+            help='update new multi-diffbundle path')
+    create_parser.add_argument('repodir', type=str,
+            help='repository to bundle')
+    create_parser.add_argument('bundledir', type=str,
+            help='directory to place new diffbundle')
+
+    extract_parser = subparsers.add_parser('extract',
+            help='extract a repository with nested git repos from a multi-diffbundle path')
+    extract_parser.add_argument('bundledir', type=str,
+            help='directory with diffbundles')
+    extract_parser.add_argument('extractdir', type=str,
+            help='output directory')
+
+    args = parser.parse_args()
+
+    if 'repodir' in args:
+        bundledir = cleanup_path(args.bundledir)
+        create_multidiffbundle(cleanup_path(args.repodir), bundledir)
+    elif 'extractdir' in args:
+        bundledir = cleanup_path(args.bundledir)
+    	extract_multidiffbundle(bundledir, cleanup_path(args.extractdir))
+    elif 'test' in sys.argv:
+        test()
+    else:
+        raise RuntimeError('command line arguments not properly processed')

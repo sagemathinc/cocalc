@@ -9980,9 +9980,13 @@ messages: in addition to the number, we send the path.
 
 So need code to:
 
-     [ ] multi-diffbundler create -- build the above directory structure from
-         a working directory, and have output a list of pairs
+-->     [ ] multi-diffbundler create -- build the above directory structure from
+         a working directory, 
+
+     [ ] multi-diffbundler -- have output a list of pairs
          (path,number) that were modified or created.
+
+     [ ] multi-diffbundler -- be able to set a size threshhold.
 
      [ ] multi-diffbundler extract -- given above directory structure,
 	 extract the corresponding working directory
