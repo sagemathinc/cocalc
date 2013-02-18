@@ -15,12 +15,14 @@ from subprocess import Popen, PIPE
 multi_diffbundler = os.path.abspath(os.path.realpath(__file__))
 diffbundler = join(os.path.split(multi_diffbundler)[0], 'diffbundler')
 
+verbose = False
+
 def cmd(args, dry_run=False, wait=True):
     if isinstance(args, str):
         shell = True
-        print args
+        if verbose: print args
     else:
-        print ' '.join(args)
+        if verbose: print ' '.join(args)
         shell = False
     if dry_run:
         return
@@ -29,8 +31,8 @@ def cmd(args, dry_run=False, wait=True):
         e = out.wait()
         stdout = out.stdout.read()
         stderr =  out.stderr.read()
-        print stdout,
-        print stderr,
+        if verbose: print stdout,
+        if verbose: print stderr,
         if e:
             sys.exit(e)
         return {'stdout':stdout, 'stderr':stderr}
@@ -80,6 +82,12 @@ def create_multidiffbundle(working_dir, bundler_dir, thresh, new_bundles):
     if path_exists(join(working_dir, '.git')):
         last_bundle = None
         last_bundlename = newest_bundle_filename(bundler_dir)
+
+        # "git gc" before bundling is *very* important, since
+        # otherwise the bundles mushroom for no good reason.
+        os.chdir(working_dir)
+        cmd(['git', 'gc'])
+
         # Try making a new bundle first
         cmd([diffbundler, 'create', working_dir, bundler_dir], dry_run=False)
         new_bundlename = newest_bundle_filename(bundler_dir)
@@ -116,6 +124,7 @@ if __name__ == '__main__':
             'Utility script for managing git repositories that may contain other git repositories, stored in diffbundles')
 
     parser.add_argument('--thresh', help='threshhold in megabytes for creating new bundles', default=10, type=int, dest='thresh')
+    parser.add_argument('--verbose', help='be more verbose (default: False)', action="store_true")
 
     subparsers = parser.add_subparsers()
 
@@ -136,6 +145,9 @@ if __name__ == '__main__':
             help='output directory')
 
     args = parser.parse_args()
+
+    if args.verbose:
+        verbose = True
 
     if 'repodir' in args:
         bundledir = cleanup_path(args.bundledir)

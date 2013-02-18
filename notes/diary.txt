@@ -9986,7 +9986,7 @@ So need code to:
 
      [x] (0:16) multi-diffbundler extract -- given above directory structure, extract the corresponding working directory
 
--->     [ ] switch project_server to use multi-diffbundler instead, but not store extra info to database yet.
+     [x] (0:30) switch project_server to use multi-diffbundler instead, but not store extra info to database yet.
 
      [ ] save extra info to the database
 

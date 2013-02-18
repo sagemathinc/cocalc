@@ -80,6 +80,7 @@ has_bad_shell_chars = (s) ->
 # Script for computing git-enhanced ls of a path
 gitls   = fs.readFileSync('scripts/git-ls')
 diffbundler   = fs.readFileSync('scripts/diffbundler')
+multi_diffbundler   = fs.readFileSync('scripts/multi-diffbundler')
 git0_script   = fs.readFileSync('scripts/git0')
 modtimes_script   = fs.readFileSync('scripts/modtimes')
 shell_completions_script   = fs.readFileSync('scripts/shell_completions.py')
@@ -258,6 +259,12 @@ extract_bundles = (project_id, bundles, cb) ->
             fs.chmod("#{repo_path}/.git/salvus/diffbundler", 0o777, c)
 
         (c) ->
+            winston.debug("Write script to get multi diff bundles")
+            fs.writeFile("#{repo_path}/.git/salvus/multi-diffbundler", multi_diffbundler, c)
+        (c) ->
+            fs.chmod("#{repo_path}/.git/salvus/multi-diffbundler", 0o777, c)
+
+        (c) ->
             winston.debug("Write wrapped git command")
             fs.writeFile("#{repo_path}/.git/salvus/git0", git0_script, c)
         (c) ->
@@ -338,7 +345,7 @@ extract_bundles = (project_id, bundles, cb) ->
             # There were bundles -- extract them.
             exec_as_user
                 project_id : project_id
-                command    : '.git/salvus/diffbundler'
+                command    : '.git/salvus/multi-diffbundler'
                 args       : ['extract', bundle_path, repo_path]
                 timeout    : 30
                 cb         : c
@@ -666,6 +673,8 @@ events.save_project = (socket, mesg) ->
 
     remade_last_bundle = false
     last_bundle_filename = undefined
+    new_bundles = undefined
+
     tasks    = []
     async.series([
         (cb) ->
@@ -693,99 +702,71 @@ events.save_project = (socket, mesg) ->
                         winston.debug(err)
                     cb() # non-fatal
 
-        # NOTE: It is important to garbage collect, make bundles,
-        # etc., because the user may have typed "git commit"
-        # explicitly themselves a few times before save is called.
-
-        # Garbage collect the git repo, since we are about to call
-        # diffbundler, and we do not want to store non garbage collected
-        # data in the database forever.
         (cb) ->
+            winston.debug("save_project -- bundle changes -- multi-diffbundler create #{path} #{bundles}")
             exec_as_user
                 project_id : mesg.project_id
-                command    : "#{git0(mesg.project_id) } gc"   # do not do "--aggressive", because it doesn't scale well, and has little payoff
-                cb         : (err, output) ->
-                    winston.debug(misc.to_json(output))
-                    cb(err)
-
-        # If the last bundle is below a certain size threshhold,
-        # delete it, since we'll be recreating it.  First, get name of the file:
-        (cb) ->
-            winston.debug("save_project -- delete last bundle if it is too small.")
-            get_last_bundle_filename mesg.project_id, (err, name) ->
-                if err
-                    cb(err)
-                else
-                    last_bundle_filename = name
-                    cb()
-
-        (cb) ->
-            winston.debug("Actually delete the last file, if necessary")
-            if not last_bundle_filename?  # no bundles yet
-                winston.debug("No last bundle file.")
-                cb()
-            else
-                # get size
-                winston.debug("getting size")
-                fs.lstat last_bundle_filename, (err, stats) ->
-                    if err
-                        winston.debug("error -- #{err}")
-                        cb(err)
-                    else
-                        winston.debug("got: #{err}, #{stats.size}")
-                        if stats.size <= mesg.bundle_size_threshold
-                            winston.debug("Last bundle is below size threshold, so recreating it.")
-                            remade_last_bundle = true
-                            fs.unlink(last_bundle_filename, cb)
-                        else
-                            winston.debug("Leaving it and moving on to the next one.")
-                            cb()
-
-        # If necessary (e.g., there were changes) create an additional
-        # bundle containing these changes
-        (cb) ->
-            winston.debug("save_project -- bundle changes -- diffbundler create #{path} #{bundles}")
-            exec_as_user
-                project_id : mesg.project_id
-                command    : '.git/salvus/diffbundler'
+                command    : '.git/salvus/multi-diffbundler'
                 args       : ['create', path, bundles]
                 cb         : (err, output) ->
                     winston.debug(misc.to_json(output))
-                    cb(err)
+                    if err
+                        cb(err)
+                    else
+                        new_bundles = misc.from_json(output.stdout)
+                        cb()
+
+        (cb) ->
+            n = 0
+            winston.debug("Sending #{misc.to_json(new_bundles)}...")
+            for filename in new_bundles
+                if misc.filename_extension(filename) == 'diffbundle'
+                    id = uuid.v4()
+                    task = (c) ->
+                        winston.debug("Sending #{filename}")
+                        fs.readFile filename, (err, data) ->
+                            if err
+                                c(err)
+                            else
+                                socket.write_mesg 'blob', {uuid:id, blob:data}
+                    task.n = n
+                    tasks.push(task)
+                    n += 1
+            cb()
 
         # Determine which bundle files to send.  We may send some even
         # if none were created just now, due to the database not being
         # totally up to date, which could happen if some component
         # (hub, database, network, project_server) died at a key
         # moment during a previous save.
-        (cb) ->
-            winston.debug("save_project -- determine bundles to send")
-            fs.readdir bundles, (err, files) ->
-                if err
-                    cb(err)
-                else
-                    n = mesg.starting_bundle_number
-                    # If we remade the last bundle, then we subtract 1
-                    # to ensure that the last bundle is resent (this
-                    # is slightly sloppy; in rare cases this could
-                    # result in needlessly sending another bundle).
-                    if remade_last_bundle
-                        n -= 1
-                    while "#{n}.diffbundle" in files
-                        winston.debug("Sending '#{n}.diffbundle'")
-                        id = uuid.v4()
-                        response.bundle_uuids[id] = n
-                        task = (c) ->
-                            fs.readFile "#{bundles}/#{arguments.callee.n}.diffbundle", (err, data) ->
-                                if err
-                                    c(err)
-                                else
-                                    socket.write_mesg 'blob', {uuid:id, blob:data}
-                                    c()
-                        task.n = n
-                        tasks.push(task)
-                        n += 1
-                    cb()
+        # (cb) ->
+        #     winston.debug("save_project -- determine bundles to send")
+        #     fs.readdir bundles, (err, files) ->
+        #         if err
+        #             cb(err)
+        #         else
+        #             n = mesg.starting_bundle_number
+        #             # If we remade the last bundle, then we subtract 1
+        #             # to ensure that the last bundle is resent (this
+        #             # is slightly sloppy; in rare cases this could
+        #             # result in needlessly sending another bundle).
+        #             if remade_last_bundle
+        #                 n -= 1
+        #             while "#{n}.diffbundle" in files
+        #                 winston.debug("Sending '#{n}.diffbundle'")
+        #                 id = uuid.v4()
+        #                 response.bundle_uuids[id] = n
+        #                 task = (c) ->
+        #                     fs.readFile "#{bundles}/#{arguments.callee.n}.diffbundle", (err, data) ->
+        #                         if err
+        #                             c(err)
+        #                         else
+        #                             socket.write_mesg 'blob', {uuid:id, blob:data}
+        #                             c()
+        #                 task.n = n
+        #                 tasks.push(task)
+        #                 n += 1
+        #             cb()
 
         # Read and send the bundle files
         (cb) ->
