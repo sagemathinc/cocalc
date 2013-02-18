@@ -48,6 +48,9 @@ path_exists = os.path.exists
 
 from subprocess import Popen, PIPE
 
+multi_diffbundler = os.path.abspath(os.path.realpath(__file__))
+diffbundler = join(os.path.split(multi_diffbundler)[0], 'diffbundler')
+
 def cmd(args, dry_run=False):
     if isinstance(args, str):
         shell = True
@@ -65,16 +68,15 @@ def cmd(args, dry_run=False):
         sys.exit(e)
 
 def test():
-    mdb = os.path.abspath(os.path.realpath(__file__))
     target = '/tmp/test'  # stupid
     cmd(["rm","-rf", target])
     cmd(["mkdir", "-p", target])
     os.chdir(target)
     cmd("git init; echo 'foo'>123; git add 123; git commit -a -m 'init'")
-    cmd("mkdir x; cd x; git init; touch abc; git add abc; git commit -a -m 'init'")
+    cmd("mkdir x; cd x; git init; touch abc; git add abc; git commit -a -m 'init'; git branch test")
+    cmd("mkdir x/y; cd x/y; git init; touch abc; git add abc; git commit -a -m 'init'")
     cmd("mkdir -p .git/salvus/bundles/")
-    cmd([mdb, 'create', target, join(target, '.git/salvus/bundles')])
-
+    cmd([multi_diffbundler, 'create', target, join(target, '.git/salvus/bundles')])
 
 def cleanup_path(path):
     if not os.path.exists(path):
@@ -87,7 +89,7 @@ def create_multidiffbundle(src, target):
     # TODO -- delete last bundle file in target if too small (?)
     # TODO -- track what is created
     if path_exists(join(src, '.git')):
-        cmd(['diffbundler', 'create', src, target], dry_run=True)
+        cmd([diffbundler, 'create', src, target], dry_run=False)
     for path in listdir(src):
         if isdir(join(src, path)):
             create_multidiffbundle(join(src,path), join(target, path))
