@@ -48,11 +48,24 @@ def jsonable(x):
             return str(x)
 
 class InteractCell(object):
-    def __init__(self, f, layout=None, width=None, style=None, update_args=None, auto_update=True):
+    def __init__(self, f, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=False):
         """
         Given a function f, create an object that describes an interact
         for working with f interactively.
+
+        INPUT:
+
+        - `f` -- Python function
+        - ``width`` -- (default: None) overall width of the interact canvas
+        - ``style`` -- (default: None) extra CSS style to apply to canvas
+        - ``update_args`` -- (default: None) only call f if one of the args in
+          this list of strings changes.
+        - ``auto_update`` -- (default: True) call f every time an input changes
+          (or one of the argus in update_args).
+        - ``flicker`` -- (default: False) if False, the output part of the cell
+          never shrinks; it can only grow, which aleviates flicker.
         """
+        self._flicker = flicker
         self._uuid = uuid()
         # Prevent garbage collection until client specifically requests it,
         # since we want to be able to store state.
@@ -84,6 +97,8 @@ class InteractCell(object):
                 for row in layout:
                     new_row = []
                     for x in row:
+                        if isinstance(x, str):
+                            x = (x,)
                         if len(x) == 1:
                             new_row.append((str(x[0]), 12//len(row), None))
                         elif len(x) == 2:
@@ -119,6 +134,7 @@ class InteractCell(object):
         if self._layout is not None:
             X['layout'] = self._layout
         X['style'] = self._style
+        X['flicker'] = self._flicker
         return X
 
     def __call__(self, vals):
@@ -219,16 +235,27 @@ class Interact(object):
     - ``width`` -- number, or string such as '80%', '300px', '20em'.
     - ``style`` -- CSS style string, which allows you to change the border,
       background color, etc., of the interact.
-    - ``layout`` -- a dictionary with keys 'top', 'bottom', 'left',
-      'right' and values lists of rows of control variable names.  If
-      a dictionary is not passed in, then the value of layout is set
-      to the 'top' value.  If ``None``, then all control names are put
-      on separate rows in the 'top' value.
     - ``update_args`` -- (default: None); list of strings, so that
       only changing the corresponding controls causes the function to
       be re-evaluated; changing other controls will not cause an update.
     - ``auto_update`` -- (default: True); if False, a button labeled
       'Update' will appear which you can click on to re-evalute.
+    - ``layout`` -- (default: one control per row) a list [row0,
+      row1, ...] of lists of tuples row0 = [(var_name, width,
+      label), ...], where the var_name's are strings, the widths
+      must add up to at most 12, and the label is optional.  This
+      will layout all of the controls and output using Twitter
+      Bootstraps "Fluid layout", with spans corresponding
+      to the widths.   Use var_name='' to specify where the output
+      goes, if you don't want it to last.  You may specify entries for
+      controls that you will create later using interact.var_name = foo.
+
+
+    NOTES: The flicker and layout options above are only in SALVUS.
+        For backwards compatibility with the Sage notebook, if layout
+        is a dictionary (with keys 'top', 'bottom', 'left', 'right'),
+        then the appropriate layout will be rendered as it used to be
+        in the Sage notebook.
 
     OUTPUT:
 
@@ -334,11 +361,11 @@ class Interact(object):
                 c += 1
                 sleep(.25)
     """
-    def __call__(self, f=None, layout=None, width=None, style=None, update_args=None, auto_update=True):
+    def __call__(self, f=None, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=True):
         if f is None:
-            return _interact_layout(layout, width, style, update_args, auto_update)
+            return _interact_layout(layout, width, style, update_args, auto_update, flicker)
         else:
-            return salvus.interact(f, layout=layout, width=width, style=style, update_args=update_args, auto_update=auto_update)
+            return salvus.interact(f, layout=layout, width=width, style=style, update_args=update_args, auto_update=auto_update, flicker=flicker)
 
     def __setattr__(self, arg, value):
         I = interact_exec_stack[-1]

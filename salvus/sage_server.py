@@ -760,10 +760,10 @@ def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     import sage.all; sage.all.set_random_seed()
     import time; import random; random.seed(time.time())
 
+    cnt = 0
     while True:
         try:
             typ, mesg = conn.recv()
-            open("/tmp/exception.%s"%os.getpid(),'a').write(str(mesg)+'\n')
             #print 'INFO:child%s: received message "%s"'%(pid, mesg)
             event = mesg['event']
             if event == 'terminate_session':
@@ -780,9 +780,17 @@ def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
                     pass
             else:
                 raise RuntimeError("invalid message '%s'"%mesg)
-        except KeyboardInterrupt:
-            # SIGINT can come at any time.
-            pass
+        except:
+            # When hub connection dies, loop goes crazy.
+            # Unfortunately, just catching SIGINT doesn't seem to
+            # work, and leads to random exits during a
+            # session. Howeer, when connection dies, 10000 iterations
+            # happen almost instantly.  Ugly, but it works.
+            cnt += 1
+            if cnt > 10000:
+                sys.exit(0)
+            else:
+                pass
 
 
 def introspect(conn, id, line, preparse):

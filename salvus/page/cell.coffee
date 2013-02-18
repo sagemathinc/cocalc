@@ -365,7 +365,7 @@ class Cell extends EventEmitter
         # Canonicalize width
         desc.width = parse_width(desc.width)
 
-        console.log(to_json(desc))
+        # console.log(to_json(desc))
 
         # Create the fluid and responsive bootstrap layout canvas.
         labels = {}
@@ -399,6 +399,9 @@ class Cell extends EventEmitter
                 @opts.session.interrupt()
 
             for output_cell in output_cells
+                if not desc.flicker
+                    height = output_cell._output.height()
+                    output_cell._output.css('min-height', height)
                 output_cell.delete_output()
 
             done = false

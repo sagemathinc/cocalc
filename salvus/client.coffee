@@ -54,7 +54,7 @@ class Session extends EventEmitter
     # default = SIGINT
     interrupt: () ->
         tm = misc.mswalltime()
-        if @_last_interrupt? and tm - @_last_interrupt < 250
+        if @_last_interrupt? and tm - @_last_interrupt < 200
             # client self-limit: do not send signals too frequently, since that wastes bandwidth and can kill the process
             return
         else
