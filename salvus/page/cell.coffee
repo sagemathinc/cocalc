@@ -464,6 +464,8 @@ class Cell extends EventEmitter
 
         desc.width = parse_width(desc.width)
 
+        console.log("desc = #{to_json(desc)}")
+
         switch desc.control_type
             when 'input-box'
                 input = control.find("input")
@@ -604,14 +606,22 @@ class Cell extends EventEmitter
             when 'selector'
                 content = control.find(".salvus-cell-interact-control-content")
                 if desc.buttons or desc.nrows != null or desc.ncols != null
-                    # A button bar.
+                    content.addClass('salvus-cell-interact-control-selector-buttonbox')
+                    ########################
+                    # Buttons.
+                    ########################
                     if desc.ncols != null
                         ncols = desc.ncols
                     else if desc.nrows != null
                         ncols = Math.ceil(desc.lbls.length/desc.nrows)
-                    else if desc.nrows != null
+                    else
                         ncols = desc.lbls.length
-                    bar = $('<span class="btn-group">')
+
+                    multi_row = (desc.lbls.length > ncols)
+
+                    bar = $('<span>')
+                    if multi_row
+                        bar.addClass('btn-group')
                     content.append(bar)
 
                     i = 0
@@ -633,7 +643,7 @@ class Cell extends EventEmitter
                         bar.append(button)
                         i += 1
                         if i % ncols == 0 and i < desc.lbls.length
-                            # start a new bar
+                            # start a new row in the button bar
                             content.append($('<br>'))
                             bar = $('<span class="btn-group">')
                             content.append(bar)
@@ -643,7 +653,7 @@ class Cell extends EventEmitter
                             # If no width param is specified and the
                             # button bar will take up multiple lines, make
                             # all buttons the same width as the widest, so
-                            # the buttons look good.
+                            # the buttons look nice. 
                             w = Math.max.apply @, ($(x).width() for x in content.find("a"))
                             content.find("a").width(w)
 

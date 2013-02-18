@@ -15,9 +15,7 @@
 .salvus-cell-note {
     background-color : #fff;
     color            : #333;
-    border           : 1px solid white;
     min-height       : 1.5em;
-/*    overflow-y       : auto; */
 }
 
 .salvus-cell-insert-above {
@@ -36,10 +34,6 @@
     background-color : #99f;
 }
 
-
-.salvus-cell-note:hover {
-    border: 1px dashed #fff;
-}
 
 .salvus-cell-input {
     min-height       : 1.5em;
@@ -60,7 +54,7 @@
     /*overflow-y       : auto; */
     overflow-x       : auto;
     margin-left      : 2em;
-    padding          : 1ex;
+    padding          : 0ex;
 }
 
 .salvus-cell-output-stdout {
@@ -170,4 +164,18 @@
     box-shadow: 3px 3px 1px #ccc;
 }
 
+.salvus-cell-interact-control-selector-buttonbox {
+    background-color:#f0f0f0;
+    padding:5px;
+    border:1px solid #ccc;
+    border-radius:3px;
+}
+
+.salvus-cell-interact-output-container {
+    background-color:#fff;
+    padding:1ex;
+    border:1px solid #ccc;
+    border-radius:3px;
+    margin: 1ex;
+}
 

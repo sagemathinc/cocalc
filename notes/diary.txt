@@ -9943,6 +9943,10 @@ debug: BUG *********************************************************************
 def f(n=10**100):
     print n
 
+    [ ] note: control-up/down in note field should also move the cell
+
+    [ ] note: shift-enter should move to the compute part of the cell
+
     [ ] interact: bug where it hangs easily...
 
     [ ] projects: completely deal with git subprojects
