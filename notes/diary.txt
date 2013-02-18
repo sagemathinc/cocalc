@@ -9938,9 +9938,13 @@ debug: BUG *********************************************************************
 
     [x] interact: non-layout version -- fix that labels for controls aren't next to the controls... (might as well, since I'm into the code now)
 
--->    [ ] interact: support layout; something rich enough to make the thing Jason added trivial...
+    [x] (1:48) interact: support layout; something rich enough to make the thing Jason added trivial...
 
-    [ ] interact: implement that weird top/left/bottom/right thing in terms of general layout...
+    [x] (0:33) interact: implement that weird top/left/bottom/right thing in terms of general layout...; plus fix various issues
+
+    [x] (0:36) interact: setting variables
+
+    [ ] projects: completely deal with git subprojects
 
     [ ] if close last file in editor, go back to browser automatically
 
@@ -9952,8 +9956,6 @@ def f(n=10**100):
     [ ] note: control-up/down in note field should also move the cell
 
     [ ] note: shift-enter should move to the compute part of the cell
-
-    [ ] projects: completely deal with git subprojects
 
     [ ] BUG in bash single prompt: can't run gcc -- probably need to run bashrc or something first(?)
 

@@ -345,16 +345,33 @@ class Cell extends EventEmitter
             @_close_on_action_elements = []
 
     _set_interact_var: (control_desc) =>
+        var0 = control_desc.var
+        console.log("control_desc = ", to_json(control_desc))
         panel = @_output.closest('.salvus-cell-output-interact')
-        control = panel.find(".salvus-cell-interact-var-#{control_desc.var}")
-        throw 'todo!'
-        if control.length > 0
-            control.data("set")(control_desc.default)
+        console.log("panel = ", panel)
+        controls = panel.find(".salvus-cell-interact-var-#{var0}")
+        console.log("controls = ", controls)
+        if controls.length > 0
+            # There is already (at least) one control location with this name
+            for C in controls
+                control = $(C).find(':first-child')
+                if control.length > 0
+                    control.data("set")(control_desc.default)
+                else
+                    # No control yet, so make one
+                    new_control = @_interact_control(control_desc, panel.data('update'))
+                    $(C).append(new_control)
+                    new_control.data('refresh')?()
         else
-            # TODO: support more general control placement -- use desc.layout data
-            control = @_interact_control(control_desc, panel.data('update'))
-            panel.append(control)
-            control.data('refresh')?()
+            console.log("no controls with this name")
+            # No controls with this name or even place to put it.
+            row = $("<div class='row-fluid'></div>")
+            container = $("<div class='span12 salvus-cell-interact-var-#{var0}'></div>")
+            row.append(container)
+            new_control = @_interact_control(control_desc, panel.data('update'))
+            container.append(new_control)
+            panel.append(row)
+            new_control.data('refresh')?()
 
     _del_interact_var: (arg) =>
         panel = @_output.closest('.salvus-cell-output-interact')
@@ -364,8 +381,6 @@ class Cell extends EventEmitter
     _initialize_interact: (elt, desc) =>
         # Canonicalize width
         desc.width = parse_width(desc.width)
-
-        # console.log(to_json(desc))
 
         # Create the fluid and responsive bootstrap layout canvas.
         labels = {}
@@ -386,7 +401,9 @@ class Cell extends EventEmitter
         output = elt.find(".salvus-cell-interact-var-")   # empty string is output
         output_cells = []
         for C in output
-            o = $(C).salvus_cell
+            div = $("<div>")
+            $(C).append(div)
+            o = div.salvus_cell
                 show    : ['output']
                 session : @opts.session
             output_cells.push(o.data('cell'))
@@ -420,19 +437,19 @@ class Cell extends EventEmitter
         created_controls = []
         for control_desc in desc.controls
             containing_div = elt.find(".salvus-cell-interact-var-#{control_desc.var}")
-            if containing_div.length > 0
-                if labels[control_desc.var]?
-                    control_desc.label = labels[control_desc.var]
+            if labels[control_desc.var]?
+                control_desc.label = labels[control_desc.var]
+            for X in containing_div
                 c = @_interact_control(control_desc, update)
                 created_controls.push(c)
-                containing_div.append(c)
-
+                $(X).append(c)
 
         # Refresh any controls that need refreshing
         for c in created_controls
             c.data('refresh')?()
 
         elt.attr('style', desc.style)
+        elt.data('update', update)
 
         if desc.width?
             elt.width(desc.width)
@@ -451,8 +468,6 @@ class Cell extends EventEmitter
             throw("Unknown interact control '#{desc.control_type}'")
         if desc.label?
             control.find(".salvus-cell-interact-label").html(desc.label).mathjax()
-
-        control.addClass("salvus-cell-interact-var-#{desc.var}")
 
         # Initialization specific to each control type
         set = undefined

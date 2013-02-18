@@ -89,8 +89,47 @@ class InteractCell(object):
         self._ordered_args = args
         self._args = set(args)
 
+        if isinstance(layout, dict):
+            # Implement the layout = {'top':, 'bottom':, 'left':,
+            # 'right':} dictionary option that is in the Sage
+            # notebook.  I personally think it is really awkward and
+            # unsuable, but there may be many interacts out there that
+            # use it.
+            # Example layout={'top': [['a', 'b'], ['x', 'y']], 'left': [['c']], 'bottom': [['d']]}
+            top    = layout.get('top', [])
+            bottom = layout.get('bottom', [])
+            left   = layout.get('left', [])
+            right  = layout.get('right', [])
+            new_layout = []
+            for row in top:
+                new_layout.append(row)
+            if len(left) > 0 and len(right) > 0:
+                new_layout.append(left[0] + [''] + right[0])
+                del left[0]
+                del right[0]
+            elif len(left) > 0 and len(right) == 0:
+                new_layout.append(left[0] + [''])
+                del left[0]
+            elif len(left) == 0 and len(right) > 0:
+                new_layout.append([''] + right[0])
+                del right[0]
+            i = 0
+            while len(left) > 0 and len(right) > 0:
+                new_layout.append(left[0] + ['_salvus_'] + right[0])
+                del left[0]
+                del right[0]
+            while len(left) > 0:
+                new_layout.append(left[0])
+                del left[0]
+            while len(right) > 0:
+                new_layout.append(right[0])
+                del right[0]
+            for row in bottom:
+                new_layout.append(row)
+            layout = new_layout
+
         if layout is None:
-            layout = [[(str(arg), 12, None)] for arg in self._ordered_args] + [[('',12,None)]]
+            layout = [[(str(arg), 12, None)] for arg in self._ordered_args]
         else:
             try:
                 v = []
@@ -109,6 +148,13 @@ class InteractCell(object):
                 layout = v
             except:
                 raise ValueError, "layout must be None or a list of tuples (variable_name, width, [optional label]), with width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area."
+
+        # Append a row for any remaining controls (including output0,
+        # if necessary.  (The client will work fine without this.)
+        layout_vars = set(sum([[x[0] for x in row] for row in layout],[]))
+        for v in args + ['']:
+            if v not in layout_vars:
+                layout.append([(v, 12, None)])
 
         self._layout = layout
 
@@ -361,7 +407,7 @@ class Interact(object):
                 c += 1
                 sleep(.25)
     """
-    def __call__(self, f=None, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=True):
+    def __call__(self, f=None, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=False):
         if f is None:
             return _interact_layout(layout, width, style, update_args, auto_update, flicker)
         else:
