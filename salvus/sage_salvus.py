@@ -740,7 +740,7 @@ class InputGrid:
 
 
 def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
-    """
+    r"""
     A grid of input boxes, for use with the :func:`interact` command.
 
     EXAMPLES:
@@ -749,11 +749,11 @@ def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
 
         @interact
         def _(m = input_grid(2,2, default = [[1,7],[3,4]],
-                             label='M=', to_value=matrix, width=10),
+                             label=r'$M\qquad =$', to_value=matrix, width=8),
               v = input_grid(2,1, default=[1,2],
-                             label='v=', to_value=matrix)):
+                             label=r'$v\qquad =$', to_value=matrix)):
             try:
-                x = m\v
+                x = m.solve_right(v)
                 html('$$%s %s = %s$$'%(latex(m), latex(x), latex(v)))
             except:
                 html('There is no solution to $$%s x=%s$$'%(latex(m), latex(v)))
@@ -862,11 +862,8 @@ def range_slider(*args, **kwds):
     A range slider with a constraint::
 
         @interact
-        def f(x=range_slider([1..1000], default=(100,200), label='alpha')):
-            print x
-            if x[1] > 700:
-                print 'Right endpoint must be at most 100!'
-                interact.x = [x[0],700]
+        def _(t = range_slider([1..1000], default=(100,200), label=r'Choose a range for $\alpha$')):
+            print t
     """
     kwds['range'] = True
     return slider(*args, **kwds)

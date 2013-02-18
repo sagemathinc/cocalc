@@ -9936,7 +9936,7 @@ debug: BUG *********************************************************************
 
     [x] interact: bug where it hangs easily...
 
--->    [ ] interact: fix that labels for controls aren't next to the controls... (might as well, since I'm into the code now)
+    [x] interact: non-layout version -- fix that labels for controls aren't next to the controls... (might as well, since I'm into the code now)
 
     [ ] if close last file in editor, go back to browser automatically
 

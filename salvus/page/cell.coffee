@@ -583,7 +583,7 @@ class Cell extends EventEmitter
 
             when 'range-slider'
                 content = control.find(".salvus-cell-interact-control-content")
-                slider = content.find("div")
+                slider = content.find(".salvus-cell-interact-control-slider")
                 value = control.find(".salvus-cell-interact-control-value")
                 if desc.width
                     content.width(desc.width)
