@@ -9938,6 +9938,10 @@ debug: BUG *********************************************************************
 
     [x] interact: non-layout version -- fix that labels for controls aren't next to the controls... (might as well, since I'm into the code now)
 
+-->    [ ] interact: support layout; something rich enough to make the thing Jason added trivial...
+
+    [ ] interact: implement that weird top/left/bottom/right thing in terms of general layout...
+
     [ ] if close last file in editor, go back to browser automatically
 
     [ ] interact bug: this should not go "scientific"

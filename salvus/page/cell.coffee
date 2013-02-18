@@ -347,13 +347,13 @@ class Cell extends EventEmitter
     _set_interact_var: (control_desc) =>
         panel = @_output.closest('.salvus-cell-output-interact')
         control = panel.find(".salvus-cell-interact-var-#{control_desc.var}")
+        throw 'todo!'
         if control.length > 0
             control.data("set")(control_desc.default)
         else
             # TODO: support more general control placement -- use desc.layout data
-            controls = panel.find(".salvus-cell-interact-controls-top")
-            control = @_interact_control(control_desc, controls.data('update'))
-            controls.append(control)
+            control = @_interact_control(control_desc, panel.data('update'))
+            panel.append(control)
             control.data('refresh')?()
 
     _del_interact_var: (arg) =>
@@ -362,74 +362,70 @@ class Cell extends EventEmitter
         control.remove()
 
     _initialize_interact: (elt, desc) =>
-        elt.append(templates.find(".salvus-cell-output-interact-simple-layout").clone())
-
         # Canonicalize width
         desc.width = parse_width(desc.width)
 
-        # Create place for the output stream to appear
-        output = elt.find(".salvus-cell-interact-output")
-        o = output.salvus_cell
-            show    : ['output']
-            session : @opts.session
+        console.log(to_json(desc))
 
-        output_cell = o.data('cell')
+        # Create the fluid and responsive bootstrap layout canvas.
+        labels = {}
+        for row in desc.layout
+            fluid_row = $("<div class='row-fluid'>")
+            if row.length == 0 # empty row -- user wants space
+                fluid_row.append($("<br>"))
+            else
+                for x in row
+                    arg = x[0]; span = x[1]; label = x[2]
+                    if label?
+                        labels[arg] = label
+                    t = $("<div class='span#{span} salvus-cell-interact-var-#{arg}'></div>")
+                    fluid_row.append(t)
+            elt.append(fluid_row)
+
+        # Create cell for the output stream from the function to appear in, if it is defined above
+        output = elt.find(".salvus-cell-interact-var-")   # empty string is output
+        output_cells = []
+        for C in output
+            o = $(C).salvus_cell
+                show    : ['output']
+                session : @opts.session
+            output_cells.push(o.data('cell'))
+
+        # Define the update function, which communicates with the server.
         current_id = undefined
         done = true
         update = (vals) =>
             if not done
-                output_cell.opts.session.interrupt()
+                @opts.session.interrupt()
 
-            output_cell.delete_output()
+            for output_cell in output_cells
+                output_cell.delete_output()
 
             done = false
-            current_id = output_cell.opts.session.execute_code
+            current_id = @opts.session.execute_code
                 code      : 'salvus._execute_interact(salvus.data["id"], salvus.data["vals"])'
                 data      : {id:desc.id, vals:vals}
                 preparse  : false
                 cb        : (mesg) =>
                     if mesg.id == current_id  # could have left over messages (TODO -- really?)
-                        output_cell.append_output_in_mesg(mesg)
+                        for output_cell in output_cells
+                            output_cell.append_output_in_mesg(mesg)
                         if mesg.done
                             done = true
 
-        v = {}
-        for c in desc.controls
-            v[c.var] = c
-
+        # Define the controls.
         created_controls = []
-
-        console.log(desc.layout)
-        controls = elt.find(".salvus-cell-interact-controls-top")
-        controls.data("update", update)
-        for row in desc.layout['top']
-            console.log(row)
-            arg = row[0]
-            if v[arg]?
-                c = @_interact_control(v[arg], update)
-                controls.append(c)
+        for control_desc in desc.controls
+            containing_div = elt.find(".salvus-cell-interact-var-#{control_desc.var}")
+            if containing_div.length > 0
+                if labels[control_desc.var]?
+                    control_desc.label = labels[control_desc.var]
+                c = @_interact_control(control_desc, update)
                 created_controls.push(c)
+                containing_div.append(c)
 
-        ###
-        for pos in ['top', 'bottom', 'left', 'right']
-            controls = elt.find(".salvus-cell-interact-controls-#{pos}")
-            controls.data("update", update)
-            if desc.layout[pos]?
-                for row in desc.layout[pos]
-                    t = $("<table>")
-                    tr = $("<tr>")
-                    t.append(tr)
-                    for arg in row
-                        if v[arg]?
-                            # There is a control with given name
-                            c = @_interact_control(v[arg], update)
-                            td = $("<td>")
-                            td.append(c)
-                            created_controls.push(c)
-                            tr.append(td)
-                    controls.append(t)
-        ###
 
+        # Refresh any controls that need refreshing
         for c in created_controls
             c.data('refresh')?()
 
@@ -463,8 +459,6 @@ class Cell extends EventEmitter
             update(vals)
 
         desc.width = parse_width(desc.width)
-
-        console.log("desc = #{to_json(desc)}")
 
         switch desc.control_type
             when 'input-box'
@@ -949,7 +943,6 @@ class Cell extends EventEmitter
             i = 0
 
         data[1] = code # remaining code
-        console.log(data)
         return {
             code : 'salvus.execute_with_code_decorators(*salvus.data)'
             data : data

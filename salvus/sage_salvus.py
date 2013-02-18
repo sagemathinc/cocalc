@@ -77,10 +77,24 @@ class InteractCell(object):
         self._args = set(args)
 
         if layout is None:
-            layout = [[arg] for arg in self._ordered_args]
+            layout = [[(str(arg), 12, None)] for arg in self._ordered_args] + [[('',12,None)]]
+        else:
+            try:
+                v = []
+                for row in layout:
+                    new_row = []
+                    for x in row:
+                        if len(x) == 1:
+                            new_row.append((str(x[0]), 12//len(row), None))
+                        elif len(x) == 2:
+                            new_row.append((str(x[0]), int(x[1]), None))
+                        elif len(x) == 3:
+                            new_row.append((str(x[0]), int(x[1]), str(x[2])))
+                    v.append(new_row)
+                layout = v
+            except:
+                raise ValueError, "layout must be None or a list of tuples (variable_name, width, [optional label]), with width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area."
 
-        if not isinstance(layout, dict):
-            layout={'top': layout}
         self._layout = layout
 
         # TODO -- this is UGLY
