@@ -499,15 +499,17 @@ class Cell extends EventEmitter
                     button.width(desc.width)
                 if desc.icon
                     button.find('i').addClass(desc.icon)
+                else
+                    button.find('i').hide()
                 button.click (evt) -> send(null)
-                set = (val) -> button.find("span").html(val)
+                set = (val) -> button.find("span").html(val).mathjax()
 
             when 'text'
                 text = control.find(".salvus-cell-interact-control-content")
                 if desc.classes
                     for cls in desc.classes.split(/\s+/g)
                         text.addClas1s(cls)
-                set = (val) -> text.html(val)
+                set = (val) -> text.html(val).mathjax()
 
             when 'input-grid'
                 grid = control.find(".salvus-cell-interact-control-grid")
@@ -555,7 +557,7 @@ class Cell extends EventEmitter
                 if desc.hide_box
                     input.width(0)
                 else
-                    input.width('7ex')
+                    input.width('8ex')
 
             when 'slider'
                 content = control.find(".salvus-cell-interact-control-content")

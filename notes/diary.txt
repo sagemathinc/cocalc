@@ -9934,6 +9934,8 @@ debug: BUG *********************************************************************
 
     [x] (1:15) interact: vertical spacing got jacked in move.  [was difficult to fix until I dub in with the webkit debugger]
 
+    [x] interact: bug where it hangs easily...
+
 -->    [ ] interact: fix that labels for controls aren't next to the controls... (might as well, since I'm into the code now)
 
     [ ] if close last file in editor, go back to browser automatically
@@ -9946,8 +9948,6 @@ def f(n=10**100):
     [ ] note: control-up/down in note field should also move the cell
 
     [ ] note: shift-enter should move to the compute part of the cell
-
-    [ ] interact: bug where it hangs easily...
 
     [ ] projects: completely deal with git subprojects
 

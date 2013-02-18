@@ -570,7 +570,7 @@ def color_selector(default='blue', label=None, readonly=False, widget=None, hide
             convert_to_client = lambda x : Color(x).html_color()
         )
 
-def text_control(default='', label='', classes=None):
+def text_control(default='', label=None, classes=None):
     """
     A read-only control that displays arbitrary HTML amongst the other
     interact controls.  This is very powerful, since it can display
@@ -579,7 +579,7 @@ def text_control(default='', label='', classes=None):
     INPUT::
 
     - ``default`` -- actual HTML to display
-    - ``label`` -- defaults to '', since usually you do not want a label
+    - ``label`` -- string or None
     - ``classes`` -- space separated string of CSS classes
 
     EXAMPLES::
@@ -610,7 +610,7 @@ def text_control(default='', label='', classes=None):
             repr         = "Text %r"%(default)
         )
 
-def button(default=None, label='', classes=None, width=None, icon=None):
+def button(default=None, label=None, classes=None, width=None, icon=None):
     """
     Create a button.  [SALVUS only]
 
@@ -621,7 +621,7 @@ def button(default=None, label='', classes=None, width=None, icon=None):
     INPUT:
 
     - ``default`` -- value variable is set to
-    - ``label`` -- string (default: '')
+    - ``label`` -- string (default: None)
     - ``classes`` -- string if None; if given, space separated
       list of CSS classes. e.g., Bootstrap CSS classes such as:
               btn-primary, btn-info, btn-success, btn-warning, btn-danger,

@@ -763,6 +763,7 @@ def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     while True:
         try:
             typ, mesg = conn.recv()
+            open("/tmp/exception.%s"%os.getpid(),'a').write(str(mesg)+'\n')
             #print 'INFO:child%s: received message "%s"'%(pid, mesg)
             event = mesg['event']
             if event == 'terminate_session':
@@ -879,16 +880,14 @@ def handle_session_term(signum, frame):
             return
         if not pid: return
 
+
 def serve_connection(conn):
     conn = ConnectionJSON(conn)
     typ, mesg = conn.recv()
     if mesg['event'] == 'send_signal':
         if mesg['pid'] == 0:
             print "invalid signal mesg (pid=0)"
-            # TODO: send error message back (?)
-            #log.info("invalid signal mesg (pid=0?): %s", mesg)
         else:
-            #log.info("sending signal %s to process %s", mesg['signal'], mesg['pid'])
             os.kill(mesg['pid'], mesg['signal'])
         return
     if mesg['event'] != 'start_session':

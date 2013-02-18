@@ -113,26 +113,36 @@
 
   <!-- Interact: button -->
   <span class="salvus-cell-interact-control-button">
-    <label> <span class="salvus-cell-interact-label"></span> <a class="btn"><i></i> <span></span></a> </label>
+    <div class="row-fluid">
+      <div class="span12">
+	<a class="btn"><i>&nbsp;&nbsp;</i> <span></span></a>
+      </div>
+    </div>
   </span>
 
   <!-- Interact: text -->
   <span class="salvus-cell-interact-control-text">
-    <label>
-      <span class="salvus-cell-interact-label"></span>
-      <span class="salvus-cell-interact-control-content"></span>
-    </label>
+    <div class="row-fluid">
+      <div class="span12">
+	<span class="salvus-cell-interact-control-content"></span>
+      </div>
+    </div>
   </span>
 
   <!-- Interact: color-selector -->
   <span class="salvus-cell-interact-control-color-selector">
-    <div class="input-append color" data-color-format="rgb">
-      <label>
+    <div class="row-fluid">
+      <div class="span2">
 	<span class="salvus-cell-interact-label"></span>
-	<input type="text" value=""></input>
-	<span class="add-on"><i></i></span>
-      </label>
+      </div>
+      <div class="span10">
+	<div class="input-append color" data-color-format="rgb">
+	  <input type="text" value="" style="font-family:monospace"></input>
+	  <span class="add-on"><i></i></span>
+	</div>
+      </div>
     </div>
+
   </span>
 
   <!-- Interact: slider -->
