@@ -125,7 +125,7 @@ class DiffBundle(object):
             return
         with SelfCleaningTempDir() as tmpd:
             self._tarf.extract(tari, tmpd)
-            git_popen(extract_dir, 'checkout',
+            git_popen(extract_dir, 'checkout', '-f',
                     git_stdout(extract_dir, 'bundle', 'unbundle',
                         os.path.join(tmpd, tari.name)).split(' ')[0])
 
@@ -190,9 +190,9 @@ class DiffBundler(object):
             sha, name = f.read().split(' ')
             f.close()
             if name == 'HEAD':
-                git_popen(extract_dir, 'checkout', sha)
+                git_popen(extract_dir, 'checkout', '-f', sha)
             else:
-                git_popen(extract_dir, 'checkout', name)
+                git_popen(extract_dir, 'checkout', '-f', name)
 
     def _extract_refs(self, extract_dir):
         git_popen(extract_dir, 'init')
@@ -266,7 +266,7 @@ class DiffBundler(object):
                 git_popen(tmpd, 'add', 'HEAD', 'heads', 'tags')
                 git_popen(tmpd, 'commit', "--message='%s.diffbundle"%len(self))
                 if not self:
-                    git_popen(tmpd, 'checkout',
+                    git_popen(tmpd, 'checkout', '-f',
                             git_stdout(tmpd, 'show-ref', '--hash'))
                     git_popen(tmpd, 'branch', '--delete', 'master')
                 arg = 'HEAD^..HEAD' if self else '--all'

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import json, os, sys
+import json, os, shutil, sys
 
 join        = os.path.join
 isdir       = os.path.isdir
@@ -17,7 +17,7 @@ diffbundler = join(os.path.split(multi_diffbundler)[0], 'diffbundler')
 
 verbose = False
 
-def cmd(args, dry_run=False, wait=True):
+def cmd(args, dry_run=False, wait=True, ignore_errors=False):
     if isinstance(args, str):
         shell = True
         if verbose: print args
@@ -33,7 +33,7 @@ def cmd(args, dry_run=False, wait=True):
         stderr =  out.stderr.read()
         if verbose: print stdout,
         if verbose: print stderr,
-        if e:
+        if e and not ignore_errors:
             sys.exit(e)
         return {'stdout':stdout, 'stderr':stderr}
     else:
@@ -86,6 +86,7 @@ def create_multidiffbundle(working_dir, bundler_dir, thresh, new_bundles):
         # "git gc" before bundling is *very* important, since
         # otherwise the bundles mushroom for no good reason.
         os.chdir(working_dir)
+        cmd(['git', 'commit', '-a', '-m', 'Salvus save'], ignore_errors=True)
         cmd(['git', 'gc'])
 
         # Try making a new bundle first
@@ -108,10 +109,11 @@ def create_multidiffbundle(working_dir, bundler_dir, thresh, new_bundles):
             create_multidiffbundle(p, join(bundler_dir, path), thresh, new_bundles)
 
 def extract_multidiffbundle(bundle_dir, working_dir):
+    print bundle_dir, working_dir
     if os.path.exists(working_dir):
         cmd([diffbundler, 'extract', bundle_dir, working_dir], dry_run=False)
     for path in listdir(bundle_dir):
-        if isdir(path):
+        if isdir(join(bundle_dir, path)):
             extract_multidiffbundle(join(bundle_dir, path), join(working_dir, path))
 
 #########################################################################################################
@@ -123,7 +125,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=
             'Utility script for managing git repositories that may contain other git repositories, stored in diffbundles')
 
-    parser.add_argument('--thresh', help='threshhold in megabytes for creating new bundles', default=0, type=int, dest='thresh')
+    parser.add_argument('--thresh', help='threshhold in megabytes for creating new bundles', default=5, type=int, dest='thresh')
     parser.add_argument('--verbose', help='be more verbose (default: False)', action="store_true")
 
     subparsers = parser.add_subparsers()
