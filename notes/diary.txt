@@ -9988,20 +9988,26 @@ So need code to:
 
      [x] (0:30) switch project_server to use multi-diffbundler instead, but not store extra info to database yet.
 
--->     [ ] save extra info to the database
+     [x] multi diffbundler: save extra info to the database; load extra info from the database
 
-     [ ] load extra info from the database
-
-     [ ] multi-diffbundler -- if I wrote it using node, it would
+     [x] NO -- multi-diffbundler -- if I wrote it using node, it would
          probably scale *massively* better as the number of repos goes
          up... because it could launch all the diffbundlers at once.  LATER.
 
-     [ ] don't forgot that --thresh option can be set from bundle_size_threshhold part of message object
+     [x] don't forgot that --thresh option can be set from bundle_size_threshhold part of message object
 
-     [ ] project_server -- make sure to send any bundles not in save_mesg.known_bundle_filenames.  
+     [x] project_server -- make sure to send any bundles not in save_mesg.known_bundle_filenames.  
          this needs to be added to project_server around "winston.debug("Sending #{misc.to_json(new_bundles)}...")". 
 
 -----
+
+
+    [ ] after fully doing this multi-diffbundler approach, I see that
+        it is the wrong approach.  rsync is the ultimate solution to
+        the problem of incremental backups over the network.
+        I can *manage* them all using cassandra, but the actual
+        data can't be stored in cassandra.
+        **Or, even better, there is rsnapshot, which provides safety.**
 
     [ ] if close last file in editor, go back to browser automatically
 
@@ -10414,8 +10420,25 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] worksheet: selecting range of cells.... that includes a section...
     [ ] worksheet: ensure can insert cells everywhere, e.g., in new sections
 
+    [ ] tab completion in worksheet: visual feedback when there are no known completions...
 
 IDEAS...
+
+    [ ] When taking notes during a talk
+       * really need drag and drop when taking notes
+       * need a note worksheet mode with no code/output unless explicitly request it, but note inputs explicitly outlined more (light)
+       * it would be really neat if tex'ing of formulas could *safely* happen as you type... by replacing each formula individually by little span/div's...
+       * I wish I could put the $$'s and separate lines.
+       * sometimes somehow typeset math ends up in the contenteditable.  Reproduce by typing math and hitting "Control-E".
+       * NEED to easily be able to define math macros on the fly for note taking!
+       * NEED a graphical commutative diagram tool -- would be super helpful for taking notes
+       * in fact a whole note taking mode with "cells" being blackboards, and free form layout with ability to sketch when needed.
+       * have the mathjax jQuery plugin scan its content, decide *itself* what to typeset, then swap out with smart DOM elements.
+       * _design_ my note/editor mode from the start to have a map to high-quality latex output.
+       * the Worksheet (etc.) print mode could be *entirely* client controlled:
+                - 1 -- code in worksheet.coffee that moves through doc and constructs a latex doc in a tmp dir, with various image files, etc.; writes files, bash commands, etc.
+                  2 -- runs pdflatex, etc.
+                  3 -- display
 
       [ ] STEP 2 (later commit): reduce network, by first checking for object hash before resaving. Might or might not use this message.  Be sure to update ttl...
 message
