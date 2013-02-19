@@ -9988,13 +9988,18 @@ So need code to:
 
      [x] (0:30) switch project_server to use multi-diffbundler instead, but not store extra info to database yet.
 
-     [ ] save extra info to the database
+-->     [ ] save extra info to the database
 
      [ ] load extra info from the database
 
      [ ] multi-diffbundler -- if I wrote it using node, it would
          probably scale *massively* better as the number of repos goes
          up... because it could launch all the diffbundlers at once.  LATER.
+
+     [ ] don't forgot that --thresh option can be set from bundle_size_threshhold part of message object
+
+     [ ] project_server -- make sure to send any bundles not in save_mesg.known_bundle_filenames.  
+         this needs to be added to project_server around "winston.debug("Sending #{misc.to_json(new_bundles)}...")". 
 
 -----
 

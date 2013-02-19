@@ -1049,24 +1049,6 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(false, results)
 
-    # Returns the largest index of any bundle associated with the
-    # given project, or -1 if there are no bundles yet.
-    largest_project_bundle_index: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @cql("select number from project_bundles where project_id=? order by number desc limit 1",
-             [opts.project_id],
-             (err, results) ->
-                if err
-                    opts.cb(err)
-                else
-                    if results.length == 0
-                        opts.cb(err, -1)
-                    else
-                        opts.cb(err, results[0].get('number').value)
-        )
-
     get_project_open_info: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1091,7 +1073,7 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table      : 'project_bundles'
-            columns    : ['number', 'bundle']
+            columns    : ['filename', 'bundle']
             where      : { project_id:opts.project_id }
             cb         : (err, results) ->
                 if err
@@ -1099,13 +1081,24 @@ class exports.Salvus extends exports.Cassandra
                 else
                     v = []
                     for r in results
-                        v[r[0]] = new Buffer(r[1], 'hex')
+                        v.push([r[0], new Buffer(r[1], 'hex')])
                     opts.cb(err, v)
+
+    get_project_bundle_filenames: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+
+        @select
+            table      : 'project_bundles'
+            columns    : ['filename']
+            where      : { project_id:opts.project_id }
+            cb         : opts.cb
 
     save_project_bundle: (opts) ->
         opts = defaults opts,
             project_id : required
-            number     : required
+            filename   : required
             bundle     : required
             cb         : required
 
@@ -1115,7 +1108,7 @@ class exports.Salvus extends exports.Cassandra
                 bundle : opts.bundle.toString('hex')
             where      :
                 project_id : opts.project_id
-                number     : opts.number
+                filename   : opts.filename
             cb         : opts.cb
 
 

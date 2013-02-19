@@ -1060,7 +1060,7 @@ class Project
             (c) =>
                 @open (err, _host) =>
                     if err
-                        winston.debug("project.socket -- error opening project -- #{err}")
+                        winston.debug("project.socket -- error opening project -- #{to_json(err)}")
                         c(err)
                     else
                         host = _host
@@ -1156,7 +1156,7 @@ class Project
                     if err
                         if host == 'localhost' or host == '127.0.0.1'
                             # debugging mode -- just give up instantly.
-                            winston.debug("_open_on_host -- err opening on localhost '#{err}'")
+                            winston.debug("_open_on_host -- err opening on localhost '#{to_json(err)}'")
                             host = undefined  # so error messages will propagate below.
                             c(err)
                             return
@@ -1218,25 +1218,13 @@ class Project
                     if err
                         c(err)
                     else
-                        # bundles is an array of Buffers
+                        # bundles is an array of pairs [filename, Buffer].
                         bundles = result
-
-                        # TODO -- this is terrifying and lame, but better than nothing:
-                        #   If a bundle is *lost*, just use the bundles up to it.
-                        bundles2 = []
-                        for i in [0...bundles.length]
-                            if bundles[i]?
-                                bundles2.push(bundles[i])
-                            else
-                                # lost bundle
-                                winston.debug("LOST BUNDLES -- discarding all after #{i}th of #{bundles.length-1}!")
-                                break
-                        bundles = bundles2
 
                         # Make a corresponding list of temporary
                         # uuid's that will be used when sending the
                         # bundles.
-                        bundles.uuids = (uuid.v4() for i in [0...bundles.length])
+                        bundles.uuids = ([uuid.v4(),bundles[i][0]] for i in [0...bundles.length])
                         c()
 
             # Get meta information about the project that is needed to open the project.
@@ -1263,9 +1251,9 @@ class Project
 
             # Starting sending the bundles as blobs.
             (c) ->
-                winston.debug("_open_on_host -- start sending bundles as blobs")
+                winston.debug("_open_on_host -- start sending #{bundles.length} bundles as blobs")
                 for i in [0...bundles.length]
-                    socket.write_mesg 'blob', {uuid:bundles.uuids[i], blob:bundles[i]}
+                    socket.write_mesg 'blob', {uuid:bundles.uuids[i][0], blob:bundles[i][1]}
                 c()
 
             # Wait for the project server to respond with success
@@ -1305,7 +1293,7 @@ class Project
         save_mesg = message.save_project
             id                     : id
             project_id             : @project_id
-            starting_bundle_number : 0  # will get changed below
+            known_bundle_filenames : []  # will get updated after database call below.
             commit_mesg            : opts.commit_mesg
             add_all                : opts.add_all
 
@@ -1353,13 +1341,13 @@ class Project
                         save_mesg.gitconfig = gitconfig
                         c()
 
-            # Find the index of the largest bundle that we already have in the database
+            # Get list of all known bundle filenames from the database
             (c) =>
-                database.largest_project_bundle_index project_id:@project_id, cb:(err, n) ->
+                database.get_project_bundle_filenames project_id:@project_id, cb:(err, v) ->
                     if err
                         c(err)
                     else
-                        save_mesg.starting_bundle_number = n + 1
+                        save_mesg.known_bundle_filenames = v
                         c()
 
             # Connect to the project server that is hosting this project right now.
@@ -1400,14 +1388,16 @@ class Project
                                         project_saved_mesg = mesg
                                         bundle_uuids       = mesg.bundle_uuids
                                         remaining_bundles  = misc.len(bundle_uuids)
+                                        winston.debug("*** --> Waiting for #{remaining_bundles} bundles")
                                         if remaining_bundles == 0
                                             # done -- no need to wait for any blobs
                                             c()
                         when 'blob'
                             if bundle_uuids? and bundle_uuids[mesg.uuid]?
+                                winston.debug("Received bundle with uuid #{mesg.uuid} and name #{bundle_uuids[mesg.uuid]}")
                                 database.save_project_bundle
                                     project_id : @project_id
-                                    number     : bundle_uuids[mesg.uuid]
+                                    filename   : bundle_uuids[mesg.uuid]
                                     bundle     : mesg.blob
                                     cb         : (err) ->
                                         if err

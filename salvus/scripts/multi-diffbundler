@@ -123,7 +123,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=
             'Utility script for managing git repositories that may contain other git repositories, stored in diffbundles')
 
-    parser.add_argument('--thresh', help='threshhold in megabytes for creating new bundles', default=10, type=int, dest='thresh')
+    parser.add_argument('--thresh', help='threshhold in megabytes for creating new bundles', default=0, type=int, dest='thresh')
     parser.add_argument('--verbose', help='be more verbose (default: False)', action="store_true")
 
     subparsers = parser.add_subparsers()
@@ -153,6 +153,8 @@ if __name__ == '__main__':
         bundledir = cleanup_path(args.bundledir)
         new_bundles = []
         create_multidiffbundle(cleanup_path(args.repodir), bundledir, args.thresh, new_bundles)
+        n = len(bundledir)
+        new_bundles = [f[n+1:] for f in new_bundles]
         print json.dumps(new_bundles, separators=(',',':'))
     elif 'extractdir' in args:
         bundledir = cleanup_path(args.bundledir)

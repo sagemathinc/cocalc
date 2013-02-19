@@ -498,7 +498,7 @@ message
     id           : required
     project_id   : required  # uuid of the project, which impacts
                              # where project is extracted, etc.
-    bundle_uuids : required  # Array of uuid's of the bundles that
+    bundle_uuids : required  # Array of pairs [uuid,filename] of the bundles that
                              # will be sent as blobs; if length 0,
                              # makes a new repo with empty .gitignore.
     quota        : required  # Maximum amount of disk space/inodes this
@@ -529,11 +529,12 @@ message
     event                  : 'save_project'
     id                     : undefined
     project_id             : required    # uuid of a project
-    starting_bundle_number : undefined
+    known_bundle_filenames : undefined
+    gitconfig              : undefined
     commit_mesg            : undefined   # If given, do a commit first
     author                 : undefined   # needed by project_server
     add_all                : false       # if true and *all* files before saving.
-    bundle_size_threshold  : 5000000     # Only make a new bundle when current bundle exceeds this size
+    bundle_size_threshold  : 5           # Only make a new bundle when current bundle exceeds this size in megabytes
 
 # The project_saved message is sent to a hub by a project_server when
 # the project_servers creates a new snapshot of the project in

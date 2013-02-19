@@ -28,7 +28,7 @@ net            = require 'net'
 fs             = require 'fs'
 uuid           = require 'node-uuid'
 crypto         = require('crypto')
-
+{walk}         = require('walk')
 
 async          = require 'async'
 
@@ -138,6 +138,8 @@ megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 create_user = (project_id, quota, cb) ->
     uname = username(project_id)
     async.series([
+        (cb) ->
+            cleanup(uname, cb)
         # Create the user
         (cb) ->
             winston.debug("useradd -U #{uname}")
@@ -212,7 +214,7 @@ killall_user = (uname, cb) ->
         cb()
     )
 
-# Given an object called 'bundles' containing (in order) the possibly
+# Given an object called 'bundles' containing the possibly
 # empty collection of bundles that define a git repo, extract each
 # bundle to the repo_path, which must *not* already exist.
 #
@@ -223,6 +225,7 @@ extract_bundles = (project_id, bundles, cb) ->
     bundle_path = bundlepath(project_id)
     uname       = username(project_id)
     repo_path   = userpath(project_id)
+    uid = undefined
     winston.debug("extracting bundles from bundle_path = ", bundle_path)
 
     # Below we create a sequence of tasks, then do them all at the end
@@ -231,6 +234,13 @@ extract_bundles = (project_id, bundles, cb) ->
     # number of bundles.
 
     tasks = [
+        (c) ->
+            getuid uname, (err, id) ->
+                if err
+                    c(err)
+                else
+                    uid = id
+                    c()
         # Create the bundle path
         (c) ->
             winston.debug("create the bundle path")
@@ -293,15 +303,20 @@ extract_bundles = (project_id, bundles, cb) ->
         tasks.push((c) -> fs.mkdir(bundle_path, 0o700, c))
 
     # Write the bundle files to disk.
-    n = 0
-    for _, content of bundles
+    for _, diffbundle of bundles
         task = (c) ->
-            filename = "#{bundle_path}/#{arguments.callee.n}.diffbundle"
-            winston.debug("Writing bundle #{filename} out to disk")
-            fs.writeFile(filename, arguments.callee.content, c)
-        task.n = n
-        task.content = content
-        n += 1
+            winston.debug("task.bundle_name = '#{arguments.callee.bundle_name}'")
+            filename = "#{bundle_path}/#{arguments.callee.bundle_name}"
+            content = arguments.callee.content
+            winston.debug("Writing bundle '#{filename}' out to disk")
+            ensure_containing_directory_exists project_id, uid, filename, (err) ->
+                if err
+                    c(err)
+                else
+                    fs.writeFile(filename, content, c)
+
+        task.bundle_name = diffbundle.name
+        task.content = diffbundle.content
         tasks.push(task)
 
     # At this point everything is owned by root (the project_server),
@@ -319,7 +334,7 @@ extract_bundles = (project_id, bundles, cb) ->
 
     # Now the bundle files are all in place.  Make the repository.
     tasks.push((c) ->
-        if n == 0
+        if misc.len(bundles) == 0
             # There were no bundles at all, so we make a new empty git repo and add a file
             async.series([
                 (cb) ->
@@ -543,27 +558,29 @@ events.open_project = (socket, mesg)  ->
     # The first step in opening a project is to wait to receive all of
     # the bundle blobs.  We do the extract step below in _open_project2.
 
-    mesg.bundles = misc.pairs_to_obj( [u, ""] for u in mesg.bundle_uuids )
+    mesg.bundles = misc.pairs_to_obj( [u[0], {name:u[1],content:''}] for u in mesg.bundle_uuids )
     winston.debug(misc.to_json(mesg.bundles))
     n = misc.len(mesg.bundles)
     if n == 0
         winston.debug("open_project -- 0 bundles so skipping waiting")
         _open_project2(socket, mesg)
     else
-        winston.debug("open_project -- waiting for #{n} bundles: #{mesg.bundle_uuids}")
+        winston.debug("open_project -- waiting for #{n} bundles: #{misc.to_json(mesg.bundles)}")
         # Create a function that listens on the socket for blobs that
         # are marked with one of the uuid's described in the mesg.
         recv_bundles = (type, m) ->
+            winston.debug("received message of type", type)
             if type == 'blob'
                 winston.debug("open_project -- received bundle with uuid #{m.uuid} #{type=='blob'} #{mesg.bundles[m.uuid]} #{mesg.bundles[m.uuid]?}")
             if type == 'blob' and mesg.bundles[m.uuid]?
                 winston.debug("open_project -- recording bundle... of length #{m.blob.length}")
-                mesg.bundles[m.uuid] = m.blob
+                mesg.bundles[m.uuid].content = m.blob
                 n -= 1
                 winston.debug("open_project -- waiting for #{n} more bundles")
                 if n <= 0
                     # We've received all blobs, so remove the listener.
                     socket.removeListener 'mesg', recv_bundles
+                    # And, finish opening the project.
                     _open_project2(socket, mesg)
         socket.on 'mesg', recv_bundles
 
@@ -717,56 +734,34 @@ events.save_project = (socket, mesg) ->
                         cb()
 
         (cb) ->
-            n = 0
-            winston.debug("Sending #{misc.to_json(new_bundles)}...")
-            for filename in new_bundles
-                if misc.filename_extension(filename) == 'diffbundle'
-                    id = uuid.v4()
-                    task = (c) ->
-                        winston.debug("Sending #{filename}")
-                        fs.readFile filename, (err, data) ->
-                            if err
-                                c(err)
-                            else
-                                socket.write_mesg 'blob', {uuid:id, blob:data}
-                    task.n = n
-                    tasks.push(task)
-                    n += 1
-            cb()
+            # We also send all bundles not explicitly listed in
+            # mesg.known_bundle_filenames, which reduces the chances
+            # of a dropped bundle.
+            walker = walk(bundles)
+            walker.on "file", (root, file, next) ->
+                if file.name not in mesg.known_bundle_filenames
+                    new_bundles.push(file.name)
+                next()
+            walker.on "end", cb
 
-        # Determine which bundle files to send.  We may send some even
-        # if none were created just now, due to the database not being
-        # totally up to date, which could happen if some component
-        # (hub, database, network, project_server) died at a key
-        # moment during a previous save.
-        # (cb) ->
-        #     winston.debug("save_project -- determine bundles to send")
-        #     fs.readdir bundles, (err, files) ->
-        #         if err
-        #             cb(err)
-        #         else
-        #             n = mesg.starting_bundle_number
-        #             # If we remade the last bundle, then we subtract 1
-        #             # to ensure that the last bundle is resent (this
-        #             # is slightly sloppy; in rare cases this could
-        #             # result in needlessly sending another bundle).
-        #             if remade_last_bundle
-        #                 n -= 1
-        #             while "#{n}.diffbundle" in files
-        #                 winston.debug("Sending '#{n}.diffbundle'")
-        #                 id = uuid.v4()
-        #                 response.bundle_uuids[id] = n
-        #                 task = (c) ->
-        #                     fs.readFile "#{bundles}/#{arguments.callee.n}.diffbundle", (err, data) ->
-        #                         if err
-        #                             c(err)
-        #                         else
-        #                             socket.write_mesg 'blob', {uuid:id, blob:data}
-        #                             c()
-        #                 task.n = n
-        #                 tasks.push(task)
-        #                 n += 1
-        #             cb()
+        (cb) ->
+            winston.debug("Sending #{misc.to_json(new_bundles)} bundles total: #{misc.to_json(new_bundles)}...")
+            for filename in new_bundles
+                id = uuid.v4()
+                response.bundle_uuids[id] = filename
+                task = (c) ->
+                    winston.debug("Sending #{arguments.callee.filename}")
+                    id = arguments.callee.uuid
+                    fs.readFile "#{bundles}/#{arguments.callee.filename}", (err, data) ->
+                        if err
+                            c(err)
+                        else
+                            socket.write_mesg 'blob', {uuid:id, blob:data}
+                            c()
+                task.filename = filename
+                task.uuid = id
+                tasks.push(task)
+            cb()
 
         # Read and send the bundle files
         (cb) ->

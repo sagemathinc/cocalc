@@ -233,9 +233,9 @@ CREATE INDEX ON projects(account_id);
 
 CREATE TABLE project_bundles (
      project_id  uuid,
-     number      int ,
+     filename    varchar,
      bundle      blob,
-     PRIMARY KEY (project_id, number)
+     PRIMARY KEY (project_id, filename)
 );
 
 CREATE TABLE project_users (
