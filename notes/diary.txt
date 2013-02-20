@@ -10025,25 +10025,24 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] (1:18) make it so all the existing client stuff works.
 
      [x] (0:17) bug -- weird issue with old worksheets not opening; bugs me.  it's the extension, stupid.
+     [x] change project_server to use new execute_code command in misc_node, and delete code from project_server.
 
+     [x] enable and debug permission checking in the function "get_project: (mesg, permission, cb) =>" of hub
+
+     [ ] SALVUS_HOME='/home/wstein/salvus/salvus/'
      [ ] need a gitconfig in the project template.
+
 
      [ ] long-term storage project:
           [ ] learn rsnapshot
           [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
           [ ] store that this was done in database
 
-     [ ] enable and debug permission checking in the function "get_project: (mesg, permission, cb) =>" of hub
-
      [ ] support for browsing rsnapshots
 
      [ ] delete all the code from salvus related to diffbundler
 
      [ ] delete all "git commit" related code as well
-
-     [ ] SALVUS_HOME='/home/wstein/salvus/salvus/'
-
-     [ ] change project_server to use new execute_code command in misc_node, and delete code from project_server.
 
      [ ] images embeded in worksheets -- store longterm in .salvus/sha1hash and use database only as a shorter-time cache again.
 

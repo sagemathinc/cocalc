@@ -310,6 +310,8 @@ class exports.Cassandra extends EventEmitter
                     x = val
                     op = '=='
                 else
+                    if not val?
+                        throw "val must be defined -- there's a bug somewhere"
                     x = val[op]
                 if x?
                     if key in json

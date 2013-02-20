@@ -612,34 +612,34 @@ class Client extends EventEmitter
         # cb -- takes one argument:  cb(project); called *only* on success
         project = undefined
         async.series([
-            # (cb) ->
-            #     switch permission
-            #         when 'read'
-            #             user_has_read_access_to_project
-            #                 project_id : mesg.project_id
-            #                 account_id : @account_id
-            #                 cb         : (err, result) =>
-            #                     if err
-            #                         cb("Internal error determining user permission -- #{err}")
-            #                     else if not result
-            #                         cb("User #{@account_id} does not have read access to project #{mesg.project_id}")
-            #                     else
-            #                         # good to go
-            #                         cb()
-            #         when 'write'
-            #             user_has_write_access_to_project
-            #                 project_id : mesg.project_id
-            #                 account_id : @account_id
-            #                 cb         : (err, result) =>
-            #                     if err
-            #                         cb("Internal error determining user permission -- #{err}")
-            #                     else if not result
-            #                         cb("User #{@account_id} does not have write access to project #{mesg.project_id}")
-            #                     else
-            #                         # good to go
-            #                         cb()
-            #         else
-            #             cb("Internal error -- unknown permission type '#{permission}'")
+            (cb) =>
+                switch permission
+                    when 'read'
+                        user_has_read_access_to_project
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            cb         : (err, result) =>
+                                if err
+                                    cb("Internal error determining user permission -- #{err}")
+                                else if not result
+                                    cb("User #{@account_id} does not have read access to project #{mesg.project_id}")
+                                else
+                                    # good to go
+                                    cb()
+                    when 'write'
+                        user_has_write_access_to_project
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            cb         : (err, result) =>
+                                if err
+                                    cb("Internal error determining user permission -- #{err}")
+                                else if not result
+                                    cb("User #{@account_id} does not have write access to project #{mesg.project_id}")
+                                else
+                                    # good to go
+                                    cb()
+                    else
+                        cb("Internal error -- unknown permission type '#{permission}'")
             (cb) =>
                 project = new Project(mesg.project_id)
                 cb()
@@ -1823,6 +1823,7 @@ get_project_access = (opts) ->
         project_id : required
         account_id : required
         cb : required        # cb(err, mode)
+    winston.debug("opts = #{misc.to_json(opts)}")
     database.select
         table : 'project_users'
         where : {project_id : opts.project_id,  account_id: opts.account_id}
