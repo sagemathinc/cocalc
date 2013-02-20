@@ -23,6 +23,11 @@ exports.DEFAULT_SESSION_PING_TIME = 60
 JSON_CHANNEL = '\u0000'
 exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 
+
+# change these soon
+git0 = '.git/salvus/git0'
+gitls = '.git/salvus/git-ls'
+
 class Session extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
@@ -941,7 +946,7 @@ class exports.Connection extends EventEmitter
             (cb) =>
                 @exec
                     project_id : opts.project_id
-                    command    : '.git/salvus/git0'
+                    command    : git0
                     args       : ['rm', '-rf', opts.path]
                     cb         : (err, output) ->
                         if err
@@ -954,7 +959,7 @@ class exports.Connection extends EventEmitter
                 # We commit just the file that changed.
                 @exec
                     project_id : opts.project_id
-                    command    : '.git/salvus/git0'
+                    command    : git0
                     args       : ["commit", "-a", "-m", opts.message, "--author", opts.author]
                     cb         : (err, output) ->
                         if err
@@ -988,7 +993,7 @@ class exports.Connection extends EventEmitter
                 # Check to see if there are uncommited changes
                 @exec
                     project_id : opts.project_id
-                    command    : '.git/salvus/git0'
+                    command    : git0
                     args       : ['status', opts.path]
                     cb         : (err, output) ->
                         if err
@@ -1006,7 +1011,7 @@ class exports.Connection extends EventEmitter
                 # We add the changes to the worksheet to the repo.
                 @exec
                     project_id : opts.project_id
-                    command    : '.git/salvus/git0'
+                    command    : git0
                     args       : ["add", opts.path]
                     cb         : (err, output) ->
                         if err
@@ -1019,7 +1024,7 @@ class exports.Connection extends EventEmitter
                 # We commit just the file that changed.
                 @exec
                     project_id : opts.project_id
-                    command    : '.git/salvus/git0'
+                    command    : git0
                     args       : ["commit", "-m", opts.message, opts.path, "--author", opts.author]
                     cb         : (err, output) ->
                         if err
@@ -1034,8 +1039,6 @@ class exports.Connection extends EventEmitter
             else
                 opts.cb() # good
         )
-
-    
 
     #################################################
     # File Management
@@ -1066,7 +1069,7 @@ class exports.Connection extends EventEmitter
         # We add the changes to the worksheet to the repo.
         @exec
             project_id : opts.project_id
-            command    : ".git/salvus/git-ls"
+            command    : gitls
             args       : args
             cb         : (err, output) ->
                 if err

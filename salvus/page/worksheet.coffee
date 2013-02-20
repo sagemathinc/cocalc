@@ -604,13 +604,13 @@ class Worksheet extends EventEmitter
                     content    : JSON.stringify(obj, null, '\t')
                     timeout    : 10
                     cb         : cb
-            (cb) =>
-                salvus_client.git_commit_file
-                    project_id : @opts.project_id
-                    path       : path
-                    author     : require('account').account_settings.git_author()
-                    message    : "Save worksheet '#{path}'"
-                    cb         : cb
+            # (cb) =>
+            #     salvus_client.git_commit_file
+            #         project_id : @opts.project_id
+            #         path       : path
+            #         author     : require('account').account_settings.git_author()
+            #         message    : "Save worksheet '#{path}'"
+            #         cb         : cb
             (cb) =>
                 # notify anyone who cares that a successful save with a given path took place
                 @emit "save", path

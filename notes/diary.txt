@@ -10010,7 +10010,7 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (0:38) make something like exec_as_user available more generally (to hub) by copying to misc_node.coffee from project_server.
 
-     [ ] disable "git commit"-related code as well
+     [x] (0:07) refactor/disable "git commit"-related code as well *client side* (the server side stuff will get disabled later)... and code that uses .git/salvus/ path.
 
      [ ] create project:
           [ ] create directory data/project_rsync/project_id if doesn't exist
@@ -10034,8 +10034,10 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [ ] delete all the code from salvus related to diffbundler
 
      [ ] delete all "git commit" related code as well
- 
+
      [ ] change project_server to use new execute_code command in misc_node, and delete code from project_server.
+
+     [ ] images embeded in worksheets -- store longterm in .salvus/sha1hash and use database only as a shorter-time cache again.
 
 -------------------------------------
 
