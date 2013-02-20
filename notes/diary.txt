@@ -10010,24 +10010,34 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (0:38) make something like exec_as_user available more generally (to hub) by copying to misc_node.coffee from project_server.
 
-     [x] (0:07) refactor/disable "git commit"-related code as well *client side* (the server side stuff will get disabled later)... and code that uses .git/salvus/ path.
+     [x] (0:08) refactor/disable "git commit"-related code as well *client side* (the server side stuff will get disabled later)... and code that uses .git/salvus/ path.
 
-     [ ] create project:
-          [ ] create directory data/project_rsync/project_id if doesn't exist
+----------------
+
+     [ ] open project:
+         - rewrite the Project._open_on_host: function in hub to:
+               [x] (0:35) make Project constructor have a callback, so it can do work of *ensuring* everything is in place locally before doing anything else.  test that didn't break.
+               [ ] create directory data/project_rsync/project_id if doesn't exist
                [ ] copy over template: .bashrc, .salvus/bin (for now)
-          [ ] project_server -- request account creation, and get back message with login/temporary password, which gets stored in database.
-          [ ] rsync to data/projects/project_id project server using that account
-          [ ] store in db that project is successfully open
+            [ ] get a login/password from project_server
+            [ ] rsync --delete *to* data/projects/project_id project
+                server using that account
 
      [ ] save project:
-          [ ] query db for login/password
+          [ ] get for login/password for project (memory cache followed by ask project_server)
           [ ] rsync back using login/password
           [ ] record in db that project was successfully saved
+
+     [ ] test the heck out of the above.
+
+----------------
 
      [ ] long-term storage project:
           [ ] learn rsnapshot
           [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
           [ ] store that this was done in database
+
+     [ ] enable and debug permission checking in the function "get_project: (mesg, permission, cb) =>" of hub
 
      [ ] support for browsing rsnapshots
 

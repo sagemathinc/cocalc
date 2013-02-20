@@ -372,7 +372,7 @@ class Client extends EventEmitter
         catch error
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
-        if mesg.event != 'ping'
+        if mesg.event.slice(0,4) != 'ping'
             winston.debug("client --> hub: #{to_safe_str(mesg)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
@@ -588,6 +588,60 @@ class Client extends EventEmitter
     ######################################################
     # Messages: Project Management
     ######################################################
+
+    # Either call the callback with the project, or if an error err
+    # occured, call @error_to_client(id:mesg.id, error:err) and *NEVER*
+    # call the callback.  This function is meant to be used in a bunch
+    # of the functions below for handling requests.
+    get_project: (mesg, permission, cb) =>
+        # mesg -- must have project_id and id fields
+        # permission -- must be "read" or "write"
+        # cb -- takes one argument:  cb(project); called *only* on success
+        project = undefined
+        async.series([
+            # (cb) ->
+            #     switch permission
+            #         when 'read'
+            #             user_has_read_access_to_project
+            #                 project_id : mesg.project_id
+            #                 account_id : @account_id
+            #                 cb         : (err, result) =>
+            #                     if err
+            #                         cb("Internal error determining user permission -- #{err}")
+            #                     else if not result
+            #                         cb("User #{@account_id} does not have read access to project #{mesg.project_id}")
+            #                     else
+            #                         # good to go
+            #                         cb()
+            #         when 'write'
+            #             user_has_write_access_to_project
+            #                 project_id : mesg.project_id
+            #                 account_id : @account_id
+            #                 cb         : (err, result) =>
+            #                     if err
+            #                         cb("Internal error determining user permission -- #{err}")
+            #                     else if not result
+            #                         cb("User #{@account_id} does not have write access to project #{mesg.project_id}")
+            #                     else
+            #                         # good to go
+            #                         cb()
+            #         else
+            #             cb("Internal error -- unknown permission type '#{permission}'")
+            (cb) =>
+                new Project(mesg.project_id, (err, proj) =>
+                    if err
+                        cb(err)
+                    else
+                        project = proj
+                        cb(false)
+                )
+        ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    cb(project)
+        )
+
     mesg_create_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
@@ -617,7 +671,14 @@ class Client extends EventEmitter
             # TODO: we might as an optimization just leave it open initially,
             # since the user is likely to want to use it right after creating it.
             (cb) =>
-                project = new Project(project_id)
+                new Project(project_id, (err, proj) =>
+                    if err
+                        cb(err)
+                    else
+                        project = proj
+                        cb()
+                )
+            (cb) =>
                 project.open(cb)
             (cb) =>
                 project.save
@@ -698,133 +759,130 @@ class Client extends EventEmitter
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
     mesg_save_project: (mesg) =>
-        # TODO -- permissions!
-        project = new Project(mesg.project_id)
-        project.save
-            account_id  : @account_id
-            add_all     : mesg.add_all
-            commit_mesg : mesg.commit_mesg
-            cb          : (err) =>
+        @get_project mesg, 'write', (project) =>
+            project.save
+                account_id  : @account_id
+                add_all     : mesg.add_all
+                commit_mesg : mesg.commit_mesg
+                cb          : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+    mesg_close_project: (mesg) =>
+        @get_project mesg, 'write', (project) =>
+            project.close (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
 
-    mesg_close_project: (mesg) =>
-        # TODO -- permissions!
-        project = new Project(mesg.project_id)
-        project.close (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.success(id:mesg.id))
-
     mesg_write_text_file_to_project: (mesg) =>
-        # TODO -- permissions!
-        #winston.debug("**** mesg_write_text_file_to_project")
-        project = new Project(mesg.project_id)
-        project.write_file mesg.path, mesg.content, (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.file_written_to_project(id:mesg.id))
+        @get_project mesg, 'write', (project) =>
+            project.write_file mesg.path, mesg.content, (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.file_written_to_project(id:mesg.id))
 
     mesg_read_text_file_from_project: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.read_file
-            path : mesg.path
-            cb   : (err, content) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    t = content.blob.toString()
-                    @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
+        @get_project mesg, 'read', (project) =>
+            project.read_file
+                path : mesg.path
+                cb   : (err, content) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        t = content.blob.toString()
+                        @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
 
     mesg_read_file_from_project: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.read_file
-            path    : mesg.path
-            archive : mesg.archive
-            cb      : (err, content) =>
+        @get_project mesg, 'read', (project) =>
+            project.read_file
+                path    : mesg.path
+                archive : mesg.archive
+                cb      : (err, content) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        # Store content in uuid:blob store and provide a temporary (valid for 10 minutes) link to it.
+                        u = uuid.v4()
+                        save_blob uuid:u, value:content.blob, ttl:600, cb:(err) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:err)
+                            else
+                                the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                                @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
+
+    mesg_move_file_in_project: (mesg) =>
+        @get_project mesg, 'write', (project) =>
+            project.move_file mesg.src, mesg.dest, (err, content) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else
-                    # Store content in uuid:blob store and provide a temporary (valid for 10 minutes) link to it.
-                    u = uuid.v4()
-                    save_blob uuid:u, value:content.blob, ttl:600, cb:(err) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            the_url = "/blobs/#{mesg.path}?uuid=#{u}"
-                            @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
-
-    mesg_move_file_in_project: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.move_file mesg.src, mesg.dest, (err, content) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.file_moved_in_project(id:mesg.id))
+                    @push_to_client(message.file_moved_in_project(id:mesg.id))
 
     mesg_make_directory_in_project: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.make_directory mesg.path, (err, content) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.directory_made_in_project(id:mesg.id))
+        @get_project mesg, 'write', (project) =>
+            project.make_directory mesg.path, (err, content) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.directory_made_in_project(id:mesg.id))
 
     mesg_remove_file_from_project: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.remove_file mesg.path, (err, resp) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                resp.id = mesg.id
-                @push_to_client(resp)
-
-    mesg_create_project_branch: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.branch_op mesg.branch, 'create', (err, resp) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                resp.id = mesg.id
-                @push_to_client(resp)
-
-    mesg_checkout_project_branch: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.branch_op mesg.branch, 'checkout', (err, resp) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                resp.id = mesg.id
-                @push_to_client(resp)
-
-    mesg_delete_project_branch: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.branch_op mesg.branch, 'delete', (err, resp) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                resp.id = mesg.id
-                @push_to_client(resp)
-
-    mesg_merge_project_branch: (mesg) =>
-        project = new Project(mesg.project_id)
-        project.branch_op mesg.branch, 'merge', (err, resp) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                resp.id = mesg.id
-                @push_to_client(resp)
+        @get_project mesg, 'write', (project) =>
+            project.remove_file mesg.path, (err, resp) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    resp.id = mesg.id
+                    @push_to_client(resp)
 
     mesg_project_exec: (mesg) =>
-        (new Project(mesg.project_id)).exec mesg, (err, resp) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(resp)
+        @get_project mesg, 'write', (project) =>
+            project.exec mesg, (err, resp) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(resp)
+
+    mesg_create_project_branch: (mesg) =>
+        @get_project mesg, 'write', (project) =>
+            project.branch_op mesg.branch, 'create', (err, resp) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    resp.id = mesg.id
+                    @push_to_client(resp)
+
+    mesg_checkout_project_branch: (mesg) =>
+        @get_project mesg, 'write',  (project) =>
+            project.branch_op mesg.branch, 'checkout', (err, resp) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    resp.id = mesg.id
+                    @push_to_client(resp)
+
+    mesg_delete_project_branch: (mesg) =>
+        @get_project mesg, 'write', (project) =>
+            project.branch_op mesg.branch, 'delete', (err, resp) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    resp.id = mesg.id
+                    @push_to_client(resp)
+
+    mesg_merge_project_branch: (mesg) =>
+        @get_project mesg, 'write', (project) =>
+            project.branch_op mesg.branch, 'merge', (err, resp) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    resp.id = mesg.id
+                    @push_to_client(resp)
 
     ################################################
     # Blob Management
@@ -960,9 +1018,11 @@ push_to_clients = (opts) ->
 ##############################
 
 class Project
-    constructor: (@project_id) ->
+    constructor: (@project_id, cb) ->
         if not @project_id?
-            throw "When creating Project, the project_id must be defined"
+            cb("When creating Project, the project_id must be defined")
+        else
+            cb(false, @)
 
     ##############################################
     # Database state stuff
