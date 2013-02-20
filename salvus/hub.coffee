@@ -15,7 +15,6 @@
 
 
 SALVUS_HOME=process.cwd()
-console.log(SALVUS_HOME)
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
@@ -1016,7 +1015,16 @@ class Project
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
         @local_path = "#{project_data}/#{@project_id}/"
-        
+
+    owner: (cb) =>
+        database.get_project_data
+            project_id : @project_id
+            columns : ['account_id']
+            cb      : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(err, result[0])
 
     ##############################################
     # Database state stuff
@@ -1245,10 +1253,10 @@ class Project
 
     _initialize_local_path: (cb) =>
         # Initialize a local copy of the project -- first the simplest possible approach; this will get more complicated later ! TODO
-        fs.mkdir @local_path, 0o700, (err) =>
-            if err
-                cb(err)
-            else
+        async.series([
+            (cb) =>
+                fs.mkdir @local_path, 0o700, cb
+            (cb) =>
                 # Just do a local rsync from the template.
                 misc_node.execute_code
                     command : "rsync"
@@ -1256,11 +1264,26 @@ class Project
                     timeout : 30
                     bash    : false
                     path    : SALVUS_HOME
-                    cb      : (err, output) =>
+                    cb      : cb
+            (cb) =>
+                # Add a gitconfig, if not in local files
+                gitconfig = @local_path + '.gitconfig'
+                fs.exists gitconfig, (exists) =>
+                    if exists
+                        cb()
+                        return
+                    @owner((err,account_id) =>
                         if err
-                            cb("Error running rsync at all: #{err}")
+                            cb(err)
                         else
-                            cb()
+                            database.get_gitconfig account_id: account_id, cb:(err, contents) =>
+                                if err
+                                    cb(err)
+                                else
+                                    fs.writeFile(gitconfig, contents, cb)
+                    )
+        ], cb)
+
 
     _open_on_host: (host, cb) =>
         # Find out if project already exists on some remote storage server

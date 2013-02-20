@@ -831,6 +831,17 @@ class exports.Salvus extends exports.Cassandra
                         gitconfig = "[user]\n    name = #{r.first_name} #{r.last_name}\n    email = #{r.email_address}\n"
                     opts.cb(false, gitconfig)
 
+    get_project_data: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            columns    : required
+            cb         : required
+        @select_one
+            table   : 'projects'
+            where   : {project_id: opts.project_id}
+            columns : opts.columns
+            cb : opts.cb
+
     get_project_host: (opts) ->
         opts = defaults opts,
             project_id : required
