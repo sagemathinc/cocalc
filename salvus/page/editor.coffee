@@ -179,15 +179,20 @@ class exports.Editor
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
+        console.log("editor save '#{filename}'")
         if not filename?  # if filename not given, save all files
             tasks = []
             for filename in keys(@tabs)
-                tasks.push((c) => @save(filename, c))
-            async.series(tasks, cb)
+                f = (c) =>
+                    @save(arguments.callee.filename, c)
+                f.filename = filename
+                tasks.push(f)
+            async.parallel(tasks, cb)
             return
 
         tab = @tabs[filename]
         if not tab?
+            console.log("tab #{filename} vanished")
             return
 
         content = tab.editor.val()
@@ -198,10 +203,11 @@ class exports.Editor
 
         salvus_client.write_text_file_to_project
             project_id : @project_id
-            timeout    : 5   # possibly adjust dynamically based on filesize
+            timeout    : 15
             path       : filename
             content    : content
             cb         : (err, mesg) =>
+                # TODO -- on error, we *might* consider saving to localStorage...
                 if err
                     alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
                     cb?(err)
@@ -210,7 +216,7 @@ class exports.Editor
                     cb?(mesg.error)
                 else
                     cb?()
-                    # TODO -- change some state to reflect success, e.g., disable save button
+                    # TODO -- change some state to reflect success (?)
 
     # Load a file from the backend if there is a tab for this file;
     # otherwise does nothing.
@@ -378,7 +384,7 @@ class Terminal extends FileEditor
             limits     : { walltime : 60*15 }
             type       : 'console'
             project_id : @editor.project_id
-            params     : {command:'bash', args:['--rcfile', '.git/salvus/bashrc']}
+            params     : {command:'bash'}
             cb : (err, session) =>
                 if err
                     @element.text(err)   # TODO--nicer

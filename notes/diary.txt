@@ -10022,9 +10022,7 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] (0:23) save project (version 1): rsync back
      [x] (0:18) project rsync: record in db that project was successfully saved, with timestamp when something happened.
 
-     [ ] test the heck out of the above.
-
-     [ ] implement loading (and ensuring existence of) ssh_public_key in hub. 
+     [x] (1:18) make it so all the existing client stuff works.
 
 ----------------
 
@@ -10049,7 +10047,15 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [ ] delete project -- maybe make it less final.
 
+     [ ] fork/clone project
+
+     [ ] add project disk usage as database field and display it in the project listing screen and project.
+
+     [ ] when project opening -- which is by far the only thing that takes noticeable time -- need to give feedback.
+
 -------------------------------------
+
+    [ ] file brower -- sort first by timestamp, then by git time.
 
     [ ] if close last file in editor, go back to browser automatically
 

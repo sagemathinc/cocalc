@@ -707,7 +707,7 @@ class Cell extends EventEmitter
 
     hidden_components: () =>
         # return list of components of the cell that have been hidden
-        return (c for c in COMPONENTS when not @component(c).is(":visible"))
+        return (c for c in COMPONENTS when @component(c).hasClass('hide'))
 
     to_obj: () =>
         obj =
@@ -817,7 +817,7 @@ class Cell extends EventEmitter
     # component) if it was hidden; this does not impact which
     # components are hidden/shown.
     show: (e) ->
-        c = @component(e).show()
+        c = @component(e).removeClass('hide')
         if e == 'editor'
             @_editor.refresh()
         return c
@@ -833,7 +833,7 @@ class Cell extends EventEmitter
         c = @component(e)
         if not c?
             throw "unknown cell component -- '#{e}'"
-        return c.hide()
+        return c.addClass('hide')
 
     delete_output: () ->
         # Delete the array of all received output messages

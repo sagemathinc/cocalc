@@ -25,8 +25,8 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 
 
 # change these soon
-git0 = '.git/salvus/git0'
-gitls = '.git/salvus/git-ls'
+git0 = 'git0'
+gitls = '.salvus/bin/git-ls'
 
 class Session extends EventEmitter
     # events:
@@ -882,7 +882,7 @@ class exports.Connection extends EventEmitter
             path       : ''
             command    : required
             args       : []
-            timeout    : 10
+            timeout    : 30
             max_output : undefined
             bash       : false
             cb         : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
@@ -1050,6 +1050,7 @@ class exports.Connection extends EventEmitter
             time       : false
             start      : 0
             limit      : 100
+            timeout    : 60
             hidden     : false
             cb         : required
 
@@ -1071,6 +1072,7 @@ class exports.Connection extends EventEmitter
             project_id : opts.project_id
             command    : gitls
             args       : args
+            timeout    : opts.timeout
             cb         : (err, output) ->
                 if err
                     opts.cb(err)

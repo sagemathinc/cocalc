@@ -72,6 +72,8 @@ fs.exists project_data, (exists) ->
 # TODO
 SALVUS_HOME='/home/wstein/salvus/salvus/'
 
+PROJECT_TEMPLATE = 'conf/project_templates/default/'
+
 ###
 # HTTP Server
 ###
@@ -1246,7 +1248,18 @@ class Project
             if err
                 cb(err)
             else
-                fs.writeFile(@local_path + "foo", "stuff", cb)
+                # Just do a local rsync from the template.
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axH', PROJECT_TEMPLATE, @local_path]
+                    timeout : 30
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, output) =>
+                        if err
+                            cb("Error running rsync at all: #{err}")
+                        else
+                            cb()
 
     _open_on_host: (host, cb) =>
         # Find out if project already exists on some remote storage server
@@ -1333,8 +1346,6 @@ class Project
                     cb      : (err, output) =>
                         if err
                             cb("Error running rsync at all: #{err}")
-                        else if output.exit_code
-                            cb("rsync exited with nonzero code: stderr = #{output.stderr}")
                         else
                             cb()
 
@@ -1485,9 +1496,7 @@ class Project
                     path    : SALVUS_HOME
                     cb      : (err, output) =>
                         if err
-                            c("Failed to rsync project-->hub at all: #{err}")
-                        else if output.exit_code
-                            c("rsync project --> hub: exited with nonzero code: stderr = #{output.stderr}")
+                            c("rsync project --> hub: exited with nonzero code: stderr = #{err}")
                         else
                             s = 'Number of files transferred:'
                             i = output.stdout.indexOf(s)

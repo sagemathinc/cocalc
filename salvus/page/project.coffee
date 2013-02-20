@@ -131,9 +131,9 @@ class ProjectPage
 
         # Initialize the save project button.
         # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
-        @container.find("a[href='#save-project']").click () =>
-            @save_project(show_success_alert:true)
-            return false
+        #@container.find("a[href='#save-project']").click () =>
+        #    @save_project(show_success_alert:true)
+        #    return false
 
         # Initialize the save project button.
         # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
@@ -488,18 +488,18 @@ class ProjectPage
                 tab.target.hide()
                 tab.label.removeClass('active')
 
-    save_browser_local_data: () =>
-        @consoles.save()
-        @editor.save()
+    save_browser_local_data: (cb) =>
+        @editor.save(undefined, cb)
 
     save_project: (opts={}) =>
-        @save_browser_local_data()
-        opts.project_id = @project.project_id
-        opts.title = @project.title
-        save_project(opts)
+        @save_browser_local_data (err) =>
+            if err
+                return # will have generated its own error message
+            opts.project_id = @project.project_id
+            opts.title = @project.title
+            save_project(opts)
 
     close_project: (opts={}) =>
-        @save_browser_local_data()
         opts.title = @project.title
         opts.project_id = @project.project_id
         close_project(opts)

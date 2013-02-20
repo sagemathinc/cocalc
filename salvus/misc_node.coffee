@@ -256,7 +256,7 @@ exports.execute_code = (opts) ->
             finish = () ->
                 if stdout_is_done and stderr_is_done and exit_code?
                     if opts.err_on_exit and exit_code != 0
-                        c("command '#{opts.command}' (args=#{to_json(opts.args)}) exited with nonzero code #{exit_code}")
+                        c("command '#{opts.command}' (args=#{opts.args.join(' ')}) exited with nonzero code #{exit_code} -- stderr='#{stderr}'")
                     else
                         if opts.max_output?
                             if stdout.length >= opts.max_output
