@@ -10029,7 +10029,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] enable and debug permission checking in the function "get_project: (mesg, permission, cb) =>" of hub
 
-     [ ] SALVUS_HOME='/home/wstein/salvus/salvus/'
+     [x] SALVUS_HOME='/home/wstein/salvus/salvus/'
+
      [ ] need a gitconfig in the project template.
 
 

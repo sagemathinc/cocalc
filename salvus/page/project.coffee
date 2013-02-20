@@ -531,7 +531,6 @@ class ProjectPage
                     alert_message(type:"success", message: "New file created.")
                     salvus_client.save_project
                         project_id : @project.project_id
-                        commit_mesg : "Created a new file."
                         cb : (err, mesg) =>
                             if not err and mesg.event != 'error'
                                 @update_file_list_tab()
@@ -870,7 +869,6 @@ class ProjectPage
             # Save the project in its current state, so this action is undo-able/safe
             (cb) =>
                 @save_project
-                    commit_mesg : "save before #{opts.action}"
                     cb          : cb
 
             # Carry out the action
@@ -907,7 +905,6 @@ class ProjectPage
             # Save after the action.
             (cb) =>
                 @save_project
-                    commit_mesg : opts.commit_mesg
                     cb          : cb
 
             # Reload the files/branches/etc to take into account new commit, file deletions, etc.
@@ -993,12 +990,10 @@ save_project = exports.save_project = (opts) ->
     opts = defaults opts,
         project_id  : required
         title       : required
-        commit_mesg : ""
         cb          : undefined
         show_success_alert : false
     salvus_client.save_project
         project_id : opts.project_id
-        commit_mesg : opts.commit_mesg
         cb         : (err, mesg) ->
             if err
                 alert_message(type:"error", message:"Connection error saving project '#{opts.title}'.")

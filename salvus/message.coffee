@@ -527,12 +527,6 @@ message
     event                  : 'save_project'
     id                     : undefined
     project_id             : required    # uuid of a project
-    known_bundle_filenames : undefined
-    gitconfig              : undefined
-    commit_mesg            : undefined   # If given, do a commit first
-    author                 : undefined   # needed by project_server
-    add_all                : false       # if true and *all* files before saving.
-    bundle_size_threshold  : 5           # Only make a new bundle when current bundle exceeds this size in megabytes
 
 # The project_saved message is sent to a hub by a project_server when
 # the project_servers creates a new snapshot of the project in

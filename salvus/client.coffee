@@ -712,21 +712,17 @@ class exports.Connection extends EventEmitter
     save_project: (opts) ->
         opts = defaults opts,
             project_id  : required
-            commit_mesg : undefined
-            add_all     : undefined
-            cb          : required
+            cb          : undefined
         @call
             message :
                 message.save_project
                     project_id  : opts.project_id
-                    commit_mesg : opts.commit_mesg
-                    add_all     : opts.add_all
             cb : opts.cb
 
     close_project: (opts) ->
         opts = defaults opts,
             project_id  : required
-            cb          : required
+            cb          : undefined
         @call
             message :
                 message.close_project
@@ -748,7 +744,9 @@ class exports.Connection extends EventEmitter
                     path       : opts.path
                     content    : opts.content
             timeout : opts.timeout
-            cb : opts.cb
+            cb : (err, result) =>
+                @save_project(project_id : opts.project_id)
+                opts.cb(err, result)
 
     read_text_file_from_project: (opts) ->
         opts = defaults opts,

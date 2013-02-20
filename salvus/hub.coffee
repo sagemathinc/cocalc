@@ -13,6 +13,10 @@
 #
 ##############################################################################
 
+
+SALVUS_HOME=process.cwd()
+console.log(SALVUS_HOME)
+
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # node.js -- builtin libraries
@@ -68,9 +72,6 @@ project_data = 'data/projects/'
 fs.exists project_data, (exists) ->
     if not exists
         fs.mkdir(project_data)
-
-# TODO
-SALVUS_HOME='/home/wstein/salvus/salvus/'
 
 PROJECT_TEMPLATE = 'conf/project_templates/default/'
 

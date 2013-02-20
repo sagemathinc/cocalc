@@ -160,7 +160,6 @@ class exports.Editor
 
     # Warn user about unsaved changes (modal)
     warn_user: (filename, cb) =>
-        console.log("TODO: Warn user about unsaved changes (modal) -- not implemented")
         cb(true)
 
     # Make the give tab active.
@@ -179,7 +178,6 @@ class exports.Editor
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
-        console.log("editor save '#{filename}'")
         if not filename?  # if filename not given, save all files
             tasks = []
             for filename in keys(@tabs)
@@ -192,7 +190,6 @@ class exports.Editor
 
         tab = @tabs[filename]
         if not tab?
-            console.log("tab #{filename} vanished")
             return
 
         content = tab.editor.val()
