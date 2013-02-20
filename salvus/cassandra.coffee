@@ -903,6 +903,18 @@ class exports.Salvus extends exports.Cassandra
             cb         : undefined
         @uuid_value_store(name:'project_save_lock').delete(uuid:opts.project_id, cb:opts.cb)
 
+    # Set last_edited for this project to right now.
+    touch_project: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @update
+            table : 'projects'
+            set :
+                last_edited : now()
+            where : {project_id : opts.project_id}
+            cb : opts.cb
+
     create_project: (opts) ->
         opts = defaults opts,
             project_id  : required

@@ -1326,7 +1326,7 @@ class Project
                 winston.debug("_open_on_host -- push files to the project")
                 misc_node.execute_code
                     command : "rsync"
-                    args    : ['-axvH', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", @local_path, remote_path]
+                    args    : ['-axH', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", @local_path, remote_path]
                     timeout : 30
                     bash    : false
                     path    : SALVUS_HOME
@@ -1479,7 +1479,7 @@ class Project
                 remote_path = "#{misc_node.username(@project_id)}@#{host}:"
                 misc_node.execute_code
                     command : "rsync"
-                    args    : ['-axvH', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", remote_path, @local_path]
+                    args    : ['-axH', '--stats', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", remote_path, @local_path]
                     timeout : 30
                     bash    : false
                     path    : SALVUS_HOME
@@ -1489,7 +1489,18 @@ class Project
                         else if output.exit_code
                             c("rsync project --> hub: exited with nonzero code: stderr = #{output.stderr}")
                         else
-                            c()
+                            s = 'Number of files transferred:'
+                            i = output.stdout.indexOf(s)
+                            if i == -1
+                                winston.debug("BUG!  Output of rsync doesn't contain '#{s}', but it must!")
+                            else
+                                t = output.stdout.slice(i+s.length+1)
+                                j = t.indexOf('\n')
+                                if t.slice(0,j) != '0'
+                                    # sent at least one file modification.
+                                    database.touch_project(project_id: @project_id, cb:c)
+                                else
+                                    c()
 
         ], (err) =>
             if err and nothing_to_do
