@@ -19,6 +19,7 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 net     = require 'net'
 http    = require 'http'
 url     = require 'url'
+fs      = require 'fs'
 {EventEmitter} = require 'events'
 
 mime    = require('mime')
@@ -60,6 +61,16 @@ database           = null
 
 # the connected clients
 clients            = {}
+
+# Temporary project data directory
+project_data = 'data/projects/'
+
+fs.exists project_data, (exists) ->
+    if not exists
+        fs.mkdir(project_data)
+
+# TODO
+SALVUS_HOME='/home/wstein/salvus/salvus/'
 
 ###
 # HTTP Server
@@ -628,13 +639,8 @@ class Client extends EventEmitter
             #         else
             #             cb("Internal error -- unknown permission type '#{permission}'")
             (cb) =>
-                new Project(mesg.project_id, (err, proj) =>
-                    if err
-                        cb(err)
-                    else
-                        project = proj
-                        cb(false)
-                )
+                project = new Project(mesg.project_id)
+                cb()
         ], (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -671,14 +677,7 @@ class Client extends EventEmitter
             # TODO: we might as an optimization just leave it open initially,
             # since the user is likely to want to use it right after creating it.
             (cb) =>
-                new Project(project_id, (err, proj) =>
-                    if err
-                        cb(err)
-                    else
-                        project = proj
-                        cb()
-                )
-            (cb) =>
+                project = new Project(project_id)
                 project.open(cb)
             (cb) =>
                 project.save
@@ -1018,11 +1017,10 @@ push_to_clients = (opts) ->
 ##############################
 
 class Project
-    constructor: (@project_id, cb) ->
+    constructor: (@project_id) ->
         if not @project_id?
-            cb("When creating Project, the project_id must be defined")
-        else
-            cb(false, @)
+            throw "When creating Project, the project_id must be defined"
+        @local_path = "#{project_data}/#{@project_id}/"
 
     ##############################################
     # Database state stuff
@@ -1249,10 +1247,116 @@ class Project
                     cb(err)
         )
 
+    _initialize_local_path: (cb) =>
+        # Initialize a local copy of the project -- first the simplest possible approach; this will get more complicated later ! TODO
+        fs.mkdir @local_path, 0o700, (err) =>
+            if err
+                cb(err)
+            else
+                fs.writeFile(@local_path + "foo", "stuff", cb)
+
+    _open_on_host: (host, cb) =>
+        # Find out if project already exists on some remote storage server
+        # If yes, rsync it from there to local
+        # If no, create project from scratch (locally)
+        #        or create project from a template (another project; like "forking" in
+        #        github) by rsyncing from remote storage server
+        # In either case, we now have local project -- select a project_server.
+        # Rsync local project to that project_server.
+
+        id     = uuid.v4()   # used to tag communication with the project server
+        socket = undefined
+        quota  = undefined
+        idle_timeout = undefined
+        async.series([
+            (cb) =>
+                winston.debug("project: initialize '#{@local_path}'")
+                fs.exists @local_path, (exists) =>
+                    if not exists
+                        @_initialize_local_path(cb)
+                    else
+                        cb()
+
+            # Get a connection to the project server.
+            (cb) =>
+                winston.debug("_open_on_host - get a connection to the project server.")
+                @_connect host, (err, s) ->
+                    if err
+                        cb(err)
+                    else
+                        socket = s
+                        cb()
+
+            # Get meta information about the project that is needed to open the project.
+            (cb) =>
+                winston.debug("_open_on_host -- get meta information about the project that is needed to open the project.")
+                database.get_project_open_info project_id:@project_id, cb:(err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        {quota, idle_timeout} = result
+                        cb()
+
+            # Send open_project mesg.
+            (cb) =>
+                winston.debug("_open_on_host -- Send open_project mesg")
+                # TODO:
+                ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCd5N5Vz1Kv4QqYkWVGxKQfvnZjlMnbdu2wkB9mInLqUAoqkkOTq4B0Qq5rtgMK8AfTYqoi4jAF1R/qJpGLGqAm359Yc6vXOMq5Gy0cDekAb/JOADbmtsYzElv+YhCwnD1MAXqjrv0+W16Y8j6IFjjuvzf4Egnria0s5kddcCwLCkYU9sJUs6OXUDqzK05jhO3PF3P40f3sKKFdZLIH4rVkKdM3ynJ0gNoBqI/xak/9Tz3U0aSZXK7DfO7kjI5PCZr2EVI83u8XAwskDM9XDdifNED3Ctae/x7FkpdpLNiXjOsUKJ0cnJmBFDwO0M4Vt8L8zROy2aH8ZEhD1cqGF69D salvus"
+                mesg_open_project = message.open_project
+                    id           : id
+                    project_id   : @project_id
+                    quota        : quota
+                    idle_timeout : idle_timeout
+                    ssh_public_key: ssh_public_key  # computed on startup of hub
+                socket.write_mesg 'json', mesg_open_project
+                cb()
+
+            # Wait for response that project user has been created and public key written
+            (cb) =>
+                winston.debug("_open_on_host -- wait for the project server to respond")
+                socket.recv_mesg id:id, type:'json', timeout:30, cb:(mesg) ->
+                    winston.debug("_open_on_host -- received response #{misc.to_json(mesg)}")
+                    switch mesg.event
+                        when 'error'
+                            # something went wrong...
+                            cb(mesg.error)
+                        when 'project_opened'
+                            # finally, got it.
+                            cb()
+                        else
+                            cb("Expected a 'project_opened' message, but got a '#{mesg.event}' message instead.")
+
+            # Push files to the project
+            (cb) =>
+                winston.debug("_open_on_host -- push files to the project")
+                username = misc_node.username(@project_id)
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axvH', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", @local_path, "#{username}@#{host}:"]
+                    timeout : 30
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, output) =>
+                        if err
+                            cb("Error running rsync at all: #{err}")
+                        else if output.exit_code
+                            cb("rsync exited with nonzero code: stderr = #{output.stderr}")
+                        else
+                            cb()
+
+            # Save where project is running to the database
+            (cb) =>
+                winston.debug("_open_on_host -- save where (='#{host}') project running to database")
+                database.set_project_host(project_id:@project_id, host:host, cb:cb)
+
+        ], cb)
+
+
+
     # This is called by 'open' once we determine that the project is
     # not already opened, and also we determine on which host we plan
     # to open the project.
-    _open_on_host: (host, cb) ->
+    XXX_open_on_host: (host, cb) ->
         socket  = undefined
         id      = uuid.v4()   # used to tag communication with the project server
         bundles = undefined
@@ -1347,6 +1451,10 @@ class Project
             commit_mesg: undefined  # if defined will commit first before saving back to database.
             add_all    : false      # if true add everything we can to the repo before commiting.
             cb         : undefined
+
+        # TODO -- stubbed
+        opts.cb()
+        return
 
         id = uuid.v4() # used to tag communication with the project server
 
@@ -1483,11 +1591,23 @@ class Project
         )
 
     delete: (cb) =>
+        # TODO -- stubbed
+        cb?()
+        return
+
         @close(() => database.delete_project(project_id:@project_id, cb:cb))
 
     # Close the project.  This does *NOT* save the project first; it
     # just immediately kills all processes and clears all disk space.
     close: (cb) =>  # cb(err) -- indicates when done
+
+        # TODO -- stubbed
+        database.set_project_host
+            project_id : @project_id
+            host       : ""
+            cb         : cb
+        return
+
         id     = uuid.v4()
         socket = undefined
         host   = undefined

@@ -144,7 +144,7 @@ exports.execute_code = (opts) ->
     opts = defaults opts,
         command    : required
         args       : []
-        path       : undefined   # defaults to home directory (base of repo)
+        path       : undefined   # defaults to home directory; where code is executed from
         timeout    : 10          # timeout in *seconds*
         err_on_exit: true        # if true, then a nonzero exit code will result in cb(error_message)
         max_output : undefined   # bound on size of stdout and stderr; further output ignored
@@ -153,6 +153,8 @@ exports.execute_code = (opts) ->
         uid        : undefined
         gid        : undefined
         cb         : required
+
+    winston.debug("execute_code: \"#{opts.command} #{opts.args.join(' ')}\"")
 
     s = opts.command.split(/\s+/g) # split on whitespace
     if opts.args.length == 0 and s.length > 1
@@ -166,11 +168,14 @@ exports.execute_code = (opts) ->
     else if opts.path[0] != '/'
         opts.path = opts.home + '/' + opts.path
 
+    winston.debug("execute_code: home='#{opts.home}', path='#{opts.path}'")
+
     stdout = ''
     stderr = ''
     exit_code = undefined
 
-    env = {HOME:opts.home}
+    if opts.uid?
+        env = {HOME:opts.home}
 
     tmpfilename = undefined
 
@@ -188,7 +193,7 @@ exports.execute_code = (opts) ->
             else
                 cmd = opts.command
 
-            winston.debug("Write tempoary file that contains bash program.")
+            winston.debug("execute_code: writing temporary file that contains bash program.")
             temp.open '', (err, info) ->
                 if err
                     c(err)
@@ -200,8 +205,16 @@ exports.execute_code = (opts) ->
                     tmpfilename =info.path
 
         (c) ->
+            if tmpfilename?
+                fs.chmod(tmpfilename, 0o777, c)
+            else
+                c()
+
+        (c) ->
             winston.debug("Spawn the command #{opts.command} with given args #{opts.args}")
-            o = {cwd:opts.path, env:env}
+            o = {cwd:opts.path}
+            if env?
+                o.env = env
             if opts.uid
                 o.uid = opts.uid
             if opts.gid
@@ -269,3 +282,18 @@ exports.execute_code = (opts) ->
         if tmpfilename?
             fs.unlink(tmpfilename)
     )
+
+
+
+###################################
+# project_id --> username mapping
+
+# The username associated to a given project id is just the string of
+# the uuid, but with -'s replaced by _'s so we obtain a valid unix
+# account name, and shortened to fit Linux and sanity requirements.
+exports.username = (project_id) ->
+    if '..' in project_id or project_id.length != 36
+        # a sanity check -- this should never ever be allowed to happen, ever.
+        throw "invalid project id #{project_id}"
+    # Return a for-sure safe username
+    return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')

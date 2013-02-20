@@ -10017,11 +10017,7 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [ ] open project:
          - rewrite the Project._open_on_host: function in hub to:
                [x] (0:35) make Project constructor have a callback, so it can do work of *ensuring* everything is in place locally before doing anything else.  test that didn't break.
-               [ ] create directory data/project_rsync/project_id if doesn't exist
-               [ ] copy over template: .bashrc, .salvus/bin (for now)
-            [ ] get a login/password from project_server
-            [ ] rsync --delete *to* data/projects/project_id project
-                server using that account
+               [x] (2:49) rsync project_server rewrite: opening a project;   THAT WAS HARD.
 
      [ ] save project:
           [ ] get for login/password for project (memory cache followed by ask project_server)
@@ -10029,6 +10025,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
           [ ] record in db that project was successfully saved
 
      [ ] test the heck out of the above.
+
+     [ ] implement loading (and ensuring existence of) ssh_public_key in hub. 
 
 ----------------
 
@@ -10044,6 +10042,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [ ] delete all the code from salvus related to diffbundler
 
      [ ] delete all "git commit" related code as well
+
+     [ ] SALVUS_HOME='/home/wstein/salvus/salvus/'
 
      [ ] change project_server to use new execute_code command in misc_node, and delete code from project_server.
 

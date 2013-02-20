@@ -498,9 +498,6 @@ message
     id           : required
     project_id   : required  # uuid of the project, which impacts
                              # where project is extracted, etc.
-    bundle_uuids : required  # Array of pairs [uuid,filename] of the bundles that
-                             # will be sent as blobs; if length 0,
-                             # makes a new repo with empty .gitignore.
     quota        : required  # Maximum amount of disk space/inodes this
                              # project can use.  This is an object
                              #    {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
@@ -509,6 +506,7 @@ message
                              # to this project for this many seconds,
                              # then it does the same thing as when
                              # receiving a 'close_project' message.
+    ssh_public_key: required # ssh key of the one UNIX user that is allowed to access this account (this is running the hub).
 
 # A project_server sends the project_opened message to the hub once
 # the project_server has received and unbundled all bundles that

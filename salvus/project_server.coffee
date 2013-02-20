@@ -43,16 +43,7 @@ misc           = require 'misc'
 #    --> See message.coffee for how projects work. <--
 ######################################################
 
-# The username associated to a given project id is just the
-# string of the uuid, but with -'s replaced by _'s so we
-# obtain a valid unix account name.
-username = (project_id) ->
-    if '..' in project_id or project_id.length != 36
-        # a sanity check -- this should never ever be allowed to happen, ever.
-        throw "invalid project id #{project_id}"
-    # Return a for-sure safe username
-    return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')
-
+username = misc_node.username
 
 # The path to the home directory of the user associated with
 # the given project_id.
@@ -137,13 +128,15 @@ megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 #     quota = {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
 create_user = (project_id, quota, cb) ->
     uname = username(project_id)
+    password = undefined
     async.series([
         (cb) ->
             cleanup(uname, cb)
+
         # Create the user
         (cb) ->
-            winston.debug("useradd -U #{uname}")
-            child_process.execFile 'useradd', ['-U', uname], {}, (err) ->
+            winston.debug("useradd -m -U #{uname}")
+            child_process.execFile 'useradd', ['-m', '-U', uname], {}, (err) ->
                 if err
                     delete_user_8 uname, (err) ->
                         child_process.execFile('useradd', ['-U', uname], {}, cb)
@@ -426,123 +419,30 @@ exec_as_user = (opts) ->
         bash       : false       # if true, ignore args and evaluate command as a bash command
         cb         : required
 
-    winston.debug(misc.to_json(opts))
-
-    user = username(opts.project_id)
     home = userpath(opts.project_id)
+    user = username(opts.project_id)
+    getuid user, (err, id) ->
+        if err
+            opts.cb(err)
+            return
+        uid = id
+        if opts.path?
+            path = opts.path
+        else
+            path = home
 
-    if opts.bash
-        tmpfilename = "/#{home}/.git/salvus/tmp/#{uuid.v4()}"
-    else
-        s = opts.command.split(/\s+/g) # split on whitespace
-        if opts.args.length == 0 and s.length > 1
-            # try to work out command from a single command line string
-            # TODO -- the following is dumb and doesn't take into account escapes, strings with spaces, etc.
-            opts.args = s.slice(1)
-            opts.command = s[0]
-
-    if not opts.path?
-        opts.path = home
-    else if opts.path[0] != '/'
-        opts.path = home + '/' + opts.path
-    uid  = undefined
-    stdout = ''
-    stderr = ''
-    exit_code = undefined
-
-    env = {HOME:home}
-
-    async.series([
-        (c) ->
-            if opts.bash
-                winston.debug("Write tmpfile that contains bash program.")
-                if opts.timeout?
-                    # This ensures that everything involved with this
-                    # command really does die no matter what; it's
-                    # better than killing from outside, since it gets
-                    # all subprocesses since they inherit the limits.
-                    cmd = "ulimit -t #{opts.timeout}\n#{opts.command}"
-                else
-                    cmd = opts.command
-                fs.writeFile(tmpfilename, cmd, c)
-                opts.command = 'bash'
-                opts.args = [tmpfilename]
-            else
-                c()
-
-        # Get the uid of the user; this will err if the project isn't currently
-        # hosted on this project server.
-        (c) ->
-            winston.debug("Get the user id")
-            getuid user, (err, id) ->
-                if err
-                    c(err)
-                else
-                    uid = id
-                    c()
-        (c) ->
-            winston.debug("Spawn the command #{opts.command} with given args #{opts.args}")
-            r = child_process.spawn(opts.command, opts.args,
-                   {cwd:opts.path, uid:uid, gid:uid, env:env})
-
-            winston.debug("Listen for stdout, stderr and exit events.")
-            stdout = ''
-            r.stdout.on 'data', (data) ->
-                data = data.toString()
-                if opts.max_output?
-                    if stdout.length < opts.max_output
-                        stdout += data.slice(0,opts.max_output - stdout.length)
-                else
-                    stdout += data
-            r.stderr.on 'data', (data) ->
-                data = data.toString()
-                if opts.max_output?
-                    if stderr.length < opts.max_output
-                        stderr += data.slice(0,opts.max_output - stderr.length)
-                else
-                    stderr += data
-
-            stderr_is_done = stdout_is_done = false
-
-            r.stderr.on 'end', () ->
-                stderr_is_done = true
-                finish()
-
-            r.stdout.on 'end', () ->
-                stdout_is_done = true
-                finish()
-
-            r.on 'exit', (code) ->
-                exit_code = code
-                finish()
-
-            finish = () ->
-                if stdout_is_done and stderr_is_done and exit_code?
-                    if opts.err_on_exit and exit_code != 0
-                        c("command '#{opts.command}' (args=#{misc.to_json(opts.args)}) exited with nonzero code #{exit_code}")
-                    else
-                        if opts.max_output?
-                            if stdout.length >= opts.max_output
-                                stdout += " (truncated at #{opts.max_output} characters)"
-                            if stderr.length >= opts.max_output
-                                stderr += " (truncated at #{opts.max_output} characters)"
-                        c()
-
-            if opts.timeout?
-                f = () ->
-                    winston.debug("in timeout function")
-                    if r.exitCode == null
-                        winston.debug("process did not exit yet -- kill")
-                        r.kill("SIGKILL")  # this does not kill the process group :-(
-                        c("killed command '#{opts.command}' (args=#{misc.to_json(opts.args)}) since it exceeded the timeout of #{opts.timeout}")
-                setTimeout(f, opts.timeout*1000)
-    ], (err) ->
-        winston.debug("Result of command: stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}; original cmd=#{misc.to_json(opts)}")
-        opts.cb(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
-        # Do not litter:
-        if opts.bash
-            fs.unlink(tmpfilename)
-    )
+        misc_node.execute_code
+            command     : opts.command
+            args        : opts.args
+            path        : path
+            timeout     : opts.timeout
+            err_on_exit : opts.err_on_exit
+            max_output  : opts.max_output
+            bash        : opts.bash
+            cb          : opts.cb
+            uid         : uid
+            gid         : uid
+            home        : home
 
 ########################################################################
 # Event Handlers -- these handle various messages as documented
@@ -552,9 +452,30 @@ exec_as_user = (opts) ->
 
 events = {}
 
+events.open_project = (socket, mesg)  ->
+    # Create account
+    create_user mesg.project_id, mesg.quota, (err, cred) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+        else
+            # Write the ssh public key
+            exec_as_user
+                project_id : mesg.project_id
+                command    : "mkdir .ssh; echo '#{mesg.ssh_public_key}'>.ssh/authorized_keys; chmod og-rwx -R .ssh"
+                bash       : true
+                cb         : (err, output) ->
+                    if err
+                        socket.write_mesg('json', message.error(id:mesg.id, error:"Created project, but couldn't setup public key. -- #{err}"))
+                    else if output.exit_code
+                        socket.write_mesg('json', message.error(id:mesg.id, error:"Created project, but couldn't setup public key. -- #{misc.to_json(output)}"))
+                    else
+                        # success
+                        socket.write_mesg('json', message.project_opened(id:mesg.id))
+
+
 # Open the project described by the given mesg, which was sent over
 # the socket.
-events.open_project = (socket, mesg)  ->
+events.XXX_open_project = (socket, mesg)  ->
     # The first step in opening a project is to wait to receive all of
     # the bundle blobs.  We do the extract step below in _open_project2.
 
