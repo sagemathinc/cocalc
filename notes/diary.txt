@@ -10001,13 +10001,43 @@ So need code to:
 
 -----
 
-
-    [ ] after fully doing this multi-diffbundler approach, I see that
+RSYNC: after fully doing this multi-diffbundler approach, I see that
         it is the wrong approach.  rsync is the ultimate solution to
         the problem of incremental backups over the network.
         I can *manage* them all using cassandra, but the actual
         data can't be stored in cassandra.
         **Or, even better, there is rsnapshot, which provides safety.**
+
+     [x] (0:38) make something like exec_as_user available more generally (to hub) by copying to misc_node.coffee from project_server.
+
+     [ ] disable "git commit"-related code as well
+
+     [ ] create project:
+          [ ] create directory data/project_rsync/project_id if doesn't exist
+               [ ] copy over template: .bashrc, .salvus/bin (for now)
+          [ ] project_server -- request account creation, and get back message with login/temporary password, which gets stored in database.
+          [ ] rsync to data/projects/project_id project server using that account
+          [ ] store in db that project is successfully open
+
+     [ ] save project:
+          [ ] query db for login/password
+          [ ] rsync back using login/password
+          [ ] record in db that project was successfully saved
+
+     [ ] long-term storage project:
+          [ ] learn rsnapshot
+          [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
+          [ ] store that this was done in database
+
+     [ ] support for browsing rsnapshots
+
+     [ ] delete all the code from salvus related to diffbundler
+
+     [ ] delete all "git commit" related code as well
+ 
+     [ ] change project_server to use new execute_code command in misc_node, and delete code from project_server.
+
+-------------------------------------
 
     [ ] if close last file in editor, go back to browser automatically
 

@@ -7,6 +7,8 @@
 
 assert = require('assert')
 
+winston = require('winston')
+
 ######################################################################
 # Our TCP messaging system.  We send a message by first
 # sending the length, then the bytes of the actual message.  The code
@@ -26,7 +28,7 @@ assert = require('assert')
 # data is just a JSON-able object.  When type='blob', data={uuid:..., blob:...};
 # since every blob is tagged with a uuid.
 
-{defaults, required} = require 'misc'
+{defaults, required, to_json} = require 'misc'
 
 message = require 'message'
 
@@ -127,3 +129,143 @@ exports.uuidsha1 = (data) ->
                 return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
     )
 
+
+
+###################################################################
+# Execute code
+###################################################################
+#
+temp           = require('temp')
+async          = require('async')
+fs             = require('fs')
+child_process  = require 'child_process'
+
+exports.execute_code = (opts) ->
+    opts = defaults opts,
+        command    : required
+        args       : []
+        path       : undefined   # defaults to home directory (base of repo)
+        timeout    : 10          # timeout in *seconds*
+        err_on_exit: true        # if true, then a nonzero exit code will result in cb(error_message)
+        max_output : undefined   # bound on size of stdout and stderr; further output ignored
+        bash       : false       # if true, ignore args and evaluate command as a bash command
+        home       : undefined
+        uid        : undefined
+        gid        : undefined
+        cb         : required
+
+    s = opts.command.split(/\s+/g) # split on whitespace
+    if opts.args.length == 0 and s.length > 1
+        opts.bash = true
+
+    if not opts.home?
+        opts.home = process.env.HOME
+
+    if not opts.path?
+        opts.path = opts.home
+    else if opts.path[0] != '/'
+        opts.path = opts.home + '/' + opts.path
+
+    stdout = ''
+    stderr = ''
+    exit_code = undefined
+
+    env = {HOME:opts.home}
+
+    tmpfilename = undefined
+
+    async.series([
+        (c) ->
+            if not opts.bash
+                c()
+                return
+            if opts.timeout?
+                # This ensures that everything involved with this
+                # command really does die no matter what; it's
+                # better than killing from outside, since it gets
+                # all subprocesses since they inherit the limits.
+                cmd = "ulimit -t #{opts.timeout}\n#{opts.command}"
+            else
+                cmd = opts.command
+
+            winston.debug("Write tempoary file that contains bash program.")
+            temp.open '', (err, info) ->
+                if err
+                    c(err)
+                else
+                    opts.command = 'bash'
+                    opts.args    = [info.path]
+                    fs.write(info.fd, cmd)
+                    fs.close(info.fd, c)
+                    tmpfilename =info.path
+
+        (c) ->
+            winston.debug("Spawn the command #{opts.command} with given args #{opts.args}")
+            o = {cwd:opts.path, env:env}
+            if opts.uid
+                o.uid = opts.uid
+            if opts.gid
+                o.gid = opts.gid
+
+            r = child_process.spawn(opts.command, opts.args, o)
+
+            winston.debug("Listen for stdout, stderr and exit events.")
+            stdout = ''
+            r.stdout.on 'data', (data) ->
+                data = data.toString()
+                if opts.max_output?
+                    if stdout.length < opts.max_output
+                        stdout += data.slice(0,opts.max_output - stdout.length)
+                else
+                    stdout += data
+            r.stderr.on 'data', (data) ->
+                data = data.toString()
+                if opts.max_output?
+                    if stderr.length < opts.max_output
+                        stderr += data.slice(0,opts.max_output - stderr.length)
+                else
+                    stderr += data
+
+            stderr_is_done = stdout_is_done = false
+
+            r.stderr.on 'end', () ->
+                stderr_is_done = true
+                finish()
+
+            r.stdout.on 'end', () ->
+                stdout_is_done = true
+                finish()
+
+            r.on 'exit', (code) ->
+                exit_code = code
+                finish()
+
+            finish = () ->
+                if stdout_is_done and stderr_is_done and exit_code?
+                    if opts.err_on_exit and exit_code != 0
+                        c("command '#{opts.command}' (args=#{to_json(opts.args)}) exited with nonzero code #{exit_code}")
+                    else
+                        if opts.max_output?
+                            if stdout.length >= opts.max_output
+                                stdout += " (truncated at #{opts.max_output} characters)"
+                            if stderr.length >= opts.max_output
+                                stderr += " (truncated at #{opts.max_output} characters)"
+                        c()
+
+            if opts.timeout?
+                f = () ->
+                    if r.exitCode == null
+                        winston.debug("execute_code: subprocess did not exit after #{opts.timeout} seconds, so killing with SIGKILL")
+                        r.kill("SIGKILL")  # this does not kill the process group :-(
+                        c("killed command '#{opts.command} #{opts.args.join(' ')}'")
+                setTimeout(f, opts.timeout*1000)
+
+    ], (err) ->
+        if not exit_code?
+            exit_code = 1  # don't have one due to SIGKILL
+        winston.debug("Running '#{opts.command} #{opts.args.join(' ')}' produced stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
+        opts.cb?(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
+        # Do not litter:
+        if tmpfilename?
+            fs.unlink(tmpfilename)
+    )
