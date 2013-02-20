@@ -10033,10 +10033,14 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (0:23) need a gitconfig in the project template.
      [x] (0:31) add project disk usage as database field and display it in the project listing screen and project.
+-->     [ ] install salvus on a random public machine (06salvus?)
+
+128.95.242.137  = 07salvus
+
+1) point godaddy something at it.
+2) install and build right branch of salvus
+
      [ ] delete all the code from salvus related to diffbundler
-     [ ] install salvus on a random public machine (06salvus?)
-
-
 
 
 
