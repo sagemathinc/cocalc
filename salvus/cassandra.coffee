@@ -962,8 +962,6 @@ class exports.Salvus extends exports.Cassandra
             (cb) =>
                 @delete(table:'projects', where:{project_id : opts.project_id}, cb:cb)
             (cb) =>
-                @delete(table:'project_bundles', where:{project_id : opts.project_id}, cb:cb)
-            (cb) =>
                 @delete(table:'project_users', where:{project_id : opts.project_id}, cb:cb)
         ], (err) ->
             if opts.cb?

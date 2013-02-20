@@ -680,11 +680,7 @@ class Client extends EventEmitter
                 project = new Project(project_id)
                 project.open(cb)
             (cb) =>
-                project.save
-                    account_id  : @account_id
-                    add_all     : true
-                    commit_mesg : "new project"
-                    cb          : cb
+                project.save(cb)
             (cb) =>
                 project.close(cb)
         ], (error) =>
@@ -759,11 +755,7 @@ class Client extends EventEmitter
 
     mesg_save_project: (mesg) =>
         @get_project mesg, 'write', (project) =>
-            project.save
-                account_id  : @account_id
-                add_all     : mesg.add_all
-                commit_mesg : mesg.commit_mesg
-                cb          : (err) =>
+            project.save (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
@@ -1021,6 +1013,7 @@ class Project
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
         @local_path = "#{project_data}/#{@project_id}/"
+        
 
     ##############################################
     # Database state stuff
@@ -1264,6 +1257,8 @@ class Project
         # In either case, we now have local project -- select a project_server.
         # Rsync local project to that project_server.
 
+        remote_path = "#{misc_node.username(@project_id)}@#{host}:"
+
         id     = uuid.v4()   # used to tag communication with the project server
         socket = undefined
         quota  = undefined
@@ -1329,10 +1324,9 @@ class Project
             # Push files to the project
             (cb) =>
                 winston.debug("_open_on_host -- push files to the project")
-                username = misc_node.username(@project_id)
                 misc_node.execute_code
                     command : "rsync"
-                    args    : ['-axvH', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", @local_path, "#{username}@#{host}:"]
+                    args    : ['-axvH', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", @local_path, remote_path]
                     timeout : 30
                     bash    : false
                     path    : SALVUS_HOME
@@ -1445,30 +1439,10 @@ class Project
 
     # Save the project to the database.  This involves saving at least
     # zero (!) bundles to the project_bundles uuid:blob table.
-    save: (opts) -> # cb(err) -- indicates when done
-        opts = defaults opts,
-            account_id : undefined  # required only if commit_mesg is given
-            commit_mesg: undefined  # if defined will commit first before saving back to database.
-            add_all    : false      # if true add everything we can to the repo before commiting.
-            cb         : undefined
-
-        # TODO -- stubbed
-        opts.cb()
-        return
-
+    save: (cb) -> # cb(err) -- indicates when done
         id = uuid.v4() # used to tag communication with the project server
 
-        save_mesg = message.save_project
-            id                     : id
-            project_id             : @project_id
-            known_bundle_filenames : []  # will get updated after database call below.
-            commit_mesg            : opts.commit_mesg
-            add_all                : opts.add_all
-
-        socket             = undefined
         host               = undefined
-        project_saved_mesg = undefined
-        recv_bundles       = undefined
         not_open = false
 
         nothing_to_do = false
@@ -1484,7 +1458,7 @@ class Project
                         nothing_to_do = true
                         c(true)
                     else
-                        @_lock_for_saving(30, c)
+                        @_lock_for_saving(15, c)
 
             # Determine which project_server is hosting this project.
             # If none, then there is nothing further to do.
@@ -1500,119 +1474,48 @@ class Project
                             host = _host
                             c()
 
-            # Get the user's name and email for the commit message
             (c) =>
-                database.get_gitconfig account_id:opts.account_id, cb:(err, gitconfig) ->
-                    if err
-                        c(err)
-                    else
-                        save_mesg.gitconfig = gitconfig
-                        c()
-
-            # Get list of all known bundle filenames from the database
-            (c) =>
-                database.get_project_bundle_filenames project_id:@project_id, cb:(err, v) ->
-                    if err
-                        c(err)
-                    else
-                        save_mesg.known_bundle_filenames = v
-                        c()
-
-            # Connect to the project server that is hosting this project right now.
-            (c) =>
-                @_connect host, (err, s) ->
-                    if err
-                        c(err)
-                    else
-                        socket = s
-                        c()
-
-            (c) =>
-                # TODO
-                save_mesg.author = "TODOWilliam Stein <wstein@gmail.com>"
-                c()
-
-            # Send message to project server requesting that it save
-            # the the project and send back to us any bundle(s) that
-            # it creates when saving the project.
-            (c) =>
-                socket.write_mesg 'json', save_mesg
-                c()
-
-            # Listen for bundles, find out how many bundles to expect
-            # and receive the bundles.
-            (c) =>
-                bundle_uuids      = undefined
-                remaining_bundles = undefined
-
-                recv_bundles = (type, mesg) =>
-                    switch type
-                        when 'json'
-                            if mesg.id == id
-                                switch mesg.event
-                                    when 'error'
-                                        c(mesg.error)
-                                    when 'project_saved'
-                                        project_saved_mesg = mesg
-                                        bundle_uuids       = mesg.bundle_uuids
-                                        remaining_bundles  = misc.len(bundle_uuids)
-                                        winston.debug("*** --> Waiting for #{remaining_bundles} bundles")
-                                        if remaining_bundles == 0
-                                            # done -- no need to wait for any blobs
-                                            c()
-                        when 'blob'
-                            if bundle_uuids? and bundle_uuids[mesg.uuid]?
-                                winston.debug("Received bundle with uuid #{mesg.uuid} and name #{bundle_uuids[mesg.uuid]}")
-                                database.save_project_bundle
-                                    project_id : @project_id
-                                    filename   : bundle_uuids[mesg.uuid]
-                                    bundle     : mesg.blob
-                                    cb         : (err) ->
-                                        if err
-                                            c(err)
-                                        else
-                                            remaining_bundles -= 1
-                                            if remaining_bundles == 0
-                                                # done -- we have received and *saved* all bundles to the database successfully
-                                                c()
-                socket.on 'mesg', recv_bundles
+                winston.debug("save: rsync files from remote")
+                remote_path = "#{misc_node.username(@project_id)}@#{host}:"
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axvH', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", remote_path, @local_path]
+                    timeout : 30
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, output) =>
+                        if err
+                            c("Failed to rsync project-->hub at all: #{err}")
+                        else if output.exit_code
+                            c("rsync project --> hub: exited with nonzero code: stderr = #{output.stderr}")
+                        else
+                            c()
 
         ], (err) =>
             if err and nothing_to_do
-                opts.cb?()
+                cb?()
                 return
             @_remove_saving_lock()
-            if socket? and recv_bundles?
-                socket.removeListener('mesg', recv_bundles)
             if not_open
-                opts.cb?()
+                cb?()
             else
-                opts.cb?(err)
+                cb?(err)
         )
 
     delete: (cb) =>
-        # TODO -- stubbed
-        cb?()
-        return
-
         @close(() => database.delete_project(project_id:@project_id, cb:cb))
 
-    # Close the project.  This does *NOT* save the project first; it
-    # just immediately kills all processes and clears all disk space.
+    # Close the project.  This save the project first, then
+    # kills all processes and clears all disk space.
     close: (cb) =>  # cb(err) -- indicates when done
-
-        # TODO -- stubbed
-        database.set_project_host
-            project_id : @project_id
-            host       : ""
-            cb         : cb
-        return
-
         id     = uuid.v4()
         socket = undefined
         host   = undefined
 
         async.series([
+            (c) =>
+                @save(c)
+
             # Get project's current host
             (c) =>
                 database.get_project_host project_id:@project_id, cb: (err, _host) ->

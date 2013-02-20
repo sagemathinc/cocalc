@@ -225,18 +225,11 @@ CREATE TABLE projects (
      user_id          int,      // UNIX user id for open project
      quota            varchar,  // (JSON) {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
      idle_timeout     int,      // timeout in seconds until the project is killed if there is no activity.
+
+     deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 );
 
 CREATE INDEX ON projects(account_id);
-
-// select * from project_bundles where project_id=0 order by number;
-
-CREATE TABLE project_bundles (
-     project_id  uuid,
-     filename    varchar,
-     bundle      blob,
-     PRIMARY KEY (project_id, filename)
-);
 
 CREATE TABLE project_users (
      project_id       uuid,
