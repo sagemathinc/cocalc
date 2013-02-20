@@ -226,6 +226,8 @@ CREATE TABLE projects (
      quota            varchar,  // (JSON) {disk:{soft:megabytes, hard:megabytes}, inode:{soft:num, hard:num}}
      idle_timeout     int,      // timeout in seconds until the project is killed if there is no activity.
 
+     size             int,      // total size in bytes at last save
+
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 );
 

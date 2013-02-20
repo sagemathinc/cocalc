@@ -1530,8 +1530,17 @@ class Project
                                 t = output.stdout.slice(i+s.length+1)
                                 j = t.indexOf('\n')
                                 if t.slice(0,j) != '0'
-                                    # sent at least one file modification.
-                                    database.touch_project(project_id: @project_id, cb:c)
+                                    # Sent at least one file modification.
+                                    # Get the size of the resulting directory, and save this to the database.
+                                    @size_of_local_copy((err,size) =>
+                                        if err
+                                            c(err)
+                                        else
+                                            database.touch_project
+                                                project_id : @project_id
+                                                size       : size
+                                                cb         : c
+                                    )
                                 else
                                     c()
 
@@ -1545,6 +1554,22 @@ class Project
             else
                 cb?(err)
         )
+
+    # return total size in bytes of the local copy of files in the project
+    size_of_local_copy: (cb) =>
+        misc_node.execute_code
+            command : 'du'
+            args    : ['-bs', @local_path]
+            timeout : 15
+            bash    : false
+            path    : SALVUS_HOME
+            cb      : (err, output) =>
+                if err
+                    cb(err)
+                else
+                    i = output.stdout.indexOf(' ')
+                    size = parseInt(output.stdout.slice(0,i))
+                    cb(false, size)
 
     delete: (cb) =>
         @close(() => database.delete_project(project_id:@project_id, cb:cb))

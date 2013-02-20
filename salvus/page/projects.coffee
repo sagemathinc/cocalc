@@ -9,6 +9,7 @@
 {alert_message} = require('alerts')
 {misc}          = require('misc')
 {project_page, download_project, close_project}  = require('project')
+{human_readable_size} = require('misc_page')
 
 top_navbar.on "switch_to_page-projects", () ->
     update_project_list?()
@@ -23,6 +24,7 @@ compute_search_data = () ->
 update_project_list = exports.update_project_list = () ->
     salvus_client.get_projects
         cb: (error, mesg) ->
+            console.log(mesg)
             if not error and mesg.event == 'all_projects'
                 project_list = mesg.projects
                 compute_search_data()
@@ -87,6 +89,8 @@ create_project_item = (project) ->
     if project.host != ""
         item.find(".projects-active").show().tooltip(title:"This project is running on a server.", placement:"top", delay:500)
     item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
+    if project.size?
+        item.find(".projects-size").text(human_readable_size(project.size))
     item.find(".projects-description").text(project.description)
     item.click (event) ->
         open_project(project)

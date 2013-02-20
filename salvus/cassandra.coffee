@@ -842,6 +842,7 @@ class exports.Salvus extends exports.Cassandra
             columns : opts.columns
             cb : opts.cb
 
+    # TODO: REWRITE THE function below (and others) to use get_project_data above.
     get_project_host: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -916,15 +917,20 @@ class exports.Salvus extends exports.Cassandra
             cb         : undefined
         @uuid_value_store(name:'project_save_lock').delete(uuid:opts.project_id, cb:opts.cb)
 
-    # Set last_edited for this project to right now.
+    # Set last_edited for this project to right now, and possibly update its size.
     touch_project: (opts) ->
         opts = defaults opts,
             project_id : required
+            size       : undefined
             cb         : undefined
+
+        set = {last_edited: now()}
+        if opts.size
+            set.size = opts.size
+
         @update
             table : 'projects'
-            set :
-                last_edited : now()
+            set   : set
             where : {project_id : opts.project_id}
             cb : opts.cb
 
@@ -1048,7 +1054,7 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'current_branch', 'host']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'current_branch', 'host', 'size']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->

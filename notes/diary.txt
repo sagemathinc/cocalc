@@ -10032,6 +10032,17 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] SALVUS_HOME='/home/wstein/salvus/salvus/'
 
      [x] (0:23) need a gitconfig in the project template.
+     [x] (0:31) add project disk usage as database field and display it in the project listing screen and project.
+     [ ] delete all the code from salvus related to diffbundler
+     [ ] install salvus on a random public machine (06salvus?)
+
+
+
+
+
+-------------------------------------
+
+     [ ] update project size display for open projects in the project itself.
 
      [ ] long-term storage project:
           [ ] learn rsnapshot
@@ -10039,29 +10050,14 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
           [ ] store that this was done in database
 
      [ ] support for browsing rsnapshots
-
-     [ ] delete all the code from salvus related to diffbundler
-
      [ ] delete all "git commit" related code as well
-
      [ ] images embeded in worksheets -- store longterm in .salvus/sha1hash and use database only as a shorter-time cache again.
-
      [ ] delete project -- maybe make it less final.
-
      [ ] fork/clone project
-
-     [ ] add project disk usage as database field and display it in the project listing screen and project.
-
      [ ] when project opening -- which is by far the only thing that takes noticeable time -- need to give feedback.
-
--------------------------------------
-
     [ ] in template change git-ls, etc. to be symlinks, but make the tar command resolve symlinks
-
     [ ] file brower -- sort first by timestamp, then by git time.
-
     [ ] if close last file in editor, go back to browser automatically
-
     [ ] interact bug: this should not go "scientific"
 @interact
 def f(n=10**100):
