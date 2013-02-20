@@ -10024,7 +10024,9 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (1:18) make it so all the existing client stuff works.
 
-----------------
+     [x] (0:17) bug -- weird issue with old worksheets not opening; bugs me.  it's the extension, stupid.
+
+     [ ] need a gitconfig in the project template.
 
      [ ] long-term storage project:
           [ ] learn rsnapshot
@@ -10054,6 +10056,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [ ] when project opening -- which is by far the only thing that takes noticeable time -- need to give feedback.
 
 -------------------------------------
+
+    [ ] in template change git-ls, etc. to be symlinks, but make the tar command resolve symlinks
 
     [ ] file brower -- sort first by timestamp, then by git time.
 

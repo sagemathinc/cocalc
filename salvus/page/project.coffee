@@ -758,14 +758,6 @@ class ProjectPage
     open_file: (path) =>
         ext = filename_extension(path)
         switch ext
-            when "salvus"
-                @display_tab("project-consoles")
-                # Do not open if already open
-                for id, c of @consoles.tabs
-                    if c.console.path == path
-                        @consoles.display_tab(id)
-                        return
-                @consoles.create_tab(type:"worksheet", path:path)
             when "pdf"
                 @open_file_in_another_browser_tab(path)
             else
