@@ -355,6 +355,17 @@ class CodeMirrorEditor extends FileEditor
 
         $(@codemirror.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
+        @init_save_button()
+
+    init_save_button: () =>
+        input = @element.find(".salvus-editor-filename")
+        save = @element.find("a[href=#save]")
+        save.click () =>
+            if not save.hasClass('disabled')
+                alert_message(type:"error", message:"save not yet implemented!")
+                #@save(input.val())
+            return false
+
     _get: () =>
         return @codemirror.getValue()
 
