@@ -125,9 +125,9 @@ class ProjectPage
 
         # Initialize the close project button.
         # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").
-        @container.find("a[href='#close-project']").click () =>
-            @close_project(show_success_alert:true)
-            return false
+        #@container.find("a[href='#close-project']").click () =>
+        #    @close_project(show_success_alert:true)
+        #    return false
 
         # Initialize the save project button.
         # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
@@ -137,9 +137,9 @@ class ProjectPage
 
         # Initialize the save project button.
         # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
-        @container.find("a[href='#download-project']").click () =>
-            @download_project()
-            return false
+        #@container.find("a[href='#download-project']").click () =>
+        #    @download_project()
+        #    return false
 
         # Initialize the search form.
         @init_search_form()

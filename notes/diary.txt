@@ -10033,18 +10033,16 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (0:23) need a gitconfig in the project template.
      [x] (0:31) add project disk usage as database field and display it in the project listing screen and project.
--->     [ ] install salvus on a random public machine (06salvus?)
+     [x] install salvus on a bsd again -- had to run ssh port forward script as root.
 
-128.95.242.137  = 07salvus
+     [x] (0:10) making closing a project a *rare event*.
 
-1) point godaddy something at it.
-2) install and build right branch of salvus
+----
+
+     [ ] save file button just like for worksheets, but for codemirror editor
+
 
      [ ] delete all the code from salvus related to diffbundler
-
-
-
--------------------------------------
 
      [ ] update project size display for open projects in the project itself.
 
@@ -10430,7 +10428,7 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] interact: interrupt needs to do a proper roundtrip of
      messages before continuing otherwise we interrupt ourselves.
 
-    [ ] interact: library interacts
+    [x] interact: library interacts
     [ ] interact: test mobile support
     [ ] interact: draggable controls that save layout (?)
     [ ] interact: hints (e.g., for input_box)
@@ -10473,7 +10471,14 @@ def f(reset  = button('Randomize', classes="btn-primary"),
 
     [ ] tab completion in worksheet: visual feedback when there are no known completions...
 
+    [ ] file upload: http://www.dropzonejs.com/
+    [ ] autocomplete library: https://github.com/twitter/typeahead.js
+
+    [ ] shift-enter should interrupt any running interacts
+
 IDEAS...
+
+    [ ] upgrade: Browserify 2.0 -- https://gist.github.com/substack/5012401
 
     [ ] When taking notes during a talk
        * really need drag and drop when taking notes
@@ -10576,9 +10581,13 @@ def f(n=[10,100,500], m=[10,100,500]):
 
 WILD AND CRAZY IDEAS
 
+
     [ ] code decorator: %mat -- easy way to make a matrix?
 def mat(s):
     globals()['m'] = matrix(2,[1,2,3,4])
 %mat m 1,2;3,4 GF(7)
 
 
++tab completion doesn't work for:" M = ModularSymbols(N*p,sign=1).cuspidal_su[tab]"
++
++"d = E.dimension() * sigma(" doesn't work either.

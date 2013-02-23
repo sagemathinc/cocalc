@@ -616,6 +616,14 @@ class ParseValue:
 def input_box(default=None, label=None, type=None, width=None, readonly=False):
     """
     An input box interactive control for use with the :func:`interact` command.
+
+    INPUT:
+
+        - default -- default value
+        - label -- label test
+        - type -- the type that the input is coerced to (from string)
+        - width -- width; how wide the box is
+        - readonly -- is it read-only?
     """
     return control(
             control_type = 'input-box',

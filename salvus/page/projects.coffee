@@ -87,7 +87,7 @@ create_project_item = (project) ->
         item.addClass("private-project")
     item.find(".projects-title").text(project.title)
     if project.host != ""
-        item.find(".projects-active").show().tooltip(title:"This project is running on a server.", placement:"top", delay:500)
+        item.find(".projects-active").show().tooltip(title:"This project is opened, so you can access it quickly, search it, etc.", placement:"top", delay:500)
     item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
     if project.size?
         item.find(".projects-size").text(human_readable_size(project.size))
@@ -176,25 +176,25 @@ $("#projects-create_project-button-create_project").click (event) ->
 ################################################
 # Shutdown all projects button
 ################################################
-$("#projects").find("a[href=#close-all-projects]").click () ->
-    close_all_projects()
-    return false
-
-close_all_projects = () ->
-    salvus_client.get_projects
-        cb : (err, mesg) ->
-            if err or mesg.event != 'all_projects'
-                alert_message(type:"error", message:"Unable to get list of projects. #{error}. #{misc.to_json(mesg)}")
-            else
-                # TODO -- use async.parallel, etc.? to know when done, and refresh as we go.
-                for project in mesg.projects
-                    if project.host != ""
-                        close_project
-                            project_id : project.project_id
-                            title      : project.title
-                            show_success_alert : true
-                            cb : (err) ->
-                                update_project_list()
+#$("#projects").find("a[href=#close-all-projects]").click () ->
+#    close_all_projects()
+#    return false
+#
+#close_all_projects = () ->
+#    salvus_client.get_projects
+#        cb : (err, mesg) ->
+#            if err or mesg.event != 'all_projects'
+#                alert_message(type:"error", message:"Unable to get list of projects. #{error}. #{misc.to_json(mesg)}")
+#            else
+                # # TODO -- use async.parallel, etc.? to know when done, and refresh as we go.
+                # for project in mesg.projects
+                #     if project.host != ""
+                #         close_project
+                #             project_id : project.project_id
+                #             title      : project.title
+                #             show_success_alert : true
+                #             cb : (err) ->
+                #                 update_project_list()
 
 
 ################################################
