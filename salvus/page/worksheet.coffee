@@ -62,6 +62,7 @@ class Worksheet extends EventEmitter
         @_init_toggle_code_button()
         @_init_toggle_note_button()
         @_init_toggle_output_button()
+        @_init_view_button_bar()
         #@element.find(".salvus-worksheet-controls-label").hide()
 
         if @opts.content?
@@ -142,6 +143,22 @@ class Worksheet extends EventEmitter
     _init_session_ping: () =>
         # Ping as long as the worksheet_is_open method returns true.
         @opts.session.ping(@worksheet_is_open)
+
+    _init_view_button_bar: () =>
+        # Initialize the button bar that lets one switch between various views of a worksheet.
+        element = @element
+        bar = element.find(".salvus-worksheet-view-button-bar")
+        buttons = bar.find('a')
+        for a in bar.find('a')
+            $(a).click () ->
+                buttons.addClass('btn-info').removeClass('btn-inverse')
+                t = $(@)
+                t.addClass('btn-inverse').removeClass('btn-info')
+                view = t.attr('href').slice(1)
+                element.find(".salvus-worksheet-view").hide()
+                element.find(".salvus-worksheet-#{view}").show()
+                return false
+
 
     _new_blobs_helper: (content, result) =>
         # walk the content tree finding blobs

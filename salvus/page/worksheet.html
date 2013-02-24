@@ -4,7 +4,7 @@
       Filename:
       <input type="text" class="salvus-worksheet-filename span2" placeholder="Choose a filename..." style="margin-right:1ex;margin-top:0ex;"></input>
       <a href="#save" class="btn btn-info pull-right"><i class="icon-save"></i> Save</a>
-      <div class="btn-group pull-right">
+      <div class="salvus-worksheet-view-button-bar btn-group pull-right">
 	<a href="#worksheet-view" class="btn btn-inverse btn-small">Worksheet</a>
 	<a href="#text-view" class="btn btn-info btn-small">Text</a>
 	<a href="#json-view" class="btn btn-info btn-small">JSON</a>
@@ -29,11 +29,21 @@
     <div class="well hide salvus-worksheet-countdown pull-right" rel="tooltip"
                 title="Time until this session expires and the backend process terminates."></div>
 
-    <h1 class="salvus-worksheet-title"></h1>
+    <span class="salvus-worksheet-view salvus-worksheet-worksheet-view">
+      <h1 class="salvus-worksheet-title"></h1>
 
-    <h3 class="salvus-worksheet-description"></h3>
+      <h3 class="salvus-worksheet-description"></h3>
 
-    <div class="salvus-worksheet-cells"></div>
+      <div class="salvus-worksheet-cells"></div>
+    </span>
+
+    <span class="salvus-worksheet-view   salvus-worksheet-text-view hide">
+      This is the text view.
+    </span>
+
+    <span class="salvus-worksheet-view   salvus-worksheet-json-view hide">
+      This is the json view.
+    </span>
 
   </div>
 
