@@ -10047,22 +10047,20 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] worksheet views -- text view -- command-line session view of a worksheet; make sure "select all" is easy.; JSON static view.
 
      [x] (0:50) interact: need indicator that it is running
-     [ ] (0:05) evaluating a cell should interrupt all interacts that are running, or something...
 
-     [ ] stopwatch: experiment with rotating spinner icon
-
-     [ ] range_slider: "min - max" in output looks bad when max negative; maybe "min to max"?
-
+     [x] (0:25) evaluating a cell should interrupt all interacts that are running, or something...
      [ ] cell: to_obj -- determining which components are hidden is totally broken again.  WHY?
+
 
      [ ] worksheet: button to restart session
      [ ] worksheet: auto-restart when session dies, with notification
      [ ] worksheet: reconnect to existing session when re-open worksheet and session is still running
      [ ] worksheet: indicator in browser that session is running
 
-     [ ] changing first/last name doesn't do anything in top right.
 
-     [ ] interact: should also have a stopwatch or interrupt button.
+     [ ] changing first/last name doesn't do anything in top right.
+     [ ] stopwatch: experiment with rotating spinner icon
+     [ ] range_slider: "min - max" in output looks bad when max negative; maybe "min to max"?
 
 
      [ ] terminal: saving/restoring history and current working directory

@@ -275,7 +275,7 @@ class Cell extends EventEmitter
         @_output.removeClass('word-wrap overflow-wrap').css('white-space':'pre')
 
     _interrupt: =>
-        if @element.find('.salvus-cell-stopwatch:first').hasClass('salvus-cell-stopwatch-running')
+        if @element.find('.salvus-cell-stopwatch').hasClass('salvus-cell-stopwatch-running')
             @opts.session.interrupt()
             return false
 
@@ -409,7 +409,6 @@ class Cell extends EventEmitter
         current_id = undefined
         done = true
         update = (vals) =>
-            console.log("interact update")
             if not done
                 @opts.session.interrupt()
 
@@ -849,10 +848,11 @@ class Cell extends EventEmitter
             ).text('waiting...').show()
 
     start_stopwatch: () ->
-        if not @_stopwatch_counter?
-            @_stopwatch_counter = 0
-        @_stopwatch_counter += 1
         if @opts.stopwatch
+            if not @_stopwatch_counter?
+                @_stopwatch_counter = 0
+            @_stopwatch_counter += 1
+            @element.find(".salvus-cell-stopwatch").hide()
             @element.find(".salvus-cell-stopwatch:first").removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running'
             ).show().countdown('destroy').countdown(
                 since   : new Date()
@@ -861,14 +861,15 @@ class Cell extends EventEmitter
             ).click(@_interrupt).tooltip('destroy').tooltip(title:"Time running; click to interrupt.")
 
     stop_stopwatch: () ->
-        @_stopwatch_counter -= 1
-        if @_stopwatch_counter <= 0 and @opts.stopwatch
-            @element.find(".salvus-cell-stopwatch:first").countdown('pause').removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.")
+        if @opts.stopwatch
+            @_stopwatch_counter -= 1
+            if @_stopwatch_counter <= 0 and @opts.stopwatch
+                @element.find(".salvus-cell-stopwatch:first").countdown('pause').removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.")
 
     destroy_stopwatch: () ->
         if @opts.stopwatch
             @_stopwatch_counter = 0
-            @element.find(".salvus-cell-stopwatch:first").countdown('destroy').hide()
+            @element.find(".salvus-cell-stopwatch").countdown('destroy').hide()
 
     append_to: (e) ->
         e.append(@element)
@@ -1068,6 +1069,7 @@ class Cell extends EventEmitter
         }
 
     execute: () =>
+        @_interrupt()
         @show('output')
         @_close_on_action()
         if not @opts.session
