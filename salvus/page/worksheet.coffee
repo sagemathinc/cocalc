@@ -62,7 +62,7 @@ class Worksheet extends EventEmitter
         @_init_toggle_code_button()
         @_init_toggle_note_button()
         @_init_toggle_output_button()
-        @element.find(".salvus-worksheet-controls-label").hide()
+        #@element.find(".salvus-worksheet-controls-label").hide()
 
         if @opts.content?
             # Set the contents of the worksheet, then *delete* this

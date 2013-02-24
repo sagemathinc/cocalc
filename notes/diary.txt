@@ -10041,9 +10041,15 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] (1:00) save file button just like for worksheets, but for codemirror editor; ended up refactoring when content is loaded so "change" visual notification is more accurate
 
      [x] (0:15) worksheet views: HTML to select json/text/worksheet view.
-     [ ] worksheet: text view -- command-line session view of a worksheet
 
-    [ ] worksheet: JSON view
+
+-->     [ ] worksheet views: make it so there are 3 pages that can be switched between, with templated content
+     [ ] worksheet views -- text view -- command-line session view of a worksheet; make sure "select all" is easy.
+     [ ] worksheet views -- JSON view, maybe with that JSON editor?
+
+     [ ] make it so each user can have a certain number of sessions that don't time out... or something. I'm sick of stuff timing out.
+
+     [ ] worksheet download: -- .salvus-worksheet, sage worksheet, latex tarball, pdf
 
      [ ] delete all the code from salvus related to diffbundler
 

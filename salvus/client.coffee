@@ -13,7 +13,7 @@ required = defaults.required
 # actively viewed.  This variable is used by hub.coffee to set
 # its kill timeout, so do not change the name here without changing
 # it there.   It *is* safe to change the value.
-exports.DEFAULT_SESSION_PING_TIME = 60
+exports.DEFAULT_SESSION_PING_TIME = 600
 
 # JSON_CHANNEL is the channel used for JSON.  The hub imports this
 # file, so if this constant is ever changed (for some reason?), it
