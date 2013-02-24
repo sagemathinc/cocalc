@@ -10046,6 +10046,31 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] (0:16) worksheet views: make it so there are 3 pages that can be switched between, with templated content
      [x] worksheet views -- text view -- command-line session view of a worksheet; make sure "select all" is easy.; JSON static view.
 
+     [x] (0:50) interact: need indicator that it is running
+     [ ] (0:05) evaluating a cell should interrupt all interacts that are running, or something...
+
+     [ ] stopwatch: experiment with rotating spinner icon
+
+     [ ] range_slider: "min - max" in output looks bad when max negative; maybe "min to max"?
+
+     [ ] cell: to_obj -- determining which components are hidden is totally broken again.  WHY?
+
+     [ ] worksheet: button to restart session
+     [ ] worksheet: auto-restart when session dies, with notification
+     [ ] worksheet: reconnect to existing session when re-open worksheet and session is still running
+     [ ] worksheet: indicator in browser that session is running
+
+     [ ] changing first/last name doesn't do anything in top right.
+
+     [ ] interact: should also have a stopwatch or interrupt button.
+
+
+     [ ] terminal: saving/restoring history and current working directory
+         --> file.terminal will contain a session_id, so we can reconnect to an existing session if it hasn't timed out.
+             (same with worksheets, right?)
+
+     [ ] worksheet save box -- changing filename should dirty the worksheet.
+
      [ ] latex: worksheet and cell to_latex
 
      [ ] pdf: worksheet pdf view
@@ -10109,10 +10134,6 @@ def f(n=10**100):
     [ ] worksheet/console -- move trivial template to editor.html
 
     [ ] remove consoles.html/css/coffee
-
-    [ ] terminal: saving/restoring history and current working directory
-         --> file.terminal will contain a session_id, so we can reconnect to an existing session if it hasn't timed out.
-             (same with worksheets, right?)
 
     [ ] terminal: should cd to the directory containing the .salvus-terminal file on startup
 
@@ -10216,8 +10237,6 @@ def f(n=[1,2,3]):
     [ ] sage's show_identifiers should be explicitly re-initialized after imports and monkey patches
 
     [ ] cells: move (control-arrow) should move all cells with checkbox checked.
-
-    [ ] worksheet: auto-restart when session dies, with notification
 
     [ ] worksheet: delete trailing whitespace menu option?
 

@@ -61,3 +61,7 @@
     background-color: white;
     padding: 1ex;
 }
+
+.salvus-worksheet-view {
+    min-height:30em;
+}

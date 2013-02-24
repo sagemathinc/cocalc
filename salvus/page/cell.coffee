@@ -275,8 +275,9 @@ class Cell extends EventEmitter
         @_output.removeClass('word-wrap overflow-wrap').css('white-space':'pre')
 
     _interrupt: =>
-        if @element.find('.salvus-cell-stopwatch').hasClass('salvus-cell-stopwatch-running')
-            @opts.session.interrupt(); return false
+        if @element.find('.salvus-cell-stopwatch:first').hasClass('salvus-cell-stopwatch-running')
+            @opts.session.interrupt()
+            return false
 
     _introspect: =>
         @_close_on_action()
@@ -408,6 +409,7 @@ class Cell extends EventEmitter
         current_id = undefined
         done = true
         update = (vals) =>
+            console.log("interact update")
             if not done
                 @opts.session.interrupt()
 
@@ -418,6 +420,10 @@ class Cell extends EventEmitter
                 output_cell.delete_output()
 
             done = false
+
+            # start the stopwatch/interrupt button
+            @start_stopwatch()
+
             current_id = @opts.session.execute_code
                 code      : 'salvus._execute_interact(salvus.data["id"], salvus.data["vals"])'
                 data      : {id:desc.id, vals:vals}
@@ -427,6 +433,8 @@ class Cell extends EventEmitter
                         for output_cell in output_cells
                             output_cell.append_output_in_mesg(mesg)
                         if mesg.done
+                            # stop the stopwatch
+                            @stop_stopwatch()
                             done = true
 
         # Define the controls.
@@ -468,6 +476,7 @@ class Cell extends EventEmitter
         # Initialization specific to each control type
         set = undefined
         send = (val) ->
+            console.log("send(#{val})")
             vals = {}
             vals[desc.var] = val
             update(vals)
@@ -482,8 +491,9 @@ class Cell extends EventEmitter
                 input.keypress (evt) ->
                     if evt.which == 13
                         send(input.val())
-                input.blur (evt) ->
-                    send(input.val())
+                input.keydown (evt) ->
+                    if evt.which == 9
+                        send(input.val())
                 if desc.readonly
                     input.attr('readonly', 'readonly')
                 input.width(desc.width)
@@ -835,12 +845,15 @@ class Cell extends EventEmitter
 
     prepare_stopwatch: () ->
         if @opts.stopwatch
-            @element.find(".salvus-cell-stopwatch").addClass('salvus-cell-stopwatch-waiting'
+            @element.find(".salvus-cell-stopwatch:first").addClass('salvus-cell-stopwatch-waiting'
             ).text('waiting...').show()
 
     start_stopwatch: () ->
+        if not @_stopwatch_counter?
+            @_stopwatch_counter = 0
+        @_stopwatch_counter += 1
         if @opts.stopwatch
-            @element.find(".salvus-cell-stopwatch").removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running'
+            @element.find(".salvus-cell-stopwatch:first").removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running'
             ).show().countdown('destroy').countdown(
                 since   : new Date()
                 compact : true
@@ -848,12 +861,14 @@ class Cell extends EventEmitter
             ).click(@_interrupt).tooltip('destroy').tooltip(title:"Time running; click to interrupt.")
 
     stop_stopwatch: () ->
-        if @opts.stopwatch
-            @element.find(".salvus-cell-stopwatch").countdown('pause').removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.")
+        @_stopwatch_counter -= 1
+        if @_stopwatch_counter <= 0 and @opts.stopwatch
+            @element.find(".salvus-cell-stopwatch:first").countdown('pause').removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.")
 
     destroy_stopwatch: () ->
         if @opts.stopwatch
-            @element.find(".salvus-cell-stopwatch").countdown('destroy').hide()
+            @_stopwatch_counter = 0
+            @element.find(".salvus-cell-stopwatch:first").countdown('destroy').hide()
 
     append_to: (e) ->
         e.append(@element)

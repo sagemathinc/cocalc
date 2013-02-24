@@ -83,7 +83,6 @@
     box-shadow: 3px 3px 3px 3px #ccc;
 }
 
-
 .salvus-cell-checkbox {
     position:absolute;
     margin-left:-1.1em;
@@ -96,7 +95,7 @@
 }
 
 .salvus-cell-stopwatch {
-    margin-left : -10.5ex;
+    margin-left : -11.5ex;
     position    : absolute;
     font-size   : 10pt;
     padding     : 1px;
