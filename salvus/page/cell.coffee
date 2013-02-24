@@ -728,6 +728,96 @@ class Cell extends EventEmitter
             delete obj.hide
         return obj
 
+    to_text: () =>
+        obj = @to_obj()  # takes advantage of optimization of cell components
+        t = ''
+        if obj.note?
+            t += '# ' + $("<div>").html(obj.note).text() + '\n'
+        if obj.input?
+            t += 'sage: ' + $.trim(obj.input).replace(/\n/g,'\n      ')
+        if obj.output?
+            out = '\n'
+            for mesg in obj.output
+                for stream, val of mesg
+                    switch stream
+                        when 'stdout', 'stderr'
+                            out += val
+                        when 'html'
+                            out += val
+                        when 'tex'
+                            if val.display
+                                out += "\n$$#{val.tex}$$\n"
+                            else
+                                out += " $#{val.tex}$ "
+                        else
+                            out += "[#{stream}]"
+            t += out + '\n'
+        return t
+
+    to_rest: () =>
+        obj = @to_obj()
+        t = ''
+        if obj.note?
+            t += $("<div>").html(obj.note).text()
+        if obj.input? or obj.output?
+            t += '::\n'
+        else
+            t += '\n'
+        if obj.input?
+            # TODO -- must be much better
+            t += '    sage: ' + $.trim(obj.input).replace(/\n/g,'\n    sage: ')
+        if obj.output?
+            out = '\n'
+            for mesg in obj.output
+                for stream, val of mesg
+                    switch stream
+                        when 'stdout', 'stderr'
+                            out += val
+                        when 'html'
+                            out += val
+                        when 'tex'
+                            if val.display
+                                out += "\n`#{val.tex}`\n"  # TODO -- how to do display math in ReST ?
+                            else
+                                out += " `#{val.tex}` "
+                        else
+                            out += "[#{stream}]"
+            t += out + '\n'
+            # TODO --indent it all
+        return t
+
+    to_latex: () =>
+        obj = @to_obj()
+        t = ''
+        if obj.note?
+            t += $("<div>").html(obj.note).text()
+        if obj.input? or obj.output?
+            t += '::\n'
+        else
+            t += '\n'
+        if obj.input?
+            # TODO -- must be much better
+            t += '    sage: ' + $.trim(obj.input).replace(/\n/g,'\n    sage: ')
+        if obj.output?
+            out = '\n'
+            for mesg in obj.output
+                for stream, val of mesg
+                    switch stream
+                        when 'stdout', 'stderr'
+                            out += val
+                        when 'html'
+                            out += val
+                        when 'tex'
+                            if val.display
+                                out += "\n$$#{val.tex}$$\n"
+                            else
+                                out += " $#{val.tex}$ "
+                        else
+                            out += "[#{stream}]"
+            t += out + '\n'
+            # TODO --indent it all
+        return t
+
     checkbox: (checked) =>
         if checked?
             @_checkbox.attr('checked', checked)

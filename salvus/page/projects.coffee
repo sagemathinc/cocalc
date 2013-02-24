@@ -85,8 +85,8 @@ create_project_item = (project) ->
         item.find(".projects-public-icon").hide()
         item.addClass("private-project")
     item.find(".projects-title").text(project.title)
-    if project.host != ""
-        item.find(".projects-active").show().tooltip(title:"This project is opened, so you can access it quickly, search it, etc.", placement:"top", delay:500)
+    #if project.host != ""
+    #    item.find(".projects-active").show().tooltip(title:"This project is opened, so you can access it quickly, search it, etc.", placement:"top", delay:500)
     item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
     if project.size?
         item.find(".projects-size").text(human_readable_size(project.size))

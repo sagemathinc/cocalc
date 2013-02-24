@@ -63,6 +63,7 @@ class Worksheet extends EventEmitter
         @_init_toggle_note_button()
         @_init_toggle_output_button()
         @_init_view_button_bar()
+        @_init_views()
         #@element.find(".salvus-worksheet-controls-label").hide()
 
         if @opts.content?
@@ -149,16 +150,71 @@ class Worksheet extends EventEmitter
         element = @element
         bar = element.find(".salvus-worksheet-view-button-bar")
         buttons = bar.find('a')
+        that = @
         for a in bar.find('a')
             $(a).click () ->
-                buttons.addClass('btn-info').removeClass('btn-inverse')
+                buttons.removeClass('btn-inverse')
                 t = $(@)
-                t.addClass('btn-inverse').removeClass('btn-info')
+                t.addClass('btn-inverse')
                 view = t.attr('href').slice(1)
                 element.find(".salvus-worksheet-view").hide()
                 element.find(".salvus-worksheet-#{view}").show()
+                that._refresh_view(view)
                 return false
 
+    _init_views: () =>
+        e = @element.find(".salvus-worksheet-text-view").find("textarea")
+        @_text_view_codemirror = CodeMirror.fromTextArea(e[0],
+            readOnly     : true
+            lineNumbers  : true
+            mode         : "python"
+            lineWrapping : true
+        )
+        $(@_text_view_codemirror.getScrollerElement()).css('max-height' : '30em')
+
+        e = @element.find(".salvus-worksheet-json-view").find("textarea")
+        @_json_view_codemirror = CodeMirror.fromTextArea(e[0],
+            readOnly     : true
+            lineNumbers  : true
+            mode         : "javascript"
+            lineWrapping : true
+        )
+        $(@_json_view_codemirror.getScrollerElement()).css('max-height' : '30em')
+
+        e = @element.find(".salvus-worksheet-rest-view").find("textarea")
+        @_rest_view_codemirror = CodeMirror.fromTextArea(e[0],
+            readOnly     : true
+            lineNumbers  : true
+            mode         : "rst"
+            lineWrapping : true
+        )
+        $(@_rest_view_codemirror.getScrollerElement()).css('max-height' : '30em')
+
+        e = @element.find(".salvus-worksheet-latex-view").find("textarea")
+        @_latex_view_codemirror = CodeMirror.fromTextArea(e[0],
+            readOnly     : true
+            lineNumbers  : true
+            mode         : "rst"
+            lineWrapping : true
+        )
+        $(@_latex_view_codemirror.getScrollerElement()).css('max-height' : '30em')
+
+    _refresh_view: (view) =>
+        switch view
+            when 'worksheet-view'
+                return
+
+            when 'text-view'
+                @_text_view_codemirror.setValue(@to_text())
+
+            when 'rest-view'
+                @_rest_view_codemirror.setValue(@to_rest())
+
+            when 'latex-view'
+                @_latex_view_codemirror.setValue(@to_latex())
+
+            when 'json-view'
+                @_json_view_codemirror.setValue(JSON.stringify(@to_obj(),null,'\t'))
 
     _new_blobs_helper: (content, result) =>
         # walk the content tree finding blobs
@@ -553,6 +609,51 @@ class Worksheet extends EventEmitter
             # It is a cell
             return c.data('cell').to_obj()
 
+    _to_text: (c) =>
+        # c is a DOM object (not jQuery wrapped), which defines
+        # either a section or cell.
+        c = $(c)
+        if c.hasClass("salvus-worksheet-section")
+            # It is a section
+            title = c.find(".salvus-worksheet-section-title-user").data('raw')
+            content = (@_to_text(d) for d in $(c.find(".salvus-worksheet-section-cells")[0]).children()).join('\n')
+            content = ('    ' + x for x in content.split('\n')).join('\n')
+            hashes = ('#' for i in [0...title.length+2]).join('')
+            return "\n#{hashes}\n# #{title}\n#{hashes}\n#{content}\n"
+        else
+            # It is a cell
+            return c.data('cell').to_text()
+
+    _to_rest: (c) =>
+        # c is a DOM object (not jQuery wrapped), which defines
+        # either a section or cell.
+        c = $(c)
+        if c.hasClass("salvus-worksheet-section")
+            # It is a section
+            title = c.find(".salvus-worksheet-section-title-user").data('raw')
+            content = (@_to_rest(d) for d in $(c.find(".salvus-worksheet-section-cells")[0]).children()).join('\n')
+            content = ('    ' + x for x in content.split('\n')).join('\n')
+            hashes = ('#' for i in [0...title.length+2]).join('')
+            return "#{title}\n===========\n#{content}\n"
+        else
+            # It is a cell
+            return c.data('cell').to_rest()
+
+    _to_latex: (c) =>
+        # c is a DOM object (not jQuery wrapped), which defines
+        # either a section or cell.
+        c = $(c)
+        if c.hasClass("salvus-worksheet-section")
+            # It is a section
+            title = c.find(".salvus-worksheet-section-title-user").data('raw')
+            content = (@_to_latex(d) for d in $(c.find(".salvus-worksheet-section-cells")[0]).children()).join('\n')
+            content = ('    ' + x for x in content.split('\n')).join('\n')
+            hashes = ('#' for i in [0...title.length+2]).join('')
+            return "#{title}\n===========\n#{content}\n"
+        else
+            # It is a cell
+            return c.data('cell').to_latex()
+
     # Append the cells/sections/etc. defined by the object c to the
     # DOM element elt, which must be jQuery wrapped.
     _append_content: (elt, content) =>
@@ -698,7 +799,7 @@ class Worksheet extends EventEmitter
                 else
                     button.addClass("disabled")
 
-    # convert worksheet to object
+    # convert worksheet to object -- this is not lossy
     to_obj: () =>
         obj =
             title       : @get_title()
@@ -706,12 +807,22 @@ class Worksheet extends EventEmitter
             content     : (@_to_obj(c) for c in @_cells.children())
         return obj
 
+    # convert worksheet to text/command line format -- this is lossy
+    to_text: () =>
+        return "# #{@get_title()}\n# #{@get_description()}\n\n" + (@_to_text(c) for c in @_cells.children()).join('')
+
+    to_rest: () =>
+        return "(ReST view NOT fully implemented!)\n#{@get_title()}\n===================\n#{@get_description()}\n----------------------\n\n" + (@_to_rest(c) for c in @_cells.children()).join('')
+
+    to_latex: () =>
+        return "(Latex view NOT fully implemented!)\n#{@get_title()}\n===================\n#{@get_description()}\n----------------------\n\n" + (@_to_latex(c) for c in @_cells.children()).join('')
+
     # Given worksheet content as returned by to_obj() above, rebuilt
     # the worksheet part of the DOM from scratching using this
     # content.
     set_content: (content) =>
         @_current_cell = undefined
-        
+
         # Delete everything from the worksheet contents DOM.
         @_cells.children().remove()
 

@@ -10043,9 +10043,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] (0:15) worksheet views: HTML to select json/text/worksheet view.
 
 
-     [x] worksheet views: make it so there are 3 pages that can be switched between, with templated content
-     [ ] worksheet views -- text view -- command-line session view of a worksheet; make sure "select all" is easy.
-     [ ] worksheet views -- JSON view, maybe with that JSON editor?
+     [x] (0:16) worksheet views: make it so there are 3 pages that can be switched between, with templated content
+     [x] worksheet views -- text view -- command-line session view of a worksheet; make sure "select all" is easy.; JSON view, maybe with that JSON editor?
 
      [ ] make it so each user can have a certain number of sessions that don't time out... or something. I'm sick of stuff timing out.
 
