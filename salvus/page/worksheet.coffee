@@ -59,6 +59,7 @@ class Worksheet extends EventEmitter
         @_init_section_button()
         @_init_remove_section_button()
         @_init_filename_save()
+        @_init_restart_button()
         @_init_toggle_code_button()
         @_init_toggle_note_button()
         @_init_toggle_output_button()
@@ -273,6 +274,11 @@ class Worksheet extends EventEmitter
     _init_section_button: () =>
         @element.find("a[href=#create-section]").click () =>
             @_create_section()
+            return false
+
+    _init_restart_button: () =>
+        @element.find("a[href=#restart]").click () =>
+            @restart()
             return false
 
     _new_section: (opts={}) =>
@@ -676,6 +682,11 @@ class Worksheet extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    restart: () =>
+        @opts.session.restart()
+        for elt in @_cells.find(".salvus-cell")
+            $(elt).data('cell').execute_if_auto()
 
     current_cell: () =>
         if not @_current_cell?

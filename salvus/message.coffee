@@ -87,7 +87,7 @@ message
     pid    : required
     limits : undefined
 
-# browser --> hub --> session servers
+# client --> hub --> session servers
 message
     event        : 'send_signal'
     id           : undefined
@@ -98,6 +98,15 @@ message
 message
     event        : 'signal_sent'
     id           : required
+
+# Restart the underlying Sage process for this session; the session
+# with the given id still exists, it's just that the underlying sage
+# process got restarted.   
+# client --> hub
+message
+    event        : 'restart_session'
+    session_uuid : required
+    id           : undefined
 
 # browser <----> hub <--> sage_server
 message

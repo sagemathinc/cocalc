@@ -70,6 +70,9 @@ class Session extends EventEmitter
         @emit("close")
         @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
 
+    restart: () =>
+        @conn.send(message.restart_session(session_uuid:@session_uuid))
+
     # Starts a ping interval timer that periodicially pings the server
     # to indicate that this session is being actively viewed.  Pinging
     # stops if the function continue_pinging() returns false.

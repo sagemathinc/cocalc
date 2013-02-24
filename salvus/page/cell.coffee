@@ -129,15 +129,11 @@ class Cell extends EventEmitter
             for e in @opts.hide
                 @hide(e)
 
-        @_execute_if_auto()
+        @execute_if_auto()
 
     #######################################################################
     # Private Methods
     #######################################################################
-
-    _execute_if_auto: () ->
-        if $.trim(@input()).slice(0,5) == '%auto'
-            @execute()
 
     _initialize_checkbox: () ->
         @_checkbox = @element.find(".salvus-cell-checkbox").find("input")
@@ -712,6 +708,10 @@ class Cell extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    execute_if_auto: () ->
+        if $.trim(@input()).slice(0,5) == '%auto'
+            @execute()
 
     hidden_components: () =>
         # return list of components of the cell that have been hidden

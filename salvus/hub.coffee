@@ -217,6 +217,10 @@ class Client extends EventEmitter
             error : required
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
+    success_to_client: (opts) ->
+        opts = defaults opts,
+            id    : required
+        @push_to_client(message.success(id:opts.id))
 
     # Call this method when the user has successfully signed in.
     signed_in: (signed_in_mesg) =>
@@ -404,7 +408,7 @@ class Client extends EventEmitter
             return false
         # TODO: make this more flexible later
         if session.account_id != @account_id
-            @push_to_client(message.error(id:mesg.id, error:"You are not allowed to access compute session #{mesg.session_uuid}."))
+            @push_to_client(message.error(id:mesg.id, error:"You (account_id=#{@account_id}) are not allowed to access compute session #{mesg.session_uuid} (with account_id #{session.account_id})."))
             return false
         return true
 
@@ -469,6 +473,12 @@ class Client extends EventEmitter
             s.last_ping_time = new Date()
             return
         @push_to_client(message.error(id:mesg.id, error:"Pinged unknown session #{mesg.session_uuid}"))
+
+    mesg_restart_session: (mesg) =>
+        s = persistent_sage_sessions[mesg.session_uuid]
+        if s?
+            s.kill()
+            create_persistent_sage_session(@, {limits:s.limits, id:mesg.id}, mesg.session_uuid)
 
     ######################################################
     # Message: introspections
@@ -2899,9 +2909,15 @@ SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles
 # The walltime and cputime are not limited for logged in users:
 SESSION_LIMITS = {cputime:0, walltime:0, vmem:2000, numfiles:1000, quota:128}
 
+# new_compute_session = (opts) ->
+#     opts = defaults opts,
+#         host       : required
+#         port       : required
+#         client     : required  # owner of session
+#         cb         : undefined # called with cb([err]) when session starts
+
 create_persistent_sage_session = (client, mesg) ->
-    winston.info('creating persistent sage session')
-    # generate a uuid
+    winston.info("creating persistent sage session -- client=#{client.account_id}")
     session_uuid = uuid.v4()
     client.cap_session_limits(mesg.limits)
     database.random_compute_server(type: 'sage', cb:(error, sage_server) ->
@@ -2922,9 +2938,10 @@ create_persistent_sage_session = (client, mesg) ->
                                 m.session_uuid = session_uuid  # tag with session uuid
                                 client.push_to_client(m)
                             when "session_description"
-                                # record this for later use for signals:
+                                # record for permissions...
                                 persistent_sage_sessions[session_uuid].pid = m.pid
                                 persistent_sage_sessions[session_uuid].account_id = client.account_id
+                                # record this for later use for signals:
                                 kill_message =
                                     host   : sage_server.host
                                     port   : sage_server.port
@@ -2955,6 +2972,7 @@ create_persistent_sage_session = (client, mesg) ->
                 if kill_message?
                     sage.send_signal(kill_message)
                 sage_conn.close()
+
 
         enable_ping_timer(session : session)
 

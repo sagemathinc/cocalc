@@ -10054,7 +10054,10 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (0:03) worksheet: not saving on close -- actually it is now, with no problems
 
-     [ ] worksheet: button to restart session
+     [x] (1:08) worksheet: button to restart session --
+
+     [ ] hub: completely rewrite how sessions are allocated, i.e., the function create_persistent_console_session, then activate the "restart session" button above.
+
      [ ] worksheet: auto-restart when session dies, with notification
      [ ] worksheet: reconnect to existing session when re-open worksheet and session is still running
      [ ] worksheet: indicator in browser that session is running
