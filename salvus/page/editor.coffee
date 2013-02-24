@@ -114,10 +114,18 @@ class exports.Editor
             @counter.text(len(@tabs))
 
     open: (filename) =>
-        if not @tabs[filename]?   # if defined, then we already have a
-                                 # tab with this file, so reload it.
-            @tabs[filename] = @create_tab(filename)
-        @load(filename)
+        if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
+            salvus_client.read_text_file_from_project
+                project_id : @project_id
+                timeout    : 10
+                path       : filename
+                cb         : (err, mesg) =>
+                    if err
+                        alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
+                    else if mesg.event == 'error'
+                        alert_message(type:"error", message:"Error loading #{filename} -- #{to_json(mesg.error)}")
+                    else
+                        @tabs[filename] = @create_tab(filename, mesg.content)
 
     # Close this tab.  If it has unsaved changes, the user will be warned.
     close: (filename) =>
@@ -192,6 +200,11 @@ class exports.Editor
         if not tab?
             return
 
+        if not tab.editor.has_unsaved_changes()
+            # nothing to save
+            cb()
+            return
+
         content = tab.editor.val()
         if not content?
             # do not overwrite file in case editor isn't initialized
@@ -215,26 +228,7 @@ class exports.Editor
                     cb?()
                     # TODO -- change some state to reflect success (?)
 
-    # Load a file from the backend if there is a tab for this file;
-    # otherwise does nothing.
-    load: (filename) =>
-        tab = @tabs[filename]
-        if not tab?
-            return
-
-        salvus_client.read_text_file_from_project
-            project_id : @project_id
-            timeout    : 5
-            path       : filename
-            cb         : (err, mesg) ->
-                if err
-                    alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
-                else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error loading #{filename} -- #{to_json(mesg.error)}")
-                else
-                    tab.editor.val(mesg.content)
-
-    create_tab: (filename) =>
+    create_tab: (filename, content) =>
         ext = filename_extension(filename)
         x = file_associations[ext]
         if not x?
@@ -242,22 +236,23 @@ class exports.Editor
         switch x.editor
             # codemirror is the default... since it is the only thing implemented now.  JSON will be next, since I have that plugin.
             when 'codemirror', undefined
-                editor = new CodeMirrorEditor(@, filename, x.opts)
+                editor = new CodeMirrorEditor(@, filename, content, x.opts)
             when 'terminal'
-                editor = new Terminal(@, filename, x.opts)
+                editor = new Terminal(@, filename, content, x.opts)
             when 'worksheet'
-                editor = new Worksheet(@, filename, x.opts)
+                editor = new Worksheet(@, filename, content, x.opts)
             when 'spreadsheet'
-                editor = new Spreadsheet(@, filename,  x.opts)
+                editor = new Spreadsheet(@, filename, content, x.opts)
             when 'slideshow'
-                editor = new Slideshow(@, filename, x.opts)
+                editor = new Slideshow(@, filename, content, x.opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
         link = templates.find(".super-menu").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
         link_filename.text(filename) #trunc(filename,15))
-        link.find(".salvus-editor-close-button-x").click () => @close(link_filename.text())
+        link.find(".salvus-editor-close-button-x").click () =>
+            @close(link_filename.text())
         link.find("a").click () => @display_tab(link_filename.text())
         @nav_tabs.append(link)
         @tabs[filename] =
@@ -294,7 +289,8 @@ class exports.Editor
 #
 
 class FileEditor extends EventEmitter
-    constructor: (@editor, @filename, opts) ->
+    constructor: (@editor, @filename, content, opts) ->
+        @val(content)
 
     val: (content) =>
         if not content?
@@ -304,7 +300,14 @@ class FileEditor extends EventEmitter
             # If content is defined, sets value.
             @_set(content)
 
-    has_unsaved_changes: () => false # TODO
+    # has_unsaved_changes() returns the state, where true means that
+    # there are unsaved changed.  To set the state, do
+    # has_unsaved_changes(true or false).
+    has_unsaved_changes: (val) =>
+        if not val?
+            return @_has_unsaved_changes
+        else
+            @_has_unsaved_changes = val
 
     focus: () => # TODO in derived class
 
@@ -329,7 +332,7 @@ class FileEditor extends EventEmitter
 # Codemirror-based File Editor
 ###############################################
 class CodeMirrorEditor extends FileEditor
-    constructor: (@editor, @filename, opts) ->
+    constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             mode         : required
             line_numbers : true
@@ -342,6 +345,7 @@ class CodeMirrorEditor extends FileEditor
 
         @element = templates.find(".salvus-editor-codemirror").clone()
 
+        @element.find("textarea").text(content)
         @codemirror = CodeMirror.fromTextArea @element.find("textarea")[0],
             firstLineNumber : 1
             autofocus       : false
@@ -356,15 +360,27 @@ class CodeMirrorEditor extends FileEditor
         $(@codemirror.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 
         @init_save_button()
+        @init_change_event()
 
     init_save_button: () =>
-        input = @element.find(".salvus-editor-filename")
-        save = @element.find("a[href=#save]")
+        save = @save = @element.find("a[href=#save]")
+        save.find(".spinner").hide()
         save.click () =>
             if not save.hasClass('disabled')
-                alert_message(type:"error", message:"save not yet implemented!")
-                #@save(input.val())
+                save.find('span').text("Saving...")
+                save.find(".spinner").show()
+                @editor.save @filename, (err) =>
+                    save.find('span').text('Save')
+                    save.find(".spinner").hide()
+                    if not err
+                        save.addClass('disabled')
+                        @has_unsaved_changes(false)
             return false
+
+    init_change_event: () =>
+        @codemirror.on 'change', (instance, changeObj) =>
+            @has_unsaved_changes(true)
+            @save.removeClass('disabled')
 
     _get: () =>
         return @codemirror.getValue()
@@ -381,7 +397,7 @@ class CodeMirrorEditor extends FileEditor
         @codemirror?.refresh()
 
 class Terminal extends FileEditor
-    constructor: (@editor, @filename, opts) ->
+    constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}  # nothing yet
         @connect_to_server()
 
@@ -419,8 +435,10 @@ class Terminal extends FileEditor
         @console?.focus()
 
 class Worksheet extends FileEditor
-    constructor: (@editor, @filename, opts) ->
+    constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}  # nothing yet
+
+        @_set(content)
 
         @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
 
@@ -476,15 +494,18 @@ class Worksheet extends FileEditor
                     @editor.change_tab_filename(@filename, new_filename)
                     @filename = new_filename
 
+            @worksheet.on 'change', () =>
+                @has_unsaved_changes(true)
+
     focus: () =>
         @worksheet?.focus()
 
 class Spreadsheet extends FileEditor
-    constructor: (@editor, @filename, opts) ->
+    constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}
         @element = $("<div>Salvus spreadsheet not implemented yet.</div>")
 
 class Slideshow extends FileEditor
-    constructor: (@editor, @filename, opts) ->
+    constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}
         @element = $("<div>Salvus slideshow not implemented yet.</div>")

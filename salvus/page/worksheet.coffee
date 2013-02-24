@@ -658,7 +658,7 @@ class Worksheet extends EventEmitter
 
 
     # has_unsaved_changes() returns the state, where true means that
-    # there are no unsaved changed.  To set the state, do
+    # there are unsaved changed.  To set the state, do
     # has_unsaved_changes(true or false).
     has_unsaved_changes: (state) =>
         if not state?
@@ -676,6 +676,7 @@ class Worksheet extends EventEmitter
                 # Then, change UI to reflect new state
                 button = @element.find("a[href=#save]")
                 if state
+                    @emit 'change'
                     button.removeClass("disabled")
                 else
                     button.addClass("disabled")

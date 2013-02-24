@@ -24,7 +24,6 @@ compute_search_data = () ->
 update_project_list = exports.update_project_list = () ->
     salvus_client.get_projects
         cb: (error, mesg) ->
-            console.log(mesg)
             if not error and mesg.event == 'all_projects'
                 project_list = mesg.projects
                 compute_search_data()
