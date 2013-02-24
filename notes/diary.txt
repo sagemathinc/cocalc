@@ -10049,8 +10049,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] (0:50) interact: need indicator that it is running
 
      [x] (0:25) evaluating a cell should interrupt all interacts that are running, or something...
-     [ ] cell: to_obj -- determining which components are hidden is totally broken again.  WHY?
 
+     [x] (0:13) cell: to_obj -- determining which components are hidden is totally broken again.  WHY?
 
      [ ] worksheet: button to restart session
      [ ] worksheet: auto-restart when session dies, with notification
