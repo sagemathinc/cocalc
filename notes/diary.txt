@@ -10052,6 +10052,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (0:13) cell: to_obj -- determining which components are hidden is totally broken again.  WHY?
 
+     [x] (0:03) worksheet: not saving on close -- actually it is now, with no problems
+
      [ ] worksheet: button to restart session
      [ ] worksheet: auto-restart when session dies, with notification
      [ ] worksheet: reconnect to existing session when re-open worksheet and session is still running
