@@ -10055,8 +10055,11 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] (0:03) worksheet: not saving on close -- actually it is now, with no problems
 
      [x] (1:08) worksheet: button to restart session --
+     [x] interact: library interacts
 
-     [ ] hub: completely rewrite how sessions are allocated, i.e., the function create_persistent_console_session, then activate the "restart session" button above.
+     [x] (2:00) hub: completely rewrite how sessions are allocated, i.e., the function create_persistent_console_session,; ALSO, implemented access control.
+
+     [ ] worksheet: implement "restart session" button above and activate the button
 
      [ ] worksheet: auto-restart when session dies, with notification
      [ ] worksheet: reconnect to existing session when re-open worksheet and session is still running
@@ -10468,7 +10471,6 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] interact: interrupt needs to do a proper roundtrip of
      messages before continuing otherwise we interrupt ourselves.
 
-    [x] interact: library interacts
     [ ] interact: test mobile support
     [ ] interact: draggable controls that save layout (?)
     [ ] interact: hints (e.g., for input_box)

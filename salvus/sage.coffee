@@ -85,7 +85,6 @@ class exports.Connection
 
         enable_mesg(@conn)
         @conn.on 'mesg', (type, data) =>
-            console.log("type=#{type}, data=#{data}")
             @recv?(type, data)
 
     send_json: (mesg) ->

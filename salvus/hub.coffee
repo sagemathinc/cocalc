@@ -20,6 +20,7 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # node.js -- builtin libraries
 net     = require 'net'
+assert  = require('assert')
 http    = require 'http'
 url     = require 'url'
 fs      = require 'fs'
@@ -396,21 +397,33 @@ class Client extends EventEmitter
             handler(mesg)
         else
             @push_to_client(message.error(error:"The Salvus hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
+
     ######################################################
     # Permission to send a message to a named compute session.
     ######################################################
-    check_permission: (mesg) ->
+    get_sage_session: (mesg, cb) ->    # if allowed to connect cb(false, session); if not, error sent to client and cb(true)
         if not mesg.session_uuid?
-            return true
+            err = "Invalid message -- does not have a session_uuid field."
+            @error_to_client(id:mesg.id, error:err)
+            cb(err)
+            return
+
         session = compute_sessions[mesg.session_uuid]
         if not session?
-            @push_to_client(message.error(id:mesg.id, error:"Unknown compute session #{mesg.session_uuid}."))
-            return false
-        # TODO: make this more flexible later
-        if session.account_id != @account_id
-            @push_to_client(message.error(id:mesg.id, error:"You (account_id=#{@account_id}) are not allowed to access compute session #{mesg.session_uuid} (with account_id #{session.account_id})."))
-            return false
-        return true
+            err = "Unknown compute session #{mesg.session_uuid}."
+            @error_to_client(id:mesg.id, error:err)
+            cb(err)
+            return
+
+        if session.is_client(@)
+            cb(false, session)
+        else
+            session.add_client @, (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                    cb(err)
+                else
+                    cb(false, session)
 
     ######################################################
     # Messages: Sage compute sessions and code execution
@@ -419,12 +432,15 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to execute code."))
             return
-        if not @check_permission(mesg)
-            return
-        if mesg.session_uuid?
-            send_to_persistent_sage_session(mesg)
-        else
+        if not mesg.session_uuid?
             stateless_sage_exec(mesg, @push_to_client)
+            return
+
+        @get_sage_session mesg, (err, session) =>
+            if err
+                return
+            else
+                session.send_json(mesg)
 
     mesg_start_session: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
@@ -433,7 +449,7 @@ class Client extends EventEmitter
 
         switch mesg.type
             when 'sage'
-                create_persistent_sage_session(@, mesg)
+                session = new SageSession(client:@, mesg:mesg)  # saves itself to persistent_sage_sessions and compute_sessions global dicts.
             when 'console'
                 create_persistent_console_session(@, mesg)
             else
@@ -454,14 +470,11 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
             return
-        if not @check_permission(mesg)
-            return
-        if console_sessions[mesg.session_uuid]?
-            send_to_persistent_console_session(mesg)
-        else if persistent_sage_sessions[mesg.session_uuid]?
-            send_to_persistent_sage_session(mesg)
-        else
-            @push_to_client(message.error(id:mesg.id, error:"Unknown session #{mesg.session_uuid}"))
+        @get_sage_session mesg, (err, session) =>
+            if err
+                return
+            else
+                session.send_signal(mesg.signal)
 
     mesg_ping_session: (mesg) =>
         s = console_sessions[mesg.session_uuid]
@@ -475,10 +488,14 @@ class Client extends EventEmitter
         @push_to_client(message.error(id:mesg.id, error:"Pinged unknown session #{mesg.session_uuid}"))
 
     mesg_restart_session: (mesg) =>
-        s = persistent_sage_sessions[mesg.session_uuid]
-        if s?
-            s.kill()
-            create_persistent_sage_session(@, {limits:s.limits, id:mesg.id}, mesg.session_uuid)
+        @get_sage_session mesg, (err, session) =>
+            if err
+                return
+            session.restart  (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
 
     ######################################################
     # Message: introspections
@@ -490,9 +507,11 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
             return
-        if not @check_permission(mesg)
-            return
-        send_to_persistent_sage_session(mesg)
+            @get_sage_session mesg, (err, session) =>
+                if err
+                    return
+                else
+                    session.send_json(mesg)
 
     ######################################################
     # Messages: Keeping client connected
@@ -577,11 +596,9 @@ class Client extends EventEmitter
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to load the scratch worksheet from the server."))
             return
-        #winston.debug(@account_id)
         database.uuid_value_store(name:"scratch_worksheets").get
             uuid : @account_id
             cb   : (error, data) =>
-                #winston.debug("error=#{error}, data=#{data}")
                 if error
                     @push_to_client(message.error(id:mesg.id, error:error))
                 else
@@ -619,7 +636,8 @@ class Client extends EventEmitter
     get_project: (mesg, permission, cb) =>
         # mesg -- must have project_id and id fields
         # permission -- must be "read" or "write"
-        # cb -- takes one argument:  cb(project); called *only* on success
+        # cb -- takes one argument:  cb(project); called *only* on success;
+        #       on failure, client will receive a message.
         project = undefined
         async.series([
             (cb) =>
@@ -656,8 +674,9 @@ class Client extends EventEmitter
         ], (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
+                    cb(err)
                 else
-                    cb(project)
+                    cb(false, project)
         )
 
     mesg_create_project: (mesg) =>
@@ -766,7 +785,9 @@ class Client extends EventEmitter
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
     mesg_save_project: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.save (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
@@ -774,7 +795,9 @@ class Client extends EventEmitter
                         @push_to_client(message.success(id:mesg.id))
 
     mesg_close_project: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.close (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -782,7 +805,9 @@ class Client extends EventEmitter
                     @push_to_client(message.success(id:mesg.id))
 
     mesg_write_text_file_to_project: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.write_file mesg.path, mesg.content, (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -790,7 +815,9 @@ class Client extends EventEmitter
                     @push_to_client(message.file_written_to_project(id:mesg.id))
 
     mesg_read_text_file_from_project: (mesg) =>
-        @get_project mesg, 'read', (project) =>
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
             project.read_file
                 path : mesg.path
                 cb   : (err, content) =>
@@ -801,7 +828,9 @@ class Client extends EventEmitter
                         @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
 
     mesg_read_file_from_project: (mesg) =>
-        @get_project mesg, 'read', (project) =>
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
             project.read_file
                 path    : mesg.path
                 archive : mesg.archive
@@ -819,7 +848,9 @@ class Client extends EventEmitter
                                 @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.move_file mesg.src, mesg.dest, (err, content) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -827,7 +858,9 @@ class Client extends EventEmitter
                     @push_to_client(message.file_moved_in_project(id:mesg.id))
 
     mesg_make_directory_in_project: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.make_directory mesg.path, (err, content) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -835,7 +868,9 @@ class Client extends EventEmitter
                     @push_to_client(message.directory_made_in_project(id:mesg.id))
 
     mesg_remove_file_from_project: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.remove_file mesg.path, (err, resp) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -844,7 +879,11 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_project_exec: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        winston.debug("MESG_PROJECT_EXEC 1")
+        @get_project mesg, 'write', (err, project) =>
+            winston.debug("MESG_PROJECT_EXEC 2", err, project)
+            if err
+                return
             project.exec mesg, (err, resp) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -852,7 +891,9 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_create_project_branch: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.branch_op mesg.branch, 'create', (err, resp) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -861,7 +902,9 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_checkout_project_branch: (mesg) =>
-        @get_project mesg, 'write',  (project) =>
+        @get_project mesg, 'write',  (err, project) =>
+            if err
+                return
             project.branch_op mesg.branch, 'checkout', (err, resp) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -870,7 +913,9 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_delete_project_branch: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.branch_op mesg.branch, 'delete', (err, resp) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -879,7 +924,9 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_merge_project_branch: (mesg) =>
-        @get_project mesg, 'write', (project) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
             project.branch_op mesg.branch, 'merge', (err, resp) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -2909,104 +2956,138 @@ SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles
 # The walltime and cputime are not limited for logged in users:
 SESSION_LIMITS = {cputime:0, walltime:0, vmem:2000, numfiles:1000, quota:128}
 
-# new_compute_session = (opts) ->
-#     opts = defaults opts,
-#         host       : required
-#         port       : required
-#         client     : required  # owner of session
-#         cb         : undefined # called with cb([err]) when session starts
 
-create_persistent_sage_session = (client, mesg) ->
-    winston.info("creating persistent sage session -- client=#{client.account_id}")
-    session_uuid = uuid.v4()
-    client.cap_session_limits(mesg.limits)
-    database.random_compute_server(type: 'sage', cb:(error, sage_server) ->
-        if error
-            client.push_to_client(message.error(id:mesg.id, error:error))
-            return
-        kill_message = undefined
-        sage_conn = new sage.Connection(
-            host:sage_server.host
-            port:sage_server.port
-            recv:(type, m) ->
-                switch type
-                    when 'json'
-                        winston.info("(hub) persistent_sage_conn (#{session_uuid})-- recv(#{to_safe_str(m)})")
-                        switch m.event
-                            # DANGER: forwarding execute_javascript messages is a potential a security issue.
-                            when "output", "terminate_session", "execute_javascript"
-                                m.session_uuid = session_uuid  # tag with session uuid
-                                client.push_to_client(m)
-                            when "session_description"
-                                # record for permissions...
-                                persistent_sage_sessions[session_uuid].pid = m.pid
-                                persistent_sage_sessions[session_uuid].account_id = client.account_id
-                                # record this for later use for signals:
-                                kill_message =
-                                    host   : sage_server.host
-                                    port   : sage_server.port
-                                    pid    : m.pid
-                                    signal : 9
-                                client.push_to_client(message.session_started(id:mesg.id, session_uuid:session_uuid, limits:m.limits))
-                            else
-                                client.push_to_client(m)
-                    when 'blob'
-                        save_blob
-                            uuid  : m.uuid
-                            value : m.blob
-                            ttl   : 600  # deleted after ten minutes
-                            cb    : (err) ->
-                                # TODO: actually use this for something
+
+#####################################################################
+# SageSession -- a specific Sage process running inside a deployed
+# project.  This typically corresponds to a worksheet.
+#####################################################################
+
+class SageSession
+    constructor : (opts) ->
+        {client, mesg, cb} = defaults opts,
+            client     : required       # a Client object
+            mesg       : required       # a start_session message, which describes the parameters of the session
+            cb         : undefined
+
+        assert(mesg.event == 'start_session', "SageSession -- message event must be 'start_session'")
+
+        @limits     = client.cap_session_limits(mesg.limits)
+        @clients    = [client]   # start with our 1 client
+        @session_uuid = uuid.v4()
+
+        @_mesg_id = mesg.id  # used to send out initial session parameters to the original connecting client
+
+        async.series([
+            (cb) =>
+                winston.debug("Get project described by mesg.")
+                client.get_project mesg, 'write', (err, project) =>
+                    if err
+                        cb(err)
                     else
-                        raise("unknown message type '#{type}'")
-            cb: ->
-                winston.info("(hub) persistent_sage_conn -- connected.")
-                # send message to server requesting parameters for this session
-                sage_conn.send_json(mesg)
-        )
-        # Save sage_conn object so that when the user requests evaluation of
-        # code in the session with this id, we use this.
-        session =
-            conn           : sage_conn
-            kill           : () ->
-                if kill_message?
-                    sage.send_signal(kill_message)
-                sage_conn.close()
+                        @project = project
+                        cb()
+            (cb) =>
+                winston.debug("Ensure that project is opened on a host.")
+                @project.open(cb)
+
+            (cb) =>
+                winston.debug("Get host for the project.")
+                @project.get_host (err,host) =>
+                    if err
+                        cb(err)
+                    else
+                        @host = host
+                        cb()
+
+            (cb) =>
+                winston.debug("Make connection to sage server.")
+                @port = cass.COMPUTE_SERVER_PORTS.sage
+                @conn = new sage.Connection
+                    host : @host
+                    port : @port
+                    recv : @_recv
+                    cb   : (err) =>
+                        if err
+                            winston.debug("(hub) SageSession -- connection err: #{err}")
+                            cb(err)
+                        else
+                            winston.debug("(hub) SageSession -- connected")
+                            @send_json(mesg)
+                            cb()
+
+            (cb) =>
+                winston.debug("Registering the session.")
+                persistent_sage_sessions[@session_uuid] = @
+                compute_sessions[@session_uuid] = @
+                client.compute_session_uuids.push(@session_uuid)
+                enable_ping_timer(session : @)
+                cb()
+
+        ], cb)
+
+    # handle incoming messages from sage server
+    _recv: (type, mesg) =>
+        switch type
+            when 'json'
+                winston.debug("(hub) persistent_sage_conn (#{@session_uuid})-- recv(#{to_safe_str(mesg)})")
+                for client in @clients
+                    switch mesg.event
+                        when "output", "terminate_session", "execute_javascript"
+                            mesg.session_uuid = @session_uuid  # tag with session uuid
+                            client.push_to_client(mesg)
+                        when "session_description"
+                            @pid = mesg.pid
+                            @limits = mesg.limits
+                            client.push_to_client(message.session_started(id:@_mesg_id, session_uuid:@session_uuid, limits:mesg.limits))
+                        else
+                            client.push_to_client(mesg)
+            when 'blob'
+                save_blob
+                    uuid  : mesg.uuid
+                    value : mesg.blob
+                    ttl   : 600  # deleted after ten minutes
+                    cb    : (err) ->
+                        # TODO: actually use this for something (?)
+            else
+                raise("unknown message type '#{type}'")
 
 
-        enable_ping_timer(session : session)
+    # add a new client to listen/use this session
+    add_client : (client, cb) =>
+        for c in @clients
+            if c == client
+                cb?()  # already known
+                return
+        mesg = {project_id : @project.project_id, id : uuid.v4() }  # id not used
+        client.get_project mesg, 'write', (err, proj) =>
+            if err
+                cb?(err)
+            else
+                @clients.push(client)
+                cb?()
 
-        persistent_sage_sessions[session_uuid] = session
-        compute_sessions[session_uuid] = session
-        client.compute_session_uuids.push(session_uuid)
+    is_client: (client) =>
+        return client in @clients
 
-        winston.info("(hub) added #{session_uuid} to persistent sessions")
-    )
+    # remove a client from listening/using this session
+    remove_client: (client) =>
+        @clients = (c for c in @clients if c != client)
 
-send_to_persistent_sage_session = (mesg) ->
-    winston.debug("send_to_persistent_sage_session(#{to_safe_str(mesg)})")
+    send_signal: (signal) =>
+        if @pid?
+            sage.send_signal(host:@host, port:@port, pid:@pid, signal:signal)
 
-    session_uuid = mesg.session_uuid
-    session = persistent_sage_sessions[session_uuid]
-    if not session?
-        winston.error("TODO -- session #{mesg.session_uuid} does not exist")
-        return
+    kill : () =>
+        @send_signal(9)
+        @conn.close()
 
-    # modify the message so that it can be interpreted by sage server
-    switch mesg.event
-        when "send_signal"
-            mesg.pid = session.pid
+    send_json: (mesg) ->
+        @conn.send_json(mesg)
 
-    if mesg.event == 'send_signal'   # other control messages would go here too
-        # TODO: this function is a DOS vector, so we need to secure/limit it
-        # Also, need to ensure that user is really allowed to do this action, whatever it is.
-        sage.send_signal
-            host   : session.conn.host
-            port   : session.conn.port
-            pid    : mesg.pid
-            signal : mesg.signal
-    else
-        session.conn.send_json(mesg)
+    send_blob: (uuid, blob) ->
+        @conn.send_blob(uuid, blob)
+
 
 ########################################
 # Console Sessions
