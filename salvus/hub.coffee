@@ -399,7 +399,7 @@ class Client extends EventEmitter
             @push_to_client(message.error(error:"The Salvus hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
 
     ######################################################
-    # Permission to send a message to a named compute session.
+    # 
     ######################################################
     get_sage_session: (mesg, cb) ->    # if allowed to connect cb(false, session); if not, error sent to client and cb(true)
         if not mesg.session_uuid?
@@ -418,6 +418,7 @@ class Client extends EventEmitter
         if session.is_client(@)
             cb(false, session)
         else
+            # add client checks permissions
             session.add_client @, (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -491,7 +492,7 @@ class Client extends EventEmitter
         @get_sage_session mesg, (err, session) =>
             if err
                 return
-            session.restart  (err) =>
+            session.restart  @, mesg, (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else
@@ -507,11 +508,11 @@ class Client extends EventEmitter
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
             return
-            @get_sage_session mesg, (err, session) =>
-                if err
-                    return
-                else
-                    session.send_json(mesg)
+        @get_sage_session mesg, (err, session) =>
+            if err
+                return
+            else
+                session.send_json(mesg)
 
     ######################################################
     # Messages: Keeping client connected
@@ -638,6 +639,11 @@ class Client extends EventEmitter
         # permission -- must be "read" or "write"
         # cb -- takes one argument:  cb(project); called *only* on success;
         #       on failure, client will receive a message.
+
+        if not mesg.project_id?
+            cb("mesg must have project_id attribute -- #{to_safe_str(mesg)}")
+            return
+
         project = undefined
         async.series([
             (cb) =>
@@ -2978,53 +2984,8 @@ class SageSession
 
         @_mesg_id = mesg.id  # used to send out initial session parameters to the original connecting client
 
-        async.series([
-            (cb) =>
-                winston.debug("Get project described by mesg.")
-                client.get_project mesg, 'write', (err, project) =>
-                    if err
-                        cb(err)
-                    else
-                        @project = project
-                        cb()
-            (cb) =>
-                winston.debug("Ensure that project is opened on a host.")
-                @project.open(cb)
-
-            (cb) =>
-                winston.debug("Get host for the project.")
-                @project.get_host (err,host) =>
-                    if err
-                        cb(err)
-                    else
-                        @host = host
-                        cb()
-
-            (cb) =>
-                winston.debug("Make connection to sage server.")
-                @port = cass.COMPUTE_SERVER_PORTS.sage
-                @conn = new sage.Connection
-                    host : @host
-                    port : @port
-                    recv : @_recv
-                    cb   : (err) =>
-                        if err
-                            winston.debug("(hub) SageSession -- connection err: #{err}")
-                            cb(err)
-                        else
-                            winston.debug("(hub) SageSession -- connected")
-                            @send_json(mesg)
-                            cb()
-
-            (cb) =>
-                winston.debug("Registering the session.")
-                persistent_sage_sessions[@session_uuid] = @
-                compute_sessions[@session_uuid] = @
-                client.compute_session_uuids.push(@session_uuid)
-                enable_ping_timer(session : @)
-                cb()
-
-        ], cb)
+        @_init_mesg = mesg
+        @restart(client, cb)
 
     # handle incoming messages from sage server
     _recv: (type, mesg) =>
@@ -3075,18 +3036,73 @@ class SageSession
         @clients = (c for c in @clients if c != client)
 
     send_signal: (signal) =>
-        if @pid?
+        if @pid? and @conn?
             sage.send_signal(host:@host, port:@port, pid:@pid, signal:signal)
 
     kill : () =>
         @send_signal(9)
-        @conn.close()
+        @conn?.close()
+        @conn = undefined
 
     send_json: (mesg) ->
+        assert @conn?, "must be connected to send message"
         @conn.send_json(mesg)
 
     send_blob: (uuid, blob) ->
+        assert @conn?, "must be connected to send message"
         @conn.send_blob(uuid, blob)
+
+    restart: (client, cb) =>
+        @kill()
+
+        async.series([
+            (cb) =>
+                winston.debug("Get project described by mesg.")
+                client.get_project @_init_mesg, 'write', (err, project) =>
+                    if err
+                        cb(err)
+                    else
+                        @project = project
+                        cb()
+            (cb) =>
+                winston.debug("Ensure that project is opened on a host.")
+                @project.open(cb)
+
+            (cb) =>
+                winston.debug("Get host for the project.")
+                @project.get_host (err,host) =>
+                    if err
+                        cb(err)
+                    else
+                        @host = host
+                        cb()
+
+            (cb) =>
+                winston.debug("Make connection to sage server.")
+                @port = cass.COMPUTE_SERVER_PORTS.sage
+                @conn = new sage.Connection
+                    host : @host
+                    port : @port
+                    recv : @_recv
+                    cb   : (err) =>
+                        if err
+                            winston.debug("(hub) SageSession -- connection err: #{err}")
+                            cb(err)
+                        else
+                            winston.debug("(hub) SageSession -- connected")
+                            @send_json(@_init_mesg)
+                            cb()
+
+            (cb) =>
+                winston.debug("Registering the session.")
+                persistent_sage_sessions[@session_uuid] = @
+                compute_sessions[@session_uuid] = @
+                client.compute_session_uuids.push(@session_uuid)
+                enable_ping_timer(session : @)
+                cb()
+
+        ], cb)
+
 
 
 ########################################

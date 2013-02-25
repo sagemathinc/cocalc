@@ -95,7 +95,8 @@
 }
 
 .salvus-cell-stopwatch {
-    margin-left : -11.5ex;
+    margin-left : -13ex;
+    margin-top  : .5ex;
     position    : absolute;
     font-size   : 10pt;
     padding     : 1px;

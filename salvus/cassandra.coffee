@@ -25,6 +25,7 @@ misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
 
+assert  = require('assert')
 async   = require('async')
 winston = require('winston')            # https://github.com/flatiron/winston
 helenus = require("helenus")            # https://github.com/simplereach/helenus
@@ -310,8 +311,7 @@ class exports.Cassandra extends EventEmitter
                     x = val
                     op = '=='
                 else
-                    if not val?
-                        throw "val must be defined -- there's a bug somewhere"
+                    assert(val?, "val must be defined -- there's a bug somewhere: _where(#{to_json(where_key)}, #{to_json(vals)}, #{to_json(json)})")
                     x = val[op]
                 if x?
                     if key in json

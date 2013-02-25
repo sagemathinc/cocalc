@@ -10059,11 +10059,13 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (2:00) hub: completely rewrite how sessions are allocated, i.e., the function create_persistent_console_session,; ALSO, implemented access control.
 
-     [ ] worksheet: implement "restart session" button above and activate the button
+     [x] worksheet: implement "restart session" button above and activate the button
+
+     [ ] worksheet: reconnect to existing session when re-open worksheet and session is still running
+
+     [ ] worksheet: indicator in browser that session is running
 
      [ ] worksheet: auto-restart when session dies, with notification
-     [ ] worksheet: reconnect to existing session when re-open worksheet and session is still running
-     [ ] worksheet: indicator in browser that session is running
 
 
      [ ] changing first/last name doesn't do anything in top right.

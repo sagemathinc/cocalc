@@ -709,7 +709,11 @@ class Cell extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
-    execute_if_auto: () ->
+    restart: () =>
+        @destroy_stopwatch()
+        @execute_if_auto()
+
+    execute_if_auto: () =>
         if $.trim(@input()).slice(0,5) == '%auto'
             @execute()
 
@@ -844,7 +848,7 @@ class Cell extends EventEmitter
     prepare_stopwatch: () ->
         if @opts.stopwatch
             @element.find(".salvus-cell-stopwatch:first").addClass('salvus-cell-stopwatch-waiting'
-            ).text('waiting...').show()
+            ).show().find("span").text('waiting...')
 
     start_stopwatch: () ->
         if @opts.stopwatch
@@ -853,7 +857,7 @@ class Cell extends EventEmitter
             @_stopwatch_counter += 1
             @element.find(".salvus-cell-stopwatch").hide()
             @element.find(".salvus-cell-stopwatch:first").removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running'
-            ).show().countdown('destroy').countdown(
+            ).show().find('span').countdown('destroy').countdown(
                 since   : new Date()
                 compact : true
                 layout  : '{hnn}{sep}{mnn}{sep}{snn}'
@@ -863,12 +867,12 @@ class Cell extends EventEmitter
         if @opts.stopwatch
             @_stopwatch_counter -= 1
             if @_stopwatch_counter <= 0 and @opts.stopwatch
-                @element.find(".salvus-cell-stopwatch:first").countdown('pause').removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.")
+                @element.find(".salvus-cell-stopwatch:first").removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.").find('span').countdown('pause')
 
     destroy_stopwatch: () ->
         if @opts.stopwatch
             @_stopwatch_counter = 0
-            @element.find(".salvus-cell-stopwatch").countdown('destroy').hide()
+            @element.find(".salvus-cell-stopwatch").hide().find('span').countdown('destroy')
 
     append_to: (e) ->
         e.append(@element)

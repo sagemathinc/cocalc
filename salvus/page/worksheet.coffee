@@ -686,7 +686,7 @@ class Worksheet extends EventEmitter
     restart: () =>
         @opts.session.restart()
         for elt in @_cells.find(".salvus-cell")
-            $(elt).data('cell').execute_if_auto()
+            $(elt).data('cell').restart()
 
     current_cell: () =>
         if not @_current_cell?
