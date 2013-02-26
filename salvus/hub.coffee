@@ -2991,7 +2991,7 @@ class SageSession
     _recv: (type, mesg) =>
         switch type
             when 'json'
-                winston.debug("(hub) persistent_sage_conn (#{@session_uuid})-- recv(#{to_safe_str(mesg)})")
+                #winston.debug("(hub) persistent_sage_conn (#{@session_uuid})-- recv(#{to_safe_str(mesg)})")
                 for client in @clients
                     switch mesg.event
                         when "output", "terminate_session", "execute_javascript"

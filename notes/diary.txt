@@ -10061,12 +10061,26 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] worksheet: implement "restart session" button above and activate the button
 
-     [ ] worksheet: reconnect to existing session when re-open worksheet and session is still running
+     [ ] worksheet session persistence -- here is what we want:
+          - reconnect to existing session when re-open worksheet and session is still running
+          - list of all worksheets in a project for which there is an open session
+          - number of open sessions
+          - average cpu usage of each open session
+          - memory usage of each open session
+          - ability to stop a session ("kill -STOP")
+          - multiple worksheets pointed at SAME session.
 
-     [ ] worksheet: indicator in browser that session is running
+         [x] worksheet: make the obj optionally store session_uuid
+         [ ] hub: implement the connect_to_session message
+         [ ] worksheet: try to use existing session id if exists and works
+         [ ] hub: get rid of ping timeout completely
+         [ ] file browser: visual indicator of running sessions; plus, top-like output for each (current cpu/ram usage). (?)
 
      [ ] worksheet: auto-restart when session dies, with notification
 
+     [ ] extra minimal token-based security measure: sage_server requires a token (stored on the filesystem) to access it.
+
+     [ ] extra minimal token-based security measure: make it so compute_server requires a token (stored on the filesystem) to access it.
 
      [ ] changing first/last name doesn't do anything in top right.
      [ ] stopwatch: experiment with rotating spinner icon
@@ -10077,6 +10091,9 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
          --> file.terminal will contain a session_id, so we can reconnect to an existing session if it hasn't timed out.
              (same with worksheets, right?)
 
+     [ ] mobile terminal: use https://github.com/Mottie/Keyboard to make the keyboard 100% work and have all needed keys
+         Copy in salvus0/Keyboard
+
      [ ] worksheet save box -- changing filename should dirty the worksheet.
 
      [ ] latex: worksheet and cell to_latex
@@ -10084,6 +10101,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [ ] pdf: worksheet pdf view
 
      [ ] rest: worksheet and cell to_rest
+
+     [ ] projects: when searching, show some text to indicate that results are restricted; otherwise it is very disturbing!
 
      [ ] make save and filename thing for editor exactly the same as for worksheet
 

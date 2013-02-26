@@ -812,10 +812,15 @@ class Worksheet extends EventEmitter
 
     # convert worksheet to object -- this is not lossy
     to_obj: () =>
-        obj =
-            title       : @get_title()
-            description : @get_description()
-            content     : (@_to_obj(c) for c in @_cells.children())
+        obj = {}
+
+        if @opts.session?
+            obj.session_uuid = @opts.session.session_uuid
+
+        obj.title       = @get_title()
+        obj.description = @get_description()
+        obj.content     = (@_to_obj(c) for c in @_cells.children())
+
         return obj
 
     # convert worksheet to text/command line format -- this is lossy
