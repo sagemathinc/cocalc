@@ -709,6 +709,9 @@ class Cell extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
+    kill: () =>
+        @destroy_stopwatch()
+
     restart: () =>
         @destroy_stopwatch()
         @execute_if_auto()

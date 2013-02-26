@@ -10071,9 +10071,10 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
           - multiple worksheets pointed at SAME session.
 
          [x] worksheet: make the obj optionally store session_uuid
-         [ ] hub: implement the connect_to_session message
-         [ ] worksheet: try to use existing session id if exists and works
-         [ ] hub: get rid of ping timeout completely
+         [x] hub: implement the connect_to_session message
+         [x] worksheet: try to use existing session id if exists and works
+         [x] hub: get rid of ping timeout completely
+
          [ ] file browser: visual indicator of running sessions; plus, top-like output for each (current cpu/ram usage). (?)
 
      [ ] worksheet: auto-restart when session dies, with notification

@@ -437,27 +437,54 @@ class Terminal extends FileEditor
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}  # nothing yet
-
         @_set(content)
-
         @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
 
-        @connect_to_server()
-
-    connect_to_server: (cb) =>
-        salvus_client.new_session
-            timeout    : 15
-            limits     : {walltime: 60*15}
-            type       : "sage"
-            project_id : @editor.project_id
-            cb : (err, _session) =>
-                if err
-                    @element.text(err)  # TODO -- nicer
-                    alert_message(type:'error', message:err)
-                    @session = undefined
+    connect_to_server: (session_uuid, cb) =>
+        if @session?
+            # already connected
+            return
+        @session = undefined
+        async.series([
+            (cb) =>
+                # If the worksheet specifies a specific session_uuid,
+                # try to connect to that one, in case it is still
+                # running.
+                if session_uuid?
+                    salvus_client.connect_to_session
+                        type         : 'sage'
+                        timeout      : 15
+                        session_uuid : session_uuid
+                        cb           : (err, _session) =>
+                            if err
+                                # NOPE -- try to make a new session (below)
+                                cb()
+                            else
+                                # Bingo -- got it!
+                                @session = _session
+                                cb()
                 else
-                    @session = _session
-                cb?(err)
+                    # No session_uuid requested.
+                    cb()
+            (cb) =>
+                if @session?
+                    # We successfully got a session above.
+                    cb()
+                else
+                    # Create a completely new session on the given project.
+                    salvus_client.new_session
+                        timeout    : 15
+                        type       : "sage"
+                        project_id : @editor.project_id
+                        cb : (err, _session) =>
+                            if err
+                                @element.text(err)  # TODO -- nicer
+                                alert_message(type:'error', message:err)
+                                @session = undefined
+                            else
+                                @session = _session
+                            cb(err)
+        ], cb)
 
     _get: () =>
         if @worksheet?
@@ -470,13 +497,14 @@ class Worksheet extends FileEditor
     _set: (content) =>
         content = $.trim(content)
         if content.length > 0
-            {title, description, content} = from_json(content)
+            {title, description, content, session_uuid} = from_json(content)
         else
             title = "Untitled"
             description = "No description"
             content = undefined
+            session_uuid = undefined
 
-        @connect_to_server (err) =>
+        @connect_to_server session_uuid, (err) =>
             if err
                 return
             @element.salvus_worksheet

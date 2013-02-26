@@ -157,20 +157,13 @@ class Client extends EventEmitter
 
         @conn.on("data", @handle_data_from_client)
         @conn.on "close", () =>
-            for session_uuid in @compute_session_uuids
+            for session_uuid in @console_sessions
                 winston.debug("KILLING -- #{session_uuid}?")
                 # TODO: there will be a special property to not delete certain of these later.
                 session = compute_sessions[session_uuid]
                 if session? and session.kill?
                     winston.debug("Actually killing -- #{session_uuid}")
                     session.kill()
-                    # pid     = session.pid; winston.debug("Killing session with pid=#{pid}")
-                    # sage.send_signal
-                    #     host   : session.conn.host
-                    #     port   : session.conn.port
-                    #     pid    : session.pid
-                    #     signal : 9
-                    # session.conn.close()
             @compute_session_uuids = []
 
             delete clients[@conn.id]
@@ -391,7 +384,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         if mesg.event.slice(0,4) != 'ping'
-            winston.debug("client --> hub: #{to_safe_str(mesg)}")
+            winston.debug("client --> hub: #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
@@ -405,26 +398,26 @@ class Client extends EventEmitter
         if not mesg.session_uuid?
             err = "Invalid message -- does not have a session_uuid field."
             @error_to_client(id:mesg.id, error:err)
-            cb(err)
+            cb?(err)
             return
 
         session = compute_sessions[mesg.session_uuid]
         if not session?
             err = "Unknown compute session #{mesg.session_uuid}."
             @error_to_client(id:mesg.id, error:err)
-            cb(err)
+            cb?(err)
             return
 
         if session.is_client(@)
-            cb(false, session)
+            cb?(false, session)
         else
-            # add client checks permissions
+            # add_client *DOES* check permissions
             session.add_client @, (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
-                    cb(err)
+                    cb?(err)
                 else
-                    cb(false, session)
+                    cb?(false, session)
 
     ######################################################
     # Messages: Sage compute sessions and code execution
@@ -441,7 +434,7 @@ class Client extends EventEmitter
             if err
                 return
             else
-                session.send_json(mesg)
+                session.send_json(@, mesg)
 
     mesg_start_session: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
@@ -461,6 +454,13 @@ class Client extends EventEmitter
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
         switch mesg.type
+            when 'sage'
+                # Getting the session with given mesg.session_uuid
+                # adds this client to the session, if this client has
+                # appropriate permissions.
+                @get_sage_session mesg, (err, session) =>
+                    if not err
+                        @push_to_client(message.session_connected(id:mesg.id))
             when 'console'
                 connect_to_existing_console_session(@, mesg)
             else
@@ -512,7 +512,7 @@ class Client extends EventEmitter
             if err
                 return
             else
-                session.send_json(mesg)
+                session.send_json(@, mesg)
 
     ######################################################
     # Messages: Keeping client connected
@@ -885,9 +885,7 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_project_exec: (mesg) =>
-        winston.debug("MESG_PROJECT_EXEC 1")
         @get_project mesg, 'write', (err, project) =>
-            winston.debug("MESG_PROJECT_EXEC 2", err, project)
             if err
                 return
             project.exec mesg, (err, resp) =>
@@ -3044,15 +3042,30 @@ class SageSession
         @conn?.close()
         @conn = undefined
 
-    send_json: (mesg) ->
-        assert @conn?, "must be connected to send message"
-        @conn.send_json(mesg)
+    send_json: (client, mesg) ->
+        async.series([
+            (cb) =>
+                if @conn?
+                    cb()
+                else
+                    @restart(client, cb)
+            (cb) =>
+                @conn.send_json(mesg)
+        ])
 
-    send_blob: (uuid, blob) ->
-        assert @conn?, "must be connected to send message"
-        @conn.send_blob(uuid, blob)
+    send_blob: (client, uuid, blob) ->
+        async.series([
+            (cb) =>
+                if @conn?
+                    cb()
+                else
+                    @restart(client, cb)
+            (cb) =>
+                @conn.send_blob(uuid, blob)
+        ])
 
     restart: (client, cb) =>
+        winston.debug("Restarting a Sage session...")
         @kill()
 
         async.series([
@@ -3090,7 +3103,7 @@ class SageSession
                             cb(err)
                         else
                             winston.debug("(hub) SageSession -- connected")
-                            @send_json(@_init_mesg)
+                            @send_json(client, @_init_mesg)
                             cb()
 
             (cb) =>
@@ -3098,7 +3111,6 @@ class SageSession
                 persistent_sage_sessions[@session_uuid] = @
                 compute_sessions[@session_uuid] = @
                 client.compute_session_uuids.push(@session_uuid)
-                enable_ping_timer(session : @)
                 cb()
 
         ], cb)

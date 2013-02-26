@@ -60,6 +60,7 @@ class Worksheet extends EventEmitter
         @_init_remove_section_button()
         @_init_filename_save()
         @_init_restart_button()
+        @_init_kill_button()
         @_init_toggle_code_button()
         @_init_toggle_note_button()
         @_init_toggle_output_button()
@@ -274,6 +275,11 @@ class Worksheet extends EventEmitter
     _init_section_button: () =>
         @element.find("a[href=#create-section]").click () =>
             @_create_section()
+            return false
+
+    _init_kill_button: () =>
+        @element.find("a[href=#kill]").click () =>
+            @kill()
             return false
 
     _init_restart_button: () =>
@@ -687,6 +693,11 @@ class Worksheet extends EventEmitter
         @opts.session.restart()
         for elt in @_cells.find(".salvus-cell")
             $(elt).data('cell').restart()
+
+    kill: () =>
+        @opts.session.restart()
+        for elt in @_cells.find(".salvus-cell")
+            $(elt).data('cell').kill()
 
     current_cell: () =>
         if not @_current_cell?
