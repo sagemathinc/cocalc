@@ -859,23 +859,33 @@ class Cell extends EventEmitter
                 @_stopwatch_counter = 0
             @_stopwatch_counter += 1
             @element.find(".salvus-cell-stopwatch").hide()
-            @element.find(".salvus-cell-stopwatch:first").removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running'
+
+            elt = @element.find(".salvus-cell-stopwatch:first")
+            elt.removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running'
             ).show().find('span').countdown('destroy').countdown(
                 since   : new Date()
                 compact : true
                 layout  : '{hnn}{sep}{mnn}{sep}{snn}'
             ).click(@_interrupt).tooltip('destroy').tooltip(title:"Time running; click to interrupt.")
+            # CSS spinner effect -- cool but uses way too much CPU
+            # elt.find("i").removeClass('icon-time').addClass("icon-spinner icon-spin")
 
     stop_stopwatch: () ->
         if @opts.stopwatch
             @_stopwatch_counter -= 1
             if @_stopwatch_counter <= 0 and @opts.stopwatch
-                @element.find(".salvus-cell-stopwatch:first").removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.").find('span').countdown('pause')
+                elt = @element.find(".salvus-cell-stopwatch:first")
+                elt.removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.").find('span').countdown('pause')
+                # CSS spinner effect -- cool but uses way too much CPU
+                # elt.find("i").removeClass('icon-spin icon-spinner').addClass("icon-time")
 
     destroy_stopwatch: () ->
         if @opts.stopwatch
             @_stopwatch_counter = 0
-            @element.find(".salvus-cell-stopwatch").hide().find('span').countdown('destroy')
+            elt = @element.find(".salvus-cell-stopwatch")
+            elt.hide().find('span').countdown('destroy')
+            # CSS spinner effect -- cool but uses way too much CPU
+            # elt.find("i").removeClass('icon-spin icon-spinner').addClass("icon-time")
 
     append_to: (e) ->
         e.append(@element)

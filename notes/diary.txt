@@ -10061,6 +10061,13 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] worksheet: implement "restart session" button above and activate the button
 
+     [x] stopwatch: experiment with rotating spinner icon --- TOO SLOW.
+
+     [ ] (0:05) worksheet save box -- changing filename should dirty the worksheet.
+
+     [ ] latex: worksheet and cell to_latex
+
+
      [ ] worksheet session persistence -- here is what we want:
           - reconnect to existing session when re-open worksheet and session is still running
           - list of all worksheets in a project for which there is an open session
@@ -10075,7 +10082,18 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
          [x] worksheet: try to use existing session id if exists and works
          [x] hub: get rid of ping timeout completely
 
+         [ ] database: table for sessions:
+            session_id   running   project_id  filename(limit size to 1024, say)    hub    start_time
+	Queries:
+	   * All running sessions for a given project: filename/hub/start_time about each
+	   * Change the filename of a session with given session_id
+	   * Change state from running = true to running = false for session with given id
+	   * All sessions for a given project.
+
          [ ] file browser: visual indicator of running sessions; plus, top-like output for each (current cpu/ram usage). (?)
+
+
+     [ ] worksheet/sage session: what if session is not known?
 
      [ ] worksheet: auto-restart when session dies, with notification
 
@@ -10084,9 +10102,10 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [ ] extra minimal token-based security measure: make it so compute_server requires a token (stored on the filesystem) to access it.
 
      [ ] changing first/last name doesn't do anything in top right.
-     [ ] stopwatch: experiment with rotating spinner icon
+
      [ ] range_slider: "min - max" in output looks bad when max negative; maybe "min to max"?
 
+     [ ] create new worksheet, change nothing and close -- it is never saved.
 
      [ ] terminal: saving/restoring history and current working directory
          --> file.terminal will contain a session_id, so we can reconnect to an existing session if it hasn't timed out.
@@ -10094,10 +10113,6 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [ ] mobile terminal: use https://github.com/Mottie/Keyboard to make the keyboard 100% work and have all needed keys
          Copy in salvus0/Keyboard
-
-     [ ] worksheet save box -- changing filename should dirty the worksheet.
-
-     [ ] latex: worksheet and cell to_latex
 
      [ ] pdf: worksheet pdf view
 

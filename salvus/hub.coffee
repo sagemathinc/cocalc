@@ -157,13 +157,14 @@ class Client extends EventEmitter
 
         @conn.on("data", @handle_data_from_client)
         @conn.on "close", () =>
-            for session_uuid in @console_sessions
-                winston.debug("KILLING -- #{session_uuid}?")
-                # TODO: there will be a special property to not delete certain of these later.
-                session = compute_sessions[session_uuid]
-                if session? and session.kill?
-                    winston.debug("Actually killing -- #{session_uuid}")
-                    session.kill()
+            if @console_sessions?
+                for session_uuid in @console_sessions
+                    winston.debug("KILLING -- #{session_uuid}?")
+                    # TODO: there will be a special property to not delete certain of these later.
+                    session = compute_sessions[session_uuid]
+                    if session? and session.kill?
+                        winston.debug("Actually killing -- #{session_uuid}")
+                        session.kill()
             @compute_session_uuids = []
 
             delete clients[@conn.id]
@@ -3111,6 +3112,13 @@ class SageSession
                 persistent_sage_sessions[@session_uuid] = @
                 compute_sessions[@session_uuid] = @
                 client.compute_session_uuids.push(@session_uuid)
+
+                # TODO -- this 15-minute timeout is *temporary* until the UI provides
+                # the planned feedback about open sessions
+                enable_ping_timer
+                    session : @
+                    timeout : 15*60
+
                 cb()
 
         ], cb)
