@@ -10066,7 +10066,7 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
      [x] (0:05) worksheet save box -- changing filename should dirty the worksheet.
 
      [x] (1:04) latex: worksheet and cell to_latex
- 
+
      [ ] worksheet: implement _download_file()
 
      [ ] worksheet: changing what is hidden or not in a cell doesn't trigger dirty
