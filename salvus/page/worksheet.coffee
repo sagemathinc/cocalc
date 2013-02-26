@@ -28,6 +28,7 @@ async          = require("async")
 {Cell} = require("cell")
 
 
+
 templates          = $("#salvus-worksheet-templates")
 worksheet_template = templates.find(".salvus-worksheet")
 
@@ -43,6 +44,7 @@ class Worksheet extends EventEmitter
             session     : undefined
             path        : undefined  # If given, is the default filename of the worksheet; containing directory is chdir'd on startup.
             project_id  : required
+            latex_opts  : {'documentclass':'article', 'preamble':'', tableofcontents:true}
 
         @element = worksheet_template.clone()
         @element.data("worksheet", @)
@@ -66,6 +68,8 @@ class Worksheet extends EventEmitter
         @_init_toggle_output_button()
         @_init_view_button_bar()
         @_init_views()
+
+        @_init_download_button()
         #@element.find(".salvus-worksheet-controls-label").hide()
 
         if @opts.content?
@@ -163,6 +167,7 @@ class Worksheet extends EventEmitter
                 element.find(".salvus-worksheet-#{view}").show()
                 that._refresh_view(view)
                 return false
+
 
     _init_views: () =>
         e = @element.find(".salvus-worksheet-text-view").find("textarea")
@@ -271,6 +276,15 @@ class Worksheet extends EventEmitter
             if not save.hasClass('disabled')
                 @save(input.val())
             return false
+
+    _init_download_button: () =>
+        @element.find("a[href=#download-file]").click () =>
+            @_download_file()
+            return false
+
+    _download_file : () =>
+        # TODO
+        alert_message(type:'error', message:'Worksheet download not yet implemented.')
 
     _init_section_button: () =>
         @element.find("a[href=#create-section]").click () =>
@@ -659,9 +673,7 @@ class Worksheet extends EventEmitter
             # It is a section
             title = c.find(".salvus-worksheet-section-title-user").data('raw')
             content = (@_to_latex(d) for d in $(c.find(".salvus-worksheet-section-cells")[0]).children()).join('\n')
-            content = ('    ' + x for x in content.split('\n')).join('\n')
-            hashes = ('#' for i in [0...title.length+2]).join('')
-            return "#{title}\n===========\n#{content}\n"
+            return "\\section{#{title}}\n\n#{content}\n\n"
         else
             # It is a cell
             return c.data('cell').to_latex()
@@ -841,8 +853,17 @@ class Worksheet extends EventEmitter
     to_rest: () =>
         return "(ReST view NOT fully implemented!)\n#{@get_title()}\n===================\n#{@get_description()}\n----------------------\n\n" + (@_to_rest(c) for c in @_cells.children()).join('')
 
+
     to_latex: () =>
-        return "(Latex view NOT fully implemented!)\n#{@get_title()}\n===================\n#{@get_description()}\n----------------------\n\n" + (@_to_latex(c) for c in @_cells.children()).join('')
+        s = "\\documentclass{#{@opts.latex_opts.documentclass}}\n#{@opts.latex_opts.preamble}\n"
+        s += "\\title{#{@get_title()}}\n\n"
+        s += "\\author{#{@get_description()}}\n\n"
+        s += "\\begin{document}\n\\maketitle\n\n"
+        if @opts.latex_opts.tableofcontents
+            s += "\\tableofcontents\n\n"
+        s += (@_to_latex(c) for c in @_cells.children()).join('\n')
+        s += '\n\n\\end{document}'
+        return s
 
     # Given worksheet content as returned by to_obj() above, rebuilt
     # the worksheet part of the DOM from scratching using this
@@ -876,6 +897,10 @@ class Worksheet extends EventEmitter
 
     get_description: (description) ->
         @element.find(".salvus-worksheet-description").data('raw')
+
+    #get_author: () =>
+        # This is relative to who is viewing the worksheet.
+    #    return require('account').account_settings.fullname()
 
     set_session: (session) ->
         @opts.session = session

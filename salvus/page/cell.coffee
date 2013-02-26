@@ -746,11 +746,12 @@ class Cell extends EventEmitter
     to_text: () =>
         obj = @to_obj()  # takes advantage of optimization of cell components
         t = ''
-        if obj.note?
+        hidden = @hidden_components()
+        if obj.note? and 'note' not in hidden
             t += '# ' + $("<div>").html(obj.note).text() + '\n'
-        if obj.input?
+        if obj.input? and 'editor' not in hidden
             t += 'sage: ' + $.trim(obj.input).replace(/\n/g,'\n      ')
-        if obj.output?
+        if obj.output? and 'output' not in hidden
             out = '\n'
             for mesg in obj.output
                 for stream, val of mesg
@@ -772,16 +773,17 @@ class Cell extends EventEmitter
     to_rest: () =>
         obj = @to_obj()
         t = ''
-        if obj.note?
+        hidden = @hidden_components()
+        if obj.note? and 'note' not in hidden
             t += $("<div>").html(obj.note).text()
-        if obj.input? or obj.output?
+        if (obj.input? and 'editor' not in hidden) or (obj.output? and 'output' not in hidden)
             t += '::\n'
         else
             t += '\n'
-        if obj.input?
+        if obj.input? and 'editor' not in hidden
             # TODO -- must be much better
             t += '    sage: ' + $.trim(obj.input).replace(/\n/g,'\n    sage: ')
-        if obj.output?
+        if obj.output? and 'output' not in hidden
             out = '\n'
             for mesg in obj.output
                 for stream, val of mesg
@@ -803,34 +805,37 @@ class Cell extends EventEmitter
 
     to_latex: () =>
         obj = @to_obj()
+        hidden = @hidden_components()
         t = ''
-        if obj.note?
-            t += $("<div>").html(obj.note).text()
-        if obj.input? or obj.output?
-            t += '::\n'
-        else
-            t += '\n'
-        if obj.input?
-            # TODO -- must be much better
-            t += '    sage: ' + $.trim(obj.input).replace(/\n/g,'\n    sage: ')
-        if obj.output?
-            out = '\n'
+
+        if obj.note? and 'note' not in hidden
+            t += html_to_latex(obj.note)
+
+        if obj.input? and 'editor' not in hidden
+            input = $.trim(obj.input)
+            if input.length > 0
+                t += '\n\\begin{verbatim}\n'
+                t += 'sage: ' + input.replace(/\n/g,'\nsage: ')
+                t += '\n\\end{verbatim}\n'
+        if obj.output? and 'output' not in hidden and obj.output.length > 0
+            out = ''
             for mesg in obj.output
                 for stream, val of mesg
                     switch stream
                         when 'stdout', 'stderr'
-                            out += val
+                            v = $.trim(val)
+                            if v
+                                out += "\n\\begin{verbatim}\n#{v}\n\\end{verbatim}\n"
                         when 'html'
-                            out += val
+                            out += html_to_latex(val)
                         when 'tex'
                             if val.display
                                 out += "\n$$#{val.tex}$$\n"
                             else
                                 out += " $#{val.tex}$ "
                         else
-                            out += "[#{stream}]"
+                            out += "[#{stream}]"  # TODO: embedded images, ...
             t += out + '\n'
-            # TODO --indent it all
         return t
 
     checkbox: (checked) =>
@@ -1288,3 +1293,9 @@ parse_width = (width) ->
         else
             return width
 
+
+
+
+html_to_latex = (s) ->
+    # TODO: This is horrible/insecure/etc.
+    return $("<div>").html(s).text()
