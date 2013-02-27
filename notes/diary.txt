@@ -10067,6 +10067,8 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
      [x] (1:04) latex: worksheet and cell to_latex
 
+     [x] screen in xterm console looses color -- crazy prompt
+
      [ ] worksheet: implement _download_file()
 
      [ ] worksheet: changing what is hidden or not in a cell doesn't trigger dirty
@@ -10102,7 +10104,11 @@ Hawaii (sd 46):
 
      [x] (0:06) add D3 to Salvus
 
+     
+
      [ ] make terminal persistent
+
+     [ ] 
 
 -------------------
 
@@ -10568,8 +10574,6 @@ def f(reset  = button('Randomize', classes="btn-primary"),
 
 
     [ ] shift-enter should interrupt any running interacts
-
-    [ ] screen in xterm console looses color -- crazy prompt
 
 IDEAS...
 
