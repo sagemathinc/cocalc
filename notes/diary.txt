@@ -10100,7 +10100,7 @@ Hawaii (sd 46):
 
      [x] (2:55) async/%fork functionality in salvus
 
--->     [ ] add D3 to Salvus
+     [x] (0:06) add D3 to Salvus
 
      [ ] make terminal persistent
 
