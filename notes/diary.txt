@@ -10098,7 +10098,9 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
 
 Hawaii (sd 46):
 
-     [ ] (2:55) async/%fork functionality in salvus
+     [x] (2:55) async/%fork functionality in salvus
+
+-->     [ ] add D3 to Salvus
 
      [ ] make terminal persistent
 
