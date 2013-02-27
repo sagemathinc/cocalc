@@ -287,14 +287,26 @@ class Namespace(dict):
 
     def __setitem__(self, x, y):
         dict.__setitem__(self, x, y)
-        if self._on_change.has_key(x):
-            for f in self._on_change[x]:
-                f(y)
+        try:
+            if self._on_change.has_key(x):
+                for f in self._on_change[x]:
+                    f(y)
+            if self._on_change.has_key(None):
+                for f in self._on_change[None]:
+                    f(x, y)
+        except Exception, mesg:
+            print mesg
 
     def __delitem__(self, x):
-        if self._on_del.has_key(x):
-            for f in self._on_del[x]:
-                f()
+        try:
+            if self._on_del.has_key(x):
+                for f in self._on_del[x]:
+                    f()
+            if self._on_del.has_key(None):
+                for f in self._on_del[None]:
+                    f(x)
+        except Exception, mesg:
+            print mesg
         dict.__delitem__(self, x)
 
     def set(self, x, y, do_not_trigger=None):
@@ -305,7 +317,9 @@ class Namespace(dict):
             for f in self._on_change[x]:
                 if f not in do_not_trigger:
                     f(y)
-
+        if self._on_change.has_key(None):
+            for f in self._on_change[None]:
+                f(x,y)
 
 namespace = Namespace({})
 
@@ -326,6 +340,7 @@ class Salvus(object):
     def __init__(self, conn, id, data=None):
         self._conn = conn
         self._id   = id
+        self._done = True    # done=self._done when last execute message is sent; e.g., set self._done = False to not close cell on code term.
         self.data = data
         self.namespace = namespace
         namespace['salvus'] = self   # beware of circular ref?
@@ -679,15 +694,15 @@ def execute(conn, id, code, data, preparse):
             traceback.print_exc()
 
         salvus.execute(code, namespace=namespace, preparse=preparse)
-        
+
     finally:
-        # there must be exactly one done message
+        # there must be exactly one done message, unless salvus._done is False.
         if sys.stderr._buf:
             if sys.stdout._buf:
                 sys.stdout.flush()
-            sys.stderr.flush(done=True)
+            sys.stderr.flush(done=salvus._done)
         else:
-            sys.stdout.flush(done=True)
+            sys.stdout.flush(done=salvus._done)
         (sys.stdout, sys.stderr) = streams
 
 
@@ -980,7 +995,7 @@ def serve(port, host):
 
     for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
                  'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                 'hide', 'hideall', 'cell']:
+                 'hide', 'hideall', 'cell', 'fork']:
         namespace[name] = getattr(sage_salvus, name)
 
     t = time.time()

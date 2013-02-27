@@ -3044,6 +3044,7 @@ class SageSession
         @conn = undefined
 
     send_json: (client, mesg) ->
+        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),300)}")
         async.series([
             (cb) =>
                 if @conn?

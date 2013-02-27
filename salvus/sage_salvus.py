@@ -1155,7 +1155,7 @@ time = Time()
 
 def file(path):
     """
-    Code decorator to write to a file.  Use as follows:
+    Block decorator to write to a file.  Use as follows:
 
         %file('filename') put this line in the file
 
@@ -1166,7 +1166,7 @@ def file(path):
         cell goes into the file with given name.
 
 
-    As with all code decorators in Salvus, the arguments to file can
+    As with all block decorators in Salvus, the arguments to file can
     be an arbitrary expression.  For examples,
 
         a = 'file'; b = ['name', 'txt']
@@ -1179,7 +1179,7 @@ def file(path):
 def timeit(*args, **kwds):
     """
     Time execution of a command or block of commands.  This command has been
-    enhanced for Salvus so you may use it as a code decorator as well, e.g.,
+    enhanced for Salvus so you may use it as a block decorator as well, e.g.,
 
         %timeit 2+3
 
@@ -1211,7 +1211,7 @@ class Capture:
     """
     Capture or ignore the output from evaluating the given code. (SALVUS only).
 
-    Use capture as a code decorator by placing either %capture or
+    Use capture as a block decorator by placing either %capture or
     %capture(optional args) at the beginning of a cell or at the
     beginning of a line.  If you use just plane %capture then stdout
     and stderr are completely ignored.  If you use %capture(args)
@@ -1309,7 +1309,7 @@ capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
 def cython(code=None, **kwds):
     """
-    Code decorator to easily include Cython code in the Salvus notebook.
+    Block decorator to easily include Cython code in the Salvus notebook.
 
     Just put %cython at the top of a cell, and the rest is compiled as Cython code.
     You can pass options to cython by typing "%cython(... var=value...)" instead.
@@ -1356,7 +1356,7 @@ cython.__doc__ += sage.misc.cython.cython.__doc__
 
 class script:
     r"""
-    Code decorator to run an arbitrary shell command with input from a
+    Block decorator to run an arbitrary shell command with input from a
     cell in Salvus.
 
     Put %script('shell command line') or %script(['command', 'arg1',
@@ -1413,7 +1413,7 @@ class script:
 
 def python(code):
     """
-    Code decorator to run code in pure Python mode, without it being
+    Block decorator to run code in pure Python mode, without it being
     preparsed by the Sage preparser.  Otherwise, nothing changes.
 
     To use this, put %python by itself in a cell so that it applies to
@@ -1424,7 +1424,7 @@ def python(code):
 
 def python3(code):
     """
-    Code decorator to run code in a pure Python3 mode session.
+    Block decorator to run code in a pure Python3 mode session.
 
     To use this, put %python3 by itself in a cell so that it applies to
     the rest of the cell, or put it at the beginning of a line to
@@ -1447,7 +1447,7 @@ def python3(code):
 
 def perl(code):
     """
-    Code decorator to run code in a Perl session.
+    Block decorator to run code in a Perl session.
 
     To use this, put %perl by itself in a cell so that it applies to
     the rest of the cell, or put it at the beginning of a line to
@@ -1481,7 +1481,7 @@ def perl(code):
 
 def ruby(code):
     """
-    Code decorator to run code in a Ruby session.
+    Block decorator to run code in a Ruby session.
 
     To use this, put %ruby by itself in a cell so that it applies to
     the rest of the cell, or put it at the beginning of a line to
@@ -1517,7 +1517,7 @@ def sh(code):
 
     EXAMPLES:
 
-    Use as a code decorator on a single line::
+    Use as a block decorator on a single line::
 
         %sh pwd
 
@@ -1586,6 +1586,143 @@ def prun(code):
             print msg
 
 
+
+##############################################################
+# The %fork cell decorator.
+##############################################################
+
+def _wait_in_thread(pid, callback, filename):
+    from sage.structure.sage_object import load
+    def wait():
+        try:
+            os.waitpid(pid,0)
+            callback(load(filename))
+        except Exception, msg:
+        	callback(msg)
+
+    from threading import Thread
+    t = Thread(target=wait, args=tuple([]))
+    t.start()
+
+def async(f, args, kwds, callback):
+    """
+    Run f in a forked subprocess with given args and kwds, then call the
+    callback function when f terminates.
+    """
+    from sage.misc.all import tmp_filename
+    filename = tmp_filename() + '.sobj'
+    sys.stdout.flush()
+    sys.stderr.flush()
+    pid = os.fork()
+    if pid:
+        # The parent master process
+        try:
+            _wait_in_thread(pid, callback, filename)
+            return pid
+        finally:
+            if os.path.exists(filename):
+                os.unlink(filename)
+    else:
+        # The child process
+        try:
+            result = f(*args, **kwds)
+        except Exception, msg:
+            result = str(msg)
+        from sage.structure.sage_object import save
+        save(result, filename)
+        os._exit(0)
+
+
+class Fork(object):
+    """
+    The %fork block decorator evaluates its code in a forked subprocess
+    that does not block the main process.
+
+    All (picklelable) global variables that are set in the forked
+    subprocess are set in the parent when the forked subprocess
+    terminates.  However, the forked subprocess has no other side
+    effects, except what it might do to file handles and the
+    filesystem.
+
+    To see currently running forked subprocesses, type
+    fork.children(), which returns a dictionary {pid:execute_uuid}.
+    To kill a given subprocess and stop the cell waiting for input,
+    type fork.kill(pid).  This is currently the only way to stop code
+    running in %fork cells.
+
+    TODO/WARNING: The subprocesses spawned by fork aren't killed
+    if the parent process is killed first!
+
+    NOTE: All pexpect interfaces are reset in the child process.
+    """
+    def __init__(self):
+        self._children = {}
+
+    def children(self):
+        return dict(self._children)
+
+    def __call__(self, s):
+        salvus._done = False
+
+        id = salvus._id
+
+        changed_vars = set([])
+
+        def change(var, val):
+            changed_vars.add(var)
+
+        def f():
+            # Run some commands to tell Sage that its
+            # pid has changed.
+            import sage.misc.misc
+            reload(sage.misc.misc)
+
+            # The pexpect interfaces (and objects defined in them) are
+            # not valid.
+            sage.interfaces.quit.invalidate_all()
+
+            salvus.namespace.on('change', None, change)
+            salvus.execute(s)
+            result = {}
+            from sage.structure.sage_object import dumps
+            for var in changed_vars:
+                try:
+                    result[var] = dumps(salvus.namespace[var])
+                except:
+                    result[var] = 'unable to pickle %s'%var
+            return result
+
+
+        from sage.structure.sage_object import loads
+        def g(s):
+            if isinstance(s, Exception):
+                sys.stderr.write(str(s))
+                sys.stderr.flush()
+            else:
+                for var, val in s.iteritems():
+                    try:
+                        salvus.namespace[var] = loads(val)
+                    except:
+                        print "unable to unpickle %s"%var
+            salvus._conn.send_json({'event':'output', 'id':id, 'done':True})
+            if pid in self._children:
+                del self._children[pid]
+
+        pid = async(f, tuple([]), {}, g)
+        print "Forked subprocess %s"%pid
+        self._children[pid] = id
+
+    def kill(self, pid):
+        if pid in self._children:
+            salvus._conn.send_json({'event':'output', 'id':self._children[pid], 'done':True})
+            os.kill(pid, 9)
+            del self._children[pid]
+        else:
+            raise ValueError, "Unknown pid = (%s)"%pid
+
+fork = Fork()
+
+
 ####################################################
 # Display of 2d graphics objects
 ####################################################
@@ -1614,7 +1751,7 @@ def auto(s):
     to initialize functions, variables, interacts, etc., e.g., when
     loading a worksheet.
     """
-    return s # the do-nothing code decorator.
+    return s # the do-nothing block decorator.
 
 
 class Cell(object):
@@ -1700,7 +1837,3 @@ def hideall(code=None):
     cell.hideall()
     if code is not None: # for backwards compat with sagenb
         return code
-
-
-
-

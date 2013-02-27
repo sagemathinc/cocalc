@@ -10096,6 +10096,16 @@ RSYNC: after fully doing this multi-diffbundler approach, I see that
          [ ] file browser: visual indicator of running sessions; plus, top-like output for each (current cpu/ram usage). (?)
 
 
+Hawaii (sd 46):
+
+     [ ] (2:55) async/%fork functionality in salvus
+
+     [ ] make terminal persistent
+
+-------------------
+
+     [ ] worksheet setting: when code in a file in a git repo, have salvus autocommit on any save... as an *option*.
+
      [ ] worksheet/sage session: what if session is not known?
 
      [ ] worksheet: auto-restart when session dies, with notification
@@ -10554,7 +10564,10 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] file upload: http://www.dropzonejs.com/
     [ ] autocomplete library: https://github.com/twitter/typeahead.js
 
+
     [ ] shift-enter should interrupt any running interacts
+
+    [ ] screen in xterm console looses color -- crazy prompt
 
 IDEAS...
 
@@ -10657,6 +10670,8 @@ def f(n=[10,100,500], m=[10,100,500]):
     [ ] build bug: salvus/salvus/data/local/etc/tinc doesn't get created.
 
 
+    [ ] generating pdf? -- http://jspdf.com/
+
 
 
 WILD AND CRAZY IDEAS
@@ -10671,3 +10686,5 @@ def mat(s):
 +tab completion doesn't work for:" M = ModularSymbols(N*p,sign=1).cuspidal_su[tab]"
 +
 +"d = E.dimension() * sigma(" doesn't work either.
+
+

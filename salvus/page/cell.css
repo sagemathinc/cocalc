@@ -106,7 +106,7 @@
 }
 
 .salvus-cell-stopwatch-running {
-    background-color : #8f8;
+    background-color : red;
 }
 
 .salvus-cell-stopwatch-waiting {
