@@ -398,7 +398,9 @@ class CodeMirrorEditor extends FileEditor
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts,{}  # nothing yet
+        opts = @opts = defaults opts,
+            cols : 120
+            rows : 24
         @connect_to_server()
 
     connect_to_server: (cb) =>
@@ -408,7 +410,7 @@ class Terminal extends FileEditor
             limits     : { walltime : 60*15 }
             type       : 'console'
             project_id : @editor.project_id
-            params     : {command:'bash'}
+            params     : {command:'bash', rows:@opts.rows, cols:@opts.cols}
             cb : (err, session) =>
                 if err
                     @element.text(err)   # TODO--nicer
@@ -417,8 +419,8 @@ class Terminal extends FileEditor
                     @element.salvus_console
                         title   : "Terminal"
                         session : session,
-                        cols    : 100
-                        rows    : 24
+                        cols    : @opts.cols
+                        rows    : @opts.rows
                     @console = @element.data("console")
                     @element = @console.element
                 cb?(err)
