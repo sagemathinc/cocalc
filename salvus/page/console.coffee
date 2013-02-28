@@ -63,6 +63,12 @@ class Console extends EventEmitter
             title       : ""
             rows        : 24
             cols        : 80
+
+            font        :   # only for 'ttyjs' renderer
+                family : 'Courier, "Courier New", monospace' # CSS font-family
+                size   : 15                                  # CSS font-size in pixels
+                line_height : 115                            # CSS line-height percentage
+
             highlight_mode : 'none'
             renderer    : 'auto'   # options -- 'auto' (best for device); 'codemirror' (mobile support), 'ttyjs' (xterm-color!)
             draggable   : false
@@ -82,6 +88,7 @@ class Console extends EventEmitter
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
 
+
         # Record on the DOM element a reference to the console
         # instance, which is useful for client code.
         @element.data("console", @)
@@ -97,6 +104,7 @@ class Console extends EventEmitter
         # Create the new Terminal object -- this is defined in
         # static/term/term.js -- it's a nearly complete implementation of
         # the xterm protocol.
+
         @terminal = new Terminal(@opts.cols, @opts.rows)
 
         # this object (=@) is needed by the custom renderer, if it is used.
@@ -220,7 +228,13 @@ class Console extends EventEmitter
         @terminal.element.className = "salvus-console-terminal"
         @element.find(".salvus-console-terminal").replaceWith(@terminal.element)
         ter = $(@terminal.element)
-        ter.on('click', () => @focus())
+
+        ter.css
+            'font-family' : @opts.font.family
+            'font-size'   : "#{@opts.font.size}px"
+            'line-height' : "#{@opts.line_height}%"
+
+        @element.resizable(alsoResize:ter).on('resize', @resize)
 
         # Focus/blur handler.
         if IS_MOBILE  # so keyboard appears
@@ -285,6 +299,44 @@ class Console extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+
+    # Determine the current size (rows and columns) of the DOM
+    # element for the editor, then resize the renderer and the
+    # remote PTY.
+    resize: () =>
+        if @opts.renderer != 'ttyjs'
+            # nothing implemented except in the ttyjs case
+            return
+
+        # Determine size of container DOM.
+        # Determine the number of columns from the width of the element.
+        elt = $(@terminal.element)
+        font_size = @opts.font.size
+        new_cols = Math.floor(elt.width() / font_size)
+        if new_cols == 0
+            # The editor must not yet be visible -- do nothing
+            return
+
+        console.log("resize: new_cols = #{new_cols}")
+
+        # Determine number of rows from the height of the element.
+        if not @_line_height?
+            # first time, so we compute the height of line
+            @_line_height = Math.floor(elt.height() / @opts.rows)
+            new_rows = @opts.rows
+        else
+            new_rows = Math.floor(elt.height() / @_line_height)
+
+        console.log("resize: new_rows = #{new_rows}")
+
+        if @opts.rows == new_rows and @opts.cols == new_cols
+            # nothing to do
+            return
+
+        # Resize the renderer
+
+        # Resize the remote PTY.
+
     console_is_open: () =>  # not chainable
         return @element.closest(document.documentElement).length > 0
 
@@ -302,6 +354,8 @@ class Console extends EventEmitter
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
     focus: () =>
+        @resize()
+
         @is_focused = true
         if IS_MOBILE
             $(document).on('keydown', @mobile_keydown)

@@ -10106,13 +10106,30 @@ Hawaii (sd 46):
 * That MUST be called on the compute node to set the size of the terminal.
 * Also, we have to set the rows and cols in the client Terminal.
 
+     [x] determine current size of the terminal window, and use it to set the Terminal editor params; test
+     [ ] have setting terminal editor params change recreate the Terminal renderer with them.
+     [ ] have setting the terminal editor params send a message to the pty to resize -- HOW? -- some special control code?
+     [ ] worry about refreshing the current display
+
+---------------
+
+
      [ ] worksheet: implement _download_file()
      [ ] project: implement "new file"
      [ ] worksheet: changing what is hidden or not in a cell doesn't trigger dirty
      [ ] make terminal persistent
 
+     [ ] put .sage/matplotlib in template
+
+
+
 
 -------------------
+
+    [ ] interact bug: @interact
+def f(n=5):
+    print n
+f.n = 10
 
      [ ] worksheet setting: when code in a file in a git repo, have salvus autocommit on any save... as an *option*.
 
@@ -10159,6 +10176,11 @@ Hawaii (sd 46):
           [ ] learn rsnapshot
           [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
           [ ] store that this was done in database
+
+     [ ] codemirror scrolling frustrating -- doesn't work nicely on OS X 10.7.5, etc. -- scroll bars don't appear
+
+
+     [ ] terminal option: "delete sends backspace"
 
      [ ] support for browsing rsnapshots
      [ ] delete all "git commit" related code as well
