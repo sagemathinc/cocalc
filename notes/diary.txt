@@ -10118,13 +10118,12 @@ TERMINALS:
      [x] (1:12) fix the insert on same line bug; improve the prompt
 
      [x] set font size, family (as a user setting)
-
 	     [x] add html/css for account settings for font size.
 	     [x] add coffeescript to make it do something
 	     [x] store in db (add to schema and add column)
 	     [x] use in terminal
 
-     [ ] ability to change font size directly from terminal (keystrokes ?)
+-->     [ ] ability to change font size directly from terminal (keystroke: control-+, control--)
 
      [ ] set colors
 
@@ -10148,6 +10147,7 @@ TERMINALS:
      [ ] Make it so obj argument to salvus.javascript (.... etc) jsonable's in an intelligent way.
 
 
+     [ ] BUG: x = 10; reset('x'); x # boom
 
     [ ] why doesn't "%var x y z" work?  why doesn't "%reset x, y, z" work??
 -------------------

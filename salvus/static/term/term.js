@@ -362,12 +362,16 @@ Terminal.bindKeys = function() {
   if (Terminal.keys_are_bound) return;
   Terminal.keys_are_bound = true;
   on(document, 'keydown', function(ev) {
+      /* TODO -- REFACTOR -- put all stuff like this in client of this library. */
     if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
       return false;
     }
-    if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 86 && getSelectionHtml() != "") {  // paste
+    if ((ev.metaKey | (ev.shiftKey && ev.ctrlKey)) && ev.keyCode == 86) {  // paste
       return false;
     }
+
+
+    /* term -- handle the keystroke via the xterm . */
     if (typeof Terminal.focus === 'object') {
       return Terminal.focus.keyDown(ev);
     }
