@@ -10129,7 +10129,7 @@ TERMINALS:
 
      [x] refactor terminal account settings to be more generic
 
-     [ ] terminal: make it so lower left corner can be dragged.
+     [x] terminal: make it so lower left corner can be dragged.
 
      [ ] create terminal color settings ui, keyboard shortcuts, etc.
 
@@ -10149,6 +10149,8 @@ TERMINALS:
      [ ] downloading a huge file (say 1GB) can result in DISASTER!
 
      [ ] emacs defaults (.sage,.py,.pyx)
+
+     [ ] exiting emacs on terminal leaves underscores around sometimes. 
 
      [ ] new filename should be the date and time.
 

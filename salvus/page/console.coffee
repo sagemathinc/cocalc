@@ -168,10 +168,6 @@ class Console extends EventEmitter
         if opts.session.limits.walltime
             @_start_session_timer(opts.session.limits.walltime)
 
-        # Set the entire console to be draggable.
-        if @opts.draggable
-            @element.draggable(handle:@element.find('.salvus-console-title'))
-
         @blur()
 
 
@@ -275,7 +271,12 @@ class Console extends EventEmitter
             'font-size'   : "#{@opts.font.size}px"
             'line-height' : "#{@opts.font.line_height}%"
 
-        @element.resizable(alsoResize:ter).on('resize', @resize)
+        @element.resizable(alsoResize:ter, handles: "sw,se").on('resize', @resize)
+
+        # Set the entire console to be draggable.
+        if @opts.draggable
+            console.log("drag", @element.find('.salvus-console-title'))
+            @element.draggable(handle:@element.find('.salvus-console-title'))
 
         # Focus/blur handler.
         if IS_MOBILE  # so keyboard appears
