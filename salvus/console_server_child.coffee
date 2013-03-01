@@ -28,7 +28,7 @@ process.on 'message', (opts, socket) ->
     # env = process.env   # for testing sometimes do this...
 
     term_opts =
-        name : 'xterm-color'   # do *NOT* use just "xterm"!
+        name : 'xterm'
         rows : opts.rows
         cols : opts.cols
         cwd  : opts.cwd

@@ -10115,12 +10115,14 @@ Hawaii (sd 46):
 
 TERMINALS:
 
-     [ ] fix the insert on same line bug
+     [x] (1:12) fix the insert on same line bug; improve the prompt
+
      [ ] set font size, family
      [ ] set colors
 
-
 ---------------
+
+     [ ] emacs defaults (.sage,.py,.pyx,)
 
 
 

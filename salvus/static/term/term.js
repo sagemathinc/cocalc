@@ -892,6 +892,14 @@ Terminal.prototype.refresh = function(start, end) {
     i = 0;
 
     var w = Math.min(width, line.length);
+
+    /*
+    var ln="", j;
+    for(j=0;j<w;j++) {
+	ln += line[j][1];
+    }
+    console.log("line=",ln); */
+
     for (; i < w; i++) {
       data = line[i][0];
       ch = line[i][1];
@@ -1508,6 +1516,7 @@ Terminal.prototype.write = function(data) {
 
         this.state = normal;
 
+        // console.log("ch = ", ch);
         switch (ch) {
           // CSI Ps A
           // Cursor Up Ps Times (default = 1) (CUU).

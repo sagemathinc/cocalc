@@ -154,6 +154,7 @@ class Console extends EventEmitter
 
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
+            # console.log("From remote: '#{data}'")
             @terminal.write(data)
 
 

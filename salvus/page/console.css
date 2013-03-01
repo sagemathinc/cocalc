@@ -29,7 +29,7 @@
 .salvus-console-terminal {
      font-family: Courier, "Courier New", monospace;
      padding: 5px;
-     margin: 5px;
+     margin: 0px;
 }
 
 .salvus-console-cursor-blur  {
