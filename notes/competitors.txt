@@ -1,3 +1,7 @@
+[ ] http://www.equalis.com/?page=Math_In_The_Cloud
+
+[ ] action.io
+
 [ ] GateOne -- for the terminal -- http://liftoffsoftware.com/Products/GateOne
 
 [ ] http://www.runmycode.org/CompanionSite/

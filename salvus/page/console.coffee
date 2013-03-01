@@ -207,7 +207,10 @@ class Console extends EventEmitter
 
     _init_default_settings: () =>
         if not @opts.font.size?
-            @opts.font.size = require('account').account_settings.settings.terminal_font_size
+            font_size = require('account').account_settings.settings.terminal.font_size
+            if not font_size?   # in case of weirdness, do not leave user screwed.
+                font_size = 12
+            @opts.font.size = font_size
 
     _init_session_ping: () =>
         @opts.session.ping(@console_is_open)

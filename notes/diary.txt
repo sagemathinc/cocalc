@@ -10127,14 +10127,30 @@ TERMINALS:
 
      [x] ability to change font size directly from terminal (keystroke: control-+, control--)
 
-     [ ] set colors
+     [x] refactor terminal account settings to be more generic
+
+     [ ] terminal: make it so lower left corner can be dragged.
+
+     [ ] create terminal color settings ui, keyboard shortcuts, etc.
+
+     [ ] BUG -- when running over slow network (e.g., bsd from hawaii)
+         and resize *horizontally* a lot, get weird control characters
+         in output...
+
+     [ ] browse other people's projects	if public
+
 
 ---------------
 
-     [ ] emacs defaults (.sage,.py,.pyx,)
+     [ ] copy/paste both don't work on Windows with Firefox.  They do work with Chrome.
 
+     [ ] move around tabs so we can browse effectively.
 
-     [ ] worksheet: new filename should be the date and time.
+     [ ] downloading a huge file (say 1GB) can result in DISASTER!
+
+     [ ] emacs defaults (.sage,.py,.pyx)
+
+     [ ] new filename should be the date and time.
 
      [ ] worksheet: implement _download_file()
      [ ] project: implement "new file"
@@ -10144,6 +10160,7 @@ TERMINALS:
      [ ] put .sage/matplotlib in template
 
 
+     [ ] hub.coffee -- # TODO: \nssh_public_key <-- DO THIS!
 
 
      [ ] Make it so obj argument to salvus.javascript (.... etc) jsonable's in an intelligent way.

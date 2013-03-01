@@ -109,7 +109,7 @@ CREATE TABLE accounts (
     connect_Dropbox    varchar,
 
     autosave           int,
-    terminal_font_size int,  // between 6 to 72
+    terminal           varchar, // JSON
 
     enable_tooltips    boolean
 );

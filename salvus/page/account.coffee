@@ -123,16 +123,16 @@ $("#account-settings-autosave").keyup () ->
 # Terminal font size
 #############
 
-$("#account-settings-terminal_font_size-slider").slider
+$(".account-settings-terminal-font_size-slider").slider
     animate : true
-    min     : 6
-    max     : 160
+    min     : 1
+    max     : 100
     step    : 1
     value   : 13
     change  : (event, ui) ->
-        $("#account-settings-terminal_font_size").val(ui.value)
+        $(".account-settings-terminal-font_size").val(ui.value)
 
-$("#account-settings-terminal_font_size").keyup () ->
+$(".account-settings-terminal-font_size").keyup () ->
     t = $(@)
     x = t.val()
     last = t.data('last')
@@ -141,13 +141,13 @@ $("#account-settings-terminal_font_size").keyup () ->
     if x.length == 0
         return
     s = parseInt(x)
-    if not (s >=1 and s <= 160)
+    if not (s >=1 and s <= 100)
         s = parseInt(last)
     else
         t.data('last', x)
 
     # Move slider as best we can
-    $("#account-settings-terminal_font_size-slider").slider('value', s)
+    $(".account-settings-terminal-font_size-slider").slider('value', s)
 
     # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
     t.val(s)
@@ -283,7 +283,7 @@ signed_in = (mesg) ->
 
             #####
             # DISABLE worksheet1 -- enable this maybe when finishing worksheets port
-            # 
+            #
             #top_navbar.show_page_button("worksheet1")
             # Load the default worksheet (for now)
             #require('worksheet1').load_scratch_worksheet()
@@ -370,10 +370,12 @@ class AccountSettings
                     val = parseInt(element.val())
                     if not (val >= 0 and val <= 1000000)
                         val = 30
-                when 'terminal_font_size'
-                    val = parseInt(element.val())
-                    if not (val >= 1 and val <= 160)
-                        val = 12
+                when 'terminal'
+                    # font_size
+                    font_size = parseInt($(".account-settings-terminal-font_size").val())
+                    if not (font_size >= 1 and font_size <= 100)
+                        font_size = 12
+                    val = {font_size:font_size}
                 else
                     val = element.val()
             @settings[prop] = val
@@ -421,9 +423,10 @@ class AccountSettings
                 when 'autosave'
                     $("#account-settings-autosave-slider").slider('value', value)
                     $("#account-settings-autosave").val(value)
-                when 'terminal_font_size'
-                    $("#account-settings-terminal_font_size-slider").slider('value', value)
-                    $("#account-settings-terminal_font_size").val(value)
+                when 'terminal'
+                    if value.font_size?
+                        $(".account-settings-terminal-font_size-slider").slider('value', value.font_size)
+                        $(".account-settings-terminal-font_size").val(value.font_size)
                 else
                     set(element, value)
 
