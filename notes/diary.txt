@@ -10113,6 +10113,17 @@ Hawaii (sd 46):
 
 ---------------
 
+TERMINALS:
+
+     [ ] fix the insert on same line bug
+     [ ] set font size, family
+     [ ] set colors
+
+
+---------------
+
+
+
      [ ] worksheet: implement _download_file()
      [ ] project: implement "new file"
      [ ] worksheet: changing what is hidden or not in a cell doesn't trigger dirty
