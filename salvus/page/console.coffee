@@ -68,12 +68,14 @@ class Console extends EventEmitter
 
             font        :   # only for 'ttyjs' renderer
                 family : 'Courier, "Courier New", monospace' # CSS font-family
-                size   : 12                                  # CSS font-size in pixels
+                size   : undefined                           # CSS font-size in pixels
                 line_height : 115                            # CSS line-height percentage
 
             highlight_mode : 'none'
             renderer    : 'auto'   # options -- 'auto' (best for device); 'codemirror' (mobile support), 'ttyjs' (xterm-color!)
             draggable   : false
+
+        @_init_default_settings()
 
         if @opts.renderer == 'auto'
             if IS_MOBILE
@@ -174,6 +176,11 @@ class Console extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
+
+    _init_default_settings: () =>
+        if not @opts.font.size?
+            @opts.font.size = require('account').account_settings.settings.terminal_font_size
+
     _init_session_ping: () =>
         @opts.session.ping(@console_is_open)
 
