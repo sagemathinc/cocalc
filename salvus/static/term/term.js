@@ -360,6 +360,7 @@ Terminal.bindKeys = function() {
       page will result in multiple key data being sent.
     */
   if (Terminal.keys_are_bound) return;
+
   Terminal.keys_are_bound = true;
   on(document, 'keydown', function(ev) {
       /* TODO -- REFACTOR -- put all stuff like this in client of this library. */

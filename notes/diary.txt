@@ -10123,7 +10123,9 @@ TERMINALS:
 	     [x] store in db (add to schema and add column)
 	     [x] use in terminal
 
--->     [ ] ability to change font size directly from terminal (keystroke: control-+, control--)
+     [x] fix bug with account setting numerical input and sliders
+
+     [ ] ability to change font size directly from terminal (keystroke: control-+, control--)
 
      [ ] set colors
 

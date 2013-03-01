@@ -141,11 +141,10 @@ $("#account-settings-terminal_font_size").keyup () ->
     if x.length == 0
         return
     s = parseInt(x)
-    if not (s >=0 and s <= 1000000)
+    if not (s >=1 and s <= 72)
         s = parseInt(last)
     else
         t.data('last', x)
-    # Verify that input makes sense
 
     # Move slider as best we can
     $("#account-settings-terminal_font_size-slider").slider('value', s)
@@ -373,7 +372,7 @@ class AccountSettings
                         val = 30
                 when 'terminal_font_size'
                     val = parseInt(element.val())
-                    if not (val >= 6 and val <= 72)
+                    if not (val >= 1 and val <= 72)
                         val = 12
                 else
                     val = element.val()

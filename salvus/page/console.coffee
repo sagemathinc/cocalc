@@ -92,7 +92,6 @@ class Console extends EventEmitter
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
 
-
         # Record on the DOM element a reference to the console
         # instance, which is useful for client code.
         @element.data("console", @)
@@ -370,7 +369,7 @@ class Console extends EventEmitter
     console_is_open: () =>  # not chainable
         return @element.closest(document.documentElement).length > 0
 
-    blur : () =>
+    blur: () =>
         @is_focused = false
         if IS_MOBILE
             $(document).off('keydown', @mobile_keydown)
@@ -403,6 +402,12 @@ class Console extends EventEmitter
             e = $(editor.getWrapperElement())
             e.addClass('salvus-console-focus').removeClass('salvus-console-blur')
             e.find(".salvus-console-cursor-blur").removeClass("salvus-console-cursor-blur").addClass("salvus-console-cursor-focus")
+
+        check_for_hide = () =>
+            if not @element.is(":visible")
+                clearInterval(timer)
+                @blur()
+        timer = setInterval(check_for_hide, 100)
 
     set_title: (title) ->
         @element.find(".salvus-console-title").text(title)
