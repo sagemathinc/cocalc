@@ -874,6 +874,8 @@ Terminal.prototype.refresh = function(start, end) {
   for (; y <= end; y++) {
     row = y + this.ydisp;
 
+    if (row >= this.lines.length)
+	break;
     line = this.lines[row];
     out = '';
 
@@ -889,7 +891,8 @@ Terminal.prototype.refresh = function(start, end) {
     attr = this.defAttr;
     i = 0;
 
-    for (; i < width; i++) {
+    var w = Math.min(width, line.length);
+    for (; i < w; i++) {
       data = line[i][0];
       ch = line[i][1];
 
@@ -1054,7 +1057,10 @@ Terminal.prototype.scrollDisp = function(disp) {
 };
 
 Terminal.prototype.setchar = function(x, y, attr, ch) {
-    this.lines[y][x] = [attr, ch];
+    var line = this.lines[y];
+    if (line != null) {
+	line[x] = [attr, ch];
+    }
 }
 
 Terminal.prototype.write = function(data) {

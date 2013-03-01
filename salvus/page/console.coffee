@@ -24,6 +24,8 @@ console_template = templates.find(".salvus-console")
 feature = require 'feature'
 IS_MOBILE = feature.IS_MOBILE
 
+CSI = String.fromCharCode(0x9b)
+
 codemirror_renderer = (start, end) ->
     terminal = @
     if terminal.editor?
@@ -61,12 +63,12 @@ class Console extends EventEmitter
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             session     : required   # a console_session
             title       : ""
-            rows        : 24
+            rows        : 20
             cols        : 80
 
             font        :   # only for 'ttyjs' renderer
                 family : 'Courier, "Courier New", monospace' # CSS font-family
-                size   : 15                                  # CSS font-size in pixels
+                size   : 12                                  # CSS font-size in pixels
                 line_height : 115                            # CSS line-height percentage
 
             highlight_mode : 'none'
@@ -232,7 +234,7 @@ class Console extends EventEmitter
         ter.css
             'font-family' : @opts.font.family
             'font-size'   : "#{@opts.font.size}px"
-            'line-height' : "#{@opts.line_height}%"
+            'line-height' : "#{@opts.font.line_height}%"
 
         @element.resizable(alsoResize:ter).on('resize', @resize)
 
@@ -299,6 +301,12 @@ class Console extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
+    #
+    refresh: () =>
+        if @opts.renderer != 'ttyjs'
+            # nothing implemented
+            return
+        @terminal.refresh(0, @opts.rows-1)
 
     # Determine the current size (rows and columns) of the DOM
     # element for the editor, then resize the renderer and the
@@ -309,33 +317,47 @@ class Console extends EventEmitter
             return
 
         # Determine size of container DOM.
+
+        # Determine the width of a character using a little trick:
+        c = $("<span style:'padding:0px;margin:0px;border:0px;'>X</span>").appendTo(@terminal.element)
+        character_width = c.width()
+        if not @_character_height?
+            character_height = @opts.font.size
+        else
+            character_height = @_character_height
+        c.remove()
+
         # Determine the number of columns from the width of the element.
         elt = $(@terminal.element)
         font_size = @opts.font.size
-        new_cols = Math.floor(elt.width() / font_size)
+        new_cols = Math.floor(elt.width() / character_width)
         if new_cols == 0
             # The editor must not yet be visible -- do nothing
             return
 
-        console.log("resize: new_cols = #{new_cols}")
-
         # Determine number of rows from the height of the element.
-        if not @_line_height?
-            # first time, so we compute the height of line
-            @_line_height = Math.floor(elt.height() / @opts.rows)
-            new_rows = @opts.rows
-        else
-            new_rows = Math.floor(elt.height() / @_line_height)
-
-        console.log("resize: new_rows = #{new_rows}")
+        new_rows = Math.floor(elt.height() / character_height)
 
         if @opts.rows == new_rows and @opts.cols == new_cols
             # nothing to do
             return
 
         # Resize the renderer
+        @terminal.resize(new_cols, new_rows)
+        @refresh()
 
-        # Resize the remote PTY.
+        # Resize the remote PTY
+        resize_code = (cols, rows) ->
+            # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
+            # CSI Ps ; Ps ; Ps t
+            # CSI[4];[height];[width]t
+            return CSI + "4;#{rows};#{cols}t"
+
+        @session.write_data(resize_code(new_cols, new_rows))
+
+        # Record new size
+        @opts.cols = new_cols
+        @opts.rows = new_rows
 
     console_is_open: () =>  # not chainable
         return @element.closest(document.documentElement).length > 0
@@ -354,6 +376,11 @@ class Console extends EventEmitter
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
     focus: () =>
+        if not @_character_height?
+            height = $(@terminal.element).height()
+            if height != 0 and @opts.rows?
+                @_character_height = Math.ceil(height / @opts.rows)
+
         @resize()
 
         @is_focused = true

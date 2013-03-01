@@ -398,8 +398,7 @@ class CodeMirrorEditor extends FileEditor
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts,
-            rows : 24
+        opts = @opts = defaults opts, {}
         @connect_to_server()
 
     connect_to_server: (cb) =>

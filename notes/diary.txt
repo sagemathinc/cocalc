@@ -10107,12 +10107,11 @@ Hawaii (sd 46):
 * Also, we have to set the rows and cols in the client Terminal.
 
      [x] determine current size of the terminal window, and use it to set the Terminal editor params; test
-     [ ] have setting terminal editor params change recreate the Terminal renderer with them.
-     [ ] have setting the terminal editor params send a message to the pty to resize -- HOW? -- some special control code?
-     [ ] worry about refreshing the current display
+     [x] (0:05) have setting terminal editor params change recreate the Terminal renderer with them.
+     [x] have setting the terminal editor params send a message to the pty to resize -- HOW? -- some special control code?
+     [x] worry about refreshing the current display
 
 ---------------
-
 
      [ ] worksheet: implement _download_file()
      [ ] project: implement "new file"
@@ -10122,6 +10121,9 @@ Hawaii (sd 46):
      [ ] put .sage/matplotlib in template
 
 
+
+
+     [ ] Make it so obj argument to salvus.javascript (.... etc) jsonable's in an intelligent way.
 
 
 -------------------
