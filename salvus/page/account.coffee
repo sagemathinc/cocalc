@@ -126,7 +126,7 @@ $("#account-settings-autosave").keyup () ->
 $("#account-settings-terminal_font_size-slider").slider
     animate : true
     min     : 6
-    max     : 72
+    max     : 160
     step    : 1
     value   : 13
     change  : (event, ui) ->
@@ -141,7 +141,7 @@ $("#account-settings-terminal_font_size").keyup () ->
     if x.length == 0
         return
     s = parseInt(x)
-    if not (s >=1 and s <= 72)
+    if not (s >=1 and s <= 160)
         s = parseInt(last)
     else
         t.data('last', x)
@@ -372,7 +372,7 @@ class AccountSettings
                         val = 30
                 when 'terminal_font_size'
                     val = parseInt(element.val())
-                    if not (val >= 1 and val <= 72)
+                    if not (val >= 1 and val <= 160)
                         val = 12
                 else
                     val = element.val()

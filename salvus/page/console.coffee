@@ -63,7 +63,7 @@ class Console extends EventEmitter
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             session     : required   # a console_session
             title       : ""
-            rows        : 20
+            rows        : 16
             cols        : 80
 
             font        :   # only for 'ttyjs' renderer
@@ -108,7 +108,10 @@ class Console extends EventEmitter
         # static/term/term.js -- it's a nearly complete implementation of
         # the xterm protocol.
 
-        @terminal = new Terminal(@opts.cols, @opts.rows)
+        @terminal = new Terminal
+            cols: @opts.cols
+            rows: @opts.rows
+            client_keydown: @_client_keydown
 
         # this object (=@) is needed by the custom renderer, if it is used.
         @terminal.salvus_console = @
@@ -175,6 +178,32 @@ class Console extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
+
+    _client_keydown: (ev) =>
+        #console.log(ev)
+        if ev.ctrlKey and ev.shiftKey
+            switch ev.keyCode
+                when 190       # "control-shift->"
+                    @_increase_font_size()
+                    return false
+                when 188       # "control-shift-<"
+                    @_decrease_font_size()
+                    return false
+
+    _increase_font_size: () =>
+        @opts.font.size += 1
+        if @opts.font.size <= 159
+            @_font_size_changed()
+
+    _decrease_font_size: () =>
+        if @opts.font.size >= 2
+            @opts.font.size -= 1
+            @_font_size_changed()
+
+    _font_size_changed: () =>
+        $(@terminal.element).css('font-size':"#{@opts.font.size}px")
+        delete @_character_height
+        @resize()
 
     _init_default_settings: () =>
         if not @opts.font.size?
@@ -328,8 +357,8 @@ class Console extends EventEmitter
         # Determine the width of a character using a little trick:
         c = $("<span style:'padding:0px;margin:0px;border:0px;'>X</span>").appendTo(@terminal.element)
         character_width = c.width()
-        if not @_character_height?
-            character_height = @opts.font.size
+        if true or not @_character_height?
+            character_height = @opts.font.size+2
         else
             character_height = @_character_height
         c.remove()

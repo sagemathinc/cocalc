@@ -130,7 +130,7 @@ var normal = 0
  * Terminal
  */
 
-function Terminal(cols, rows, handler) {
+function Terminal(cols, rows, handler, client_keydown) {
   EventEmitter.call(this);
 
   var options;
@@ -139,11 +139,14 @@ function Terminal(cols, rows, handler) {
     cols = options.cols;
     rows = options.rows;
     handler = options.handler;
+    client_keydown = options.client_keydown
   }
   this._options = options || {};
 
   this.cols = cols || Terminal.geometry[0];
   this.rows = rows || Terminal.geometry[1];
+
+  this.client_keydown = client_keydown;
 
   if (handler) {
     this.on('data', handler);
@@ -352,7 +355,7 @@ function getSelectionHtml() { /* from http://stackoverflow.com/questions/5222814
 }
 
 Terminal.keys_are_bound = false;
-Terminal.bindKeys = function() {
+Terminal.bindKeys = function(client_keydown) {
   if (Terminal.focus) return;
 
    /* It is critical that we only bind to the keyboard once.
@@ -363,6 +366,9 @@ Terminal.bindKeys = function() {
 
   Terminal.keys_are_bound = true;
   on(document, 'keydown', function(ev) {
+    if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
+	return false;
+    }
       /* TODO -- REFACTOR -- put all stuff like this in client of this library. */
     if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
       return false;
@@ -370,7 +376,6 @@ Terminal.bindKeys = function() {
     if ((ev.metaKey | (ev.shiftKey && ev.ctrlKey)) && ev.keyCode == 86) {  // paste
       return false;
     }
-
 
     /* term -- handle the keystroke via the xterm . */
     if (typeof Terminal.focus === 'object') {
@@ -380,8 +385,9 @@ Terminal.bindKeys = function() {
 
   on(document, 'keypress', function(ev) {
     if (ev.metaKey) {
-	return false ;
+	return false;
     }
+
     if (typeof Terminal.focus === 'object') {
       return Terminal.focus.keyPress(ev);
     }
@@ -429,7 +435,7 @@ Terminal.prototype.open = function() {
 
   this.refresh(0, this.rows - 1);
 
-  Terminal.bindKeys();
+  Terminal.bindKeys(this.client_keydown);
   this.focus();
 
   this.startBlink();

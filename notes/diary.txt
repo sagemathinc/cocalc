@@ -10125,7 +10125,7 @@ TERMINALS:
 
      [x] console/account settings: fix bug with account setting numerical input and sliders
 
--->     [ ] ability to change font size directly from terminal (keystroke: control-+, control--)
+     [x] ability to change font size directly from terminal (keystroke: control-+, control--)
 
      [ ] set colors
 
