@@ -1638,6 +1638,9 @@ class Fork(object):
     The %fork block decorator evaluates its code in a forked subprocess
     that does not block the main process.
 
+    WARNING: This is highly experimental and possibly flakie. Use with
+    caution.
+
     All (picklelable) global variables that are set in the forked
     subprocess are set in the parent when the forked subprocess
     terminates.  However, the forked subprocess has no other side
