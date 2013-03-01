@@ -403,6 +403,9 @@ class Console extends EventEmitter
             e.addClass('salvus-console-focus').removeClass('salvus-console-blur')
             e.find(".salvus-console-cursor-blur").removeClass("salvus-console-cursor-blur").addClass("salvus-console-cursor-focus")
 
+        # Auto-defocus when not visible for 100ms.  Defocusing the
+        # console when not in view is CRITICAL, since it steals the
+        # keyboard completely.
         check_for_hide = () =>
             if not @element.is(":visible")
                 clearInterval(timer)
