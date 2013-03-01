@@ -633,7 +633,7 @@ class exports.Salvus extends exports.Cassandra
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'connect_Github', 'connect_Google', 'connect_Dropbox',
-                             'autosave']
+                             'autosave', 'terminal_font_size']
         )
         where = {}
         if opts.account_id?

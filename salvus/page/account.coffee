@@ -85,6 +85,9 @@ $("#account-settings-cancel-changes-button").click((event) -> account_settings.s
 
 $("#account-settings-tab").find("form").click((event) -> return false)
 
+#############
+# Autosave
+#############
 $("#account-settings-autosave-slider").slider
     animate : true
     min     : 0
@@ -115,6 +118,41 @@ $("#account-settings-autosave").keyup () ->
 
     # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
     t.val(s)
+
+#############
+# Terminal font size
+#############
+
+$("#account-settings-terminal_font_size-slider").slider
+    animate : true
+    min     : 6
+    max     : 72
+    step    : 1
+    value   : 13
+    change  : (event, ui) ->
+        $("#account-settings-terminal_font_size").val(ui.value)
+
+$("#account-settings-terminal_font_size").keyup () ->
+    t = $(@)
+    x = t.val()
+    last = t.data('last')
+    if x == last
+        return
+    if x.length == 0
+        return
+    s = parseInt(x)
+    if not (s >=0 and s <= 1000000)
+        s = parseInt(last)
+    else
+        t.data('last', x)
+    # Verify that input makes sense
+
+    # Move slider as best we can
+    $("#account-settings-terminal_font_size-slider").slider('value', s)
+
+    # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
+    t.val(s)
+
 
 
 ################################################
@@ -333,9 +371,14 @@ class AccountSettings
                     val = parseInt(element.val())
                     if not (val >= 0 and val <= 1000000)
                         val = 30
+                when 'terminal_font_size'
+                    val = parseInt(element.val())
+                    if not (val >= 6 and val <= 72)
+                        val = 12
                 else
                     val = element.val()
             @settings[prop] = val
+
 
     set_view: () ->
         if not @settings?
@@ -379,6 +422,9 @@ class AccountSettings
                 when 'autosave'
                     $("#account-settings-autosave-slider").slider('value', value)
                     $("#account-settings-autosave").val(value)
+                when 'terminal_font_size'
+                    $("#account-settings-terminal_font_size-slider").slider('value', value)
+                    $("#account-settings-terminal_font_size").val(value)
                 else
                     set(element, value)
 

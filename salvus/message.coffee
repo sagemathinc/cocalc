@@ -367,6 +367,7 @@ exports.unrestricted_account_settings =
     email_maintenance    : required
     enable_tooltips      : required
     autosave             : required   # time in seconds or 0 to disable
+    terminal_font_size   : required   # time in seconds or 0 to disable
 
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
@@ -379,6 +380,7 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 30
+    terminal_font_size : 12
 
 # client <--> hub
 message(

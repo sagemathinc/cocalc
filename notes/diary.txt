@@ -10117,7 +10117,13 @@ TERMINALS:
 
      [x] (1:12) fix the insert on same line bug; improve the prompt
 
-     [ ] set font size, family
+-- set font size, family (as a user setting)
+
+     [ ] add html/css for account settings for font size.
+     [ ] add coffeescript to make it do something
+     [ ] store in db (add to schema and add column)
+     [ ] use in terminal
+
      [ ] set colors
 
 ---------------
@@ -10125,6 +10131,7 @@ TERMINALS:
      [ ] emacs defaults (.sage,.py,.pyx,)
 
 
+     [ ] worksheet: new filename should be the date and time.
 
      [ ] worksheet: implement _download_file()
      [ ] project: implement "new file"
