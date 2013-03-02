@@ -170,7 +170,7 @@ class InteractCell(object):
         self._update_args = update_args
 
     def jsonable(self):
-1        """
+        """
         Return a JSON-able description of this interact, which the client
         can use for laying out controls.
         """
