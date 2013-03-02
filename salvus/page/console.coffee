@@ -74,7 +74,7 @@ class Console extends EventEmitter
             highlight_mode : 'none'
             renderer    : 'auto'   # options -- 'auto' (best for device); 'codemirror' (mobile support), 'ttyjs' (xterm-color!)
             draggable   : false
-            colors      : 'solarized-dark'
+            colors      : 'low-contrast'
 
         @_init_default_settings()
 
@@ -185,26 +185,40 @@ class Console extends EventEmitter
 
     _init_colors: () =>
         # A list of 16 html color strings (br=bright)
-        #      [black,red,green,yellow,blue,magenta,cyan,white,brblack,brred,brgreen,bryellow,brblue,brmagenta,brcyan,brwhite]
+        #      [black,red,green,yellow,blue,magenta,cyan,white,
+        #       brblack,brred,brgreen,bryellow,brblue,brmagenta,brcyan,brwhite,
+        #       foreground,background]
         switch @opts.colors
             when 'default'   # black, red, green, yellow, blue, magenta, cyan, white
                 colors = [ '#000000', '#cc0000', '#4e9a06', '#c4a000', '#3465a4', '#75507b', '#06989a', '#d3d7cf',  # dark
-                           '#555753', '#ef2929', '#8ae234', '#fce94f', '#729fcf', '#ad7fa8', '#34e2e2', '#ffffff']  # bright
+                           '#555753', '#ef2929', '#8ae234', '#fce94f', '#729fcf', '#ad7fa8', '#34e2e2', '#ffffff', # bright
+                           '#0000000', '#ffffff']
             when 'solarized-light'  # see http://ethanschoonover.com/solarized; provides *two* color schemes
                 colors = [ '#073642', '#dc322f', '#859900', '#b58900', '#268bd2', '#d33682', '#2aa198', '#eee8d5',
-                           '#002b36', '#cb4b16', '#586e75', '#657b83', '#839496', '#6c71c4', '#93a1a1', '#fdf6e3']
+                           '#002b36', '#cb4b16', '#586e75', '#657b83', '#839496', '#6c71c4', '#93a1a1', '#fdf6e3',
+                           '#073642', '#fdf6e3']
             when 'solarized-dark'
                 colors = [ '#eee8d5', '#dc322f', '#859900', '#b58900', '#268bd2', '#d33682', '#2aa198', '#073642',
-                           '#fdf6e3', '#cb4b16', '#93a1a1', '#839496', '#657b83', '#6c71c4', '#586e75', '#002b36']
+                           '#fdf6e3', '#cb4b16', '#93a1a1', '#839496', '#657b83', '#6c71c4', '#586e75', '#002b36',
+                           '#eee8d5', '#002b36']
+            when 'low-contrast'
+                colors = [ '#222222', '#9E5641', '#6C7E55', '#CAAF2B', '#7FB8D8', '#956D9D', '#4c8ea1', '#808080',
+                           '#454545', '#CC896D', '#C4DF90', '#FFE080', '#B8DDEA', '#C18FCB', '#6bc1d0', '#cdcdcd',
+                           '#cdcdcd', '#343434']
             else
                 return
 
         for i in [0...16]
             Terminal.colors[i] = colors[i]
 
-        Terminal.defaultColors =
-            bg: Terminal.colors[15],
-            fg: Terminal.colors[0]
+        if colors.length > 16
+            Terminal.defaultColors =
+                fg: colors[16]
+                bg: colors[17]
+        else
+            Terminal.defaultColors =
+                fg: colors[15]
+                bg: colors[0]
 
         Terminal.colors[256] = Terminal.defaultColors.bg
         Terminal.colors[257] = Terminal.defaultColors.fg
