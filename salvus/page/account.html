@@ -173,7 +173,7 @@
 
 	    <div class="span5 well account-settings-terminal">
 	      <div class="row">
-		<div class="row span2" rel="tooltip" title="The default font size for the terminal.">
+		<div class="row span2" rel="tooltip" title="The default font size for terminals.">
 		  <b>Terminal</b> font size
 		</div>
 		<div class="row span1">
@@ -183,6 +183,16 @@
 		  <div class="account-settings-terminal-font_size-slider"></div>
 		</div>
 	      </div>
+	      <div class="row">
+		<div class="row span2" rel="tooltip" title="The color scheme for terminals.">
+		  <b>Terminal</b> color scheme
+		</div>
+		<div class="row span3">
+		  <select class="account-settings-terminal-color_scheme">
+		  </select>
+		</div>
+	      </div>
+
 	    </div>
 	  </div>
 
@@ -228,8 +238,8 @@
 	  </div>
 
 	  <div class="row span4">
-	      <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button">Change settings</button>
-	      <button class="pull-right btn" id="account-settings-cancel-changes-button">Cancel changes</button>
+	      <button class="btn btn-primary btn-large" type="submit" id="account-settings-change-settings-button">Save settings</button>
+	      <button class="pull-right btn btn-large" id="account-settings-cancel-changes-button">Cancel changes</button>
 	  </div>
       </div>
       </form>

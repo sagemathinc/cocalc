@@ -120,7 +120,7 @@ $("#account-settings-autosave").keyup () ->
     t.val(s)
 
 #############
-# Terminal font size
+# Terminal configuration
 #############
 
 $(".account-settings-terminal-font_size-slider").slider
@@ -152,6 +152,16 @@ $(".account-settings-terminal-font_size").keyup () ->
     # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
     t.val(s)
 
+
+# Color schemes
+init_color_scheme_selector = () ->
+    selector = $(".account-settings-terminal-color_scheme")
+    themes = misc.keys(Terminal.color_schemes)
+    themes.sort()
+    for theme in themes
+        selector.append($("<option>").val(theme).html(Terminal.color_schemes[theme].comment))
+
+init_color_scheme_selector()
 
 
 ################################################
@@ -371,11 +381,16 @@ class AccountSettings
                     if not (val >= 0 and val <= 1000000)
                         val = 30
                 when 'terminal'
+                    val = {}
                     # font_size
                     font_size = parseInt($(".account-settings-terminal-font_size").val())
                     if not (font_size >= 1 and font_size <= 100)
                         font_size = 12
-                    val = {font_size:font_size}
+                    val.font_size = font_size
+
+                    # color scheme
+                    val.color_scheme = $(".account-settings-terminal-color_scheme").val()
+
                 else
                     val = element.val()
             @settings[prop] = val
@@ -427,6 +442,7 @@ class AccountSettings
                     if value.font_size?
                         $(".account-settings-terminal-font_size-slider").slider('value', value.font_size)
                         $(".account-settings-terminal-font_size").val(value.font_size)
+                        $(".account-settings-terminal-color_scheme").val(value.color_scheme)
                 else
                     set(element, value)
 

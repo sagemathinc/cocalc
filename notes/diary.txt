@@ -10151,11 +10151,9 @@ TERMINALS:
            Like this: http://chneukirchen.org/dotfiles/.Xresources
            Same file could also have color schemes for whole notebook UI... later
 
-         - settings UI reads some info from colors.coffee...
+     [x] UI -- dropdown for selecting theme, saving it, using it, etc., but no preview
 
-     [ ] console: extend color option; string that describes scheme *or* 16-18 colors for custom.
-     [ ] terminal colors: implement UI
-
+     [ ] theme preview
 
 --------------
 

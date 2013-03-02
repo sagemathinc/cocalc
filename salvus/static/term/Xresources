@@ -18,7 +18,7 @@ default*color13:     #ad7fa8
 default*color14:     #34e2e2
 default*color15:     #eeeeec
 
-! Solarized light -- see http://ethanschoonover.com/solarized
+! Solarized light
 solarized-light*color0: #073642
 solarized-light*color1: #dc322f
 solarized-light*color2: #859900
@@ -38,7 +38,7 @@ solarized-light*color15: #fdf6e3
 solarized-light*foreground: #073642
 solarized-light*background: #fdf6e3
 
-! Solarized dark -- see http://ethanschoonover.com/solarized
+! Solarized dark
 solarized-dark*color0: #eee8d5
 solarized-dark*color1: #dc322f
 solarized-dark*color2: #859900
@@ -58,7 +58,7 @@ solarized-dark*color15: #002b36
 solarized-dark*foreground: #eee8d5
 solarized-dark*background: #002b36
 
-! jasonwryan's theme -- https://bbs.archlinux.org/viewtopic.php?pid=653473
+! Low contrast (by Jason W Ryan)
 low-contrast*color0: #222222
 low-contrast*color1: #9E5641
 low-contrast*color2: #6C7E55
@@ -98,7 +98,7 @@ tango*color13:     #AD7FA8
 tango*color14:     #34E2E2
 tango*color15:     #EEEEEC
 
-! InfiniteRed
+! Infinite red
 infred*foreground: #f2f2f2
 infred*background: #101010
 infred*color0:    #6c6c6c

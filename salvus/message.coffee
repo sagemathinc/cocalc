@@ -380,7 +380,7 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 30
-    terminal           : {font_size:12}
+    terminal           : {font_size:12, color_scheme:'default'}
 
 # client <--> hub
 message(
