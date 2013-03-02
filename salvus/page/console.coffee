@@ -138,6 +138,9 @@ class Console extends EventEmitter
         # Initialize buttons
         @_init_buttons()
 
+        # Initialize fullscreen button
+        @_init_fullscreen()
+
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
 
@@ -324,6 +327,14 @@ class Console extends EventEmitter
                 else
                     @blur()
 
+    _init_fullscreen: () =>
+        @element.find("a[href=#fullscreen]").on 'click', () =>
+            @fullscreen()
+            return false
+        @element.find("a[href=#exit_fullscreen]").on 'click', () =>
+            @exit_fullscreen()
+            return false
+
     _init_buttons: () ->
         editor = @terminal.editor
 
@@ -366,7 +377,47 @@ class Console extends EventEmitter
     # Public API
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
-    #
+
+    # enter fullscreen mode
+    fullscreen: () =>
+        props = ['position', 'top', 'left', 'right', 'bottom']
+        term = $(@terminal.element)
+        @_save_fullscreen = [[@element.css(prop)  for prop in props], [term.css(prop)  for prop in props]]
+        @element.css
+            position:'absolute'
+            top:50
+            left:0
+            right:0
+            bottom:0
+
+        $(@terminal.element).css
+            position:'absolute'
+            top:"3em"
+            left:0
+            right:0
+            bottom:0
+
+        @resize()
+
+    # exit fullscreen mode
+    exit_fullscreen: () =>
+        if not @_save_fullscreen?
+            return
+        term = $(@terminal.element)
+        i = 0
+        for elt in [term, @element]
+            v = @_save_fullscreen[i]
+            i += 1
+            console.log(elt, v)
+            elt.css
+                position : 'relative'
+                top : v[1]
+                left : v[2]
+                right: v[3]
+                bottom : v[4]
+        delete @_save_fullscreen
+        @resize()
+
     refresh: () =>
         if @opts.renderer != 'ttyjs'
             # nothing implemented

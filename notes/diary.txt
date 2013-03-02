@@ -10153,8 +10153,8 @@ TERMINALS:
 
      [x] UI -- dropdown for selecting theme, saving it, using it, etc., but no preview
 
-     [ ] theme preview
-
+     [ ] fullscreen console
+.css({width: '100%', height: '300px', position:'absolute', top:0, left:0})
 --------------
 
      [ ] BUG -- when running over slow network (e.g., bsd from hawaii)
