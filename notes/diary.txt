@@ -10133,7 +10133,28 @@ TERMINALS:
 
 -------------
 
-     [ ] create terminal color settings -- basic proof of concept with no UI design
+     [x] create terminal color settings -- basic proof of concept with no UI design
+
+     [x] Decide on terminal colors functionality/implementation:
+         Functionality:
+              - select a pre-built theme or custom -- will change all open terms in this window
+           { colors:{'theme':'name of theme'} }
+              - edit custom theme -- by clicking on colors
+                                  -- by pasting in an Xresources file
+           { colors:{'theme':'custom', 'custom':[..list of colors if custom..] } }  <-- format would work for multiple customs...
+
+         - Store themes in a string full of (simple) Xresource blocks
+           that gets parsed to a minified javascript file in
+           static/term/colors.js, which is included in head.html.
+
+           Like this: http://chneukirchen.org/dotfiles/.Xresources
+           Same file could also have color schemes for whole notebook UI... later
+
+         - settings UI reads some info from colors.coffee...
+
+     [ ] console: extend color option; string that describes scheme *or* 16-18 colors for custom.
+     [ ] terminal colors: implement UI
+
 
 --------------
 
@@ -10153,7 +10174,7 @@ TERMINALS:
 
      [ ] emacs defaults (.sage,.py,.pyx)
 
-     [ ] exiting emacs on terminal leaves underscores around sometimes. 
+     [ ] exiting emacs on terminal leaves underscores around sometimes.
 
      [ ] new filename should be the date and time.
 
