@@ -10131,16 +10131,19 @@ TERMINALS:
 
      [x] terminal: make it so lower left corner can be dragged.
 
-     [ ] create terminal color settings ui, keyboard shortcuts, etc.
+-------------
+
+     [ ] create terminal color settings -- basic proof of concept with no UI design
+
+--------------
 
      [ ] BUG -- when running over slow network (e.g., bsd from hawaii)
          and resize *horizontally* a lot, get weird control characters
          in output...
 
+     [ ] default hgrc.
+
      [ ] browse other people's projects	if public
-
-
----------------
 
      [ ] copy/paste both don't work on Windows with Firefox.  They do work with Chrome.
 

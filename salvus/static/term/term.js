@@ -229,23 +229,23 @@ inherits(Terminal, EventEmitter);
 // Colors 0-15
 Terminal.colors = [
   // dark:
-  '#2e3436',
-  '#cc0000',
-  '#4e9a06',
-  '#c4a000',
-  '#3465a4',
-  '#75507b',
-  '#06989a',
-  '#d3d7cf',
-  // bright:
-  '#555753',
-  '#ef2929',
-  '#8ae234',
-  '#fce94f',
-  '#729fcf',
-  '#ad7fa8',
-  '#34e2e2',
-  '#eeeeec'
+  '#000000',  // black
+  '#cc0000',  // red
+  '#4e9a06',  // green
+  '#c4a000',  // yellow
+  '#3465a4',  // blue
+  '#75507b',  // magenta
+  '#06989a',  // cyan
+  '#d3d7cf',  // white-ish (really light grey)
+  // bright versions of the above.
+  '#555753',  // bright black
+  '#ef2929',  // bright red
+  '#8ae234',  // bright green
+  '#fce94f',  // bright yellow
+  '#729fcf',  // bright blue
+  '#ad7fa8',  // bright magenta
+  '#34e2e2',  // bright cyan
+  '#ffffff'   // bright white
 ];
 
 // Colors 16-255
@@ -282,8 +282,8 @@ Terminal.colors = (function() {
 
 // Default BG/FG
 Terminal.defaultColors = {
-  bg: '#ffffff',
-  fg: '#000000'
+  bg: Terminal.colors[15],  // '#ffffff',
+  fg: Terminal.colors[0]    // '#000000'
 };
 
 Terminal.colors[256] = Terminal.defaultColors.bg;
@@ -366,15 +366,17 @@ Terminal.bindKeys = function(client_keydown) {
 
   Terminal.keys_are_bound = true;
   on(document, 'keydown', function(ev) {
-    if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
-	return false;
-    }
       /* TODO -- REFACTOR -- put all stuff like this in client of this library. */
     if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
       return false;
     }
+
     if ((ev.metaKey | (ev.shiftKey && ev.ctrlKey)) && ev.keyCode == 86) {  // paste
       return false;
+    }
+
+    if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
+	return false;
     }
 
     /* term -- handle the keystroke via the xterm . */
@@ -2825,7 +2827,7 @@ Terminal.prototype.charAttributes = function(params) {
       // if (this.is('rxvt-unicode') && p < 88) p = p * 2.9090 | 0;
       this.curAttr = (this.curAttr & ~(0x1ff << 9)) | (p << 9);
     } else if (p === 48) {
-      // bg color 256
+1      // bg color 256
       if (params[i+1] !== 5) continue;
       i += 2;
       p = params[i] & 0xff;
