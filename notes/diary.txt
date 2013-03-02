@@ -10153,6 +10153,8 @@ TERMINALS:
 
      [x] UI -- dropdown for selecting theme, saving it, using it, etc., but no preview
 
+     [ ] possible bug -- does worksheet path get set *after* running %auto's.
+
      [ ] fullscreen console
 .css({width: '100%', height: '300px', position:'absolute', top:0, left:0})
 --------------
@@ -10670,6 +10672,9 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] shift-enter should interrupt any running interacts
 
 IDEAS...
+
+    [ ] make it so users can add a key to authorized_keys, which would
+        enable salvus to connect to a remote Linux account.
 
     [ ] upgrade: Browserify 2.0 -- https://gist.github.com/substack/5012401
 
