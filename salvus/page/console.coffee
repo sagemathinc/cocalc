@@ -328,11 +328,17 @@ class Console extends EventEmitter
                     @blur()
 
     _init_fullscreen: () =>
-        @element.find("a[href=#fullscreen]").on 'click', () =>
+        fullscreen = @element.find("a[href=#fullscreen]")
+        exit_fullscreen = @element.find("a[href=#exit_fullscreen]")
+        fullscreen.on 'click', () =>
             @fullscreen()
+            exit_fullscreen.show()
+            fullscreen.hide()
             return false
-        @element.find("a[href=#exit_fullscreen]").on 'click', () =>
+        exit_fullscreen.hide().on 'click', () =>
             @exit_fullscreen()
+            exit_fullscreen.hide()
+            fullscreen.show()
             return false
 
     _init_buttons: () ->
@@ -380,42 +386,33 @@ class Console extends EventEmitter
 
     # enter fullscreen mode
     fullscreen: () =>
-        props = ['position', 'top', 'left', 'right', 'bottom']
-        term = $(@terminal.element)
-        @_save_fullscreen = [[@element.css(prop)  for prop in props], [term.css(prop)  for prop in props]]
+        h = $(".navbar-fixed-top").height()
         @element.css
-            position:'absolute'
-            top:50
-            left:0
-            right:0
-            bottom:0
+            position : 'absolute'
+            width : "97%"
+        .css
+            top      : h
+            left     : 0
+            right    : 0
+            bottom   : 1
 
         $(@terminal.element).css
-            position:'absolute'
-            top:"3em"
-            left:0
-            right:0
-            bottom:0
+            position  : 'absolute'
+            width     : "97%"
+            top       : "3.5em"
+            bottom    : 1
 
         @resize()
+        @element.resizable('disable').css(opacity:1)
 
     # exit fullscreen mode
     exit_fullscreen: () =>
-        if not @_save_fullscreen?
-            return
-        term = $(@terminal.element)
-        i = 0
-        for elt in [term, @element]
-            v = @_save_fullscreen[i]
-            i += 1
-            console.log(elt, v)
+        for elt in [$(@terminal.element), @element]
             elt.css
                 position : 'relative'
-                top : v[1]
-                left : v[2]
-                right: v[3]
-                bottom : v[4]
-        delete @_save_fullscreen
+                top : 0
+                width: "100%"
+        @element.resizable('enable')
         @resize()
 
     refresh: () =>
