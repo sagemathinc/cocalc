@@ -10135,7 +10135,8 @@ TERMINALS:
 
      [x] create terminal color settings -- basic proof of concept with no UI design
 
-     [x] Decide on terminal colors functionality/implementation:
+     [x] Decide on terminal colors functionality/implementation.
+
          Functionality:
               - select a pre-built theme or custom -- will change all open terms in this window
            { colors:{'theme':'name of theme'} }
@@ -10143,7 +10144,7 @@ TERMINALS:
                                   -- by pasting in an Xresources file
            { colors:{'theme':'custom', 'custom':[..list of colors if custom..] } }  <-- format would work for multiple customs...
 
-         - Store themes in a string full of (simple) Xresource blocks
+     [x] - Store themes in a string full of (simple) Xresource blocks
            that gets parsed to a minified javascript file in
            static/term/colors.js, which is included in head.html.
 
