@@ -76,6 +76,7 @@ class Cell extends EventEmitter
                 split_cell        : "Ctrl-;"
                 execute_insert    : "Ctrl-Enter"
                 execute_stay      : "Alt-Enter"
+                shift_left        : "Shift-Tab"
 
             # maximum height of output (scroll bars appear beyond this)
             output_max_height     : "40em"
@@ -214,6 +215,9 @@ class Cell extends EventEmitter
 
         extraKeys[@opts.keys.execute_stay] = (editor) =>
             @execute()
+
+        extraKeys[@opts.keys.shift_left] = (editor) =>
+            @_unindent_selection()
 
         @_editor = CodeMirror.fromTextArea @_code_editor[0],
             firstLineNumber : 1
@@ -703,6 +707,28 @@ class Cell extends EventEmitter
         set(desc.default)
         control.data("set", set)
         return control
+
+    _unindent_selection: () =>
+        cm         = @_editor
+        cursor     = cm.getCursor()
+        start      = cm.getCursor(true)
+        start_line = start.line
+        end        = cm.getCursor()
+        end_line   = if end.ch > 0 then end.line else end.line - 1
+        all_need_unindent = true
+        for n in [start_line .. end_line]
+            s = cm.getLine(n)
+            if s[0] == '\t'
+                continue
+            for i in [0...@opts.editor_indent_spaces]
+                if s[i] != ' '
+                    all_need_unindent = false
+                    break
+            if not all_need_unindent
+                break
+        if all_need_unindent
+            for n in [start_line .. end_line]
+                cm.indentLine(n, "subtract")
 
     #######################################################################
     # Public API

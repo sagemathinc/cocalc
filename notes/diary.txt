@@ -10156,7 +10156,11 @@ TERMINALS:
      [x] fullscreen console; .css({width: '100%', height: '300px', position:'absolute', top:0, left:0})
 --------------
 
-     [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
+-->   [ ] cell and file editor: highlight and < > to shift right and left.  shift-tab is LAME
+          1. implement for cell
+          2. refactor and make generic to both cell and file editor
+
+     [ ] tab in cell should *not* ever insert a stupid tab character!
 
      [ ] homework assignment/quiz sheet:
         [ ] try to make something like this using interacts and see what happens.
@@ -10167,6 +10171,8 @@ TERMINALS:
        going to *kill* during the next few days...
 
      [ ] possible bug -- does worksheet path get set *after* running %auto's.
+
+     [ ] emacs undo keystroke zooms chrome out... :-(
 
      [ ] BUG -- when running over slow network (e.g., bsd from hawaii)
          and resize *horizontally* a lot, get weird control characters
