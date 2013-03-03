@@ -356,6 +356,8 @@ class CodeMirrorEditor extends FileEditor
             smartIndent     : opts.smart_indent
             undoDepth       : opts.undo_depth
             matchBrackets   : opts.match_brackets
+            extraKeys       :
+                "Shift-Tab" : (editor) => editor.unindent_selection()
 
         $(@codemirror.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 

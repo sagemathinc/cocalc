@@ -144,3 +144,30 @@ $.fn.extend
 
 
             return t
+
+
+####################################
+# Codemirror Extensions
+####################################
+
+CodeMirror.defineExtension 'unindent_selection', () ->
+    editor     = @
+    cursor     = editor.getCursor()
+    start      = editor.getCursor(true)
+    start_line = start.line
+    end        = editor.getCursor()
+    end_line   = if end.ch > 0 then end.line else end.line - 1
+    all_need_unindent = true
+    console.log(editor)
+    for n in [start_line .. end_line]
+        s = editor.getLine(n)
+        if not s?
+            return
+        if s[0] == '\t' or s[0] == ' '
+            continue
+        else
+            all_need_unindent = false
+            break
+    if all_need_unindent
+        for n in [start_line .. end_line]
+            editor.indentLine(n, "subtract")
