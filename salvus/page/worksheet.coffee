@@ -283,8 +283,18 @@ class Worksheet extends EventEmitter
             return false
 
     _download_file : () =>
-        # TODO
-        alert_message(type:'error', message:'Worksheet download not yet implemented.')
+        @save @opts.path, (err) =>
+            # TODO: THIS replicates code in project.coffee
+            salvus_client.read_file_from_project
+                project_id : @opts.project_id
+                path       : @opts.path
+                cb         : (err, result) =>
+                    if err
+                        alert_message(type:"error", message:"Error downloading a worksheet: #{err} -- #{misc.to_json(result)}")
+                    else
+                        url = result.url + "&download"
+                        iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
+                        setTimeout((() -> iframe.remove()), 1000)
 
     _init_section_button: () =>
         @element.find("a[href=#create-section]").click () =>
@@ -735,9 +745,11 @@ class Worksheet extends EventEmitter
         @element.find(".salvus-worksheet-filename").val()
 
     # Save the worksheet to the given path.
-    save: (path) =>
+    save: (path, cb) =>
         if path == "" or not path?
-            alert_message(type:'error', message:"You must enter a filename in order to save your worksheet.")
+            err = "You must enter a filename in order to save your worksheet."
+            alert_message(type:'error', message:err)
+            cb?(err)
             return
         if filename_extension(path) != 'salvus-worksheet'
             path += '.salvus-worksheet'
@@ -804,6 +816,7 @@ class Worksheet extends EventEmitter
             else
                 @has_unsaved_changes(false)
             @_last_path = path
+            cb?(err)
         )
 
 

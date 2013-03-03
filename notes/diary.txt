@@ -10170,11 +10170,11 @@ def f(n=1, k=button('go'), t =True):
      [x] (0:20) shift-enter and control-s in file editor should save.
          (it would be cool if shift-enter could auto-reload all clients that have attached the code... but maybe too hard.)
 
-     [ ] idea: page that just shows recent docs (in any project)
+     [x] The label option of text_control is ignored.
+
+     [x] (0:12) worksheet: implement _download_file()
 
      [ ] moving cells up down accidentally goes *inside* interact outputs.  TERRIFYING.
-
-     [ ] file editor -- could "save on blur"
 
      [ ] homework assignment/quiz sheet:
         [ ] try to make something like this using interacts and see what happens.
@@ -10185,8 +10185,6 @@ def f(n=1, k=button('go'), t =True):
        going to *kill* during the next few days...
 
      [ ] possible bug -- does worksheet path get set *after* running %auto's.
-
-     [ ] The label option of text_control is ignored.
 
      [ ] emacs undo keystroke zooms chrome out... :-(
 
@@ -10225,7 +10223,6 @@ while True:
 
      [ ] new filename should be the date and time.
 
-     [ ] worksheet: implement _download_file()
      [ ] project: implement "new file"
      [ ] worksheet: changing what is hidden or not in a cell doesn't trigger dirty
      [ ] make terminal persistent
@@ -10775,6 +10772,10 @@ This is worrisome/complicated, so leave it for later!
 
     [ ] consider removing  jquery.transit plugin if I don't end up using it.
 
+     [ ] idea: page that just shows recent docs (in any project)
+
+     [ ] idea: file editor -- could "save on hide..."
+
     [ ] 3d idea: mathbox https://github.com/unconed/MathBox.js
 
     [ ] 3d CSS investigation one.
@@ -10832,9 +10833,9 @@ def mat(s):
     globals()['m'] = matrix(2,[1,2,3,4])
 %mat m 1,2;3,4 GF(7)
 
-
 +tab completion doesn't work for:" M = ModularSymbols(N*p,sign=1).cuspidal_su[tab]"
 +
 +"d = E.dimension() * sigma(" doesn't work either.
+
 
 
