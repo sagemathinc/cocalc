@@ -31,3 +31,8 @@ Editor for files in a project
 .salvus-editor-button-bar {
     margin-bottom:0em;
 }
+
+.salvus-editor-input-box {
+    border: 3px solid #9a9;
+    border-radius: 5px;
+}

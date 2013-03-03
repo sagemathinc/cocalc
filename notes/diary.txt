@@ -10162,12 +10162,12 @@ TERMINALS:
 
      [x] (0:40) interact: extend input_box to allow multiple rows.
 
-     [x] (0:10) interact bug -- input box should submit when loose focus:
+     [x] (0:10) interact bug -- input box should submit when loose focus and has changed
 @interact
 def f(n=1, k=button('go'), t =True):
     print locals()
 
-     [ ] shift-enter and control-s in file editor should save.
+     [x] (0:20) shift-enter and control-s in file editor should save.
          (it would be cool if shift-enter could auto-reload all clients that have attached the code... but maybe too hard.)
 
      [ ] idea: page that just shows recent docs (in any project)

@@ -357,6 +357,8 @@ class CodeMirrorEditor extends FileEditor
             undoDepth       : opts.undo_depth
             matchBrackets   : opts.match_brackets
             extraKeys       :
+                "Shift-Enter" : (editor) => @click_save_button()
+                "Ctrl-S" : (editor) => @click_save_button()
                 "Shift-Tab" : (editor) => editor.unindent_selection()
                 "Tab"       : (editor) =>
                     c = editor.getCursor(); d = editor.getCursor(true)
@@ -365,7 +367,9 @@ class CodeMirrorEditor extends FileEditor
                     else
                         CodeMirror.commands.defaultTab(editor)
 
-        $(@codemirror.getScrollerElement()).css('max-height' : @opts.editor_max_height)
+        $(@codemirror.getScrollerElement()).css
+            'max-height' : @opts.editor_max_height
+            margin       : '5px'
 
         @init_save_button()
         @init_change_event()
@@ -373,17 +377,19 @@ class CodeMirrorEditor extends FileEditor
     init_save_button: () =>
         save = @save = @element.find("a[href=#save]")
         save.find(".spinner").hide()
-        save.click () =>
-            if not save.hasClass('disabled')
-                save.find('span').text("Saving...")
-                save.find(".spinner").show()
-                @editor.save @filename, (err) =>
-                    save.find('span').text('Save')
-                    save.find(".spinner").hide()
-                    if not err
-                        save.addClass('disabled')
-                        @has_unsaved_changes(false)
-            return false
+        save.click @click_save_button
+
+    click_save_button: () =>
+        if not @save.hasClass('disabled')
+            @save.find('span').text("Saving...")
+            @save.find(".spinner").show()
+            @editor.save @filename, (err) =>
+                @save.find('span').text('Save')
+                @save.find(".spinner").hide()
+                if not err
+                    @save.addClass('disabled')
+                    @has_unsaved_changes(false)
+        return false
 
     init_change_event: () =>
         @codemirror.on 'change', (instance, changeObj) =>
