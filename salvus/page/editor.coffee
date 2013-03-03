@@ -358,6 +358,12 @@ class CodeMirrorEditor extends FileEditor
             matchBrackets   : opts.match_brackets
             extraKeys       :
                 "Shift-Tab" : (editor) => editor.unindent_selection()
+                "Tab"       : (editor) =>
+                    c = editor.getCursor(); d = editor.getCursor(true)
+                    if c.line==d.line and c.ch == d.ch
+                        editor.tab_as_space()
+                    else
+                        CodeMirror.commands.defaultTab(editor)
 
         $(@codemirror.getScrollerElement()).css('max-height' : @opts.editor_max_height)
 

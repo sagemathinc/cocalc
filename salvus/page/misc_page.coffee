@@ -158,7 +158,6 @@ CodeMirror.defineExtension 'unindent_selection', () ->
     end        = editor.getCursor()
     end_line   = if end.ch > 0 then end.line else end.line - 1
     all_need_unindent = true
-    console.log(editor)
     for n in [start_line .. end_line]
         s = editor.getLine(n)
         if not s?
@@ -171,3 +170,8 @@ CodeMirror.defineExtension 'unindent_selection', () ->
     if all_need_unindent
         for n in [start_line .. end_line]
             editor.indentLine(n, "subtract")
+
+CodeMirror.defineExtension 'tab_as_space', () ->
+    cursor = @getCursor()
+    for i in [0...@.options.tabSize]
+        @replaceRange(' ', cursor)

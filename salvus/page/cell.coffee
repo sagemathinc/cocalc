@@ -290,7 +290,7 @@ class Cell extends EventEmitter
         pos = @_editor.getCursor()
         if pos.ch == 0 or @_editor.getRange({line:pos.line, ch:pos.ch-1},
                              pos).search(/[\s|\)]/) != -1
-            CodeMirror.commands.defaultTab(@_editor)
+            @_editor.tab_as_space()
             return
         # Otherwise, introspect.
         to   = @_editor.getCursor()

@@ -10156,11 +10156,11 @@ TERMINALS:
      [x] fullscreen console; .css({width: '100%', height: '300px', position:'absolute', top:0, left:0})
 --------------
 
-   [x] cell and file editor: highlight and < > to shift right and left.  shift-tab is LAME
+     [x] (1:05) cell and file editor: highlight and < > to shift right and left.  shift-tab is LAME
           1. implement for cell
           2. refactor and make generic to both cell and file editor
 
-     [ ] tab in cell should *not* ever insert a stupid tab character!
+     [x] (0:15) tab in cell should *not* ever insert a stupid tab character!
 
      [ ] homework assignment/quiz sheet:
         [ ] try to make something like this using interacts and see what happens.
