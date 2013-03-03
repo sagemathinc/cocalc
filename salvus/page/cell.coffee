@@ -482,29 +482,32 @@ class Cell extends EventEmitter
 
         switch desc.control_type
             when 'input-box'
-                console.log(desc)
+
+                last_sent_val = undefined
+                do_send = () ->
+                    val = input.val()
+                    last_sent_val = val
+                    send(val)
+
                 if desc.nrows <= 1
                     input = control.find("input").show()
-                    set = (val) ->
-                        input.val(val)
                     input.keypress (evt) ->
                         if evt.which == 13
-                            send(input.val())
-                    input.keydown (evt) ->
-                        if evt.which == 9
-                            send(input.val())
+                            do_send()
                 else
                     input = control.find("textarea").show().attr('rows', desc.nrows)
-                    set = (val) ->
-                        input.val(val)
                     desc.submit_button = true
                     input.keypress (evt) ->
                         if evt.shiftKey and evt.which == 13
-                            send(input.val())
+                            do_send()
                             return false
-                    input.keydown (evt) ->
-                        if evt.which == 9
-                            send(input.val())
+
+                set = (val) ->
+                    input.val(val)
+
+                input.on 'blur', () ->
+                    if input.val() != last_sent_val
+                        do_send()
 
                 if desc.submit_button
                     submit = control.find(".salvus-cell-interact-control-input-box-submit-button").show()

@@ -152,7 +152,7 @@ $.fn.extend
 
 $("#about").top_navbar
     id      : "about"
-    label   : "About"# Salvus&trade;"
+    label   : "SageMathCloud" # Salvus&trade;"
     close   : false
 
 $("#projects").top_navbar

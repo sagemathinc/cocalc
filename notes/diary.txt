@@ -10162,7 +10162,7 @@ TERMINALS:
 
      [x] (0:40) interact: extend input_box to allow multiple rows.
 
-     [ ] interact bug -- input box should submit when loose focus:
+     [x] (0:10) interact bug -- input box should submit when loose focus:
 @interact
 def f(n=1, k=button('go'), t =True):
     print locals()
