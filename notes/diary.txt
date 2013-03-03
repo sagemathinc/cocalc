@@ -10154,8 +10154,6 @@ TERMINALS:
      [x] UI -- dropdown for selecting theme, saving it, using it, etc., but no preview
 
      [x] fullscreen console; .css({width: '100%', height: '300px', position:'absolute', top:0, left:0})
---------------
-
      [x] (1:05) cell and file editor: highlight and < > to shift right and left.  shift-tab is LAME
           1. implement for cell
           2. refactor and make generic to both cell and file editor
@@ -10171,6 +10169,8 @@ TERMINALS:
        going to *kill* during the next few days...
 
      [ ] possible bug -- does worksheet path get set *after* running %auto's.
+
+     [ ] The label option of text_control is ignored.
 
      [ ] emacs undo keystroke zooms chrome out... :-(
 

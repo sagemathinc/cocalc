@@ -523,7 +523,7 @@ class Cell extends EventEmitter
                 text = control.find(".salvus-cell-interact-control-content")
                 if desc.classes
                     for cls in desc.classes.split(/\s+/g)
-                        text.addClas1s(cls)
+                        text.addClass(cls)
                 set = (val) -> text.html(val).mathjax()
 
             when 'input-grid'

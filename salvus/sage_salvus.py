@@ -164,7 +164,7 @@ class InteractCell(object):
             c._opts['var'] = 'auto_update'
             self._controls['auto_update'] = c
             self._ordered_args.append("auto_update")
-            layout['top'].append(['auto_update'])
+            layout.append([('auto_update',2)])
             update_args = ['auto_update']
 
         self._update_args = update_args
@@ -566,7 +566,7 @@ def automatic_control(default):
         else:
             return slider(list(default), default=default_value, label=label)
     elif is_Matrix(default):
-        return input_grid(default.nrows(), default.ncols(), default=default.list(), to_value=default.parent())
+        return input_grid(default.nrows(), default.ncols(), default=default.list(), to_value=default.parent(), label=label)
     else:
         return input_box(default, label=label)
 
