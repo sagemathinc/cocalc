@@ -10153,15 +10153,39 @@ TERMINALS:
 
      [x] UI -- dropdown for selecting theme, saving it, using it, etc., but no preview
 
-     [ ] possible bug -- does worksheet path get set *after* running %auto's.
-
-     [ ] fullscreen console
-.css({width: '100%', height: '300px', position:'absolute', top:0, left:0})
+     [x] fullscreen console; .css({width: '100%', height: '300px', position:'absolute', top:0, left:0})
 --------------
+
+     [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
+
+     [ ] homework assignment/quiz sheet:
+        [ ] try to make something like this using interacts and see what happens.
+       First thought -- make it so every homework problem is like a
+       little *game*, and make the tools for making it game-like easy
+       to use.  Have timers, timing, etc.
+       I used to LOVE this sort of thing as a kid.  LOVE it.  This is what I'm
+       going to *kill* during the next few days...
+
+     [ ] possible bug -- does worksheet path get set *after* running %auto's.
 
      [ ] BUG -- when running over slow network (e.g., bsd from hawaii)
          and resize *horizontally* a lot, get weird control characters
          in output...
+
+     [ ] BUG -- I see this in the url field: "https://localhost/#toggle-note"
+
+     [ ] editor: make it possible to *set* the syntax mode for a file;
+         remember for next time.
+
+     [ ] feature idea: a mode where files under git are checked in
+         every time a file changes -- it could be a metadata toggle
+         for a file/path/etc.
+#!/usr/bin/env python
+import os, time
+while True:
+    time.sleep(5)
+    os.system('git add .; git commit -a -m "autocommit"')
+
 
      [ ] default hgrc.
 
@@ -10534,7 +10558,6 @@ It's http://bugs.python.org/issue7985 -- see
 
     [ ] cell: add a 'lang' attribute to specify the language.
     [ ] load/attach
-    [ ] cell: highlight and < > to shift right and left.  shift-tab is LAME
     [ ] cell: move the stopwatch to right side.
 
     [ ] branch: switching needs to work
