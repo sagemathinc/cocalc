@@ -182,3 +182,8 @@
 .salvus-cell-interact-control-slider {
     margin-top:4px;
 }
+
+.salvus-cell-interact-input-box-font {
+    font-family : "Courier New";
+    font-size   : 13pt;
+}

@@ -10160,6 +10160,22 @@ TERMINALS:
 
      [x] (0:15) tab in cell should *not* ever insert a stupid tab character!
 
+     [x] (0:40) interact: extend input_box to allow multiple rows.
+
+     [ ] interact bug -- input box should submit when loose focus:
+@interact
+def f(n=1, k=button('go'), t =True):
+    print locals()
+
+     [ ] shift-enter and control-s in file editor should save.
+         (it would be cool if shift-enter could auto-reload all clients that have attached the code... but maybe too hard.)
+
+     [ ] idea: page that just shows recent docs (in any project)
+
+     [ ] moving cells up down accidentally goes *inside* interact outputs.  TERRIFYING.
+
+     [ ] file editor -- could "save on blur"
+
      [ ] homework assignment/quiz sheet:
         [ ] try to make something like this using interacts and see what happens.
        First thought -- make it so every homework problem is like a

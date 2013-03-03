@@ -383,7 +383,7 @@ class Salvus(object):
                 url += '?download'
             return url
 
-    def execute(self, code, namespace=None, preparse=True):
+    def execute(self, code, namespace=None, preparse=True, locals=None):
         if namespace is None:
             namespace = self.namespace
 
@@ -394,7 +394,7 @@ class Salvus(object):
                 block = parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
-                exec compile(block, '', 'single') in namespace
+                exec compile(block, '', 'single') in namespace, locals
             except:
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
