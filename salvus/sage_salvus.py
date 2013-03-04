@@ -1655,7 +1655,7 @@ class Fork(object):
     type fork.kill(pid).  This is currently the only way to stop code
     running in %fork cells.
 
-    TODO/WARNING: The subprocesses spawned by fork aren't killed
+    TODO/WARNING: The subprocesses spawned by fork are not killed
     if the parent process is killed first!
 
     NOTE: All pexpect interfaces are reset in the child process.
@@ -1842,3 +1842,117 @@ def hideall(code=None):
     cell.hideall()
     if code is not None: # for backwards compat with sagenb
         return code
+
+
+
+##########################################################
+# A "%exercise" cell mode -- a first step toward
+# automated homework.
+##########################################################
+class Exercise:
+    def __init__(self, question, answer, check=None, track_attempts=True):
+        import sage.all, sage.matrix.all
+        if not (isinstance(answer, (tuple, list)) and len(answer) == 2):
+            if sage.matrix.all.is_Matrix(answer):
+                default = sage.all.parent(answer)(0)
+                track_attempts = False
+            else:
+                default = ''
+            answer = [answer, default]
+
+        if check is None:
+            def check(attempt, correct):
+                return sage.all.parent(correct)(attempt) == correct
+
+        self._question = question
+        self._answer = answer
+        self._track_attempts = track_attempts
+        self._check = check
+
+    def _check_answer(self, attempt, interact):
+        from sage.misc.all import walltime
+        response = "<div class='well'>"
+        try:
+            correct = self._check(attempt, self._answer[0])
+        except TypeError, msg:
+            response += "<h3 style='color:darkgreen'>Huh? -- %s (attempt=%s)</h3>"%(msg, attempt)
+        else:
+            if correct:
+                response += "<h1 style='color:blue'>RIGHT!</h1>"
+                if self._start_time:
+                    response += "<h2 class='lighten'>Time: %s seconds</h2>"%(int(walltime()-self._start_time),)
+                if self._track_attempts:
+                    if self._number_of_attempts == 1:
+                        response += "<h3 class='lighten'>You got it first try!</h3>"
+                    else:
+                        response += "<h3 class='lighten'>It took you %s attempts.</h3>"%(self._number_of_attempts,)
+            else:
+                response += "<h3 style='color:darkgreen'>Not correct yet...</h3>"
+                if self._track_attempts:
+                    if self._number_of_attempts == 1:
+                        response += "<h4 style='lighten'>(first attempt)</h4>"
+                    else:
+                        response += "<h4 style='lighten'>(%s attempts)</h4>"%self._number_of_attempts
+                    if self._number_of_attempts >= 3:
+                         response += "<span class='lighten small'>(HINT: the answer is %s!)</span>"%(self._answer[0],)
+        response += "</div>"
+
+        interact.feedback = text_control(response,label='')
+
+    def ask(self):
+        from sage.misc.all import walltime
+        self._start_time = walltime()
+        self._number_of_attempts = 0
+        @interact(layout=[[('question',12)],[('answer',12)], [('feedback',12)]])
+        def f(question = ("<b>Question:</b>", text_control(self._question)),
+              answer   = ('<b>Answer:</b>',self._answer[1])):
+            if 'answer' in interact.changed() and answer != '':
+                if self._start_time == 0:
+                    self._start_time = walltime()
+                self._number_of_attempts += 1
+                self._check_answer(answer, interact)
+
+def exercise(title):
+    r"""
+    The %exercise cell decorator is a first very small step toward a
+    system for creating interactive quiz and exercise sets using
+    SageCloud.
+
+    Put %exercise("short description") at the top of the cell, then make sure the
+    code in the cell defines:
+
+    - a ``question`` variable, as an HTML string with math in dollar signs,
+    - an ``answer`` variable, which can be any object, or a pair
+      (correct_value, interact control)
+    - optionally, a function check(answer, correct_answer) that returns
+      a pair (True or False, message), where the first argument is True
+      if their answer is correct, and the second argument is a message
+      that should be displayed in response to the given answer.
+
+    NOTES: The code in the cell block is executed in so that it does
+    not impact the global scope of your variables elsewhere in your
+    session, by wrapping it in a function.  Also, the TITLE IS NOT
+    OPTIONAL.
+
+    The following example questions help illustrate how %exercise works.
+
+    An exercise to test your ability to sum the first $n$ integers::
+
+        %exercise("Sum the first n integers, like Gauss did.")
+        n = randint(3,100)
+        question = "What is the sum $1 + 2 + \\cdots + %s$ of the first %s positive integers?"%(n,n)
+        answer = n*(n+1)//2
+    """
+    def f(code):
+        import uuid
+        code = ' ' + ('\n '.join(code.splitlines()))  # TODO: should strip string literals first
+        code = ' title=""; answer=""; question=""; check=None\n' + code
+        fname = "_" + str(uuid.uuid4()).replace('-','_')
+        closure = "def %s():\n%s\n sage_salvus.Exercise(question, answer, check).ask()\n\n%s()"%(fname, code, fname)
+        @interact(layout=[[('go',4), ('title',8,'')]], flicker=True)
+        def f(go    = button("Do Exercise", label='',icon='icon-bolt', classes="btn-large btn-success"),
+              title = text_control('<h2 class="lighten">%s</h2>'%title)):
+            if 'go' in interact.changed():
+                salvus.execute(closure)
+    return f
+

@@ -10174,6 +10174,36 @@ def f(n=1, k=button('go'), t =True):
 
      [x] (0:12) worksheet: implement _download_file()
 
+-->     [ ] put exercise decorator in sage_salvus ASAP before it gets lost.
+
+TOP PRIORITY todo list for first release:
+==========================================
+
+     [ ] make it possible to browse all public projects in read-only mode -- provides a "publish" capability
+
+     [ ] backups:
+
+          [ ] learn rsnapshot
+          [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
+          [ ] store that this was done in database
+          [ ] get rid of current rsync stuff
+
+     [ ] some way to display 3d graphics
+
+     [ ] design/create ability to link a project to a general unix account.... (?)
+
+     [ ] project/directory download
+
+     [ ] note: bold, bulleted list, font size
+
+     [ ] search in all (open) projects
+
+     [ ] massive library, etc. rename: "salvus" -> "cloudsage".
+
+     [ ] coloring/Sphinx'ing of docstrings
+
+========================
+
      [ ] moving cells up down accidentally goes *inside* interact outputs.  TERRIFYING.
 
      [ ] homework assignment/quiz sheet:
@@ -10287,13 +10317,7 @@ f.n = 10
 
      [ ] update project size display for open projects in the project itself.
 
-     [ ] long-term storage project:
-          [ ] learn rsnapshot
-          [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
-          [ ] store that this was done in database
-
      [ ] codemirror scrolling frustrating -- doesn't work nicely on OS X 10.7.5, etc. -- scroll bars don't appear
-
 
      [ ] terminal option: "delete sends backspace"
 
@@ -10400,7 +10424,7 @@ def f(n=10**100):
 
     [ ] cell note/mathjax: when using it, I really wish there were syntax highlighting, paren matching, etc... maybe it should be *latex* mode codemirror?  But what about markup.  Ugh.  Or... it could switch modes easily.  Hmm.   I could make it *automatically* embed little auto-expanding code-mirrors everywhere that there are $$'s...   Or, while typing, hit $ and suddenly a little codemirror appears, hit $ again as 0,0 entry, and it centers.
 
-    [ ] worksheet: they must have "pages", like a spreadsheet has pages.  This would be a boon to organization.
+    [ ] worksheet: they could have "pages", like a spreadsheet has pages.  This would be a boon to organization.
 
     [ ] worksheet title tab: needs a spinner when there is action (css icon?) or javascript spinner...?
 
@@ -10589,8 +10613,6 @@ It's http://bugs.python.org/issue7985 -- see
     [ ] cell: comment/uncomment -- "Hello, i try to comment uncomment block of code on the sage notebook, but the schortcut are similar to some shortcut of firefox.
 for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : work but firefox change the page to the tab 3 or 4 why don't change it like: ctrl shift somethinelse?"
 
-    [ ] interact: need to stylize, e.g., put number next to slider, instead of next to
-
     [ ] project: the whole topbar well with title is a too-big waste of space.  Give it *more* info, but make it toggleable?
 
     [ ] project: delete the "Only for temporary testing" and related code from project.coffee
@@ -10688,10 +10710,9 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] worksheet: buttons, which provide all feature to mobile.
     [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
     [ ] worksheet: import/export
-    [ ] worksheet: automatic typesetting
-    [ ] worksheet: automatic 2d graphics
-    [ ] worksheet: automatic 3d graphics
-    [ ] worksheet: hiding/showing cells
+    [x] worksheet: automatic typesetting
+    [x] worksheet: automatic 2d graphics
+    [x] worksheet: hiding/showing cells
     [ ] worksheet: load/attach functionality
     [ ] publish: implement very basic functionality
     [ ] click to show commit
