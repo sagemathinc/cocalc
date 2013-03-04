@@ -546,7 +546,18 @@ class Cell extends EventEmitter
                 if desc.classes
                     for cls in desc.classes.split(/\s+/g)
                         text.addClass(cls)
-                set = (val) -> text.html(val).mathjax()
+
+                # This is complicated because we shouldn't run mathjax until
+                # the element is visible.
+                set = (val) ->
+                    if text.data('val')?
+                        # it has already appeared, so safe to mathjax immediately
+                        text.html(val).mathjax()
+
+                    text.data('val', val)
+
+                control.data 'refresh', () ->
+                    text.mathjax(tex:text.data('val'))
 
             when 'input-grid'
                 grid = control.find(".salvus-cell-interact-control-grid")

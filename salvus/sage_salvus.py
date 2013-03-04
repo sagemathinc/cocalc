@@ -1850,8 +1850,9 @@ def hideall(code=None):
 # automated homework.
 ##########################################################
 class Exercise:
-    def __init__(self, question, answer, check=None, track_attempts=True):
+    def __init__(self, question, answer, check):
         import sage.all, sage.matrix.all
+        track_attempts = True
         if not (isinstance(answer, (tuple, list)) and len(answer) == 2):
             if sage.matrix.all.is_Matrix(answer):
                 default = sage.all.parent(answer)(0)
@@ -1861,19 +1862,20 @@ class Exercise:
             answer = [answer, default]
 
         if check is None:
-            def check(attempt, correct):
-                return sage.all.parent(correct)(attempt) == correct
+            R = sage.all.parent(answer[0])
+            def check(attempt):
+                return R(attempt) == answer[0]
 
-        self._question = question
-        self._answer = answer
+        self._question       = question
+        self._answer         = answer
+        self._check          = check
         self._track_attempts = track_attempts
-        self._check = check
 
-    def _check_answer(self, attempt, interact):
+    def _check_attempt(self, attempt, interact):
         from sage.misc.all import walltime
         response = "<div class='well'>"
         try:
-            correct = self._check(attempt, self._answer[0])
+            correct = self._check(attempt)
         except TypeError, msg:
             response += "<h3 style='color:darkgreen'>Huh? -- %s (attempt=%s)</h3>"%(msg, attempt)
         else:
@@ -1903,56 +1905,94 @@ class Exercise:
         from sage.misc.all import walltime
         self._start_time = walltime()
         self._number_of_attempts = 0
-        @interact(layout=[[('question',12)],[('answer',12)], [('feedback',12)]])
+        @interact(layout=[[('question',12)],[('attempt',12)], [('feedback',12)]])
         def f(question = ("<b>Question:</b>", text_control(self._question)),
-              answer   = ('<b>Answer:</b>',self._answer[1])):
-            if 'answer' in interact.changed() and answer != '':
+              attempt   = ('<b>Answer:</b>',self._answer[1])):
+            if 'attempt' in interact.changed() and attempt != '':
                 if self._start_time == 0:
                     self._start_time = walltime()
                 self._number_of_attempts += 1
-                self._check_answer(answer, interact)
+                self._check_attempt(attempt, interact)
 
-def exercise(title):
+def exercise(code):
     r"""
-    The %exercise cell decorator is a first very small step toward a
-    system for creating interactive quiz and exercise sets using
-    SageCloud.
-
-    Put %exercise("short description") at the top of the cell, then make sure the
-    code in the cell defines:
+    The %exercise cell decorator is a step toward a system for
+    creating interactive exercise sets using SageCloud.  To use it,
+    put %exercise at the top of the cell, then write arbitrary code in
+    the cell that defines the following (all are optional):
 
     - a ``question`` variable, as an HTML string with math in dollar signs,
-    - an ``answer`` variable, which can be any object, or a pair
-      (correct_value, interact control)
-    - optionally, a function check(answer, correct_answer) that returns
-      a pair (True or False, message), where the first argument is True
-      if their answer is correct, and the second argument is a message
-      that should be displayed in response to the given answer.
 
-    NOTES: The code in the cell block is executed in so that it does
-    not impact the global scope of your variables elsewhere in your
-    session, by wrapping it in a function.  Also, the TITLE IS NOT
-    OPTIONAL.
+    - an ``answer`` variable, which can be any object, or a pair
+      (correct_value, interact control) -- see the docstring for
+      interact for controls.
+
+    - an optional callable ``check(answer)`` that returns a boolean or a 2-tuple
+
+            (True or False, message),
+
+      where the first argument is True if their answer is correct, and
+      the optional second argument is a message that should be
+      displayed in response to the given answer.
+      NOTE: Often the input "answer" will be a string, so you may
+      have to use Integer, RealNumber, or sage_eval to evaluate it, depending
+      on what you want to allow the user to do.
+
+    NOTE: The code that defines the exercise is executed so that it
+    does not impact (and is not impacted by) the global scope of your
+    variables elsewhere in your session, by wrapping it in a function.
+    Thus you can have many %exercise cells in a single worksheet with
+    no interference between them.
 
     The following example questions help illustrate how %exercise works.
 
     An exercise to test your ability to sum the first $n$ integers::
 
-        %exercise("Sum the first n integers, like Gauss did.")
-        n = randint(3,100)
+        %exercise
+        title = "Sum the first n integers, like Gauss did."
+        n = randint(3, 100)
         question = "What is the sum $1 + 2 + \\cdots + %s$ of the first %s positive integers?"%(n,n)
         answer = n*(n+1)//2
+
+    Add together a few numbers::
+
+        %exercise
+        k = randint(2,5)
+        title = "Add %s numbers"%k
+        v = [randint(1,10) for _ in range(k)]
+        question = "What is the sum $%s$?"%(' + '.join([str(x) for x in v]))
+        answer = sum(v)
     """
-    def f(code):
-        import uuid
-        code = ' ' + ('\n '.join(code.splitlines()))  # TODO: should strip string literals first
-        code = ' title=""; answer=""; question=""; check=None\n' + code
-        fname = "_" + str(uuid.uuid4()).replace('-','_')
-        closure = "def %s():\n%s\n sage_salvus.Exercise(question, answer, check).ask()\n\n%s()"%(fname, code, fname)
-        @interact(layout=[[('go',4), ('title',8,'')]], flicker=True)
-        def f(go    = button("Do Exercise", label='',icon='icon-bolt', classes="btn-large btn-success"),
-              title = text_control('<h2 class="lighten">%s</h2>'%title)):
-            if 'go' in interact.changed():
-                salvus.execute(closure)
-    return f
+    f = closure(code)
+
+    title, question, answer, check = f()
+    obj = {}
+    obj['E'] = Exercise(question, answer, check)
+    obj['title'] = title
+    def title_control(t):
+        return text_control('<h2 class="lighten">%s</h2>'%t)
+
+    @interact(layout=[[('go',3), ('title',9,'')]], flicker=True)
+    def g(go    = button("&nbsp;"*5 + "Go!" + "&nbsp;"*5, label='', icon='icon-bolt', classes="btn-large btn-success"),
+          title = title_control(title)):
+        if 'go' in interact.changed():
+            interact.title = title_control(obj['title'])
+            obj['E'].ask()
+            title, question, answer, check = f()   # get ready for next time.
+            obj['title'] = title
+            obj['E'] = Exercise(question, answer, check)
+
+
+def closure(code):
+    """
+    Wrap the given code block (a string) in a closure, i.e., a function with an obfuscated random name.
+    """
+    import uuid
+    # TODO: strip string literals first
+    code = ' ' + ('\n '.join(code.splitlines()))
+    code = ' title=""; answer=""; question=""; check=None\n' + code
+    fname = "__" + str(uuid.uuid4()).replace('-','_')
+    closure = "def %s():\n%s\n return (title, question, answer, check)"%(fname, code)
+    salvus.execute(closure)
+    return salvus.namespace[fname]
 
