@@ -816,15 +816,9 @@ class InputGrid:
             return x
 
     def from_client(self, x):
-        # Either x is a triple (i,j,s), where i,j are the coordinates of
-        # an entry, and s is a string; or, x is a list of list of strings,
-        # which we sage_eval.
-        if len(x) == 3 and not isinstance(x[0],list):
-            i,j,s = x
-            self.value[i][j] = sage_eval(s)
-        else:
-            s = '[' + ','.join('[' + ','.join(r) + ']' for r in x) + ']'; s
-            self.value = sage_eval(s)
+        # x is a list of (unicode) strings -- we sage eval them all at once (instead of individually).
+        s = '[' + ','.join([str(t) for t in x]) + ']'
+        self.value = sage_eval(s)
         return self.to_value(self.value) if self.to_value is not None else self.value
 
     def to_client(self, x=None):
@@ -1850,13 +1844,11 @@ def hideall(code=None):
 # automated homework.
 ##########################################################
 class Exercise:
-    def __init__(self, question, answer, check):
+    def __init__(self, question, answer, check=None, hints=None):
         import sage.all, sage.matrix.all
-        track_attempts = True
         if not (isinstance(answer, (tuple, list)) and len(answer) == 2):
             if sage.matrix.all.is_Matrix(answer):
                 default = sage.all.parent(answer)(0)
-                track_attempts = False
             else:
                 default = ''
             answer = [answer, default]
@@ -1866,16 +1858,25 @@ class Exercise:
             def check(attempt):
                 return R(attempt) == answer[0]
 
+        if hints is None:
+            hints = ['','','',"The answer is %s."%answer[0]]
+
         self._question       = question
         self._answer         = answer
         self._check          = check
-        self._track_attempts = track_attempts
+        self._hints          = hints
 
     def _check_attempt(self, attempt, interact):
         from sage.misc.all import walltime
         response = "<div class='well'>"
         try:
-            correct = self._check(attempt)
+            r = self._check(attempt)
+            if isinstance(r, tuple) and len(r)==2:
+                correct = r[0]
+                comment = r[1]
+            else:
+                correct = bool(r)
+                comment = ''
         except TypeError, msg:
             response += "<h3 style='color:darkgreen'>Huh? -- %s (attempt=%s)</h3>"%(msg, attempt)
         else:
@@ -1883,20 +1884,26 @@ class Exercise:
                 response += "<h1 style='color:blue'>RIGHT!</h1>"
                 if self._start_time:
                     response += "<h2 class='lighten'>Time: %s seconds</h2>"%(int(walltime()-self._start_time),)
-                if self._track_attempts:
-                    if self._number_of_attempts == 1:
-                        response += "<h3 class='lighten'>You got it first try!</h3>"
-                    else:
-                        response += "<h3 class='lighten'>It took you %s attempts.</h3>"%(self._number_of_attempts,)
+                if self._number_of_attempts == 1:
+                    response += "<h3 class='lighten'>You got it first try!</h3>"
+                else:
+                    response += "<h3 class='lighten'>It took you %s attempts.</h3>"%(self._number_of_attempts,)
             else:
                 response += "<h3 style='color:darkgreen'>Not correct yet...</h3>"
-                if self._track_attempts:
-                    if self._number_of_attempts == 1:
-                        response += "<h4 style='lighten'>(first attempt)</h4>"
-                    else:
-                        response += "<h4 style='lighten'>(%s attempts)</h4>"%self._number_of_attempts
-                    if self._number_of_attempts >= 3:
-                         response += "<span class='lighten small'>(HINT: the answer is %s!)</span>"%(self._answer[0],)
+                if self._number_of_attempts == 1:
+                    response += "<h4 style='lighten'>(first attempt)</h4>"
+                else:
+                    response += "<h4 style='lighten'>(%s attempts)</h4>"%self._number_of_attempts
+
+                if self._number_of_attempts >= len(self._hints):
+                    hint = self._hints[-1]
+                else:
+                    hint = self._hints[self._number_of_attempts]
+                if hint:
+                    response += "<span class='lighten'>(HINT: %s)</span>"%(hint,)
+            if comment:
+                response += '<h4>%s</h4>'%comment
+
         response += "</div>"
 
         interact.feedback = text_control(response,label='')
@@ -1938,6 +1945,11 @@ def exercise(code):
       have to use Integer, RealNumber, or sage_eval to evaluate it, depending
       on what you want to allow the user to do.
 
+    - hints -- optional list of strings to display in sequence each
+      time the user enters a wrong answer.  The last string is
+      displayed repeatedly.  If hints is not given, the correct answer
+      is displayed after three attempts.
+
     NOTE: The code that defines the exercise is executed so that it
     does not impact (and is not impacted by) the global scope of your
     variables elsewhere in your session, by wrapping it in a function.
@@ -1965,9 +1977,9 @@ def exercise(code):
     """
     f = closure(code)
 
-    title, question, answer, check = f()
+    title, question, answer, check, hints = f()
     obj = {}
-    obj['E'] = Exercise(question, answer, check)
+    obj['E'] = Exercise(question, answer, check, hints)
     obj['title'] = title
     def title_control(t):
         return text_control('<h2 class="lighten">%s</h2>'%t)
@@ -1978,10 +1990,9 @@ def exercise(code):
         if 'go' in interact.changed():
             interact.title = title_control(obj['title'])
             obj['E'].ask()
-            title, question, answer, check = f()   # get ready for next time.
+            title, question, answer, check, hints = f()   # get ready for next time.
             obj['title'] = title
-            obj['E'] = Exercise(question, answer, check)
-
+            obj['E'] = Exercise(question, answer, check, hints)
 
 def closure(code):
     """
@@ -1990,9 +2001,9 @@ def closure(code):
     import uuid
     # TODO: strip string literals first
     code = ' ' + ('\n '.join(code.splitlines()))
-    code = ' title=""; answer=""; question=""; check=None\n' + code
+    code = ' title=""; answer=""; question=""; check=None; hints=None\n' + code
     fname = "__" + str(uuid.uuid4()).replace('-','_')
-    closure = "def %s():\n%s\n return (title, question, answer, check)"%(fname, code)
+    closure = "def %s():\n%s\n return (title, question, answer, check, hints)"%(fname, code)
     salvus.execute(closure)
     return salvus.namespace[fname]
 

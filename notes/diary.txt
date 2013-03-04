@@ -10174,10 +10174,13 @@ def f(n=1, k=button('go'), t =True):
 
      [x] (0:12) worksheet: implement _download_file()
 
--->     [ ] put exercise decorator in sage_salvus ASAP before it gets lost.
-
 TOP PRIORITY todo list for first release:
 ==========================================
+
+-->     [ ] put exercise decorator in sage_salvus ASAP before it gets lost.
+           [ ] fix closure
+           [ ] matrix submit button. icon-ok
+
 
      [ ] make it possible to browse all public projects in read-only mode -- provides a "publish" capability
 

@@ -562,23 +562,24 @@ class Cell extends EventEmitter
             when 'input-grid'
                 grid = control.find(".salvus-cell-interact-control-grid")
 
+                entries = []
                 for i in [0...desc.nrows]
                     for j in [0...desc.ncols]
-                        cell = $('<input type="text">').css("margin","0").data(i:i,j:j)
+                        cell = $('<input type="text">').css("margin","0")
                         if desc.width
                             cell.width(desc.width)
                         cell.keypress (evt) ->
                             if evt.which == 13
-                                t = $(@)
-                                send([t.data('i'), t.data('j'), t.val()])
-                                t.data('last', t.val())
-                        cell.blur (evt) ->
-                            t = $(@)
-                            if t.data('last') != t.val()
-                                send([t.data('i'), t.data('j'), t.val()])
-                                t.data('last', t.val())
+                                send_all()
                         grid.append(cell)
+                        entries.push(cell)
                     grid.append($('<br>'))
+
+                send_all = () ->
+                    send( (cell.val() for cell in entries) )
+
+                control.find("a").click () ->
+                    send_all()
 
                 set = (val) ->
                     cells = grid.find("input")
