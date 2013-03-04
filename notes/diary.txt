@@ -10177,10 +10177,20 @@ def f(n=1, k=button('go'), t =True):
 TOP PRIORITY todo list for first release:
 ==========================================
 
--->     [ ] put exercise decorator in sage_salvus ASAP before it gets lost.
-           [ ] fix closure
-           [ ] matrix submit button. icon-ok
+-->     [x] put exercise decorator in sage_salvus ASAP before it gets lost.
+           [x] fix closure
+           [x] hasattr(interact, ...) is printing something.
+           [x] matrix submit button. icon-ok
+-->           [x] another interact bug with setting control:
+@interact
+def f(n):
+    print locals()
+f.n = 5
 
+           [x] use callback -- obj['E'].ask()
+
+
+     [ ] update cloud.sagemath.org website.
 
      [ ] make it possible to browse all public projects in read-only mode -- provides a "publish" capability
 
@@ -10206,6 +10216,21 @@ TOP PRIORITY todo list for first release:
      [ ] coloring/Sphinx'ing of docstrings
 
 ========================
+
+     [ ] strip_string_literals in closure
+
+     [ ] make it easy to resize (by dragging) the cell editor... and keep the information of the new size.
+
+     [ ] text editor with wide lines -- two scroll bars on top of each other... ;-(
+
+     [ ] weird bug in block parsing -- this goes boom for some reason...
+@interact
+def f(n):
+    n = 2
+def g(n):
+    n = 3
+
+     [ ] interact.f = blah  sucks when the control is a continuous slider.
 
      [ ] moving cells up down accidentally goes *inside* interact outputs.  TERRIFYING.
 

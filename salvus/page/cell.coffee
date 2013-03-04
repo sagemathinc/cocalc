@@ -346,7 +346,12 @@ class Cell extends EventEmitter
 
     _set_interact_var: (control_desc) =>
         var0 = control_desc.var
-        panel = @_output.closest('.salvus-cell-output-interact')
+
+        if control_desc.id?
+            panel = $("##{control_desc.id}")
+        else
+            panel = @_output.closest('.salvus-cell-output-interact')
+
         controls = panel.find(".salvus-cell-interact-var-#{var0}")
         if controls.length > 0
             # There is already (at least) one control location with this name
@@ -355,7 +360,7 @@ class Cell extends EventEmitter
                 if control.length > 0
                     control.data("set")(control_desc.default)
                 else
-                    # No control yet, so make one
+                    # No control yet, so make one.
                     new_control = @_interact_control(control_desc, panel.data('update'))
                     $(C).append(new_control)
                     new_control.data('refresh')?()
@@ -365,9 +370,10 @@ class Cell extends EventEmitter
             container = $("<div class='span12 salvus-cell-interact-var-#{var0}'></div>")
             row.append(container)
             new_control = @_interact_control(control_desc, panel.data('update'))
-            container.append(new_control)
-            panel.append(row)
-            new_control.data('refresh')?()
+            if new_control?
+                container.append(new_control)
+                panel.append(row)
+                new_control.data('refresh')?()
 
     _del_interact_var: (arg) =>
         panel = @_output.closest('.salvus-cell-output-interact')
@@ -375,6 +381,8 @@ class Cell extends EventEmitter
         control.remove()
 
     _initialize_interact: (elt, desc) =>
+        elt.attr('id', desc.id)
+
         # Canonicalize width
         desc.width = parse_width(desc.width)
 
@@ -467,7 +475,9 @@ class Cell extends EventEmitter
         # Generic initialization code
         control = templates.find(".salvus-cell-interact-control-#{desc.control_type}").clone()
         if control.length == 0
-            throw("Unknown interact control '#{desc.control_type}'")
+            # nothing to do -- the control no longer exists
+            # TODO: for efficiency we should probably send a message somewhere saying this no longer exists.
+            return
         if desc.label?
             control.find(".salvus-cell-interact-label").html(desc.label).mathjax()
 

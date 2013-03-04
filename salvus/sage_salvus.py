@@ -48,7 +48,7 @@ def jsonable(x):
             return str(x)
 
 class InteractCell(object):
-    def __init__(self, f, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=False):
+    def __init__(self, f, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=False, output=True):
         """
         Given a function f, create an object that describes an interact
         for working with f interactively.
@@ -64,8 +64,11 @@ class InteractCell(object):
           (or one of the argus in update_args).
         - ``flicker`` -- (default: False) if False, the output part of the cell
           never shrinks; it can only grow, which aleviates flicker.
+        - ``output`` -- (default: True) if False, do not automatically
+          provide any area to display output.
         """
         self._flicker = flicker
+        self._output = output
         self._uuid = uuid()
         # Prevent garbage collection until client specifically requests it,
         # since we want to be able to store state.
@@ -149,12 +152,15 @@ class InteractCell(object):
             except:
                 raise ValueError, "layout must be None or a list of tuples (variable_name, width, [optional label]), with width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area."
 
-        # Append a row for any remaining controls (including output0,
-        # if necessary.  (The client will work fine without this.)
+        # Append a row for any remaining controls:
         layout_vars = set(sum([[x[0] for x in row] for row in layout],[]))
-        for v in args + ['']:
+        for v in args:
             if v not in layout_vars:
                 layout.append([(v, 12, None)])
+
+        if self._output:
+            if '' not in layout_vars:
+                layout.append([('', 12, None)])
 
         self._layout = layout
 
@@ -223,7 +229,9 @@ class InteractFunction(object):
             new_control = interact_control(arg, value)
             I._controls[arg] = new_control
             desc = new_control.jsonable()
-        salvus.javascript("cell._set_interact_var(obj)", obj=desc)
+        # set the id of the containing interact
+        desc['id'] = self.interact_cell._uuid
+        salvus.javascript("cell._set_interact_var(obj)", obj=jsonable(desc))
 
     def __getattr__(self, arg):
         I = self.__dict__['interact_cell']
@@ -407,11 +415,12 @@ class Interact(object):
                 c += 1
                 sleep(.25)
     """
-    def __call__(self, f=None, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=False):
+    def __call__(self, f=None, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=False, output=True):
         if f is None:
             return _interact_layout(layout, width, style, update_args, auto_update, flicker)
         else:
-            return salvus.interact(f, layout=layout, width=width, style=style, update_args=update_args, auto_update=auto_update, flicker=flicker)
+            return salvus.interact(f, layout=layout, width=width, style=style,
+                                   update_args=update_args, auto_update=auto_update, flicker=flicker, output=output)
 
     def __setattr__(self, arg, value):
         I = interact_exec_stack[-1]
@@ -438,7 +447,6 @@ class Interact(object):
         try:
             return interact_exec_stack[-1]._last_vals[arg]
         except Exception, err:
-            print err
             raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
 
     def changed(self):
@@ -1883,7 +1891,7 @@ class Exercise:
             if correct:
                 response += "<h1 style='color:blue'>RIGHT!</h1>"
                 if self._start_time:
-                    response += "<h2 class='lighten'>Time: %s seconds</h2>"%(int(walltime()-self._start_time),)
+                    response += "<h2 class='lighten'>Time: %.1f seconds</h2>"%(walltime()-self._start_time,)
                 if self._number_of_attempts == 1:
                     response += "<h3 class='lighten'>You got it first try!</h3>"
                 else:
@@ -1895,10 +1903,10 @@ class Exercise:
                 else:
                     response += "<h4 style='lighten'>(%s attempts)</h4>"%self._number_of_attempts
 
-                if self._number_of_attempts >= len(self._hints):
+                if self._number_of_attempts > len(self._hints):
                     hint = self._hints[-1]
                 else:
-                    hint = self._hints[self._number_of_attempts]
+                    hint = self._hints[self._number_of_attempts-1]
                 if hint:
                     response += "<span class='lighten'>(HINT: %s)</span>"%(hint,)
             if comment:
@@ -1908,102 +1916,211 @@ class Exercise:
 
         interact.feedback = text_control(response,label='')
 
-    def ask(self):
+        return correct
+
+    def ask(self, cb):
         from sage.misc.all import walltime
         self._start_time = walltime()
         self._number_of_attempts = 0
+        attempts = []
         @interact(layout=[[('question',12)],[('attempt',12)], [('feedback',12)]])
         def f(question = ("<b>Question:</b>", text_control(self._question)),
               attempt   = ('<b>Answer:</b>',self._answer[1])):
             if 'attempt' in interact.changed() and attempt != '':
+                attempts.append(attempt)
                 if self._start_time == 0:
                     self._start_time = walltime()
                 self._number_of_attempts += 1
-                self._check_attempt(attempt, interact)
+                if self._check_attempt(attempt, interact):
+                    cb({'attempts':attempts, 'time':walltime()-self._start_time})
 
 def exercise(code):
     r"""
-    The %exercise cell decorator is a step toward a system for
-    creating interactive exercise sets using SageCloud.  To use it,
-    put %exercise at the top of the cell, then write arbitrary code in
-    the cell that defines the following (all are optional):
+    Use the %exercise cell decorator to create interactive exercise
+    sets.  Put %exercise at the top of the cell, then write Sage code
+    in the cell that defines the following (all are optional):
 
-    - a ``question`` variable, as an HTML string with math in dollar signs,
+    - a ``question`` variable, as an HTML string with math in dollar
+      signs
 
     - an ``answer`` variable, which can be any object, or a pair
       (correct_value, interact control) -- see the docstring for
       interact for controls.
 
-    - an optional callable ``check(answer)`` that returns a boolean or a 2-tuple
+    - an optional callable ``check(answer)`` that returns a boolean or
+      a 2-tuple
 
             (True or False, message),
 
-      where the first argument is True if their answer is correct, and
+      where the first argument is True if the answer is correct, and
       the optional second argument is a message that should be
-      displayed in response to the given answer.
-      NOTE: Often the input "answer" will be a string, so you may
-      have to use Integer, RealNumber, or sage_eval to evaluate it, depending
+      displayed in response to the given answer.  NOTE: Often the
+      input "answer" will be a string, so you may have to use Integer,
+      RealNumber, or sage_eval to evaluate it, depending
       on what you want to allow the user to do.
 
     - hints -- optional list of strings to display in sequence each
       time the user enters a wrong answer.  The last string is
-      displayed repeatedly.  If hints is not given, the correct answer
+      displayed repeatedly.  If hints is omitted, the correct answer
       is displayed after three attempts.
 
     NOTE: The code that defines the exercise is executed so that it
     does not impact (and is not impacted by) the global scope of your
-    variables elsewhere in your session, by wrapping it in a function.
-    Thus you can have many %exercise cells in a single worksheet with
-    no interference between them.
+    variables elsewhere in your session.  Thus you can have many
+    %exercise cells in a single worksheet with no interference between
+    them.
 
-    The following example questions help illustrate how %exercise works.
+    The following examples further illustrate how %exercise works.
 
     An exercise to test your ability to sum the first $n$ integers::
 
         %exercise
-        title = "Sum the first n integers, like Gauss did."
-        n = randint(3, 100)
+        title    = "Sum the first n integers, like Gauss did."
+        n        = randint(3, 100)
         question = "What is the sum $1 + 2 + \\cdots + %s$ of the first %s positive integers?"%(n,n)
-        answer = n*(n+1)//2
+        answer   = n*(n+1)//2
+
+    Transpose a matrix::
+
+        %exercise
+        title    = r"Transpose a $2 \times 2$ Matrix"
+        A        = random_matrix(ZZ,2)
+        question = "What is the transpose of $%s?$"%latex(A)
+        answer   = A.transpose()
 
     Add together a few numbers::
 
         %exercise
-        k = randint(2,5)
-        title = "Add %s numbers"%k
-        v = [randint(1,10) for _ in range(k)]
+        k        = randint(2,5)
+        title    = "Add %s numbers"%k
+        v        = [randint(1,10) for _ in range(k)]
         question = "What is the sum $%s$?"%(' + '.join([str(x) for x in v]))
-        answer = sum(v)
+        answer   = sum(v)
+
+    The trace of a matrix::
+
+        %exercise
+        title    = "Compute the trace of a matrix."
+        A        = random_matrix(ZZ, 3, x=-5, y = 5)^2
+        question = "What is the trace of $$%s?$$"%latex(A)
+        answer   = A.trace()
+
+    Some basic arithmetic with hints and dynamic feedback::
+
+        %exercise
+        k        = randint(2,5)
+        title    = "Add %s numbers"%k
+        v        = [randint(1,10) for _ in range(k)]
+        question = "What is the sum $%s$?"%(' + '.join([str(x) for x in v]))
+        answer   = sum(v)
+        hints    = ['This is basic arithmetic.', 'The sum is near %s.'%(answer+randint(1,5)), "The answer is %s."%answer]
+        def check(attempt):
+            c = Integer(attempt) - answer
+            if c == 0:
+                return True
+            if abs(c) >= 10:
+                return False, "Gees -- not even close!"
+            if c < 0:
+                return False, "too low"
+            if c > 0:
+                return False, "too high"
     """
     f = closure(code)
+    def g():
+        x = f()
+        return x.get('title',''), x.get('question', ''), x.get('answer',''), x.get('check',None), x.get('hints',None)
 
-    title, question, answer, check, hints = f()
+    title, question, answer, check, hints = g()
     obj = {}
     obj['E'] = Exercise(question, answer, check, hints)
     obj['title'] = title
     def title_control(t):
-        return text_control('<h2 class="lighten">%s</h2>'%t)
+        return text_control('<h3 class="lighten">%s</h3>'%t)
 
-    @interact(layout=[[('go',3), ('title',9,'')]], flicker=True)
-    def g(go    = button("&nbsp;"*5 + "Go!" + "&nbsp;"*5, label='', icon='icon-bolt', classes="btn-large btn-success"),
-          title = title_control(title)):
-        if 'go' in interact.changed():
+    the_times = []
+    @interact(layout=[[('go',1), ('title',11,'')],[('')], [('times',12, "<b>Times:</b>")]], flicker=True)
+    def h(go    = button("&nbsp;"*5 + "Go" + "&nbsp;"*7, label='', icon='icon-refresh', classes="btn-large btn-success"),
+          title = title_control(title),
+          times = text_control('')):
+        c = interact.changed()
+        if 'go' in c or 'another' in c:
             interact.title = title_control(obj['title'])
-            obj['E'].ask()
-            title, question, answer, check, hints = f()   # get ready for next time.
+            def cb(obj):
+                the_times.append("%.1f"%obj['time'])
+                h.times = ', '.join(the_times)
+
+            obj['E'].ask(cb)
+
+            title, question, answer, check, hints = g()   # get ready for next time.
             obj['title'] = title
             obj['E'] = Exercise(question, answer, check, hints)
 
 def closure(code):
     """
-    Wrap the given code block (a string) in a closure, i.e., a function with an obfuscated random name.
+    Wrap the given code block (a string) in a closure, i.e., a
+    function with an obfuscated random name.
+
+    When called, the function returns locals().
     """
     import uuid
     # TODO: strip string literals first
     code = ' ' + ('\n '.join(code.splitlines()))
-    code = ' title=""; answer=""; question=""; check=None; hints=None\n' + code
     fname = "__" + str(uuid.uuid4()).replace('-','_')
-    closure = "def %s():\n%s\n return (title, question, answer, check, hints)"%(fname, code)
+    closure = "def %s():\n%s\n return locals()"%(fname, code)
+    class Closure:
+        def __call__(self):
+            return self._f()
+    c = Closure()
     salvus.execute(closure)
-    return salvus.namespace[fname]
+    c._f = salvus.namespace[fname]
+    del salvus.namespace[fname]
+    return c
 
+
+#########################################
+# Dynamic variables (linked to controls)
+#########################################
+
+def _dynamic(var, control=None):
+    if control is None:
+        control = salvus.namespace.get(var,'')
+
+    @interact(layout=[[(var,12)]], output=False)
+    def f(x=(var,control)):
+        salvus.namespace.set(var, x, do_not_trigger=[var])
+
+    def g(y):
+        f.x = y
+    salvus.namespace.on('change', var, g)
+
+    if var in salvus.namespace:
+        x = salvus.namespace[var]
+
+def dynamic(*args, **kwds):
+    """
+    Make variables in the global namespace dynamically linked to a control from the
+    interact label (see the documentation for interact).
+
+    EXAMPLES:
+
+    Make a control linked to a variable that doesn't yet exist::
+
+         dynamic('xyz')
+
+    Make a slider and a selector, linked to t and x::
+
+         dynamic(t=(1..10), x=[1,2,3,4])
+         t = 5          # this changes the control
+    """
+    for var in args:
+        if not isinstance(var, str):
+            i = id(var)
+            for k,v in salvus.namespace.iteritems():
+                if id(v) == i:
+                    _dynamic(k)
+            return
+        else:
+            _dynamic(var)
+
+    for var, control in kwds.iteritems():
+        _dynamic(var, control)
