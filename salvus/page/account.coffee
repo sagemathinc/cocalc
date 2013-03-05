@@ -156,10 +156,10 @@ $(".account-settings-terminal-font_size").keyup () ->
 # Color schemes
 init_color_scheme_selector = () ->
     selector = $(".account-settings-terminal-color_scheme")
-    themes = misc.keys(Terminal.color_schemes)
-    themes.sort()
-    for theme in themes
-        selector.append($("<option>").val(theme).html(Terminal.color_schemes[theme].comment))
+    X = ([val.comment, theme] for theme, val of Terminal.color_schemes)
+    X.sort()
+    for x in X
+        selector.append($("<option>").val(x[1]).html(x[0]))
 
 init_color_scheme_selector()
 

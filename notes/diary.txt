@@ -10174,23 +10174,29 @@ def f(n=1, k=button('go'), t =True):
 
      [x] (0:12) worksheet: implement _download_file()
 
-TOP PRIORITY todo list for first release:
-==========================================
 
 -->     [x] put exercise decorator in sage_salvus ASAP before it gets lost.
-           [x] fix closure
-           [x] hasattr(interact, ...) is printing something.
-           [x] matrix submit button. icon-ok
+       [x] fix closure
+       [x] hasattr(interact, ...) is printing something.
+       [x] matrix submit button. icon-ok
 -->           [x] another interact bug with setting control:
 @interact
 def f(n):
-    print locals()
+print locals()
 f.n = 5
+       [x] use callback -- obj['E'].ask()
 
-           [x] use callback -- obj['E'].ask()
+     [x] update cloud.sagemath.org website.
 
 
-     [ ] update cloud.sagemath.org website.
+TOP PRIORITY todo list for first release:
+==========================================
+
+     [ ] restoring state of all projects, etc. -- don't even know the semantics on this!
+
+     [ ] search *all* projects.
+
+     [ ] worksheet-wide modes
 
      [ ] make it possible to browse all public projects in read-only mode -- provides a "publish" capability
 
@@ -10216,6 +10222,8 @@ f.n = 5
      [ ] coloring/Sphinx'ing of docstrings
 
 ========================
+
+     [ ] code editor -- reformat paragraph
 
      [ ] strip_string_literals in closure
 

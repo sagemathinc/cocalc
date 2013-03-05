@@ -131,6 +131,7 @@ exports.pairs_to_obj = (v) ->
         o[x[0]] = x[1]
     return o
 
+exports.obj_to_pairs = (obj) -> ([x,y] for x,y of obj)
 
 # from http://stackoverflow.com/questions/4009756/how-to-count-string-occurrence-in-string via http://js2coffee.org/
 exports.substring_count = (string, subString, allowOverlapping) ->
