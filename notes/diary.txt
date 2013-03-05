@@ -10195,6 +10195,18 @@ f.n = 5
      [x] (0:54) BUG: x = 10; reset('x'); x # boom
 
      [x] (0:08) study c9.io again...
+    [x] worksheet: automatic typesetting
+    [x] worksheet: automatic 2d graphics
+    [x] worksheet: hiding/showing cells
+
+IDEA about next step:
+
+I want to solve the following problem:
+    - user can randomly get connected to any hub,
+    - any hub can just die -- can't be a SPOF
+    - user wants to be able to easily and robustly re-connect to any session they started (unless host dies, i.e., minimal SPOF)
+
+
 
 ABSOLUTE TOP PRIORITY todo list before friday -- deploy the troops
 ==================================================================
@@ -10791,9 +10803,6 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] worksheet: buttons, which provide all feature to mobile.
     [ ] worksheet: make it so .hide()/.show() does not impact currently selected cell
     [ ] worksheet: import/export
-    [x] worksheet: automatic typesetting
-    [x] worksheet: automatic 2d graphics
-    [x] worksheet: hiding/showing cells
     [ ] worksheet: load/attach functionality
     [ ] publish: implement very basic functionality
     [ ] click to show commit
