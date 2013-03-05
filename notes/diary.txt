@@ -10196,10 +10196,39 @@ f.n = 5
 
      [x] (0:08) study c9.io again...
 
-TOP PRIORITY todo list for first release:
-==========================================
+ABSOLUTE TOP PRIORITY todo list before friday -- deploy the troops
+==================================================================
 
--->     [ ] (0:03) some way to display 3d graphics
+   [ ] Idea -- make it so the console and sage servers run something persistent on each VM, so that it is *not*
+       necessary to have a connection with the hub in order for sessions to stay persistent.
+       This way, when there are multiple hubs, and a client connects to a random one, they can still
+       reconnect to their existing sessions.
+       This will be much more robust than the previous design, in the face of failures.
+       This is a step toward things running on most Linux accounts.
+
+   [ ] Fully deploy on 01-03salvus and 05-07salvus.
+
+   [ ] change extension: .sws.cloud; .trm.cloud
+
+   [ ] Backups:
+
+      [ ] learn rsnapshot
+      [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
+      [ ] store that this was done in database
+      [ ] get rid of current rsync stuff
+
+
+Next Priority
+================
+
+   [] emacs "undo" doesn't even work in --app mode.  Ick.
+      emacs control-shift-c brings up debug console.
+
+   [ ] control-s in worksheet should save it?
+
+   [ ] Get more hard drives for 01-04salvus.
+
+    [ ] (0:03) some way to display 3d graphics
             Issue -- it is IMPOSSIBLE to get rid of the built in
             .show... method on plot3d objects, due to the base class
             being in cython.  This means 3dobj.show() will never work
@@ -10215,13 +10244,6 @@ TOP PRIORITY todo list for first release:
      [ ] worksheet-wide modes
 
      [ ] make it possible to browse all public projects in read-only mode -- provides a "publish" capability
-
-     [ ] backups:
-
-          [ ] learn rsnapshot
-          [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
-          [ ] store that this was done in database
-          [ ] get rid of current rsync stuff
 
      [ ] project/directory download
 
