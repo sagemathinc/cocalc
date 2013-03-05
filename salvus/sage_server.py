@@ -968,10 +968,6 @@ def serve(port, host):
     # implementation of interact.
     import sagenb.notebook.interact
     sagenb.notebook.interact.interact = sage_salvus.interact
-    for k,v in sage_salvus.interact_functions.iteritems():
-        namespace[k] = sagenb.notebook.interact.__dict__[k] = v
-
-    namespace['_salvus_parsing'] = parsing
 
     # Actually import sage now.  This must happen after the interact
     # import because of library interacts.
@@ -993,6 +989,11 @@ def serve(port, host):
 
     exec "from sage.all import *; from sage.calculus.predefined import x; import scipy;" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
+
+    for k,v in sage_salvus.interact_functions.iteritems():
+        namespace[k] = sagenb.notebook.interact.__dict__[k] = v
+
+    namespace['_salvus_parsing'] = parsing
 
     for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
                  'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
