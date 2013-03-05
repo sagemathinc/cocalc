@@ -362,12 +362,29 @@ def introspect(code, namespace, preparse=True):
             finally:
                 signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
+            def get_file():
+                try:
+                    import sage.misc.sageinspect
+                    return "   File: " + eval('getdoc(O)', {'getdoc':sage.misc.sageinspect.sage_getfile, 'O':O}) + "\n"
+                except Exception, err:
+                    return "Unable to read source filename (%s)"%err
+
             if get_help:
                 import sage.misc.sageinspect
-                result = eval('getdoc(O)', {'getdoc':sage.misc.sageinspect.sage_getdoc, 'O':O})
+                result = get_file()
+                try:
+                    result += "   Docstring:\n   " + eval('getdoc(O)', {'getdoc':sage.misc.sageinspect.sage_getdoc, 'O':O})
+                except Exception, err:
+                    result += "Unable to read docstring (%s)"%err
+
             elif get_source:
                 import sage.misc.sageinspect
-                result = eval('getsource(O)', {'getsource':sage.misc.sageinspect.sage_getsource, 'O':O})
+                result = get_file()
+                try:
+                    result += "   Source:\n   " + eval('getsource(O)', {'getsource':sage.misc.sageinspect.sage_getsource, 'O':O})
+                except Exception, err:
+                    result += "Unable to read source code (%s)"%err
+
             elif get_completions:
                 if O is not None:
                     v = dir(O)

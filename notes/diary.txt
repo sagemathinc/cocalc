@@ -10188,11 +10188,13 @@ f.n = 5
 
      [x] update cloud.sagemath.org website.
 
+     [x] (0:12) ?/?? needs to give source file
+
 
 TOP PRIORITY todo list for first release:
 ==========================================
 
-     [ ] BUG: x = 10; reset('x'); x # boom
+     [ ] (0:02) BUG: x = 10; reset('x'); x # boom
 
 -->     [x] (0:19) why doesn't "%var x y z" work?  why doesn't "%reset x, y, z" work??
 
