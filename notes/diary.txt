@@ -10194,16 +10194,23 @@ f.n = 5
 
      [x] (0:54) BUG: x = 10; reset('x'); x # boom
 
+     [x] (0:08) study c9.io again...
+
 TOP PRIORITY todo list for first release:
 ==========================================
 
-     [ ] design/create ability to link a project to a general unix account.... (?)
+-->     [ ] (0:03) some way to display 3d graphics
+            Issue -- it is IMPOSSIBLE to get rid of the built in
+            .show... method on plot3d objects, due to the base class
+            being in cython.  This means 3dobj.show() will never work
+            in salvus with older sage (until I make a patch to sage).
 
-     [ ] (0:03) some way to display 3d graphics
+     [ ] design/create ability to link a project to a general unix account.... (?)
 
      [ ] search *all* projects.
 
      [ ] restoring state of all projects, etc. -- don't even know the semantics on this!
+         c9.io has "save tab session" and "load tab session"; I could maybe do that.
 
      [ ] worksheet-wide modes
 
@@ -10222,12 +10229,17 @@ TOP PRIORITY todo list for first release:
 
      [ ] search in all (open) projects
 
-     [ ] massive library, etc. rename: "salvus" -> "cloudsage".
+     [ ] massive library, etc. rename: "salvus" -> "sagecloud" or "cloudsage"
+
+     [ ] coloring/Sphinx'ing of source code via codemirror
 
      [ ] coloring/Sphinx'ing of docstrings
 
 ========================
 
+
+     [ ] terminal settings: scrollback size
+     [ ] terminal settings: font family
 
      [ ] that automatic_vars mode
 
@@ -10568,6 +10580,8 @@ It's http://bugs.python.org/issue7985 -- see
     [ ] make new worksheet (etc.) SCRATCH path configurable for user -- see worksheet.coffee.
 
     [ ] cell: joining (control-backspace) puts too much space between output lines
+
+    [ ] cell: output area needs to be "select all" -able.
 
     [ ] projects: have a "search running projects" input field
 
