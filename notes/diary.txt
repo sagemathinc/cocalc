@@ -10192,9 +10192,15 @@ f.n = 5
 TOP PRIORITY todo list for first release:
 ==========================================
 
-     [ ] restoring state of all projects, etc. -- don't even know the semantics on this!
+     [ ] BUG: x = 10; reset('x'); x # boom
+
+-->     [x] (0:19) why doesn't "%var x y z" work?  why doesn't "%reset x, y, z" work??
+
+     [ ] (0:03) some way to display 3d graphics
 
      [ ] search *all* projects.
+
+     [ ] restoring state of all projects, etc. -- don't even know the semantics on this!
 
      [ ] worksheet-wide modes
 
@@ -10206,8 +10212,6 @@ TOP PRIORITY todo list for first release:
           [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
           [ ] store that this was done in database
           [ ] get rid of current rsync stuff
-
-     [ ] some way to display 3d graphics
 
      [ ] design/create ability to link a project to a general unix account.... (?)
 
@@ -10302,9 +10306,6 @@ while True:
      [ ] Make it so obj argument to salvus.javascript (.... etc) jsonable's in an intelligent way.
 
 
-     [ ] BUG: x = 10; reset('x'); x # boom
-
-    [ ] why doesn't "%var x y z" work?  why doesn't "%reset x, y, z" work??
 -------------------
 
     [ ] interact bug: @interact

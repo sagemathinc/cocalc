@@ -404,7 +404,8 @@ class Salvus(object):
 
     def execute_with_code_decorators(self, code_decorators, code, preparse=True):
         """
-        salvus.execute_with_code_decorators is used when evaluating code blocks that are set to any non-default code_decorator.
+        salvus.execute_with_code_decorators is used when evaluating
+        code blocks that are set to any non-default code_decorator.
         """
         import inspect
         if isinstance(code_decorators, (str, unicode)):
@@ -995,7 +996,7 @@ def serve(port, host):
 
     for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
                  'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                 'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic']:
+                 'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var']:
         namespace[name] = getattr(sage_salvus, name)
 
     t = time.time()

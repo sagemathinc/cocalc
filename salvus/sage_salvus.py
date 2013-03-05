@@ -2124,3 +2124,35 @@ def dynamic(*args, **kwds):
 
     for var, control in kwds.iteritems():
         _dynamic(var, control)
+
+
+import sage.all
+def var(args, **kwds):
+    """
+    Create symbolic variables and inject them into the global namespace.
+
+    NOTE: In SageCloud, you can use var as a line decorator::
+
+        %var x
+        %var a,b,theta          # separate with commas
+        %var x y z t            # separate with spaces
+
+    Here is the docstring for var in Sage:
+
+    """
+    if len(args)==1:
+        name = args[0]
+    else:
+        name = args
+    G = salvus.namespace
+    v = sage.all.SR.var(name, **kwds)
+    if isinstance(v, tuple):
+        for x in v:
+            G[repr(x)] = x
+    else:
+        G[repr(v)] = v
+    return v
+
+var.__doc__ += sage.all.var.__doc__
+
+
