@@ -2156,3 +2156,57 @@ def var(args, **kwds):
 var.__doc__ += sage.all.var.__doc__
 
 
+#############################################
+# Variable reset -- we have to rewrite
+# this because of all the monkey patching
+# that we do.
+#############################################
+
+import sage.misc.reset
+
+def reset(vars=None, attached=False):
+    """
+    If vars is specified, just restore the value of vars and leave
+    all other variables alone.   In SageCloud, you can also use
+    reset as a line decorator::
+
+         %reset x, pi, sin   # comma-separated
+         %reset x pi sin     # commas are optional
+
+    If vars is not given, delete all user-defined variables, reset
+    all global variables back to their default states, and reset
+    all interfaces to other computer algebra systems.
+
+    Original reset docstring::
+
+    """
+    if vars is not None:
+        restore(vars)
+        return
+    G = salvus.namespace
+    T = type(sys)  # module type
+    for k in G.keys():
+        if k[0] != '_' and type(k) != T:
+            try:
+                del G[k]
+            except KeyError:
+                pass
+    restore()
+    from sage.symbolic.assumptions import forget; forget()
+    sage.misc.reset.reset_interfaces()
+    if attached:
+        sage.misc.reset.reset_attached()
+
+reset.__doc__ += sage.misc.reset.reset.__doc__
+
+def restore(vars=None):
+    ""
+    if isinstance(vars, unicode):
+        vars = str(vars)   # sage.misc.reset is unicode ignorant
+        if ',' in vars:    # sage.misc.reset is stupid about commas and space -- TODO: make a patch to sage
+            vars = [v.strip() for v in vars.split(',')]
+    import sage.calculus.calculus
+    sage.misc.reset._restore(salvus.namespace, default_namespace, vars)
+    sage.misc.reset._restore(sage.calculus.calculus.syms_cur, sage.calculus.calculus.syms_default, vars)
+
+restore.__doc__ += sage.misc.reset.restore.__doc__

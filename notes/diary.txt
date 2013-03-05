@@ -10190,13 +10190,14 @@ f.n = 5
 
      [x] (0:12) ?/?? needs to give source file
 
+     [x] (0:19) why doesn't "%var x y z" work?  why doesn't "%reset x, y, z" work??
+
+     [x] (0:54) BUG: x = 10; reset('x'); x # boom
 
 TOP PRIORITY todo list for first release:
 ==========================================
 
-     [ ] (0:02) BUG: x = 10; reset('x'); x # boom
-
--->     [x] (0:19) why doesn't "%var x y z" work?  why doesn't "%reset x, y, z" work??
+     [ ] design/create ability to link a project to a general unix account.... (?)
 
      [ ] (0:03) some way to display 3d graphics
 
@@ -10215,8 +10216,6 @@ TOP PRIORITY todo list for first release:
           [ ] store that this was done in database
           [ ] get rid of current rsync stuff
 
-     [ ] design/create ability to link a project to a general unix account.... (?)
-
      [ ] project/directory download
 
      [ ] note: bold, bulleted list, font size
@@ -10228,6 +10227,13 @@ TOP PRIORITY todo list for first release:
      [ ] coloring/Sphinx'ing of docstrings
 
 ========================
+
+
+     [ ] that automatic_vars mode
+
+     [ ] implicit multiplication mode.
+
+     [ ] code_editor -- remove trailing whitespace mode
 
      [ ] code editor -- reformat paragraph
 
