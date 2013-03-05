@@ -1734,18 +1734,30 @@ fork = Fork()
 # Display of 2d graphics objects
 ####################################################
 
+from sage.misc.all import tmp_filename
+
+def show_2d_plot(obj, **kwds):
+    t = tmp_filename(ext = '.svg' if svg else '.png')
+    obj.save(t, **kwds)
+    salvus.file(t)
+
+def show_3d_plot(obj, **kwds):
+    t = tmp_filename(ext = '.png')
+    obj.save(t, **kwds)
+    salvus.file(t)
+
+from sage.plot.graphics import Graphics, GraphicsArray
+from sage.plot.plot3d.base import Graphics3d
+
 def show(obj, svg=True, **kwds):
-    from sage.plot.graphics import Graphics, GraphicsArray
     if isinstance(obj, (Graphics, GraphicsArray)):
-        from sage.misc.all import tmp_filename
-        t = tmp_filename() + ('.svg' if svg else '.png')
-        obj.save(t, **kwds)
-        salvus.file(t)
+        show_2d_plot(obj, **kwds)
+    elif isinstance(obj, Graphics3d):
+        show_3d_plot(obj, **kwds)
     else:
         salvus.tex(obj, display=True, **kwds)
 
 # Make it so plots plot themselves correctly when they call their repr.
-from sage.plot.graphics import Graphics
 Graphics.show = show
 
 ###################################################
