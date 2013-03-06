@@ -676,7 +676,7 @@ class Client extends EventEmitter
                     else
                         cb("Internal error -- unknown permission type '#{permission}'")
             (cb) =>
-                project = new Project(mesg.project_id)
+                project = new Project2(mesg.project_id)
                 cb()
         ], (err) =>
                 if err
@@ -715,7 +715,7 @@ class Client extends EventEmitter
             # TODO: we might as an optimization just leave it open initially,
             # since the user is likely to want to use it right after creating it.
             (cb) =>
-                project = new Project(project_id)
+                project = new Project2(project_id)
                 project.open(cb)
             (cb) =>
                 project.save(cb)
@@ -1071,6 +1071,168 @@ push_to_clients = (opts) ->
 ##############################
 # Working with projects
 ##############################
+
+class Project2
+    constructor: (@project_id) ->
+        if not @project_id?
+            throw "When creating Project, the project_id must be defined"
+    owner: (cb) =>
+        database.get_project_data
+            project_id : @project_id
+            columns : ['account_id']
+            cb      : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(err, result[0])
+
+    # Get a socket connection to the local_hub
+    socket: (cb) =>     # cb(err, socket)
+        if @_socket?
+            cb(false, @_socket)
+        # TODO
+        @_socket = net.connect {port:6020}, () =>
+            cb(false, @_socket)
+
+    # Open the project on some host if it is not already opened.
+    open: (cb) ->
+        winston.debug("project2-open-stub")
+        cb()
+
+    save: (cb) ->
+        winston.debug("project2-save-stub")
+        cb()
+
+    close: (cb) ->
+        winston.debug("project2-close-stub")
+        cb()
+
+    size_of_local_copy: (cb) =>
+        winston.debug("project2-size_of_local_copy-stub")
+        cb(false, 0)
+
+    # Exec a command
+    exec:  (mesg, cb) =>
+        socket = undefined
+        id     = uuid.v4()
+        async.series([
+            (cb) =>
+                @socket (err, _socket) ->
+                    if err
+                        cb(err)
+                    else
+                        socket = _socket
+                        cb()
+            (cb) =>
+                if not mesg.id?
+                    mesg.id = id
+                mesg.project_id = @project_id
+                socket.write_mesg 'json', mesg
+                cb()
+
+            (cb) =>
+                socket.recv_mesg type:'json', id:mesg.id, timeout:opts.timeout, cb:(mesg) ->
+                    opts.cb(false, mesg)
+                    cb()
+        ], cb)
+
+    move_file: (src, dest, cb) =>
+        @exec(message.project_exec(command: "mv", args: [src, dest]), cb)
+
+    make_directory: (path, cb) =>
+        @exec(message.project_exec(command: "mkdir", args: [path]), cb)
+
+    remove_file: (path, cb) =>
+        @exec(message.project_exec(command: "rm", args: [path]), cb)
+
+    # Read a file from a project into memory on the hub.  This is
+    # used, e.g., for client-side editing, worksheets, etc.  This does
+    # not pull the file from the database; instead, it loads it live
+    # from the project_server virtual machine.
+    read_file: (opts) -> # cb(err, content_of_file)  -- indicates when done
+        {path, archive, cb} = defaults opts,
+            path    : required
+            archive : undefined
+            cb      : required
+
+        socket    = undefined
+        id        = uuid.v4()
+        data      = undefined
+        data_uuid = undefined
+
+        async.series([
+            # Get a socket connection to the project host.  This will open
+            # the project if it isn't already opened.
+            (cb) =>
+                @socket (err, _socket) ->
+                    if err
+                        cb(err)
+                    else
+                        socket = _socket
+                        cb()
+            (cb) =>
+                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:@project_id, path:path, archive:archive)
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
+                    switch mesg.event
+                        when 'error'
+                            cb(mesg.error)
+                        when 'file_read_from_project'
+                            data_uuid = mesg.data_uuid
+                            cb()
+                        else
+                            cb("Unknown mesg event '#{mesg.event}'")
+
+            (cb) =>
+                socket.recv_mesg type: 'blob', id:data_uuid, timeout:10, cb:(_data) ->
+                    data = _data
+                    cb()
+
+        ], (err) ->
+            if err
+                cb(err)
+            else
+                cb(false, data)
+        )
+
+    # Write a file to a compute node.
+    write_file: (path, data, cb) ->   # cb(err)
+        socket    = undefined
+        id        = uuid.v4()
+        data_uuid = uuid.v4()
+
+        async.series([
+            (cb) =>
+                @socket (err, _socket) ->
+                    #winston.debug("@socket returned: #{err}, #{_socket}")
+                    if err
+                        cb(err)
+                    else
+                        socket = _socket
+                        cb()
+            (cb) =>
+                mesg = message.write_file_to_project
+                    id         : id
+                    project_id : @project_id
+                    path       : path
+                    data_uuid  : data_uuid
+                socket.write_mesg 'json', mesg
+                socket.write_mesg 'blob', {uuid:data_uuid, blob:data}
+                cb()
+
+            (cb) =>
+                socket.recv_mesg type: 'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'file_written_to_project'
+                            cb()
+                        when 'error'
+                            cb(mesg.error)
+                        else
+                            cb("Unexpected message type '#{mesg.event}'")
+        ], cb)
+
+
+############################################################################
+############################################################################
 
 class Project
     constructor: (@project_id) ->

@@ -10,8 +10,8 @@
 #################################################################
 
 # TODO -- just for temporary testing
-CONSOLE_PORT = 6020
-SAGE_PORT    = 6021
+CONSOLE_PORT = 6001
+SAGE_PORT    = 6000
 
 async          = require 'async'
 fs             = require 'fs'
@@ -165,6 +165,7 @@ project_exec = (socket, mesg) ->
 # over the socket as a blob message.
 #
 # Directories get sent as a ".tar.bz2" file.
+# TODO: should support -- 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'. and mesg.archive option!!!
 #
 read_file_from_project = (socket, mesg) ->
     data   = undefined
@@ -326,7 +327,7 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 6000)', parseInt, 6000)
+    .option('-p, --port <n>', 'port to listen on (default: 6020)', parseInt, 6020)
     .option('--pidfile [string]', 'store pid in this file (default: ".session_server.pid")', String, ".session_server.pid")
     .option('--logfile [string]', 'write log to this file (default: ".session_server.log")', String, ".session_server.log")
     .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")

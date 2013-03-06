@@ -10286,22 +10286,22 @@ Plan:
 
      [x] (0:20) minimal proof of concept "putting/getting" a file.
 
-     [ ] very, very minimal proof of concept demo that illustrates keeping the state
-         of a worksheet in memory, and having multiple simultaneous editors.
+     [x] execute a bash subprocess, with timeouts (copy from project_server).
 
-     [ ] make the local_hub.coffee able to create and provide console
+-->     [ ] minimal-proof-of-concept: change hub to use local_hub instead
+         by making a Project2 class with the same API as Project and
+         slotting it in.  test and debug above.
+
+     [ ] production: make the local_hub.coffee able to create and provide console
          sessions, and record complete history. -- real deal.
 
-     [ ] change hub to use it and see that terminal sessions now
-         run as *that* user.
-
-     [ ] execute a bash subprocess, with timeouts (copy from
-         project_server).
-
-     [ ] extend smc_daemon.coffee to provide a sage session (using
+     [ ] production: extend local_hub.coffee to provide a sage session (using
          a separate sage server started as the same user).
 
-     [ ] change hub to use sage sessions this way.
+     [ ] production: hub to use local_hub, seriously.
+
+     [ ] very, very minimal proof of concept demo that illustrates keeping the state
+         of a worksheet in memory, and having multiple simultaneous editors.
 
 2. Create a token/password/etc? security mechanism.
 
