@@ -10273,9 +10273,12 @@ Plan:
 
      [x] (0:50) make console_server not require a username and privilege drop.
 
--->  [ ] make the session_manager.coffee able to create and provide
-         console sessions.
+     [x] very, very minimal proof-of-concept demo: make the local_hub.coffee
+        able to create and provide console sessions, and record
+        complete history, and allow for reconnect.
 
+-->  [ ] make the local_hub.coffee able to create and provide
+         console sessions, and record complete history.
 
      [ ] change hub to use it and see that terminal sessions now
          run as *that* user.
@@ -10363,6 +10366,9 @@ Next Priority
 
 ========================
 
+
+
+     [ ] terminal: need way to copy from any subset of history, e.g., by copying buffer into a normal textarea.
 
      [ ] terminal settings: scrollback size
      [ ] terminal settings: font family

@@ -9,6 +9,10 @@
 #
 #################################################################
 
+# TODO -- just for temporary testing
+CONSOLE_PORT = 6020
+SAGE_PORT    = 6021
+
 async          = require 'async'
 fs             = require 'fs'
 net            = require 'net'
@@ -19,8 +23,54 @@ winston        = require 'winston'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
-start_console_session = (socket, mesg) ->
+console_socket = undefined
+session_desc = undefined
+history = new Buffer(0)
+
+start_console_session = (client_socket, mesg) ->
     winston.debug("Starting a console session.")
+
+    # TEST
+    if console_socket?
+        # connect to existing session
+        client_socket.write_mesg('json', session_desc)
+        misc_node.disable_mesg(client_socket)
+        client_socket.write(history)
+        client_socket.on 'data', (data) ->
+            console.log("client_socket write")
+            console_socket.write(data)
+        console_socket.on 'data', (data) ->
+            console.log("console_socket write")
+            client_socket.write(data)
+        return
+
+    # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
+    console_socket = net.connect {port:CONSOLE_PORT}, ()->
+        # Request console from actual console server
+        misc_node.enable_mesg(console_socket)
+        console_socket.write_mesg('json', mesg)
+        console_socket.once 'mesg', (type, resp) ->
+            session_desc = resp
+            client_socket.write_mesg('json', session_desc)
+
+            # Disable JSON mesg protocol
+            misc_node.disable_mesg(console_socket)
+            misc_node.disable_mesg(client_socket)
+
+            # Connect the sockets together.
+            client_socket.on 'data', (data) ->
+                console.log("master client_socket write")
+                console_socket.write(data)
+            console_socket.on 'data', (data) ->
+                history += data
+                console.log("master console_socket write")
+                client_socket.write(data)
+
+
+# TODO
+connect_to_console_session = (socket, mesg) ->
+start_sage_session = (socket, mesg) ->
+connect_to_sage_session = (socket, mesg) ->
 
 start_session = (socket, mesg) ->
     winston.debug("start_session")
@@ -74,7 +124,7 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 6010)', parseInt, 6010)
+    .option('-p, --port <n>', 'port to listen on (default: 6001)', parseInt, 6001)
     .option('--pidfile [string]', 'store pid in this file (default: ".session_server.pid")', String, ".session_server.pid")
     .option('--logfile [string]', 'write log to this file (default: ".session_server.log")', String, ".session_server.log")
     .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")
