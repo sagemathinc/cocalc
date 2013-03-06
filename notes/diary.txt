@@ -10199,28 +10199,69 @@ f.n = 5
     [x] worksheet: automatic 2d graphics
     [x] worksheet: hiding/showing cells
 
-IDEA about next step:
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+ABSOLUTE TOP PRIORITY todo list by friday night -- deploy the troops
+====================================================================
+
+Plan: make it so the console and sage servers run something persistent on each VM, so that it is *not*
+      necessary to have a connection with the hub in order for sessions to stay persistent.
+      This way, when there are multiple hubs, and a client connects to a random one, they can still
+      reconnect to their existing sessions.
+      This will be much more robust than the previous design, in the face of failures.
+      This will also be needed to make it work on most OSX/Linux accounts.
 
 I want to solve the following problem:
     - user can randomly get connected to any hub,
-    - any hub can just die -- can't be a SPOF
+    - any hub can just die/be restarted -- can't be a SPOF
     - user wants to be able to easily and robustly re-connect to any session they started (unless host dies, i.e., minimal SPOF)
+    - no need for hubs to communicate with each other directly (only indirectly via database)
 
+The solution is to run a single nodejs server in userspace on each
+host VM's as a given user, and use ssh port forwarding to connect it
+securely to the hub.  The hub then just connects to a port on
+localhost to get stuff done.  This will involve writing a couple of
+network services in node, e.g., one to serve all the sage sessions, so
+that users can connect/disconnect at will.
 
+Since users on localhost can connect to the servers, there will have
+to be a session secret, which is know to cloudsage.
 
-ABSOLUTE TOP PRIORITY todo list before friday -- deploy the troops
-==================================================================
+   [ ] smc-daemon.coffee: Write a nodejs server that proxies all
+       sessions. It has a token, and listens only on localhost.  On
+       connecting, client can join an existing session (defined by a
+       uuid) or start a new one. Provides this functionality:
+            - sage session: start/connect/kill
+            - console session: start/connect/kill
+            - command: run a bash script (with a timeout)
 
-   [ ] Idea -- make it so the console and sage servers run something persistent on each VM, so that it is *not*
-       necessary to have a connection with the hub in order for sessions to stay persistent.
-       This way, when there are multiple hubs, and a client connects to a random one, they can still
-       reconnect to their existing sessions.
-       This will be much more robust than the previous design, in the face of failures.
-       This is a step toward things running on most Linux accounts.
+   [ ] When user creates a project it can use:
+          - an account I provide:
+              * I will have a bunch of pre-made accounts ready to go, so no root required.
+              * Hubs are identical -- all have the same ssh keypairs.
+              * Compute VM's are identical -- have 100 (say) premade accounts setup to work with hub keys.
+              * No root/admin accounts involved at all.
+              * Compute VM's are transient; when they die, user only looses a few seconds work (since last rsnapshot).
+              * All account limitations (quota, etc.) will be pre-configured.
+              * LXC or SElinux -- preconfigured.
+
+          - an account they provide:
+                - hostname
+                - port (default:22)
+            They then have to add an ssh keypair that I generated to
+            their .ssh/authorizedkeys file... or -- I just
+            do a login once and add the key myself, and verify
+            permissions are right.
+
+   [ ] Create a separate build-from-source smc-daemon project -- hosted on github and open source -- this is
+       what must successfully build from source in order to link an existing account with SMC.
 
    [ ] Fully deploy on 01-03salvus and 05-07salvus.
 
-   [ ] change extension: .sws.cloud; .trm.cloud
+   [ ] change file extension for workhseets/etc. -- .smc
+       Find a way to have only one filename extension.
 
    [ ] Backups:
 
@@ -10229,9 +10270,17 @@ ABSOLUTE TOP PRIORITY todo list before friday -- deploy the troops
       [ ] store that this was done in database
       [ ] get rid of current rsync stuff
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 Next Priority
 ================
+
+   [ ] massive library rename: "salvus" -> "smc" = sage math cloud.
+
+   [ ] G = a weighted graph; then ask for the show(G) and get a tickz picture... so SMC not supporting this yet.
+
 
    [] emacs "undo" doesn't even work in --app mode.  Ick.
       emacs control-shift-c brings up debug console.
@@ -10262,8 +10311,6 @@ Next Priority
      [ ] note: bold, bulleted list, font size
 
      [ ] search in all (open) projects
-
-     [ ] massive library, etc. rename: "salvus" -> "sagecloud" or "cloudsage"
 
      [ ] coloring/Sphinx'ing of source code via codemirror
 
@@ -10533,6 +10580,7 @@ def f(n=10**100):
 
 
     [ ] code decorator: %pdb (?)/  %debug    -- the debug() command I wrote for the notebook doesn't work at all.
+        ** this is important to fix!! **
 
     [ ] attach command -- it doesn't work with weird error.
 
