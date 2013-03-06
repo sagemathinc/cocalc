@@ -10236,6 +10236,9 @@ to be a session secret, which is know to cloudsage.
             - sage session: start/connect/kill
             - console session: start/connect/kill
             - command: run a bash script (with a timeout)
+       *AND* this is where the console history is saved (just like in
+       screen)... and *also* where the live master worksheet state is
+       saved, so many clients can edit simultaneously.
 
    [ ] When user creates a project it can use:
           - an account I provide:
@@ -10257,6 +10260,45 @@ to be a session secret, which is know to cloudsage.
 
    [ ] Create a separate build-from-source smc-daemon project -- hosted on github and open source -- this is
        what must successfully build from source in order to link an existing account with SMC.
+=========================================
+
+
+Plan:
+
+1. Write a first simplest possible smc_daemon.coffee:
+
+     [x] (0:145) create session_manager.coffee file, based on simplifying the
+         existing console.coffee and getting rid of permission
+         dropping, etc.  This proxies all sessions.
+
+     [ ] make the session_manager.coffee able to create and provide
+         console sessions.
+
+     [ ] change hub to use it and see that terminal sessions now
+         run as *that* user.
+
+     [ ] execute a bash subprocess, with timeouts (copy from
+         project_server).
+
+     [ ] extend smc_daemon.coffee to provide a sage session (using
+         a separate sage server started as the same user).
+
+     [ ] change hub to use sage sessions this way.
+
+2. Create a token/password/etc? security mechanism.
+
+3. Extend it to sync the console history
+
+4. Extend it to sync the worksheet history.
+
+
+
+
+
+
+
+
+=========================================
 
    [ ] Fully deploy on 01-03salvus and 05-07salvus.
 
@@ -10998,3 +11040,4 @@ def mat(s):
 
 
 
+Idea: reverse port forwarding -- https://mail.google.com/mail/u/0/?shva=1#inbox/13d3d87fe30015ef
