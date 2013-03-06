@@ -199,22 +199,24 @@ class exports.Editor
 
         tab = @tabs[filename]
         if not tab?
+            cb?()
             return
 
         if not tab.editor.has_unsaved_changes()
             # nothing to save
-            cb()
+            cb?()
             return
 
         content = tab.editor.val()
         if not content?
             # do not overwrite file in case editor isn't initialized
             alert_message(type:"error", message:"Editor of '#{filename}' not initialized, so nothing to save.")
+            cb?()
             return
 
         salvus_client.write_text_file_to_project
             project_id : @project_id
-            timeout    : 15
+            timeout    : 10
             path       : filename
             content    : content
             cb         : (err, mesg) =>
@@ -383,10 +385,11 @@ class CodeMirrorEditor extends FileEditor
     click_save_button: () =>
         if not @save.hasClass('disabled')
             @save.find('span').text("Saving...")
-            @save.find(".spinner").show()
+            spin = setTimeout((() => @save.find(".spinner").show()), 100)
             @editor.save @filename, (err) =>
-                @save.find('span').text('Save')
+                clearTimeout(spin)
                 @save.find(".spinner").hide()
+                @save.find('span').text('Save')
                 if not err
                     @save.addClass('disabled')
                     @has_unsaved_changes(false)

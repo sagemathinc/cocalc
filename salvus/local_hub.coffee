@@ -259,19 +259,20 @@ write_file_to_project = (socket, mesg) ->
     write_file = (type, value) ->
         if type == 'blob' and value.uuid == data_uuid
             socket.removeListener 'mesg', write_file
-            winston.debug("mesg --> #{misc.to_json(mesg)}, path=#{path}")
             async.series([
                 (cb) ->
                     ensure_containing_directory_exists(path, cb)
                 (cb) ->
+                    winston.debug('writing the file')
                     fs.writeFile(path, value.blob, cb)
             ], (err) ->
                 if err
+                    winston.debug("error writing file -- #{err}")
                     socket.write_mesg 'json', message.error(id:mesg.id, error:err)
                 else
+                    winston.debug("wrote file '#{path}' fine")
                     socket.write_mesg 'json', message.file_written_to_project(id:mesg.id)
             )
-
     socket.on 'mesg', write_file
 
 
@@ -301,7 +302,7 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
 # Handle a message form the client
 ###############################################
 
-handle_client = (socket, mesg) ->
+handle_mesg = (socket, mesg) ->
     try
         switch mesg.event
             when 'start_session'
@@ -337,8 +338,9 @@ server = net.createServer (socket) ->
 
     misc_node.enable_mesg(socket)
     socket.on 'mesg', (type, mesg) ->
-        winston.debug "received control mesg #{to_json(mesg)}"
-        handle_client(socket, mesg)
+        if type == "json"   # other types are handled elsewhere in event code.
+            winston.debug "received control mesg #{to_json(mesg)}"
+            handle_mesg(socket, mesg)
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = (path) ->

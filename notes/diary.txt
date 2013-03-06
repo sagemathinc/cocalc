@@ -10288,15 +10288,15 @@ Plan:
 
      [x] execute a bash subprocess, with timeouts (copy from project_server).
 
-     [x] minimal-proof-of-concept: change hub to use local_hub instead
+     [x] (1:30) minimal-proof-of-concept: change hub to use local_hub instead
          by making a Project2 class with the same API as Project and
          slotting it in.
 
      [ ] Test and debug using Project2 with various stubs.
            [x] bash command
            [x] read file
--->           [ ] write file
-           [ ] console: change hub to use project2 instead of separate stuff
+           [x] (0:33) local_hub: write file
+-->           [ ] console: change hub to use project2 instead of separate stuff
            [ ] sage session: change hub to use project2 instead of separate stuff
 
      [ ] deal with "git-ls" location/existence.

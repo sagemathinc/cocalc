@@ -1098,15 +1098,15 @@ class Project2
     # Open the project on some host if it is not already opened.
     open: (cb) ->
         winston.debug("project2-open-stub")
-        cb()
+        cb?()
 
     save: (cb) ->
         winston.debug("project2-save-stub")
-        cb()
+        cb?()
 
     close: (cb) ->
         winston.debug("project2-close-stub")
-        cb()
+        cb?()
 
     size_of_local_copy: (cb) =>
         winston.debug("project2-size_of_local_copy-stub")
