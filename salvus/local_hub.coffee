@@ -23,8 +23,13 @@ winston        = require 'winston'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
+
+###############################################
+# Minimal proof-of-concept console session
+###############################################
+
 console_socket = undefined
-session_desc = undefined
+console_session_desc = undefined
 history = new Buffer(0)
 
 start_console_session = (client_socket, mesg) ->
@@ -33,14 +38,12 @@ start_console_session = (client_socket, mesg) ->
     # TEST
     if console_socket?
         # connect to existing session
-        client_socket.write_mesg('json', session_desc)
+        client_socket.write_mesg('json', console_session_desc)
         misc_node.disable_mesg(client_socket)
         client_socket.write(history)
         client_socket.on 'data', (data) ->
-            console.log("client_socket write")
             console_socket.write(data)
         console_socket.on 'data', (data) ->
-            console.log("console_socket write")
             client_socket.write(data)
         return
 
@@ -50,8 +53,8 @@ start_console_session = (client_socket, mesg) ->
         misc_node.enable_mesg(console_socket)
         console_socket.write_mesg('json', mesg)
         console_socket.once 'mesg', (type, resp) ->
-            session_desc = resp
-            client_socket.write_mesg('json', session_desc)
+            console_session_desc = resp
+            client_socket.write_mesg('json', console_session_desc)
 
             # Disable JSON mesg protocol
             misc_node.disable_mesg(console_socket)
@@ -59,24 +62,69 @@ start_console_session = (client_socket, mesg) ->
 
             # Connect the sockets together.
             client_socket.on 'data', (data) ->
-                console.log("master client_socket write")
                 console_socket.write(data)
             console_socket.on 'data', (data) ->
                 history += data
-                console.log("master console_socket write")
                 client_socket.write(data)
 
 
+
+
+###############################################
+# Minimal proof-of-concept sage session
+###############################################
+
+sage_socket = undefined
+sage_session_desc = undefined
+
+start_sage_session = (client_socket, mesg) ->
+    winston.debug("Starting a sage session.")
+
+    # TEST
+    if sage_socket?
+        # connect to existing session
+        client_socket.write_mesg('json', sage_session_desc)
+        misc_node.disable_mesg(client_socket)
+        client_socket.on 'data', (data) ->
+            sage_socket.write(data)
+        sage_socket.on 'data', (data) ->
+            client_socket.write(data)
+        return
+
+    # Connect to port SAGE_PORT, send mesg, then hook sockets together.
+    sage_socket = net.connect {port:SAGE_PORT}, ()->
+        # Request console from actual console server
+        misc_node.enable_mesg(sage_socket)
+        sage_socket.write_mesg('json', mesg)
+        sage_socket.once 'mesg', (type, resp) ->
+            sage_session_desc = resp
+            client_socket.write_mesg('json', sage_session_desc)
+
+            # Disable JSON mesg protocol
+            misc_node.disable_mesg(sage_socket)
+            misc_node.disable_mesg(client_socket)
+
+            # Connect the sockets together.
+            client_socket.on 'data', (data) ->
+                sage_socket.write(data)
+            sage_socket.on 'data', (data) ->
+                client_socket.write(data)
+
+
+###############################################
+
 # TODO
 connect_to_console_session = (socket, mesg) ->
-start_sage_session = (socket, mesg) ->
+#start_sage_session = (socket, mesg) ->
 connect_to_sage_session = (socket, mesg) ->
 
 start_session = (socket, mesg) ->
-    winston.debug("start_session")
+    winston.debug("start_session -- type='#{mesg.type}'")
     switch mesg.type
         when 'console'
             start_console_session(socket, mesg)
+        when 'sage'
+            start_sage_session(socket, mesg)
         else
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
@@ -124,7 +172,7 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 6001)', parseInt, 6001)
+    .option('-p, --port <n>', 'port to listen on (default: 6000)', parseInt, 6000)
     .option('--pidfile [string]', 'store pid in this file (default: ".session_server.pid")', String, ".session_server.pid")
     .option('--logfile [string]', 'write log to this file (default: ".session_server.log")', String, ".session_server.log")
     .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")

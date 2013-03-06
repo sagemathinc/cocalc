@@ -10277,8 +10277,11 @@ Plan:
         able to create and provide console sessions, and record
         complete history, and allow for reconnect.
 
--->  [ ] make the local_hub.coffee able to create and provide
-         console sessions, and record complete history.
+     [x] (0:15) very, very minimal proof-of-concept demo that illustrates connecting
+         to (and proxying) a sage session.
+
+     [ ] make the local_hub.coffee able to create and provide
+         console sessions, and record complete history. -- real deal, not proof of concept
 
      [ ] change hub to use it and see that terminal sessions now
          run as *that* user.
