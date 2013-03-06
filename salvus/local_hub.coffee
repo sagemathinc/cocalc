@@ -1,14 +1,14 @@
 #################################################################
 #
-# session_manager
+# local_hub
 #
-# For local debugging, run this way, since it gives better stack traces.
+# For local debugging, run this way, since it gives better stack
+# traces.
 #
-#         make_coffee && echo "require('session_manager').start_server()" | coffee
+#         make_coffee && echo "require('local_hub').start_server()" | coffee
 #
 #################################################################
 
-child_process  = require 'child_process'
 async          = require 'async'
 fs             = require 'fs'
 net            = require 'net'
@@ -19,33 +19,17 @@ winston        = require 'winston'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
-makedirs = (path, uid, gid, cb) ->
-    # TODO: this should split the path and make sure everything is
-    # made along the way.
-    async.series([
-        (c) -> fs.exists path, (exists) ->
-            if exists # done
-                cb(); c(true)
-            else
-                c()
-        (c) -> fs.mkdir path, (err) ->
-            if err
-                cb(err); c(true)
-            else
-                c()
-        (c) ->
-            if not uid? or not gid?
-                cb(); c()
-            else
-                fs.chown path, uid, gid, (err) ->
-                    if err
-                        cb(err); c(true)
-                    else
-                        cb(); c()
-    ])
+start_console_session = (socket, mesg) ->
+    winston.debug("Starting a console session.")
 
 start_session = (socket, mesg) ->
     winston.debug("start_session")
+    switch mesg.type
+        when 'console'
+            start_console_session(socket, mesg)
+        else
+            err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
+            socket.write_mesg('json', err)
 
 handle_client = (socket, mesg) ->
     try

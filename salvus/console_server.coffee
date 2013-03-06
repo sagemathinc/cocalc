@@ -77,38 +77,52 @@ start_session = (socket, mesg) ->
         cols    : 80
         command : undefined
         args    : []
-        ps1     : '\\w\\$ '
-        path    : process.env.PATH
+        ps1     : undefined
+        path    : undefined
         cwd     : undefined          # starting PATH (need not be home directory)
+        home    : undefined
 
-    if mesg.project_id.length != 36
-        winston.debug("suspicious project_id (=#{mesg.project_id}) -- bailing")
-        return
-    #username = mesg.project_id.replace(/-/g,'')  # see also project_server.coffee:username
-    username = mesg.project_id.slice(0,8)
+    if process.env['USER'] == 'root'
+        if not mesg.project_id? or mesg.project_id.length != 36
+            winston.debug("suspicious project_id (=#{mesg.project_id}) -- bailing")
+            return
+
+    if mesg.project_id?
+        username = mesg.project_id.slice(0,8)
+        if not opts.ps1?
+            opts.ps1 = '\\w\\$ '
+        if not opts.path?
+            opts.path = process.env.PATH
 
     opts.cputime  = mesg.limits.cputime
     opts.vmem     = mesg.limits.vmem
     opts.numfiles = mesg.limits.numfiles
-    opts.home = "/home/#{username}"
 
-    if not opts.cwd?
+    if username? and not opts.home?
+        opts.home = "/home/#{username}"
+
+    if not opts.cwd? and username?
         opts.cwd = "/home/#{username}"
 
     winston.debug "start_session opts = #{to_json(opts)}"
 
     # Ensure that the given user exists.  If not, send an error.  The
     # hub should always ensure the user exists before starting a session.
-    getuid username, (err, uid) ->
-        if err
-            # TODO: no way to report error further... yet
-            winston.error "ERROR: #{err}"
-        else
-            winston.debug("Starting console session for user #{username} with uid #{uid}")
-            opts.uid = uid
-            opts.gid = uid
-
-            # Fork off a child process that drops privileges and does
+    async.series([
+        (cb) ->
+            if not username?
+                cb()
+                return
+            getuid username, (err, uid) ->
+                if err
+                    cb(err)
+                else
+                    winston.debug("Starting console session for user #{username} with uid #{uid}")
+                    opts.uid = uid
+                    opts.gid = uid
+                    cb()
+        (cb) ->
+            # Fork off a child process that drops privileges (if opts.uid is set) and does
             # all further work to handle a connection.
             child = child_process.fork(__dirname + '/console_server_child.js', [])
 
@@ -127,6 +141,12 @@ start_session = (socket, mesg) ->
                 setTimeout((() -> child.kill('SIGKILL')), mesg.limits.walltime*1000)
             winston.info "PARENT: forked off child to handle it"
 
+            cb()
+    ], (err) ->
+        if err
+            # TODO: change protocol to allow for checking for an error message.
+            winston.debug("ERROR - #{err}")
+    )
 
 handle_client = (socket, mesg) ->
     try

@@ -10267,12 +10267,15 @@ Plan:
 
 1. Write a first simplest possible smc_daemon.coffee:
 
-     [x] (0:145) create session_manager.coffee file, based on simplifying the
+     [x] (0:15) create session_manager.coffee file, based on simplifying the
          existing console.coffee and getting rid of permission
          dropping, etc.  This proxies all sessions.
 
-     [ ] make the session_manager.coffee able to create and provide
+     [x] (0:50) make console_server not require a username and privilege drop.
+
+-->  [ ] make the session_manager.coffee able to create and provide
          console sessions.
+
 
      [ ] change hub to use it and see that terminal sessions now
          run as *that* user.
