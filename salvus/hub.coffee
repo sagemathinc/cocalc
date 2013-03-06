@@ -1092,6 +1092,7 @@ class Project2
             cb(false, @_socket)
         # TODO
         @_socket = net.connect {port:6020}, () =>
+            misc_node.enable_mesg(@_socket)
             cb(false, @_socket)
 
     # Open the project on some host if it is not already opened.
@@ -1115,6 +1116,7 @@ class Project2
     exec:  (mesg, cb) =>
         socket = undefined
         id     = uuid.v4()
+        resp   = undefined
         async.series([
             (cb) =>
                 @socket (err, _socket) ->
@@ -1131,10 +1133,15 @@ class Project2
                 cb()
 
             (cb) =>
-                socket.recv_mesg type:'json', id:mesg.id, timeout:opts.timeout, cb:(mesg) ->
-                    opts.cb(false, mesg)
+                socket.recv_mesg type:'json', id:mesg.id, timeout:mesg.timeout, cb: (_resp) ->
+                    resp = _resp
                     cb()
-        ], cb)
+        ], (err) ->
+            if err
+                cb(err)
+            else
+                cb(false, resp)
+        )
 
     move_file: (src, dest, cb) =>
         @exec(message.project_exec(command: "mv", args: [src, dest]), cb)

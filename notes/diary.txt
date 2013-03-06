@@ -10288,9 +10288,20 @@ Plan:
 
      [x] execute a bash subprocess, with timeouts (copy from project_server).
 
--->     [ ] minimal-proof-of-concept: change hub to use local_hub instead
+     [x] minimal-proof-of-concept: change hub to use local_hub instead
          by making a Project2 class with the same API as Project and
-         slotting it in.  test and debug above.
+         slotting it in.
+
+     [ ] Test and debug using Project2 with various stubs.
+           [x] bash command
+           [x] read file
+-->           [ ] write file
+           [ ] console: change hub to use project2 instead of separate stuff
+           [ ] sage session: change hub to use project2 instead of separate stuff
+
+     [ ] deal with "git-ls" location/existence.
+
+     [ ] implement project creation
 
      [ ] production: make the local_hub.coffee able to create and provide console
          sessions, and record complete history. -- real deal.
@@ -10299,6 +10310,8 @@ Plan:
          a separate sage server started as the same user).
 
      [ ] production: hub to use local_hub, seriously.
+
+     [ ] delete old project2 code
 
      [ ] very, very minimal proof of concept demo that illustrates keeping the state
          of a worksheet in memory, and having multiple simultaneous editors.

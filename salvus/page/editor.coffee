@@ -37,6 +37,7 @@ codemirror_associations =
     sh     : 'shell'
     spyx   : 'python'
     txt    : 'text'
+    tex    : 'stex'
     xml    : 'xml'
     yaml   : 'yaml'
     ''     : 'text'

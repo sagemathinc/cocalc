@@ -1,8 +1,13 @@
 #################################################################
 #
-# local_hub
+# local_hub -- runs as a regular user, and coordinates and maintains
+#              the connections between the global hubs and a
+#              specific project.
 #
-# For local debugging, run this way, since it gives better stack
+# The local_hub is a bit like the "screen" program for Unix.
+#
+#
+# NOTE: For local debugging, run this way, since it gives better stack
 # traces.
 #
 #         make_coffee && echo "require('local_hub').start_server()" | coffee
@@ -18,12 +23,26 @@ fs             = require 'fs'
 net            = require 'net'
 child_process  = require 'child_process'
 message        = require 'message'
+misc           = require 'misc'
 misc_node      = require 'misc_node'
 winston        = require 'winston'
 temp           = require 'temp'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
+###################################################
+# The root path for the project is the directory
+# in which local_hub is started.
+###################################################
+
+project_root = undefined
+
+abspath = (path) ->
+    if path.length == 0
+        return project_root
+    if path[0] == '/'
+        return path  # already an absolute path
+    return project_root + path
 
 ###############################################
 # Minimal proof-of-concept console session
@@ -135,7 +154,7 @@ project_exec = (socket, mesg) ->
     misc_node.execute_code
         command     : mesg.command
         args        : mesg.args
-        path        : mesg.path
+        path        : abspath(mesg.path)
         timeout     : mesg.timeout
         err_on_exit : true
         max_output  : mesg.max_output
@@ -169,7 +188,7 @@ project_exec = (socket, mesg) ->
 #
 read_file_from_project = (socket, mesg) ->
     data   = undefined
-    path   = mesg.path
+    path   = abspath(mesg.path)
     is_dir = undefined
     id     = undefined
     async.series([
@@ -192,6 +211,7 @@ read_file_from_project = (socket, mesg) ->
                         path = target
                         cb()
             else
+                winston.debug("It is a file.")
                 cb()
 
         (cb) ->
@@ -221,6 +241,7 @@ read_file_from_project = (socket, mesg) ->
             socket.write_mesg 'blob', {uuid:id, blob:data}
             cb()
     ], (err) ->
+        winston.debug("Error: #{err}")
         if err and err != 'file already known'
             socket.write_mesg 'json', message.error(id:mesg.id, error:err)
         if is_dir
@@ -232,6 +253,7 @@ read_file_from_project = (socket, mesg) ->
 
 write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
+    path = abspath(mesg.path)
 
     # Listen for the blob containg the actual content that we will write.
     write_file = (type, value) ->
@@ -240,9 +262,9 @@ write_file_to_project = (socket, mesg) ->
             winston.debug("mesg --> #{misc.to_json(mesg)}, path=#{path}")
             async.series([
                 (cb) ->
-                    ensure_containing_directory_exists(mesg.path, cb)
+                    ensure_containing_directory_exists(path, cb)
                 (cb) ->
-                    fs.writeFile(mesg.path, value.blob, cb)
+                    fs.writeFile(path, value.blob, cb)
             ], (err) ->
                 if err
                     socket.write_mesg 'json', message.error(id:mesg.id, error:err)
@@ -256,6 +278,7 @@ write_file_to_project = (socket, mesg) ->
 # Make sure that that the directory containing the file indicated by
 # the path exists and has the right permissions.
 ensure_containing_directory_exists = (path, cb) ->   # cb(err)
+    path = abspath(path)
     dir = misc.path_split(path).head  # containing path
 
     fs.exists dir, (exists) ->
@@ -318,7 +341,9 @@ server = net.createServer (socket) ->
         handle_client(socket, mesg)
 
 # Start listening for connections on the socket.
-exports.start_server = start_server = () ->
+exports.start_server = start_server = (path) ->
+    if path?
+        project_root = path
     server.listen program.port, program.host, () -> winston.info "listening on port #{program.port}"
 
 # daemonize it
@@ -331,7 +356,16 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file (default: ".session_server.pid")', String, ".session_server.pid")
     .option('--logfile [string]', 'write log to this file (default: ".session_server.log")', String, ".session_server.log")
     .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")
+    .option('--project_root [string]', 'use this path as the project root (default: current working directory)', String, '')
     .parse(process.argv)
+
+project_root = program.project_root
+if project_root = ''
+    project_root = process.cwd() + '/'
+else if project_root[project_root.length-1] != '/'
+    project_root += '/'
+
+winston.debug("project_root = '#{project_root}'")
 
 if program._name == 'session_server.js'
     # run as a server/daemon (otherwise, is being imported as a library)
@@ -340,5 +374,3 @@ if program._name == 'session_server.js'
         if console? and console.trace?
             console.trace()
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
-
-
