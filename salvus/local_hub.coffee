@@ -116,11 +116,8 @@ start_sage_session = (client_socket, mesg) ->
         sage_socket.write_mesg('json', mesg)
         sage_socket.once 'mesg', (type, resp) ->
             sage_session_desc = resp
+            winston.debug("Sage session description: ", misc.to_json(sage_session_desc))
             client_socket.write_mesg('json', sage_session_desc)
-
-            # Disable JSON mesg protocol
-            misc_node.disable_mesg(sage_socket)
-            misc_node.disable_mesg(client_socket)
 
             # Connect the sockets together.
             client_socket.on 'data', (data) ->
@@ -132,7 +129,6 @@ start_sage_session = (client_socket, mesg) ->
 ###############################################
 # TODO
 connect_to_console_session = (socket, mesg) ->
-#start_sage_session = (socket, mesg) ->
 connect_to_sage_session = (socket, mesg) ->
 
 start_session = (socket, mesg) ->

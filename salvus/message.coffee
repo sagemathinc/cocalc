@@ -73,6 +73,7 @@ message
     event        : 'connect_to_session'
     id           : undefined
     type         : required
+    project_id   : required
     session_uuid : required
 
 message

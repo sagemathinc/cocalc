@@ -472,6 +472,7 @@ class Worksheet extends FileEditor
                     salvus_client.connect_to_session
                         type         : 'sage'
                         timeout      : 15
+                        project_id   : @editor.project_id
                         session_uuid : session_uuid
                         cb           : (err, _session) =>
                             if err

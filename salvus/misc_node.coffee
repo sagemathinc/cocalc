@@ -51,7 +51,12 @@ exports.enable_mesg = enable_mesg = (socket) ->
                 switch type
                     when 'j'   # JSON
                         s = mesg.toString()
-                        socket.emit('mesg', 'json', JSON.parse(s))
+                        try
+                            obj = JSON.parse(s)
+                        catch e
+                            winston.debug("Error parsing JSON message '#{s}'")
+                            throw(e)
+                        socket.emit('mesg', 'json', obj)
                     when 'b'   # BLOB (tagged by a uuid)
                         socket.emit('mesg', 'blob', {uuid:mesg.slice(0,36).toString(), blob:mesg.slice(36)})
                     else

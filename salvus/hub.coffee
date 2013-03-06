@@ -3253,19 +3253,11 @@ class SageSession
                 @project.open(cb)
 
             (cb) =>
-                winston.debug("Get host for the project.")
-                @project.get_host (err,host) =>
-                    if err
-                        cb(err)
-                    else
-                        @host = host
-                        cb()
-
-            (cb) =>
                 winston.debug("Make connection to sage server.")
-                @port = cass.COMPUTE_SERVER_PORTS.sage
+                #@port = cass.COMPUTE_SERVER_PORTS.sage
+                # TODO!!!
+                @port = 6020
                 @conn = new sage.Connection
-                    host : @host
                     port : @port
                     recv : @_recv
                     cb   : (err) =>

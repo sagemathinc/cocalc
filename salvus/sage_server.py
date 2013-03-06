@@ -34,12 +34,10 @@ def log(s):
 import sagenb.notebook.interact
 
 # Standard imports.
-import json, os, resource, shutil, signal, socket, struct, sys, \
-       tempfile, time, traceback, uuid, pwd
+import (json, os, resource, shutil, signal, socket, struct, sys,
+       tempfile, time, traceback, uuid, pwd)
 
 import parsing, sage_salvus
-
-LIMITS = {'cputime':60, 'walltime':60, 'vmem':2000, 'numfiles':1000, 'quota':128}
 
 # Configure logging
 #logging.basicConfig()
@@ -125,12 +123,11 @@ class Message(object):
                 m[key] = val
         return m
 
-    def start_session(self, limits={'walltime':3600, 'cputime':3600, 'numfiles':1000, 'vmem':2048}):
-        limits = dict(limits)
-        return self._new('start_session', locals())
+    def start_session(self):
+        return self._new('start_session')
 
-    def session_description(self, pid, limits):
-        return self._new('session_description', locals())
+    def session_description(self, pid):
+        return self._new('session_description', {'pid':pid})
 
     def send_signal(self, pid, signal=signal.SIGINT):
         return self._new('send_signal', locals())
@@ -730,7 +727,7 @@ def drop_privileges(id, home, transient, username):
     import sage.misc.misc
     sage.misc.misc.DOT_SAGE = home + '/.sage/'
 
-def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
+def session(conn):
     """
     This is run by the child process that is forked off on each new
     connection.  It drops privileges, then handles the complete
@@ -739,38 +736,8 @@ def session(conn, home, username, cputime, numfiles, vmem, uid, transient):
     INPUT:
 
     - ``conn`` -- the TCP connection
-    - ``home`` -- the home directory of the user
-    - ``username`` -- the username to drop privileges to
-    - ``cputime`` -- maximum cputime that the process is allowed to
-      run (implemented using setrlimit), or 0 for no limit.
-    - ``numfiles`` -- maximum number of files that this process is
-      allowed to create (implemented using setrlimit), or 0 for no limit.
-    - ``vmem`` -- maximum virtual memory that process has access to
-      (implemented using setrlimit); or 0 for no limit.
     """
     pid = os.getpid()
-    if home is not None:
-        drop_privileges(uid, home, transient, username)
-        pass
-
-    if cputime:
-        resource.setrlimit(resource.RLIMIT_CPU, (cputime,cputime))
-    if numfiles:
-        resource.setrlimit(resource.RLIMIT_NOFILE, (numfiles,numfiles))
-    if vmem:
-        if os.uname()[0] == 'Linux':
-            resource.setrlimit(resource.RLIMIT_AS, (vmem*1048576L, -1L))
-    else:
-        # This is hardly necessary, since we only support Linux!
-        #log.warning("Server not running on Linux, so there are NO memory constraints.")
-        pass
-
-    def handle_parent_sigquit(signum, frame):
-        conn.send_json(message.terminate_session())
-        print "** Sage process killed by external SIGQUIT signal (time limit probably exceeded) **\n\n"
-        sys.exit(0)
-
-    signal.signal(signal.SIGQUIT, handle_parent_sigquit)
 
     # seed the random number generator(s)
     import sage.all; sage.all.set_random_seed()
@@ -820,82 +787,6 @@ def introspect(conn, id, line, preparse):
         mesg = message.introspect_source_code(id=id, source_code=z['result'], target=z['expr'])
     conn.send_json(mesg)
 
-def rmtree(path):
-    if not path.startswith('/tmp/') or path.startswith('/var/') or path.startswith('/private/'):
-        #log.error("Trying to rmtree on '%s' is very suspicious! Refusing!", path)
-        pass
-    else:
-        #log.info("Removing '%s'", path)
-        shutil.rmtree(path)
-
-class Connection(object):
-    def __init__(self, pid, uid, home=None, maxtime=3600, transient=False):
-        # maxtime = 0 -- don't timeout ever
-        self._pid = pid
-        self._uid = uid
-        self._home = home
-        self._start_time = time.time()
-        if maxtime is None:
-            maxtime = 0
-        self._maxtime = maxtime
-        self._transient = transient
-
-    def __repr__(self):
-        return 'pid=%s, home=%s, start_time=%s, maxtime=%s'%(
-            self._pid, self._home, self._start_time, self._maxtime)
-
-    def time_remaining(self):
-        if self._maxtime == 0:
-            return 2**31  # effectively infinite
-        else:
-            return self._maxtime - (time.time() - self._start_time)
-
-    def signal(self, sig):
-        os.kill(self._pid, sig)
-
-    def remove_files(self):
-        if not self._transient:
-            return
-        # remove any other files created in /tmp by this user, if server is running as root.
-        if whoami == 'root':
-            if self._home is not None:
-                rmtree(self._home)
-            for dirpath, dirnames, filenames in os.walk('/tmp', topdown=False):
-                for name in dirnames + filenames:
-                    path = os.path.join(dirpath, name)
-                    if os.stat(path).st_uid == self._uid:
-                        try:
-                            if os.path.isdir(path):
-                                shutil.rmtree(path)
-                            else:
-                                os.unlink(path)
-                        except Exception, msg:
-                            print "Error removing a file -- ", msg
-                            pass
-
-    def monitor(self, interval=1):
-        if self._maxtime == 0:
-            return
-        try:
-            while True:
-                tm = self.time_remaining()
-                if tm < 0:
-                    try:
-                        if tm <= -2*interval:
-                            self.signal(signal.SIGKILL)
-                        else:
-                            self.signal(signal.SIGQUIT)
-                    except OSError:
-                        return # subprocess is dead
-                else:
-                    try:
-                        self.signal(0)
-                    except OSError: # subprocess is dead
-                        return
-                time.sleep(interval)
-        finally:
-            self.remove_files()
-
 def handle_session_term(signum, frame):
     while True:
         try:
@@ -903,7 +794,6 @@ def handle_session_term(signum, frame):
         except:
             return
         if not pid: return
-
 
 def serve_connection(conn):
     conn = ConnectionJSON(conn)
@@ -917,40 +807,11 @@ def serve_connection(conn):
     if mesg['event'] != 'start_session':
         return
 
-    # start a session
-    if 'project_id' in mesg:
-        # Start session with user determined by the given project.
-        transient = False
-        username = mesg['project_id'][:8]
-        home = "/home/" + username
-        uid = pwd.getpwnam(username).pw_uid
-    else:
-        # TODO -- redo so there is a username, etc., or get rid of and
-        # have a special transient project.
-        transient = True
-        home = tempfile.mkdtemp() if whoami == 'root' else None
-        uid = (os.getpid() % 5000) + 5000   # TODO: just for testing; hub/db will have to assign and track this!
-        username = str(uid) # kind of silly since there is no username in this case
-
     pid = os.fork()
-    limits = mesg.get('limits', {})
-    if pid:
-        # parent
-        quota = limits.get('quota', LIMITS['quota'])
-        if whoami == 'root':
-            # TODO TODO on linux, set disk quota for given user
-            pass
-        C = Connection(pid=pid, uid=uid, home=home,
-                       maxtime=limits.get('walltime', LIMITS['walltime']), transient=transient)
-        C.monitor()
-    else:
+    if not pid:
         # child
-        conn.send_json(message.session_description(os.getpid(), limits))
-        session(conn=conn, home=home, username=username, uid=uid,
-                cputime=limits.get('cputime', LIMITS['cputime']),
-                numfiles=limits.get('numfiles', LIMITS['numfiles']),
-                vmem=limits.get('vmem', LIMITS['vmem']),
-                transient=transient)
+        conn.send_json(message.session_description(os.getpid()))
+        session(conn=conn)
 
 def serve(port, host):
     #log.info('opening connection on port %s', port)
@@ -1013,12 +874,14 @@ def serve(port, host):
             # do not use log.info(...) in the server loop; threads = race conditions that hang server every so often!!
             try:
                 conn, addr = s.accept()
-                print "connection from", addr
+                print "Accepted a connection from", addr
             except socket.error, msg:
                 continue
             if not os.fork(): # child
                 try:
                     serve_connection(conn)
+                except Exception, msg:
+                    open('/tmp/a','a').write(str(msg))
                 finally:
                     conn.close()
                     os._exit(0)
@@ -1031,25 +894,6 @@ def serve(port, host):
         #log.info("closing socket")
         #s.shutdown(0)
         s.close()
-
-def serve2(port, host):
-    # this approach SUCKS: zombies, zombies; the socket can't be reused.
-    import sage.all
-    exec "from sage.all import *; from sage.calculus.predefined import x; integrate(sin(x**2),x); import scipy" in namespace
-
-    import socket
-    import SocketServer
-    class Handler(SocketServer.StreamRequestHandler):
-        def handle(self):
-            serve_connection(self.request)
-            self.request.close()
-            os._exit(0)
-
-    class ForkingTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
-        pass
-    S = ForkingTCPServer((host, port), Handler)
-    S.serve_forever()
-
 
 def run_server(port, host, pidfile, logfile):
     if pidfile:

@@ -35,8 +35,8 @@ class Session extends EventEmitter
     #    - 'execute_javascript' -- code that server wants client to run related to this session
     constructor: (opts) ->
         opts = defaults opts,
-            conn         : required    # a Connection instance
-            limits       : required    # object giving limits of session that we actually got
+            conn         : required     # a Connection instance
+            limits       : undefined    # object giving limits of session that we actually got
             session_uuid : required
             data_channel : undefined   # optional extra channel that is used for raw data
 
@@ -319,10 +319,11 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             type         : required
             session_uuid : required
+            project_id   : required
             timeout      : 10
             cb           : required
         @call
-            message : message.connect_to_session(session_uuid: opts.session_uuid, type:opts.type)
+            message : message.connect_to_session(session_uuid: opts.session_uuid, type:opts.type, project_id:project_id)
             timeout : opts.timeout
             cb      : (error, reply) =>
                 if error
@@ -378,7 +379,7 @@ class exports.Connection extends EventEmitter
     _create_session_object: (opts) =>
         opts = defaults opts,
             type         : required
-            limits       : required
+            limits       : undefined
             session_uuid : required
             data_channel : undefined
             cb           : required

@@ -10295,9 +10295,11 @@ Plan:
      [ ] Test and debug using Project2 with various stubs.
            [x] bash command
            [x] read file
-           [x] (0:33) local_hub: write file
--->           [ ] console: change hub to use project2 instead of separate stuff
+           [x] (0:33) local_hub: write file (plus some UI improvements)
+           [x] (1:02) console: change hub to use project2 instead of separate stuff
            [ ] sage session: change hub to use project2 instead of separate stuff
+
+     [ ] connect_to_session --> replace by "session_status" and just make re-connection automatic
 
      [ ] deal with "git-ls" location/existence.
 

@@ -48,7 +48,7 @@ misc    = require("misc"); defaults = misc.defaults; required = defaults.require
 {enable_mesg} = require('misc_node')
 
 exports.send_control_message = (opts={}) ->
-    opts = defaults(opts, {host: required, port: required, mesg: required})
+    opts = defaults(opts, {host: 'localhost', port: required, mesg: required})
     sage_control_conn = new exports.Connection
         host : opts.host
         port : opts.port
@@ -57,7 +57,7 @@ exports.send_control_message = (opts={}) ->
             sage_control_conn.close()
 
 exports.send_signal = (opts={}) ->
-    opts = defaults(opts, {host: required, port: required, pid:required, signal:required})
+    opts = defaults(opts, {host: 'localhost', port: required, pid:required, signal:required})
     exports.send_control_message
         host : opts.host
         port : opts.port
@@ -67,7 +67,7 @@ exports.send_signal = (opts={}) ->
 class exports.Connection
     constructor: (options) ->
         options = defaults(options,
-            host: required
+            host: 'localhost'
             port: required
             recv: undefined
             cb:   undefined
