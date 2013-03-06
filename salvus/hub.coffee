@@ -393,7 +393,7 @@ class Client extends EventEmitter
             @push_to_client(message.error(error:"The Salvus hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
 
     ######################################################
-    # 
+    # Plug into an existing sage session
     ######################################################
     get_sage_session: (mesg, cb) ->    # if allowed to connect cb(false, session); if not, error sent to client and cb(true)
         if not mesg.session_uuid?
@@ -402,13 +402,25 @@ class Client extends EventEmitter
             cb?(err)
             return
 
+        # Check if we already have a TCP connection to this session.
         session = compute_sessions[mesg.session_uuid]
         if not session?
-            err = "Unknown compute session #{mesg.session_uuid}."
-            @error_to_client(id:mesg.id, error:err)
-            cb?(err)
+            # Make a new connection -- this will connect to correct
+            # running session if the session_uuid corresponds to one.
+            # If nothing is running, it will make a new session.
+            session = new SageSession
+                client       : @
+                project_id   : mesg.project_id
+                session_uuid : mesg.session_uuid
+                cb           : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                        cb?(err)
+                    else
+                        cb?(false, session)
             return
 
+        # Connect client to existing connection.
         if session.is_client(@)
             cb?(false, session)
         else
@@ -444,11 +456,22 @@ class Client extends EventEmitter
 
         switch mesg.type
             when 'sage'
-                session = new SageSession(client:@, mesg:mesg)  # saves itself to persistent_sage_sessions and compute_sessions global dicts.
+                # This also saves itself to persistent_sage_sessions and compute_sessions global dicts...
+                session = new SageSession
+                    client     : @
+                    project_id : mesg.project_id
+                    cb         : (err) =>
+                        console.log("got back: #{err}")
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            console.log("sending #{misc.to_json(message.session_started(id:mesg.id, session_uuid:session.session_uuid))}")
+                            @push_to_client(message.session_started(id:mesg.id, session_uuid:session.session_uuid))
+
             when 'console'
                 create_persistent_console_session(@, mesg)
             else
-                @push_to_client(message.error(id:mesg.id, error:"Unknown message type '#{mesg.type}'"))
+                @error_to_client(id:mesg.id, error:"Unknown message type '#{mesg.type}'")
 
     mesg_connect_to_session: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
@@ -636,7 +659,7 @@ class Client extends EventEmitter
     # call the callback.  This function is meant to be used in a bunch
     # of the functions below for handling requests.
     get_project: (mesg, permission, cb) =>
-        # mesg -- must have project_id and id fields
+        # mesg -- must have project_id field; if has id fields, an error is sent to the client with that id tagged on.
         # permission -- must be "read" or "write"
         # cb -- takes one argument:  cb(project); called *only* on success;
         #       on failure, client will receive a message.
@@ -680,7 +703,8 @@ class Client extends EventEmitter
                 cb()
         ], (err) =>
                 if err
-                    @error_to_client(id:mesg.id, error:err)
+                    if mesg.id?
+                        @error_to_client(id:mesg.id, error:err)
                     cb(err)
                 else
                     cb(false, project)
@@ -3149,22 +3173,21 @@ SESSION_LIMITS = {cputime:0, walltime:0, vmem:2000, numfiles:1000, quota:128}
 
 class SageSession
     constructor : (opts) ->
-        {client, mesg, cb} = defaults opts,
-            client     : required       # a Client object
-            mesg       : required       # a start_session message, which describes the parameters of the session
-            cb         : undefined
+        opts = defaults opts,
+            client       : required
+            project_id   : required
+            session_uuid : undefined
+            cb           : undefined   # cb(err)
 
-        assert(mesg.event == 'start_session', "SageSession -- message event must be 'start_session'")
+        @project_id = opts.project_id
 
-        @limits     = client.cap_session_limits(mesg.limits)
-        @clients    = [client]   # start with our 1 client
-        @session_uuid = uuid.v4()
-        mesg.session_uuid = @session_uuid
+        @clients    = [opts.client]   # start with our 1 *local* client (connected to this particular hub)
 
-        @_mesg_id = mesg.id  # used to send out initial session parameters to the original connecting client
+        if not opts.session_uuid?
+            opts.session_uuid = uuid.v4()
+        @session_uuid = opts.session_uuid
 
-        @_init_mesg = mesg
-        @restart(client, cb)
+        @restart(opts.client, opts.cb)
 
     # handle incoming messages from sage server
     _recv: (type, mesg) =>
@@ -3252,8 +3275,8 @@ class SageSession
 
         async.series([
             (cb) =>
-                winston.debug("Get project described by mesg.")
-                client.get_project @_init_mesg, 'write', (err, project) =>
+                winston.debug("Getting project with id #{@project_id}")
+                client.get_project {project_id:@project_id}, 'write', (err, project) =>
                     if err
                         cb(err)
                     else
@@ -3271,27 +3294,20 @@ class SageSession
                 @conn = new sage.Connection
                     port : @port
                     recv : @_recv
-                    cb   : (err) =>
-                        if err
-                            winston.debug("(hub) SageSession -- connection err: #{err}")
-                            cb(err)
-                        else
-                            winston.debug("(hub) SageSession -- connected")
-                            @send_json(client, @_init_mesg)
-                            cb()
+                    cb   : cb
+            (cb) =>
+                mesg = message.connect_to_session
+                    type         : 'sage'
+                    project_id   : @project_id
+                    session_uuid : @session_uuid
+                @conn.send_json(mesg)
+                cb()
 
             (cb) =>
                 winston.debug("Registering the session.")
                 persistent_sage_sessions[@session_uuid] = @
                 compute_sessions[@session_uuid] = @
                 client.compute_session_uuids.push(@session_uuid)
-
-                # TODO -- this 15-minute timeout is *temporary* until the UI provides
-                # the planned feedback about open sessions
-                enable_ping_timer
-                    session : @
-                    timeout : 15*60
-
                 cb()
 
         ], cb)

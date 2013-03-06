@@ -323,7 +323,7 @@ class exports.Connection extends EventEmitter
             timeout      : 10
             cb           : required
         @call
-            message : message.connect_to_session(session_uuid: opts.session_uuid, type:opts.type, project_id:project_id)
+            message : message.connect_to_session(session_uuid: opts.session_uuid, type:opts.type, project_id:opts.project_id)
             timeout : opts.timeout
             cb      : (error, reply) =>
                 if error

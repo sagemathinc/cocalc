@@ -92,26 +92,40 @@ start_console_session = (client_socket, mesg) ->
 # Sage sessions
 ###############################################
 
+plug = (s1, s2) ->
+    # Connect the sockets together.
+    s1.on 'data', (data) ->
+        s2.write(data)
+    s2.on 'data', (data) ->
+        s1.write(data)
+
+
 class SageSessions
     constructor: () ->
         @_sessions = {}
 
-    # Create a new Sage session
-    start: (client_socket, mesg) =>
+    # Connect to (if 'running'), restart (if 'dead'), or create (if
+    # non-existing) the Sage session with mesg.session_uuid.
+    connect: (client_socket, mesg) =>
+        session = @_sessions[mesg.session_uuid]
+        if session? and session.status == 'running'
+            client_socket.write_mesg('json', session.desc)
+            plug(client_socket, session.socket)
+            session.clients.push(client_socket)
+        else
+            @_new_session(client_socket, mesg)
+
+    _new_session: (client_socket, mesg) =>
         # Connect to port SAGE_PORT, send mesg, then hook sockets together.
         sage_socket = net.connect {port:SAGE_PORT}, () =>
             # Request a Sage session from sage_server
             misc_node.enable_mesg(sage_socket)
-            sage_socket.write_mesg('json', mesg)
-            # Read one JSON message back, which describes the session 
+            sage_socket.write_mesg('json', message.start_session(type:'sage'))
+            # Read one JSON message back, which describes the session
             sage_socket.once 'mesg', (type, desc) =>
                 client_socket.write_mesg('json', desc)
-                # Connect the sockets together.
-                client_socket.on 'data', (data) ->
-                    sage_socket.write(data)
-                sage_socket.on 'data', (data) ->
-                    client_socket.write(data)
-                @_sessions[mesg.session_uuid] = {socket:sage_socket, pid:desc.pid, status:'running'}
+                plug(client_socket, sage_socket)
+                @_sessions[mesg.session_uuid] = {socket:sage_socket, desc:desc, status:'running', clients:[client_socket]}
             sage_socket.on 'end', () =>
                 session = @_sessions[mesg.session_uuid]
                 if session?
@@ -121,64 +135,24 @@ class SageSessions
     info: () =>
         obj = {}
         for id, info of @_sessions
-            obj[id] = {pid:info.pid, status:info.status}
+            obj[id] = {desc:info.desc, status:info.status}
         console.log("info: #{misc.to_json(obj)}")
         return obj
 
-    # Reconnect to an existing Sage session.
-    connect: (socket, mesg) =>
-
-
-
 sage_sessions = new SageSessions()
 
-sage_socket = undefined
-sage_session_desc = undefined
-
-start_sage_session = (client_socket, mesg) ->
-    winston.debug("Starting a sage session.")
-
-    # TEST
-    if sage_socket?
-        # connect to existing session
-        client_socket.write_mesg('json', sage_session_desc)
-        misc_node.disable_mesg(client_socket)
-        client_socket.on 'data', (data) ->
-            sage_socket.write(data)
-        sage_socket.on 'data', (data) ->
-            client_socket.write(data)
-        return
-
-    # Connect to port SAGE_PORT, send mesg, then hook sockets together.
-    sage_socket = net.connect {port:SAGE_PORT}, ()->
-        # Request console from actual console server
-        misc_node.enable_mesg(sage_socket)
-        sage_socket.write_mesg('json', mesg)
-        sage_socket.once 'mesg', (type, resp) ->
-            sage_session_desc = resp
-            winston.debug("Sage session description: ", misc.to_json(sage_session_desc))
-            client_socket.write_mesg('json', sage_session_desc)
-
-            # Connect the sockets together.
-            client_socket.on 'data', (data) ->
-                sage_socket.write(data)
-            sage_socket.on 'data', (data) ->
-                client_socket.write(data)
-
-connect_to_sage_session = (socket, mesg) ->
-    
-
 ###############################################
-# TODO
-connect_to_console_session = (socket, mesg) ->
+# Connecting to existing session or making a
+# new one.
+###############################################
 
-start_session = (socket, mesg) ->
-    winston.debug("start_session -- type='#{mesg.type}'")
+connect_to_session = (socket, mesg) ->
+    winston.debug("connect_to_session -- type='#{mesg.type}'")
     switch mesg.type
         when 'console'
             start_console_session(socket, mesg)
         when 'sage'
-            sage_sessions.start(socket, mesg)
+            sage_sessions.connect(socket, mesg)
         else
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
@@ -348,8 +322,8 @@ session_info = () ->
 handle_mesg = (socket, mesg) ->
     try
         switch mesg.event
-            when 'start_session'
-                start_session(socket, mesg)
+            when 'connect_to_session'
+                connect_to_session(socket, mesg)
             when 'project_session_info'
                 resp = message.project_session_info
                     id         : mesg.id
