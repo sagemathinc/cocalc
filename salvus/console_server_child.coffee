@@ -4,42 +4,20 @@ message  = require 'message'
 {setrlimit} = require 'posix'
 
 process.on 'message', (opts, socket) ->
-    if opts.gid?
-        process.setgid(opts.gid)
-        delete opts.gid
-    if opts.uid?
-        process.setuid(opts.uid)
-        delete opts.uid
-
     opts = defaults opts,
-        home    : undefined
         cwd     : undefined
-        path    : undefined
         rows    : required
         cols    : required
         command : required
         args    : required
-        ps1     : undefined
         cputime : required  # limit on cputime                        POSIX rlimit name: 'cpu'
         vmem    : required  # limit on virtual memory (in megabytes)  POSIX rlimit name: 'as' (address space)
         numfiles: required  # limit on number of file descriptors     POSIX rlimit name: 'nofile'
-
-    env = {}
-    if opts.home?
-        env.HOME = opts.home
-    if opts.path?
-        env.PATH = opts.path
-    if opts.ps1?
-        env.PS1 = opts.ps1
-    # env = process.env   # for testing sometimes do this...
 
     term_opts =
         name : 'xterm'
         rows : opts.rows
         cols : opts.cols
-
-    if Object.keys(env).length > 0
-        term_opts.env = env
 
     if opts.cwd?
         term_opts.cwd = opts.cwd

@@ -34,8 +34,8 @@ def log(s):
 import sagenb.notebook.interact
 
 # Standard imports.
-import (json, os, resource, shutil, signal, socket, struct, sys,
-       tempfile, time, traceback, uuid, pwd)
+import json, os, resource, shutil, signal, socket, struct, sys,\
+       tempfile, time, traceback, uuid, pwd
 
 import parsing, sage_salvus
 

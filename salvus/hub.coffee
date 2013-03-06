@@ -3326,75 +3326,69 @@ create_persistent_console_session = (client, mesg) ->
     # Cap limits on the console session.
     client.cap_session_limits(mesg.limits)
 
-    database.random_compute_server(type:'console', cb:(error, console_server) ->
-        winston.debug(to_json(error) + to_json(console_server))
-        if error
-            client.push_to_client(message.error(id:mesg.id, error:error))
-            return
+    # TODO : 6020!!
+    port = 6020
+    console_session = net.connect {port:port}, () ->
 
-        console_session = net.connect {port:console_server.port, host:console_server.host}, () ->
+        # store the console_session, so other clients can
+        # potentially tune in (TODO: also store something in database)
+        console_session.closed = false
 
-            # store the console_session, so other clients can
-            # potentially tune in (TODO: also store something in database)
-            console_session.closed = false
+        console_session.on('end', ()->console_session.closed = true)
 
-            console_session.on('end', ()->console_session.closed = true)
+        enable_ping_timer(session: console_session)
 
-            enable_ping_timer(session: console_session)
+        console_session.port = port
+        console_session.account_id = client.account_id
+        console_sessions[session_uuid] = console_session
+        compute_sessions[session_uuid] = console_session
+        client.compute_session_uuids.push(session_uuid)
 
-            console_session.port = console_server.port
-            console_session.host = console_server.host
-            console_session.account_id = client.account_id
-            console_sessions[session_uuid] = console_session
-            compute_sessions[session_uuid] = console_session
-            client.compute_session_uuids.push(session_uuid)
+        # Add functionality to TCP socket so that we can send JSON messages
+        misc_node.enable_mesg(console_session)
 
-            # Add functionality to TCP socket so that we can send JSON messages
-            misc_node.enable_mesg(console_session)
+        # Send session configuration as a JSON message
+        console_session.write_mesg('json', mesg)
+        winston.debug("console session -- wrote config message (=#{to_json(mesg)}")
 
-            # Send session configuration as a JSON message
-            console_session.write_mesg('json', mesg)
-            winston.debug("console session -- wrote config message (=#{to_json(mesg)}")
+        # Get back pid of child
+        console_session.once 'mesg', (type, resp) ->
+            winston.debug("Console session -- get back pid of child #{type}, #{to_json(resp)}")
+            misc_node.disable_mesg(console_session)
 
-            # Get back pid of child
-            console_session.once 'mesg', (type, resp) ->
-                winston.debug("Console session -- get back pid of child #{type}, #{to_json(resp)}")
-                misc_node.disable_mesg(console_session)
-
-                if resp.event == 'error'
-                    # did not start session; pass error on to client and throw away.
-                    client.push_to_client(resp)
-                    delete compute_sessions[session_uuid]
-                    delete console_sessions[session_uuid]
-                    return
-
-                if resp.event != 'session_description'
-                    # THIS could only happen if there is a serious bug.
-                    client.push_to_client(message.error(id:mesg.id, error:"Internal error creating a new console session; got weird mesg='#{to_json(resp)}'.  Please report."))
-                    return
-
-                console_session.pid = resp.pid
-                kill_mesg = message.send_signal(session_uuid:session_uuid, pid:console_session.pid, signal:9)
-                console_session.kill = () -> send_to_persistent_console_session(kill_mesg)
-
-                # Relay data from client to console_session
-                channel = client.register_data_handler((data) ->
-                    if console_session.closed
-                        client.push_data_to_client(channel, "Session closed. ")
-                    else
-                        console_session.write(data)
-                )
-
-                # relay data from console_session to client
-                console_session.on('data', (data) -> client.push_data_to_client(channel, data))
-
-                resp = message.session_started
-                    id           : mesg.id
-                    session_uuid : session_uuid
-                    limits       : mesg.limits
-                    data_channel : channel
+            if resp.event == 'error'
+                # did not start session; pass error on to client and throw away.
                 client.push_to_client(resp)
-    )
+                delete compute_sessions[session_uuid]
+                delete console_sessions[session_uuid]
+                return
+
+            if resp.event != 'session_description'
+                # THIS could only happen if there is a serious bug.
+                client.push_to_client(message.error(id:mesg.id, error:"Internal error creating a new console session; got weird mesg='#{to_json(resp)}'.  Please report."))
+                return
+
+            console_session.pid = resp.pid
+            kill_mesg = message.send_signal(session_uuid:session_uuid, pid:console_session.pid, signal:9)
+            console_session.kill = () -> send_to_persistent_console_session(kill_mesg)
+
+            # Relay data from client to console_session
+            channel = client.register_data_handler((data) ->
+                if console_session.closed
+                    client.push_data_to_client(channel, "Session closed. ")
+                else
+                    console_session.write(data)
+            )
+
+            # relay data from console_session to client
+            console_session.on('data', (data) -> client.push_data_to_client(channel, data))
+
+            resp = message.session_started
+                id           : mesg.id
+                session_uuid : session_uuid
+                limits       : mesg.limits
+                data_channel : channel
+            client.push_to_client(resp)
 
 ##########################################
 # Stateless Sage Sessions

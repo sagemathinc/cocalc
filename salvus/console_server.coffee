@@ -25,46 +25,6 @@ winston        = require 'winston'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
-
-# TODO -- this is no longer used
-makedirs = (path, uid, gid, cb) ->
-    # TODO: this should split the path and make sure everything is
-    # made along the way like in Python, but I'm going to wait on
-    # implementing, since with internet maybe find that already in a
-    # library.
-    async.series([
-        (c) -> fs.exists path, (exists) ->
-            if exists # done
-                cb(); c(true)
-            else
-                c()
-        (c) -> fs.mkdir path, (err) ->
-            if err
-                cb(err); c(true)
-            else
-                c()
-        (c) ->
-            if not uid? or not gid?
-                cb(); c()
-            else
-                fs.chown path, uid, gid, (err) ->
-                    if err
-                        cb(err); c(true)
-                    else
-                        cb(); c()
-    ])
-
-# NOTE: This getuid is like a function of the same name in
-# project_server; however, we cannot cache results here, since
-# the project_server could allocate/unallocate the project and
-# change the uid.
-getuid = (user, cb) ->
-    child_process.exec "id -u #{user}", (err, id, stderr) ->
-        if err
-            cb(err)
-        else
-            cb(false, parseInt(id))
-
 start_session = (socket, mesg) ->
     if not mesg.limits? or not mesg.limits.walltime?
         socket.write_mesg('json', message.error(id:mesg.id, error:"mesg.limits.walltime *must* be defined (though 0 is allowed for unlimited)"))
@@ -77,32 +37,17 @@ start_session = (socket, mesg) ->
         cols    : 80
         command : undefined
         args    : []
-        ps1     : undefined
         path    : undefined
         cwd     : undefined          # starting PATH (need not be home directory)
-        home    : undefined
 
     if process.env['USER'] == 'root'
         if not mesg.project_id? or mesg.project_id.length != 36
             winston.debug("suspicious project_id (=#{mesg.project_id}) -- bailing")
             return
 
-    if mesg.project_id?
-        username = mesg.project_id.slice(0,8)
-        if not opts.ps1?
-            opts.ps1 = '\\w\\$ '
-        if not opts.path?
-            opts.path = process.env.PATH
-
     opts.cputime  = mesg.limits.cputime
     opts.vmem     = mesg.limits.vmem
     opts.numfiles = mesg.limits.numfiles
-
-    if username? and not opts.home?
-        opts.home = "/home/#{username}"
-
-    if not opts.cwd? and username?
-        opts.cwd = "/home/#{username}"
 
     winston.debug "start_session opts = #{to_json(opts)}"
 
@@ -110,20 +55,8 @@ start_session = (socket, mesg) ->
     # hub should always ensure the user exists before starting a session.
     async.series([
         (cb) ->
-            if not username?
-                cb()
-                return
-            getuid username, (err, uid) ->
-                if err
-                    cb(err)
-                else
-                    winston.debug("Starting console session for user #{username} with uid #{uid}")
-                    opts.uid = uid
-                    opts.gid = uid
-                    cb()
-        (cb) ->
-            # Fork off a child process that drops privileges (if opts.uid is set) and does
-            # all further work to handle a connection.
+            # Fork off a child process that does all further work to
+            # handle a connection.
             child = child_process.fork(__dirname + '/console_server_child.js', [])
 
             # Send the pid of the child to the client (the connected hub)
