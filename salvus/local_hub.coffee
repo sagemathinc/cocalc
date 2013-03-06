@@ -89,8 +89,48 @@ start_console_session = (client_socket, mesg) ->
 
 
 ###############################################
-# Minimal proof-of-concept sage session
+# Sage sessions
 ###############################################
+
+class SageSessions
+    constructor: () ->
+        @_sessions = {}
+
+    # Create a new Sage session
+    start: (client_socket, mesg) =>
+        # Connect to port SAGE_PORT, send mesg, then hook sockets together.
+        sage_socket = net.connect {port:SAGE_PORT}, () =>
+            # Request a Sage session from sage_server
+            misc_node.enable_mesg(sage_socket)
+            sage_socket.write_mesg('json', mesg)
+            # Read one JSON message back, which describes the session 
+            sage_socket.once 'mesg', (type, desc) =>
+                client_socket.write_mesg('json', desc)
+                # Connect the sockets together.
+                client_socket.on 'data', (data) ->
+                    sage_socket.write(data)
+                sage_socket.on 'data', (data) ->
+                    client_socket.write(data)
+                @_sessions[mesg.session_uuid] = {socket:sage_socket, pid:desc.pid, status:'running'}
+            sage_socket.on 'end', () =>
+                session = @_sessions[mesg.session_uuid]
+                if session?
+                    session.status = 'done'
+
+    # Return object that describes status of all Sage sessions
+    info: () =>
+        obj = {}
+        for id, info of @_sessions
+            obj[id] = {pid:info.pid, status:info.status}
+        console.log("info: #{misc.to_json(obj)}")
+        return obj
+
+    # Reconnect to an existing Sage session.
+    connect: (socket, mesg) =>
+
+
+
+sage_sessions = new SageSessions()
 
 sage_socket = undefined
 sage_session_desc = undefined
@@ -125,11 +165,12 @@ start_sage_session = (client_socket, mesg) ->
             sage_socket.on 'data', (data) ->
                 client_socket.write(data)
 
+connect_to_sage_session = (socket, mesg) ->
+    
 
 ###############################################
 # TODO
 connect_to_console_session = (socket, mesg) ->
-connect_to_sage_session = (socket, mesg) ->
 
 start_session = (socket, mesg) ->
     winston.debug("start_session -- type='#{mesg.type}'")
@@ -137,7 +178,7 @@ start_session = (socket, mesg) ->
         when 'console'
             start_console_session(socket, mesg)
         when 'sage'
-            start_sage_session(socket, mesg)
+            sage_sessions.start(socket, mesg)
         else
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
@@ -295,6 +336,12 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
 
 
 ###############################################
+# Info
+###############################################
+session_info = () ->
+    return {'sage':sage_sessions.info()}
+
+###############################################
 # Handle a message form the client
 ###############################################
 
@@ -303,6 +350,12 @@ handle_mesg = (socket, mesg) ->
         switch mesg.event
             when 'start_session'
                 start_session(socket, mesg)
+            when 'project_session_info'
+                resp = message.project_session_info
+                    id         : mesg.id
+                    project_id : mesg.project_id
+                    info       : session_info()
+                socket.write_mesg('json', resp)
             when 'project_exec'
                 project_exec(socket, mesg)
             when 'read_file_from_project'

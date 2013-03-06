@@ -10299,17 +10299,20 @@ Plan:
            [x] (1:02) sage session: change hub to use project2 instead of separate stuff
            [x] (0:11) console: change hub to use project2 instead of separate stuff
 
+-->     [ ] production: extend local_hub.coffee to provide a sage session (using
+         a separate sage server started as the same user).
+            [x] (0:55) local_hub: status info support for sage sessions
+
+     [ ] production: make the local_hub.coffee able to create and provide console
+         sessions, and record complete history. -- real deal.
+
+     [ ] figure out how to run exactly the services that get run... somewhere else. yikes.
+
      [ ] connect_to_session --> replace by "session_status" and just make re-connection automatic
 
      [ ] deal with "git-ls" location/existence.
 
      [ ] implement project creation
-
-     [ ] production: make the local_hub.coffee able to create and provide console
-         sessions, and record complete history. -- real deal.
-
-     [ ] production: extend local_hub.coffee to provide a sage session (using
-         a separate sage server started as the same user).
 
      [ ] production: hub to use local_hub, seriously.
 

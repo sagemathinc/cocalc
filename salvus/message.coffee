@@ -39,6 +39,7 @@ message
     type         : required           # "sage", "console";  later this could be "R", "octave", etc.
     # TODO: project_id should be required
     project_id   : undefined          # the project that this session will start in
+    session_uuid : undefined          # set by the hub -- client setting this will be ignored.
     params       : undefined          # extra parameters that control the type of session
     id           : undefined
     limits       : undefined
@@ -55,6 +56,13 @@ message
                               # non-JSON data (except channel
                               # '\u0000', which is JSON).
                             #
+
+# client <--> hub <--> local_hub
+message
+    event         : 'project_session_info'
+    id            : undefined
+    project_id    : undefined
+    info          : undefined
 
 #
 # A period ping message must usually be sent by the client to keep a

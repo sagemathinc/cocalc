@@ -693,6 +693,18 @@ class exports.Connection extends EventEmitter
     #################################################
     # Individual Projects
     #################################################
+
+    # Return info about all sessions that have been started in this
+    # project, since the local hub was started.
+    project_session_info: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @call
+            message : message.project_session_info(project_id : opts.project_id)
+            cb      : (err, resp) =>
+                opts.cb(err, resp?.info)
+
     update_project_data: (opts) ->
         opts = defaults opts,
             project_id : required

@@ -755,6 +755,18 @@ class Client extends EventEmitter
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
 
+    mesg_project_session_info: (mesg) =>
+        assert mesg.event == 'project_session_info'
+        @get_project mesg, 'read', (err, project) =>
+            project.call
+                mesg : mesg
+                cb   : (err, info) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.project_session_info(id:mesg.id, info:info))
+
+
     mesg_update_project_data: (mesg) =>
         winston.debug("mesg_update_project_data")
         if not @account_id?
@@ -889,11 +901,13 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            project.exec mesg, (err, resp) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(resp)
+            project.call
+                mesg : mesg
+                cb   : (err, resp) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(resp)
 
     mesg_create_project_branch: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -1095,6 +1109,33 @@ class Project2
             misc_node.enable_mesg(@_socket)
             cb(false, @_socket)
 
+    call: (opts) =>
+        opts = defaults opts,
+            mesg    : required
+            timeout : 10
+            cb      : undefined
+
+        if not opts.mesg.id?
+            opts.mesg.id = uuid.v4()
+
+        @socket (err, socket) ->
+            if err
+                opts.cb?(err)
+                return
+            opts.mesg.project_id = @project_id
+            socket.write_mesg 'json', opts.mesg
+            socket.recv_mesg type:'json', id:opts.mesg.id, timeout:opts.timeout, cb:(mesg) ->
+                if mesg.event == 'error'
+                    opts.cb(true, mesg.error)
+                else
+                    opts.cb(false, mesg)
+
+    # Get current session information about this project.
+    session_info: (cb) =>
+        @call
+            message : message.project_session_info(project_id:@project_id)
+            cb : cb
+
     # Open the project on some host if it is not already opened.
     open: (cb) ->
         winston.debug("project2-open-stub")
@@ -1111,37 +1152,6 @@ class Project2
     size_of_local_copy: (cb) =>
         winston.debug("project2-size_of_local_copy-stub")
         cb(false, 0)
-
-    # Exec a command
-    exec:  (mesg, cb) =>
-        socket = undefined
-        id     = uuid.v4()
-        resp   = undefined
-        async.series([
-            (cb) =>
-                @socket (err, _socket) ->
-                    if err
-                        cb(err)
-                    else
-                        socket = _socket
-                        cb()
-            (cb) =>
-                if not mesg.id?
-                    mesg.id = id
-                mesg.project_id = @project_id
-                socket.write_mesg 'json', mesg
-                cb()
-
-            (cb) =>
-                socket.recv_mesg type:'json', id:mesg.id, timeout:mesg.timeout, cb: (_resp) ->
-                    resp = _resp
-                    cb()
-        ], (err) ->
-            if err
-                cb(err)
-            else
-                cb(false, resp)
-        )
 
     move_file: (src, dest, cb) =>
         @exec(message.project_exec(command: "mv", args: [src, dest]), cb)
@@ -3149,6 +3159,7 @@ class SageSession
         @limits     = client.cap_session_limits(mesg.limits)
         @clients    = [client]   # start with our 1 client
         @session_uuid = uuid.v4()
+        mesg.session_uuid = @session_uuid
 
         @_mesg_id = mesg.id  # used to send out initial session parameters to the original connecting client
 

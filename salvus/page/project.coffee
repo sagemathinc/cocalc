@@ -112,6 +112,12 @@ move_path_dialog = new Dialog
 
 class ProjectPage
     constructor: (@project) ->
+        console.log("requestion session info...")
+        salvus_client.project_session_info
+            project_id: @project.project_id
+            cb: (err, info) ->
+                console.log("project session info: ", err, info)
+
         @container = templates.find(".salvus-project").clone()
         $("#footer").before(@container)
 
