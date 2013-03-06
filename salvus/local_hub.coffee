@@ -68,8 +68,6 @@ start_console_session = (client_socket, mesg) ->
                 client_socket.write(data)
 
 
-
-
 ###############################################
 # Minimal proof-of-concept sage session
 ###############################################
@@ -112,7 +110,6 @@ start_sage_session = (client_socket, mesg) ->
 
 
 ###############################################
-
 # TODO
 connect_to_console_session = (socket, mesg) ->
 #start_sage_session = (socket, mesg) ->
@@ -129,11 +126,45 @@ start_session = (socket, mesg) ->
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
 
+###############################################
+# Execute a command line or block of BASH
+###############################################
+project_exec = (socket, mesg) ->
+    winston.debug("project_exec")
+    misc_node.execute_code
+        command     : mesg.command
+        args        : mesg.args
+        path        : mesg.path
+        timeout     : mesg.timeout
+        err_on_exit : true
+        max_output  : mesg.max_output
+        bash        : mesg.bash
+        cb          : (err, out) ->
+            if err
+                err_mesg = message.error
+                    id    : mesg.id
+                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}"
+                socket.write_mesg('json', err_mesg)
+            else
+                winston.debug(misc.trunc(misc.to_json(out),512))
+                socket.write_mesg 'json', message.project_exec_output
+                    id        : mesg.id
+                    stdout    : out.stdout
+                    stderr    : out.stderr
+                    exit_code : out.exit_code
+
+
+###############################################
+# Handle a message form the client
+###############################################
+
 handle_client = (socket, mesg) ->
     try
         switch mesg.event
             when 'start_session'
                 start_session(socket, mesg)
+            when 'project_exec'
+                project_exec(socket, mesg)
             when 'send_signal'
                 switch mesg.signal
                     when 2

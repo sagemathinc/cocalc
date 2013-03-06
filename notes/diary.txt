@@ -10280,8 +10280,15 @@ Plan:
      [x] (0:15) very, very minimal proof-of-concept demo that illustrates connecting
          to (and proxying) a sage session.
 
-     [ ] make the local_hub.coffee able to create and provide
-         console sessions, and record complete history. -- real deal, not proof of concept
+     [x] (0:22) minimal proof of concept "running a bash command"
+
+     [ ] minimal proof of concept "putting/getting" a file.
+
+     [ ] very, very minimal proof of concept demo that illustrates keeping the state
+         of a worksheet in memory, and having multiple simultaneous editors.
+
+     [ ] make the local_hub.coffee able to create and provide console
+         sessions, and record complete history. -- real deal.
 
      [ ] change hub to use it and see that terminal sessions now
          run as *that* user.
