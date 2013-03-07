@@ -35,15 +35,7 @@ temp           = require 'temp'
 # in which local_hub is started.
 ###################################################
 
-project_root = undefined
-
-init_project_root = (root) ->
-    project_root = root
-    winston.debug("project_root = '#{project_root}'")
-    if project_root == ''
-        project_root = process.cwd()
-    if project_root[project_root.length-1] != '/'
-        project_root += '/'
+project_root = process.cwd() + '/'
 
 abspath = (path) ->
     if path.length == 0
@@ -82,7 +74,8 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
 # SMC starts must be prefixed with this key.
 #####################################################################
 
-CONFPATH = undefined
+CONFPATH = exports.CONFPATH = abspath('.sagemathcloud/')
+secret_token_filename = exports.secret_token_filename = "#{CONFPATH}/secret_token"
 secret_token = undefined
 
 # We use an n-character cryptographic random token, where n is given
@@ -90,10 +83,7 @@ secret_token = undefined
 # should be safe.
 secret_token_length = 128
 
-# This must be called *after* project_root is set.
 init_confpath = () ->
-    CONFPATH = abspath('.sagemathcloud/')
-    secret_token_filename = "#{CONFPATH}/secret_token"
 
     async.series([
         # Ensure that CONFPATH exists.
@@ -156,7 +146,10 @@ class ConsoleSessions
     _new_session: (client_socket, mesg) =>
         winston.debug("_new_session: defined by #{misc.to_json(mesg)}")
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
-        console_socket = net.connect {port:CONSOLE_PORT}, () =>
+        console_socket = misc_node.connect_to_locked_socket CONSOLE_PORT, secret_token, (err) =>
+            if err
+                winston.debug("_new_session: console server denied connection")
+                return
             # Request a Console session from console_server
             misc_node.enable_mesg(console_socket)
             console_socket.write_mesg('json', mesg)
@@ -466,9 +459,7 @@ server = net.createServer (socket) ->
                     handle_mesg(socket, mesg)
 
 # Start listening for connections on the socket.
-exports.start_server = start_server = (path) ->
-    if path?
-        project_root = path
+exports.start_server = start_server = () ->
     server.listen program.port, program.host, () -> winston.info "listening on port #{program.port}"
 
 # daemonize it
@@ -481,13 +472,11 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file (default: ".session_server.pid")', String, ".session_server.pid")
     .option('--logfile [string]', 'write log to this file (default: ".session_server.log")', String, ".session_server.log")
     .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")
-    .option('--project_root [string]', 'use this path as the project root (default: current working directory)', String, '')
     .parse(process.argv)
 
-init_project_root(program.project_root)
 init_confpath()
 
-if program._name == 'session_server.js'
+if program._name == 'local_hub.js'
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.error "Uncaught exception: " + err

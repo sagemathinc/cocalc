@@ -10317,10 +10317,18 @@ Plan:
            it to be the beginning of first connect.
            They terminate if file doesn't exist or has wrong permissions.
              [x] (0:15) local_hub token: implement connect from both sides in misc_node.coffee
-             [ ] support for console_server.coffee and local_hub, and test
-             [ ] write python version for sage_server, and test
+             [x] local_hub token: support for console_server.coffee and local_hub, and test
+             [ ]  local_hub token: write python version for sage_server, and test
+             [ ] misc_node -- unlock_socket -- add a timeout
+
+     [ ] right now in hub, there are multiple bits of code that connect to local_hub; this should all be in one place.
 
      [ ] local_hub: when it dies, everything it spawned *MUST die*.
+
+
+     [ ] hub -- socket: method; need to get the secret token for a local hub using ssh.
+
+     [ ] regarding installing all services and scripts -- just copy over via ssh on startup; will make upgrading easy, etc.; maybe use rsync
 
      [ ] figure out how to run exactly the services that get run... somewhere else. yikes.
 
@@ -10329,6 +10337,9 @@ Plan:
      [ ] connect_to_session --> replace by "session_status" and just make re-connection automatic
 
      [ ] implement project creation
+
+     [ ] Ports of all the local services should get written to files (?) PROJECT_ROOT/.sagemathcloud/ports/service_name
+         local_hub reads this on first connect and caches it, until it doesn't work, then re-reads.
 
      [ ] production: hub to use local_hub, seriously.
 

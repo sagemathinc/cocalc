@@ -22,9 +22,17 @@ child_process  = require 'child_process'
 message        = require 'message'
 misc_node      = require 'misc_node'
 winston        = require 'winston'
-
+local_hub      = require 'local_hub'
 {to_json, from_json, defaults, required}   = require 'misc'
 
+
+##################################################################
+# Read the secret token file
+##################################################################
+secret_token = fs.readFileSync(local_hub.secret_token_filename).toString()
+
+
+##################################################################
 start_session = (socket, mesg) ->
     winston.info "start_session #{to_json(mesg)}"
 
@@ -95,11 +103,13 @@ handle_client = (socket, mesg) ->
 
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"
-    # Receive a single message:
-    misc_node.enable_mesg(socket)
-    socket.on 'mesg', (type, mesg) ->
-        winston.debug "received control mesg #{to_json(mesg)}"
-        handle_client(socket, mesg)
+    misc_node.unlock_socket socket, secret_token, (err) ->
+        if not err
+            # Receive a single message:
+            misc_node.enable_mesg(socket)
+            socket.on 'mesg', (type, mesg) ->
+                winston.debug "received control mesg #{to_json(mesg)}"
+                handle_client(socket, mesg)
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->

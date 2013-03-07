@@ -123,19 +123,28 @@ exports.disable_mesg = (socket) ->
 # cb(false), then send back "y".  If any mistake is made (or
 # the socket times out), send back "n" and close the connection.
 exports.unlock_socket = (socket, token, cb) ->     # cb(err)
+    console.log("unlocking a socket")
     user_token = ''
     listener = (data) ->
         user_token += data.toString()
+        console.log("so far, got: '#{user_token}'; looking for '#{token}'")
+        console.log("token.length = #{token.length}")
+        console.log("user_token.length = #{user_token.length}")
+        for i in [0...token.length]
+            if user_token[i] != token[i]
+                console.log(i, user_token[i], token[i])
         if user_token == token
-            # got it!
-            cb(false)
             socket.removeListener('data', listener)
+            console.log("got it!")
+            # got it!
             socket.write('y')
+            cb(false)
         else if user_token.length > token.length or token.slice(0, user_token.length) != user_token
-            cb("Invalid secret token.")
+            console.log("client-provided secret token is wrong -- denying access")
             socket.removeListener('data', listener)
             socket.write('n')
             socket.destroy()
+            cb("Invalid secret token.")
 
     socket.on('data', listener)
 
@@ -148,12 +157,14 @@ exports.connect_to_locked_socket = (port, token, cb) ->
     socket = net.connect {port:port}, () =>
         listener = (data) ->
             socket.removeListener('data', listener)
-            if data == 'y'
+            if data.toString() == 'y'
                 cb(false, socket)
             else
-                cb(true)  # FAIL
+                socket.destroy()
+                cb("Permission denied (invalid secret token) when connecting to the local hub.")
         socket.on 'data', listener
         socket.write(token)
+    return socket
 
 # Compute a uuid v4 from the Sha-1 hash of data.
 crypto = require('crypto')

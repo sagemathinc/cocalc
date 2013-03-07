@@ -1110,6 +1110,22 @@ push_to_clients = (opts) ->
 # Working with projects
 ##############################
 
+# Connect to a local hub (using appropriate port and secret token),
+# login, and enhance socket with our message protocol.
+connect_to_a_local_hub = (cb) ->    # cb(err, socket)
+    # TODO: temporary!
+    secret_token = fs.readFileSync(require('local_hub').secret_token_filename).toString()
+    port = 6020
+
+    socket = misc_node.connect_to_locked_socket port, secret_token, (err) =>
+        console.log("connect_to_a_local_hub: err='#{err}'")
+        if err
+            cb(err)
+        else
+            misc_node.enable_mesg(socket)
+            cb(false, socket)
+
+
 class Project2
     constructor: (@project_id) ->
         if not @project_id?
@@ -1128,10 +1144,15 @@ class Project2
     socket: (cb) =>     # cb(err, socket)
         if @_socket?
             cb(false, @_socket)
-        # TODO
-        @_socket = net.connect {port:6020}, () =>
-            misc_node.enable_mesg(@_socket)
-            cb(false, @_socket)
+        #
+        # TODO -- need to get the secret_token using ssh, and create port number also using an ssh reverse tunnel.
+        #
+        connect_to_a_local_hub (err, socket) =>
+            if err
+                cb(err)
+            else
+                @_socket = socket
+                cb(false, @_socket)
 
     call: (opts) =>
         opts = defaults opts,
@@ -3322,11 +3343,12 @@ class SageSession
 console_sessions = {}
 
 send_to_persistent_console_session = (mesg) ->
-    {host, port, pid} = console_sessions[mesg.session_uuid]
+    {pid} = console_sessions[mesg.session_uuid]
     mesg.pid = pid
-    socket = net.connect {host:host, port:port}, () ->
-        misc_node.enable_mesg(socket)
+
+    connect_to_a_local_hub  (err, socket) =>
         socket.write_mesg('json', mesg)
+        socket.destroy()
 
 connect_to_existing_console_session = (client, mesg) ->
     #
@@ -3353,9 +3375,10 @@ create_persistent_console_session = (client, mesg) ->
     if not mesg.params?
         mesg.params = {}
 
-    # TODO : 6020!!
-    port = 6020
-    console_session = net.connect {port:port}, () ->
+    connect_to_a_local_hub  (err, console_session) =>
+        if err
+            client.error_to_client(id:mesg.id, error:err)
+            return
 
         # store the console_session, so other clients can
         # potentially tune in (TODO: also store something in database)
@@ -3365,14 +3388,10 @@ create_persistent_console_session = (client, mesg) ->
 
         enable_ping_timer(session: console_session)
 
-        console_session.port = port
         console_session.account_id = client.account_id
         console_sessions[mesg.session_uuid] = console_session
         compute_sessions[mesg.session_uuid] = console_session
         client.compute_session_uuids.push(mesg.session_uuid)
-
-        # Add functionality to TCP socket so that we can send JSON messages
-        misc_node.enable_mesg(console_session)
 
         # Send session configuration as a JSON message
         console_session.write_mesg('json', mesg)
