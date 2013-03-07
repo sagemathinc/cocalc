@@ -10311,12 +10311,14 @@ Plan:
          string that is stored in a protected file.  make it so *all* the
          services (console_server, sage_server, local_hub) require this
          to start the connection.
--->          [x] (0:52) if it does not exist, local_hub generates the following file on
+             [x] (0:52) if it does not exist, local_hub generates the following file on
                  startup: "project_root/.sagemathcloud/secret_key"
-             [ ] all other programs read file on startup and require
-                 it to be the beginning of first connect.
-                 They terminate if file doesn't exist or has wrong
-                 permissions.
+           All local services read file on startup and require
+           it to be the beginning of first connect.
+           They terminate if file doesn't exist or has wrong permissions.
+             [x] (0:15) local_hub token: implement connect from both sides in misc_node.coffee
+             [ ] support for console_server.coffee and local_hub, and test
+             [ ] write python version for sage_server, and test
 
      [ ] local_hub: when it dies, everything it spawned *MUST die*.
 

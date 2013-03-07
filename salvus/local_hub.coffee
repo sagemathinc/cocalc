@@ -455,11 +455,15 @@ handle_mesg = (socket, mesg) ->
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"
 
-    misc_node.enable_mesg(socket)
-    socket.on 'mesg', (type, mesg) ->
-        if type == "json"   # other types are handled elsewhere in event code.
-            winston.debug "received control mesg #{to_json(mesg)}"
-            handle_mesg(socket, mesg)
+    misc_node.unlock_socket socket, secret_token, (err) ->
+        if err
+            winston.debug(err)
+        else
+            misc_node.enable_mesg(socket)
+            socket.on 'mesg', (type, mesg) ->
+                if type == "json"   # other types are handled elsewhere in event code.
+                    winston.debug "received control mesg #{to_json(mesg)}"
+                    handle_mesg(socket, mesg)
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = (path) ->

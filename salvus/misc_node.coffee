@@ -9,6 +9,8 @@ assert = require('assert')
 
 winston = require('winston')
 
+net = require('net')
+
 ######################################################################
 # Our TCP messaging system.  We send a message by first
 # sending the length, then the bytes of the actual message.  The code
@@ -116,6 +118,42 @@ exports.disable_mesg = (socket) ->
         socket.removeListener('data', socket._listen_for_mesg)
         delete socket._listen_for_mesg
 
+
+# Wait to receive token over the socket; when it is received, call
+# cb(false), then send back "y".  If any mistake is made (or
+# the socket times out), send back "n" and close the connection.
+exports.unlock_socket = (socket, token, cb) ->     # cb(err)
+    user_token = ''
+    listener = (data) ->
+        user_token += data.toString()
+        if user_token == token
+            # got it!
+            cb(false)
+            socket.removeListener('data', listener)
+            socket.write('y')
+        else if user_token.length > token.length or token.slice(0, user_token.length) != user_token
+            cb("Invalid secret token.")
+            socket.removeListener('data', listener)
+            socket.write('n')
+            socket.destroy()
+
+    socket.on('data', listener)
+
+
+# Connect to a locked socket on localhost, unlock it, and do cb(err,
+# unlocked_socket).  We do not allow connection to any other host,
+# since this is not an *encryption* protocol; fortunately, traffic on
+# localhost can't be sniffed (except as root, of course, when it can be).
+exports.connect_to_locked_socket = (port, token, cb) ->
+    socket = net.connect {port:port}, () =>
+        listener = (data) ->
+            socket.removeListener('data', listener)
+            if data == 'y'
+                cb(false, socket)
+            else
+                cb(true)  # FAIL
+        socket.on 'data', listener
+        socket.write(token)
 
 # Compute a uuid v4 from the Sha-1 hash of data.
 crypto = require('crypto')
