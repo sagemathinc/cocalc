@@ -10319,7 +10319,7 @@ Plan:
              [x] (0:15) local_hub token: implement connect from both sides in misc_node.coffee
              [x] (0:45) local_hub token: support for console_server.coffee and local_hub, and test using hub
              [x] (0:32) local_hub token: write python version for sage_server, and test
-             [ ] misc_node -- unlock_socket -- add a timeout
+             [x] (0:10) misc_node -- unlock_socket -- add a timeout
 
      [ ] right now in hub, there are multiple bits of code that connect to local_hub; this should all be in one place.
 

@@ -120,34 +120,28 @@ exports.disable_mesg = (socket) ->
 
 
 # Wait to receive token over the socket; when it is received, call
-# cb(false), then send back "y".  If any mistake is made (or
-# the socket times out), send back "n" and close the connection.
+# cb(false), then send back "y".  If any mistake is made (or the
+# socket times out after 10 seconds), send back "n" and close the
+# connection.
 exports.unlock_socket = (socket, token, cb) ->     # cb(err)
-    console.log("unlocking a socket")
+    timeout = setTimeout((() -> socket.destroy(); cb("Unlock socket -- timed out waiting for secret token")), 10000)
+
     user_token = ''
     listener = (data) ->
         user_token += data.toString()
-        console.log("so far, got: '#{user_token}'; looking for '#{token}'")
-        console.log("token.length = #{token.length}")
-        console.log("user_token.length = #{user_token.length}")
-        for i in [0...token.length]
-            if user_token[i] != token[i]
-                console.log(i, user_token[i], token[i])
         if user_token == token
             socket.removeListener('data', listener)
-            console.log("got it!")
             # got it!
             socket.write('y')
+            clearTimeout(timeout)
             cb(false)
         else if user_token.length > token.length or token.slice(0, user_token.length) != user_token
-            console.log("client-provided secret token is wrong -- denying access")
             socket.removeListener('data', listener)
             socket.write('n')
             socket.destroy()
+            clearTimeout(timeout)
             cb("Invalid secret token.")
-
     socket.on('data', listener)
-
 
 # Connect to a locked socket on localhost, unlock it, and do cb(err,
 # unlocked_socket).  We do not allow connection to any other host,
