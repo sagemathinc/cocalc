@@ -37,12 +37,100 @@ temp           = require 'temp'
 
 project_root = undefined
 
+init_project_root = (root) ->
+    project_root = root
+    winston.debug("project_root = '#{project_root}'")
+    if project_root == ''
+        project_root = process.cwd()
+    if project_root[project_root.length-1] != '/'
+        project_root += '/'
+
 abspath = (path) ->
     if path.length == 0
         return project_root
     if path[0] == '/'
         return path  # already an absolute path
     return project_root + path
+
+# Other path related functions...
+
+# Make sure that that the directory containing the file indicated by
+# the path exists and has the right permissions.
+ensure_containing_directory_exists = (path, cb) ->   # cb(err)
+    path = abspath(path)
+    dir = misc.path_split(path).head  # containing path
+
+    fs.exists dir, (exists) ->
+        if exists
+            cb()
+        else
+            async.series([
+                (cb) ->
+                    if dir != ''
+                        # recurssively make sure the entire chain of directories exists.
+                        ensure_containing_directory_exists(dir, cb)
+                    else
+                        cb()
+                (cb) ->
+                    fs.mkdir(dir, 0o700, cb)
+            ], cb)
+
+#####################################################################
+# Generate the "secret_token" file as
+# project_root/.sagemathcloud/secret_token if it does not already
+# exist.  All connections to all local-to-the user services that
+# SMC starts must be prefixed with this key.
+#####################################################################
+
+CONFPATH = undefined
+secret_token = undefined
+
+# We use an n-character cryptographic random token, where n is given
+# below.  If you want to change this, changing only the following line
+# should be safe.
+secret_token_length = 128
+
+# This must be called *after* project_root is set.
+init_confpath = () ->
+    CONFPATH = abspath('.sagemathcloud/')
+    secret_token_filename = "#{CONFPATH}/secret_token"
+
+    async.series([
+        # Ensure that CONFPATH exists.
+        (cb) ->
+            winston.debug("make CONFPATH='#{CONFPATH}'")
+            ensure_containing_directory_exists(secret_token_filename, cb)
+
+        # Ensure the CONFPATH has maximally restrictive permissions, since
+        # secret info will be stored there.
+        (cb) ->
+            winston.debug("restrict permissions on '#{CONFPATH}'")
+            misc_node.execute_code
+                command : "chmod"
+                args    : ['u+rw,og-rwx', '-R', CONFPATH]
+                cb      : cb
+
+        # Read or create the file; after this step the variable secret_token
+        # is set and the file exists.
+        (cb) ->
+            fs.exists secret_token_filename, (exists) ->
+                if exists
+                    winston.debug("read '#{secret_token_filename}'")
+                    fs.readFile secret_token_filename, (err, buf) ->
+                        secret_token = buf.toString()
+                        cb()
+                else
+                    winston.debug("create '#{secret_token_filename}'")
+                    require('crypto').randomBytes  secret_token_length, (ex, buf) ->
+                        secret_token = buf.toString('base64')
+                        fs.writeFile(secret_token_filename, secret_token, cb)
+
+        # Ensure restrictive permissions on the secret token file.  The
+        # directory permissions already restrict anybody else from
+        # looking at this file, but we do this as well, just in case.
+        (cb) ->
+            fs.chmod(secret_token_filename, 0o700, cb)
+    ])
 
 
 ###############################################
@@ -180,33 +268,6 @@ connect_to_session = (socket, mesg) ->
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
 
-###############################################
-# Execute a command line or block of BASH
-###############################################
-project_exec = (socket, mesg) ->
-    winston.debug("project_exec")
-    misc_node.execute_code
-        command     : mesg.command
-        args        : mesg.args
-        path        : abspath(mesg.path)
-        timeout     : mesg.timeout
-        err_on_exit : true
-        max_output  : mesg.max_output
-        bash        : mesg.bash
-        cb          : (err, out) ->
-            if err
-                err_mesg = message.error
-                    id    : mesg.id
-                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}"
-                socket.write_mesg('json', err_mesg)
-            else
-                winston.debug(misc.trunc(misc.to_json(out),512))
-                socket.write_mesg 'json', message.project_exec_output
-                    id        : mesg.id
-                    stdout    : out.stdout
-                    stderr    : out.stderr
-                    exit_code : out.exit_code
-
 
 ###############################################
 # Read and write individual files
@@ -310,33 +371,45 @@ write_file_to_project = (socket, mesg) ->
     socket.on 'mesg', write_file
 
 
-# Make sure that that the directory containing the file indicated by
-# the path exists and has the right permissions.
-ensure_containing_directory_exists = (path, cb) ->   # cb(err)
-    path = abspath(path)
-    dir = misc.path_split(path).head  # containing path
-
-    fs.exists dir, (exists) ->
-        if exists
-            cb()
-        else
-            async.series([
-                (cb) ->
-                    if dir != ''
-                        # recurssively make sure the entire chain of directories exists.
-                        ensure_containing_directory_exists(dir, cb)
-                    else
-                        cb()
-                (cb) ->
-                    fs.mkdir(dir, 0o700, cb)
-            ], cb)
-
-
 ###############################################
 # Info
 ###############################################
 session_info = () ->
     return {'sage_sessions':sage_sessions.info(), 'console_sessions':console_sessions.info()}
+
+
+
+
+###############################################
+# Execute a command line or block of BASH
+###############################################
+project_exec = (socket, mesg) ->
+    winston.debug("project_exec")
+    misc_node.execute_code
+        command     : mesg.command
+        args        : mesg.args
+        path        : abspath(mesg.path)
+        timeout     : mesg.timeout
+        err_on_exit : true
+        max_output  : mesg.max_output
+        bash        : mesg.bash
+        cb          : (err, out) ->
+            if err
+                err_mesg = message.error
+                    id    : mesg.id
+                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}"
+                socket.write_mesg('json', err_mesg)
+            else
+                winston.debug(misc.trunc(misc.to_json(out),512))
+                socket.write_mesg 'json', message.project_exec_output
+                    id        : mesg.id
+                    stdout    : out.stdout
+                    stderr    : out.stderr
+                    exit_code : out.exit_code
+
+
+
+
 
 ###############################################
 # Handle a message form the client
@@ -407,13 +480,8 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--project_root [string]', 'use this path as the project root (default: current working directory)', String, '')
     .parse(process.argv)
 
-project_root = program.project_root
-if project_root = ''
-    project_root = process.cwd() + '/'
-else if project_root[project_root.length-1] != '/'
-    project_root += '/'
-
-winston.debug("project_root = '#{project_root}'")
+init_project_root(program.project_root)
+init_confpath()
 
 if program._name == 'session_server.js'
     # run as a server/daemon (otherwise, is being imported as a library)

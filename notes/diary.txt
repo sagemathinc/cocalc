@@ -10307,17 +10307,24 @@ Plan:
      [x] (0:50) production: make the local_hub.coffee able to create and provide console
             sessions, and record complete history. -- real deal.
 
+     [ ] access control to local_hub via a token: create a random
+         string that is stored in a protected file.  make it so *all* the
+         services (console_server, sage_server, local_hub) require this
+         to start the connection.
+-->          [x] (0:52) if it does not exist, local_hub generates the following file on
+                 startup: "project_root/.sagemathcloud/secret_key"
+             [ ] all other programs read file on startup and require
+                 it to be the beginning of first connect.
+                 They terminate if file doesn't exist or has wrong
+                 permissions.
+
      [ ] local_hub: when it dies, everything it spawned *MUST die*.
-
-     [ ] rename: session_uuid --> session_id
-
-     [ ] BUG -- hub or user client creates *two* sage sessions when I open a worksheet.
 
      [ ] figure out how to run exactly the services that get run... somewhere else. yikes.
 
-     [ ] connect_to_session --> replace by "session_status" and just make re-connection automatic
+     [ ] deal with "git-ls" location/existence: PROJECT_ROOT/.sagemathcloud/bin/git-ls
 
-     [ ] deal with "git-ls" location/existence.
+     [ ] connect_to_session --> replace by "session_status" and just make re-connection automatic
 
      [ ] implement project creation
 
@@ -10327,6 +10334,10 @@ Plan:
 
      [ ] very, very minimal proof of concept demo that illustrates keeping the state
          of a worksheet in memory, and having multiple simultaneous editors.
+
+     [ ] rename: session_uuid --> session_id
+
+     [ ] BUG -- hub or user client creates *two* sage sessions when I open a worksheet.
 
 2. Create a token/password/etc? security mechanism.
 
