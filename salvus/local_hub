@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-node $SAGEMATHCLOUD/node_modules/local_hub.js $@
+echo "local_hub $@"
+
+node "$SAGEMATHCLOUD"/node_modules/local_hub.js $@

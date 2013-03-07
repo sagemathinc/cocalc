@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+echo "sage_server $@"
+
+if [ x"$1" == x"start" ]; then
+    sage "$SAGEMATHCLOUD"/sage_server.py --pidfile .sagemathcloud/sage_server.pid --logfile .sagemathcloud/sage_server.log -d
+fi
+
+if [ x"$1" == x"stop" ]; then
+   if [ -f .sagemathcloud/sage_server.pid ]; then
+       kill `cat .sagemathcloud/sage_server.pid`
+   fi
+fi

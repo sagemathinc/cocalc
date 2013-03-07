@@ -18,12 +18,7 @@ fi
 
 cd "$1"
 
-echo "Launch local hub (listening on localhost only with secret key required)"
-local_hub start
-
-echo "Launch console server (listening on localhost only with a secret key required)"
+local_hub      start
 console_server start
-
-echo "Launch sage server (listening on localhost only with a secret key required)"
-#sage sage_server.py
+sage_server    start
 

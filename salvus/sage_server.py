@@ -6,7 +6,7 @@ sage_server.py -- unencrypted forking TCP server that can run as root,
 
 For debugging (as root user, do):
 
-    killemall sage_server.py && sage --python sage_server.py -p 6000 --host 127.0.0.1
+    killemall sage_server.py && sage --python sage_server.py -p 6000
 
 """
 
@@ -25,7 +25,7 @@ For debugging (as root user, do):
 
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
-import sys
+import os, sys
 sys.path.insert(0, os.path.split(os.path.realpath(__file__))[0])
 
 # This can be useful, just in case.
@@ -39,7 +39,7 @@ def log(s):
 import sagenb.notebook.interact
 
 # Standard imports.
-import json, os, resource, shutil, signal, socket, struct, \
+import json, resource, shutil, signal, socket, struct, \
        tempfile, time, traceback, uuid, pwd
 
 import parsing, sage_salvus
@@ -942,14 +942,14 @@ def run_server(port, host, pidfile, logfile):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run Sage server")
-    parser.add_argument("-p", dest="port", type=int, default=6000,
-                        help="port to listen on (default: 6000); give 0 to autogenerate")
+    parser.add_argument("-p", dest="port", type=int, default=0,
+                        help="port to listen on (default: 0); 0 = automatically allocated; saved to .sagemathcloud/sage_server.port")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
-    parser.add_argument("--host", dest="host", type=str, default='',
-                        help="host interface to bind to")
+    parser.add_argument("--host", dest="host", type=str, default='127.0.0.1',
+                        help="host interface to bind to -- default is 127.0.0.1")
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
                         help="store pid in this file")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
@@ -979,6 +979,7 @@ if __name__ == "__main__":
     if not args.port:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0)) # pick a free port
         args.port = s.getsockname()[1]
+        open(".sagemathcloud/sage_server.port",'w').write(str(args.port))
         del s
 
     if args.portfile:
@@ -988,9 +989,9 @@ if __name__ == "__main__":
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
 
     main = lambda: run_server(port=args.port, host=args.host, pidfile=pidfile, logfile=logfile)
-    if args.daemon:
+    if args.daemon and args.pidfile:
         import daemon
-        with daemon.DaemonContext():
-            main()
+        daemon.daemonize(args.pidfile)
+        main()
     else:
         main()

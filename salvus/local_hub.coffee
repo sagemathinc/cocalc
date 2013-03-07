@@ -128,20 +128,21 @@ init_confpath = () ->
 ###############################################
 # Console sessions
 ###############################################
-CONSOLE_PORT = undefined
-get_console_port = (cb) ->   # cb(err, port number)
-    if CONSOLE_PORT?
-        cb(false, CONSOLE_PORT)
+ports = {}
+get_port = (type, cb) ->   # cb(err, port number)
+    if ports[type]?
+        cb(false, ports[type])
     else
-        fs.readFile "#{project_root}/.sagemathcloud/console_server.port", (err, content) ->
+        fs.readFile "#{project_root}/.sagemathcloud/#{type}_server.port", (err, content) ->
             if err
                 cb(err)
             else
                 try
-                    CONSOLE_PORT=parseInt(content)
-                    cb(false, CONSOLE_PORT)
+                    ports[type] = parseInt(content)
+                    cb(false, ports[type])
                 catch e
                     cb("console_server port file corrupted")
+
 
 class ConsoleSessions
     constructor: () ->
@@ -157,10 +158,10 @@ class ConsoleSessions
             plug(client_socket, session.socket)
             session.clients.push(client_socket)
         else
-            get_console_port (err, port) =>
+            get_port 'console', (err, port) =>
                 winston.debug("Got console server port = #{port}")
                 if err
-                    winston.debug("_new_session: can't determine console server port; probably console server not running")
+                    winston.debug("can't determine console server port; probably console server not running")
                     client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
                 else
                     @_new_session(client_socket, mesg, port)
@@ -170,7 +171,7 @@ class ConsoleSessions
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
         console_socket = misc_node.connect_to_locked_socket  port,secret_token, (err) =>
             if err
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:"Problem connecting to console server."))
                 winston.debug("_new_session: console server denied connection")
                 return
             # Request a Console session from console_server
@@ -240,13 +241,20 @@ class SageSessions
             plug(client_socket, session.socket)
             session.clients.push(client_socket)
         else
-            @_new_session(client_socket, mesg)
+            get_port 'sage', (err, port) =>
+                winston.debug("Got sage server port = #{port}")
+                if err
+                    winston.debug("can't determine sage server port; probably sage server not running")
+                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of sage server."))
+                else
+                    @_new_session(client_socket, mesg)
 
     _new_session: (client_socket, mesg) =>
         winston.debug("new sage session")
         # Connect to port SAGE_PORT, send mesg, then hook sockets together.
         sage_socket = misc_node.connect_to_locked_socket SAGE_PORT, secret_token, (err) =>
             if err
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:"Problem connecting to Sage server."))
                 winston.debug("_new_session: sage session denied connection: #{err}")
                 return
             else

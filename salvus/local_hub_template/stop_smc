@@ -6,7 +6,8 @@ echo "Read SageMathCloud environment variables."
 if [ -d "$1" ]; then
     cd "$1"
     rm .sagemathcloud/*.port
-    local_hub stop
+
+    local_hub      stop
     console_server stop
-    #sage_server stop
+    sage_server    stop
 fi

@@ -1,2 +1,5 @@
 #!/usr/bin/env bash
-node $SAGEMATHCLOUD/node_modules/console_server.js $@
+
+echo "console_server $@"
+
+node "$SAGEMATHCLOUD"/node_modules/console_server.js $@

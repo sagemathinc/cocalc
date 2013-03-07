@@ -10354,6 +10354,8 @@ time ssh combinat.math.washington.edu .sagemathcloud/build
 
 # project start
 export PROJECT_PATH=smc
+rsync -axvHL local_hub_template/ combinat.math.washington.edu:.sagemathcloud/
+
 time ssh combinat.math.washington.edu "~/.sagemathcloud/start_smc \"$PROJECT_PATH\""
 rsync -axvH combinat.math.washington.edu:"$PROJECT_PATH"/.sagemathcloud/ tmp/smc/
 
