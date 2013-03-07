@@ -1,0 +1,1 @@
+../console_server_child.coffee
