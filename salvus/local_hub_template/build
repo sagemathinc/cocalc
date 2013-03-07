@@ -2,12 +2,16 @@
 
 unset MAKE  # just in case somebody has "make -j24" for sage, say.
 
+cd $HOME/.sagemathcloud/
+
 ./build.py --build_node
 rm -rf data/build   # clear up 130MB+ space used to build node
-
 
 # Set the environment up 
 . sagemathcloud-env
 
 # Install all the modules we need for the local hub.
 ./install_npm_modules
+
+# Build coffeescript to javascript
+./make_coffee

@@ -23,6 +23,10 @@ For debugging (as root user, do):
 #                  http://www.gnu.org/licenses/                                         #
 #########################################################################################
 
+# Add the path that contains this file to the Python load path, so we
+# can import other files from there.
+import sys
+sys.path.insert(0, os.path.split(os.path.realpath(__file__))[0])
 
 # This can be useful, just in case.
 def log(s):
@@ -35,7 +39,7 @@ def log(s):
 import sagenb.notebook.interact
 
 # Standard imports.
-import json, os, resource, shutil, signal, socket, struct, sys,\
+import json, os, resource, shutil, signal, socket, struct, \
        tempfile, time, traceback, uuid, pwd
 
 import parsing, sage_salvus

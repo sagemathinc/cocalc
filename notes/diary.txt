@@ -10324,7 +10324,8 @@ Plan:
 ** implement linked_unix_account creation :
 
 
-[ ] (0:19) DESIGN: implement the following (prob take about 3 hours):
+
+[x] (0:19) DESIGN: implement the following (prob take about 3 hours):
               what it does:
 		    * rsync over a template to $HOME/.sagemathcloud/
                          $HOME/.sagemathcloud
@@ -10336,14 +10337,36 @@ Plan:
                           - console_server*
                           - sage_server (and deps)
 
+     * ssh-copy-id - install your public key in a remote machine's authorized_keys
+
             account_update: delete local, rsync, rebuild.
 
 
      [x] setup the above manually on combinat -- define success as being able to use combinat.math with my local SMC on my laptop!
 
--->     [ ] automate install
+     [x] automate install
 
-     * ssh-copy-id - install your public key in a remote machine's authorized_keys
+# account setup: takes several minutes to build node.js
+rsync -axvHL local_hub_template/ combinat.math.washington.edu:.sagemathcloud/
+time ssh combinat.math.washington.edu .sagemathcloud/build
+
+-->   (0:47)  [ ] automated launch script:
+
+# project start
+export PROJECT_PATH=smc
+time ssh combinat.math.washington.edu "~/.sagemathcloud/start_smc \"$PROJECT_PATH\""
+rsync -axvH combinat.math.washington.edu:"$PROJECT_PATH"/.sagemathcloud/ tmp/smc/
+
+time ssh combinat.math.washington.edu "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
+
+
+      [ ] when each service starts -- if port not given -- it should
+          let the OS allocate a port, then write that port to a file.
+          [x] (0:15) local_hub
+          [x] (0:03) console_server
+          [x] (0:21) local_hub deploy: modify local_hub to read the console_server port from file and TEST
+-->          [ ] sage_server
+          [ ] modify local_hub to read the sage_server port from file and TEST
 
 
       [ ]  linked_unix_account:

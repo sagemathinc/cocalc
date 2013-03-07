@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+
+echo "Read SageMathCloud environment variables."
+. $HOME/.sagemathcloud/sagemathcloud-env
+
+echo "Rebuild any modified coffeescript"
+make_coffee
+
+echo "Make project directory if it does not exist"
+if [ -d "$1" ]; then
+    echo "Project directory exists."
+else
+    echo "Creating project directory."
+    mkdir "$1"
+fi
+
+cd "$1"
+
+echo "Launch local hub (listening on localhost only with secret key required)"
+local_hub start
+
+echo "Launch console server (listening on localhost only with a secret key required)"
+console_server start
+
+echo "Launch sage server (listening on localhost only with a secret key required)"
+#sage sage_server.py
+

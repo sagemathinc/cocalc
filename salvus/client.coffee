@@ -26,7 +26,7 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 
 # change these soon
 git0 = 'git0'
-gitls = '.sagemathcloud/bin/git-ls'
+gitls = 'git-ls'
 
 class Session extends EventEmitter
     # events:

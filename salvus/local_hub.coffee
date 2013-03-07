@@ -15,7 +15,6 @@
 #################################################################
 
 # TODO -- just for temporary testing
-CONSOLE_PORT = 6001
 SAGE_PORT    = 6000
 
 async          = require 'async'
@@ -129,6 +128,20 @@ init_confpath = () ->
 ###############################################
 # Console sessions
 ###############################################
+CONSOLE_PORT = undefined
+get_console_port = (cb) ->   # cb(err, port number)
+    if CONSOLE_PORT?
+        cb(false, CONSOLE_PORT)
+    else
+        fs.readFile "#{project_root}/.sagemathcloud/console_server.port", (err, content) ->
+            if err
+                cb(err)
+            else
+                try
+                    CONSOLE_PORT=parseInt(content)
+                    cb(false, CONSOLE_PORT)
+                catch e
+                    cb("console_server port file corrupted")
 
 class ConsoleSessions
     constructor: () ->
@@ -144,13 +157,20 @@ class ConsoleSessions
             plug(client_socket, session.socket)
             session.clients.push(client_socket)
         else
-            @_new_session(client_socket, mesg)
+            get_console_port (err, port) =>
+                winston.debug("Got console server port = #{port}")
+                if err
+                    winston.debug("_new_session: can't determine console server port; probably console server not running")
+                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
+                else
+                    @_new_session(client_socket, mesg, port)
 
-    _new_session: (client_socket, mesg) =>
+    _new_session: (client_socket, mesg, port) =>
         winston.debug("_new_session: defined by #{misc.to_json(mesg)}")
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
-        console_socket = misc_node.connect_to_locked_socket CONSOLE_PORT, secret_token, (err) =>
+        console_socket = misc_node.connect_to_locked_socket  port,secret_token, (err) =>
             if err
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
                 winston.debug("_new_session: console server denied connection")
                 return
             # Request a Console session from console_server
@@ -469,7 +489,11 @@ server = net.createServer (socket) ->
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    server.listen program.port, program.host, () -> winston.info "listening on port #{program.port}"
+    init_confpath()
+    server.listen program.port, '127.0.0.1', () ->
+        winston.info "listening on port #{program.port}"
+        fs.writeFile('.sagemathcloud/local_hub.port', server.address().port)
+
 
 # daemonize it
 
@@ -477,18 +501,18 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 6020)', parseInt, 6020)
-    .option('--pidfile [string]', 'store pid in this file (default: ".session_server.pid")', String, ".session_server.pid")
-    .option('--logfile [string]', 'write log to this file (default: ".session_server.log")', String, ".session_server.log")
-    .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")
+    .option('-p, --port <n>', 'port to listen on (default: 0 = automatically allocated; saved to .sagemathcloud/local_hub.port)', parseInt, 0)
+    .option('--pidfile [string]', 'store pid in this file', String, ".sagemathcloud/local_hub.pid")
+    .option('--logfile [string]', 'write log to this file', String, ".sagemathcloud/local_hub.log")
     .parse(process.argv)
 
-init_confpath()
-
 if program._name == 'local_hub.js'
+    winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.error "Uncaught exception: " + err
         if console? and console.trace?
             console.trace()
+    console.log("start daemon")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    console.log("after daemon")
