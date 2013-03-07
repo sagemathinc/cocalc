@@ -74,6 +74,9 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
 # SMC starts must be prefixed with this key.
 #####################################################################
 
+# WARNING -- the sage_server.py program can't get these definitions from
+# here, since it is not written in node, so if this changes, it has
+# to change there as well.
 CONFPATH = exports.CONFPATH = abspath('.sagemathcloud/')
 secret_token_filename = exports.secret_token_filename = "#{CONFPATH}/secret_token"
 secret_token = undefined
@@ -220,8 +223,14 @@ class SageSessions
             @_new_session(client_socket, mesg)
 
     _new_session: (client_socket, mesg) =>
+        winston.debug("new sage session")
         # Connect to port SAGE_PORT, send mesg, then hook sockets together.
-        sage_socket = net.connect {port:SAGE_PORT}, () =>
+        sage_socket = misc_node.connect_to_locked_socket SAGE_PORT, secret_token, (err) =>
+            if err
+                winston.debug("_new_session: sage session denied connection: #{err}")
+                return
+            else
+                winston.debug("successfully got a sage session connection.")
             # Request a Sage session from sage_server
             misc_node.enable_mesg(sage_socket)
             sage_socket.write_mesg('json', message.start_session(type:'sage'))

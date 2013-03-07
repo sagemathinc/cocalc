@@ -23,6 +23,7 @@ For debugging (as root user, do):
 #                  http://www.gnu.org/licenses/                                         #
 #########################################################################################
 
+
 # This can be useful, just in case.
 def log(s):
     debug_log = open("/tmp/debug.log",'a')
@@ -795,7 +796,31 @@ def handle_session_term(signum, frame):
             return
         if not pid: return
 
+CONFPATH = os.path.abspath('.sagemathcloud') + '/'
+secret_token = open(CONFPATH + 'secret_token').read()
+
+def unlock_conn(conn):
+    n = len(secret_token)
+    token = ''
+    while len(token) < n:
+        token += conn.recv(n)
+        if token != secret_token[:len(token)]:
+            break # definitely not right -- don't try anymore
+    if token != secret_token:
+        conn.send('n')  # no -- invalid login
+        conn.close()
+        return False
+    else:
+        conn.send('y') # yes -- valid login
+        return True
+
 def serve_connection(conn):
+    # First the client *must* send the secret shared token. If they
+    # don't, we return (and the connection will have been destroyed by
+    # unlock_conn).
+    if not unlock_conn(conn):
+        return
+
     conn = ConnectionJSON(conn)
     typ, mesg = conn.recv()
     if mesg['event'] == 'send_signal':
@@ -881,7 +906,9 @@ def serve(port, host):
                 try:
                     serve_connection(conn)
                 except Exception, msg:
-                    open('/tmp/a','a').write(str(msg))
+                    # FOR debugging only
+                    #open('/tmp/a','a').write(str(msg))
+                    pass
                 finally:
                     conn.close()
                     os._exit(0)

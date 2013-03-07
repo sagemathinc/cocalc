@@ -45,7 +45,7 @@ message = require("message")
 
 misc    = require("misc"); defaults = misc.defaults; required = defaults.required
 
-{enable_mesg} = require('misc_node')
+{connect_to_locked_socket, enable_mesg} = require('misc_node')
 
 exports.send_control_message = (opts={}) ->
     opts = defaults(opts, {host: 'localhost', port: required, mesg: required})
@@ -67,25 +67,32 @@ exports.send_signal = (opts={}) ->
 class exports.Connection
     constructor: (options) ->
         options = defaults(options,
-            host: 'localhost'
+            secret_token : required
             port: required
             recv: undefined
             cb:   undefined
         )
         @host = options.host
         @port = options.port
-        @conn = net.connect({port:@port, host:@host}, options.cb)
-        @recv = options.recv  # send message to client
-        @buf = null
-        @buf_target_length = -1
 
-        @conn.on 'error', (err) =>
-            winston.error("sage connection error: #{err}")
-            @recv?('json', message.terminate_session(reason:"#{err}"))
+        @conn = connect_to_locked_socket  @port, options.secret_token, (err) =>
+            if err
+                options.cb(err)
+                return
 
-        enable_mesg(@conn)
-        @conn.on 'mesg', (type, data) =>
-            @recv?(type, data)
+            @recv = options.recv  # send message to client
+            @buf = null
+            @buf_target_length = -1
+
+            @conn.on 'error', (err) =>
+                winston.error("sage connection error: #{err}")
+                @recv?('json', message.terminate_session(reason:"#{err}"))
+
+            enable_mesg(@conn)
+            @conn.on 'mesg', (type, data) =>
+                @recv?(type, data)
+
+            options.cb()
 
     send_json: (mesg) ->
         @conn.write_mesg('json', mesg)

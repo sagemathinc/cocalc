@@ -154,8 +154,10 @@ exports.unlock_socket = (socket, token, cb) ->     # cb(err)
 # since this is not an *encryption* protocol; fortunately, traffic on
 # localhost can't be sniffed (except as root, of course, when it can be).
 exports.connect_to_locked_socket = (port, token, cb) ->
+    console.log("connecting to a locked socket...")
     socket = net.connect {port:port}, () =>
         listener = (data) ->
+            console.log("got back response: #{data}")
             socket.removeListener('data', listener)
             if data.toString() == 'y'
                 cb(false, socket)
@@ -163,6 +165,7 @@ exports.connect_to_locked_socket = (port, token, cb) ->
                 socket.destroy()
                 cb("Permission denied (invalid secret token) when connecting to the local hub.")
         socket.on 'data', listener
+        console.log("connected, now sending secret token")
         socket.write(token)
     return socket
 

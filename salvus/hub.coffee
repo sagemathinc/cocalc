@@ -1112,9 +1112,9 @@ push_to_clients = (opts) ->
 
 # Connect to a local hub (using appropriate port and secret token),
 # login, and enhance socket with our message protocol.
+secret_token = fs.readFileSync(require('local_hub').secret_token_filename).toString()
 connect_to_a_local_hub = (cb) ->    # cb(err, socket)
     # TODO: temporary!
-    secret_token = fs.readFileSync(require('local_hub').secret_token_filename).toString()
     port = 6020
 
     socket = misc_node.connect_to_locked_socket port, secret_token, (err) =>
@@ -3313,9 +3313,11 @@ class SageSession
                 # TODO!!!
                 @port = 6020
                 @conn = new sage.Connection
-                    port : @port
-                    recv : @_recv
-                    cb   : cb
+                    port         : @port
+                    secret_token : secret_token
+                    recv         : @_recv
+                    cb           : cb
+
             (cb) =>
                 mesg = message.connect_to_session
                     type         : 'sage'
@@ -3386,7 +3388,7 @@ create_persistent_console_session = (client, mesg) ->
 
         console_session.on('end', ()->console_session.closed = true)
 
-        enable_ping_timer(session: console_session)
+        # enable_ping_timer(session: console_session)
 
         console_session.account_id = client.account_id
         console_sessions[mesg.session_uuid] = console_session
@@ -3475,7 +3477,7 @@ stateless_sage_exec_fake = (input_mesg, output_message_callback) ->
 
 stateless_exec_using_server = (input_mesg, output_message_callback, host, port) ->
     sage_conn = new sage.Connection(
-        host:host
+        secret_token: secret_token
         port:port
         recv:(type, mesg) ->
             winston.info("(hub) sage_conn -- received message #{to_safe_str(mesg)}")
