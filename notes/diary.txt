@@ -10321,27 +10321,85 @@ Plan:
              [x] (0:32) local_hub token: write python version for sage_server, and test
              [x] (0:10) misc_node -- unlock_socket -- add a timeout
 
+** implement linked_unix_account creation :
+
+
+[ ] (0:19) DESIGN: implement the following (prob take about 3 hours):
+              what it does:
+		    * rsync over a template to $HOME/.sagemathcloud/
+                         $HOME/.sagemathcloud
+                         $HOME/.sagemathcloud/local
+                         $HOME/.sagemathcloud/src
+		    * build node library and install necessary npm packages, if needed.
+                    * what software do I need:
+                          - local_hub
+                          - console_server*
+                          - sage_server (and deps)
+
+            account_update: delete local, rsync, rebuild.
+
+
+     [x] setup the above manually on combinat -- define success as being able to use combinat.math with my local SMC on my laptop!
+
+-->     [ ] automate install
+
+     * ssh-copy-id - install your public key in a remote machine's authorized_keys
+
+
+      [ ]  linked_unix_account:
+              store the following in the database:
+                * username@host, port, path -- as long as these are
+                  ssh accessible from hub account in some way, we have
+                  a project
+
+
+[ ] bullet proof this -- e.g., not good having the server crash if anything goes wrong anywhere with any sockets!
+maybe this wouldn't happen as a daemon anyways, though.
+
+connecting to a locked socket on port 6001...
+connected, now sending secret token
+got back response: y
+
+events.js:71
+        throw arguments[1]; // Unhandled 'error' event
+                       ^
+Error: This socket is closed.
+    at Socket._write (net.js:518:19)
+    at Socket.write (net.js:510:15)
+    at Socket.<anonymous> (/home/wstein/.sagemathcloud/node_modules/local_hub.js:160:35)
+    at Socket.EventEmitter.emit (events.js:96:17)
+    at TCP.onread (net.js:396:14)
+
+
+-----
+
+      [ ] move the secret token and .sagemathcloud path to $HOME,
+          since it is shared with a lot of projects, and there
+          is no added security using different keys for multiple
+          projects with one user, since they can all read each
+          other's key anyways.
+
+
+** implement project creation:
+-->     [ ] project_creation: design
+              project_id
+                *
+
+
+     [ ] local_hub: when it dies, everything that is spawned *MUST die* (?). or not?  Not sure...
+
      [ ] right now in hub, there are multiple bits of code that connect to local_hub; this should all be in one place.
-
-     [ ] local_hub: when it dies, everything it spawned *MUST die*.
-
 
      [ ] hub -- socket: method; need to get the secret token for a local hub using ssh.
 
-     [ ] regarding installing all services and scripts -- just copy over via ssh on startup; will make upgrading easy, etc.; maybe use rsync
-
-     [ ] figure out how to run exactly the services that get run... somewhere else. yikes.
-
-     [ ] deal with "git-ls" location/existence: PROJECT_ROOT/.sagemathcloud/bin/git-ls
+     [ ] regarding installing all services and scripts -- just copy
+         over via ssh on startup; will make upgrading easy, etc.;
+         maybe use rsync over ssh
 
      [ ] connect_to_session --> replace by "session_status" and just make re-connection automatic
 
-     [ ] implement project creation
-
      [ ] Ports of all the local services should get written to files (?) PROJECT_ROOT/.sagemathcloud/ports/service_name
          local_hub reads this on first connect and caches it, until it doesn't work, then re-reads.
-
-     [ ] production: hub to use local_hub, seriously.
 
      [ ] delete old project2 code
 
@@ -10447,6 +10505,8 @@ Next Priority
      [ ] make it easy to resize (by dragging) the cell editor... and keep the information of the new size.
 
      [ ] text editor with wide lines -- two scroll bars on top of each other... ;-(
+
+     [ ] console: sometimes hangs when lots of output (or something) -- this happens when watching node build.
 
      [ ] weird bug in block parsing -- this goes boom for some reason...
 @interact

@@ -148,7 +148,7 @@ exports.unlock_socket = (socket, token, cb) ->     # cb(err)
 # since this is not an *encryption* protocol; fortunately, traffic on
 # localhost can't be sniffed (except as root, of course, when it can be).
 exports.connect_to_locked_socket = (port, token, cb) ->
-    console.log("connecting to a locked socket...")
+    console.log("connecting to a locked socket on port #{port}...")
     socket = net.connect {port:port}, () =>
         listener = (data) ->
             console.log("got back response: #{data}")
