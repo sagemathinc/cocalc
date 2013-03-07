@@ -26,10 +26,6 @@ winston        = require 'winston'
 {to_json, from_json, defaults, required}   = require 'misc'
 
 start_session = (socket, mesg) ->
-    if not mesg.limits? or not mesg.limits.walltime?
-        socket.write_mesg('json', message.error(id:mesg.id, error:"mesg.limits.walltime *must* be defined (though 0 is allowed for unlimited)"))
-        return
-
     winston.info "start_session #{to_json(mesg)}"
 
     opts = defaults mesg.params,
@@ -45,10 +41,6 @@ start_session = (socket, mesg) ->
             winston.debug("suspicious project_id (=#{mesg.project_id}) -- bailing")
             return
 
-    opts.cputime  = mesg.limits.cputime
-    opts.vmem     = mesg.limits.vmem
-    opts.numfiles = mesg.limits.numfiles
-
     winston.debug "start_session opts = #{to_json(opts)}"
 
     # Ensure that the given user exists.  If not, send an error.  The
@@ -60,7 +52,7 @@ start_session = (socket, mesg) ->
             child = child_process.fork(__dirname + '/console_server_child.js', [])
 
             # Send the pid of the child to the client (the connected hub)
-            socket.write_mesg('json', message.session_description({pid:child.pid, limits:mesg.limits}))
+            socket.write_mesg('json', message.session_description(pid:child.pid))
 
             # Disable use of the socket for sending/receiving messages, since
             # it will be only used for raw xterm stuff hence.
@@ -68,11 +60,6 @@ start_session = (socket, mesg) ->
 
             # Give the socket to the child, along with the options.
             child.send(opts, socket)
-
-            # Set a timer to kill the spawned child
-            if mesg.limits.walltime
-                setTimeout((() -> child.kill('SIGKILL')), mesg.limits.walltime*1000)
-            winston.info "PARENT: forked off child to handle it"
 
             cb()
     ], (err) ->

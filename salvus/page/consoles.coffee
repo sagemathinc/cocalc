@@ -47,7 +47,9 @@ class exports.Consoles
         # If given, create the initial console session views.
         if opts.initial_sessions?
             for session_id in opts.initial_sessions
-                @create_tab(session_id)
+                @create_tab
+                    session_id: session_id
+                    type      : 'xterm'
 
         # Enable buttons for creating new consoles.
         @element.find("a[href=#new-command-line]").click () =>

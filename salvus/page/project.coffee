@@ -10,7 +10,6 @@
 {series}        = require('async')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = require('misc')
 {file_associations, Editor} = require('editor')
-{Consoles}      = require('consoles')
 {scroll_top, human_readable_size}    = require('misc_page')
 
 MAX_TITLE_LENGTH = 25
@@ -112,11 +111,11 @@ move_path_dialog = new Dialog
 
 class ProjectPage
     constructor: (@project) ->
-        console.log("requestion session info...")
+        console.log("requesting session info...")
         salvus_client.project_session_info
             project_id: @project.project_id
-            cb: (err, info) ->
-                console.log("project session info: ", err, info)
+            cb: (err, mesg) =>
+                console.log("project session info: ", err, mesg.info)
 
         @container = templates.find(".salvus-project").clone()
         $("#footer").before(@container)
@@ -163,7 +162,6 @@ class ProjectPage
         @update_topbar()
 
         @create_editor()
-        @create_consoles()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id.slice(0,8))
@@ -473,16 +471,6 @@ class ProjectPage
             counter       : @container.find(".project-editor-file-count")
             initial_files : initial_files
         @container.find(".project-editor").append(@editor.element)
-
-    create_consoles: (initial_consoles) =>   # initial_consoles (optional)
-        try
-            @consoles = new Consoles
-                project_id       : @project.project_id
-                counter          : @container.find(".project-consoles-count")
-                initial_sessions : initial_consoles
-            @container.find(".project-consoles").append(@consoles.element)
-        catch e
-            console.log("Error creating new Consoles...: #{e}")
 
     display_tab: (name) =>
         scroll_top()

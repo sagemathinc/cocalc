@@ -168,13 +168,6 @@ class Console extends EventEmitter
             # console.log("From remote: '#{data}'")
             @terminal.write(data)
 
-
-        #########################
-
-        # Start the countdown timer, which shows how long this session will last.
-        if opts.session.limits.walltime
-            @_start_session_timer(opts.session.limits.walltime)
-
         @blur()
 
 

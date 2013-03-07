@@ -35,7 +35,6 @@ worksheet1.coffee
 #worksheet2.coffee
 
 editor.coffee
-consoles.coffee
 project.coffee
 projects.coffee
 

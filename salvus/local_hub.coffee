@@ -44,48 +44,71 @@ abspath = (path) ->
         return path  # already an absolute path
     return project_root + path
 
+
 ###############################################
-# Minimal proof-of-concept console session
+# Console sessions
 ###############################################
 
-console_socket = undefined
-console_session_desc = undefined
-history = new Buffer(0)
+class ConsoleSessions
+    constructor: () ->
+        @_sessions = {}
 
-start_console_session = (client_socket, mesg) ->
-    winston.debug("Starting a console session.")
+    # Connect to (if 'running'), restart (if 'dead'), or create (if
+    # non-existing) the console session with mesg.session_uuid.
+    connect: (client_socket, mesg) =>
+        session = @_sessions[mesg.session_uuid]
+        if session? and session.status == 'running'
+            client_socket.write_mesg('json', session.desc)
+            client_socket.write(session.history)
+            plug(client_socket, session.socket)
+            session.clients.push(client_socket)
+        else
+            @_new_session(client_socket, mesg)
 
-    # TEST
-    if console_socket?
-        # connect to existing session
-        client_socket.write_mesg('json', console_session_desc)
-        misc_node.disable_mesg(client_socket)
-        client_socket.write(history)
-        client_socket.on 'data', (data) ->
-            console_socket.write(data)
-        console_socket.on 'data', (data) ->
-            client_socket.write(data)
-        return
+    _new_session: (client_socket, mesg) =>
+        winston.debug("_new_session: defined by #{misc.to_json(mesg)}")
+        # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
+        console_socket = net.connect {port:CONSOLE_PORT}, () =>
+            # Request a Console session from console_server
+            misc_node.enable_mesg(console_socket)
+            console_socket.write_mesg('json', mesg)
+            # Read one JSON message back, which describes the session
+            console_socket.once 'mesg', (type, desc) =>
+                client_socket.write_mesg('json', desc)
+                # Disable JSON mesg protocol, since it isn't used further
+                misc_node.disable_mesg(console_socket)
+                misc_node.disable_mesg(client_socket)
 
-    # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
-    console_socket = net.connect {port:CONSOLE_PORT}, ()->
-        # Request console from actual console server
-        misc_node.enable_mesg(console_socket)
-        console_socket.write_mesg('json', mesg)
-        console_socket.once 'mesg', (type, resp) ->
-            console_session_desc = resp
-            client_socket.write_mesg('json', console_session_desc)
+                session =
+                    socket  : console_socket
+                    desc    : desc,
+                    status  : 'running',
+                    clients : [client_socket],
+                    history : new Buffer(0)
 
-            # Disable JSON mesg protocol
-            misc_node.disable_mesg(console_socket)
-            misc_node.disable_mesg(client_socket)
+                # Connect the sockets together.
+                client_socket.on 'data', (data) ->
+                    console_socket.write(data)
+                console_socket.on 'data', (data) ->
+                    session.history += data
+                    client_socket.write(data)
 
-            # Connect the sockets together.
-            client_socket.on 'data', (data) ->
-                console_socket.write(data)
-            console_socket.on 'data', (data) ->
-                history += data
-                client_socket.write(data)
+                @_sessions[mesg.session_uuid] = session
+
+            console_socket.on 'end', () =>
+                session = @_sessions[mesg.session_uuid]
+                if session?
+                    session.status = 'done'
+                # TODO: should we close client_socket here?
+
+    # Return object that describes status of all Console sessions
+    info: () =>
+        obj = {}
+        for id, info of @_sessions
+            obj[id] = {desc:info.desc, status:info.status, history_length:info.history.length}
+        return obj
+
+console_sessions = new ConsoleSessions()
 
 
 ###############################################
@@ -128,6 +151,7 @@ class SageSessions
                 @_sessions[mesg.session_uuid] = {socket:sage_socket, desc:desc, status:'running', clients:[client_socket]}
             sage_socket.on 'end', () =>
                 session = @_sessions[mesg.session_uuid]
+                # TODO: should we close client_socket here?
                 if session?
                     session.status = 'done'
 
@@ -136,7 +160,6 @@ class SageSessions
         obj = {}
         for id, info of @_sessions
             obj[id] = {desc:info.desc, status:info.status}
-        console.log("info: #{misc.to_json(obj)}")
         return obj
 
 sage_sessions = new SageSessions()
@@ -150,7 +173,7 @@ connect_to_session = (socket, mesg) ->
     winston.debug("connect_to_session -- type='#{mesg.type}'")
     switch mesg.type
         when 'console'
-            start_console_session(socket, mesg)
+            console_sessions.connect(socket, mesg)
         when 'sage'
             sage_sessions.connect(socket, mesg)
         else
@@ -313,7 +336,7 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
 # Info
 ###############################################
 session_info = () ->
-    return {'sage':sage_sessions.info()}
+    return {'sage_sessions':sage_sessions.info(), 'console_sessions':console_sessions.info()}
 
 ###############################################
 # Handle a message form the client
@@ -322,7 +345,7 @@ session_info = () ->
 handle_mesg = (socket, mesg) ->
     try
         switch mesg.event
-            when 'connect_to_session'
+            when 'connect_to_session', 'start_session'
                 connect_to_session(socket, mesg)
             when 'project_session_info'
                 resp = message.project_session_info

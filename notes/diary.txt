@@ -10292,24 +10292,26 @@ Plan:
          by making a Project2 class with the same API as Project and
          slotting it in.
 
-     [ ] Test and debug using Project2 with various stubs.
+     [x] Test and debug using Project2 with various stubs.
            [x] bash command
            [x] read file
            [x] (0:33) local_hub: write file (plus some UI improvements)
            [x] (1:02) sage session: change hub to use project2 instead of separate stuff
            [x] (0:11) console: change hub to use project2 instead of separate stuff
 
--->  [ ] production: extend local_hub.coffee to provide a sage session (using
+     [x] production: extend local_hub.coffee to provide a sage session (using
          a separate sage server started as the same user).
             [x] (0:55) local_hub: status info support for sage sessions
             [x] (1:11) local/hub: connect to an existing session
 
-     [ ] production: make the local_hub.coffee able to create and provide console
-         sessions, and record complete history. -- real deal.
+     [x] (0:50) production: make the local_hub.coffee able to create and provide console
+            sessions, and record complete history. -- real deal.
 
      [ ] local_hub: when it dies, everything it spawned *MUST die*.
 
      [ ] rename: session_uuid --> session_id
+
+     [ ] BUG -- hub or user client creates *two* sage sessions when I open a worksheet.
 
      [ ] figure out how to run exactly the services that get run... somewhere else. yikes.
 

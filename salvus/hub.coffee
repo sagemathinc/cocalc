@@ -3345,13 +3345,13 @@ connect_to_existing_console_session = (client, mesg) ->
 
 create_persistent_console_session = (client, mesg) ->
     winston.debug("creating a console session for user with account_id #{client.account_id}")
-    session_uuid = uuid.v4()
+
+    if not mesg.session_uuid?
+        # creating a new console session from scratch.
+        mesg.session_uuid = uuid.v4()
 
     if not mesg.params?
         mesg.params = {}
-
-    # Cap limits on the console session.
-    client.cap_session_limits(mesg.limits)
 
     # TODO : 6020!!
     port = 6020
@@ -3367,9 +3367,9 @@ create_persistent_console_session = (client, mesg) ->
 
         console_session.port = port
         console_session.account_id = client.account_id
-        console_sessions[session_uuid] = console_session
-        compute_sessions[session_uuid] = console_session
-        client.compute_session_uuids.push(session_uuid)
+        console_sessions[mesg.session_uuid] = console_session
+        compute_sessions[mesg.session_uuid] = console_session
+        client.compute_session_uuids.push(mesg.session_uuid)
 
         # Add functionality to TCP socket so that we can send JSON messages
         misc_node.enable_mesg(console_session)
@@ -3386,8 +3386,8 @@ create_persistent_console_session = (client, mesg) ->
             if resp.event == 'error'
                 # did not start session; pass error on to client and throw away.
                 client.push_to_client(resp)
-                delete compute_sessions[session_uuid]
-                delete console_sessions[session_uuid]
+                delete compute_sessions[mesg.session_uuid]
+                delete console_sessions[mesg.session_uuid]
                 return
 
             if resp.event != 'session_description'
@@ -3396,7 +3396,7 @@ create_persistent_console_session = (client, mesg) ->
                 return
 
             console_session.pid = resp.pid
-            kill_mesg = message.send_signal(session_uuid:session_uuid, pid:console_session.pid, signal:9)
+            kill_mesg = message.send_signal(session_uuid:mesg.session_uuid, pid:console_session.pid, signal:9)
             console_session.kill = () -> send_to_persistent_console_session(kill_mesg)
 
             # Relay data from client to console_session
@@ -3412,8 +3412,7 @@ create_persistent_console_session = (client, mesg) ->
 
             resp = message.session_started
                 id           : mesg.id
-                session_uuid : session_uuid
-                limits       : mesg.limits
+                session_uuid : mesg.session_uuid
                 data_channel : channel
             client.push_to_client(resp)
 

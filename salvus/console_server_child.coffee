@@ -24,13 +24,8 @@ process.on 'message', (opts, socket) ->
     if opts.home?
         term_opts.home = opts.home
 
-    if opts.cputime
-        # If cputime is not 0, limit it for setrlimit:
-        setrlimit 'cpu',    {soft:opts.cputime,  hard:opts.cputime}
-
-    setrlimit 'as',     {soft:opts.vmem*1000000,     hard:opts.vmem*1000000}
-    setrlimit 'nofile', {soft:opts.numfiles, hard:opts.numfiles}
-
+    misc = require('misc')
+    #console.log("about to pty.fork with: opts.command=#{opts.command}, opts.args=#{misc.to_json(opts.args)}, term_opts=#{misc.to_json(term_opts)}")
     term = pty.fork(opts.command, opts.args, term_opts)
 
     # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
