@@ -1,7 +1,7 @@
 export SAGEMATHCLOUD="$HOME/.sagemathcloud"
 P="$SAGEMATHCLOUD"
 
-export PATH=$P:$P/node_modules/.bin/:$P/data/local/bin:$P/data/local/sbin:$P/data/local/cassandra/bin:$P/scripts:$PATH
-
+# If for some reason you ever change this, also possibly change the Python code in "build".
+export PATH=$P:$P/node_modules/.bin/:$P/data/local/bin:$PATH
 export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 

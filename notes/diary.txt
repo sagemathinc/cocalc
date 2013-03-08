@@ -10347,19 +10347,21 @@ Plan:
      [x] automate install
 
 # account setup: takes several minutes to build node.js
-rsync -axvHL local_hub_template/ combinat.math.washington.edu:.sagemathcloud/
-time ssh combinat.math.washington.edu .sagemathcloud/build
+#export host=combinat.math.washington.edu
+export host=a@localhost
+rsync -axvHL local_hub_template/ $host:.sagemathcloud/
+time ssh $host .sagemathcloud/build
 
--->   (0:47)  [ ] automated launch script:
+   [x] (0:47) automated launch script...
 
 # project start
-rsync -axvHL local_hub_template/ combinat.math.washington.edu:.sagemathcloud/
+rsync -axvHL local_hub_template/ $host:.sagemathcloud/
 
 export PROJECT_PATH=smc
-time ssh combinat.math.washington.edu "~/.sagemathcloud/start_smc \"$PROJECT_PATH\""
-rsync -axvH combinat.math.washington.edu:"$PROJECT_PATH"/.sagemathcloud/ tmp/smc/
+time ssh $host "~/.sagemathcloud/start_smc \"$PROJECT_PATH\""
+rsync -axvH $host:"$PROJECT_PATH"/.sagemathcloud/ tmp/smc/
 
-time ssh combinat.math.washington.edu "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
+time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 
 
       [ ] when each service starts -- if port not given -- it should
@@ -10379,6 +10381,9 @@ time ssh combinat.math.washington.edu "~/.sagemathcloud/stop_smc \"$PROJECT_PATH
     [x] (0:20) plan how to switch to allowing arbitrary remote "local_hub".
     [x] (0:30) message: change the create_project message to incorporate info and client: change client project creation modal to have place to enter info
     [x] (0:14) hub: modify project creation to store extra host info, and also display it in project listing to confirm this works (not cleaned up)
+
+    [x] (0:14) local_hub template: rewrite build script in python; change build script to not rebuild node if there is already a new enough node present.
+
     [ ] hub/project: check whether or not sagemathcloud is setup on remote host
     [ ] hub/project: start sagemathcloud daemons, rsync back .port files.
     [ ] hub/project: setup ssh port forward noting that port on hub and port on remote are different, and saving what's up in RAM.
@@ -10386,8 +10391,13 @@ time ssh combinat.math.washington.edu "~/.sagemathcloud/stop_smc \"$PROJECT_PATH
     [ ] hub: provide a default account on something (?) so things work without user having to provide their own, and is quick.
 
 
+
+POWER/INTERNET --> test ./build script
+
+
+
   [ ] RENAME: local_hub --> session_hub
-[ ] bullet proof this -- e.g., not good having the server crash if anything goes wrong anywhere with any sockets!
+  [ ] bullet proof this -- e.g., not good having the server crash if anything goes wrong anywhere with any sockets!
 maybe this wouldn't happen as a daemon anyways, though.
 
 connecting to a locked socket on port 6001...
