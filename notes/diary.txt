@@ -10386,12 +10386,17 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 ----
     [ ] hub/project: check whether or not sagemathcloud is installed/built setup on remote host
 
--->    [ ] hub/project: start sagemathcloud daemons via ssh/hub, then rsync back *.ports files.
+    [ ] hub/project: start sagemathcloud daemons via ssh/hub, then rsync back *.ports files.
+
     [ ] project2: make it so class is unique, i.e., use cached factory instead of new Project2!!
 
-    [ ] hub/project: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
+-->    [ ] hub/project: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
+
     [ ] automatically restart the port forward *when* it becomes unresponsive
     [ ] hub: provide a default account, so things work without user having to provide their own, and is quick.
+
+    [ ] hub: see this "TODO -- move getting a console session to a method in "class Project""
+             similar for sage sessions, etc. -- should be organized by project class.
 ---
 
 
@@ -10402,7 +10407,7 @@ POWER/INTERNET -->
         [ ] build local_hub on various OS X's.
 
 
--->  [ ] briefly experiment with localStorage adn project list
+  [x] briefly experiment with localStorage for project list
 
 
   [ ] RENAME: local_hub --> session_hub

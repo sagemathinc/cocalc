@@ -1111,18 +1111,20 @@ push_to_clients = (opts) ->
 # Connect to a local hub (using appropriate port and secret token),
 # login, and enhance socket with our message protocol.
 secret_token = fs.readFileSync('tmp/smc/secret_token').toString()
-connect_to_a_local_hub = (cb) ->    # cb(err, socket)
-    # TODO: temporary!
-    port = 55955  # 6020
 
-    socket = misc_node.connect_to_locked_socket port, secret_token, (err) =>
+connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
+    opts = defaults opts,
+        port         : required
+        secret_token : required
+        cb           : required
+
+    socket = misc_node.connect_to_locked_socket opts.port, opts.secret_token, (err) =>
         console.log("connect_to_a_local_hub: err='#{err}'")
         if err
             cb(err)
         else
             misc_node.enable_mesg(socket)
             cb(false, socket)
-
 
 
 class Project2
@@ -1144,13 +1146,29 @@ class Project2
         if @_socket?
             cb(false, @_socket)
 
+        port = undefined
+        secret_token = undefined
 
-        connect_to_a_local_hub (err, socket) =>
+        async.series([
+            (cb) =>
+                @open (err, _port, _secret_token) =>
+                    if not err
+                        port = _port
+                        secret_token = _secret_token
+                    cb(err)
+            (cb) =>
+                connect_to_a_local_hub
+                    port         : port
+                    secret_token : secret_token
+                    cb           : (err, socket) =>
+                        @_socket = socket
+                        cb(err)
+        ], (err) =>
             if err
                 cb(err)
             else
-                @_socket = socket
                 cb(false, @_socket)
+        )
 
     call: (opts) =>
         opts = defaults opts,
@@ -1183,31 +1201,48 @@ class Project2
     # and setup everything so we have a persistent ssh connection
     # between some port on localhost and the remote account, over
     # which all the action happens.
-    # The callback gets called via "cb(err, port)"; if err=false, then
+    # The callback gets called via "cb(err, port, secret_token)"; if err=false, then
     # port is supposed to be a valid port portforward to a local_hub somewhere.
     open: (cb) =>
-        winston.debug("project2 -- open; work in progress")
-        if @_port?
-            # TODO: check that @_port is actually still open and valid...
-            cb(false, @_port)
+        winston.debug("Opening a project.")
+        if @_port? and @_secret_token?
+            # TODO: should we check here that @_port is actually still open and valid...
+            cb(false, @_port, @_secret_token)
             return
 
+        # TODO: should we be worried about locking this... like we did before?  It could get called 100 times at once, right?
+
         host = undefined
+        address = undefined
         async.series([
+
             (cb) =>
+                winston.debug("project #{@project_id}: determining where it is hosted.")
                 @get_host (err,_host) =>
                     host = _host
-                    winston.debug("opening project connection to #{misc.to_json(host)}")
+                    address = "#{host.username}@#{host.host}"
+                    winston.debug("project #{@project_id} is hosted at #{misc.to_json(host)}")
                     cb(err)
+
+            (cb) =>
+                winston.debug("pushing latest code to remote host")
+                # TODO - we are ignoring the port here; also, this won't work if the "need host verifification interactive question appears, so we need to pass an option so it doesn't."
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axHL', 'local_hub_template/', '#{address}:.sagemathcloud/']
+                    timeout : 15
+                    bash    : false
+                    cb      : cb
+
         ], (err) =>
             if err
                 cb(err)
             else
-                cb(false, @_port)
+                cb(false, @_port, @_secret_token)
         )
 
-    get_host: (cb) =>
-        cb(false, {host:'localhost', username:'a', port:22, path:'.'})
+    get_host: (cb) =>   # cb(err, host object)
+        database.get_project_host(project_id: @project_id, cb: cb)
 
     # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
     save: (cb) =>
@@ -3373,6 +3408,7 @@ send_to_persistent_console_session = (mesg) ->
     {pid} = console_sessions[mesg.session_uuid]
     mesg.pid = pid
 
+    # TODO -- move getting a console session to a method in "class Project"
     connect_to_a_local_hub  (err, socket) =>
         socket.write_mesg('json', mesg)
         socket.destroy()

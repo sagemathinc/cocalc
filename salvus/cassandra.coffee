@@ -842,7 +842,8 @@ class exports.Salvus extends exports.Cassandra
             table   : 'projects'
             where   : {project_id: opts.project_id}
             columns : opts.columns
-            cb : opts.cb
+            json    : ['quota', 'host']
+            cb      : opts.cb
 
     # TODO: REWRITE THE function below (and others) to use get_project_data above.
     get_project_host: (opts) ->
@@ -853,6 +854,7 @@ class exports.Salvus extends exports.Cassandra
             table   : 'projects'
             where   : {project_id: opts.project_id}
             columns : ['host']
+            json    : ['host']
             cb : (err, results) ->
                 if err
                     opts.cb(err)
@@ -874,6 +876,7 @@ class exports.Salvus extends exports.Cassandra
             cb         : required
         @update
             table : 'projects'
+            json  : ['host']
             set   :
                 host : opts.host
             where :
