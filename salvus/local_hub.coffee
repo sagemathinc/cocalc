@@ -14,9 +14,6 @@
 #
 #################################################################
 
-# TODO -- just for temporary testing
-SAGE_PORT    = 6000
-
 async          = require 'async'
 fs             = require 'fs'
 net            = require 'net'
@@ -143,6 +140,9 @@ get_port = (type, cb) ->   # cb(err, port number)
                 catch e
                     cb("console_server port file corrupted")
 
+forget_port = (type) ->
+    if ports[type]?
+        delete ports[type]
 
 class ConsoleSessions
     constructor: () ->
@@ -171,6 +171,7 @@ class ConsoleSessions
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
         console_socket = misc_node.connect_to_locked_socket  port,secret_token, (err) =>
             if err
+                forget_port('console')
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:"Problem connecting to console server."))
                 winston.debug("_new_session: console server denied connection")
                 return
@@ -247,13 +248,14 @@ class SageSessions
                     winston.debug("can't determine sage server port; probably sage server not running")
                     client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of sage server."))
                 else
-                    @_new_session(client_socket, mesg)
+                    @_new_session(client_socket, mesg, port)
 
-    _new_session: (client_socket, mesg) =>
+    _new_session: (client_socket, mesg, port) =>
         winston.debug("new sage session")
-        # Connect to port SAGE_PORT, send mesg, then hook sockets together.
-        sage_socket = misc_node.connect_to_locked_socket SAGE_PORT, secret_token, (err) =>
+        # Connect to port, send mesg, then hook sockets together.
+        sage_socket = misc_node.connect_to_locked_socket port, secret_token, (err) =>
             if err
+                forget_port('sage')
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:"Problem connecting to Sage server."))
                 winston.debug("_new_session: sage session denied connection: #{err}")
                 return
@@ -477,7 +479,7 @@ handle_mesg = (socket, mesg) ->
                     socket.write_mesg('json', message.signal_sent(id:mesg.id))
             else
                 if mesg.id?
-                    err = message.error(id:mesg.id, error:"Session server received an invalid mesg type '#{mesg.event}'")
+                    err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")
                 socket.write_mesg('json', err)
     catch e
         winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"

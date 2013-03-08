@@ -10353,9 +10353,9 @@ time ssh combinat.math.washington.edu .sagemathcloud/build
 -->   (0:47)  [ ] automated launch script:
 
 # project start
-export PROJECT_PATH=smc
 rsync -axvHL local_hub_template/ combinat.math.washington.edu:.sagemathcloud/
 
+export PROJECT_PATH=smc
 time ssh combinat.math.washington.edu "~/.sagemathcloud/start_smc \"$PROJECT_PATH\""
 rsync -axvH combinat.math.washington.edu:"$PROJECT_PATH"/.sagemathcloud/ tmp/smc/
 
@@ -10367,9 +10367,9 @@ time ssh combinat.math.washington.edu "~/.sagemathcloud/stop_smc \"$PROJECT_PATH
           [x] (0:15) local_hub
           [x] (0:03) console_server
           [x] (0:21) local_hub deploy: modify local_hub to read the console_server port from file and TEST
--->          [ ] sage_server
-          [ ] modify local_hub to read the sage_server port from file and TEST
+          [x] (0:54) sage_server; modify local_hub to read the sage_server port from file and TEST
 
+  [ ] RENAME: local_hub --> session_hub
 
       [ ]  linked_unix_account:
               store the following in the database:

@@ -1115,7 +1115,7 @@ push_to_clients = (opts) ->
 secret_token = fs.readFileSync('tmp/smc/secret_token').toString()
 connect_to_a_local_hub = (cb) ->    # cb(err, socket)
     # TODO: temporary!
-    port = 6020; port=50839
+    port = 55955  # 6020
 
     socket = misc_node.connect_to_locked_socket port, secret_token, (err) =>
         console.log("connect_to_a_local_hub: err='#{err}'")
@@ -3311,7 +3311,7 @@ class SageSession
                 winston.debug("Make connection to sage server.")
                 #@port = cass.COMPUTE_SERVER_PORTS.sage
                 # TODO!!!
-                @port = 6020; @port=50839
+                @port = 55955 # 6020
                 @conn = new sage.Connection
                     port         : @port
                     secret_token : secret_token

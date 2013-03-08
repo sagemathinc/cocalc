@@ -1736,7 +1736,7 @@ fork = Fork()
 
 from sage.misc.all import tmp_filename
 
-def show_2d_plot(obj, **kwds):
+def show_2d_plot(obj, svg, **kwds):
     t = tmp_filename(ext = '.svg' if svg else '.png')
     obj.save(t, **kwds)
     salvus.file(t)
@@ -1751,7 +1751,7 @@ from sage.plot.plot3d.base import Graphics3d
 
 def show(obj, svg=True, **kwds):
     if isinstance(obj, (Graphics, GraphicsArray)):
-        show_2d_plot(obj, **kwds)
+        show_2d_plot(obj, svg=svg, **kwds)
     elif isinstance(obj, Graphics3d):
         show_3d_plot(obj, **kwds)
     else:
