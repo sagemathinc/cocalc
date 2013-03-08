@@ -10369,15 +10369,25 @@ time ssh combinat.math.washington.edu "~/.sagemathcloud/stop_smc \"$PROJECT_PATH
           [x] (0:21) local_hub deploy: modify local_hub to read the console_server port from file and TEST
           [x] (0:54) sage_server; modify local_hub to read the sage_server port from file and TEST
 
-  [ ] RENAME: local_hub --> session_hub
-
-      [ ]  linked_unix_account:
-              store the following in the database:
+     linked_unix_account:
+              store the following in the database with a project:
                 * username@host, port, path -- as long as these are
                   ssh accessible from hub account in some way, we have
                   a project
 
+    [x] schema: add to db schema host varchar docs
+    [x] (0:20) plan how to switch to allowing arbitrary remote "local_hub".
+    [ ] message: change the create_project message to incorporate info
+    [ ] client: change client project creation modal to have place to enter info
+    [ ] hub: modify project creation to store extra host info
+    [ ] hub/project: check whether or not sagemathcloud is setup on remote host
+    [ ] hub/project: start sagemathcloud daemons, rsync back .port files.
+    [ ] hub/project: setup ssh port forward noting that port on hub and port on remote are different, and saving what's up in RAM.
 
+    [ ] hub: provide a default account on something (?) so things work without user having to provide their own, and is quick.
+
+
+  [ ] RENAME: local_hub --> session_hub
 [ ] bullet proof this -- e.g., not good having the server crash if anything goes wrong anywhere with any sockets!
 maybe this wouldn't happen as a daemon anyways, though.
 
