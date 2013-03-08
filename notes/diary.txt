@@ -10397,10 +10397,12 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 
 POWER/INTERNET -->
         [ ] test ./build script
-        [ ] install rsnapshot on laptop
+        [x] install rsnapshot on laptop
         [ ] hub: "# TODO: check that @_port is actually still open and valid" -- how to check this in node.js?
+        [ ] build local_hub on various OS X's.
 
 
+-->  [ ] briefly experiment with localStorage adn project list
 
 
   [ ] RENAME: local_hub --> session_hub

@@ -26,10 +26,25 @@ update_project_list = exports.update_project_list = () ->
         cb: (error, mesg) ->
             if not error and mesg.event == 'all_projects'
                 project_list = mesg.projects
+
+                # EXPERIMENTAL
+                #if salvus_client.account_id?
+                #    console.log("save project list")
+                #    localStorage[salvus_client.account_id + 'project_list'] = JSON.stringify(project_list)
+            else
+
+                alert_message(type:"error", message:"Problem getting updated list of projects. #{error}. #{misc.to_json(mesg)}")
+
+                #if salvus_client.account_id?
+                #    x = localStorage[salvus_client.account_id + 'project_list']
+                #    if x?
+                #        console.log("loading project_list from cache")
+                #        project_list = misc.from_json(x)
+
+            if project_list?
                 compute_search_data()
                 update_project_view()
-            else
-                alert_message(type:"error", message:"Problem getting updated list of projects. #{error}. #{misc.to_json(mesg)}")
+
 
 
 # update caused by update happenin on some other client
