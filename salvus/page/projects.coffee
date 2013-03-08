@@ -141,6 +141,7 @@ close_create_project = () ->
     create_project.modal('hide').find('input').val('')
     $("#projects-create_project-public").attr("checked", true)
     $("#projects-create_project-private").attr("checked", false)
+    $("#projects-create_project-host").val('')
 
 create_project.find(".close").click((event) -> close_create_project())
 
@@ -156,9 +157,37 @@ $("#projects-create_project-button-create_project").click (event) ->
     if description == ""
         description = $("#projects-create_project-description").attr("placeholder")
     spinner = $(".projects-create-new-spinner").show().spin()
+
+    host = $.trim($("#projects-create_project-host").val())
+    if host == ""
+        host = {}
+    else
+        try
+            console.log("host = ", host)
+            v = host.split("-p")
+            if v.length > 1
+                port = parseInt($.trim(v[1]))
+            else
+                port = 22
+            w = v[0].split(":")
+            if w.length > 1
+                path = $.trim(w[1])
+            else
+                path = '.'
+            w2 = w[0].split('@')
+            username = w2[0]
+            hostname = w2[1]
+            host = {username:username, host:hostname, port:port, path:path}
+            console.log("host = ", host)
+        catch e
+            alert_message(type:'error', message:'Enter the unix user as "username@host[:path] [-p port]"')
+            # do not close modal
+            return true
+
     salvus_client.create_project
         title       : title
         description : description
+        host        : host
         public      : $("#projects-create_project-public").is(":checked")
         cb : (error, mesg) ->
             spinner.spin(false).hide()

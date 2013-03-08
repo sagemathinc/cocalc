@@ -10377,13 +10377,12 @@ time ssh combinat.math.washington.edu "~/.sagemathcloud/stop_smc \"$PROJECT_PATH
 
     [x] schema: add to db schema host varchar docs
     [x] (0:20) plan how to switch to allowing arbitrary remote "local_hub".
-    [ ] message: change the create_project message to incorporate info
-    [ ] client: change client project creation modal to have place to enter info
+    [x] (0:30) message: change the create_project message to incorporate info and client: change client project creation modal to have place to enter info
     [ ] hub: modify project creation to store extra host info
     [ ] hub/project: check whether or not sagemathcloud is setup on remote host
     [ ] hub/project: start sagemathcloud daemons, rsync back .port files.
     [ ] hub/project: setup ssh port forward noting that port on hub and port on remote are different, and saving what's up in RAM.
-
+    [ ] automatically restart the port forward *when* it becomes unresponsive
     [ ] hub: provide a default account on something (?) so things work without user having to provide their own, and is quick.
 
 
