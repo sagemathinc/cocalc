@@ -10359,7 +10359,7 @@ rsync -axvHL local_hub_template/ $host:.sagemathcloud/
 
 export PROJECT_PATH=smc
 time ssh $host "~/.sagemathcloud/start_smc \"$PROJECT_PATH\""
-rsync -axvH $host:"$PROJECT_PATH"/.sagemathcloud/ tmp/smc/
+rsync -axvH $host:"$PROJECT_PATH"/.sagemathcloud/*.ports tmp/smc/
 
 time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 
@@ -10381,18 +10381,25 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
     [x] (0:20) plan how to switch to allowing arbitrary remote "local_hub".
     [x] (0:30) message: change the create_project message to incorporate info and client: change client project creation modal to have place to enter info
     [x] (0:14) hub: modify project creation to store extra host info, and also display it in project listing to confirm this works (not cleaned up)
-
     [x] (0:14) local_hub template: rewrite build script in python; change build script to not rebuild node if there is already a new enough node present.
 
-    [ ] hub/project: check whether or not sagemathcloud is setup on remote host
-    [ ] hub/project: start sagemathcloud daemons, rsync back .port files.
-    [ ] hub/project: setup ssh port forward noting that port on hub and port on remote are different, and saving what's up in RAM.
+----
+    [ ] hub/project: check whether or not sagemathcloud is installed/built setup on remote host
+
+-->    [ ] hub/project: start sagemathcloud daemons via ssh/hub, then rsync back *.ports files.
+    [ ] project2: make it so class is unique, i.e., use cached factory instead of new Project2!!
+
+    [ ] hub/project: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
     [ ] automatically restart the port forward *when* it becomes unresponsive
-    [ ] hub: provide a default account on something (?) so things work without user having to provide their own, and is quick.
+    [ ] hub: provide a default account, so things work without user having to provide their own, and is quick.
+---
 
 
+POWER/INTERNET -->
+        [ ] test ./build script
+        [ ] install rsnapshot on laptop
+        [ ] hub: "# TODO: check that @_port is actually still open and valid" -- how to check this in node.js?
 
-POWER/INTERNET --> test ./build script
 
 
 

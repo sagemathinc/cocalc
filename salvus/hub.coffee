@@ -1124,6 +1124,7 @@ connect_to_a_local_hub = (cb) ->    # cb(err, socket)
             cb(false, socket)
 
 
+
 class Project2
     constructor: (@project_id) ->
         if not @project_id?
@@ -1142,9 +1143,8 @@ class Project2
     socket: (cb) =>     # cb(err, socket)
         if @_socket?
             cb(false, @_socket)
-        #
-        # TODO -- need to get the secret_token using ssh, and create port number also using an ssh reverse tunnel.
-        #
+
+
         connect_to_a_local_hub (err, socket) =>
             if err
                 cb(err)
@@ -1179,19 +1179,46 @@ class Project2
             message : message.project_session_info(project_id:@project_id)
             cb : cb
 
-    # Open the project on some host if it is not already opened.
-    open: (cb) ->
-        winston.debug("project2-open-stub")
-        cb?()
+    # Open connection to the remote host if it is not already opened,
+    # and setup everything so we have a persistent ssh connection
+    # between some port on localhost and the remote account, over
+    # which all the action happens.
+    # The callback gets called via "cb(err, port)"; if err=false, then
+    # port is supposed to be a valid port portforward to a local_hub somewhere.
+    open: (cb) =>
+        winston.debug("project2 -- open; work in progress")
+        if @_port?
+            # TODO: check that @_port is actually still open and valid...
+            cb(false, @_port)
+            return
 
-    save: (cb) ->
+        host = undefined
+        async.series([
+            (cb) =>
+                @get_host (err,_host) =>
+                    host = _host
+                    winston.debug("opening project connection to #{misc.to_json(host)}")
+                    cb(err)
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(false, @_port)
+        )
+
+    get_host: (cb) =>
+        cb(false, {host:'localhost', username:'a', port:22, path:'.'})
+
+    # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
+    save: (cb) =>
         winston.debug("project2-save-stub")
         cb?()
 
-    close: (cb) ->
+    close: (cb) =>
         winston.debug("project2-close-stub")
         cb?()
 
+    # TODO -- pointless, just exec on remote
     size_of_local_copy: (cb) =>
         winston.debug("project2-size_of_local_copy-stub")
         cb(false, 0)
