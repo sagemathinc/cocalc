@@ -715,9 +715,6 @@ class Client extends EventEmitter
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
             return
 
-        #@error_to_client(id: mesg.id, error: "Project creation is temporarily disabled.")
-        #return
-
         project_id = uuid.v4()
         project = undefined
 
@@ -730,6 +727,7 @@ class Client extends EventEmitter
                     title       : mesg.title
                     description : mesg.description
                     public      : mesg.public
+                    host        : mesg.host
                     quota       : DEFAULTS.quota   # TODO -- account based
                     idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
                     cb          : cb

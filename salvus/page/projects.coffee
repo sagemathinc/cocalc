@@ -91,6 +91,13 @@ create_project_item = (project) ->
     if project.size?
         item.find(".projects-size").text(human_readable_size(project.size))
     item.find(".projects-description").text(project.description)
+    if project.host.username?
+        d = "#{project.host.username}@#{project.host.host}"
+        if project.host.path != '.'
+            d += ':' + project.host.path
+        if project.host.port != 22
+            d += " -p#{project.host.port}"
+        item.find(".projects-host").text(d)
     item.click (event) ->
         open_project(project)
         return false

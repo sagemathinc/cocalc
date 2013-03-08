@@ -941,6 +941,7 @@ class exports.Salvus extends exports.Cassandra
             project_id  : required
             account_id  : required  # owner
             title       : required
+            host        : required
             description : undefined  # optional
             public      : required
             quota       : required
@@ -955,6 +956,7 @@ class exports.Salvus extends exports.Cassandra
                     set   :
                         account_id  : opts.account_id
                         title       : opts.title
+                        host        : opts.host
                         last_edited : now()
                         description : opts.description
                         public      : opts.public
@@ -962,7 +964,7 @@ class exports.Salvus extends exports.Cassandra
                         idle_timeout: opts.idle_timeout
                         current_branch : 'master'
                     where : {project_id: opts.project_id}
-                    json  : ['quota']
+                    json  : ['quota', 'host']
                     cb    : (error, result) ->
                         if error
                             opts.cb(error)
@@ -1056,7 +1058,8 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'current_branch', 'host', 'size']
+            json      : ['host']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'host', 'size']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->
