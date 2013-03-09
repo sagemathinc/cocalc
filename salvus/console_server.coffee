@@ -25,6 +25,7 @@ winston        = require 'winston'
 local_hub      = require 'local_hub'
 {to_json, from_json, defaults, required}   = require 'misc'
 
+assert         = require('assert')
 
 ##################################################################
 # Read the secret token file.
@@ -33,8 +34,20 @@ local_hub      = require 'local_hub'
 # the same time as the console_server. So, we try for up to 5 seconds
 # until this file appears.
 ##################################################################
-secret_token = fs.readFileSync(local_hub.secret_token_filename).toString()
 
+fname = local_hub.secret_token_filename
+secret_token = undefined
+read_token = () ->
+    fs.exists fname, (exists) ->
+        if exists
+            try
+                secret_token = fs.readFileSync(fname).toString()
+                winston.debug("Read the secret_token file.")
+            catch e
+                setTimeout(read_token, 250)
+        else
+            # try again in 250ms.
+            setTimeout(read_token, 250)
 
 ##################################################################
 start_session = (socket, mesg) ->
@@ -107,6 +120,12 @@ handle_client = (socket, mesg) ->
 
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"
+    if not secret_token?
+        winston.debug("ignoring incoming connection, since we do not have the secret_token yet.")
+        socket.write('n')
+        socket.end()
+        return
+
     misc_node.unlock_socket socket, secret_token, (err) ->
         if not err
             # Receive a single message:
@@ -117,8 +136,9 @@ server = net.createServer (socket) ->
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
+    read_token()
     server.listen program.port, program.host, () ->
-        winston.info "listening on port #{program.port}"
+        winston.info "listening on port #{server.address().port}"
         fs.writeFile('.sagemathcloud/console_server.port', server.address().port)
 
 

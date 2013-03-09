@@ -10400,9 +10400,14 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 
     [x] serious UI bug ! annoying/scarry bug in client UI: create cell with a note; delete cell; note moves to another cell; try to edit note in that cell... and get NOTHING.
 
-    [ ] console_server, etc- should wait a little for secret_token.
+    [x] console_server -- keep trying to read secret_token until it appears.
+    [ ] sage_server -- keep trying to read secret_token until it appears.
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
     [ ] control-s in worksheet should save it?
+
+    [ ] hub: when connection between local_hub and hub dies, recreate it.
+    [ ] local_hub: automatically recreate connection to console_server if it goes down
+    [ ] local_hub: automatically recreate connection to sage_server if it goes down
 
     [ ] hub/project: move code for getting a new worksheet session to project object and test
     [ ] local_hub: create new file broken
@@ -10412,6 +10417,12 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 
 ---------
 AWS usage ideas:
+
+    [ ] cell depencies would be nice, e.g., if you evaluate cell foo and bar hasn't been evaluated, evaluate it first... ?
+
+    [ ] syntax error WTF: for x in partitions(4): print x
+
+    [ ] to-latex mode should intelligently change " to ``.
 
     [ ] In note field, typing "consider {\em blah} ..." could change it to emphasize.
         Really note mode needs to be easily configurable.

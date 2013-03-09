@@ -13,6 +13,7 @@
 }
 
 .salvus-cell-note {
+    font-size        : 11pt;
     background-color : #fff;
     color            : #333;
     min-height       : 1.5em;
