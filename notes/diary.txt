@@ -10396,7 +10396,9 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
     [x] (0:20) hub: worksheets work again with new code structure, but not fully refactored. Small steps!
 
 
-    [x] add "location" to the project info at top.
+    [x] client-project: add "location" to the project info at top.
+
+    [x] serious UI bug ! annoying/scarry bug in client UI: create cell with a note; delete cell; note moves to another cell; try to edit note in that cell... and get NOTHING.
 
     [ ] console_server, etc- should wait a little for secret_token.
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
@@ -10415,10 +10417,6 @@ AWS usage ideas:
         Really note mode needs to be easily configurable.
 
     [ ] *need* to easily be able to resize the height of the output and have this saved!!!
-
-    [ ] UI bug ! annoying/scarry bug in client UI: create cell with a note;
-        delete cell; note moves to another cell; try to edit note in that
-        cell... and get NOTHING.
 
     [ ] it would be very helpful is a "worksheet" had multiple pages.
         Maybe "worksheet" --> "mathsheet", "sagesheet", "notebook" (?)
@@ -10835,7 +10833,15 @@ def f(n=10**100):
     [ ] worksheet: make it easy to hide all input cells completely from a worksheet for note taking.
 
     [ ] mathjax: macros -- all those in sage, plus easy to add more.
-
+Ideas -- typing this defines macros easily:
+%auto
+%html
+\(
+   \def\Q{{\bf Q}}
+   \def\Gal{{\rm Gal}}
+\)
+    The latex object has something called latex.add_macro and latex.extra_macros, which needs to be supported and isn't now.  Hmm.
+ 
     [ ] cell note/mathjax: when using it, I really wish there were syntax highlighting, paren matching, etc... maybe it should be *latex* mode codemirror?  But what about markup.  Ugh.  Or... it could switch modes easily.  Hmm.   I could make it *automatically* embed little auto-expanding code-mirrors everywhere that there are $$'s...   Or, while typing, hit $ and suddenly a little codemirror appears, hit $ again as 0,0 entry, and it centers.
 
     [ ] worksheet: they could have "pages", like a spreadsheet has pages.  This would be a boon to organization.

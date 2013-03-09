@@ -27,7 +27,11 @@ local_hub      = require 'local_hub'
 
 
 ##################################################################
-# Read the secret token file
+# Read the secret token file.
+#
+# This file is created by the local_hub process, which is started at
+# the same time as the console_server. So, we try for up to 5 seconds
+# until this file appears.
 ##################################################################
 secret_token = fs.readFileSync(local_hub.secret_token_filename).toString()
 

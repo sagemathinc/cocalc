@@ -1190,9 +1190,9 @@ class Cell extends EventEmitter
     # Set or get the HTML value of the note field
     note: (val) =>
         if val?
-            @_note.html(val)
+            @_note.data('raw', val).html(val).mathjax()
         else
-            return @_note.html()
+            @_note.data('raw')
 
 exports.Cell = Cell
 
