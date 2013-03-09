@@ -10385,9 +10385,10 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 
 ----
 
-    [x] hub: Project2.open -- get status of remote location; first useful version
+    [x] (1:00) hub: Project.open -- get status of remote location; first useful version
 
-    [ ] project2: make it so class is unique, i.e., use cached factory instead of new Project2!!
+    [x] (0:15) project: make it so class is unique, i.e., use cached factory instead of new Project2!!
+    [x] (0:13) project: open locking/wait
 
     [ ] hub: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
 
@@ -10404,6 +10405,9 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 ---
 
     [ ] anything in the command prompt is returning an error on client.
+    [ ] create new file now broken
+    [ ] getting this any time I execute code: debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"error","id":"1e19ebc0-96b2-4745-a514-e0707dee0896","error":"Local hub received an invalid mesg type 'execute_code'"}
+
 
 POWER/INTERNET -->
         [ ] test ./build script

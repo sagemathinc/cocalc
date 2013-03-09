@@ -699,7 +699,7 @@ class Client extends EventEmitter
                     else
                         cb("Internal error -- unknown permission type '#{permission}'")
             (cb) =>
-                project = new Project2(mesg.project_id)
+                project = Project(mesg.project_id)
                 cb()
         ], (err) =>
                 if err
@@ -737,7 +737,7 @@ class Client extends EventEmitter
             # TODO: we might as an optimization just leave it open initially,
             # since the user is likely to want to use it right after creating it.
             (cb) =>
-                project = new Project2(project_id)
+                project = Project(project_id)
                 project.open(cb)
             (cb) =>
                 project.save(cb)
@@ -1127,7 +1127,18 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
             opts.cb(false, socket)
 
 
-class Project2
+_project_cache = {}
+Project = (project_id) ->
+    P = _project_cache[project_id]
+    if not P?
+        P = new Project_class(project_id)
+        _project_cache[project_id] = P
+    return P
+    # TODO: Worry about memory leaks.  For example, there could be a
+    # timer here that goes through and deletes a project from memory
+    # if not accessed in 24 hours... or something.
+
+class Project_class
     constructor: (@project_id) ->
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
@@ -1145,6 +1156,7 @@ class Project2
     socket: (cb) =>     # cb(err, socket)
         if @_socket?
             cb(false, @_socket)
+            return
 
         port = undefined
         secret_token = undefined
@@ -1210,7 +1222,24 @@ class Project2
             cb(false, @_status['local_hub.port'], @_status.secret_token)
             return
 
-        # TODO: should we be worried about locking this... like we did before?  It could get called 100 times at once, right?
+        # We worry about locking: project open could happen many times at once.
+        # TODO: we should also worry about multiple hubs at once and use the database.
+        if @_opening?
+            n = 0
+            check = () =>
+                n += 1
+                if n >= 100 # 10 seconds max
+                    clearInterval(timer)
+                    cb("Timed out waiting for project to open.")
+                    return
+                if not @_opening?
+                    clearInterval(timer)
+                    @open(cb)
+                    return
+            timer = setInterval(check, 100)
+            return
+
+        @_opening = true
 
         location = undefined   # {username:?, host:?, port:?, path:?}
         address  = undefined
@@ -1265,6 +1294,7 @@ class Project2
             # TODO: at this point we have to build/start/etc., depending on the status.
 
         ], (err) =>
+            delete @_opening
             if err
                 cb(err)
             else
@@ -1386,7 +1416,7 @@ class Project2
 ############################################################################
 ############################################################################
 
-class Project
+class old_Project
     constructor: (@project_id) ->
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
