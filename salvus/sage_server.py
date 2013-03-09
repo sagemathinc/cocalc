@@ -801,9 +801,18 @@ def handle_session_term(signum, frame):
         if not pid: return
 
 CONFPATH = os.path.abspath('.sagemathcloud') + '/'
-secret_token = open(CONFPATH + 'secret_token').read()
+secret_token = None
 
 def unlock_conn(conn):
+    global secret_token
+    if secret_token is None:
+        try:
+            secret_token = open(CONFPATH + 'secret_token').read()
+        except:
+            conn.send('n')
+            conn.send("Unable to accept connection, since Sage server doesn't yet know the secret token.")
+            conn.close()
+
     n = len(secret_token)
     token = ''
     while len(token) < n:
@@ -812,6 +821,7 @@ def unlock_conn(conn):
             break # definitely not right -- don't try anymore
     if token != secret_token:
         conn.send('n')  # no -- invalid login
+        conn.send("Invalid secret token.")
         conn.close()
         return False
     else:

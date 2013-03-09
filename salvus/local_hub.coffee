@@ -498,7 +498,7 @@ server = net.createServer (socket) ->
 exports.start_server = start_server = () ->
     init_confpath()
     server.listen program.port, '127.0.0.1', () ->
-        winston.info "listening on port #{program.port}"
+        winston.info "listening on port #{server.address().port}"
         fs.writeFile('.sagemathcloud/local_hub.port', server.address().port)
 
 

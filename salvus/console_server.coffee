@@ -123,6 +123,7 @@ server = net.createServer (socket) ->
     if not secret_token?
         winston.debug("ignoring incoming connection, since we do not have the secret_token yet.")
         socket.write('n')
+        socket.write("Unable to accept connection, since console server doesn't yet know the secret token.")
         socket.end()
         return
 
@@ -149,8 +150,8 @@ daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 0 = automatically allocated; saved to .sagemathcloud/console_server.port)', parseInt, 0)
-    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/console_server.pid")', String, ".sagemathcloud/console_server.pid")
-    .option('--logfile [string]', 'write log to this file (default: "data/logs/console_server.log")', String, ".sagemathcloud/console_server.log")
+    .option('--pidfile [string]', 'store pid in this file (default: ".sagemathcloud/console_server.pid")', String, ".sagemathcloud/console_server.pid")
+    .option('--logfile [string]', 'write log to this file (default: ".sagemathcloud/console_server.log")', String, ".sagemathcloud/console_server.log")
     .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")   # important for security reasons to prevent user binding more specific host attack
     .parse(process.argv)
 

@@ -10401,7 +10401,7 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
     [x] serious UI bug ! annoying/scarry bug in client UI: create cell with a note; delete cell; note moves to another cell; try to edit note in that cell... and get NOTHING.
 
     [x] console_server -- keep trying to read secret_token until it appears.
-    [ ] sage_server -- keep trying to read secret_token until it appears.
+    [x] sage_server -- keep trying to read secret_token until it appears.
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
     [ ] control-s in worksheet should save it?
 

@@ -138,6 +138,7 @@ exports.unlock_socket = (socket, token, cb) ->     # cb(err)
         else if user_token.length > token.length or token.slice(0, user_token.length) != user_token
             socket.removeListener('data', listener)
             socket.write('n')
+            socket.write("Invalid secret token.")
             socket.destroy()
             clearTimeout(timeout)
             cb("Invalid secret token.")
