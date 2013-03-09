@@ -244,7 +244,6 @@ class XTermSession extends Session
         @element = $("<div>Connecting to console server...</div>")
         salvus_client.new_session
             timeout    : 15  # make longer later -- TODO -- mainly for testing!
-            limits     : {walltime:60*15}
             type       : "console"
             project_id : @project_id
             params     : {command:'bash', ps1:"\\w\\$ "}

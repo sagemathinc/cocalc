@@ -423,7 +423,6 @@ class Terminal extends FileEditor
         @element = $("<div>Connecting to console server...</div>")  # TODO -- make much nicer
         salvus_client.new_session
             timeout    : 15  # make longer later -- TODO -- mainly for testing!
-            limits     : { walltime : 60*15 }
             type       : 'console'
             project_id : @editor.project_id
             params     : {command:'bash', rows:@opts.rows, cols:@opts.cols}

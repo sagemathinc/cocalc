@@ -115,7 +115,8 @@ class ProjectPage
         salvus_client.project_session_info
             project_id: @project.project_id
             cb: (err, mesg) =>
-                console.log("project session info: ", err, mesg.info)
+                if mesg?
+                    console.log("project session info: ", err, mesg.info)
 
         @container = templates.find(".salvus-project").clone()
         $("#footer").before(@container)

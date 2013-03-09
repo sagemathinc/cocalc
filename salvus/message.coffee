@@ -58,6 +58,10 @@ message
                             #
 
 # client <--> hub <--> local_hub
+# info = {
+#         sage_sessions    : {uuid:{desc:info.desc, status:info.status}, ...},
+#         console_sessions : {uuid:{}, ...}
+#        }
 message
     event         : 'project_session_info'
     id            : undefined
@@ -83,10 +87,12 @@ message
     type         : required
     project_id   : required
     session_uuid : required
+    params       : undefined          # extra parameters that control the type of session -- if we have to create a new one
 
 message
     event         : 'session_connected'
-    id            : required
+    id            : undefined
+    session_uuid  : required
     data_channel  : undefined  # used for certain types of sessions
 
 

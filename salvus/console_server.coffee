@@ -79,7 +79,7 @@ start_session = (socket, mesg) ->
 handle_client = (socket, mesg) ->
     try
         switch mesg.event
-            when 'start_session'
+            when 'start_session', 'connect_to_session'
                 start_session(socket, mesg)
             when 'send_signal'
                 switch mesg.signal

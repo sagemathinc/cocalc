@@ -440,9 +440,6 @@ project_exec = (socket, mesg) ->
                     exit_code : out.exit_code
 
 
-
-
-
 ###############################################
 # Handle a message form the client
 ###############################################

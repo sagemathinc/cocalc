@@ -1,3 +1,858 @@
+############################################################################
+############################################################################
+
+class old_Project
+    constructor: (@project_id) ->
+        if not @project_id?
+            throw "When creating Project, the project_id must be defined"
+        @local_path = "#{project_data}/#{@project_id}/"
+
+    owner: (cb) =>
+        database.get_project_data
+            project_id : @project_id
+            columns : ['account_id']
+            cb      : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(err, result[0])
+
+    ##############################################
+    # Database state stuff
+    ##############################################
+    _choose_new_host: (cb) ->
+        # For now we just choose a host at random.  In the long run,
+        # we may experiment with other load balancing algorithms, and
+        # take into account properties of the project itself.  For
+        # example, we will have an "infinite uptime" option.
+        database.random_compute_server type:'project', cb:(err, hostinfo) ->
+            #winston.debug("*** #{err}, #{misc.to_json(hostinfo)}")
+            if err
+                cb(err)
+            else if not hostinfo?
+                cb("No project servers are currently available.")
+            else
+                cb(false, hostinfo.host)
+
+    _minus_one_host: (host, cb) ->
+        database.score_compute_server(host:host, cb:cb, delta:-1)
+
+    _plus_one_host: (host, cb) ->
+        database.score_compute_server(host:host, cb:cb, delta:+1)
+
+    _connect: (host, cb) ->
+        if not host?
+            throw "BUG -- host must be defined"
+
+        if @_socket? and @_socket.host == host
+            cb(false, @_socket.socket)
+            return
+
+        socket = net.connect {host:host, port:cass.COMPUTE_SERVER_PORTS.project}, () =>
+            winston.debug("!! connected to #{misc.to_json(host)}")
+            # connected
+            misc_node.enable_mesg(socket)
+            # We cache the connection for later.  We only cache a
+            # connection to *one* host, since a project is only
+            # supposed to ever be hosted on one compute server.
+            @_socket = {host:host, socket:socket}
+            cb(false, socket)
+
+        # There are numerous actions that require adding a listener to
+        # the socket, sending blobs, then removing it.  Since many of
+        # these could happen simultaneously, I'm upping the max
+        # listeners a bit, just in case.
+        socket.setMaxListeners(30)
+
+        socket.once 'error', (err) =>
+            if err == 'ECONNREFUSED'
+                # An error occured connecting -- this suggests
+                # that the relevant project server is down.
+                cb(err)
+
+        # Make sure not to cache the socket in case anything goes wrong with it.
+        socket.once 'close', () =>
+            if @_socket?
+                delete @_socket
+        socket.once 'end', () =>
+            if @_socket?
+                delete @_socket
+        socket.once 'timeout', () =>
+            if @_socket?
+                delete @_socket
+
+    # Returns the host that is currently hosting the project
+    # (according to the database) or null if the project is not
+    # currently on any host.
+    get_host: (cb) =>    # cb(err, host)
+        database.get_project_host(project_id:@project_id, cb:cb)
+
+    _is_being_opened: (cb) =>    # cb(err, is_being_opened)
+        database.is_project_being_opened(project_id:@project_id, cb:cb)
+
+    _lock_for_opening: (ttl, cb) =>    # cb(err)
+        database.lock_project_for_opening(project_id:@project_id, ttl:ttl, cb:cb)
+
+    _remove_opening_lock: (cb) =>
+        database.remove_project_opening_lock(project_id:@project_id, cb:cb)
+
+    _is_being_saved: (cb) =>    # cb(err, is_being_opened)
+        database.is_project_being_saved(project_id:@project_id, cb:cb)
+
+    _lock_for_saving: (ttl, cb) =>    # cb(err)
+        database.lock_project_for_saving(project_id:@project_id, ttl:ttl, cb:cb)
+
+    _remove_saving_lock: (cb) =>
+        database.remove_project_saving_lock(project_id:@project_id, cb:cb)
+
+    # Open the project (if necessary) and get a working socket connection to the project_server.
+    socket: (cb) ->     # cb(err, socket)
+        host   = undefined
+        socket = undefined
+        async.series([
+            (c) =>
+                @open (err, _host) =>
+                    if err
+                        winston.debug("project.socket -- error opening project -- #{to_json(err)}")
+                        c(err)
+                    else
+                        host = _host
+                        winston.debug("project.socket -- deploy to host '#{host}'")
+                        c()
+            (c) =>
+                @_connect host, (err, _socket) =>
+                    if err
+                        winston.debug("project.socket -- error connecting to project server #{err}")
+                        c(err)
+                    else
+                        socket = _socket
+                        winston.debug("project.socket -- got a socket connection to the project_server")
+                        c()
+        ], (err) ->
+            if err
+                cb(err)
+            else
+                cb(false, socket)
+        )
+
+    # Open the project on some host if it is not already opened. If it
+    # is currently being opened by this or another hub, we return an
+    # error.  (The client can choose to show some sort of notification
+    # and retry after waiting a moment.)
+    open: (cb) ->   # cb(err, host)
+        if not cb?
+            throw "cb must be defined"
+        host = undefined
+        had_to_recurse = false
+        async.series([
+            # First, we check in the database to see if the project is
+            # already opened on a compute server, and if so, return
+            # that host.
+            (c) =>
+                winston.debug("open project -- get host")
+                @get_host (err, _host) ->
+                    host = _host
+                    if err
+                        c(true) # failed -- done
+                    else if _host?
+                        c(true) # done
+                    else
+                        c()
+
+            # Is anybody else trying to open this project right now?
+            (c) =>
+                winston.debug("open project -- check if anybody else opening project right now")
+                @_is_being_opened (err, is_being_opened) =>
+                    if err
+                        c(true)  # failed -- don't try any further
+                    else if is_being_opened
+                        # In the rare case of two opens at the same
+                        # time, try again repeatedly, up to a total of
+                        # 10 seconds (after which user client will
+                        # have given up).
+                        total_time = 0
+                        delta = 200
+                        try_again = () =>
+                            @get_host (err, _host) ->
+                                if not err and _host?  # got it!
+                                    host = _host
+                                    c(true)
+                                else
+                                    delta += delta
+                                    if total_time + delta <= 10000
+                                        setTimeout(try_again, delta)
+                                    else
+                                        # give up.
+                                        c("Project #{@project_id} is currently being opened by another hub. Please try again in a few seconds. (#{err})")
+                        setTimeout(try_again, delta)
+                    else
+                        # Not open, not being opened, let's get on it!
+                        # The 15 below is a timeout in seconds, after which our lock self-destructs.
+                        @_lock_for_opening(15, c)
+
+            # We choose a project server host.
+            (c) =>
+                winston.debug("open project -- choose a host")
+                @_choose_new_host (err, _host) =>
+                    if err
+                        @_remove_opening_lock()
+                        c(err)
+                    else
+                        host = _host
+                        c()
+
+            # Open the project on that host
+            (c) =>
+                winston.debug("open project -- open on that host (='#{host}')")
+                @_open_on_host host, (err) =>
+                    @_remove_opening_lock()
+                    if err
+                        if host == 'localhost' or host == '127.0.0.1'
+                            # debugging mode -- just give up instantly.
+                            winston.debug("_open_on_host -- err opening on localhost '#{to_json(err)}'")
+                            host = undefined  # so error messages will propagate below.
+                            c(err)
+                            return
+
+                        # Downvote this host, and try again.
+                        @_minus_one_host host, (err) =>
+                            if err
+                                # This is serious -- if we can't even connect to the database
+                                # to flag a host as down, then there is no point in going on.
+                                host = undefined  # so error messages will propagate below.
+                                c(true)
+                            else
+                                # Try again.  This will not lead to infinite recursion since each
+                                # time it is called, we just successfully flagged a host as down
+                                # in the database, and eventually we'll run out of hosts.
+                                had_to_recurse = true
+                                @open(cb)
+                                host = undefined  # so error messages will propagate below.
+                                c()
+                    else
+                        # Finally, got it!
+                        # Upvote this host, since it worked.
+                        @_plus_one_host(host)
+                        c()
+        ], (err) ->
+            if not had_to_recurse   # the recursive call will call cb
+                if host?  # if host got defined then done
+                    cb(false, host)
+                else
+                    cb(err)
+        )
+
+    _initialize_local_path: (cb) =>
+        # Initialize a local copy of the project -- first the simplest possible approach; this will get more complicated later ! TODO
+        async.series([
+            (cb) =>
+                fs.mkdir @local_path, 0o700, cb
+            (cb) =>
+                # Just do a local rsync from the template.
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axH', PROJECT_TEMPLATE, @local_path]
+                    timeout : 30
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : cb
+            (cb) =>
+                # Add a gitconfig, if not in local files
+                gitconfig = @local_path + '.gitconfig'
+                fs.exists gitconfig, (exists) =>
+                    if exists
+                        cb()
+                        return
+                    @owner((err,account_id) =>
+                        if err
+                            cb(err)
+                        else
+                            database.get_gitconfig account_id: account_id, cb:(err, contents) =>
+                                if err
+                                    cb(err)
+                                else
+                                    fs.writeFile(gitconfig, contents, cb)
+                    )
+        ], cb)
+
+
+    _open_on_host: (host, cb) =>
+        # Find out if project already exists on some remote storage server
+        # If yes, rsync it from there to local
+        # If no, create project from scratch (locally)
+        #        or create project from a template (another project; like "forking" in
+        #        github) by rsyncing from remote storage server
+        # In either case, we now have local project -- select a project_server.
+        # Rsync local project to that project_server.
+
+        remote_path = "#{misc_node.username(@project_id)}@#{host}:"
+
+        id     = uuid.v4()   # used to tag communication with the project server
+        socket = undefined
+        quota  = undefined
+        idle_timeout = undefined
+        async.series([
+            (cb) =>
+                winston.debug("project: initialize '#{@local_path}'")
+                fs.exists @local_path, (exists) =>
+                    if not exists
+                        @_initialize_local_path(cb)
+                    else
+                        cb()
+
+            # Get a connection to the project server.
+            (cb) =>
+                winston.debug("_open_on_host - get a connection to the project server.")
+                @_connect host, (err, s) ->
+                    if err
+                        cb(err)
+                    else
+                        socket = s
+                        cb()
+
+            # Get meta information about the project that is needed to open the project.
+            (cb) =>
+                winston.debug("_open_on_host -- get meta information about the project that is needed to open the project.")
+                database.get_project_open_info project_id:@project_id, cb:(err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        {quota, idle_timeout} = result
+                        cb()
+
+            # Send open_project mesg.
+            (cb) =>
+                winston.debug("_open_on_host -- Send open_project mesg")
+                # TODO:
+                ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCd5N5Vz1Kv4QqYkWVGxKQfvnZjlMnbdu2wkB9mInLqUAoqkkOTq4B0Qq5rtgMK8AfTYqoi4jAF1R/qJpGLGqAm359Yc6vXOMq5Gy0cDekAb/JOADbmtsYzElv+YhCwnD1MAXqjrv0+W16Y8j6IFjjuvzf4Egnria0s5kddcCwLCkYU9sJUs6OXUDqzK05jhO3PF3P40f3sKKFdZLIH4rVkKdM3ynJ0gNoBqI/xak/9Tz3U0aSZXK7DfO7kjI5PCZr2EVI83u8XAwskDM9XDdifNED3Ctae/x7FkpdpLNiXjOsUKJ0cnJmBFDwO0M4Vt8L8zROy2aH8ZEhD1cqGF69D salvus"
+                mesg_open_project = message.open_project
+                    id           : id
+                    project_id   : @project_id
+                    quota        : quota
+                    idle_timeout : idle_timeout
+                    ssh_public_key: ssh_public_key  # computed on startup of hub
+                socket.write_mesg 'json', mesg_open_project
+                cb()
+
+            # Wait for response that project user has been created and public key written
+            (cb) =>
+                winston.debug("_open_on_host -- wait for the project server to respond")
+                socket.recv_mesg id:id, type:'json', timeout:30, cb:(mesg) ->
+                    winston.debug("_open_on_host -- received response #{misc.to_json(mesg)}")
+                    switch mesg.event
+                        when 'error'
+                            # something went wrong...
+                            cb(mesg.error)
+                        when 'project_opened'
+                            # finally, got it.
+                            cb()
+                        else
+                            cb("Expected a 'project_opened' message, but got a '#{mesg.event}' message instead.")
+
+            # Push files to the project
+            (cb) =>
+                winston.debug("_open_on_host -- push files to the project")
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axH', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", @local_path, remote_path]
+                    timeout : 30
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, output) =>
+                        if err
+                            cb("Error running rsync at all: #{err}")
+                        else
+                            cb()
+
+            # Save where project is running to the database
+            (cb) =>
+                winston.debug("_open_on_host -- save where (='#{host}') project running to database")
+                database.set_project_host(project_id:@project_id, host:host, cb:cb)
+
+        ], cb)
+
+
+
+    # This is called by 'open' once we determine that the project is
+    # not already opened, and also we determine on which host we plan
+    # to open the project.
+    XXX_open_on_host: (host, cb) ->
+        socket  = undefined
+        id      = uuid.v4()   # used to tag communication with the project server
+        bundles = undefined
+        quota   = undefined
+        idle_timeout = undefined
+
+        async.series([
+            # Get a connection to the project server.
+            (c) =>
+                winston.debug("_open_on_host - get a connection to the project server.")
+                @_connect host, (err, s) ->
+                    if err
+                        c(err)
+                    else
+                        socket = s
+                        c()
+
+            # Get each bundle blob from the database in preparation to
+            # send it to the project_server.
+            (c) =>
+                winston.debug("_open_on_host - get bundle blobs from the database.")
+                database.get_project_bundles project_id:@project_id, cb:(err, result) ->
+                    if err
+                        c(err)
+                    else
+                        # bundles is an array of pairs [filename, Buffer].
+                        bundles = result
+
+                        # Make a corresponding list of temporary
+                        # uuid's that will be used when sending the
+                        # bundles.
+                        bundles.uuids = ([uuid.v4(),bundles[i][0]] for i in [0...bundles.length])
+                        c()
+
+            # Get meta information about the project that is needed to open the project.
+            (c) =>
+                winston.debug("_open_on_host -- get meta information about the project that is needed to open the project.")
+                database.get_project_open_info project_id:@project_id, cb:(err, result) ->
+                    if err
+                        c(err)
+                    else
+                        {quota, idle_timeout} = result
+                        c()
+
+            # Send open_project mesg.
+            (c) =>
+                winston.debug("_open_on_host -- Send open_project mesg")
+                mesg_open_project = message.open_project
+                    id           : id
+                    project_id   : @project_id
+                    bundle_uuids : bundles.uuids
+                    quota        : quota
+                    idle_timeout : idle_timeout
+                socket.write_mesg 'json', mesg_open_project
+                c()
+
+            # Starting sending the bundles as blobs.
+            (c) ->
+                winston.debug("_open_on_host -- start sending #{bundles.length} bundles as blobs")
+                for i in [0...bundles.length]
+                    socket.write_mesg 'blob', {uuid:bundles.uuids[i][0], blob:bundles[i][1]}
+                c()
+
+            # Wait for the project server to respond with success
+            # (having received all blobs) or failure (something went wrong).
+            (c) ->
+                winston.debug("_open_on_host -- wait for the project server to respond")
+                socket.recv_mesg id:id, type:'json', timeout:30, cb:(mesg) ->
+                    winston.debug("_open_on_host -- received response #{misc.to_json(mesg)}")
+                    switch mesg.event
+                        when 'error'
+                            # something went wrong...
+                            c(mesg.error)
+                        when 'project_opened'
+                            # finally, got it.
+                            c()
+                        else
+                            c("Expected a 'project_opened' message, but got a '#{mesg.event}' message instead.")
+
+            # Save where project is running to the database
+            (c) =>
+                winston.debug("_open_on_host -- save where (='#{host}') project running to database")
+                database.set_project_host(project_id:@project_id, host:host, cb:c)
+
+        ], cb)
+
+    # Save the project to the database.  This involves saving at least
+    # zero (!) bundles to the project_bundles uuid:blob table.
+    save: (cb) -> # cb(err) -- indicates when done
+        id = uuid.v4() # used to tag communication with the project server
+
+        host               = undefined
+        not_open = false
+
+        nothing_to_do = false
+
+        async.series([
+            # If project is already locked for saving (by this or
+            # another hub), return an error.
+            (c) =>
+                @_is_being_saved (err, is_being_saved) =>
+                    if err
+                        c(err)
+                    else if is_being_saved
+                        nothing_to_do = true
+                        c(true)
+                    else
+                        @_lock_for_saving(15, c)
+
+            # Determine which project_server is hosting this project.
+            # If none, then there is nothing further to do.
+            (c) =>
+                database.get_project_host project_id:@project_id, cb:(err, _host) =>
+                    if err
+                        c(err)
+                    else
+                        if not _host?
+                            not_open = true
+                            c(true)
+                        else
+                            host = _host
+                            c()
+
+            (c) =>
+                winston.debug("save: rsync files from remote")
+                remote_path = "#{misc_node.username(@project_id)}@#{host}:"
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axH', '--stats', '--delete', '--exclude', '.ssh', '-e', "ssh -o StrictHostKeyChecking=no", remote_path, @local_path]
+                    timeout : 30
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, output) =>
+                        if err
+                            c("rsync project --> hub: exited with nonzero code: stderr = #{err}")
+                        else
+                            s = 'Number of files transferred:'
+                            i = output.stdout.indexOf(s)
+                            if i == -1
+                                winston.debug("BUG!  Output of rsync doesn't contain '#{s}', but it must!")
+                            else
+                                t = output.stdout.slice(i+s.length+1)
+                                j = t.indexOf('\n')
+                                if t.slice(0,j) != '0'
+                                    # Sent at least one file modification.
+                                    # Get the size of the resulting directory, and save this to the database.
+                                    @size_of_local_copy((err,size) =>
+                                        if err
+                                            c(err)
+                                        else
+                                            database.touch_project
+                                                project_id : @project_id
+                                                size       : size
+                                                cb         : c
+                                    )
+                                else
+                                    c()
+
+        ], (err) =>
+            if err and nothing_to_do
+                cb?()
+                return
+            @_remove_saving_lock()
+            if not_open
+                cb?()
+            else
+                cb?(err)
+        )
+
+    # return total size in bytes of the local copy of files in the project
+    size_of_local_copy: (cb) =>
+        misc_node.execute_code
+            command : 'du'
+            args    : ['-bs', @local_path]
+            timeout : 15
+            bash    : false
+            path    : SALVUS_HOME
+            cb      : (err, output) =>
+                if err
+                    cb(err)
+                else
+                    i = output.stdout.indexOf(' ')
+                    size = parseInt(output.stdout.slice(0,i))
+                    cb(false, size)
+
+    delete: (cb) =>
+        @close(() => database.delete_project(project_id:@project_id, cb:cb))
+
+    # Close the project.  This save the project first, then
+    # kills all processes and clears all disk space.
+    close: (cb) =>  # cb(err) -- indicates when done
+        id     = uuid.v4()
+        socket = undefined
+        host   = undefined
+
+        async.series([
+            (c) =>
+                @save(c)
+
+            # Get project's current host
+            (c) =>
+                database.get_project_host project_id:@project_id, cb: (err, _host) ->
+                    if err
+                        c(true)
+                    else
+                        if not _host?      # not currently hosted somewhere, so "done" but no error.
+                            c('ok')
+                        else
+                            host = _host
+                            c()
+
+            # Connect to the project server that is hosting this project right now.
+            (c) =>
+                @_connect host, (err, s) ->
+                    if err
+                        c(err)
+                    else
+                        socket = s
+                        c()
+
+            # Put a lock, so nobody tries to save or open this project while we are closing.
+            # 15 seconds should be plenty of time.
+            (c) =>
+                winston.debug("project close: -- lock")
+                @_lock_for_opening(15, ->)
+                @_lock_for_saving(15, c)
+
+            # Send the close message
+            (c) =>
+                winston.debug("project close: -- send close message")
+                socket.write_mesg 'json', message.close_project(id: id, project_id: @project_id)
+                c()
+
+            # And wait for response from project server
+            (c) =>
+                winston.debug("project close: -- waiting for response from project server")
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
+                    switch mesg.event
+                        when 'error'
+                            c(mesg.error)
+                        when 'project_closed'
+                            c() # successfully closed project
+                        else
+                            c("BUG closing project -- unknown mesg event type '#{mesg.event}'")
+
+            # Store in the database that the project is not allocated
+            # on any host.
+            (c) =>
+                winston.debug("project close -- store that project is closed")
+                database.set_project_host
+                    project_id : @project_id
+                    host       : ""
+                    cb         : c
+
+        ], (err) =>
+            @_remove_opening_lock()
+            @_remove_saving_lock()
+            if err == 'ok'
+                cb()
+            else
+                cb(err)
+        )
+
+    # Tag the input message mesg with a uuid and this project_id, then
+    # send it to the project server hosting this project (or create
+    # one if there is none right now).  Finally do the standard:
+    # cb(err, response_mesg).  If err is true, then there was an error
+    # getting a socket to the project server in the first place; if
+    # err is false, then it is still possible that response_mesg.event
+    # == 'error' due to the project server having issues.
+    call: (opts) =>
+        opts = defaults opts,
+            message : required
+            timeout : 10
+            cb      : required
+
+        socket = undefined
+        id     = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err,_socket) ->
+                    if err
+                        opts.cb(err)
+                        c(true)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                if not opts.message.id?
+                    opts.message.id = id
+                opts.message.project_id = @project_id
+                socket.write_mesg 'json', opts.message
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:opts.message.id, timeout:opts.timeout, cb:(mesg) ->
+                    opts.cb(false, mesg)
+                    c()
+        ])
+
+    # Read a file from a project into memory on the hub.  This is
+    # used, e.g., for client-side editing, worksheets, etc.  This does
+    # not pull the file from the database; instead, it loads it live
+    # from the project_server virtual machine.
+    read_file: (opts) -> # cb(err, content_of_file)  -- indicates when done
+        {path, archive, cb} = defaults opts,
+            path    : required
+            archive : undefined
+            cb      : required
+
+        socket    = undefined
+        id        = uuid.v4()
+        data      = undefined
+        data_uuid = undefined
+
+        async.series([
+            # Get a socket connection to the project host.  This will open
+            # the project if it isn't already opened.
+            (c) =>
+                @socket (err, _socket) ->
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:@project_id, path:path, archive:archive)
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
+                    switch mesg.event
+                        when 'error'
+                            c(mesg.error)
+                        when 'file_read_from_project'
+                            data_uuid = mesg.data_uuid
+                            c()
+                        else
+                            c("Unknown mesg event '#{mesg.event}'")
+
+            (c) =>
+                socket.recv_mesg type: 'blob', id:data_uuid, timeout:10, cb:(_data) ->
+                    data = _data
+                    c()
+
+        ], (err) ->
+            if err
+                cb(err)
+            else
+                cb(false, data)
+        )
+
+    # Write a file to a compute node.  This is used when saving during
+    # client-side editing, for worksheets, etc.  This does not
+    # directly change anything in the database -- it only impacts the
+    # files on the compute node.  This does not trigger a save (which
+    # would change the database).
+    write_file: (path, data, cb) ->   # cb(err)
+        socket    = undefined
+        id        = uuid.v4()
+        data_uuid = uuid.v4()
+
+        async.series([
+            (c) =>
+                @socket (err, _socket) ->
+                    #winston.debug("@socket returned: #{err}, #{_socket}")
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                mesg = message.write_file_to_project
+                    id         : id
+                    project_id : @project_id
+                    path       : path
+                    data_uuid  : data_uuid
+                # winston.debug("mesg = #{misc.to_json(mesg)}")
+                socket.write_mesg 'json', mesg
+                socket.write_mesg 'blob', {uuid:data_uuid, blob:data}
+                c()
+
+            (c) =>
+                socket.recv_mesg type: 'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'file_written_to_project'
+                            c()
+                        when 'error'
+                            c(mesg.error)
+                        else
+                            c("Unexpected message type '#{mesg.event}'")
+        ], cb)
+
+    make_directory: (path, cb) ->
+        socket = undefined
+        id     = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err, _socket) ->
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+            (c) =>
+                m = message.make_directory_in_project
+                    id         : id
+                    project_id : @project_id
+                    path       : path
+                socket.write_mesg 'json', m
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'directory_made_in_project'
+                            c()
+                        when 'error'
+                            c(mesg.error)
+                        else
+                            c("Unexpected message type '#{mesg.event}'")
+        ], cb)
+
+    # Move a file or directory
+    move_file: (src, dest, cb) ->
+        winston.debug("MOVE: #{src} --> #{dest}")
+        socket = undefined
+        id     = uuid.v4()
+        async.series([
+            (c) =>
+                @socket (err, _socket) ->
+                    if err
+                        c(err)
+                    else
+                        socket = _socket
+                        c()
+            (c) =>
+                m = message.move_file_in_project
+                    id         : id
+                    project_id : @project_id
+                    src        : src
+                    dest       : dest
+                socket.write_mesg 'json', m
+                c()
+            (c) =>
+                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) ->
+                    switch mesg.event
+                        when 'file_moved_in_project'
+                            c()
+                        when 'error'
+                            c(mesg.error)
+                        else
+                            c("Unexpected message type '#{mesg.event}'")
+        ], cb)
+
+    # Remove a file or directory
+    remove_file: (path, cb) =>
+        id = uuid.v4()
+        @call
+            message: message.remove_file_from_project
+                id         : id
+                project_id : @project_id
+                path       : path
+            cb : cb
+
+    # Branch op
+    branch_op : (branch, op, cb) =>
+        @call
+            message: message["#{op}_project_branch"]
+                branch      : branch
+                project_id  : @project_id
+            cb : cb
+
+    # Exec a command
+    exec : (mesg, cb) =>
+        @call
+            message : mesg
+            cb      : cb
+            timeout : mesg.timeout
+########################################
+
+
     git_add_all: (opts) =>
         opts = defaults opts,
             project_id : required
