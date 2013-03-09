@@ -176,10 +176,16 @@
 .project-id {
     color:#666;
     margin-right:2ex;
-    font-size:10pt;
+    font-size:9pt;
     font-family:monospace;
 }
 
+.project-location {
+    color:#666;
+    margin-right:2ex;
+    font-size:9pt;
+    font-family:monospace;
+}
 
 .project-commit-message-input {
     width:100%;

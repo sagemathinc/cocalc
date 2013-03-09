@@ -166,8 +166,17 @@ class ProjectPage
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id.slice(0,8))
-        if @project.size?
-            @container.find(".project-size").text(human_readable_size(project.size))
+
+        if @project.size? and @project.size
+            @container.find(".project-size").text(human_readable_size(@project.size))
+        else
+            @container.find(".project-size-label").hide()
+
+        # Set the project location
+        if @project.location?
+            l = @project.location
+            l = "#{l.username}@#{l.host}:#{l.path}" + (if l.port != 22 then " -p #{l.port}" else "")
+            @container.find(".project-location").text(l)
 
         # Make it so editing the title and description of the project
         # sends a message to the hub.

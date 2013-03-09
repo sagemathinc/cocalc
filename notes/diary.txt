@@ -10395,14 +10395,36 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 
     [x] (0:20) hub: worksheets work again with new code structure, but not fully refactored. Small steps!
 
+
+    [x] add "location" to the project info at top.
+
+    [ ] console_server, etc- should wait a little for secret_token.
+    [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
+    [ ] control-s in worksheet should save it?
+
     [ ] hub/project: move code for getting a new worksheet session to project object and test
     [ ] local_hub: create new file broken
     [ ] local_hub: anything in the command prompt is returning an error to client.
 
+    [ ] hub: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
+
+---------
+AWS usage ideas:
+
+    [ ] In note field, typing "consider {\em blah} ..." could change it to emphasize.
+        Really note mode needs to be easily configurable.
+
+    [ ] *need* to easily be able to resize the height of the output and have this saved!!!
+
+    [ ] UI bug ! annoying/scarry bug in client UI: create cell with a note;
+        delete cell; note moves to another cell; try to edit note in that
+        cell... and get NOTHING.
+
+    [ ] it would be very helpful is a "worksheet" had multiple pages.
+        Maybe "worksheet" --> "mathsheet", "sagesheet", "notebook" (?)
 
 ---------
 
-    [ ] hub: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
 
     [ ] hub/project: check whether or not sagemathcloud is installed/built setup on remote host
         See this line in hub.coffee: "# TODO: at this point we have to build/start/etc., depending on the status."
@@ -10535,8 +10557,6 @@ Next Priority
 
    [] emacs "undo" doesn't even work in --app mode.  Ick.
       emacs control-shift-c brings up debug console.
-
-   [ ] control-s in worksheet should save it?
 
    [ ] Get more hard drives for 01-04salvus.
 
