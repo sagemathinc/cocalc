@@ -9951,7 +9951,7 @@ debug: BUG *********************************************************************
      differences between binary files, even with "git gc --aggressive".
      So it seems that the only viable option is to store lots of bundles.
      This would be easy to solve were it not for branches in
-     /home/username/.  
+     /home/username/.
 
 Proposal:
 
@@ -9980,7 +9980,7 @@ messages: in addition to the number, we send the path.
 
 So need code to:
 
-     [x] (0:52) multi-diffbundler create -- build the above directory structure from a working directory, 
+     [x] (0:52) multi-diffbundler create -- build the above directory structure from a working directory,
 
      [x] (1:57) multi-diffbundler -- be able to set a size threshhold, and output a list of path/to/new/7.diffbundle that were modified or created.
 
@@ -9996,8 +9996,8 @@ So need code to:
 
      [x] don't forgot that --thresh option can be set from bundle_size_threshhold part of message object
 
-     [x] project_server -- make sure to send any bundles not in save_mesg.known_bundle_filenames.  
-         this needs to be added to project_server around "winston.debug("Sending #{misc.to_json(new_bundles)}...")". 
+     [x] project_server -- make sure to send any bundles not in save_mesg.known_bundle_filenames.
+         this needs to be added to project_server around "winston.debug("Sending #{misc.to_json(new_bundles)}...")".
 
 -----
 
@@ -10402,6 +10402,31 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 
     [x] console_server -- keep trying to read secret_token until it appears.
     [x] sage_server -- keep trying to read secret_token until it appears.
+
+
+    [ ] significant issue: it seems like I can only start one NODE daemon under node per USER, not per directory.  VERY Annoying. The python daemon works fine.
+Ideas:
+     - don't run as a daemon
+-->     - modify the code of start-stop-daemon or somehow get it to work
+     - use a simple python daemon to launch everything else as subprocesses.
+OK, so "forever", which start-stop-deamon uses, can properly start separate monitors using, e.g.,:
+     forever start --pidFile `pwd`/local_hub.pid ~/.sagemathcloud/node_modules/local_hub.js
+However,
+     forever stop --pidFile `pwd`/local_hub.pid ~/.sagemathcloud/node_modules/local_hub.js
+stops *all* local_hub.js's.
+Two options:
+   (1) I can just directly read local_hub.pid and kill the process.
+   (2) I can make local_hub handle all projects on the machine.
+Think about (2):
+   - no security issues
+   - will be way less disturbing having 1 process instead of n, if you have n projects.
+   - messages already have the project_id in them anyways.
+   - gets rid of a stupid path being all over the place, which users (me!) hate. 
+-->   - less chance of accidentally leaking the secret_token... e.g., I already did via dropbox with my aws notes!!!
+
+This last point is the most important.  OK, so I'm going to switch to a 1 local_hub per account model.
+
+
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
     [ ] control-s in worksheet should save it?
 
@@ -10852,7 +10877,7 @@ Ideas -- typing this defines macros easily:
    \def\Gal{{\rm Gal}}
 \)
     The latex object has something called latex.add_macro and latex.extra_macros, which needs to be supported and isn't now.  Hmm.
- 
+
     [ ] cell note/mathjax: when using it, I really wish there were syntax highlighting, paren matching, etc... maybe it should be *latex* mode codemirror?  But what about markup.  Ugh.  Or... it could switch modes easily.  Hmm.   I could make it *automatically* embed little auto-expanding code-mirrors everywhere that there are $$'s...   Or, while typing, hit $ and suddenly a little codemirror appears, hit $ again as 0,0 entry, and it centers.
 
     [ ] worksheet: they could have "pages", like a spreadsheet has pages.  This would be a boon to organization.
