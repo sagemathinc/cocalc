@@ -10391,12 +10391,13 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
     [x] (0:13) project: open locking/wait
 
 -----------
-    [x] (2:18 so far) hub/project: move code for getting a new console session to project object and test
+    [x] (2:18 so far) hub/console_sessin: move code for getting a new console session to project object and test
 
-    [ ] hub/project: move code for getting a new worksheet session to project object and test
+-->    [ ] hub/project: move code for getting a new worksheet session to project object and test
 
-    [ ] local_hub: anything in the command prompt is returning an error to client.
     [ ] local_hub: create new file broken
+    [ ] local_hub: anything in the command prompt is returning an error to client.
+
 
 ---------
 

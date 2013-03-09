@@ -1143,8 +1143,7 @@ class Project_class
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
 
-        @_console_sockets = {}
-        @_sage_sockets    = {}
+        @_sockets = {console:{}, sage:{}}
 
     owner: (cb) =>
         database.get_project_data
@@ -1211,15 +1210,20 @@ class Project_class
             message : message.project_session_info(project_id:@project_id)
             cb : cb
 
-    _open_console_socket: (session_uuid, params, cb) =>    # cb(err, socket)
-        # We do not currently have an active open socket connection to this console session.
+    _open_session_socket: (opts) =>
+        opts = defaults opts,
+            session_uuid : required
+            type         : required  # 'sage', 'console'
+            params       : required
+            cb           : required  # cb(err, socket)
+        # We do not currently have an active open socket connection to this session.
         # We make a new socket connection to the local_hub, then
         # send a connect_to_session message, which will either
-        # plug this socket into an existing console with the given session_uuid, or
-        # create a new console with that uuid and plug this socket into it.
-        socket = @_console_sockets[session_uuid]
+        # plug this socket into an existing session with the given session_uuid, or
+        # create a new session with that uuid and plug this socket into it.
+        socket = @_sockets[opts.type][opts.session_uuid]
         if socket?
-            cb(false, socket)
+            opts.cb(false, socket)
             return
         async.series([
             (cb) =>
@@ -1232,16 +1236,16 @@ class Project_class
                         cb()
             (cb) =>
                 mesg = message.connect_to_session
-                    id           : uuid.v4()
-                    type         : 'console'
+                    id           : uuid.v4()   # message id
+                    type         : opts.type
                     project_id   : @project_id
-                    session_uuid : session_uuid
-                    params       : params
-                winston.debug("Send the message asking to be connected with a console session.")
+                    session_uuid : opts.session_uuid
+                    params       : opts.params
+                winston.debug("Send the message asking to be connected with a #{opts.type} session.")
                 socket.write_mesg('json', mesg)
                 # Now we wait for a response
                 socket.once 'mesg', (type, resp) =>
-                    winston.debug("Console session -- get back response type=#{type}, resp=#{to_json(resp)}")
+                    winston.debug("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
                     if resp.event == 'error'
                         cb(resp.error)
                     else
@@ -1250,8 +1254,8 @@ class Project_class
                         cb()
         ], (err) =>
             if socket?
-                @_console_sockets[session_uuid] = socket
-            cb(err, socket)
+                @_sockets[opts.type][opts.session_uuid] = socket
+            opts.cb(err, socket)
         )
 
     # Connect the client with a console session, possibly creating a session in the process.
@@ -1267,35 +1271,39 @@ class Project_class
             # Create a new session
             opts.session_uuid = uuid.v4()
 
-        @_open_console_socket opts.session_uuid, opts.params, (err, console_socket) =>
-            if err
-                # There was an error getting the socket connection above.
-                opts.cb(err)
-                return
+        @_open_session_socket
+            session_uuid : opts.session_uuid
+            type         : 'console'
+            params       : opts.params
+            cb           : (err, console_socket) =>
+                if err
+                    # There was an error getting the socket connection above.
+                    opts.cb(err)
+                    return
 
-            # Plug the two consoles together
-            #
-            # client --> console:
-            # Create a binary channel that the client can use to write to the socket.
-            # (This uses our system for multiplexing JSON and multiple binary streams
-            #  over one single SockJS connection.)
-            channel = opts.client.register_data_handler (data)->
-                console_socket.write(data)
+                # Plug the two consoles together
+                #
+                # client --> console:
+                # Create a binary channel that the client can use to write to the socket.
+                # (This uses our system for multiplexing JSON and multiple binary streams
+                #  over one single SockJS connection.)
+                channel = opts.client.register_data_handler (data)->
+                    console_socket.write(data)
 
-            # console --> client:
-            # When data comes in from the socket, we push it on to the connected
-            # client over the channel we just created.
-            console_socket.on 'data', (data) ->
-                opts.client.push_data_to_client(channel, data)
+                # console --> client:
+                # When data comes in from the socket, we push it on to the connected
+                # client over the channel we just created.
+                console_socket.on 'data', (data) ->
+                    opts.client.push_data_to_client(channel, data)
 
-            console_socket.on 'end', () =>
-                delete @_console_sockets[session_uuid]
+                console_socket.on 'end', () =>
+                    delete @_sockets.console[session_uuid]
 
-            mesg = message.session_connected
-                session_uuid : opts.session_uuid
-                data_channel : channel
+                mesg = message.session_connected
+                    session_uuid : opts.session_uuid
+                    data_channel : channel
 
-            opts.cb(false, mesg)
+                opts.cb(false, mesg)
 
     sage_session:  (opts) =>
         opts = defaults opts,
