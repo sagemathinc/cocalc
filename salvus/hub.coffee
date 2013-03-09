@@ -474,7 +474,7 @@ class Client extends EventEmitter
                 # appropriate permissions.
                 @get_sage_session mesg, (err, session) =>
                     if not err
-                        @push_to_client(message.session_connected(id:mesg.id))
+                        @push_to_client(message.session_connected(id:mesg.id, session_uuid:mesg.session_uuid))
             when 'console'
                 @connect_to_console_session(mesg)
             else
@@ -2686,16 +2686,19 @@ class SageSession
                         cb()
             (cb) =>
                 winston.debug("Ensure that project is opened on a host.")
-                @project.open(cb)
+                @project.open (err, port, secret_token) =>
+                    if err
+                        cb(err)
+                    else
+                        @port = port
+                        @secret_token = secret_token
+                        cb()
 
             (cb) =>
                 winston.debug("Make connection to sage server.")
-                #@port = cass.COMPUTE_SERVER_PORTS.sage
-                # TODO!!!
-                @port = 55955 # 6020
                 @conn = new sage.Connection
                     port         : @port
-                    secret_token : secret_token
+                    secret_token : @secret_token
                     recv         : @_recv
                     cb           : cb
 

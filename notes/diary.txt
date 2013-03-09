@@ -10393,8 +10393,9 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
 -----------
     [x] (2:18 so far) hub/console_sessin: move code for getting a new console session to project object and test
 
--->    [ ] hub/project: move code for getting a new worksheet session to project object and test
+    [x] (0:20) hub: worksheets work again with new code structure, but not fully refactored. Small steps!
 
+    [ ] hub/project: move code for getting a new worksheet session to project object and test
     [ ] local_hub: create new file broken
     [ ] local_hub: anything in the command prompt is returning an error to client.
 
