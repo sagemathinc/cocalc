@@ -842,43 +842,43 @@ class exports.Salvus extends exports.Cassandra
             table   : 'projects'
             where   : {project_id: opts.project_id}
             columns : opts.columns
-            json    : ['quota', 'host']
+            json    : ['quota', 'location']
             cb      : opts.cb
 
     # TODO: REWRITE THE function below (and others) to use get_project_data above.
-    get_project_host: (opts) ->
+    get_project_location: (opts) ->
         opts = defaults opts,
             project_id : required
             cb         : required
         @select
             table   : 'projects'
             where   : {project_id: opts.project_id}
-            columns : ['host']
-            json    : ['host']
+            columns : ['location']
+            json    : ['location']
             cb : (err, results) ->
                 if err
                     opts.cb(err)
                 else if results.length == 0
                     opts.cb("There is no project with ID #{opts.project_id}.")  # error
                 else
-                    host = results[0][0]
+                    location = results[0][0]
                     # We also support "" for the host not being
                     # defined, since some drivers, e.g., cqlsh do not
                     # support setting a column to null.
-                    if not host? or not host
-                        host = undefined
-                    opts.cb(false, host)
+                    if not location? or not location
+                        location = undefined
+                    opts.cb(false, location)
 
-    set_project_host: (opts) ->
+    set_project_location: (opts) ->
         opts = defaults opts,
             project_id : required
-            host       : undefined   # undefined is meaningful, and means "not on a host" (as does "")
+            location   : undefined   # undefined is meaningful, and means "not deployed anywhere" (as does "")
             cb         : required
         @update
             table : 'projects'
-            json  : ['host']
+            json  : ['location']
             set   :
-                host : opts.host
+                location : opts.location
             where :
                 project_id : opts.project_id
             cb    : opts.cb
@@ -944,7 +944,7 @@ class exports.Salvus extends exports.Cassandra
             project_id  : required
             account_id  : required  # owner
             title       : required
-            host        : required
+            location    : required
             description : undefined  # optional
             public      : required
             quota       : required
@@ -959,7 +959,7 @@ class exports.Salvus extends exports.Cassandra
                     set   :
                         account_id  : opts.account_id
                         title       : opts.title
-                        host        : opts.host
+                        location    : opts.location
                         last_edited : now()
                         description : opts.description
                         public      : opts.public
@@ -967,7 +967,7 @@ class exports.Salvus extends exports.Cassandra
                         idle_timeout: opts.idle_timeout
                         current_branch : 'master'
                     where : {project_id: opts.project_id}
-                    json  : ['quota', 'host']
+                    json  : ['quota', 'location']
                     cb    : (error, result) ->
                         if error
                             opts.cb(error)
@@ -1061,8 +1061,8 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            json      : ['host']
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'host', 'size']
+            json      : ['location', 'quota']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->

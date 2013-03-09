@@ -727,7 +727,7 @@ class Client extends EventEmitter
                     title       : mesg.title
                     description : mesg.description
                     public      : mesg.public
-                    host        : mesg.host
+                    location    : mesg.location
                     quota       : DEFAULTS.quota   # TODO -- account based
                     idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
                     cb          : cb
@@ -1121,10 +1121,10 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     socket = misc_node.connect_to_locked_socket opts.port, opts.secret_token, (err) =>
         console.log("connect_to_a_local_hub: err='#{err}'")
         if err
-            cb(err)
+            opts.cb(err)
         else
             misc_node.enable_mesg(socket)
-            cb(false, socket)
+            opts.cb(false, socket)
 
 
 class Project2
@@ -1205,44 +1205,74 @@ class Project2
     # port is supposed to be a valid port portforward to a local_hub somewhere.
     open: (cb) =>
         winston.debug("Opening a project.")
-        if @_port? and @_secret_token?
+        if @_status? and @_status['local_hub.port']? and @_status.secret_token?
             # TODO: should we check here that @_port is actually still open and valid...
-            cb(false, @_port, @_secret_token)
+            cb(false, @_status['local_hub.port'], @_status.secret_token)
             return
 
         # TODO: should we be worried about locking this... like we did before?  It could get called 100 times at once, right?
 
-        host = undefined
-        address = undefined
+        location = undefined   # {username:?, host:?, port:?, path:?}
+        address  = undefined
+        status   = undefined
         async.series([
 
             (cb) =>
                 winston.debug("project #{@project_id}: determining where it is hosted.")
-                @get_host (err,_host) =>
-                    host = _host
-                    address = "#{host.username}@#{host.host}"
-                    winston.debug("project #{@project_id} is hosted at #{misc.to_json(host)}")
+                @get_location (err,_location) =>
+                    location = _location
+                    address = "#{location.username}@#{location.host}"
+                    winston.debug("project #{@project_id} is at #{misc.to_json(location)}")
                     cb(err)
 
             (cb) =>
-                winston.debug("pushing latest code to remote host")
-                # TODO - we are ignoring the port here; also, this won't work if the "need host verifification interactive question appears, so we need to pass an option so it doesn't."
+                if not (location? and location.username? and location.host? and location.port? and location.path?)
+                    cb("The project location data in the database is insufficient -- location='#{misc.to_json(location)}'")
+                else
+                    cb()
+
+            (cb) =>
+                winston.debug("pushing latest code to remote location")
                 misc_node.execute_code
                     command : "rsync"
-                    args    : ['-axHL', 'local_hub_template/', '#{address}:.sagemathcloud/']
-                    timeout : 15
+                    args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{location.port}",
+                               'local_hub_template/', "#{address}:~#{location.username}/.sagemathcloud/"]
+                    timeout : 10 # worry; it could take a while to send the node js source code.
                     bash    : false
+                    path    : SALVUS_HOME
                     cb      : cb
+
+            (cb) =>
+                winston.debug("getting status of remote location")
+                # ssh [user]@[host] -p [port] .sagemathcloud/status [path]
+                misc_node.execute_code
+                    command : "ssh"
+                    args    : [address, '-p', location.port, '-o', 'StrictHostKeyChecking=no',
+                               "~#{location.username}/.sagemathcloud/status", location.path]
+                    timeout : 5
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, _status) =>
+                        if _status?.stdout?
+                            status = misc.from_json(_status.stdout)
+                        cb(err)
+
+            (cb) =>
+                winston.debug("STATUS = #{misc.to_json(status)}")
+                @_status = status
+                cb()
+
+            # TODO: at this point we have to build/start/etc., depending on the status.
 
         ], (err) =>
             if err
                 cb(err)
             else
-                cb(false, @_port, @_secret_token)
+                cb(false, status['local_hub.port'], status.secret_token)
         )
 
-    get_host: (cb) =>   # cb(err, host object)
-        database.get_project_host(project_id: @project_id, cb: cb)
+    get_location: (cb) =>   # cb(err, location)
+        database.get_project_location(project_id: @project_id, cb: cb)
 
     # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
     save: (cb) =>

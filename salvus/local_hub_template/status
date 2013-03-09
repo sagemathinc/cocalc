@@ -18,14 +18,17 @@ def set(prop, val):
     status[prop] = val
     if val is False:
         done()
-def read(prop, filename):
+def read(prop, filename, strip=False):
     try:
-        status[prop] = open(filename).read()
+        s = open(filename).read()
+        if strip:
+            s = s.strip()
+        status[prop] = s
     except:
         status[prop] = False
         done()
 
-read('version', os.path.join(os.environ['HOME'], SMC, "version"))
+read('version', os.path.join(os.environ['HOME'], SMC, "version"), strip=True)
 
 # a simple test that the node modules are probably installed.
 set('installed', os.path.exists(os.path.join(os.environ['HOME'], SMC, 'node_modules/pty.js')))
@@ -38,6 +41,8 @@ set('conf_path_exists',    os.path.exists(conf_path))
 
 for name in ['secret_token', 'local_hub.port']:
     read(name, os.path.join(project_path, SMC, name))
+
+set('disk_usage', int(os.popen('du -s "%s"'%project_path).read().split()[0]))
 
 done()
 

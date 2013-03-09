@@ -106,13 +106,13 @@ create_project_item = (project) ->
     if project.size?
         item.find(".projects-size").text(human_readable_size(project.size))
     item.find(".projects-description").text(project.description)
-    if project.host.username?
-        d = "#{project.host.username}@#{project.host.host}"
-        if project.host.path != '.'
-            d += ':' + project.host.path
-        if project.host.port != 22
-            d += " -p#{project.host.port}"
-        item.find(".projects-host").text(d)
+    if project.location.username?
+        d = "#{project.location.username}@#{project.location.host}"
+        if project.location.path != '.'
+            d += ':' + project.location.path
+        if project.location.port != 22
+            d += " -p#{project.location.port}"
+        item.find(".projects-location").text(d)
     item.click (event) ->
         open_project(project)
         return false
@@ -163,7 +163,7 @@ close_create_project = () ->
     create_project.modal('hide').find('input').val('')
     $("#projects-create_project-public").attr("checked", true)
     $("#projects-create_project-private").attr("checked", false)
-    $("#projects-create_project-host").val('')
+    $("#projects-create_project-location").val('')
 
 create_project.find(".close").click((event) -> close_create_project())
 
@@ -180,13 +180,12 @@ $("#projects-create_project-button-create_project").click (event) ->
         description = $("#projects-create_project-description").attr("placeholder")
     spinner = $(".projects-create-new-spinner").show().spin()
 
-    host = $.trim($("#projects-create_project-host").val())
-    if host == ""
-        host = {}
+    location = $.trim($("#projects-create_project-location").val())
+    if location == ""
+        location = {}
     else
         try
-            console.log("host = ", host)
-            v = host.split("-p")
+            v = location.split("-p")
             if v.length > 1
                 port = parseInt($.trim(v[1]))
             else
@@ -199,8 +198,7 @@ $("#projects-create_project-button-create_project").click (event) ->
             w2 = w[0].split('@')
             username = w2[0]
             hostname = w2[1]
-            host = {username:username, host:hostname, port:port, path:path}
-            console.log("host = ", host)
+            location = {username:username, host:hostname, port:port, path:path}
         catch e
             alert_message(type:'error', message:'Enter the unix user as "username@host[:path] [-p port]"')
             # do not close modal
@@ -209,7 +207,7 @@ $("#projects-create_project-button-create_project").click (event) ->
     salvus_client.create_project
         title       : title
         description : description
-        host        : host
+        location    : location
         public      : $("#projects-create_project-public").is(":checked")
         cb : (error, mesg) ->
             spinner.spin(false).hide()

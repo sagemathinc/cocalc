@@ -221,7 +221,7 @@ CREATE TABLE projects (
      public           boolean,  // whether or not the project is visible to everybody in the world
      last_edited      timestamp,// timestamp of last save of the project
 
-     host             varchar,  // the host on which deployed: JSON -- {username:?, host:?, port:?, path:?}
+     location         varchar,  // the host on which deployed: JSON -- {username:?, host:?, port:?, path:?}
 
      backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
 

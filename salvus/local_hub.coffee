@@ -118,7 +118,7 @@ init_confpath = () ->
         # directory permissions already restrict anybody else from
         # looking at this file, but we do this as well, just in case.
         (cb) ->
-            fs.chmod(secret_token_filename, 0o700, cb)
+            fs.chmod(secret_token_filename, 0o600, cb)
     ])
 
 

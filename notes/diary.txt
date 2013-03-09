@@ -10384,13 +10384,17 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
     [x] (0:14) local_hub template: rewrite build script in python; change build script to not rebuild node if there is already a new enough node present.
 
 ----
-    [ ] hub/project: check whether or not sagemathcloud is installed/built setup on remote host
 
-    [ ] hub/project: start sagemathcloud daemons via ssh/hub, then rsync back *.ports files.
+    [x] hub: Project2.open -- get status of remote location; first useful version
 
     [ ] project2: make it so class is unique, i.e., use cached factory instead of new Project2!!
 
--->    [ ] hub/project: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
+    [ ] hub: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
+
+    [ ] hub/project: check whether or not sagemathcloud is installed/built setup on remote host
+        See this line in hub.coffee: "# TODO: at this point we have to build/start/etc., depending on the status."
+
+    [ ] hub/project: start sagemathcloud daemons via ssh/hub, then rsync back *.ports files.
 
     [ ] automatically restart the port forward *when* it becomes unresponsive
     [ ] hub: provide a default account, so things work without user having to provide their own, and is quick.
@@ -10399,6 +10403,7 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
              similar for sage sessions, etc. -- should be organized by project class.
 ---
 
+    [ ] anything in the command prompt is returning an error on client.
 
 POWER/INTERNET -->
         [ ] test ./build script
@@ -10501,6 +10506,12 @@ Error: This socket is closed.
 
 Next Priority
 ================
+
+   [ ] when opening a file to edit with smc, we could at least make it
+       *aware* of vim or emacs editing the same file, or something else
+       changing it, before overwriting!
+
+   [ ] get ssl cert: free place to get them is http://www.startssl.com/
 
    [ ] massive library rename: "salvus" -> "smc" = sage math cloud.
 
