@@ -700,7 +700,7 @@ class Client extends EventEmitter
                     else
                         cb("Internal error -- unknown permission type '#{permission}'")
             (cb) =>
-                project = Project(mesg.project_id)
+                project = new_project(mesg.project_id)
                 cb()
         ], (err) =>
                 if err
@@ -733,26 +733,16 @@ class Client extends EventEmitter
                     idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
                     cb          : cb
 
-            # open, save, close project on a compute server, to initialize the
-            # git repos, etc.
-            # TODO: we might as an optimization just leave it open initially,
-            # since the user is likely to want to use it right after creating it.
             (cb) =>
-                project = Project(project_id)
-                project.open(cb)
-            (cb) =>
-                project.save(cb)
-            (cb) =>
-                project.close(cb)
+                new_project project_id, (err, _project) =>
+                    project = _project
+                    cb(err)
+
         ], (error) =>
             if error
                 winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
                 @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
-                # Delete half-created project from database, since we just wasted space and
-                # this half-initialized project will confuse client code.
-                if project?
-                    project.delete()
-                else
+                if not project?
                     # project object not even created -- just clean up database
                     database.delete_project(project_id:project_id)  # do not bother with callback
             else
@@ -850,11 +840,14 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            project.write_file mesg.path, mesg.content, (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.file_written_to_project(id:mesg.id))
+            project.write_file
+                path : mesg.path
+                data : mesg.content
+                cb   : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.file_written_to_project(id:mesg.id))
 
     mesg_read_text_file_from_project: (mesg) =>
         @get_project mesg, 'read', (err, project) =>
@@ -931,50 +924,6 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(resp)
-
-    mesg_create_project_branch: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.branch_op mesg.branch, 'create', (err, resp) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    resp.id = mesg.id
-                    @push_to_client(resp)
-
-    mesg_checkout_project_branch: (mesg) =>
-        @get_project mesg, 'write',  (err, project) =>
-            if err
-                return
-            project.branch_op mesg.branch, 'checkout', (err, resp) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    resp.id = mesg.id
-                    @push_to_client(resp)
-
-    mesg_delete_project_branch: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.branch_op mesg.branch, 'delete', (err, resp) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    resp.id = mesg.id
-                    @push_to_client(resp)
-
-    mesg_merge_project_branch: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.branch_op mesg.branch, 'merge', (err, resp) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    resp.id = mesg.id
-                    @push_to_client(resp)
 
     ################################################
     # Blob Management
@@ -1104,14 +1053,9 @@ push_to_clients = (opts) ->
 
     ])
 
-
 ##############################
-# Working with projects
+# LocalHub
 ##############################
-
-# Connect to a local hub (using appropriate port and secret token),
-# login, and enhance socket with our message protocol.
-secret_token = fs.readFileSync('tmp/smc/secret_token').toString()
 
 connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     opts = defaults opts,
@@ -1126,37 +1070,32 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
             misc_node.enable_mesg(socket)
             opts.cb(false, socket)
 
+_local_hub_cache = {}
+new_local_hub = (opts) ->    # cb(err, hub)
+    opts = defaults opts,
+        username : required
+        host     : required
+        port     : 22
+        cb       : required
+    hash = "#{username}@#{host} -p#{port}"
+    H = _local_hub_cache[hash]   # memory leak issues?
+    if H?
+        opts.cb(false, H)
+    else
+        H = (new LocalHub)(opts.username, opts.host, opts.port, (err) ->
+                   if not err
+                      _local_hub_cache[hash] = H
+                   opts.cb?(err, H)
+            )
 
-_project_cache = {}
-Project = (project_id) ->
-    P = _project_cache[project_id]
-    if not P?
-        P = new Project_class(project_id)
-        _project_cache[project_id] = P
-    return P
-    # TODO: Worry about memory leaks.  For example, there could be a
-    # timer here that goes through and deletes a project from memory
-    # if not accessed in 24 hours... or something.
-
-class Project_class
-    constructor: (@project_id) ->
-        if not @project_id?
-            throw "When creating Project, the project_id must be defined"
-
+class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
+    constructor: (@username, @host, @port, cb) ->
+        assert @username? and @host? and @port? and cb?
+        @address = "#{username}@#{host}"
         @_sockets = {console:{}, sage:{}}
 
-    owner: (cb) =>
-        database.get_project_data
-            project_id : @project_id
-            columns : ['account_id']
-            cb      : (err, result) =>
-                if err
-                    cb(err)
-                else
-                    cb(err, result[0])
-
-    # The standing authenticated control socket to the local_hub.
-    control_socket: (cb) =>
+    # The standing authenticated control socket to the remote local_hub daemon.
+    local_hub_socket: (cb) =>
         if @_socket?
             cb(false, @_socket)
             return
@@ -1171,7 +1110,7 @@ class Project_class
     # authenticated via the secret_token, and enhanced to be able to
     # send/receive json and blob messages.
     new_socket: (cb) =>     # cb(err, socket)
-        @open (err, port, secret_token) =>
+        @open   (err, port, secret_token) =>
             if err
                 cb(err); return
             connect_to_a_local_hub
@@ -1188,33 +1127,26 @@ class Project_class
         if not opts.mesg.id?
             opts.mesg.id = uuid.v4()
 
-        @control_socket (err, socket) ->
+        @local_hub_socket (err, socket) ->
             if err
                 opts.cb?(err)
                 return
-            opts.mesg.project_id = @project_id
             socket.write_mesg 'json', opts.mesg
             socket.recv_mesg type:'json', id:opts.mesg.id, timeout:opts.timeout, cb:(mesg) ->
                 if mesg.event == 'error'
                     opts.cb(true, mesg.error)
                 else
                     opts.cb(false, mesg)
-
     ####################################################
     # Session management
     #####################################################
-
-    # Get current session information about this project.
-    session_info: (cb) =>
-        @call
-            message : message.project_session_info(project_id:@project_id)
-            cb : cb
 
     _open_session_socket: (opts) =>
         opts = defaults opts,
             session_uuid : required
             type         : required  # 'sage', 'console'
             params       : required
+            project_id   : required
             cb           : required  # cb(err, socket)
         # We do not currently have an active open socket connection to this session.
         # We make a new socket connection to the local_hub, then
@@ -1238,7 +1170,7 @@ class Project_class
                 mesg = message.connect_to_session
                     id           : uuid.v4()   # message id
                     type         : opts.type
-                    project_id   : @project_id
+                    project_id   : opts.project_id
                     session_uuid : opts.session_uuid
                     params       : opts.params
                 winston.debug("Send the message asking to be connected with a #{opts.type} session.")
@@ -1262,6 +1194,7 @@ class Project_class
     console_session: (opts) =>
         opts = defaults opts,
             client       : required
+            project_id   : required
             params       : {command: 'bash'}
             session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
             cb           : required    # cb(err, [session_connected message])
@@ -1273,6 +1206,7 @@ class Project_class
 
         @_open_session_socket
             session_uuid : opts.session_uuid
+            project_id   : opts.project_id
             type         : 'console'
             params       : opts.params
             cb           : (err, console_socket) =>
@@ -1318,26 +1252,26 @@ class Project_class
 
 
 
-
     ####################################################
-    # Opening/backing up, etc. project
+    # 
     #####################################################
 
-    # Open connection to the remote host if it is not already opened,
+    # Open connection to the remote local_hub if it is not already opened,
     # and setup everything so we have a persistent ssh connection
     # between some port on localhost and the remote account, over
     # which all the action happens.
     # The callback gets called via "cb(err, port, secret_token)"; if err=false, then
     # port is supposed to be a valid port portforward to a local_hub somewhere.
-    open: (cb) =>
-        winston.debug("Opening a project.")
+    open: (cb) =>    # cb(err, port, secret_token)
+        winston.debug("Opening a local_hub.")
         if @_status? and @_status['local_hub.port']? and @_status.secret_token?
-            # TODO: should we check here that @_port is actually still open and valid...
+            # TODO: check here that @_port is actually still open and valid...
             cb(false, @_status['local_hub.port'], @_status.secret_token)
             return
 
-        # We worry about locking: project open could happen many times at once.
-        # TODO: we should also worry about multiple hubs at once and use the database.
+        # TODO: we should also worry about multiple hubs at once trying to open same local_hub and use the database. (???)
+        #
+        # Local locking, at least.
         if @_opening?
             n = 0
             check = () =>
@@ -1355,32 +1289,15 @@ class Project_class
 
         @_opening = true
 
-        location = undefined   # {username:?, host:?, port:?, path:?}
-        address  = undefined
         status   = undefined
         async.series([
-
-            (cb) =>
-                winston.debug("project #{@project_id}: determining where it is hosted.")
-                @get_location (err,_location) =>
-                    location = _location
-                    address = "#{location.username}@#{location.host}"
-                    winston.debug("project #{@project_id} is at #{misc.to_json(location)}")
-                    cb(err)
-
-            (cb) =>
-                if not (location? and location.username? and location.host? and location.port? and location.path?)
-                    cb("The project location data in the database is insufficient -- location='#{misc.to_json(location)}'")
-                else
-                    cb()
-
             (cb) =>
                 winston.debug("pushing latest code to remote location")
                 misc_node.execute_code
                     command : "rsync"
                     args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{location.port}",
-                               'local_hub_template/', "#{address}:~#{location.username}/.sagemathcloud/"]
-                    timeout : 10 # worry; it could take a while to send the node js source code.
+                               'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
+                    timeout : 15
                     bash    : false
                     path    : SALVUS_HOME
                     cb      : cb
@@ -1390,9 +1307,9 @@ class Project_class
                 # ssh [user]@[host] -p [port] .sagemathcloud/status [path]
                 misc_node.execute_code
                     command : "ssh"
-                    args    : [address, '-p', location.port, '-o', 'StrictHostKeyChecking=no',
-                               "~#{location.username}/.sagemathcloud/status", location.path]
-                    timeout : 5
+                    args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no',
+                               "~#{@username}/.sagemathcloud/status", location.path]
+                    timeout : 10
                     bash    : false
                     path    : SALVUS_HOME
                     cb      : (err, _status) =>
@@ -1415,40 +1332,15 @@ class Project_class
                 cb(false, status['local_hub.port'], status.secret_token)
         )
 
-    get_location: (cb) =>   # cb(err, location)
-        database.get_project_location(project_id: @project_id, cb: cb)
-
-    # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
-    save: (cb) =>
-        winston.debug("project2-save-stub")
-        cb?()
-
-    close: (cb) =>
-        winston.debug("project2-close-stub")
-        cb?()
-
-    # TODO -- pointless, just exec on remote
-    size_of_local_copy: (cb) =>
-        winston.debug("project2-size_of_local_copy-stub")
-        cb(false, 0)
-
-    move_file: (src, dest, cb) =>
-        @exec(message.project_exec(command: "mv", args: [src, dest]), cb)
-
-    make_directory: (path, cb) =>
-        @exec(message.project_exec(command: "mkdir", args: [path]), cb)
-
-    remove_file: (path, cb) =>
-        @exec(message.project_exec(command: "rm", args: [path]), cb)
-
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does
     # not pull the file from the database; instead, it loads it live
     # from the project_server virtual machine.
-    read_file: (opts) -> # cb(err, content_of_file)  -- indicates when done
-        {path, archive, cb} = defaults opts,
+    read_file: (opts) -> # cb(err, content_of_file)
+        {path, project_id, archive, cb} = defaults opts,
             path    : required
-            archive : undefined
+            project_id : required
+            archive : undefined   # for directories
             cb      : required
 
         socket    = undefined
@@ -1457,8 +1349,7 @@ class Project_class
         data_uuid = undefined
 
         async.series([
-            # Get a socket connection to the project host.  This will open
-            # the project if it isn't already opened.
+            # Get a socket connection to the local_hub.
             (cb) =>
                 @control_socket (err, _socket) ->
                     if err
@@ -1467,7 +1358,7 @@ class Project_class
                         socket = _socket
                         cb()
             (cb) =>
-                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:@project_id, path:path, archive:archive)
+                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:project_id, path:path, archive:archive)
                 socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
                     switch mesg.event
                         when 'error'
@@ -1490,8 +1381,14 @@ class Project_class
                 cb(false, data)
         )
 
-    # Write a file to a compute node.
-    write_file: (path, data, cb) ->   # cb(err)
+    # Write a file
+    write_file: (opts) -> # cb(err)
+        {path, project_id, cb} = defaults opts,
+            path       : required
+            project_id : required
+            data       : required   # what to write
+            cb         : required
+
         socket    = undefined
         id        = uuid.v4()
         data_uuid = uuid.v4()
@@ -1507,7 +1404,7 @@ class Project_class
             (cb) =>
                 mesg = message.write_file_to_project
                     id         : id
-                    project_id : @project_id
+                    project_id : project_id
                     path       : path
                     data_uuid  : data_uuid
                 socket.write_mesg 'json', mesg
@@ -1525,6 +1422,109 @@ class Project_class
                             cb("Unexpected message type '#{mesg.event}'")
         ], cb)
 
+
+##############################
+# Projects
+##############################
+
+# Connect to a local hub (using appropriate port and secret token),
+# login, and enhance socket with our message protocol.
+
+
+_project_cache = {}
+new_project = (project_id, cb) ->   # cb(err, project)
+    P = _project_cache[project_id]
+    if P?
+        cb(false, P)
+    else
+        (new Project)(project_id, (err, P) ->
+            if not err
+                _project_cache[project_id] = P
+            cb(err, P)
+        )
+
+class Project
+    constructor: (@project_id, cb) ->
+        if not @project_id?
+            throw "When creating Project, the project_id must be defined"
+        database.get_project_location
+            project_id : @project_id
+            cb         : (err, location) =>
+                winston.debug("Project #{misc.to_json(location)}")
+                @location = location
+                new_local_hub
+                    username : location.username
+                    host     : location.host
+                    port     : location.port
+                    cb       : (err, hub) =>
+                        if err
+                            cb(err)
+                        else
+                            @local_hub = hub
+                            cb(false, @)
+
+    owner: (cb) =>
+        database.get_project_data
+            project_id : @project_id
+            columns : ['account_id']
+            cb      : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(err, result[0])
+
+    call: (opts) =>
+        opts = defaults opts,
+            mesg    : required
+            timeout : 10
+            cb      : undefined
+        opts.mesg.project_id = @project_id
+        @local_hub.call(opts)
+
+    # Get current session information about this project.
+    session_info: (cb) =>
+        @call
+            message : message.project_session_info(project_id:@project_id)
+            cb : cb
+
+    read_file: (opts) ->
+        opts.project_id = @project_id
+        @local_hub.read_file(opts)
+
+    write_file: (opts) ->
+        opts.project_id = @project_id
+        @local_hub.write_file(opts)
+
+    console_session: (opts) ->
+        opts.project_id = @project_id
+        @local_hub.console_session(opts)
+
+    sage_session: (opts) ->
+        opts.project_id = @project_id
+        @local_hub.sage_session(opts)
+
+    # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
+    save: (cb) =>
+        winston.debug("project2-save-stub")
+        cb?()
+
+    close: (cb) =>
+        winston.debug("project2-close-stub")
+        cb?()
+
+    # TODO -- pointless, just exec on remote
+    size_of_local_copy: (cb) =>
+        winston.debug("project2-size_of_local_copy-stub")
+        cb(false, 0)
+
+    # move_file: (src, dest, cb) =>
+    #     @exec(message.project_exec(command: "mv", args: [src, dest]), cb)
+
+    # make_directory: (path, cb) =>
+    #     @exec(message.project_exec(command: "mkdir", args: [path]), cb)
+
+    # remove_file: (path, cb) =>
+    #     @exec(message.project_exec(command: "rm", args: [path]), cb)
 
 
 ########################################
