@@ -31,14 +31,12 @@ temp           = require 'temp'
 # in which local_hub is started.
 ###################################################
 
-project_root = process.cwd() + '/'
-
 abspath = (path) ->
     if path.length == 0
-        return project_root
+        return process.env.HOME
     if path[0] == '/'
         return path  # already an absolute path
-    return project_root + path
+    return process.env.HOME + '/' + path
 
 # Other path related functions...
 
@@ -65,7 +63,7 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
 
 #####################################################################
 # Generate the "secret_token" file as
-# project_root/.sagemathcloud/secret_token if it does not already
+# $HOME/.sagemathcloud/data/secret_token if it does not already
 # exist.  All connections to all local-to-the user services that
 # SMC starts must be prefixed with this key.
 #####################################################################
@@ -73,7 +71,7 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
 # WARNING -- the sage_server.py program can't get these definitions from
 # here, since it is not written in node, so if this changes, it has
 # to change there as well.
-CONFPATH = exports.CONFPATH = abspath('.sagemathcloud/')
+CONFPATH = exports.CONFPATH = abspath('.sagemathcloud/data/')
 secret_token_filename = exports.secret_token_filename = "#{CONFPATH}/secret_token"
 secret_token = undefined
 
@@ -85,18 +83,13 @@ secret_token_length = 128
 init_confpath = () ->
 
     async.series([
-        # Ensure that CONFPATH exists.
-        (cb) ->
-            winston.debug("make CONFPATH='#{CONFPATH}'")
-            ensure_containing_directory_exists(secret_token_filename, cb)
-
         # Ensure the CONFPATH has maximally restrictive permissions, since
         # secret info will be stored there.
         (cb) ->
-            winston.debug("restrict permissions on '#{CONFPATH}'")
+            winston.debug("restrict permissions")
             misc_node.execute_code
                 command : "chmod"
-                args    : ['u+rw,og-rwx', '-R', CONFPATH]
+                args    : ['u+rw,og-rwx', '-R', abspath('.sagemathcloud')]
                 cb      : cb
 
         # Read or create the file; after this step the variable secret_token
@@ -130,7 +123,7 @@ get_port = (type, cb) ->   # cb(err, port number)
     if ports[type]?
         cb(false, ports[type])
     else
-        fs.readFile "#{project_root}/.sagemathcloud/#{type}_server.port", (err, content) ->
+        fs.readFile abspath(".sagemathcloud/data/#{type}_server.port"), (err, content) ->
             if err
                 cb(err)
             else
@@ -499,7 +492,7 @@ exports.start_server = start_server = () ->
     init_confpath()
     server.listen program.port, '127.0.0.1', () ->
         winston.info "listening on port #{server.address().port}"
-        fs.writeFile('.sagemathcloud/local_hub.port', server.address().port)
+        fs.writeFile('.sagemathcloud/data/local_hub.port', server.address().port)
 
 
 # daemonize it
@@ -508,9 +501,9 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 0 = automatically allocated; saved to .sagemathcloud/local_hub.port)', parseInt, 0)
-    .option('--pidfile [string]', 'store pid in this file', String, ".sagemathcloud/local_hub.pid")
-    .option('--logfile [string]', 'write log to this file', String, ".sagemathcloud/local_hub.log")
+    .option('-p, --port <n>', 'port to listen on (default: 0 = automatically allocated; saved to ~/.sagemathcloud/data/local_hub.port)', parseInt, 0)
+    .option('--pidfile [string]', 'store pid in this file', String, abspath(".sagemathcloud/data/local_hub.pid"))
+    .option('--logfile [string]', 'write log to this file', String, abspath(".sagemathcloud/data/local_hub.log"))
     .parse(process.argv)
 
 if program._name == 'local_hub.js'

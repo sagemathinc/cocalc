@@ -27,6 +27,13 @@ local_hub      = require 'local_hub'
 
 assert         = require('assert')
 
+abspath = (path) ->
+    if path.length == 0
+        return process.env.HOME
+    if path[0] == '/'
+        return path  # already an absolute path
+    return process.env.HOME + '/' + path
+
 ##################################################################
 # Read the secret token file.
 #
@@ -140,7 +147,7 @@ exports.start_server = start_server = () ->
     read_token()
     server.listen program.port, program.host, () ->
         winston.info "listening on port #{server.address().port}"
-        fs.writeFile('.sagemathcloud/console_server.port', server.address().port)
+        fs.writeFile(abspath('.sagemathcloud/data/console_server.port'), server.address().port)
 
 
 # daemonize it
@@ -149,9 +156,11 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 0 = automatically allocated; saved to .sagemathcloud/console_server.port)', parseInt, 0)
-    .option('--pidfile [string]', 'store pid in this file (default: ".sagemathcloud/console_server.pid")', String, ".sagemathcloud/console_server.pid")
-    .option('--logfile [string]', 'write log to this file (default: ".sagemathcloud/console_server.log")', String, ".sagemathcloud/console_server.log")
+    .option('-p, --port <n>', 'port to listen on (default: 0 = automatically allocated; saved to .sagemathcloud/data/console_server.port)', parseInt, 0)
+    .option('--pidfile [string]', 'store pid in this file (default: "~/.sagemathcloud/data/console_server.pid")', String,
+    abspath(".sagemathcloud/data/console_server.pid"))
+    .option('--logfile [string]', 'write log to this file (default: "~/.sagemathcloud/data/console_server.log")', String,
+    abspath(".sagemathcloud/data/console_server.log"))
     .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")   # important for security reasons to prevent user binding more specific host attack
     .parse(process.argv)
 

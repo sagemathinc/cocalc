@@ -10423,7 +10423,7 @@ Think about (2):
    - no security issues
    - will be way less disturbing having 1 process instead of n, if you have n projects.
    - messages already have the project_id in them anyways.
-   - gets rid of a stupid path being all over the place, which users (me!) hate. 
+   - gets rid of a stupid path being all over the place, which users (me!) hate.
 -->   - less chance of accidentally leaking the secret_token... e.g., I already did via dropbox with my aws notes!!!
 
 This last point is the most important.  OK, so I'm going to switch to a 1 local_hub per account model.
@@ -10432,7 +10432,10 @@ This last point is the most important.  OK, so I'm going to switch to a 1 local_
     [x] (1:13) create a new class in the hub called LocalHub_class, which abstracts
         a single local hub somewhere (username@host -p; a connection),
         but doesn't include info of a path or project.  Make it a singleton.; rewrite Project_class code to use LocalHub_class.
-    [ ] get local_hub to wok 
+    [x] (0:20) get local_hub/console/sage to work with no project path. (default pid locations, etc.)
+
+    [ ] test/debug everything together.
+
     [ ] Deal with path aspect of projects (rewrite local_hub some)
 
 ==================================================================
