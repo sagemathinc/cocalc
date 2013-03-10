@@ -8,16 +8,6 @@ echo "Read SageMathCloud environment variables."
 echo "Rebuild any modified coffeescript"
 make_coffee
 
-echo "Make project directory if it does not exist"
-if [ -d "$1" ]; then
-    echo "Project directory exists."
-else
-    echo "Creating project directory."
-    mkdir "$1"
-fi
-
-cd "$1"
-
 local_hub      start
 console_server start
 sage_server    start

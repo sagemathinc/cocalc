@@ -10403,6 +10403,8 @@ time ssh $host "~/.sagemathcloud/stop_smc \"$PROJECT_PATH\""
     [x] console_server -- keep trying to read secret_token until it appears.
     [x] sage_server -- keep trying to read secret_token until it appears.
 
+    [x] (0:30) change the smc build system to download a binary
+
 
     [ ] significant issue: it seems like I can only start one NODE daemon under node per USER, not per directory.  VERY Annoying. The python daemon works fine.
 Ideas:
@@ -10425,11 +10427,16 @@ Think about (2):
 -->   - less chance of accidentally leaking the secret_token... e.g., I already did via dropbox with my aws notes!!!
 
 This last point is the most important.  OK, so I'm going to switch to a 1 local_hub per account model.
-  [ ] modify start_smc and stop_smc to not take path
-  [ ] 
+
+    [x] (0:09) modify start_smc and stop_smc to not take path
+    [ ] create a new class in the hub called LocalHub_class, which abstracts
+        a single local hub somewhere (username@host -p; a connection),
+        but doesn't include info of a path or project.  Make it a singleton.
+    [ ] rewrite Project_class code to use LocalHub_class.
+    [ ] Make everything regarding the path aspect of a project client-side. 
 
 
-
+==================================================================
 
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
     [ ] control-s in worksheet should save it?

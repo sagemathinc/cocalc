@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
 echo "Read SageMathCloud environment variables."
-. $HOME/.sagemathcloud/sagemathcloud-env
+. "$HOME"/.sagemathcloud/sagemathcloud-env
 
-if [ -d "$1" ]; then
-    cd "$1"
-    rm .sagemathcloud/*.port
+echo "Remove port files."
+rm  "$HOME"/.sagemathcloud/*.port
 
-    local_hub      stop
-    console_server stop
-    sage_server    stop
-fi
+echo "Stop daemons."
+local_hub      stop
+console_server stop
+sage_server    stop
