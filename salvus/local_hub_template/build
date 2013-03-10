@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from os import chdir, environ as env, path, popen, system
-from sys import exit
+from os import chdir, environ as env, path, popen, system, uname
+
+import os, sys
 
 if 'MAKE' in env:
     # Just in case somebody has "make -j24" for sage, which breaks the build of node.js.
@@ -12,27 +13,42 @@ env['PATH'] = "%s:%s/node_modules/.bin/:%s/data/local/bin:%s"%(P, P, P, env['PAT
 
 chdir(P)
 
-build_node = True
+install_node = True
 try:
     node_version = popen('node --version').read()[1:]
     # output looks like this: '0.8.14\n'
     if node_version >= '0.8':
-        build_node = False
+        install_node = False
 except:
     pass
 
 
-if build_node:
-    if system('./build.py --build_node'):
-        print "FAILED to build node..."
-        exit(1)
-    shutil.rmtree('data/build')   # clear up 130MB+ wasted space used to build node
+if install_node:
+    version = "0.8.22"
+
+    u = uname()
+    if u[-1] == 'x86_64':
+        arch = "x64"
+    else:
+        arch = "x86"
+    uname = u[0].lower()
+    node_folder = "node-v%s-%s-%s"%(version, uname, arch)
+    tarball = node_folder + '.tar.gz'
+
+    # For example:
+    #   wget http://nodejs.org/dist/v0.8.22/node-v0.8.22-linux-x64.tar.gz
+    cmd = "wget http://nodejs.org/dist/v%s/%s && mkdir -p data/local && cd data/local && tar zxvf ../../%s && mv '%s'/* . && rm -rf '%s'"%(
+        version, tarball, tarball, node_folder, node_folder)
+    if os.system(cmd):
+        print "FAILED to download and install node..."
+        sys.exit(1)
+    os.unlink(tarball)
 
 # Install all the modules we need for the local hub.
 # TODO -- under what conditions should we do this?
 if system("./install_npm_modules"):
     print "Failed to install all modules"
-    exit(1)
+    sys.exit(1)
 
 # Build coffeescript to javascript
 system("./make_coffee")

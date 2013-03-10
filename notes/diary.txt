@@ -10425,6 +10425,10 @@ Think about (2):
 -->   - less chance of accidentally leaking the secret_token... e.g., I already did via dropbox with my aws notes!!!
 
 This last point is the most important.  OK, so I'm going to switch to a 1 local_hub per account model.
+  [ ] modify start_smc and stop_smc to not take path
+  [ ] 
+
+
 
 
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
