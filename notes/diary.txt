@@ -10434,11 +10434,19 @@ This last point is the most important.  OK, so I'm going to switch to a 1 local_
         but doesn't include info of a path or project.  Make it a singleton.; rewrite Project_class code to use LocalHub_class.
     [x] (0:20) get local_hub/console/sage to work with no project path. (default pid locations, etc.)
 
-    [ ] test/debug everything together.
+    [x] local_hub: anything in the command prompt is returning an error to client.
+    [x] (0:50) local_hub refactor -- test/debug everything together.
+    [x] local_hub: create new file broken
 
     [ ] Deal with path aspect of projects (rewrite local_hub some)
 
+    [ ] LocalHub: build if necessary
+    [ ] LocalHub: start if necessary
+    [ ] LocalHub: detect when socket connection to localhost dies and fix. 
+
 ==================================================================
+
+    [ ] bug in log: creating one sage session creates TWO.  WEIRD.
 
     [ ] rename: local_hub --> minihub?
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
@@ -10449,8 +10457,6 @@ This last point is the most important.  OK, so I'm going to switch to a 1 local_
     [ ] local_hub: automatically recreate connection to sage_server if it goes down
 
     [ ] hub/project: move code for getting a new worksheet session to project object and test
-    [ ] local_hub: create new file broken
-    [ ] local_hub: anything in the command prompt is returning an error to client.
 
     [ ] hub: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
 

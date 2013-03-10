@@ -452,7 +452,6 @@ class Client extends EventEmitter
                     client     : @
                     project_id : mesg.project_id
                     cb         : (err) =>
-                        console.log("got back: #{err}")
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
@@ -700,8 +699,9 @@ class Client extends EventEmitter
                     else
                         cb("Internal error -- unknown permission type '#{permission}'")
             (cb) =>
-                project = new_project(mesg.project_id)
-                cb()
+                new_project mesg.project_id, (err, _project) =>
+                    project = _project
+                    cb(err)
         ], (err) =>
                 if err
                     if mesg.id?
@@ -1077,12 +1077,15 @@ new_local_hub = (opts) ->    # cb(err, hub)
         host     : required
         port     : 22
         cb       : required
-    hash = "#{username}@#{host} -p#{port}"
+    hash = "#{opts.username}@#{opts.host} -p#{opts.port}"
+    winston.debug("new_local_hub: #{hash}")
     H = _local_hub_cache[hash]   # memory leak issues?
     if H?
+        winston.debug("new_local_hub already cached")
         opts.cb(false, H)
     else
-        H = (new LocalHub)(opts.username, opts.host, opts.port, (err) ->
+        winston.debug("new_local_hub creating new object")
+        H = new LocalHub(opts.username, opts.host, opts.port, (err) ->
                    if not err
                       _local_hub_cache[hash] = H
                    opts.cb?(err, H)
@@ -1093,6 +1096,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         assert @username? and @host? and @port? and cb?
         @address = "#{username}@#{host}"
         @_sockets = {console:{}, sage:{}}
+        @local_hub_socket  (err,socket) =>
+            if err
+                cb("Unable to start and connect to local hub #{@address} -- #{err}")
+            else
+                cb(false, @)
 
     # The standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
@@ -1104,6 +1112,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err)
             else
                 @_socket = socket
+                socket.on 'end', () =>
+                    delete @_socket
                 cb(false, @_socket)
 
     # Get a new socket connection to the local_hub; this socket has been
@@ -1231,7 +1241,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.client.push_data_to_client(channel, data)
 
                 console_socket.on 'end', () =>
-                    delete @_sockets.console[session_uuid]
+                    delete @_sockets.console[opts.session_uuid]
 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
@@ -1295,7 +1305,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 winston.debug("pushing latest code to remote location")
                 misc_node.execute_code
                     command : "rsync"
-                    args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{location.port}",
+                    args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
                                'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
                     timeout : 15
                     bash    : false
@@ -1304,11 +1314,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
             (cb) =>
                 winston.debug("getting status of remote location")
-                # ssh [user]@[host] -p [port] .sagemathcloud/status [path]
+                # ssh [user]@[host] [-p port] .sagemathcloud/status
                 misc_node.execute_code
                     command : "ssh"
-                    args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no',
-                               "~#{@username}/.sagemathcloud/status", location.path]
+                    args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', "~#{@username}/.sagemathcloud/status"]
                     timeout : 10
                     bash    : false
                     path    : SALVUS_HOME
@@ -1351,7 +1360,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         async.series([
             # Get a socket connection to the local_hub.
             (cb) =>
-                @control_socket (err, _socket) ->
+                @local_hub_socket (err, _socket) ->
                     if err
                         cb(err)
                     else
@@ -1383,7 +1392,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     # Write a file
     write_file: (opts) -> # cb(err)
-        {path, project_id, cb} = defaults opts,
+        {path, project_id, cb, data} = defaults opts,
             path       : required
             project_id : required
             data       : required   # what to write
@@ -1395,7 +1404,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
         async.series([
             (cb) =>
-                @control_socket (err, _socket) ->
+                @local_hub_socket (err, _socket) ->
                     if err
                         cb(err)
                     else
@@ -1437,7 +1446,7 @@ new_project = (project_id, cb) ->   # cb(err, project)
     if P?
         cb(false, P)
     else
-        (new Project)(project_id, (err, P) ->
+        new Project(project_id, (err, P) ->
             if not err
                 _project_cache[project_id] = P
             cb(err, P)
@@ -1447,10 +1456,11 @@ class Project
     constructor: (@project_id, cb) ->
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
+        winston.debug("Creating project #{@project_id}.")
         database.get_project_location
             project_id : @project_id
             cb         : (err, location) =>
-                winston.debug("Project #{misc.to_json(location)}")
+                winston.debug("Location of project #{misc.to_json(location)}")
                 @location = location
                 new_local_hub
                     username : location.username
@@ -2686,7 +2696,7 @@ class SageSession
                         cb()
             (cb) =>
                 winston.debug("Ensure that project is opened on a host.")
-                @project.open (err, port, secret_token) =>
+                @project.local_hub.open (err, port, secret_token) =>
                     if err
                         cb(err)
                     else

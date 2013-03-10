@@ -165,7 +165,7 @@ class ConsoleSessions
         console_socket = misc_node.connect_to_locked_socket  port,secret_token, (err) =>
             if err
                 forget_port('console')
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:"Problem connecting to console server."))
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to console server."))
                 winston.debug("_new_session: console server denied connection")
                 return
             # Request a Console session from console_server
@@ -249,7 +249,7 @@ class SageSessions
         sage_socket = misc_node.connect_to_locked_socket port, secret_token, (err) =>
             if err
                 forget_port('sage')
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:"Problem connecting to Sage server."))
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
                 winston.debug("_new_session: sage session denied connection: #{err}")
                 return
             else

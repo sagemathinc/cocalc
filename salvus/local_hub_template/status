@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 
-SMC = '.sagemathcloud'
-
 import json, os, sys
 
-os.chdir(os.environ['HOME'])
-
-if len(sys.argv) == 1:
-    sys.stderr.write("Usage: %s project_path"%sys.argv[0])
-    sys.exit(1)
+SMC = os.path.join(os.environ['HOME'], '.sagemathcloud/')
+os.chdir(SMC)
 
 status = {}
 def done():
@@ -28,21 +23,15 @@ def read(prop, filename, strip=False):
         status[prop] = False
         done()
 
-read('version', os.path.join(os.environ['HOME'], SMC, "version"), strip=True)
+read('version', os.path.join(SMC, "version"), strip=True)
 
 # a simple test that the node modules are probably installed.
-set('installed', os.path.exists(os.path.join(os.environ['HOME'], SMC, 'node_modules/pty.js')))
-
-project_path = os.path.join(os.environ['HOME'], sys.argv[1])
-set('project_path_exists', os.path.exists(project_path))
-
-conf_path    = os.path.join(project_path, SMC)
-set('conf_path_exists',    os.path.exists(conf_path))
+set('installed', os.path.exists(os.path.join(SMC, 'node_modules/pty.js')))
 
 for name in ['secret_token', 'local_hub.port']:
-    read(name, os.path.join(project_path, SMC, name))
+    read(name, os.path.join(SMC, 'data', name))
 
-set('disk_usage', int(os.popen('du -s "%s"'%project_path).read().split()[0]))
+## set('disk_usage', int(os.popen('du -s "%s"'%project_path).read().split()[0]))
 
 done()
 

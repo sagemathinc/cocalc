@@ -807,7 +807,7 @@ def unlock_conn(conn):
     global secret_token
     if secret_token is None:
         try:
-            secret_token = open(CONFPATH + 'secret_token').read()
+            secret_token = open(CONFPATH + 'data/secret_token').read()
         except:
             conn.send('n')
             conn.send("Unable to accept connection, since Sage server doesn't yet know the secret token.")
@@ -953,7 +953,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run Sage server")
     parser.add_argument("-p", dest="port", type=int, default=0,
-                        help="port to listen on (default: 0); 0 = automatically allocated; saved to .sagemathcloud/sage_server.port")
+                        help="port to listen on (default: 0); 0 = automatically allocated; saved to .sagemathcloud/data/sage_server.port")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
@@ -989,7 +989,10 @@ if __name__ == "__main__":
     if not args.port:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0)) # pick a free port
         args.port = s.getsockname()[1]
-        open(".sagemathcloud/sage_server.port",'w').write(str(args.port))
+        DATA_PATH = os.path.join(os.environ['HOME'], ".sagemathcloud/data")
+        if not os.path.exists(DATA_PATH):
+            os.makedirs(DATA_PATH)
+        open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))
         del s
 
     if args.portfile:
