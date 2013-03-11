@@ -405,9 +405,9 @@ class exports.Connection extends EventEmitter
     introspect: (opts) ->
         opts = defaults opts,
             line          : required
-            timeout       :  3         # max time to wait in seconds before error
+            timeout       :  10         # max time to wait in seconds before error
             session_uuid  :  required
-            preparse      : true
+            preparse      :  true
             cb            :  required  # pointless without a callback
 
         mesg = message.introspect

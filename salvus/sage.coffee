@@ -47,20 +47,33 @@ misc    = require("misc"); defaults = misc.defaults; required = defaults.require
 
 {connect_to_locked_socket, enable_mesg} = require('misc_node')
 
-exports.send_control_message = (opts={}) ->
-    opts = defaults(opts, {host: 'localhost', port: required, mesg: required})
+exports.send_control_message = (opts) ->
+    opts = defaults opts,
+        host         : 'localhost'
+        port         : required
+        secret_token : required
+        mesg         : required
+
     sage_control_conn = new exports.Connection
+        secret_token : opts.secret_token
         host : opts.host
         port : opts.port
         cb   : ->
             sage_control_conn.send_json(opts.mesg)
             sage_control_conn.close()
 
-exports.send_signal = (opts={}) ->
-    opts = defaults(opts, {host: 'localhost', port: required, pid:required, signal:required})
+exports.send_signal = (opts) ->
+    opts = defaults opts,
+        host         : 'localhost'
+        port         : required
+        secret_token : required
+        pid          : required
+        signal       : required
+
     exports.send_control_message
         host : opts.host
         port : opts.port
+        secret_token : opts.secret_token
         mesg : message.send_signal(pid:opts.pid, signal:opts.signal)
 
 
@@ -111,23 +124,3 @@ class exports.Connection
     close: () ->
         @conn.end()
         @conn.destroy()
-
-###
-test = (n=1) ->
-    message = require("message")
-    cb = () ->
-        conn.send_json(message.start_session())
-        for i in [1..n]
-            conn.send_json(message.execute_code(id:0,code:"factor(2012)"))
-    tm = (new Date()).getTime()
-    conn = new exports.Connection(
-        {
-            host:'localhost'
-            port:10000
-            recv:(mesg) -> winston.info("received message #{mesg}; #{(new Date()).getTime()-tm}")
-            cb:cb
-        }
-    )
-
-test(5)
-###

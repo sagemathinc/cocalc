@@ -297,7 +297,7 @@ class Cell extends EventEmitter
         spinner = spinner_at(editor:@_editor, pos:to, options:{radius:8}, delay:250)
         @opts.session.introspect
             line    : @_editor.getRange({line:0, ch:0}, to)
-            timeout : 3
+            timeout : 10
             cb : (err, mesg) =>
                 remove_spinner(spinner)
                 if err

@@ -20,6 +20,20 @@ For each file, we compute the following information:
 
 import json, os, subprocess, sys, uuid
 
+def getmtime(name):
+    try:
+        return os.lstat(name).st_mtime   # use lstat instead of stat or getmtime so this works on broken symlinks!
+    except:
+        # This should never happen, but we include this just in case
+        # to avoid really buggy UI behavior.
+        return 0
+
+def getsize(name):
+    try:
+        return os.lstat(name).st_size # same as above; use instead of os.path....
+    except:
+        return 0
+
 def gitls(path, time, start, limit, hidden, directories_first):
     if not os.path.exists(path):
         sys.stderr.write("error: no such path '%s'"%path)
@@ -31,7 +45,7 @@ def gitls(path, time, start, limit, hidden, directories_first):
         listdir = [x for x in listdir if not x.startswith('.')]
     if time:
         # Get list of pairs (timestamp, name)
-        all = [(os.path.getmtime(name), name) for name in listdir]
+        all = [(getmtime(name), name) for name in listdir]
         # Sort
         all.sort()
         all.reverse()
@@ -44,7 +58,7 @@ def gitls(path, time, start, limit, hidden, directories_first):
         sorted_names = [x[1] for x in all]
     else:
         # Get list of (name, timestamp) pairs
-        all = [(name, int(os.path.getmtime(name))) for name in listdir]
+        all = [(name, int(getmtime(name))) for name in listdir]
         # Sort
         all.sort()
         # Limit and convert to objects
@@ -61,7 +75,7 @@ def gitls(path, time, start, limit, hidden, directories_first):
         if os.path.isdir(name):
             info['isdir'] = True
         else:
-            info['size'] = os.path.getsize(name)
+            info['size'] = getsize(name)
 
     # Fill in git-related information about each file
     # First, obtain git history about files

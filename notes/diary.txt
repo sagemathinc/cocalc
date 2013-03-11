@@ -10457,6 +10457,15 @@ Deal with path aspect of projects (rewrite local_hub some):
 
 ==================================================================
 
+    [ ] SECURITY: I *need* -- absolutely need -- to slightly modify
+        all this so that the private key used by the hub depends on
+        the user, and has a passkey, or something.  It could be
+        unlocked by the user's password (say).  Basically, I need to
+        make it so that even if somebody gets all the data of SMC,
+        they can't suddenly access the resources of users.  This is
+        certainly possible -- but to do it elegantly will be more
+        challenging.
+
     [ ] local-hub: make a binary of the complete install; note this has to be remade when I change anything, so must be very automated.
 
     [ ] make project disk usage be correct

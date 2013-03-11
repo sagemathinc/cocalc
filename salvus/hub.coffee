@@ -2719,7 +2719,12 @@ class SageSession
 
     send_signal: (signal) =>
         if @pid? and @conn?
-            sage.send_signal(host:@host, port:@port, pid:@pid, signal:signal)
+            sage.send_signal
+                host         : @host
+                port         : @port
+                secret_token : @secret_token
+                pid          : @pid
+                signal       : signal
 
     kill : () =>
         @send_signal(9)
