@@ -66,6 +66,41 @@ file_associations['salvus-slideshow'] =
     editor : 'slideshow'
     opts   : {}
 
+
+
+# Given a text file (defined by content), try to guess
+# what the extension should be.
+guess_file_extension_type = (content) ->
+    content = $.trim(content)
+    i = content.indexOf('\n')
+    first_line = content.slice(0,i).toLowerCase()
+    if first_line.slice(0,2) == '#!'
+        # A script.  What kind?
+        if first_line.indexOf('python') != -1
+            return 'py'
+        if first_line.indexOf('bash') != -1 or first_line.indexOf('sh') != -1
+            return 'sh'
+    if first_line.indexOf('html') != -1
+        return 'html'
+    if first_line.indexOf('/*') != -1 or first_line.indexOf('//') != -1   # kind of a stretch
+        return 'c++'
+    return undefined
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 templates = $("#salvus-editor-templates")
 
 class exports.Editor
@@ -233,6 +268,8 @@ class exports.Editor
 
     create_tab: (filename, content) =>
         ext = filename_extension(filename)
+        if not ext?   # no recognized extension
+            ext = guess_file_extension_type(content)
         x = file_associations[ext]
         if not x?
             x = file_associations['']
