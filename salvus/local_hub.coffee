@@ -162,43 +162,46 @@ class ConsoleSessions
     _new_session: (client_socket, mesg, port) =>
         winston.debug("_new_session: defined by #{misc.to_json(mesg)}")
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
-        console_socket = misc_node.connect_to_locked_socket  port,secret_token, (err) =>
-            if err
-                forget_port('console')
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to console server."))
-                winston.debug("_new_session: console server denied connection")
-                return
-            # Request a Console session from console_server
-            misc_node.enable_mesg(console_socket)
-            console_socket.write_mesg('json', mesg)
-            # Read one JSON message back, which describes the session
-            console_socket.once 'mesg', (type, desc) =>
-                client_socket.write_mesg('json', desc)
-                # Disable JSON mesg protocol, since it isn't used further
-                misc_node.disable_mesg(console_socket)
-                misc_node.disable_mesg(client_socket)
+        misc_node.connect_to_locked_socket
+            port  : port
+            token : secret_token
+            cb : (err, console_socket) =>
+                if err
+                    forget_port('console')
+                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to console server."))
+                    winston.debug("_new_session: console server denied connection")
+                    return
+                # Request a Console session from console_server
+                misc_node.enable_mesg(console_socket)
+                console_socket.write_mesg('json', mesg)
+                # Read one JSON message back, which describes the session
+                console_socket.once 'mesg', (type, desc) =>
+                    client_socket.write_mesg('json', desc)
+                    # Disable JSON mesg protocol, since it isn't used further
+                    misc_node.disable_mesg(console_socket)
+                    misc_node.disable_mesg(client_socket)
 
-                session =
-                    socket  : console_socket
-                    desc    : desc,
-                    status  : 'running',
-                    clients : [client_socket],
-                    history : new Buffer(0)
+                    session =
+                        socket  : console_socket
+                        desc    : desc,
+                        status  : 'running',
+                        clients : [client_socket],
+                        history : new Buffer(0)
 
-                # Connect the sockets together.
-                client_socket.on 'data', (data) ->
-                    console_socket.write(data)
-                console_socket.on 'data', (data) ->
-                    session.history += data
-                    client_socket.write(data)
+                    # Connect the sockets together.
+                    client_socket.on 'data', (data) ->
+                        console_socket.write(data)
+                    console_socket.on 'data', (data) ->
+                        session.history += data
+                        client_socket.write(data)
 
-                @_sessions[mesg.session_uuid] = session
+                    @_sessions[mesg.session_uuid] = session
 
-            console_socket.on 'end', () =>
-                session = @_sessions[mesg.session_uuid]
-                if session?
-                    session.status = 'done'
-                # TODO: should we close client_socket here?
+                console_socket.on 'end', () =>
+                    session = @_sessions[mesg.session_uuid]
+                    if session?
+                        session.status = 'done'
+                    # TODO: should we close client_socket here?
 
     # Return object that describes status of all Console sessions
     info: () =>
@@ -246,27 +249,30 @@ class SageSessions
     _new_session: (client_socket, mesg, port) =>
         winston.debug("new sage session")
         # Connect to port, send mesg, then hook sockets together.
-        sage_socket = misc_node.connect_to_locked_socket port, secret_token, (err) =>
-            if err
-                forget_port('sage')
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
-                winston.debug("_new_session: sage session denied connection: #{err}")
-                return
-            else
-                winston.debug("successfully got a sage session connection.")
-            # Request a Sage session from sage_server
-            misc_node.enable_mesg(sage_socket)
-            sage_socket.write_mesg('json', message.start_session(type:'sage'))
-            # Read one JSON message back, which describes the session
-            sage_socket.once 'mesg', (type, desc) =>
-                client_socket.write_mesg('json', desc)
-                plug(client_socket, sage_socket)
-                @_sessions[mesg.session_uuid] = {socket:sage_socket, desc:desc, status:'running', clients:[client_socket]}
-            sage_socket.on 'end', () =>
-                session = @_sessions[mesg.session_uuid]
-                # TODO: should we close client_socket here?
-                if session?
-                    session.status = 'done'
+        misc_node.connect_to_locked_socket
+            port : port
+            token : secret_token
+            cb : (err, sage_socket) =>
+                if err
+                    forget_port('sage')
+                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
+                    winston.debug("_new_session: sage session denied connection: #{err}")
+                    return
+                else
+                    winston.debug("successfully got a sage session connection.")
+                # Request a Sage session from sage_server
+                misc_node.enable_mesg(sage_socket)
+                sage_socket.write_mesg('json', message.start_session(type:'sage'))
+                # Read one JSON message back, which describes the session
+                sage_socket.once 'mesg', (type, desc) =>
+                    client_socket.write_mesg('json', desc)
+                    plug(client_socket, sage_socket)
+                    @_sessions[mesg.session_uuid] = {socket:sage_socket, desc:desc, status:'running', clients:[client_socket]}
+                sage_socket.on 'end', () =>
+                    session = @_sessions[mesg.session_uuid]
+                    # TODO: should we close client_socket here?
+                    if session?
+                        session.status = 'done'
 
     # Return object that describes status of all Sage sessions
     info: () =>

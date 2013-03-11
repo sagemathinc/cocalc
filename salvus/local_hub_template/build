@@ -13,6 +13,9 @@ env['PATH'] = "%s:%s/node_modules/.bin/:%s/data/local/bin:%s"%(P, P, P, env['PAT
 
 chdir(P)
 
+if os.path.exists('installed'):
+    os.unlink('installed')
+
 install_node = True
 try:
     node_version = popen('node --version').read()[1:]
@@ -37,8 +40,8 @@ if install_node:
 
     # For example:
     #   wget http://nodejs.org/dist/v0.8.22/node-v0.8.22-linux-x64.tar.gz
-    cmd = "wget http://nodejs.org/dist/v%s/%s && mkdir -p data/local && cd data/local && tar zxvf ../../%s && mv '%s'/* . && rm -rf '%s'"%(
-        version, tarball, tarball, node_folder, node_folder)
+    cmd = "rm -f node-v%s* && wget http://nodejs.org/dist/v%s/%s && mkdir -p data/local && cd data/local && tar zxvf ../../%s && mv '%s'/* . && rm -rf '%s'"%(
+        version, version, tarball, tarball, node_folder, node_folder)
     if os.system(cmd):
         print "FAILED to download and install node..."
         sys.exit(1)
@@ -52,3 +55,5 @@ if system("./install_npm_modules"):
 
 # Build coffeescript to javascript
 system("./make_coffee")
+
+open('installed', 'w')

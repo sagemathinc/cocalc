@@ -75,24 +75,29 @@ class exports.Connection
         @host = options.host
         @port = options.port
 
-        @conn = connect_to_locked_socket  @port, options.secret_token, (err) =>
-            if err
-                options.cb(err)
-                return
+        connect_to_locked_socket
+            port  : @port
+            token : options.secret_token
+            cb    : (err, _conn) =>
+                if err
+                    options.cb(err)
+                    return
 
-            @recv = options.recv  # send message to client
-            @buf = null
-            @buf_target_length = -1
+                @conn = _conn
 
-            @conn.on 'error', (err) =>
-                winston.error("sage connection error: #{err}")
-                @recv?('json', message.terminate_session(reason:"#{err}"))
+                @recv = options.recv  # send message to client
+                @buf = null
+                @buf_target_length = -1
 
-            enable_mesg(@conn)
-            @conn.on 'mesg', (type, data) =>
-                @recv?(type, data)
+                @conn.on 'error', (err) =>
+                    winston.error("sage connection error: #{err}")
+                    @recv?('json', message.terminate_session(reason:"#{err}"))
 
-            options.cb()
+                enable_mesg(@conn)
+                @conn.on 'mesg', (type, data) =>
+                    @recv?(type, data)
+
+                options.cb()
 
     send_json: (mesg) ->
         @conn.write_mesg('json', mesg)

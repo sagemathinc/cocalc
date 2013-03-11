@@ -148,21 +148,40 @@ exports.unlock_socket = (socket, token, cb) ->     # cb(err)
 # unlocked_socket).  We do not allow connection to any other host,
 # since this is not an *encryption* protocol; fortunately, traffic on
 # localhost can't be sniffed (except as root, of course, when it can be).
-exports.connect_to_locked_socket = (port, token, cb) ->
+exports.connect_to_locked_socket = (opts) ->
+    {port, token, timeout, cb} = defaults opts,
+        port    : required
+        token   : required
+        timeout : 5
+        cb      : required
+
     console.log("connecting to a locked socket on port #{port}...")
+    timer = undefined
+
+    timed_out = () ->
+        cb("Timed out trying to connect to locked socket on port #{port}")
+        socket.end()
+        timer = undefined
+
+    timer = setTimeout(timed_out, timeout*1000)
+
     socket = net.connect {port:port}, () =>
         listener = (data) ->
             console.log("got back response: #{data}")
             socket.removeListener('data', listener)
             if data.toString() == 'y'
-                cb(false, socket)
+                if timer?
+                    clearTimeout(timer)
+                    cb(false, socket)
             else
                 socket.destroy()
-                cb("Permission denied (invalid secret token) when connecting to the local hub.")
+                if timer?
+                    clearTimeout(timer)
+                    cb("Permission denied (invalid secret token) when connecting to the local hub.")
         socket.on 'data', listener
         console.log("connected, now sending secret token")
         socket.write(token)
-    return socket
+
 
 # Compute a uuid v4 from the Sha-1 hash of data.
 crypto = require('crypto')
@@ -350,3 +369,54 @@ exports.username = (project_id) ->
         throw "invalid project id #{project_id}"
     # Return a for-sure safe username
     return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')
+
+
+port_forwards = {}
+
+exports.forward_remote_port_to_localhost = (opts) ->
+    opts = defaults opts,
+        username    : required
+        host        : required
+        ssh_port    : 22
+        remote_port : required
+        expire      : 3600*24   # port forward expires after this amount of time (in seconds)
+        cb          : required  # cb(err, local_port)
+
+    winston.debug("Forward a remote port #{opts.remote_port} on #{opts.host} to localhost.")
+
+    remote_address = "#{opts.username}@#{opts.host}:#{opts.ssh_port}"
+    local_port = port_forwards[remote_address]
+
+    if local_port?
+        # We already have a valid forward
+        opts.cb(false, local_port)
+        return
+
+    # We have to make a new port forward
+    portfinder = require('portfinder')
+    portfinder.basePort = Math.floor(Math.random()*50000)+8000  # avoid race condition...
+    portfinder.getPort (err, local_port) ->
+        if err
+            opts.cb(err)
+            return
+        command = "ssh"
+        args =  ['-o', 'StrictHostKeyChecking=no', "-p", opts.ssh_port,
+                 '-L', "#{local_port}:localhost:#{opts.remote_port}",
+                 "#{opts.username}@#{opts.host}",
+                 "echo;sleep #{opts.expire}"]
+        r = child_process.spawn(command, args)
+        cb_happened = false
+        r.stdout.on 'data', (data) ->
+            # as soon as something is output, it's working (I hope).
+            opts.cb(false, local_port)
+            cb_happened = true
+        stderr = ''
+        r.stderr.on 'data', (data) ->
+            stderr += data.toString()
+            # Got a local_port -- let's use it.
+            port_forwards[remote_address] = local_port
+        r.on 'exit', (code) ->
+            if not cb_happened
+                opts.cb("Problem setting up ssh port forward -- #{stderr}")
+            delete port_forwards[remote_address]
+

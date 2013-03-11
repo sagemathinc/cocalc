@@ -10447,13 +10447,19 @@ Deal with path aspect of projects (rewrite local_hub some):
 
     [x] (1:00) LocalHub: start/restart local_hub daemon if necessary
 
--->    [ ] LocalHub: automatically start the port forwarding
+    [x] LocalHub: build if necessary
 
-    [ ] LocalHub: build if necessary
-    [ ] make project disk usage be correct
+    [x] LocalHub: automatically start the port forwarding
+
+    [ ] local-hub: still lots of race conditions; visible in log; e.g., building goes crazy building on top of self!
+
+    [ ] status doesn't work with python 2.5 since no json
 
 ==================================================================
 
+    [ ] local-hub: make a binary of the complete install; note this has to be remade when I change anything, so must be very automated.
+
+    [ ] make project disk usage be correct
     [ ] attach: I must implement the load and attach commands, for (backwards) compatibility. Sorry.
 
     [ ] bug in log: creating one sage session creates TWO.  WEIRD.

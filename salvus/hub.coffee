@@ -771,13 +771,16 @@ class Client extends EventEmitter
     mesg_project_session_info: (mesg) =>
         assert mesg.event == 'project_session_info'
         @get_project mesg, 'read', (err, project) =>
-            project.call
-                mesg : mesg
-                cb   : (err, info) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.project_session_info(id:mesg.id, info:info))
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                project.call
+                    mesg : mesg
+                    cb   : (err, info) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.project_session_info(id:mesg.id, info:info))
 
 
     mesg_update_project_data: (mesg) =>
@@ -1063,12 +1066,15 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
         secret_token : required
         cb           : required
 
-    socket = misc_node.connect_to_locked_socket opts.port, opts.secret_token, (err) =>
-        if err
-            opts.cb(err)
-        else
-            misc_node.enable_mesg(socket)
-            opts.cb(false, socket)
+    socket = misc_node.connect_to_locked_socket
+        port  : opts.port
+        token : opts.secret_token
+        cb    : (err) =>
+            if err
+                opts.cb(err)
+            else
+                misc_node.enable_mesg(socket)
+                opts.cb(false, socket)
 
 _local_hub_cache = {}
 new_local_hub = (opts) ->    # cb(err, hub)
@@ -1281,9 +1287,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # port is supposed to be a valid port portforward to a local_hub somewhere.
     open: (cb) =>    # cb(err, port, secret_token)
         winston.debug("Opening a local_hub.")
-        if @_status? and @_status['local_hub.port']? and @_status.secret_token?
+        if @_status? and @_status.local_port? and @_status.secret_token?
             # TODO: check here that @_port is actually still open and valid...
-            cb(false, @_status['local_hub.port'], @_status.secret_token)
+            cb(false, @_status.local_port, @_status.secret_token)
             return
 
         # Lock so that we don't attempt to open connection more than
@@ -1314,24 +1320,33 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @_status = _status
                     cb(err)
             (cb) =>
-                if @_status.local_hub and @_status.sage_server and @_status.console_server
+                if not @_status.installed
+                    @_exec_on_local_hub('build', 120, cb)
+                else
+                    cb()
+            (cb) =>
+                # If all goes well, the following will make it so @_status
+                # is defined and says all is well.
+                @_restart_local_hub_if_not_all_daemons_running(cb)
+            (cb) =>
+                if @_status.local_port
                     cb()
                 else
-                    # Not all daemons are running -- restart required
-                    @_restart_local_hub_daemons (err) =>
-                        if err
+                    misc_node.forward_remote_port_to_localhost
+                        username    : @username
+                        host        : @host
+                        ssh_port    : @port
+                        remote_port : @_status['local_hub.port']
+                        cb          : (err, local_port) =>
+                            @_status.local_port = local_port
                             cb(err)
-                        else
-                            # try one more time:
-                            @_get_local_hub_status (err,_status) =>
-                                @_status = _status
-                                cb(err)
+
         ], (err) =>
             delete @_opening
             if err
                 cb(err)
             else
-                cb(false, @_status['local_hub.port'], @_status.secret_token)
+                cb(false, @_status.local_port, @_status.secret_token)
         )
 
     _push_local_hub_code: (cb) =>
@@ -1345,26 +1360,41 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             path    : SALVUS_HOME
             cb      : cb
 
-    _exec_on_local_hub: (command, cb) =>
+    _exec_on_local_hub: (command, timeout, cb) =>
         # ssh [user]@[host] [-p port] .sagemathcloud/[commmand]
         misc_node.execute_code
             command : "ssh"
             args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', "~#{@username}/.sagemathcloud/#{command}"]
-            timeout : 10
+            timeout : timeout
             bash    : false
             cb      : cb
 
     _get_local_hub_status: (cb) =>
         winston.debug("getting status of remote location")
-        @_exec_on_local_hub "status", (err, out) =>
+        @_exec_on_local_hub "status", 10, (err, out) =>
             if out?.stdout?
                 status = misc.from_json(out.stdout)
             cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
         winston.debug("restarting local_hub daemons")
-        @_exec_on_local_hub "restart_smc", (err, out) =>
+        @_exec_on_local_hub "restart_smc", 10, (err, out) =>
             cb(err)
+
+    _restart_local_hub_if_not_all_daemons_running: (cb) =>
+        if @_status.local_hub and @_status.sage_server and @_status.console_server
+            cb()
+        else
+            # Not all daemons are running -- restart required
+            @_restart_local_hub_daemons (err) =>
+                if err
+                    cb(err)
+                else
+                    # try one more time:
+                    @_get_local_hub_status (err,_status) =>
+                        @_status = _status
+                        cb(err)
+
 
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does

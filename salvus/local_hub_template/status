@@ -28,7 +28,7 @@ def read(prop, filename, strip=False):
 read('version', os.path.join(SMC, "version"), strip=True)
 
 # a simple test that the node modules are probably installed.
-set('installed', os.path.exists(os.path.join(SMC, 'node_modules/pty.js')))
+set('installed', os.path.exists(os.path.join(SMC, 'installed')))
 
 for name in ['secret_token', 'local_hub.port']:
     read(name, os.path.join(SMC, 'data', name))
