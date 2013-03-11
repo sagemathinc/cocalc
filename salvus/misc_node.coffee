@@ -403,13 +403,16 @@ exports.forward_remote_port_to_localhost = (opts) ->
         args =  ['-o', 'StrictHostKeyChecking=no', "-p", opts.ssh_port,
                  '-L', "#{local_port}:localhost:#{opts.remote_port}",
                  "#{opts.username}@#{opts.host}",
-                 "echo;sleep #{opts.expire}"]
+                 "TERM=vt100 /usr/bin/watch -t -n 1 date"]
         r = child_process.spawn(command, args)
         cb_happened = false
+        new_output = false
         r.stdout.on 'data', (data) ->
+            new_output = true
             # as soon as something is output, it's working (I hope).
-            opts.cb(false, local_port)
-            cb_happened = true
+            if not cb_happened
+                opts.cb(false, local_port)
+                cb_happened = true
         stderr = ''
         r.stderr.on 'data', (data) ->
             stderr += data.toString()
@@ -420,3 +423,10 @@ exports.forward_remote_port_to_localhost = (opts) ->
                 opts.cb("Problem setting up ssh port forward -- #{stderr}")
             delete port_forwards[remote_address]
 
+        kill_if_no_new_output = () ->
+            if not new_output
+                # shut it down!
+                r.kill("SIGKILL")
+            new_output = false
+
+        setInterval(kill_if_no_new_output, 2000)

@@ -10458,6 +10458,16 @@ Deal with path aspect of projects (rewrite local_hub some):
     test), since the node binary won't even work on any machine with
     such old python.  Screw that.
 
+
+-->   [x] (0:26) BUG: exiting emacs on terminal leaves underscores around sometimes.
+CSI > 4m is causing the trouble; it is being interpretted as
+underlined, but actually CSI 4 m is underline.
+
+CSI > Ps; Ps T
+          Reset one or more features of the title modes to the default
+          value.  Normally, "reset" disables the feature.  It is possi-
+          ble to 
+
 ==================================================================
 
     [ ] SECURITY: I *need* -- absolutely need -- to modify all this so
@@ -10474,14 +10484,10 @@ Deal with path aspect of projects (rewrite local_hub some):
            Use passphrase.  For port forwarding, I don't know how to do that except
            by having hundreds of accounts on the hub machine, which is ridiculous!
 
--->   [x] (0:26) BUG: exiting emacs on terminal leaves underscores around sometimes.
-CSI > 4m is causing the trouble; it is being interpretted as
-underlined, but actually CSI 4 m is underline.
+-->    [ ] ssh connection should run a program that outputs something
+        every few seconds; if nothing appears, the connection is killed.
 
-CSI > Ps; Ps T
-          Reset one or more features of the title modes to the default
-          value.  Normally, "reset" disables the feature.  It is possi-
-          ble to 
+    [ ] ssh port forward expiration -- reimplement using Timeout
 
     [ ] clicking on an image should just show it...
 
@@ -10512,8 +10518,22 @@ another NAME idea:  share.sagemath.com  ?
 
     [ ] to greatly speed up install of .sagemathcloud, just prebuild the four binaries (linux/osx/x64/x86) and post in static/ (?)
 
+    [ ] BUG -- mathjax errors are how the html/data part of a note gets corrupted.
+
 ---------
 AWS usage ideas:
+
+    [ ] shift enter in a note creates a new note... with code hidden
+    [ ] css around note.
+
+    [ ] any time mathjax can't typeset a macros, make it so somethign
+    pops up and asks you to define it; make that macro part of your
+    profile; include in worksheets you share.
+
+    [ ] control-; to split in *NOTE* cell too!
+
+    [ ] Note area should be a restricted subset of text formatting/math that can be rendered in both latex and html.
+        Example: matrices, commutative diagrams, etc. 
 
     [ ] cell depencies would be nice, e.g., if you evaluate cell foo and bar hasn't been evaluated, evaluate it first... ?
 

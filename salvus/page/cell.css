@@ -17,6 +17,7 @@
     background-color : #fff;
     color            : #333;
     min-height       : 1.5em;
+    border : 1px solid yellow;
 }
 
 .salvus-cell-insert-above {
