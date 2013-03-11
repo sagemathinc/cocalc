@@ -4,7 +4,7 @@ echo "Read SageMathCloud environment variables."
 . "$HOME"/.sagemathcloud/sagemathcloud-env
 
 echo "Remove port files."
-rm  "$HOME"/.sagemathcloud/*.port
+rm  "$HOME"/.sagemathcloud/data/*.port
 
 echo "Stop daemons."
 local_hub      stop

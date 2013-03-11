@@ -1158,6 +1158,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             type         : required  # 'sage', 'console'
             params       : required
             project_id   : required
+            timeout      : 5
             cb           : required  # cb(err, socket)
         # We do not currently have an active open socket connection to this session.
         # We make a new socket connection to the local_hub, then
@@ -1186,8 +1187,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     params       : opts.params
                 winston.debug("Send the message asking to be connected with a #{opts.type} session.")
                 socket.write_mesg('json', mesg)
-                # Now we wait for a response
-                socket.once 'mesg', (type, resp) =>
+                # Now we wait for a response for opt.timeout seconds
+                f = (type, resp) =>
+                    clearTimeout(timer)
                     winston.debug("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
                     if resp.event == 'error'
                         cb(resp.error)
@@ -1195,6 +1197,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         # We will now only use this socket for binary communications.
                         misc_node.disable_mesg(socket)
                         cb()
+                socket.once 'mesg', f
+                timed_out = () =>
+                    socket.removeListener('mesg', f)
+                    socket.end()
+                    cb("Timed out after waiting #{opts.timeout} seconds for response from #{opts.type} session server. Please try again later.")
+                timer = setTimeout(timed_out, opts.timeout*1000)
+
         ], (err) =>
             if socket?
                 @_sockets[opts.type][opts.session_uuid] = socket
@@ -1223,6 +1232,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb           : (err, console_socket) =>
                 if err
                     # There was an error getting the socket connection above.
+                    delete @_status; delete @_socket # this is an exceptional situation; reconfirm everything next time this local_hub is used
                     opts.cb(err)
                     return
 
@@ -1255,18 +1265,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             session_uuid : undefined
             path         : undefined
             cb           : required
+        # TODO!!!
 
     # TODO:
     #
     #    file_editor_session -- for multiple simultaneous file editing, etc.
     #
     #    worksheet_session -- build on a sage session to have multiple simultaneous worksheet users
-
-
-
-    ####################################################
-    # 
-    #####################################################
 
     # Open connection to the remote local_hub if it is not already opened,
     # and setup everything so we have a persistent ssh connection
@@ -1281,9 +1286,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb(false, @_status['local_hub.port'], @_status.secret_token)
             return
 
-        # TODO: we should also worry about multiple hubs at once trying to open same local_hub and use the database. (???)
-        #
-        # Local locking, at least.
+        # Lock so that we don't attempt to open connection more than
+        # once at the same time.
         if @_opening?
             n = 0
             check = () =>
@@ -1299,55 +1303,74 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             timer = setInterval(check, 100)
             return
 
+        # Now open the project.
         @_opening = true
-
         status   = undefined
         async.series([
             (cb) =>
-                winston.debug("pushing latest code to remote location")
-                misc_node.execute_code
-                    command : "rsync"
-                    args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                               'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
-                    timeout : 15
-                    bash    : false
-                    path    : SALVUS_HOME
-                    cb      : cb
-
+                @_push_local_hub_code(cb)
             (cb) =>
-                winston.debug("getting status of remote location")
-                # ssh [user]@[host] [-p port] .sagemathcloud/status
-                misc_node.execute_code
-                    command : "ssh"
-                    args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', "~#{@username}/.sagemathcloud/status"]
-                    timeout : 10
-                    bash    : false
-                    path    : SALVUS_HOME
-                    cb      : (err, _status) =>
-                        if _status?.stdout?
-                            status = misc.from_json(_status.stdout)
-                        cb(err)
-
+                @_get_local_hub_status (err,_status) =>
+                    @_status = _status
+                    cb(err)
             (cb) =>
-                winston.debug("STATUS = #{misc.to_json(status)}")
-                @_status = status
-                cb()
-
-            # TODO: at this point we have to build/start/etc., depending on the status.
-
+                if @_status.local_hub and @_status.sage_server and @_status.console_server
+                    cb()
+                else
+                    # Not all daemons are running -- restart required
+                    @_restart_local_hub_daemons (err) =>
+                        if err
+                            cb(err)
+                        else
+                            # try one more time:
+                            @_get_local_hub_status (err,_status) =>
+                                @_status = _status
+                                cb(err)
         ], (err) =>
             delete @_opening
             if err
                 cb(err)
             else
-                cb(false, status['local_hub.port'], status.secret_token)
+                cb(false, @_status['local_hub.port'], @_status.secret_token)
         )
+
+    _push_local_hub_code: (cb) =>
+        winston.debug("pushing latest code to remote location")
+        misc_node.execute_code
+            command : "rsync"
+            args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
+                       'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
+            timeout : 15
+            bash    : false
+            path    : SALVUS_HOME
+            cb      : cb
+
+    _exec_on_local_hub: (command, cb) =>
+        # ssh [user]@[host] [-p port] .sagemathcloud/[commmand]
+        misc_node.execute_code
+            command : "ssh"
+            args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', "~#{@username}/.sagemathcloud/#{command}"]
+            timeout : 10
+            bash    : false
+            cb      : cb
+
+    _get_local_hub_status: (cb) =>
+        winston.debug("getting status of remote location")
+        @_exec_on_local_hub "status", (err, out) =>
+            if out?.stdout?
+                status = misc.from_json(out.stdout)
+            cb(err, status)
+
+    _restart_local_hub_daemons: (cb) =>
+        winston.debug("restarting local_hub daemons")
+        @_exec_on_local_hub "restart_smc", (err, out) =>
+            cb(err)
 
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does
     # not pull the file from the database; instead, it loads it live
     # from the project_server virtual machine.
-    read_file: (opts) -> # cb(err, content_of_file)
+    read_file: (opts) => # cb(err, content_of_file)
         {path, project_id, archive, cb} = defaults opts,
             path    : required
             project_id : required

@@ -328,6 +328,7 @@ exports.execute_code = (opts) ->
     ], (err) ->
         if not exit_code?
             exit_code = 1  # don't have one due to SIGKILL
+        # TODO:  This is dangerous, e.g., it could print out a secret_token to a log file.
         winston.debug("Running '#{opts.command} #{opts.args.join(' ')}' produced stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
         opts.cb?(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
         # Do not litter:

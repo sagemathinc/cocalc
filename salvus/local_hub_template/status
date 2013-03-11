@@ -6,9 +6,11 @@ SMC = os.path.join(os.environ['HOME'], '.sagemathcloud/')
 os.chdir(SMC)
 
 status = {}
+
 def done():
     print json.dumps(status)
     sys.exit(0)
+
 def set(prop, val):
     status[prop] = val
     if val is False:
@@ -32,6 +34,18 @@ for name in ['secret_token', 'local_hub.port']:
     read(name, os.path.join(SMC, 'data', name))
 
 ## set('disk_usage', int(os.popen('du -s "%s"'%project_path).read().split()[0]))
+
+for daemon in ['local_hub', 'sage_server', 'console_server']:
+    pidfile = os.path.join(SMC, 'data', daemon) + '.pid'
+    if os.path.exists(pidfile):
+        try:
+            pid = int(open(pidfile).read())
+            os.kill(pid, 0)
+            set(daemon, pid)
+        except:
+            set(daemon, False)
+    else:
+        set(daemon, False)
 
 done()
 

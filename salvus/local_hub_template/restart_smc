@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+$HOME/.sagemathcloud/stop_smc
+$HOME/.sagemathcloud/start_smc
+

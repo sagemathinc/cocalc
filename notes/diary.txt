@@ -10445,11 +10445,11 @@ Deal with path aspect of projects (rewrite local_hub some):
 
     [x] (0:34) local-hub refactor: exec code on remote command line often giving error:true... (fixed); also some polish of how command line works.
 
-    [ ] LocalHub: automatically start the port forwarding
+    [x] (1:00) LocalHub: start/restart local_hub daemon if necessary
 
+-->    [ ] LocalHub: automatically start the port forwarding
 
     [ ] LocalHub: build if necessary
-    [ ] LocalHub: start if necessary
     [ ] make project disk usage be correct
 
 ==================================================================
