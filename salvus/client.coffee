@@ -779,9 +779,11 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : required
+            timeout    : 10
             archive    : undefined   # when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : required
         @call
+            timeout : opts.timeout
             message :
                 message.read_file_from_project
                     project_id : opts.project_id

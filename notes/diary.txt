@@ -10479,16 +10479,15 @@ CSI > Ps; Ps T
 
 (est:20)  [x] (1:42) ssh port forward expiration -- reimplement using Timeout; actually, I decided to remove that, and instead make it less of a load on the server to have more ssh forwards open at once.  I'll have to implement something in hub that frees up ports instead.   I made it so everything is freed when hub terminates (might as well).     What we really need is some sort of way to tell if there is activity over the port forward.
 
-(est:1:30)    [ ] make persistent console sessions actually work
+(est:1:00)    [x] (1:01) BUG: fix the "doubling of everything" when opening a project
 
-(est:1:00)    [x] BUG: fix the "doubling of everything" when opening a project
+(est:0:30)    [x] (0:28) clicking on an image should just show it...
+
+(est:1:30)    [ ] make persistent console sessions actually work
 
 (est:1:00)    [ ] make it so user can change the location of the project in the project settings page.
 
 (est:1:00)    [ ] add or implement search plugin for codemirror editor.
-
-(est:0:30)    [ ] clicking on an image should just show it...
-
 
 
 ----

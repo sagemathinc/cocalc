@@ -66,13 +66,13 @@ file_associations['salvus-slideshow'] =
     editor : 'slideshow'
     opts   : {}
 
-for ext in ['png', 'jpg', 'svg']    
-    file_associations[ext] = 
+for ext in ['png', 'jpg', 'gif', 'svg']
+    file_associations[ext] =
         editor : 'image'
         opts   : {}
-    
 
-                  
+
+
 
 # Given a text file (defined by content), try to guess
 # what the extension should be.
@@ -148,17 +148,32 @@ class exports.Editor
 
     open: (filename) =>
         if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
-            salvus_client.read_text_file_from_project
-                project_id : @project_id
-                timeout    : 10
-                path       : filename
-                cb         : (err, mesg) =>
-                    if err
-                        alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
-                    else if mesg.event == 'error'
-                        alert_message(type:"error", message:"Error loading #{filename} -- #{to_json(mesg.error)}")
-                    else
-                        @tabs[filename] = @create_tab(filename, mesg.content)
+            ext = filename_extension(filename)
+            switch ext
+                when 'png', 'svg', 'jpg', 'gif'
+                    salvus_client.read_file_from_project
+                        project_id : @project_id
+                        timeout    : 10
+                        path       : filename
+                        cb         : (err, mesg) =>
+                            if err
+                                alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
+                            else if mesg.event == 'error'
+                                alert_message(type:"error", message:"Error getting #{filename} -- #{to_json(mesg.error)}")
+                            else
+                                @tabs[filename] = @create_tab(filename:filename, url:mesg.url)
+                else
+                    salvus_client.read_text_file_from_project
+                        project_id : @project_id
+                        timeout    : 10
+                        path       : filename
+                        cb         : (err, mesg) =>
+                            if err
+                                alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
+                            else if mesg.event == 'error'
+                                alert_message(type:"error", message:"Error loading #{filename} -- #{to_json(mesg.error)}")
+                            else
+                                @tabs[filename] = @create_tab(filename:filename, content:mesg.content)
 
     # Close this tab.  If it has unsaved changes, the user will be warned.
     close: (filename) =>
@@ -263,13 +278,22 @@ class exports.Editor
                     cb?()
                     # TODO -- change some state to reflect success (?)
 
-    create_tab: (filename, content) =>
-        ext = filename_extension(filename)
-        if not ext?   # no recognized extension
+    create_tab: (opts) =>
+        opts = defaults opts,
+            filename : required
+            content  : undefined
+            url      : undefined
+
+        filename = opts.filename
+        ext = filename_extension(opts.filename)
+        if not ext? and opts.content?   # no recognized extension
             ext = guess_file_extension_type(content)
         x = file_associations[ext]
         if not x?
             x = file_associations['']
+
+        content = opts.content
+        url = opts.url
         switch x.editor
             # codemirror is the default... since it is the only thing implemented now.  JSON will be next, since I have that plugin.
             when 'codemirror', undefined
@@ -283,7 +307,7 @@ class exports.Editor
             when 'slideshow'
                 editor = new Slideshow(@, filename, content, x.opts)
             when 'image'
-                editor = new Image(@, filename, content, x.opts)
+                editor = new Image(@, filename, url, x.opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
@@ -583,10 +607,10 @@ class Worksheet extends FileEditor
         @worksheet?.focus()
 
 class Image extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts,{}
-        @element = $("<div>Image viewer not implemented yet.</div>")     
-        
+        @element = $("<img src='#{url}'>")
+
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}
@@ -596,5 +620,3 @@ class Slideshow extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}
         @element = $("<div>Salvus slideshow not implemented yet.</div>")
-        
-   

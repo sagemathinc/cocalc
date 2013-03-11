@@ -259,7 +259,7 @@ class ProjectPage
             filename = "scratch/#{uuid().slice(0,8)}.salvus-terminal"
             if filename[0] == '/'
                 filename = filename.slice(1)
-            tab = @editor.create_tab(filename)
+            tab = @editor.create_tab(filename:filename)
             tab.editor.val('')
             return false
 
@@ -269,7 +269,7 @@ class ProjectPage
             filename = "scratch/#{uuid().slice(0,8)}.salvus-worksheet"
             if filename[0] == '/'
                 filename = filename.slice(1)
-            tab = @editor.create_tab(filename)
+            tab = @editor.create_tab(filename:filename)
             tab.editor.val('')
             return false
 
@@ -747,7 +747,7 @@ class ProjectPage
                             that.download_file($(@).data('filename'))
                             return false
 
-                        # Clicking -- open the file in the editor
+                        # Clicking -- open the file
                         if path != ""
                             name = path + '/' + obj.name
                         else
