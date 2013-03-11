@@ -371,7 +371,26 @@ exports.username = (project_id) ->
     return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')
 
 
-port_forwards = {}
+address_to_local_port = {}
+local_port_to_child_process = {}
+
+exports.keep_portforward_alive = (port) ->
+    r = local_port_to_child_process[port]
+    if r?
+        r.activity = true
+
+exports.unforward_port = (opts) ->
+    opts = defaults opts,
+        port : required
+        cb   : required
+    winston.debug("Unforwarding port #{opts.port}")
+    r = local_port_to_child_process[local_port]
+    if r?
+        r.kill("SIGKILL")
+
+exports.unforward_all_ports = () ->
+    for port, r of local_port_to_child_process
+        r.kill("SIGKILL")
 
 exports.forward_remote_port_to_localhost = (opts) ->
     opts = defaults opts,
@@ -379,13 +398,18 @@ exports.forward_remote_port_to_localhost = (opts) ->
         host        : required
         ssh_port    : 22
         remote_port : required
-        expire      : 3600*24   # port forward expires after this amount of time (in seconds)
+        activity_time : 3600 # kill connection if the HUB doesn't
+                             # actively *receive* something on this
+                             # port for this many seconds.
+        keep_alive_time :  5 # network activity every this many
+                             # seconds.; lower to more quickly detect
+                             # a broken connection; raise to reduce resources
         cb          : required  # cb(err, local_port)
 
     winston.debug("Forward a remote port #{opts.remote_port} on #{opts.host} to localhost.")
 
     remote_address = "#{opts.username}@#{opts.host}:#{opts.ssh_port}"
-    local_port = port_forwards[remote_address]
+    local_port = address_to_local_port[remote_address]
 
     if local_port?
         # We already have a valid forward
@@ -403,30 +427,48 @@ exports.forward_remote_port_to_localhost = (opts) ->
         args =  ['-o', 'StrictHostKeyChecking=no', "-p", opts.ssh_port,
                  '-L', "#{local_port}:localhost:#{opts.remote_port}",
                  "#{opts.username}@#{opts.host}",
-                 "TERM=vt100 /usr/bin/watch -t -n 1 date"]
+                 "TERM=vt100 /usr/bin/watch -t -n #{opts.keep_alive_time} date"]
         r = child_process.spawn(command, args)
         cb_happened = false
         new_output = false
         r.stdout.on 'data', (data) ->
+
+            # Got a local_port -- let's use it.
+            address_to_local_port[remote_address] = local_port
+            local_port_to_child_process[local_port] = r
+
             new_output = true
             # as soon as something is output, it's working (I hope).
             if not cb_happened
                 opts.cb(false, local_port)
                 cb_happened = true
+
         stderr = ''
         r.stderr.on 'data', (data) ->
             stderr += data.toString()
-            # Got a local_port -- let's use it.
-            port_forwards[remote_address] = local_port
-        r.on 'exit', (code) ->
-            if not cb_happened
-                opts.cb("Problem setting up ssh port forward -- #{stderr}")
-            delete port_forwards[remote_address]
 
         kill_if_no_new_output = () ->
             if not new_output
-                # shut it down!
+                winston.debug("Killing ssh port forward #{remote_address} --> localhost:#{local_port} due to it not working")
                 r.kill("SIGKILL")
             new_output = false
 
-        setInterval(kill_if_no_new_output, 2000)
+        # check every few seconds
+        kill_no_output_timer = setInterval(kill_if_no_new_output, 2*1000*opts.keep_alive_time)
+
+        kill_if_no_new_activity = () ->
+            if not r.activity?
+                winston.debug("Killing ssh port forward #{remote_address} --> localhost:#{local_port} due to not receiving any data for at least #{opts.activity_time} seconds.")
+                r.kill("SIGKILL")
+            else
+                # delete it -- the only way connection won't be killed is if this gets set again by an active call to keep_portforward_alive above.
+                delete r.activity
+
+        kill_no_activity_timer = setInterval(kill_if_no_new_activity, 1000*opts.activity_time)
+
+        r.on 'exit', (code) ->
+            if not cb_happened
+                opts.cb("Problem setting up ssh port forward -- #{stderr}")
+            delete address_to_local_port[remote_address]
+            clearInterval(kill_no_output_timer)
+            clearInterval(kill_no_activity_timer)

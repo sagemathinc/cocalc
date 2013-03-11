@@ -10458,6 +10458,8 @@ Deal with path aspect of projects (rewrite local_hub some):
     test), since the node binary won't even work on any machine with
     such old python.  Screw that.
 
+  [x] briefly experiment with localStorage for project list
+
 
 -->   [x] (0:26) BUG: exiting emacs on terminal leaves underscores around sometimes.
 CSI > 4m is causing the trouble; it is being interpretted as
@@ -10469,6 +10471,30 @@ CSI > Ps; Ps T
           ble to 
 
 ==================================================================
+
+    [x] ssh connection should run a program that outputs something
+        every few seconds; if nothing appears, the connection is killed.
+
+----
+
+(est:20)  [x] (1:42) ssh port forward expiration -- reimplement using Timeout; actually, I decided to remove that, and instead make it less of a load on the server to have more ssh forwards open at once.  I'll have to implement something in hub that frees up ports instead.   I made it so everything is freed when hub terminates (might as well).     What we really need is some sort of way to tell if there is activity over the port forward.
+
+(est:1:30)    [ ] make persistent console sessions actually work
+
+(est:1:00)    [ ] BUG: fix the "doubling of everything" when opening a project
+
+(est:1:00)    [ ] make it so user can change the location of the project in the project settings page.
+
+(est:1:00)    [ ] add or implement search plugin for codemirror editor.
+
+(est:0:30)    [ ] clicking on an image should just show it...
+
+
+
+----
+
+
+
 
     [ ] SECURITY: I *need* -- absolutely need -- to modify all this so
         that the private key used by the hub depends on the user, and
@@ -10484,12 +10510,9 @@ CSI > Ps; Ps T
            Use passphrase.  For port forwarding, I don't know how to do that except
            by having hundreds of accounts on the hub machine, which is ridiculous!
 
--->    [ ] ssh connection should run a program that outputs something
-        every few seconds; if nothing appears, the connection is killed.
 
-    [ ] ssh port forward expiration -- reimplement using Timeout
+     [ ] code_editor -- remove trailing whitespace mode
 
-    [ ] clicking on an image should just show it...
 
     [ ] control-s in worksheet should save it?
 
@@ -10593,8 +10616,6 @@ POWER/INTERNET -->
         [ ] hub: "# TODO: check that @_port is actually still open and valid" -- how to check this in node.js?
         [ ] build local_hub on various OS X's.
 
-
-  [x] briefly experiment with localStorage for project list
 
 
   [ ] RENAME: local_hub --> session_hub
@@ -10744,8 +10765,6 @@ Next Priority
      [ ] that automatic_vars mode
 
      [ ] implicit multiplication mode.
-
-     [ ] code_editor -- remove trailing whitespace mode
 
      [ ] code editor -- reformat paragraph
 

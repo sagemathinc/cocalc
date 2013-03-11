@@ -129,6 +129,8 @@ init_http_server = () ->
 
     )
 
+    http_server.on('close', clean_up_on_shutdown)
+
 
 #############################################################
 # Client = a client that is connected via sockjs to the hub
@@ -1075,6 +1077,10 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
             else
                 misc_node.enable_mesg(socket)
                 opts.cb(false, socket)
+
+    socket.on 'data', (data) ->
+        misc_node.keep_portforward_alive(opts.port)
+
 
 _local_hub_cache = {}
 new_local_hub = (opts) ->    # cb(err, hub)
@@ -2867,6 +2873,16 @@ stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
             winston.error("(hub) no sage servers!")
             output_message_callback(message.terminate_session(reason:'no Sage servers'))
     )
+
+
+#############################################
+# Clean up on shutdown
+#############################################
+
+clean_up_on_shutdown = () ->
+    # No point in keeping the port forwards around, since they are only *known* in RAM locally.
+    winston.debug("Unforwarding ports...")
+    misc_node.unforward_all_ports()
 
 
 #############################################
