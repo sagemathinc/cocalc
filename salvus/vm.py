@@ -35,13 +35,13 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
     img_path = os.path.join(os.environ['HOME'], 'vm', 'images')
     base_img_path = os.path.join(img_path, 'base')
     if not os.path.exists(base_img_path):
-        os.makedirs(base_img_path) 
+        os.makedirs(base_img_path)
     persistent_img_path = os.path.join(img_path, 'persistent')
     if not os.path.exists(persistent_img_path):
-        os.makedirs(persistent_img_path) 
+        os.makedirs(persistent_img_path)
     temporary_img_path = os.path.join(img_path, 'temporary')
     if not os.path.exists(temporary_img_path):
-        os.makedirs(temporary_img_path) 
+        os.makedirs(temporary_img_path)
     new_img = os.path.join(temporary_img_path, hostname + '.img')
 
     if os.path.exists(new_img):
@@ -104,7 +104,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 hostname_file = os.path.join(tmp_path,'etc/hostname')
                 if not os.path.exists(hostname_file):
                     raise RuntimeError("missing /etc/hostname in the VM image; probably the guestmount command is not working, and the fix is probably to type 'sudo chmod a+r /boot/vmlinuz-*'")
-                    
+
                 os.unlink(hostname_file)
                 open(hostname_file,'w').write(hostname)
                 hosts_file = os.path.join(tmp_path, 'etc/hosts')
@@ -152,17 +152,17 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
         # create and start the vm itself
         #################################
         try:
-            cmd = ['virt-install', 
-                   '--cpu', 'host', 
-                   '--network', 'user,model=virtio', 
+            cmd = ['virt-install',
+                   '--cpu', 'host',
+                   '--network', 'user,model=virtio',
                    '--name', hostname,
-                   '--vcpus', vcpus, 
+                   '--vcpus', vcpus,
                    '--ram', 1024*ram,
-                   '--import', 
-                   '--disk', (new_img + ',device=disk,bus=virtio,format=qcow2,cache=writeback'), 
+                   '--import',
+                   '--disk', (new_img + ',device=disk,bus=virtio,format=qcow2,cache=writeback'),
                    '--noautoconsole']
 
-            if vnc: 
+            if vnc:
                 cmd.extend(['--graphics', 'vnc,port=%s'%vnc])
 
             for x in persistent_images:
@@ -183,7 +183,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
             # clean up
             virsh('undefine', hostname)
             virsh('destroy', hostname)
-            
+
     finally:
         try: os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
         except: pass
@@ -219,11 +219,11 @@ if __name__ == "__main__":
                         help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--disk", dest="disk", type=str, default="",
                         help="persistent disks: '--disk=cassandra:64,backup:10' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, both formated ext4, and mounted as /cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.")
-    parser.add_argument('--base', dest='base', type=str, default='salvus', 
+    parser.add_argument('--base', dest='base', type=str, default='salvus',
                         help="template image in ~/vm/images/base on which to base this machine; must *not* be running (default: salvus).")
 
     args = parser.parse_args()
-    
+
     if args.logfile:
         args.logfile = os.path.abspath(args.logfile)
     if args.pidfile:

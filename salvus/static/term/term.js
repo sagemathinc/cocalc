@@ -844,7 +844,7 @@ Terminal.prototype.destroy = function() {
  */
 
 // In the screen buffer, each character
-// is stored as a an array with a character
+// is stored as an array with a character
 // and a 32-bit integer.
 // First value: a utf-16 character.
 // Second value:
@@ -2788,7 +2788,16 @@ Terminal.prototype.charAttributes = function(params) {
       this.curAttr = this.curAttr | (1 << 18);
     } else if (p === 4) {
       // underlined text
-      this.curAttr = this.curAttr | (2 << 18);
+      if (this.prefix === ">") {
+	// > is a mode reset, according to the docs, and this gets triggered on exit from emacs.
+	//
+	//CSI > Ps; Ps T
+	//          Reset one or more features of the title modes to the default
+	//          value.  Normally, "reset" disables the feature.
+      } else {
+	  this.curAttr = this.curAttr | (2 << 18);
+      }
+
     } else if (p === 7 || p === 27) {
       // inverse and positive
       // test with: echo -e '\e[31m\e[42mhello\e[7mworld\e[27mhi\e[m'
