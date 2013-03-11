@@ -30,7 +30,7 @@ net = require('net')
 # data is just a JSON-able object.  When type='blob', data={uuid:..., blob:...};
 # since every blob is tagged with a uuid.
 
-{defaults, required, to_json} = require 'misc'
+{walltime, defaults, required, to_json} = require 'misc'
 
 message = require 'message'
 
@@ -225,6 +225,7 @@ exports.execute_code = (opts) ->
         gid        : undefined
         cb         : required
 
+    start_time = walltime()
     winston.debug("execute_code: \"#{opts.command} #{opts.args.join(' ')}\"")
 
     s = opts.command.split(/\s+/g) # split on whitespace
@@ -238,9 +239,7 @@ exports.execute_code = (opts) ->
         opts.path = opts.home
     else if opts.path[0] != '/'
         opts.path = opts.home + '/' + opts.path
-
-    winston.debug("execute_code: home='#{opts.home}', path='#{opts.path}'")
-
+        
     stdout = ''
     stderr = ''
     exit_code = undefined
@@ -271,9 +270,9 @@ exports.execute_code = (opts) ->
                 else
                     opts.command = 'bash'
                     opts.args    = [info.path]
+                    tmpfilename  = info.path
                     fs.write(info.fd, cmd)
                     fs.close(info.fd, c)
-                    tmpfilename =info.path
 
         (c) ->
             if tmpfilename?
@@ -302,6 +301,7 @@ exports.execute_code = (opts) ->
                         stdout += data.slice(0,opts.max_output - stdout.length)
                 else
                     stdout += data
+
             r.stderr.on 'data', (data) ->
                 data = data.toString()
                 if opts.max_output?
@@ -324,35 +324,43 @@ exports.execute_code = (opts) ->
                 exit_code = code
                 finish()
 
+            callback_done = false
             finish = () ->
                 if stdout_is_done and stderr_is_done and exit_code?
                     if opts.err_on_exit and exit_code != 0
-                        c("command '#{opts.command}' (args=#{opts.args.join(' ')}) exited with nonzero code #{exit_code} -- stderr='#{stderr}'")
+                        if not callback_done
+                            callback_done = true
+                            c("command '#{opts.command}' (args=#{opts.args.join(' ')}) exited with nonzero code #{exit_code} -- stderr='#{stderr}'")
                     else
                         if opts.max_output?
                             if stdout.length >= opts.max_output
                                 stdout += " (truncated at #{opts.max_output} characters)"
                             if stderr.length >= opts.max_output
                                 stderr += " (truncated at #{opts.max_output} characters)"
-                        c()
+                        if not callback_done
+                            callback_done = true
+                            c()
 
             if opts.timeout?
                 f = () ->
                     if r.exitCode == null
                         winston.debug("execute_code: subprocess did not exit after #{opts.timeout} seconds, so killing with SIGKILL")
                         r.kill("SIGKILL")  # this does not kill the process group :-(
-                        c("killed command '#{opts.command} #{opts.args.join(' ')}'")
+                        if not callback_done
+                            callback_done = true
+                            c("killed command '#{opts.command} #{opts.args.join(' ')}'")
                 setTimeout(f, opts.timeout*1000)
 
     ], (err) ->
         if not exit_code?
             exit_code = 1  # don't have one due to SIGKILL
+
         # TODO:  This is dangerous, e.g., it could print out a secret_token to a log file.
-        winston.debug("Running '#{opts.command} #{opts.args.join(' ')}' produced stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
-        opts.cb?(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
+        winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
         # Do not litter:
         if tmpfilename?
             fs.unlink(tmpfilename)
+        opts.cb?(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
     )
 
 
@@ -405,6 +413,16 @@ exports.forward_remote_port_to_localhost = (opts) ->
                              # seconds.; lower to more quickly detect
                              # a broken connection; raise to reduce resources
         cb          : required  # cb(err, local_port)
+
+    opts.ssh_port = parseInt(opts.ssh_port)
+    if not (opts.ssh_port >= 1 and opts.ssh_port <= 66000)
+        opts.cb("Invalid ssh_port option")
+        return
+
+    opts.remote_port = parseInt(opts.remote_port)
+    if not (opts.remote_port >= 1 and opts.remote_port <= 66000)
+        opts.cb("Invalid remote_port option")
+        return
 
     winston.debug("Forward a remote port #{opts.remote_port} on #{opts.host} to localhost.")
 

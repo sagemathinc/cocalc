@@ -1096,8 +1096,9 @@ new_local_hub = (opts) ->    # cb(err, hub)
         winston.debug("new_local_hub already cached")
         opts.cb(false, H)
     else
-        winston.debug("new_local_hub creating new object")
+        start_time = misc.walltime()
         H = new LocalHub(opts.username, opts.host, opts.port, (err) ->
+                   winston.debug("new_local_hub creation: time= #{misc.walltime() - start_time}")
                    if not err
                       _local_hub_cache[hash] = H
                    opts.cb?(err, H)
@@ -1338,14 +1339,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 if @_status.local_port
                     cb()
                 else
-                    misc_node.forward_remote_port_to_localhost
-                        username    : @username
-                        host        : @host
-                        ssh_port    : @port
-                        remote_port : @_status['local_hub.port']
-                        cb          : (err, local_port) =>
-                            @_status.local_port = local_port
-                            cb(err)
+                    if @_status['local_hub.port']
+                        misc_node.forward_remote_port_to_localhost
+                            username    : @username
+                            host        : @host
+                            ssh_port    : @port
+                            remote_port : @_status['local_hub.port']
+                            cb          : (err, local_port) =>
+                                @_status.local_port = local_port
+                                cb(err)
+                    else
+                        cb("Unable to start local_hub daemon on #{@address}")
 
         ], (err) =>
             delete @_opening
@@ -1505,10 +1509,20 @@ _project_cache = {}
 new_project = (project_id, cb) ->   # cb(err, project)
     P = _project_cache[project_id]
     if P?
-        cb(false, P)
+        if P == "instantiating"
+            # Try again in a second. We must believe that the code
+            # doing the instantiation will terminate and correctly set P.
+            setTimeout((() -> new_project(project_id, cb)), 1000)
+        else
+            cb(false, P)
     else
+        _project_cache[project_id] = "instantiating"
+        start_time = misc.walltime()
         new Project(project_id, (err, P) ->
-            if not err
+            winston.debug("new_project: time= #{misc.walltime() - start_time}")
+            if err
+                delete _project_cache[project_id]
+            else
                 _project_cache[project_id] = P
             cb(err, P)
         )
@@ -1517,7 +1531,7 @@ class Project
     constructor: (@project_id, cb) ->
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
-        winston.debug("Creating project #{@project_id}.")
+        winston.debug("Instantiating Project class for project with id #{@project_id}.")
         database.get_project_location
             project_id : @project_id
             cb         : (err, location) =>

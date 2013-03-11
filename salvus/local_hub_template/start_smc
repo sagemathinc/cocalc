@@ -8,7 +8,7 @@ echo "Read SageMathCloud environment variables."
 echo "Rebuild any modified coffeescript"
 make_coffee
 
-local_hub      start
-console_server start
-sage_server    start
+local_hub      start &
+console_server start &
+sage_server    start &
 

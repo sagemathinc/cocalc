@@ -10481,7 +10481,7 @@ CSI > Ps; Ps T
 
 (est:1:30)    [ ] make persistent console sessions actually work
 
-(est:1:00)    [ ] BUG: fix the "doubling of everything" when opening a project
+(est:1:00)    [x] BUG: fix the "doubling of everything" when opening a project
 
 (est:1:00)    [ ] make it so user can change the location of the project in the project settings page.
 
