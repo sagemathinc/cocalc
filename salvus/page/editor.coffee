@@ -66,7 +66,13 @@ file_associations['salvus-slideshow'] =
     editor : 'slideshow'
     opts   : {}
 
+for ext in ['png', 'jpg', 'svg']    
+    file_associations[ext] = 
+        editor : 'image'
+        opts   : {}
+    
 
+                  
 
 # Given a text file (defined by content), try to guess
 # what the extension should be.
@@ -85,15 +91,6 @@ guess_file_extension_type = (content) ->
     if first_line.indexOf('/*') != -1 or first_line.indexOf('//') != -1   # kind of a stretch
         return 'c++'
     return undefined
-
-
-
-
-
-
-
-
-
 
 
 
@@ -285,6 +282,8 @@ class exports.Editor
                 editor = new Spreadsheet(@, filename, content, x.opts)
             when 'slideshow'
                 editor = new Slideshow(@, filename, content, x.opts)
+            when 'image'
+                editor = new Image(@, filename, content, x.opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
@@ -583,6 +582,11 @@ class Worksheet extends FileEditor
     focus: () =>
         @worksheet?.focus()
 
+class Image extends FileEditor
+    constructor: (@editor, @filename, content, opts) ->
+        opts = @opts = defaults opts,{}
+        @element = $("<div>Image viewer not implemented yet.</div>")     
+        
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}
@@ -592,3 +596,5 @@ class Slideshow extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}
         @element = $("<div>Salvus slideshow not implemented yet.</div>")
+        
+   

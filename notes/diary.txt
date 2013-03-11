@@ -10451,9 +10451,7 @@ Deal with path aspect of projects (rewrite local_hub some):
 
     [x] LocalHub: automatically start the port forwarding
 
-    [ ] local-hub: still lots of race conditions; visible in log; e.g., building goes crazy building on top of self!
-
-    [ ] editor: if file has no extension, try to guess the mode from first line?
+    [x] editor: if file has no extension, try to guess the mode from first line?
 
     [x] status doesn't work with python 2.5 since no json -- no point
     in supporting this (though I implemented it with microjson as a
@@ -10485,26 +10483,32 @@ CSI > Ps; Ps T
           value.  Normally, "reset" disables the feature.  It is possi-
           ble to 
 
+    [ ] clicking on an image should just show it...
+
+    [ ] control-s in worksheet should save it?
+
+    [ ] local-hub: still lots of race conditions; visible in log; e.g., building goes crazy building on top of self!
+        bug seen in log: creating one sage session creates TWO.  WEIRD.
+
     [ ] local-hub: make a binary of the complete install; note this has to be remade when I change anything, so must be very automated.
 
-    [ ] make project disk usage be correct
+
+    [ ] make project disk usage be correct... or when browsing files just show usage of current path and all subdirs...
+
     [ ] attach: I must implement the load and attach commands, for (backwards) compatibility. Sorry.
 
-    [ ] bug in log: creating one sage session creates TWO.  WEIRD.
 
 another NAME idea:  share.sagemath.com  ?
 
     [ ] rename: local_hub --> minihub?
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
-    [ ] control-s in worksheet should save it?
 
     [ ] hub: when connection between local_hub and hub dies, recreate it.
+
     [ ] local_hub: automatically recreate connection to console_server if it goes down
     [ ] local_hub: automatically recreate connection to sage_server if it goes down
 
     [ ] hub/project: move code for getting a new worksheet session to project object and test
-
-    [ ] hub: setup ssh port forward, noting that port on hub and port on remote are different, and saving this to RAM in hub.
 
     [ ] to greatly speed up install of .sagemathcloud, just prebuild the four binaries (linux/osx/x64/x86) and post in static/ (?)
 
@@ -10543,8 +10547,6 @@ AWS usage ideas:
     [ ] stupid codemirror keeps scrolling to top on refocus.  Must *remember* everything exactly!
 
     [ ] still sometimes get rendered mathjax in html'data. argh.
-
-    [ ] clicking on an image should just show it...
 
 ---------
 
