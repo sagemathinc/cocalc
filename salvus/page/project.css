@@ -147,17 +147,17 @@
 
 
 .project-command-line {
-    margin-left:2em;
+    margin-left:0em;
 }
 
 .project-command-line-input {
     margin-top:0em;
-    margin-left:1em;
+    margin-left:0em;
     width:30em;
 }
 
 .project-command-line-stdout {
-    margin-left:2em;
+    margin-left:0em;
     background-color:#fff;
     color:#333;
     font-size:10pt;
@@ -165,8 +165,8 @@
     overflow:auto;
 }
 .project-command-line-stderr {
-    margin-left:2em;
-    background-color:#fff;
+    margin-left:0em;
+    background-color:#fcc;
     color:#922;
     font-size:10pt;
     max-height:12em;

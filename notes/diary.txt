@@ -10440,9 +10440,12 @@ This last point is the most important.  OK, so I'm going to switch to a 1 local_
 
 Deal with path aspect of projects (rewrite local_hub some):
 
-    [x] (0:45) make directory listing be correct.
+    [x] (0:45) local_hub/projects/hub: make directory listing be correct.
 
- -->   [ ] LocalHub: automatically start the port forwarding
+
+    [x] (0:34) local-hub refactor: exec code on remote command line often giving error:true... (fixed); also some polish of how command line works.
+
+    [ ] LocalHub: automatically start the port forwarding
 
 
     [ ] LocalHub: build if necessary

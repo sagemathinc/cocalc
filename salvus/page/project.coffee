@@ -211,12 +211,15 @@ class ProjectPage
 
         # Activate the command line
         cmdline = @container.find(".project-command-line-input")
-        cmdline.keypress (evt) ->
-            if evt.which == 13
+        cmdline.keydown (evt) =>
+            if evt.which == 13 # enter
                 try
                     that.command_line_exec()
                 catch e
                     console.log(e)
+                return false
+            if evt.which == 27 # escape
+                @container?.find(".project-command-line-output").hide()
                 return false
 
         # TODO: this will be for command line tab completion
@@ -364,9 +367,10 @@ class ProjectPage
     command_line_exec: () =>
         elt = @container.find(".project-command-line")
         input = elt.find("input")
-        command = input.val()
-        command += "\npwd"
+        command0 = input.val()
+        command = command0 + "\npwd"
         input.val("")
+        @container?.find(".project-command-line-output").show()
         t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 300)
         salvus_client.exec
             project_id : @project.project_id
@@ -379,7 +383,7 @@ class ProjectPage
                 clearTimeout(t)
                 @container.find(".project-command-line-spinner").spin(false).hide()
                 if err
-                    alert_message(type:'error', message:err)
+                    alert_message(type:'error', message:"#{command0} -- #{err}")
                 else
                     # All this code below is to find the current path
                     # after the command is executed, and also strip
@@ -393,15 +397,32 @@ class ProjectPage
                         k = cwd.indexOf('/')
                         if k != -1
                             cwd = cwd.slice(k+1)
-                            @current_path = cwd.split('/')
+                            path = @project.location.path
+                            if path == cwd.slice(0, path.length)
+                                cwd = cwd.slice(path.length)
+                                while cwd[0] == '/'
+                                    cwd = cwd.slice(1)
+                                if cwd.length > 0
+                                    @current_path = cwd.split('/')
+                                else
+                                    @current_path = []
                         else
-                            # HOME
+                            # root of project
                             @current_path = []
 
                         output.stdout = if i == -1 then "" else output.stdout.slice(0,i)
-                    # We display the output of the command.
-                    elt.find(".project-command-line-stdout").text(output.stdout).show()
-                    elt.find(".project-command-line-stderr").text(output.stderr).show()
+
+                    stdout = $.trim(output.stdout)
+                    stderr = $.trim(output.stderr)
+                    # We display the output of the command (or hide it)
+                    if stdout
+                        elt.find(".project-command-line-stdout").text(stdout).show()
+                    else
+                        elt.find(".project-command-line-stdout").hide()
+                    if stderr
+                        elt.find(".project-command-line-stderr").text(stderr).show()
+                    else
+                        elt.find(".project-command-line-stderr").hide()
                 @update_file_list_tab()
 
     # command_line_tab_complete: () =>
