@@ -10453,7 +10453,12 @@ Deal with path aspect of projects (rewrite local_hub some):
 
     [ ] local-hub: still lots of race conditions; visible in log; e.g., building goes crazy building on top of self!
 
-    [ ] status doesn't work with python 2.5 since no json
+    [ ] editor: if file has no extension, try to guess the mode from first line?
+
+    [x] status doesn't work with python 2.5 since no json -- no point
+    in supporting this (though I implemented it with microjson as a
+    test), since the node binary won't even work on any machine with
+    such old python.  Screw that.
 
 ==================================================================
 
