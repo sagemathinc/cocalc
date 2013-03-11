@@ -1113,6 +1113,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             else
                 @_socket = socket
                 socket.on 'end', () =>
+                    delete @_status
                     delete @_socket
                 cb(false, @_socket)
 
@@ -1252,6 +1253,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     sage_session:  (opts) =>
         opts = defaults opts,
             session_uuid : undefined
+            path         : undefined
             cb           : required
 
     # TODO:
@@ -1473,6 +1475,14 @@ class Project
                             @local_hub = hub
                             cb(false, @)
 
+    _fixpath: (obj) =>
+        if obj?
+            if obj.path?
+                if obj.path[0] != '/'
+                    obj.path = @location.path + '/' + obj.path
+            else
+                obj.path = @location.path
+
     owner: (cb) =>
         database.get_project_data
             project_id : @project_id
@@ -1488,6 +1498,7 @@ class Project
             mesg    : required
             timeout : 10
             cb      : undefined
+        @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
 
@@ -1498,18 +1509,22 @@ class Project
             cb : cb
 
     read_file: (opts) ->
+        @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.read_file(opts)
 
     write_file: (opts) ->
+        @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.write_file(opts)
 
     console_session: (opts) ->
+        @_fixpath(opts.params)
         opts.project_id = @project_id
         @local_hub.console_session(opts)
 
     sage_session: (opts) ->
+        @_fixpath(opts.path)
         opts.project_id = @project_id
         @local_hub.sage_session(opts)
 

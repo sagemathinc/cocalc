@@ -5,11 +5,11 @@ message  = require 'message'
 
 process.on 'message', (opts, socket) ->
     opts = defaults opts,
-        cwd     : undefined
         rows    : required
         cols    : required
         command : required
         args    : required
+        path    : undefined
         cputime : required  # limit on cputime                        POSIX rlimit name: 'cpu'
         vmem    : required  # limit on virtual memory (in megabytes)  POSIX rlimit name: 'as' (address space)
         numfiles: required  # limit on number of file descriptors     POSIX rlimit name: 'nofile'
@@ -19,8 +19,8 @@ process.on 'message', (opts, socket) ->
         rows : opts.rows
         cols : opts.cols
 
-    if opts.cwd?
-        term_opts.cwd = opts.cwd
+    if opts.path?
+        term_opts.cwd = opts.path
     if opts.home?
         term_opts.home = opts.home
 

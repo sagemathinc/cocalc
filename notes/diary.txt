@@ -10438,15 +10438,24 @@ This last point is the most important.  OK, so I'm going to switch to a 1 local_
     [x] (0:50) local_hub refactor -- test/debug everything together.
     [x] local_hub: create new file broken
 
-    [ ] Deal with path aspect of projects (rewrite local_hub some)
+Deal with path aspect of projects (rewrite local_hub some):
+
+    [x] (0:45) make directory listing be correct.
+
+ -->   [ ] LocalHub: automatically start the port forwarding
+
 
     [ ] LocalHub: build if necessary
     [ ] LocalHub: start if necessary
-    [ ] LocalHub: detect when socket connection to localhost dies and fix. 
+    [ ] make project disk usage be correct
 
 ==================================================================
 
+    [ ] attach: I must implement the load and attach commands, for (backwards) compatibility. Sorry.
+
     [ ] bug in log: creating one sage session creates TWO.  WEIRD.
+
+another NAME idea:  share.sagemath.com  ?
 
     [ ] rename: local_hub --> minihub?
     [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
@@ -10478,6 +10487,27 @@ AWS usage ideas:
 
     [ ] it would be very helpful is a "worksheet" had multiple pages.
         Maybe "worksheet" --> "mathsheet", "sagesheet", "notebook" (?)
+
+    [ ] it would be nice if -- when editing a .sage file -- tab
+        completion (and help) would work and complete on the global
+        sage namespace.  Why not?
+
+    [ ] really need easy way to swap between codemirror html and other views of note field.  E.g., keystroke + button.
+
+    [ ] backup of project: this should just be configurable with some options
+           - NOTHING (you don't care)
+           - dropbox
+           - github
+           - rsnapshot (provided by me)
+           - etc.
+
+    [ ] sessions: when login get a list of existing ones or make a new one.
+
+    [ ] stupid codemirror keeps scrolling to top on refocus.  Must *remember* everything exactly!
+
+    [ ] still sometimes get rendered mathjax in html'data. argh.
+
+    [ ] clicking on an image should just show it...
 
 ---------
 

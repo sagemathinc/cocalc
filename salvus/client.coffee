@@ -37,7 +37,7 @@ class Session extends EventEmitter
         opts = defaults opts,
             conn         : required     # a Connection instance
             session_uuid : required
-            data_channel : undefined   # optional extra channel that is used for raw data
+            data_channel : undefined    # optional extra channel that is used for raw data
 
         @start_time   = misc.walltime()
         @conn         = opts.conn
@@ -1074,7 +1074,6 @@ class exports.Connection extends EventEmitter
             opts.path = "."
         args.push(opts.path)
 
-        # We add the changes to the worksheet to the repo.
         @exec
             project_id : opts.project_id
             command    : gitls

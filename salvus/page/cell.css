@@ -38,14 +38,15 @@
 
 .salvus-cell-input {
     min-height       : 1.5em;
-    border           : 3px solid #e0e0e0;
+    border-left      : 2px solid #e0e0e0;
+    border-top      : 2px solid white;
+    border-bottom      : 2px solid white;
     margin-left      : 1em;
-    border-radius: 5px;
 }
 
 .salvus-cell-input-selected {
     min-height       : 1.5em;
-    border: 3px solid #99f;
+    border: 2px solid #99f;
     border-radius: 5px;
     /*box-shadow: 3px 3px 1px #bbf; */
 }

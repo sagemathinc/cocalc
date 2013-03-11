@@ -66,7 +66,6 @@ start_session = (socket, mesg) ->
         command : undefined
         args    : []
         path    : undefined
-        cwd     : undefined          # starting PATH (need not be home directory)
 
     if process.env['USER'] == 'root'
         if not mesg.project_id? or mesg.project_id.length != 36
