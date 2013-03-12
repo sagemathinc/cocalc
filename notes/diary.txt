@@ -10491,11 +10491,12 @@ CSI > Ps; Ps T
                     [x] add support for color themes with solarized as default.
                     [x] add exactly the right codemirror-3.1 files to git
                     [x] fix all the issues with keyboard shortcuts in the editor; probably caused by backwards incompat changes.
-                    [ ] when doing search, display keyboard shortcuts somewhere???
+                    
                     
 (est: 1:00)     [x] include xyjax in SMC   https://github.com/sonoisa/XyJax
                     
-                    
+-->           [ ] fix weird scrollbar insanity on bottom of text editor      
+
 (est: 3:00)   [ ] when you edit a .tex file with the editor, put a mode button in, which changes the 
          view from codemirror editor to tex'd version of the file.
          "convert -density 200 a.pdf a.png"

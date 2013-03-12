@@ -405,6 +405,7 @@ class CodeMirrorEditor extends FileEditor
             undo_depth        : 100
             editor_max_height : "30em"
             match_brackets    : true
+            line_wrapping     : true
             theme             : "solarized"  # see static/codemirror*/themes or head.html
 
 
@@ -422,6 +423,7 @@ class CodeMirrorEditor extends FileEditor
             undoDepth       : opts.undo_depth
             matchBrackets   : opts.match_brackets
             theme           : opts.theme
+            lineWrapping    : opts.line_wrapping
             extraKeys       :
                 "Shift-Enter" : (editor) => @click_save_button()
                 "Ctrl-S" : (editor) => @click_save_button()
