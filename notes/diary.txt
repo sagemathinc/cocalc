@@ -10485,7 +10485,8 @@ CSI > Ps; Ps T
 
 (est:1:30)    [ ] make persistent console sessions actually work
 
-(est:1:00)    [ ] make it so user can change the location of the project in the project settings page.
+(est:1:00)    [ ] make it so user can change the location of the project:
+                  started this -- see project.coffee "TODO -- actually implement project location change"
 
 (est:1:00)    [ ] add or implement search plugin for codemirror editor.
 
