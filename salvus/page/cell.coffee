@@ -64,6 +64,8 @@ class Cell extends EventEmitter
             editor_match_brackets : true
             # css maximum height of code editor (scroll bars appear beyond this)
             editor_max_height     : "30em"
+            # theme
+            editor_theme          : "solarized"  # see static/codemirror*/themes or head.html
 
             keys                  :
                 # key that causes code to be executed
@@ -229,6 +231,7 @@ class Cell extends EventEmitter
             undoDepth       : @opts.editor_undo_depth
             matchBrackets   : @opts.editor_match_brackets
             extraKeys       : extraKeys
+            theme           : @opts.editor_theme
 
         $(@_editor.getWrapperElement()).addClass('salvus-cell-editor')#.tooltip(delay:1000, title:"Enter code to evaluate.")
         $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)

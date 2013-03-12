@@ -23,3 +23,5 @@ salvus/page/temp
 
 salvus/static/mercury/js/mercury.min.js
 salvus/static/mercury/src/build
+
+salvus/static/codemirror-3.1/*

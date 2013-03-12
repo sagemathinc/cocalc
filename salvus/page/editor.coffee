@@ -397,14 +397,16 @@ class FileEditor extends EventEmitter
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
-            mode         : required
-            line_numbers : true
-            indent_unit  : 4
-            tab_size     : 4
-            smart_indent : true
-            undo_depth   : 100
-            editor_max_height: "40em"
-            match_brackets: true
+            mode              : required
+            line_numbers      : true
+            indent_unit       : 4
+            tab_size          : 4
+            smart_indent      : true
+            undo_depth        : 100
+            editor_max_height : "40em"
+            match_brackets    : true
+            theme             : "solarized"  # see static/codemirror*/themes or head.html
+
 
         @element = templates.find(".salvus-editor-codemirror").clone()
 
@@ -419,6 +421,7 @@ class CodeMirrorEditor extends FileEditor
             smartIndent     : opts.smart_indent
             undoDepth       : opts.undo_depth
             matchBrackets   : opts.match_brackets
+            theme           : opts.theme
             extraKeys       :
                 "Shift-Enter" : (editor) => @click_save_button()
                 "Ctrl-S" : (editor) => @click_save_button()
