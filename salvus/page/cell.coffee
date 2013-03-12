@@ -171,17 +171,17 @@ class Cell extends EventEmitter
                 if editor.getCursor().line == 0
                     @emit "previous-cell"
                 else
-                    throw CodeMirror.Pass
+                    return CodeMirror.Pass
             "Down" : (editor) =>
                 if editor.getCursor().line >= editor.lineCount() - 1
                     @emit "next-cell"
                 else
-                    throw CodeMirror.Pass
+                    return CodeMirror.Pass
             "Backspace" : (editor) =>
                 if editor.getValue() == ""
                     @emit "delete-cell"
                 else
-                    throw CodeMirror.Pass
+                    return CodeMirror.Pass
 
         extraKeys[@opts.keys.introspect] = (editor) =>
             @_introspect()

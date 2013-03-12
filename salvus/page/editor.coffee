@@ -403,7 +403,7 @@ class CodeMirrorEditor extends FileEditor
             tab_size          : 4
             smart_indent      : true
             undo_depth        : 100
-            editor_max_height : "40em"
+            editor_max_height : "30em"
             match_brackets    : true
             theme             : "solarized"  # see static/codemirror*/themes or head.html
 

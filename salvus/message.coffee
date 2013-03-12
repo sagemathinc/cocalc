@@ -394,8 +394,8 @@ exports.account_settings_defaults =
     connect_Github     : ''
     connect_Google     : ''
     connect_Dropbox    : ''
-    autosave           : 30
-    terminal           : {font_size:12, color_scheme:'default'}
+    autosave           : 20
+    terminal           : {font_size:14, color_scheme:'solarized-light'}
 
 # client <--> hub
 message(

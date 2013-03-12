@@ -10489,8 +10489,8 @@ CSI > Ps; Ps T
 
 (est:1:30) -->      [x] upgrade to codemirror-3.1, and enable search plugin for editor  
                     [x] add support for color themes with solarized as default.
-                    [ ] add exactly the right codemirror-3.1 files to git
-                    [ ] fix all the issues with keyboard shortcuts in the editor; probably caused by backwards incompat changes.
+                    [x] add exactly the right codemirror-3.1 files to git
+                    [x] fix all the issues with keyboard shortcuts in the editor; probably caused by backwards incompat changes.
                     [ ] when doing search, display keyboard shortcuts somewhere???
                     
 (est: 1:00)     [x] include xyjax in SMC   https://github.com/sonoisa/XyJax
