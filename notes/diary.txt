@@ -10483,6 +10483,39 @@ CSI > Ps; Ps T
 
 (est:0:30)    [x] (0:28) clicking on an image should just show it...
 
+
+
+@@@@@@@@@@@@@@@@ TODAY's GOALS:
+
+(est:1:30) -->      [ ] upgrade to codemirror-3.1, and enable search plugin for editor     
+                    [ ] add exactly the right codemirror-3.1 files to git
+                    [ ] fix all the issues with keyboard shortcuts in the editor; probably caused by backwards incompat changes.
+                    [ ] when doing search, display keyboard shortcuts somewhere???
+                    
+(est: 1:00)     [x] include xyjax in SMC   https://github.com/sonoisa/XyJax
+                    
+                    
+(est: 3:00)   [ ] when you edit a .tex file with the editor, put a mode button in, which changes the 
+         view from codemirror editor to tex'd version of the file.
+         "convert -density 200 a.pdf a.png"
+         This should be really easy to implement and will be a *surprise* for people!
+             [ ] Derive a class "TexEditor" from the codemirror editor class with new html/css
+             [ ] Put buttons to switch mode -- "Source", "Preview", "Output" -- just quick and dirty; can use a switch later.
+             [ ] Also make a "Run LaTeX" button. 
+             [ ] Define html/css for Preview view and output.
+             [ ] Implement Preview view; it will do pdflatex, then convert to png's, and also push the pdflatex 
+                 output to output view, plus number of pages, plus update the previewed page.
+             [ ] The preview view when shown updates the *current* page.  Maybe I could just use some standard
+                 AJAX plugin for a carsol of png's, which is a very standard thing.   But for first version, just have a 
+                 next/previous page button, and load on switch.
+                    
+########################## 
+
+
+
+
+              [ ] make collection of open files persist between sessions (where -- on localStorage or central... don't know.)
+              
 (est:1:30)    [ ] make persistent console sessions actually work
 
 (est:1:00)    [ ] make it so user can change the location of the project:
@@ -10494,7 +10527,18 @@ CSI > Ps; Ps T
 ----
 
 
+         
 
+     [ ] make it so one can add sketches to noes -- this looks really good: http://intridea.github.com/sketch.js/
+         This should also be an interact control, since then one can sketch and use it elsewhere in an interact.
+      
+     
+     [ ] idea -- make it so borders around cells (and notes) is easy to toggle on/off
+     
+     
+    [ ] bug --copy/paste inside of note involving math often results in something un-texable.
+     
+     
 
     [ ] SECURITY: I *need* -- absolutely need -- to modify all this so
         that the private key used by the hub depends on the user, and
@@ -10545,6 +10589,10 @@ another NAME idea:  share.sagemath.com  ?
 
 ---------
 AWS usage ideas:
+
+    [ ] $$'s in note get you latex.  Another symbol should get you sage without output hiding input (?).  E.g., ||.  Also $\sage{ ... }$ should work.
+
+    [ ] note area needs an undo that persists between edits...  can use the diffs it sends out. 
 
     [ ] shift enter in a note creates a new note... with code hidden
     [ ] css around note.
@@ -11022,6 +11070,9 @@ Ideas -- typing this defines macros easily:
 
     [ ] file editor (advanced): split view
     [ ] file editor (advanced): live preview (esp. for html, .md,; latex, etc.)
+          convert -density 200 a.pdf a.png    # looks pretty nice!
+    
+    
     [ ] file editor (advanced): action -- run (for certain file types)
 
 
