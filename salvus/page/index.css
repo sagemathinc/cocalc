@@ -92,3 +92,9 @@ body { padding-top:60px; }
     position: fixed;
 }
 
+/* The following makes it so the codemirror cursor is visible to the naked eye. 
+   I do not understand how anybody can stand the default nearly-invisible vertical line. */
+.CodeMirror div.CodeMirror-cursor {
+  background-color:#666 !important;
+  width:1ex !important;
+}

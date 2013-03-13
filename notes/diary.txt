@@ -10485,7 +10485,6 @@ CSI > Ps; Ps T
 
 
 
-@@@@@@@@@@@@@@@@ TODAY's GOALS:
 
 (est:1:30) -->      [x] upgrade to codemirror-3.1, and enable search plugin for editor  
                     [x] add support for color themes with solarized as default.
@@ -10512,7 +10511,7 @@ CSI > Ps; Ps T
                  AJAX plugin for a carsol of png's, which is a very standard thing.   But for first version, just have a 
                  next/previous page button, and load on switch.
                  
- -->            [ ] latex_editor: main issue is (1) slow, and (2) when page number exceeds document, get CONFUSED    
+             [x] latex_editor: main issue is (1) slow, and (2) when page number exceeds document, get CONFUSED    
                  FIX this by (1) using ghostscript with pngmono, and (2) a high dpi, and (3) loading all images at once.
  
              [ ] make the latex command and what it is run on (!!) customizable.
@@ -10520,12 +10519,24 @@ CSI > Ps; Ps T
                     
 ########################## 
 
+@@@@@@@@@@@@@@@@ TODAY's GOALS:
+           
+              [x] (1:00) Codemirror cursor is too thin!
+              
+              [ ] terminal: make it focus when tab is selected.
+              
+              [ ] edit window resize (and initial size) is a DISASTER.
+`
+(est - 0:45)  [ ] (0:15) make it so current view in a codemirror editor is preserved no matter damned what.
+Tools:
+   - cm.getViewport() -- returns {from, to} 
+   - cm.scrollIntoView(from)
+Need a repeatable failure, and to decide *when* to save viewport.
 
-
+           
+(est:2:00)    [ ] make persistent console sessions actually work very well
 
               [ ] make collection of open files persist between sessions (where -- on localStorage or central... don't know.)
-              
-(est:1:30)    [ ] make persistent console sessions actually work
 
 (est:1:00)    [ ] make it so user can change the location of the project:
                   started this -- see project.coffee "TODO -- actually implement project location change"
@@ -10536,14 +10547,17 @@ CSI > Ps; Ps T
 ----
 
 
+
+      [ ] project.coffee -- BUG -- if you start clicking around directories quickly you can easily get to a nonexistent path due to
+          time of gitls round trip.  So... when that happens display the last valid path.
          
 
      [ ] make it so one can add sketches to noes -- this looks really good: http://intridea.github.com/sketch.js/
          This should also be an interact control, since then one can sketch and use it elsewhere in an interact.
       
+     [ ] idea -- make it so when opening an HTML file, can easily switch between actual HTML (maybe contenteditable?) and source...?
      
-     [ ] idea -- make it so borders around cells (and notes) is easy to toggle on/off
-     
+     [ ] idea -- make it so borders around cells (and notes) is easy to toggle on/off     
      
     [ ] bug --copy/paste inside of note involving math often results in something un-texable.
      
