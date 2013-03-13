@@ -230,7 +230,8 @@ class exports.Editor
             if name == filename
                 @active_tab = tab
                 tab.link.addClass("active")
-                tab.editor.element.show()
+                tab.editor.show()
+                setTimeout(tab.editor.focus, 100)
                 @element.find(".btn-group").children().removeClass('disabled')
             else
                 tab.link.removeClass("active")

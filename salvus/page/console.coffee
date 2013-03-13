@@ -482,6 +482,8 @@ class Console extends EventEmitter
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
     focus: () =>
+        $(@terminal.element).focus()
+        
         if not @_character_height?
             height = $(@terminal.element).height()
             if height != 0 and @opts.rows?

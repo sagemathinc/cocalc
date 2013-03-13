@@ -10523,7 +10523,7 @@ CSI > Ps; Ps T
            
               [x] (1:00) Codemirror cursor is too thin!
               
-              [ ] terminal: make it focus when tab is selected.
+              [x] (0:15) terminal: make it focus when tab is selected.
               
               [ ] edit window resize (and initial size) is a DISASTER.
 `
