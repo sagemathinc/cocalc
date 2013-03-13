@@ -894,6 +894,7 @@ class exports.Connection extends EventEmitter
             timeout    : 30
             max_output : undefined
             bash       : false
+            err_on_exit : true
             cb         : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
 
         @call
@@ -905,10 +906,11 @@ class exports.Connection extends EventEmitter
                 timeout    : opts.timeout
                 max_output : opts.max_output
                 bash       : opts.bash
+                err_on_exit : opts.err_on_exit
             timeout : opts.timeout
             cb      : (err, mesg) ->
                 if err
-                    opts.cb(err)
+                    opts.cb(err, mesg)
                 else if mesg.event == 'error'
                     opts.cb(mesg.error)
                 else

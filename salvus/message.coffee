@@ -581,6 +581,7 @@ message
     timeout    : 10          # maximum allowed time, in seconds.
     max_output : undefined   # maximum number of characters in the output
     bash       : false       # if true, args are ignored and command is run as a bash command
+    err_on_exit : true       # if exit code is nonzero send error return message instead of the usual output.
 
 message
     event      : 'project_exec_output'

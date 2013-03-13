@@ -421,14 +421,14 @@ project_exec = (socket, mesg) ->
         args        : mesg.args
         path        : abspath(mesg.path)
         timeout     : mesg.timeout
-        err_on_exit : true
+        err_on_exit : mesg.err_on_exit
         max_output  : mesg.max_output
         bash        : mesg.bash
         cb          : (err, out) ->
             if err
                 err_mesg = message.error
                     id    : mesg.id
-                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}"
+                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}, #{output.stdout}, #{output.stderr}"
                 socket.write_mesg('json', err_mesg)
             else
                 winston.debug(misc.trunc(misc.to_json(out),512))

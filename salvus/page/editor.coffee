@@ -8,7 +8,7 @@ async = require('async')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
-{trunc, from_json, to_json, keys, defaults, required, filename_extension, len} = require('misc')
+{trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split} = require('misc')
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -484,7 +484,7 @@ class CodeMirrorEditor extends FileEditor
 
     focus: () =>
         $(@codemirror.getScrollerElement()).width(@element.width()).css
-            'max-height' : @element.height() - 3*@element.find(".salvus-editor-codemirror-button-row").height()
+            'max-height' : @element.height()
         @codemirror?.focus()
         @codemirror?.refresh()
                 
@@ -492,20 +492,52 @@ class CodeMirrorEditor extends FileEditor
 # LateX Editor
 ###############################################
 class PDF_Preview
-    # Compute single page: convert -density 150 file.pdf[2] file.png
-    constructor: (@filename, opts) ->
+    # Compute single page
+    constructor: (@editor, @path, @filename, opts) ->
         @element = templates.find(".salvus-editor-pdf-preview").clone()
+        
         @page_number = 1
-        @density = 125  # impacts the zoom
+        @density = 100  # impacts the zoom
+        n = @filename.length
+        @png = @filename.slice(0,n-3)+"png"
+        if @path != ""
+            @png_path = @path + "/" + @png
+        else
+            @png_path = @png
         
         @element.find("a[href=#prev]").click(@prev_page)
         @element.find("a[href=#next]").click(@next_page)
         @element.find("a[href=#zoom-in]").click(@zoom_in)
         @element.find("a[href=#zoom-out]").click(@zoom_out)
+        
+        @output = @element.find(".salvus-editor-pdf-preview-page")
 
     update: () =>
-        console.log("TODO: update display of page #{@page_number} with density #{@density}")
-        
+        console.log(['-density', @density, "#{@filename}[#{@page_number}]", @png])
+        salvus_client.exec
+            project_id : @editor.project_id
+            path       : @path
+            command    : 'convert'
+            args       : ['-trim', '-density', @density, "#{@filename}[#{@page_number-1}]", @png]
+            timeout    : 5
+            err_on_exit : false
+            cb         : (err, output) =>
+                console.log(err, output)
+                if err
+                    alert_message(type:"error", message:err)
+                else
+                    salvus_client.read_file_from_project
+                        project_id : @editor.project_id
+                        path       : @png_path
+                        cb         : (err, result) =>
+                            console.log(err, result)
+                            if err
+                                alert_message(type:"error", message:"Error downloading png preview -- #{err}")
+                            else
+                                @output.html("")
+                                @output.append($("<img src='#{result.url}'>"))
+                    
+               
     next_page: () =>
         @page_number += 1   # TODO: !what if last page?
         @update()
@@ -544,15 +576,21 @@ class LatexEditor extends FileEditor
         @latex_editor = new CodeMirrorEditor(@editor, @filename, content, opts)  
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         
+        v = path_split(@filename)
+        @_path = v.head
+        @_target = v.tail        
+        
         # initialize the preview
         n = @filename.length
-        @preview = new PDF_Preview(@filename.slice(0,n-3)+"pdf", {})
+        @preview = new PDF_Preview(@editor, @_path, @_target.slice(0,n-3)+"pdf", {})
         @element.find(".salvus-editor-latex-preview").append(@preview.element)
         
         # initalize the log
         @log = @element.find(".salvus-editor-latex-log")   
         
         @_init_buttons()
+        
+
         
     _init_buttons: () =>
         @element.find("a[href=#editor]").click () =>
@@ -565,7 +603,7 @@ class LatexEditor extends FileEditor
             @show_page('log')
         @element.find("a[href=#latex]").click () =>
             @show_page('log')
-            @run_latex()
+            @editor.save(@filename, @run_latex) # save first before running latex
         @element.find("a[href=#pdf]").click () =>
             @download_pdf()
         
@@ -594,7 +632,18 @@ class LatexEditor extends FileEditor
                 e.hide() 
 
     run_latex: () =>
-        console.log("TODO: run latex")
+        salvus_client.exec
+            project_id : @editor.project_id
+            path       : @_path
+            command    : 'pdflatex'
+            args       : ['-interaction=nonstopmode', '\\input', @_target]
+            timeout    : 5
+            err_on_exit : false
+            cb         : (err, output) =>
+                if err
+                    alert_message(type:"error", message:err)
+                else
+                    @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
         
     download_pdf: () =>
         console.log("TODO: Download PDF")

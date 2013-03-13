@@ -10503,13 +10503,16 @@ CSI > Ps; Ps T
              [x] Create class "LatexEditor" using the codemirror editor class with new html/css
              [x] Put buttons to switch mode -- "Source", "Preview", "Output" -- just quick and dirty; can use a switch later.
              [x] Also make a "Run LaTeX" button. 
-             [ ] script to make buttons call/do something
+             [x] latex editor -- script to make buttons call/do something
+    -->         [ ] latex editor -- make the latex function actually call latex on the server, and put output in log.
              [ ] Define html/css for Preview view and output.
              [ ] Implement Preview view; it will do pdflatex, then convert to png's, and also push the pdflatex 
                  output to output view, plus number of pages, plus update the previewed page.
              [ ] The preview view when shown updates the *current* page.  Maybe I could just use some standard
                  AJAX plugin for a carsol of png's, which is a very standard thing.   But for first version, just have a 
                  next/previous page button, and load on switch.
+             [ ] make the latex command and what it is run on (!!) customizable.
+             [ ] option to autolatex on switching to the preview screen and save
                     
 ########################## 
 
