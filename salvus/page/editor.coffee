@@ -483,23 +483,37 @@ class CodeMirrorEditor extends FileEditor
     focus: () =>
         @codemirror?.focus()
         @codemirror?.refresh()
-        
+                
 ###############################################
 # LateX Editor
 ###############################################
+class PDF_Preview
+    # Compute single page: convert -density 150 file.pdf[2] file.png
+    constructor: (@filename, opts) ->
+        @element = templates.find(".salvus-editor-pdf-preview").clone()
+
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
-        #     * preview -- display the images (page forward/backward/resolution); computes
-        #                  a single page on backend at a time using something like
-        #                     time convert -density 150 file.pdf[2] file.png
+        #     * preview -- display the images (page forward/backward/resolution)
         #     * log -- log of latex command
         opts.mode = 'stex'
-        @latex_editor = new CodeMirrorEditor(@editor, @filename, content, opts)        
 
         @element = templates.find(".salvus-editor-latex").clone()
+        
+        # initialize the latex_editor
+        @latex_editor = new CodeMirrorEditor(@editor, @filename, content, opts)  
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
+        
+        # initialize the preview
+        n = @filename.length
+        @preview = new PDF_Preview(@filename.slice(0,n-3)+"pdf", {})
+        @element.find(".salvus-editor-latex-preview").append(@preview.element)
+        
+        # initalize the log
+        
+        
         
     _get: () =>
         return @latex_editor._get()

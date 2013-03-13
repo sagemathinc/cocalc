@@ -10500,9 +10500,10 @@ CSI > Ps; Ps T
          view from codemirror editor to tex'd version of the file.
          "convert -density 200 a.pdf a.png"
          This should be really easy to implement and will be a *surprise* for people!
--->             [x] Create class "LatexEditor" using the codemirror editor class with new html/css
-             [ ] Put buttons to switch mode -- "Source", "Preview", "Output" -- just quick and dirty; can use a switch later.
-             [ ] Also make a "Run LaTeX" button. 
+             [x] Create class "LatexEditor" using the codemirror editor class with new html/css
+             [x] Put buttons to switch mode -- "Source", "Preview", "Output" -- just quick and dirty; can use a switch later.
+             [x] Also make a "Run LaTeX" button. 
+             [ ] script to make all buttons call/do something
              [ ] Define html/css for Preview view and output.
              [ ] Implement Preview view; it will do pdflatex, then convert to png's, and also push the pdflatex 
                  output to output view, plus number of pages, plus update the previewed page.
