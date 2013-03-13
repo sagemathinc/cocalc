@@ -40,4 +40,13 @@ Editor for files in a project
 .salvus-editor-pdf-preview-page {
     margin:1em;
     background-color:#fff;
+    height:40em;  /* TODO */
+    overflow:auto;
 }    
+
+.salvus-editor-pdf-preview-image {
+    margin:1em;
+    background-color:#fff;
+    border:1px solid black;
+    width:100%;
+} 

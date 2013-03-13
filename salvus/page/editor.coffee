@@ -19,6 +19,9 @@ codemirror_associations =
     'c#'   : 'text/x-csharp'
     java   : 'text/x-java'
     coffee : 'coffeescript'
+    php    : 'php'
+    py     : 'python'
+    pyx    : 'python'
     css    : 'css'
     diff   : 'diff'
     ecl    : 'ecl'
@@ -26,10 +29,7 @@ codemirror_associations =
     html   : 'htmlmixed'
     js     : 'javascript'
     lua    : 'lua'
-    md     : 'markdown'
-    php    : 'php'
-    py     : 'python'
-    pyx    : 'python'
+    md     : 'markdown'  : 'python'
     r      : 'r'
     rst    : 'rst'
     sage   : 'python'
@@ -497,13 +497,22 @@ class PDF_Preview
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         
         @page_number = 1
-        @density = 200  # impacts the clarity
+        @density = 300  # impacts the clarity
         n = @filename.length
         @png = @filename.slice(0,n-3)+"png"
         if @path != ""
-            @png_path = @path + "/" + @png
+            @png_path = @path + "/preview/"
         else
-            @png_path = @png
+            @png_path = "preview/"
+        
+        salvus_client.exec
+            project_id : @editor.project_id
+            path       : @path
+            command    : "mkdir"
+            args       : ['-p', @png_path]
+            cb         : (err, output) =>
+                if err
+                    alert_message(type:"error", message:"Preview of PDF may not work -- #{err}")
         
         @element.find("a[href=#prev]").click(@prev_page)
         @element.find("a[href=#next]").click(@next_page)
@@ -513,38 +522,63 @@ class PDF_Preview
         @output = @element.find(".salvus-editor-pdf-preview-page")
 
     update: () =>
-        console.log(['-density', @density, "#{@filename}[#{@page_number}]", @png])
         salvus_client.exec
             project_id : @editor.project_id
             path       : @path
             
             # gs -dFirstPage=6 -dLastPage=6 -dBATCH -dNOPAUSE -sDEVICE=pngmono -sOutputFile=0-200-pngmono.png -r200 sqrt5.pdf
             command    : 'gs'            
-            args       : ["-dFirstPage=#{@page_number}", "-dLastPage=#{@page_number}", "-dBATCH", "-dNOPAUSE",
+            args       : ["-dBATCH", "-dNOPAUSE",
                           "-sDEVICE=pngmono", 
-                          #"-sDEVICE=pngalpha",
-                          "-sOutputFile=#{@png}", "-r#{@density}", @filename]
+                          "-sOutputFile=preview/%d.png", "-r#{@density}", @filename]
             
             #command    : 'convert'
             #args       : ['-trim', '-density', @density, "#{@filename}[#{@page_number-1}]", @png]
             
-            timeout    : 5
-            err_on_exit : false
+            timeout    : 10
+            err_on_exit: false
             cb         : (err, output) =>
                 if err
                     alert_message(type:"error", message:err)
                 else
-                    salvus_client.read_file_from_project
-                        project_id : @editor.project_id
-                        path       : @png_path
-                        cb         : (err, result) =>
-                            console.log(err, result)
-                            if err
-                                alert_message(type:"error", message:"Error downloading png preview -- #{err}")
-                            else
-                                @output.html("")
-                                @output.append($("<img src='#{result.url}' width=100%>"))
-                    
+                    @output.html("")
+                    i = output.stdout.indexOf("Page")
+                    s = output.stdout.slice(i)
+                    pages = {}
+                    tasks = []
+                    while s.length>4
+                        i = s.indexOf('\n')
+                        if i == -1
+                            break
+                        page_number = s.slice(5,i)
+                        s = s.slice(i+1)
+
+                        png_file = @png_path + '/' + page_number + '.png'
+                        
+                        f = (cb) =>
+                            num  = arguments.callee.page_number
+                            salvus_client.read_file_from_project
+                                project_id : @editor.project_id
+                                path       : arguments.callee.png_file
+                                cb         : (err, result) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        if result.url?
+                                            pages[num] = $("<img src='#{result.url}' class='salvus-editor-pdf-preview-image'><br>")                                        
+                                        cb()
+                                        
+                        f.png_file = png_file                
+                        f.page_number = parseInt(page_number)                        
+                        tasks.push(f)
+                                        
+                    async.parallel tasks, (err) =>
+                        if err
+                            alert_message(type:"error", message:"Error downloading png preview -- #{err}")
+                        else
+                            for n in [1..len(pages)]
+                                @output.append(pages[n])
+                            
                
     next_page: () =>
         @page_number += 1   # TODO: !what if last page?
@@ -598,20 +632,28 @@ class LatexEditor extends FileEditor
         
         @_init_buttons()
         
-
+        @preview.update()
         
     _init_buttons: () =>
-        @element.find("a[href=#editor]").click () =>
+        @element.find("a[href=#latex_editor]").click () =>
             @show_page('latex_editor')
             @latex_editor.focus()
         @element.find("a[href=#preview]").click () =>
             @show_page('preview')
-            @preview.update()
+            #@preview.update()
         #@element.find("a[href=#log]").click () =>            
             #@show_page('log')
         @element.find("a[href=#latex]").click () =>
             @show_page('log')
-            @editor.save(@filename, @run_latex) # save first before running latex
+            async.series([
+                (cb) =>
+                    @editor.save(@filename, cb)
+                (cb) =>
+                    @run_latex(cb)
+                (cb) =>
+                    @preview.update()
+                    cb()
+            ])
         @element.find("a[href=#pdf]").click () =>
             @download_pdf()
         
@@ -633,13 +675,16 @@ class LatexEditor extends FileEditor
                
     show_page: (name) =>
         for n in ['latex_editor', 'preview', 'log']
-            e = @element.find(".salvus-editor-latex-#{n}")
+            e = @element.find(".salvus-editor-latex-#{n}")            
+            button = @element.find("a[href=#" + n + "]")
             if n == name
                 e.show()
+                button.addClass('btn-primary')
             else
                 e.hide() 
+                button.removeClass('btn-primary')
 
-    run_latex: () =>
+    run_latex: (cb) =>
         salvus_client.exec
             project_id : @editor.project_id
             path       : @_path
@@ -651,7 +696,11 @@ class LatexEditor extends FileEditor
                 if err
                     alert_message(type:"error", message:err)
                 else
-                    @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
+                    @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)     
+                    f = @log.find('textarea')
+                    f.scrollTop(f[0].scrollHeight)
+                    
+                cb?()    
         
     download_pdf: () =>
         # TODO: THIS replicates code in project.coffee
