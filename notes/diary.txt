@@ -10503,7 +10503,7 @@ CSI > Ps; Ps T
              [x] Create class "LatexEditor" using the codemirror editor class with new html/css
              [x] Put buttons to switch mode -- "Source", "Preview", "Output" -- just quick and dirty; can use a switch later.
              [x] Also make a "Run LaTeX" button. 
-             [ ] script to make all buttons call/do something
+             [ ] script to make buttons call/do something
              [ ] Define html/css for Preview view and output.
              [ ] Implement Preview view; it will do pdflatex, then convert to png's, and also push the pdflatex 
                  output to output view, plus number of pages, plus update the previewed page.

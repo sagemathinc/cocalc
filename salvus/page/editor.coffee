@@ -483,7 +483,6 @@ class CodeMirrorEditor extends FileEditor
         @codemirror?.refresh()
 
     focus: () =>
-        console.log(@element.height(), @element.find(".salvus-editor-codemirror-button-row").height())        
         $(@codemirror.getScrollerElement()).width(@element.width()).css
             'max-height' : @element.height() - 3*@element.find(".salvus-editor-codemirror-button-row").height()
         @codemirror?.focus()
@@ -496,6 +495,40 @@ class PDF_Preview
     # Compute single page: convert -density 150 file.pdf[2] file.png
     constructor: (@filename, opts) ->
         @element = templates.find(".salvus-editor-pdf-preview").clone()
+        @page_number = 1
+        @density = 125  # impacts the zoom
+        
+        @element.find("a[href=#prev]").click(@prev_page)
+        @element.find("a[href=#next]").click(@next_page)
+        @element.find("a[href=#zoom-in]").click(@zoom_in)
+        @element.find("a[href=#zoom-out]").click(@zoom_out)
+
+    update: () =>
+        console.log("TODO: update display of page #{@page_number} with density #{@density}")
+        
+    next_page: () =>
+        @page_number += 1   # TODO: !what if last page?
+        @update()
+        
+    prev_page: () =>
+        if @page_number >= 2
+            @page_number -= 1
+            @update()
+    
+    zoom_out: () =>
+        if @density >= 75
+            @density -= 25
+            @update()
+        
+    zoom_in: () =>
+        @density += 25
+        @update()
+        
+    show: () =>
+        @element.show()
+    
+    hide: () =>
+        @element.hide()
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -517,14 +550,31 @@ class LatexEditor extends FileEditor
         @element.find(".salvus-editor-latex-preview").append(@preview.element)
         
         # initalize the log
-        @log = @element.find(".salvus-editor-latex-log")        
+        @log = @element.find(".salvus-editor-latex-log")   
+        
+        @_init_buttons()
+        
+    _init_buttons: () =>
+        @element.find("a[href=#editor]").click () =>
+            @show_page('latex_editor')
+            @latex_editor.focus()
+        @element.find("a[href=#preview]").click () =>
+            @show_page('preview')
+            @preview.update()
+        @element.find("a[href=#log]").click () =>
+            @show_page('log')
+        @element.find("a[href=#latex]").click () =>
+            @show_page('log')
+            @run_latex()
+        @element.find("a[href=#pdf]").click () =>
+            @download_pdf()
         
     _get: () =>
         return @latex_editor._get()
 
     _set: (content) =>
         @latex_editor._set(content)
-
+    
     show: () =>
         @element?.show()
         @latex_editor?.show()
@@ -534,7 +584,22 @@ class LatexEditor extends FileEditor
         
     has_unsaved_changes: (val) =>
         return @latex_editor?.has_unsaved_changes(val)
+               
+    show_page: (name) =>
+        for n in ['latex_editor', 'preview', 'log']
+            e = @element.find(".salvus-editor-latex-#{n}")
+            if n == name
+                e.show()
+            else
+                e.hide() 
+
+    run_latex: () =>
+        console.log("TODO: run latex")
         
+    download_pdf: () =>
+        console.log("TODO: Download PDF")
+    
+    
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
