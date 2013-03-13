@@ -443,10 +443,12 @@ class CodeMirrorEditor extends FileEditor
         $(@codemirror.getScrollerElement()).css
             'max-height' : @opts.editor_max_height
             margin       : '5px'
+            
+        @element.resizable(handles: "sw,se").on('resize', @focus)                                                                          
 
         @init_save_button()
         @init_change_event()
-
+        
     init_save_button: () =>
         save = @save = @element.find("a[href=#save]")
         save.find(".spinner").hide()
@@ -481,6 +483,9 @@ class CodeMirrorEditor extends FileEditor
         @codemirror?.refresh()
 
     focus: () =>
+        console.log(@element.height(), @element.find(".salvus-editor-codemirror-button-row").height())        
+        $(@codemirror.getScrollerElement()).width(@element.width()).css
+            'max-height' : @element.height() - 3*@element.find(".salvus-editor-codemirror-button-row").height()
         @codemirror?.focus()
         @codemirror?.refresh()
                 
@@ -512,8 +517,7 @@ class LatexEditor extends FileEditor
         @element.find(".salvus-editor-latex-preview").append(@preview.element)
         
         # initalize the log
-        
-        
+        @log = @element.find(".salvus-editor-latex-log")        
         
     _get: () =>
         return @latex_editor._get()
