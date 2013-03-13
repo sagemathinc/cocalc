@@ -522,7 +522,6 @@ class PDF_Preview
             timeout    : 5
             err_on_exit : false
             cb         : (err, output) =>
-                console.log(err, output)
                 if err
                     alert_message(type:"error", message:err)
                 else
@@ -599,8 +598,8 @@ class LatexEditor extends FileEditor
         @element.find("a[href=#preview]").click () =>
             @show_page('preview')
             @preview.update()
-        @element.find("a[href=#log]").click () =>
-            @show_page('log')
+        #@element.find("a[href=#log]").click () =>            
+            #@show_page('log')
         @element.find("a[href=#latex]").click () =>
             @show_page('log')
             @editor.save(@filename, @run_latex) # save first before running latex
@@ -646,7 +645,17 @@ class LatexEditor extends FileEditor
                     @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
         
     download_pdf: () =>
-        console.log("TODO: Download PDF")
+        # TODO: THIS replicates code in project.coffee
+        salvus_client.read_file_from_project
+            project_id : @editor.project_id
+            path       : @filename.slice(0,@filename.length-3)+"pdf"
+            cb         : (err, result) =>
+                if err
+                    alert_message(type:"error", message:"Error downloading PDF: #{err} -- #{misc.to_json(result)}")
+                else
+                    url = result.url + "&download"
+                    iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
+                    setTimeout((() -> iframe.remove()), 1000)
     
     
 

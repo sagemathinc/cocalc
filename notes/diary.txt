@@ -10496,7 +10496,7 @@ CSI > Ps; Ps T
 (est: 1:00)   [x] include xyjax in SMC   https://github.com/sonoisa/XyJax                    
 -->           [x] fix weird scrollbar insanity on bottom of text editor      
 
-(est: 3:00)   [ ] when you edit a .tex file with the editor, put a mode button in, which changes the 
+(est: 3:00)   [x] when you edit a .tex file with the editor, put a mode button in, which changes the 
          view from codemirror editor to tex'd version of the file.
          "convert -density 200 a.pdf a.png"
          This should be really easy to implement and will be a *surprise* for people!
@@ -10504,13 +10504,15 @@ CSI > Ps; Ps T
              [x] Put buttons to switch mode -- "Source", "Preview", "Output" -- just quick and dirty; can use a switch later.
              [x] Also make a "Run LaTeX" button. 
              [x] latex editor -- script to make buttons call/do something
-    -->         [ ] latex editor -- make the latex function actually call latex on the server, and put output in log.
-             [ ] Define html/css for Preview view and output.
-             [ ] Implement Preview view; it will do pdflatex, then convert to png's, and also push the pdflatex 
+             [x] latex editor -- make the latex function actually call latex on the server, and put output in log.
+             [x] Define html/css for Preview view and output.
+             [x] Implement Preview view; it will do pdflatex, then convert to png's, and also push the pdflatex 
                  output to output view, plus number of pages, plus update the previewed page.
-             [ ] The preview view when shown updates the *current* page.  Maybe I could just use some standard
+             [x] The preview view when shown updates the *current* page.  Maybe I could just use some standard
                  AJAX plugin for a carsol of png's, which is a very standard thing.   But for first version, just have a 
                  next/previous page button, and load on switch.
+                 
+ -->            [ ] latex_editor: main issue is (1) slow, and (2) when page number exceeds document, get CONFUSED    
              [ ] make the latex command and what it is run on (!!) customizable.
              [ ] option to autolatex on switching to the preview screen and save
                     
