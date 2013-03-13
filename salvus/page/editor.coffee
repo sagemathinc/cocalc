@@ -497,7 +497,7 @@ class PDF_Preview
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         
         @page_number = 1
-        @density = 100  # impacts the zoom
+        @density = 200  # impacts the clarity
         n = @filename.length
         @png = @filename.slice(0,n-3)+"png"
         if @path != ""
@@ -517,8 +517,17 @@ class PDF_Preview
         salvus_client.exec
             project_id : @editor.project_id
             path       : @path
-            command    : 'convert'
-            args       : ['-trim', '-density', @density, "#{@filename}[#{@page_number-1}]", @png]
+            
+            # gs -dFirstPage=6 -dLastPage=6 -dBATCH -dNOPAUSE -sDEVICE=pngmono -sOutputFile=0-200-pngmono.png -r200 sqrt5.pdf
+            command    : 'gs'            
+            args       : ["-dFirstPage=#{@page_number}", "-dLastPage=#{@page_number}", "-dBATCH", "-dNOPAUSE",
+                          "-sDEVICE=pngmono", 
+                          #"-sDEVICE=pngalpha",
+                          "-sOutputFile=#{@png}", "-r#{@density}", @filename]
+            
+            #command    : 'convert'
+            #args       : ['-trim', '-density', @density, "#{@filename}[#{@page_number-1}]", @png]
+            
             timeout    : 5
             err_on_exit : false
             cb         : (err, output) =>
@@ -534,7 +543,7 @@ class PDF_Preview
                                 alert_message(type:"error", message:"Error downloading png preview -- #{err}")
                             else
                                 @output.html("")
-                                @output.append($("<img src='#{result.url}'>"))
+                                @output.append($("<img src='#{result.url}' width=100%>"))
                     
                
     next_page: () =>

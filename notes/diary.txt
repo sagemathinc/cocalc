@@ -10513,6 +10513,8 @@ CSI > Ps; Ps T
                  next/previous page button, and load on switch.
                  
  -->            [ ] latex_editor: main issue is (1) slow, and (2) when page number exceeds document, get CONFUSED    
+                 FIX this by (1) using ghostscript with pngmono, and (2) a high dpi, and (3) loading all images at once.
+ 
              [ ] make the latex command and what it is run on (!!) customizable.
              [ ] option to autolatex on switching to the preview screen and save
                     
