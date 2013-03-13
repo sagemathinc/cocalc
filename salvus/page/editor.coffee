@@ -47,6 +47,11 @@ for ext, mode of codemirror_associations
     file_associations[ext] =
         editor : 'codemirror'
         opts   : {mode:mode}
+        
+file_associations['tex'] =
+    editor : 'latex'
+    icon   : 'icon-edit'
+    opts   : {mode:'stex', indent_unit:2, tab_size:2}    
 
 file_associations['salvus-terminal'] =
     editor : 'terminal'
@@ -70,8 +75,7 @@ for ext in ['png', 'jpg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'image'
         opts   : {}
-
-
+        
 
 
 # Given a text file (defined by content), try to guess
@@ -308,6 +312,8 @@ class exports.Editor
                 editor = new Slideshow(@, filename, content, x.opts)
             when 'image'
                 editor = new Image(@, filename, url, x.opts)
+            when 'latex'
+                editor = new LatexEditor(@, filename, content, x.opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
@@ -410,7 +416,6 @@ class CodeMirrorEditor extends FileEditor
 
 
         @element = templates.find(".salvus-editor-codemirror").clone()
-
         @element.find("textarea").text(content)
         @codemirror = CodeMirror.fromTextArea @element.find("textarea")[0],
             firstLineNumber : 1
@@ -478,6 +483,40 @@ class CodeMirrorEditor extends FileEditor
     focus: () =>
         @codemirror?.focus()
         @codemirror?.refresh()
+        
+###############################################
+# LateX Editor
+###############################################
+class LatexEditor extends FileEditor
+    constructor: (@editor, @filename, content, opts) ->
+        # The are three components:
+        #     * latex_editor -- a CodeMirror editor
+        #     * preview -- display the images (page forward/backward/resolution); computes
+        #                  a single page on backend at a time using something like
+        #                     time convert -density 150 file.pdf[2] file.png
+        #     * log -- log of latex command
+        opts.mode = 'stex'
+        @latex_editor = new CodeMirrorEditor(@editor, @filename, content, opts)        
+
+        @element = templates.find(".salvus-editor-latex").clone()
+        @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
+        
+    _get: () =>
+        return @latex_editor._get()
+
+    _set: (content) =>
+        @latex_editor._set(content)
+
+    show: () =>
+        @element?.show()
+        @latex_editor?.show()
+
+    focus: () =>
+        @latex_editor?.focus()
+        
+    has_unsaved_changes: (val) =>
+        return @latex_editor?.has_unsaved_changes(val)
+        
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

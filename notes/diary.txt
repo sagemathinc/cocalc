@@ -10493,15 +10493,14 @@ CSI > Ps; Ps T
                     [x] fix all the issues with keyboard shortcuts in the editor; probably caused by backwards incompat changes.
                     
                     
-(est: 1:00)     [x] include xyjax in SMC   https://github.com/sonoisa/XyJax
-                    
--->           [ ] fix weird scrollbar insanity on bottom of text editor      
+(est: 1:00)   [x] include xyjax in SMC   https://github.com/sonoisa/XyJax                    
+-->           [x] fix weird scrollbar insanity on bottom of text editor      
 
 (est: 3:00)   [ ] when you edit a .tex file with the editor, put a mode button in, which changes the 
          view from codemirror editor to tex'd version of the file.
          "convert -density 200 a.pdf a.png"
          This should be really easy to implement and will be a *surprise* for people!
-             [ ] Derive a class "TexEditor" from the codemirror editor class with new html/css
+-->             [x] Create class "LatexEditor" using the codemirror editor class with new html/css
              [ ] Put buttons to switch mode -- "Source", "Preview", "Output" -- just quick and dirty; can use a switch later.
              [ ] Also make a "Run LaTeX" button. 
              [ ] Define html/css for Preview view and output.
