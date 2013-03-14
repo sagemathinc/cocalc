@@ -8,7 +8,7 @@ async = require('async')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
-{trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split} = require('misc')
+{trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -76,7 +76,9 @@ for ext in ['png', 'jpg', 'gif', 'svg']
         editor : 'image'
         opts   : {}
         
-
+file_associations['pdf'] =
+    editor : 'pdf'
+    opts   : {}
 
 # Given a text file (defined by content), try to guess
 # what the extension should be.
@@ -154,6 +156,8 @@ class exports.Editor
         if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
             ext = filename_extension(filename)
             switch ext
+                when 'pdf'
+                    @tabs[filename] = @create_tab(filename:filename)                    
                 when 'png', 'svg', 'jpg', 'gif'
                     salvus_client.read_file_from_project
                         project_id : @project_id
@@ -315,6 +319,8 @@ class exports.Editor
                 editor = new Image(@, filename, url, x.opts)
             when 'latex'
                 editor = new LatexEditor(@, filename, content, x.opts)
+            when 'pdf'
+                editor = new PDF_Preview(@, filename, undefined, x.opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
@@ -492,115 +498,136 @@ class CodeMirrorEditor extends FileEditor
 ###############################################
 # LateX Editor
 ###############################################
-class PDF_Preview
+
+# Make a temporary uuid-named directory in path.
+tmp_dir = (project_id, path, cb) ->      # cb(err, directory_name)
+    name = uuid()
+    salvus_client.exec
+        project_id : project_id
+        path       : path
+        command    : "mkdir"
+        args       : [name]
+        cb         : (err, output) =>
+            if err
+                cb("Problem creating temporary PDF preview path.")
+            else
+                cb(false, name)
+                
+remove_tmp_dir = (project_id, path, tmp_dir, cb) ->
+    salvus_client.exec
+        project_id : project_id
+        path       : path
+        command    : "rm"
+        args       : ['-rf', tmp_dir]
+        cb         : (err, output) =>
+            cb?(err)
+
+class PDF_Preview extends FileEditor
     # Compute single page
-    constructor: (@editor, @path, @filename, opts) ->
+    constructor: (@editor, @filename, contents, opts) ->
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
                 
         @page_number = 1
         @density = 250  # impacts the clarity
-        n = @filename.length
-        @png = @filename.slice(0,n-3)+"png"
-        if @path != ""
-            @png_path = @path + "/preview/"
-        else
-            @png_path = "preview/"
         
-        salvus_client.exec
-            project_id : @editor.project_id
-            path       : @path
-            command    : "mkdir"
-            args       : ['-p', @png_path]
-            cb         : (err, output) =>
-                if err
-                    alert_message(type:"error", message:"Preview of PDF may not work -- #{err}")
-        
-        @element.find("a[href=#prev]").click(@prev_page)
-        @element.find("a[href=#next]").click(@next_page)
-        @element.find("a[href=#zoom-in]").click(@zoom_in)
-        @element.find("a[href=#zoom-out]").click(@zoom_out)
+        s = path_split(@filename)
+        @path = s.head
+        if @path == ''
+            @path = './'
+        @file = s.tail
+
+        #@element.find("a[href=#prev]").click(@prev_page)
+        #@element.find("a[href=#next]").click(@next_page)
+        #@element.find("a[href=#zoom-in]").click(@zoom_in)
+        #@element.find("a[href=#zoom-out]").click(@zoom_out)
         
         @output = @element.find(".salvus-editor-pdf-preview-page")
         
         @element.css('height':$(window).height()*2/3)                
-        @element.resizable(handles: "s,se")   #.on('resize', @focus)                                                                          
+        @element.resizable(handles: "s,se")   #.on('resize', @focus)   
+        
+        @update()
 
     update: (cb) =>    
-        # Update the PNG's the preview the PDF        
         @spinner.show().spin(true)
-        salvus_client.exec
-            project_id : @editor.project_id
-            path       : @path
-            
-            # gs -dFirstPage=6 -dLastPage=6 -dBATCH -dNOPAUSE -sDEVICE=pngmono -sOutputFile=0-200-pngmono.png -r200 sqrt5.pdf
-            command    : 'gs'            
-            args       : ["-dBATCH", "-dNOPAUSE",
-                          "-sDEVICE=pngmono", 
-                          "-sOutputFile=preview/%d.png", "-r#{@density}", @filename]
-            
-            #command    : 'convert'
-            #args       : ['-trim', '-density', @density, "#{@filename}[#{@page_number-1}]", @png]
-            
-            timeout    : 10
-            err_on_exit: false
-            cb         : (err, output) =>
-                if err
-                    alert_message(type:"error", message:err)
-                    cb?(err)
-                else
-                    i = output.stdout.indexOf("Page")
-                    s = output.stdout.slice(i)
-                    pages = {}
-                    tasks = []
-                    while s.length>4
-                        i = s.indexOf('\n')
-                        if i == -1
-                            break
-                        page_number = s.slice(5,i)
-                        s = s.slice(i+1)
-
-                        png_file = @png_path + '/' + page_number + '.png'
-                        
-                        f = (cb) =>
-                            num  = arguments.callee.page_number
-                            salvus_client.read_file_from_project
-                                project_id : @editor.project_id
-                                path       : arguments.callee.png_file
-                                cb         : (err, result) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        if result.url?
-                                            pages[num] = result.url                                        
-                                        cb()
-                                        
-                        f.png_file = png_file                
-                        f.page_number = parseInt(page_number)                        
-                        tasks.push(f)
-                                        
-                    async.parallel tasks, (err) =>
-                        if err
-                            alert_message(type:"error", message:"Error downloading png preview -- #{err}")
-                            @spinner.spin(false).hide()
-                            cb?(err)
-                        else
-                            if len(pages) == 0
-                                @output.html('')
+        tmp_dir @editor.project_id, @path, (err, tmp) =>
+            if err
+                @spinner.hide().spin(false)
+                alert_message(type:"error", message:err)
+                cb?(err)
+                return
+            # Update the PNG's which provide a preview of the PDF  
+            console.log('path=', @path, 'filename = ', @filename)
+            salvus_client.exec
+                project_id : @editor.project_id
+                path       : @path                
+                command    : 'gs'            
+                args       : ["-dBATCH", "-dNOPAUSE",
+                              "-sDEVICE=pngmono", 
+                              "-sOutputFile=#{tmp}/%d.png", "-r#{@density}", @file]
+                
+                timeout    : 10
+                err_on_exit: false
+                cb         : (err, output) =>
+                    if err
+                        alert_message(type:"error", message:err)
+                        remove_tmp_dir(@editor.project_id, @path, tmp)
+                        cb?(err)
+                    else
+                        i = output.stdout.indexOf("Page")
+                        s = output.stdout.slice(i)
+                        pages = {}
+                        tasks = []
+                        while s.length>4
+                            i = s.indexOf('\n')
+                            if i == -1
+                                break
+                            page_number = s.slice(5,i)
+                            s = s.slice(i+1)
+    
+                            png_file = @path + "/#{tmp}/" + page_number + '.png'
+                            console.log(png_file)
+                            f = (cb) =>
+                                num  = arguments.callee.page_number
+                                salvus_client.read_file_from_project
+                                    project_id : @editor.project_id
+                                    path       : arguments.callee.png_file
+                                    cb         : (err, result) =>
+                                        if err
+                                            cb(err)
+                                        else
+                                            if result.url?
+                                                pages[num] = result.url                                        
+                                            cb()
+                                            
+                            f.png_file = png_file                
+                            f.page_number = parseInt(page_number)                        
+                            tasks.push(f)
+                                            
+                        async.parallel tasks, (err) =>
+                            remove_tmp_dir(@editor.project_id, @path, tmp)
+                            if err
+                                alert_message(type:"error", message:"Error downloading png preview -- #{err}")
+                                @spinner.spin(false).hide()
+                                cb?(err)
                             else
-                                children = @output.children()
-                                # We replace existing pages if possible, which nicely avoids all nasty scrolling issues/crap.
-                                for n in [0...len(pages)]
-                                    url = pages[n+1]
-                                    if n < children.length
-                                        $(children[n]).attr('src', url)
-                                    else
-                                        @output.append($("<img src='#{url}' class='salvus-editor-pdf-preview-image'>"))
-                                # Delete any remaining pages from before (if doc got shorter)
-                                for n in [len(pages)...children.length]
-                                    $(children[n]).remove()
-                            @spinner.spin(false).hide()
-                            cb?()
+                                if len(pages) == 0
+                                    @output.html('')
+                                else
+                                    children = @output.children()
+                                    # We replace existing pages if possible, which nicely avoids all nasty scrolling issues/crap.
+                                    for n in [0...len(pages)]
+                                        url = pages[n+1]
+                                        if n < children.length
+                                            $(children[n]).attr('src', url)
+                                        else
+                                            @output.append($("<img src='#{url}' class='salvus-editor-pdf-preview-image'>"))
+                                    # Delete any remaining pages from before (if doc got shorter)
+                                    for n in [len(pages)...children.length]
+                                        $(children[n]).remove()
+                                @spinner.spin(false).hide()
+                                cb?()
 
     next_page: () =>
         @page_number += 1   # TODO: !what if last page?
@@ -648,7 +675,7 @@ class LatexEditor extends FileEditor
         
         # initialize the preview
         n = @filename.length
-        @preview = new PDF_Preview(@editor, @_path, @_target.slice(0,n-3)+"pdf", {})
+        @preview = new PDF_Preview(@editor, @_target.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-preview").append(@preview.element)
         
         # initalize the log

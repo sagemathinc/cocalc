@@ -10531,8 +10531,7 @@ CSI > Ps; Ps T
 
 --> (est: 0:30)   [X] (2:15) pdf preview -- preserve page position on reload, if easy. (took way longer, since required clever idea)
 
-(est:1:00)    [ ] pdf preview -- use whenever user clicks on a PDF.  viola, suddenly SMC can be used to browse all your pdf's of papers!
-
+(est:1:00)    [x] (0:51) pdf preview -- use whenever user clicks on a PDF.  viola, suddenly SMC can be used to browse all your pdf's of papers!
               [ ] editor -- make it so "command-s" is also save, for OS X.           
            
 (est:2:00)    [ ] make persistent console sessions actually work very well
@@ -10550,6 +10549,8 @@ CSI > Ps; Ps T
 
 ----
 
+
+     [ ] pdf preview -- better error when gv not installed; should warn user about everything that needs to be installed for full functionality...
 
      [ ] MOBILE: codemirror doesn't scroll -- serious issue.
 

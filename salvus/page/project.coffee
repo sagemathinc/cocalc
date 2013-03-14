@@ -789,13 +789,9 @@ class ProjectPage
 
     open_file: (path) =>
         ext = filename_extension(path)
-        switch ext
-            when "pdf"
-                @open_file_in_another_browser_tab(path)
-            else
-                @editor.open(path)
-                @display_tab("project-editor")
-                @editor.display_tab(path)
+        @editor.open(path)
+        @display_tab("project-editor")
+        @editor.display_tab(path)
 
     switch_displayed_branch: (new_branch) =>
         if new_branch != @meta.display_branch
