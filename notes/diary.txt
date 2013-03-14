@@ -10517,10 +10517,6 @@ CSI > Ps; Ps T
              [ ] make the latex command and what it is run on (!!) customizable.
              [ ] option to autolatex on switching to the preview screen and save
                     
-########################## 
-
-@@@@@@@@@@@@@@@@ TODAY's GOALS:
-           
               [x] (1:00) Codemirror cursor is too thin!
               
               [x] (0:15) terminal: make it focus when tab is selected.
@@ -10528,13 +10524,16 @@ CSI > Ps; Ps T
               [x] (0:38) edit window resize (and initial size) is a DISASTER. -- make it less so; temporary fix.
               
               [x] console: make a little visible paste area for terminal so people can paste no matter what/where.
-`
-(est - 0:45)  [ ] (0:15) make it so current view in a codemirror editor is preserved no matter damned what.
-Tools:
-   - cm.getViewport() -- returns {from, to} 
-   - cm.scrollIntoView(from)
-Need a repeatable failure, and to decide *when* to save viewport.
 
+(est:1:00)    [x] add or implement search plugin for codemirror editor.
+
+@@@@@@@@@@@@@@@@ TODAY's GOALS:
+
+--> (est: 0:30)   [ ] pdf preview -- preserve page position on reload, if easy.
+
+(est:1:00)    [ ] pdf preview -- use whenever user clicks on a PDF.  viola, suddenly SMC can be used to browse all your pdf's of papers!
+
+              [ ] editor -- make it so "command-s" is also save, for OS X.           
            
 (est:2:00)    [ ] make persistent console sessions actually work very well
 
@@ -10542,19 +10541,24 @@ Need a repeatable failure, and to decide *when* to save viewport.
 
 (est:1:00)    [ ] make it so user can change the location of the project:
                   started this -- see project.coffee "TODO -- actually implement project location change"
-
-(est:1:00)    [ ] add or implement search plugin for codemirror editor.
-
+                  
+              [ ] admin -- way to create pre-made accounts *from* admin, and put their existence in database
+              
+              [ ] hub -- use pre-made accounts when creating a new user
+              
+              [ ] hub -- option to switch-to-a-new-account in case user feels it is needed.
 
 ----
 
+
+     [ ] MOBILE: codemirror doesn't scroll -- serious issue.
 
 
       [ ] project.coffee -- BUG -- if you start clicking around directories quickly you can easily get to a nonexistent path due to
           time of gitls round trip.  So... when that happens display the last valid path.
          
 
-     [ ] make it so one can add sketches to noes -- this looks really good: http://intridea.github.com/sketch.js/
+     [ ] make it so one can add sketches to notes -- this looks really good: http://intridea.github.com/sketch.js/
          This should also be an interact control, since then one can sketch and use it elsewhere in an interact.
       
      [ ] idea -- make it so when opening an HTML file, can easily switch between actual HTML (maybe contenteditable?) and source...?
@@ -10563,7 +10567,12 @@ Need a repeatable failure, and to decide *when* to save viewport.
      
     [ ] bug --copy/paste inside of note involving math often results in something un-texable.
      
-     
+     (est - 0:45)  [ ] (0:15) make it so current view in a codemirror editor is preserved no matter damned what.
+Tools:
+   - cm.getViewport() -- returns {from, to} 
+   - cm.scrollIntoView(from)
+Need a repeatable failure, and to decide *when* to save viewport.
+
 
     [ ] SECURITY: I *need* -- absolutely need -- to modify all this so
         that the private key used by the hub depends on the user, and

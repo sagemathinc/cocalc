@@ -498,7 +498,7 @@ class PDF_Preview
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         
         @page_number = 1
-        @density = 300  # impacts the clarity
+        @density = 250  # impacts the clarity
         n = @filename.length
         @png = @filename.slice(0,n-3)+"png"
         if @path != ""
@@ -524,9 +524,21 @@ class PDF_Preview
         
         @element.css('height':$(window).height()*2/3)                
         @element.resizable(handles: "s,se")   #.on('resize', @focus)                                                                          
+        @output.on 'scroll', () =>
+            if @output[0].scrollTop == 0 and @_scroll_pos?
+                console.log("moving scroll to ", @_scroll_pos)
+                setTimeout( (() => @output[0].scrollTop = @_scroll_pos), 100)
 
+    scroll_pos: (pos) =>
+        if pos?
+            console.log("setting scroll pos to", pos)
+            @output[0].scrollTop = pos
+        else
+            console.log("getting scroll pos ", @output[0].scrollTop)
+            return @output[0].scrollTop
 
-    update: () =>
+    update: (cb) =>    
+        # Update the PNG's the preview the PDF        
         salvus_client.exec
             project_id : @editor.project_id
             path       : @path
@@ -545,8 +557,8 @@ class PDF_Preview
             cb         : (err, output) =>
                 if err
                     alert_message(type:"error", message:err)
+                    cb?(err)
                 else
-                    @output.html("")
                     i = output.stdout.indexOf("Page")
                     s = output.stdout.slice(i)
                     pages = {}
@@ -570,7 +582,7 @@ class PDF_Preview
                                         cb(err)
                                     else
                                         if result.url?
-                                            pages[num] = $("<img src='#{result.url}' class='salvus-editor-pdf-preview-image'><br>")                                        
+                                            pages[num] = $("<img src='#{result.url}' class='salvus-editor-pdf-preview-image'>")                                        
                                         cb()
                                         
                         f.png_file = png_file                
@@ -580,11 +592,23 @@ class PDF_Preview
                     async.parallel tasks, (err) =>
                         if err
                             alert_message(type:"error", message:"Error downloading png preview -- #{err}")
+                            cb?(err)
                         else
-                            for n in [1..len(pages)]
-                                @output.append(pages[n])
-                            
-               
+                            if len(pages) == 0
+                                @output.html('')
+                            else
+                                first_page = pages[1]
+                                for n in [1..len(pages)]
+                                    @output.append(pages[n])
+                                    #if n % 2 == 0
+                                    @output.append("<br>")
+                                for d in @output.children()
+                                    c = $(d)
+                                    if c[0] == first_page[0]
+                                        break
+                                    c.remove()
+                            cb?()
+
     next_page: () =>
         @page_number += 1   # TODO: !what if last page?
         @update()
@@ -608,6 +632,7 @@ class PDF_Preview
     
     hide: () =>
         @element.hide()
+        
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -617,6 +642,7 @@ class LatexEditor extends FileEditor
         #     * log -- log of latex command
         opts.mode = 'stex'
 
+        @_current_page = 'latex_editor'
         @element = templates.find(".salvus-editor-latex").clone()
         
         # initialize the latex_editor
@@ -643,25 +669,36 @@ class LatexEditor extends FileEditor
         @element.find("a[href=#latex_editor]").click () =>
             @show_page('latex_editor')
             @latex_editor.focus()
+            return false
+
         @element.find("a[href=#preview]").click () =>
+            @compile_and_update()
             @show_page('preview')
-            #@preview.update()
+            return false
+
         #@element.find("a[href=#log]").click () =>            
             #@show_page('log')
+            return false
+        
         @element.find("a[href=#latex]").click () =>
             @show_page('log')
-            async.series([
-                (cb) =>
-                    @editor.save(@filename, cb)
-                (cb) =>
-                    @run_latex(cb)
-                (cb) =>
-                    @preview.update()
-                    cb()
-            ])
+            @compile_and_update()
+            return false
+            
         @element.find("a[href=#pdf]").click () =>
             @download_pdf()
+            return false
         
+    compile_and_update: (cb) =>
+        async.series([
+            (cb) =>
+                @editor.save(@filename, cb)
+            (cb) =>
+                @run_latex(cb)
+            (cb) =>
+                @preview.update(cb)
+        ], (err) -> cb?(err))
+    
     _get: () =>
         return @latex_editor._get()
 
@@ -678,16 +715,23 @@ class LatexEditor extends FileEditor
     has_unsaved_changes: (val) =>
         return @latex_editor?.has_unsaved_changes(val)
                
-    show_page: (name) =>
+    show_page: (name) =>   
+        if name == @_current_page
+            return
+        if @_current_page = 'preview'
+            pos = @preview.scroll_pos()
+            if pos
+                @preview._scroll_pos = pos
         for n in ['latex_editor', 'preview', 'log']
             e = @element.find(".salvus-editor-latex-#{n}")            
-            button = @element.find("a[href=#" + n + "]")
+            button = @element.find("a[href=#" + n + "]")            
             if n == name
                 e.show()
                 button.addClass('btn-primary')
             else
                 e.hide() 
-                button.removeClass('btn-primary')
+                button.removeClass('btn-primary')        
+        @_current_page = name
 
     run_latex: (cb) =>
         salvus_client.exec
