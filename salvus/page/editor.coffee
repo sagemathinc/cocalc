@@ -559,7 +559,6 @@ class PDF_Preview extends FileEditor
                 cb?(err)
                 return
             # Update the PNG's which provide a preview of the PDF  
-            console.log('path=', @path, 'filename = ', @filename)
             salvus_client.exec
                 project_id : @editor.project_id
                 path       : @path                
@@ -588,7 +587,6 @@ class PDF_Preview extends FileEditor
                             s = s.slice(i+1)
     
                             png_file = @path + "/#{tmp}/" + page_number + '.png'
-                            console.log(png_file)
                             f = (cb) =>
                                 num  = arguments.callee.page_number
                                 salvus_client.read_file_from_project
