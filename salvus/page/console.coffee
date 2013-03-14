@@ -137,6 +137,9 @@ class Console extends EventEmitter
 
         # Initialize buttons
         @_init_buttons()
+        
+        # Initialize the paste bin
+        @_init_paste_bin()
 
         # Initialize fullscreen button
         @_init_fullscreen()
@@ -361,6 +364,14 @@ class Console extends EventEmitter
                 @focus()
                 @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
 
+    _init_paste_bin: () =>
+        paste_bin = @element.find(".salvus-console-paste-bin")
+        paste_bin.live 'blur keyup paste', (evt) =>
+            data = paste_bin.val()
+            paste_bin.val('')
+            @session.write_data(data)
+            
+    
     _start_session_timer: (seconds) ->
         t = new Date()
         t.setTime(t.getTime() + seconds*1000)
