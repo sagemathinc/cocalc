@@ -10529,14 +10529,16 @@ CSI > Ps; Ps T
 
 @@@@@@@@@@@@@@@@ TODAY's GOALS:
 
---> (est: 0:30)   [X] (2:15) pdf preview -- preserve page position on reload, if easy. (took way longer, since required clever idea)
+ (est: 0:30)   [X] (2:15) pdf preview -- preserve page position on reload, if easy. (took way longer, since required clever idea)
 
 (est:1:00)    [x] (0:51) pdf preview -- use whenever user clicks on a PDF.  viola, suddenly SMC can be used to browse all your pdf's of papers!
-              [ ] editor -- make it so "command-s" is also save, for OS X.           
-           
-(est:2:00)    [ ] make persistent console sessions actually work very well
+ (est:0:10)   [x] (0:03) editor -- make it so "command-s" is also save, for OS X.           
 
-              [ ] make collection of open files persist between sessions (where -- on localStorage or central... don't know.)
+
+(est:1:30)    [ ] make persistent console sessions actually work very well
+(est:1:30)    [ ] make collection of open files persist between sessions (where -- on localStorage or central... don't know.)
+
+
 
 (est:1:00)    [ ] make it so user can change the location of the project:
                   started this -- see project.coffee "TODO -- actually implement project location change"

@@ -437,7 +437,8 @@ class CodeMirrorEditor extends FileEditor
             lineWrapping    : opts.line_wrapping
             extraKeys       :
                 "Shift-Enter" : (editor) => @click_save_button()
-                "Ctrl-S" : (editor) => @click_save_button()
+                "Ctrl-S"    : (editor) => @click_save_button()
+                "Cmd-S"     : (editor) => @click_save_button()
                 "Shift-Tab" : (editor) => editor.unindent_selection()
                 "Tab"       : (editor) =>
                     c = editor.getCursor(); d = editor.getCursor(true)
