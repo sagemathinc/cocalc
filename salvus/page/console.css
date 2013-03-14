@@ -93,3 +93,10 @@
     border : 2px solid lightgrey;
 }
 
+.salvus-console-paste-bin {
+    height : 1.2em;
+    padding-top:-4px;
+    padding-bottom: 1px;
+    width : 11em;
+    overflow: hidden;
+}    

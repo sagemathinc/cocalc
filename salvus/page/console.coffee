@@ -370,7 +370,10 @@ class Console extends EventEmitter
             data = paste_bin.val()
             paste_bin.val('')
             @session.write_data(data)
-            
+        paste_bin.keydown (evt) =>
+            if evt.which <= 48   # backspace, return, escape, etc.
+                @session.write_data(String.fromCharCode(evt.which))
+                return false
     
     _start_session_timer: (seconds) ->
         t = new Date()

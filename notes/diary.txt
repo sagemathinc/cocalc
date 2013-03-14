@@ -10527,7 +10527,7 @@ CSI > Ps; Ps T
               
               [x] (0:38) edit window resize (and initial size) is a DISASTER. -- make it less so; temporary fix.
               
-              [ ] visible paste are for terminal (?)
+              [x] console: make a little visible paste area for terminal so people can paste no matter what/where.
 `
 (est - 0:45)  [ ] (0:15) make it so current view in a codemirror editor is preserved no matter damned what.
 Tools:
