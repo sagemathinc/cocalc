@@ -496,7 +496,8 @@ class PDF_Preview
     # Compute single page
     constructor: (@editor, @path, @filename, opts) ->
         @element = templates.find(".salvus-editor-pdf-preview").clone()
-        
+        @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
+                
         @page_number = 1
         @density = 250  # impacts the clarity
         n = @filename.length
@@ -524,21 +525,10 @@ class PDF_Preview
         
         @element.css('height':$(window).height()*2/3)                
         @element.resizable(handles: "s,se")   #.on('resize', @focus)                                                                          
-        @output.on 'scroll', () =>
-            if @output[0].scrollTop == 0 and @_scroll_pos?
-                console.log("moving scroll to ", @_scroll_pos)
-                setTimeout( (() => @output[0].scrollTop = @_scroll_pos), 100)
-
-    scroll_pos: (pos) =>
-        if pos?
-            console.log("setting scroll pos to", pos)
-            @output[0].scrollTop = pos
-        else
-            console.log("getting scroll pos ", @output[0].scrollTop)
-            return @output[0].scrollTop
 
     update: (cb) =>    
         # Update the PNG's the preview the PDF        
+        @spinner.show().spin(true)
         salvus_client.exec
             project_id : @editor.project_id
             path       : @path
@@ -582,7 +572,7 @@ class PDF_Preview
                                         cb(err)
                                     else
                                         if result.url?
-                                            pages[num] = $("<img src='#{result.url}' class='salvus-editor-pdf-preview-image'>")                                        
+                                            pages[num] = result.url                                        
                                         cb()
                                         
                         f.png_file = png_file                
@@ -592,21 +582,24 @@ class PDF_Preview
                     async.parallel tasks, (err) =>
                         if err
                             alert_message(type:"error", message:"Error downloading png preview -- #{err}")
+                            @spinner.spin(false).hide()
                             cb?(err)
                         else
                             if len(pages) == 0
                                 @output.html('')
                             else
-                                first_page = pages[1]
-                                for n in [1..len(pages)]
-                                    @output.append(pages[n])
-                                    #if n % 2 == 0
-                                    @output.append("<br>")
-                                for d in @output.children()
-                                    c = $(d)
-                                    if c[0] == first_page[0]
-                                        break
-                                    c.remove()
+                                children = @output.children()
+                                # We replace existing pages if possible, which nicely avoids all nasty scrolling issues/crap.
+                                for n in [0...len(pages)]
+                                    url = pages[n+1]
+                                    if n < children.length
+                                        $(children[n]).attr('src', url)
+                                    else
+                                        @output.append($("<img src='#{url}' class='salvus-editor-pdf-preview-image'>"))
+                                # Delete any remaining pages from before (if doc got shorter)
+                                for n in [len(pages)...children.length]
+                                    $(children[n]).remove()
+                            @spinner.spin(false).hide()
                             cb?()
 
     next_page: () =>
@@ -718,10 +711,6 @@ class LatexEditor extends FileEditor
     show_page: (name) =>   
         if name == @_current_page
             return
-        if @_current_page = 'preview'
-            pos = @preview.scroll_pos()
-            if pos
-                @preview._scroll_pos = pos
         for n in ['latex_editor', 'preview', 'log']
             e = @element.find(".salvus-editor-latex-#{n}")            
             button = @element.find("a[href=#" + n + "]")            
@@ -746,6 +735,7 @@ class LatexEditor extends FileEditor
                     alert_message(type:"error", message:err)
                 else
                     @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)     
+                    # Scroll to the bottom of the textarea
                     f = @log.find('textarea')
                     f.scrollTop(f[0].scrollHeight)
                     
