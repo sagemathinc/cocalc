@@ -10525,7 +10525,9 @@ CSI > Ps; Ps T
               
               [x] (0:15) terminal: make it focus when tab is selected.
               
-              [ ] edit window resize (and initial size) is a DISASTER.
+              [x] (0:38) edit window resize (and initial size) is a DISASTER. -- make it less so; temporary fix.
+              
+              [ ] visible paste are for terminal (?)
 `
 (est - 0:45)  [ ] (0:15) make it so current view in a codemirror editor is preserved no matter damned what.
 Tools:

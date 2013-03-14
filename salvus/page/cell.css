@@ -1,14 +1,3 @@
-.CodeMirror {
-    height           : auto;
-    /* background-color : #ffffff; */
-}
-
-.CodeMirror-scroll {
-    height     : auto;
-    overflow-y : hidden;
-    overflow-x : auto;
-}
-
 .salvus-cell {
 }
 

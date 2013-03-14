@@ -410,7 +410,6 @@ class CodeMirrorEditor extends FileEditor
             tab_size          : 4
             smart_indent      : true
             undo_depth        : 100
-            editor_max_height : "40em"
             match_brackets    : true
             line_wrapping     : true
             theme             : "solarized"  # see static/codemirror*/themes or head.html
@@ -441,11 +440,12 @@ class CodeMirrorEditor extends FileEditor
                     else
                         CodeMirror.commands.defaultTab(editor)
 
-        $(@codemirror.getScrollerElement()).css
-            'max-height' : @opts.editor_max_height
-            margin       : '5px'
-            
-        @element.resizable(handles: "sw,se").on('resize', @focus)                                                                          
+        scroller = $(@codemirror.getScrollerElement())                  
+        #scroller.css
+            #'max-height' : @opts.editor_max_height
+            #margin       : '5px'
+        scroller.css('height':$(window).height()*2/3)                
+        @element.resizable(alsoResize:scroller, handles: "s").on('resize', @focus)                                                                          
 
         @init_save_button()
         @init_change_event()
@@ -521,6 +521,10 @@ class PDF_Preview
         @element.find("a[href=#zoom-out]").click(@zoom_out)
         
         @output = @element.find(".salvus-editor-pdf-preview-page")
+        
+        @element.css('height':$(window).height()*2/3)                
+        @element.resizable(handles: "s,se")   #.on('resize', @focus)                                                                          
+
 
     update: () =>
         salvus_client.exec
