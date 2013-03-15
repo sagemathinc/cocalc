@@ -72,12 +72,12 @@ exports.enable_mesg = enable_mesg = (socket) ->
 
     socket.on('data', socket._listen_for_mesg)
 
-    socket.write_mesg = (type, data) ->
+    socket.write_mesg = (type, data, cb) ->
         send = (s) ->
             buf = new Buffer(4)
             buf.writeInt32BE(s.length, 0)
             socket.write(buf)
-            socket.write(s)
+            socket.write(s, cb)
         switch type
             when 'json'
                 send('j' + JSON.stringify(data))
@@ -239,7 +239,7 @@ exports.execute_code = (opts) ->
         opts.path = opts.home
     else if opts.path[0] != '/'
         opts.path = opts.home + '/' + opts.path
-        
+
     stdout = ''
     stderr = ''
     exit_code = undefined

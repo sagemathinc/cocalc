@@ -79,12 +79,12 @@ exports.send_signal = (opts) ->
 
 class exports.Connection
     constructor: (options) ->
-        options = defaults(options,
+        options = defaults options,
             secret_token : required
-            port: required
-            recv: undefined
-            cb:   undefined
-        )
+            port         : required
+            host         : 'localhost'   # should always be there, since we use port forwarding for security
+            recv         : undefined
+            cb           : undefined
         @host = options.host
         @port = options.port
 

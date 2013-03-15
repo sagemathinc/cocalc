@@ -49,6 +49,9 @@ class exports.CodeMirrorSession extends exports.SyncObj
         @init()
         @state.lines= opts.content.split('\n')
 
+    getValue: () =>
+        return @state.lines.join('\n')
+
     _apply_diff: (diff) =>
         # Transform our state
         if diff.changeObj
@@ -56,7 +59,7 @@ class exports.CodeMirrorSession extends exports.SyncObj
         # that's all that is implemented at present.
 
     _apply_changeObj: (changeObj) =>
-        # changeObj mustbe a change object, exactly as defined by CodeMirror 3,
+        # changeObj must be a change object, exactly as defined by CodeMirror 3,
         # so it is {from, to, text, removed, next}.
 
         @_replaceRange(changeObj.text, changeObj.from, changeObj.to)
