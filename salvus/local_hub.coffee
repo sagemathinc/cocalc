@@ -28,6 +28,7 @@ misc           = require 'misc'
 misc_node      = require 'misc_node'
 winston        = require 'winston'
 temp           = require 'temp'
+sync_obj       = require 'sync_obj'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
@@ -204,6 +205,8 @@ class ConsoleSessions
                         status  : 'running',
                         clients : [client_socket],
                         history : new Buffer(0)
+                        session_uuid : mesg.session_uuid
+                        project_id   : mesg.project_id
 
                     # Connect the sockets together.
                     client_socket.on 'data', (data) ->
@@ -224,10 +227,14 @@ class ConsoleSessions
                     # TODO: should we close client_socket here?
 
     # Return object that describes status of all Console sessions
-    info: () =>
+    info: (project_id) =>
         obj = {}
-        for id, info of @_sessions
-            obj[id] = {desc:info.desc, status:info.status, history_length:info.history.length}
+        for id, session of @_sessions
+            if session.project_id == project_id
+                obj[id] =
+                    desc           : session.desc
+                    status         : session.status
+                    history_length : session.history.length
         return obj
 
 console_sessions = new ConsoleSessions()
@@ -299,7 +306,13 @@ class SageSessions
                 sage_socket.once 'mesg', (type, desc) =>
                     client_socket.write_mesg('json', desc)
                     plug(client_socket, sage_socket)
-                    @_sessions[mesg.session_uuid] = {socket:sage_socket, desc:desc, status:'running', clients:[client_socket]}
+                    @_sessions[mesg.session_uuid] =
+                        socket     : sage_socket
+                        desc       : desc
+                        status     : 'running'
+                        clients    : [client_socket]
+                        project_id : mesg.project_id
+
                 sage_socket.on 'end', () =>
                     session = @_sessions[mesg.session_uuid]
                     # TODO: should we close client_socket here?
@@ -307,10 +320,13 @@ class SageSessions
                         session.status = 'done'
 
     # Return object that describes status of all Sage sessions
-    info: () =>
+    info: (project_id) =>
         obj = {}
-        for id, info of @_sessions
-            obj[id] = {desc:info.desc, status:info.status}
+        for id, session of @_sessions
+            if session.project_id == project_id
+                obj[id] =
+                    desc    : session.desc
+                    status  : session.status
         return obj
 
 sage_sessions = new SageSessions()
@@ -320,30 +336,47 @@ sage_sessions = new SageSessions()
 ###############################################
 # CodeMirror sessions
 ###############################################
+class CodeMirrorSession
+    constructor: (mesg, cb) ->
+        @filename = mesg.filename
+        @session_uuid = mesg.session_uuid
+        @project_id = mesg.project_id
+        @clients = []
+        fs.readFile @filename, (err, data) =>
+            if err
+                cb(err)
+            else
+                @obj = new sync_obj.CodeMirrorSession(content:data.toString())
+                cb(false, @)
+
+    add_client: (socket) =>
+        @clients.push(socket)
 
 class CodeMirrorSessions
     constructor: () ->
         @_sessions = {}
 
     # Connect to (if 'running'), restart (if 'dead'), or create (if
-    # non-existing) the Sage session with mesg.session_uuid.
+    # non-existing) the CodeMirror session with mesg.session_uuid.
     connect: (client_socket, mesg) =>
         session = @_sessions[mesg.session_uuid]
         if session?
-            session.clients.push(client_socket)
+            session.add_client(client_socket)
         else
-            @_sessions[mesg.session_uuid] = {clients:[client_socket], desc:"", status:"running"}
-        client_socket.write_mesg('json', message.success(id:mesg.id))
-
-        client_socket.on 'mesg', (type, mesg) ->
-            winston.debug("RECEIVED MESG -- #{misc.to_json(mesg)}")
-            client_socket.write_mesg('json', message.success(id:mesg.id))
+            new CodeMirrorSession mesg, (err,session) =>
+                if err
+                    client_socket.write_mesg('json', message.error(id:mesg.id, message:err))
+                else
+                    @_sessions[mesg.session_uuid] = session
+                    session.add_client(client_socket)
+                    client_socket.write_mesg('json', message.success(id:mesg.id))
 
     # Return object that describes status of CodeMirror sessions
-    info: () =>
+    info: (project_id) =>
         obj = {}
-        for id, info of @_sessions
-            obj[id] = {desc:info.desc, status:info.status}
+        for id, session of @_sessions
+            if session.project_id == project_id
+                obj[id] = {session_uuid : session.session_uuid, filename : session.filename}
         return obj
 
 codemirror_sessions = new CodeMirrorSessions()
@@ -490,10 +523,12 @@ write_file_to_project = (socket, mesg) ->
 ###############################################
 # Info
 ###############################################
-session_info = () ->
-    return {'sage_sessions':sage_sessions.info(), 'console_sessions':console_sessions.info()}
-
-
+session_info = (project_id) ->
+    return {
+        'sage_sessions'       : sage_sessions.info(project_id)
+        'console_sessions'    : console_sessions.info(project_id)
+        'codemirror_sessions' : codemirror_sessions.info(project_id)
+    }
 
 
 ###############################################
@@ -537,7 +572,7 @@ handle_mesg = (socket, mesg) ->
                 resp = message.project_session_info
                     id         : mesg.id
                     project_id : mesg.project_id
-                    info       : session_info()
+                    info       : session_info(mesg.project_id)
                 socket.write_mesg('json', resp)
             when 'project_exec'
                 project_exec(socket, mesg)

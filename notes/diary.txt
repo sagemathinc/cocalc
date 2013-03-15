@@ -10594,7 +10594,7 @@ codemirror_content: this is the current content
 
 
 
-
+         [x]  BUG/issue -- If I have multiple console session on same local_hub in different *projects*, they get merged since the info thing doesn't sort by project. ; I am writing code to address this right now.
 
 
 
