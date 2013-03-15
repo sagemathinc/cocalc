@@ -10560,13 +10560,22 @@ Design:
          * the local_hub state -- which sits directly next to the file
 
          * for testing define the above and derive a class FileEditSession from it, with minimal functionality.
-
- (est:3+) --> [ ] file edit session server, with everything persistent, using sync'd objects
            file edit session
            [ ] implement "apply codemirror-style diff to it"
            [ ] test out purely in the browser as a 1:1 mirror of file contents
            [ ] add to the hub, so there is a new session type "file_editor"
            [ ] add to the local hub, so that multiple hubs work.
+ ----->
+  ** file edit session server, with everything persistent, using sync'd objects  **
+
+       -->    [ ] client FileEditSession with a little test of it from a Sage worksheet
+           [ ] hub FileEditSession (stubbed)
+           [ ] local_hub FileEditSession
+           [ ] make hub use local_hub FileEditSession
+           [ ] client editor.coffee use FileEditSession
+
+
+
 
   (est 6:00) [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
 

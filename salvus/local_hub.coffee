@@ -1,9 +1,9 @@
 #################################################################
 #
-# local_hub -- a node.js program that runs as a regular user, and 
-#              coordinates and maintains the connections between 
-#              the global hubs and *all* projects running as 
-#              this particular user. 
+# local_hub -- a node.js program that runs as a regular user, and
+#              coordinates and maintains the connections between
+#              the global hubs and *all* projects running as
+#              this particular user.
 #
 # The local_hub is a bit like the "screen" program for Unix, except
 # that it simultaneously manages numerous sessions, since simultaneously
@@ -32,7 +32,7 @@ temp           = require 'temp'
 {to_json, from_json, defaults, required}   = require 'misc'
 
 # Any non-absolute path is assumed to be relative to the user's home directory.
-# This function converts such a path to an absolute path. 
+# This function converts such a path to an absolute path.
 abspath = (path) ->
     if path.length == 0
         return process.env.HOME
@@ -137,7 +137,7 @@ get_port = (type, cb) ->   # cb(err, port number)
 forget_port = (type) ->
     if ports[type]?
         delete ports[type]
-        
+
 
 class ConsoleSessions
     constructor: () ->
@@ -145,7 +145,7 @@ class ConsoleSessions
 
     session_exists: (session_uuid) =>
         return @_sessions[session_uuid]?
-    
+
     terminate_session: (session_uuid, cb) =>
         session = @_sessions[session_uuid]
         if not session?
@@ -157,7 +157,7 @@ class ConsoleSessions
                 cb()
             else
                 cb()
-            
+
     # Connect to (if 'running'), restart (if 'dead'), or create (if
     # non-existing) the console session with mesg.session_uuid.
     connect: (client_socket, mesg) =>
@@ -252,7 +252,7 @@ class SageSessions
     session_exists: (session_uuid) =>
         return @_sessions[session_uuid]?
 
-        
+
     terminate_session: (session_uuid, cb) =>
         S = @_sessions[session_uuid]
         if not S?
@@ -315,6 +315,35 @@ class SageSessions
 
 sage_sessions = new SageSessions()
 
+
+
+###############################################
+# CodeMirror sessions
+###############################################
+
+class CodeMirrorSessions
+    constructor: () ->
+        @_sessions = {}
+
+    # Connect to (if 'running'), restart (if 'dead'), or create (if
+    # non-existing) the Sage session with mesg.session_uuid.
+    connect: (client_socket, mesg) =>
+        session = @_sessions[mesg.session_uuid]
+        if session?
+            session.clients.push(client_socket)
+        else
+            @_sessions[mesg.session_uuid] = {clients:[client_socket], desc:"", status:"running"}
+        client_socket.write_mesg('json', message.success(id:mesg.id))
+
+    # Return object that describes status of CodeMirro sessions
+    info: () =>
+        obj = {}
+        for id, info of @_sessions
+            obj[id] = {desc:info.desc, status:info.status}
+        return obj
+
+codemirror_sessions = new CodeMirrorSessions()
+
 ###############################################
 # Connecting to existing session or making a
 # new one.
@@ -327,10 +356,12 @@ connect_to_session = (socket, mesg) ->
             console_sessions.connect(socket, mesg)
         when 'sage'
             sage_sessions.connect(socket, mesg)
+        when 'codemirror'
+            codemirror_sessions.connect(socket, mesg)
         else
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
-        
+
 
 ###############################################
 # Kill an existing session.
@@ -341,15 +372,15 @@ terminate_session = (socket, mesg) ->
         if err
             mesg = message.error(id:mesg.id, error:err)
         socket.write_mesg('json', mesg)
-        
+
     sid = mesg.session_uuid
     if console_sessions.session_exists(sid)
-        console_sessions.terminate_session(sid, cb)        
+        console_sessions.terminate_session(sid, cb)
     else if sage_sessions.session_exists(sid)
         sage_sessions.terminate_session(sid, cb)
     else
         cb()
-        
+
 ###############################################
 # Read and write individual files
 ###############################################

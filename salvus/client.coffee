@@ -182,6 +182,9 @@ class SageSession extends Session
 class ConsoleSession extends Session
     # nothing special yet
 
+class CodeMirrorSession extends Session
+    # nothing special yet
+
 class exports.Connection extends EventEmitter
     # Connection events:
     #    - 'connecting' -- trying to establish a connection
@@ -354,7 +357,7 @@ class exports.Connection extends EventEmitter
     new_session: (opts) ->
         opts = defaults opts,
             timeout : 10          # how long until give up on getting a new session
-            type    : "sage"      # "sage", "console"
+            type    : "sage"      # "sage", "console", "codemirror"
             params  : undefined   # extra params relevant to the session
             project_id : undefined # project that this session starts in (TODO: make required)
             cb      : required    # cb(error, session)  if error is defined it is a string
@@ -403,6 +406,8 @@ class exports.Connection extends EventEmitter
                 session = new SageSession(session_opts)
             when 'console'
                 session = new ConsoleSession(session_opts)
+            when 'codemirror'
+                session = new CodeMirrorSession(session_opts)
             else
                 opts.cb("Unknown session type: '#{opts.type}'")
         @_sessions[opts.session_uuid] = session

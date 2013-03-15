@@ -461,6 +461,8 @@ class Client extends EventEmitter
                             @push_to_client(message.session_started(id:mesg.id, session_uuid:session.session_uuid))
             when 'console'
                 @connect_to_console_session(mesg)
+            when 'codemirror'
+                @connect_to_codemirror_session(mesg)
             else
                 @error_to_client(id:mesg.id, error:"Unknown message type '#{mesg.type}'")
 
@@ -478,6 +480,8 @@ class Client extends EventEmitter
                         @push_to_client(message.session_connected(id:mesg.id, session_uuid:mesg.session_uuid))
             when 'console'
                 @connect_to_console_session(mesg)
+            when 'codemirror'
+                @connect_to_codemirror_session(mesg)
             else
                 # TODO
                 @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
@@ -487,6 +491,20 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if not err  # get_project sends error to client
                 project.console_session
+                    client       : @
+                    params       : mesg.params
+                    session_uuid : mesg.session_uuid
+                    cb           : (err, connect_mesg) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            connect_mesg.id = mesg.id
+                            @push_to_client(connect_mesg)
+
+    connect_to_codemirror_session: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if not err  # get_project sends error to client
+                project.codemirror_session
                     client       : @
                     params       : mesg.params
                     session_uuid : mesg.session_uuid
@@ -523,7 +541,7 @@ class Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
-                    
+
     mesg_terminate_session: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if not err  # get_project sends error to client
@@ -534,7 +552,7 @@ class Client extends EventEmitter
                             @error_to_client(id:mesg.id, error:err)
                         else
                             @push_to_client(mesg)  # same message back.
-                            
+
     ######################################################
     # Message: introspections
     #   - completions of an identifier / methods on an object (may result in code evaluation)
@@ -1119,12 +1137,31 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     constructor: (@username, @host, @port, cb) ->
         assert @username? and @host? and @port? and cb?
         @address = "#{username}@#{host}"
-        @_sockets = {console:{}, sage:{}}
+        @_sockets = {}
         @local_hub_socket  (err,socket) =>
             if err
                 cb("Unable to start and connect to local hub #{@address} -- #{err}")
             else
                 cb(false, @)
+
+    # Send a JSON message to a session.
+    # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
+    # but makes sense for other sessions.
+    send_message_to_session: (opts) =>
+        opts = defaults opts,
+            message      : required
+            session_uuid : required
+            cb           : undefined   # cb(err)
+
+        socket = @_sockets[opts.session_uuid]
+        if not socket?
+            opts.cb("Session #{opts.session_uuid} is no longer open.")
+            return
+        try
+            socket.write_mesg('json', opts.message)
+            opts.cb()
+        catch e
+            opts.cb("Errro sending message to session #{opts.session_uuid} -- #{e}")
 
     # The standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
@@ -1179,12 +1216,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     _open_session_socket: (opts) =>
         opts = defaults opts,
             session_uuid : required
-            type         : required  # 'sage', 'console'
+            type         : required  # 'sage', 'console', 'codemirror'
             params       : required
             project_id   : required
             timeout      : 5
             cb           : required  # cb(err, socket)
-        socket = @_sockets[opts.type][opts.session_uuid]
+        socket = @_sockets[opts.session_uuid]
         if socket?
             opts.cb(false, socket)
             return
@@ -1230,8 +1267,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 timer = setTimeout(timed_out, opts.timeout*1000)
 
         ], (err) =>
-            if socket?
-                @_sockets[opts.type][opts.session_uuid] = socket
+            if err
+                # TODO -- declare total disaster !? -- start over with next connection attempt.
+                winston.debug("Error getting a socket -- (declaring total disaster) -- #{err}")
+                delete @_status; delete @_socket
+            else if socket?
+                @_sockets[opts.session_uuid] = socket
                 socket.history = ''
             opts.cb(err, socket)
         )
@@ -1257,15 +1298,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             params       : opts.params
             cb           : (err, console_socket) =>
                 if err
-                    # There was an error getting the socket connection above.
-                    delete @_status; delete @_socket # this is an exceptional situation; reconfirm everything next time this local_hub is used
-                    winston.debug("Error getting a console socket -- #{err}")
                     opts.cb(err)
                     return
-                
+
                 console_socket.on 'end', () =>
-                    delete @_sockets.console[opts.session_uuid]
-                    
+                    delete @_sockets[opts.session_uuid]
+
                 # Plug the two consoles together
                 #
                 # client --> console:
@@ -1293,7 +1331,36 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.client.push_data_to_client(channel, data)
 
                 opts.client.push_data_to_client(channel, history)
-                    
+
+    # Connect the client with a codemirror file editing session.
+    codemirror_session: (opts) =>
+        opts = defaults opts,
+            client       : required
+            project_id   : required
+            params       : undefined
+            session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
+            cb           : required    # cb(err, [session_connected message])
+        if not opts.session_uuid?
+            opts.session_uuid = uuid.v4()
+
+        @_open_session_socket
+            session_uuid : opts.session_uuid
+            project_id   : opts.project_id
+            type         : 'codemirror'
+            params       : opts.params
+            cb           : (err, socket) =>
+                winston.debug("open codemirror session -- #{err}")
+                if err
+                    opts.cb(err)
+                    return
+                socket.on 'end', () =>
+                    delete @_sockets[opts.session_uuid]
+                socket.on 'mesg', (type, mesg) =>
+                    opts.client.push_to_client(mesg)
+                # client --> console
+                mesg = message.session_connected(session_uuid : opts.session_uuid)
+                opts.cb(false, mesg)
+
     sage_session:  (opts) =>
         opts = defaults opts,
             session_uuid : undefined
@@ -1301,20 +1368,20 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb           : required
         # TODO!!!
 
-        
+
     terminate_session: (opts) =>
         opts = defaults opts,
             session_uuid : required
             project_id   : required
             cb           : undefined
         @call
-            mesg : 
+            mesg :
                 message.terminate_session
                     session_uuid : opts.session_uuid
                     project_id   : opts.project_id
             timeout : 30
             cb      : opts.cb
-        
+
     # TODO:
     #
     #    file_editor_session -- for multiple simultaneous file editing, etc.
@@ -1631,11 +1698,16 @@ class Project
         opts.project_id = @project_id
         @local_hub.console_session(opts)
 
+    codemirror_session: (opts) =>
+        @_fixpath(opts.params)
+        opts.project_id = @project_id
+        @local_hub.codemirror_session(opts)
+
     sage_session: (opts) =>
         @_fixpath(opts.path)
         opts.project_id = @project_id
         @local_hub.sage_session(opts)
-        
+
     terminate_session: (opts) =>
         opts = defaults opts,
             session_uuid : required

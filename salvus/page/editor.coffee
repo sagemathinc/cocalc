@@ -245,7 +245,7 @@ class exports.Editor
                 tab.editor.hide()
 
     onshow: () =>  # should be called when the editor is shown.
-        @active_tab.editor.show()
+        @active_tab?.editor.show()
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
