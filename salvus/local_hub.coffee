@@ -1,16 +1,21 @@
 #################################################################
 #
-# local_hub -- runs as a regular user, and coordinates and maintains
-#              the connections between the global hubs and a
-#              specific project.
+# local_hub -- a node.js program that runs as a regular user, and 
+#              coordinates and maintains the connections between 
+#              the global hubs and *all* projects running as 
+#              this particular user. 
 #
-# The local_hub is a bit like the "screen" program for Unix.
+# The local_hub is a bit like the "screen" program for Unix, except
+# that it simultaneously manages numerous sessions, since simultaneously
+# doing a lot of IO-based things is what Node.JS is good at.
 #
 #
 # NOTE: For local debugging, run this way, since it gives better stack
 # traces.
 #
 #         make_coffee && echo "require('local_hub').start_server()" | coffee
+#
+#  (c) William Stein, 2013
 #
 #################################################################
 
@@ -26,11 +31,8 @@ temp           = require 'temp'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
-###################################################
-# The root path for the project is the directory
-# in which local_hub is started.
-###################################################
-
+# Any non-absolute path is assumed to be relative to the user's home directory.
+# This function converts such a path to an absolute path. 
 abspath = (path) ->
     if path.length == 0
         return process.env.HOME
@@ -53,7 +55,7 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
             async.series([
                 (cb) ->
                     if dir != ''
-                        # recurssively make sure the entire chain of directories exists.
+                        # recursively make sure the entire chain of directories exists.
                         ensure_containing_directory_exists(dir, cb)
                     else
                         cb()
@@ -65,12 +67,12 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
 # Generate the "secret_token" file as
 # $HOME/.sagemathcloud/data/secret_token if it does not already
 # exist.  All connections to all local-to-the user services that
-# SMC starts must be prefixed with this key.
+# SageMathClouds starts must be prefixed with this key.
 #####################################################################
 
 # WARNING -- the sage_server.py program can't get these definitions from
-# here, since it is not written in node, so if this changes, it has
-# to change there as well.
+# here, since it is not written in node; if this path changes, it has
+# to be change there as well.
 CONFPATH = exports.CONFPATH = abspath('.sagemathcloud/data/')
 secret_token_filename = exports.secret_token_filename = "#{CONFPATH}/secret_token"
 secret_token = undefined
@@ -81,7 +83,6 @@ secret_token = undefined
 secret_token_length = 128
 
 init_confpath = () ->
-
     async.series([
         # Ensure the CONFPATH has maximally restrictive permissions, since
         # secret info will be stored there.
@@ -136,11 +137,27 @@ get_port = (type, cb) ->   # cb(err, port number)
 forget_port = (type) ->
     if ports[type]?
         delete ports[type]
+        
 
 class ConsoleSessions
     constructor: () ->
         @_sessions = {}
 
+    session_exists: (session_uuid) =>
+        return @_sessions[session_uuid]?
+    
+    terminate_session: (session_uuid, cb) =>
+        session = @_sessions[session_uuid]
+        if not session?
+            cb()
+        else
+            winston.debug("terminate console session '#{session_uuid}'- STUB!")
+            if session.status == 'running'
+                session.socket.end()
+                cb()
+            else
+                cb()
+            
     # Connect to (if 'running'), restart (if 'dead'), or create (if
     # non-existing) the console session with mesg.session_uuid.
     connect: (client_socket, mesg) =>
@@ -193,6 +210,9 @@ class ConsoleSessions
                         console_socket.write(data)
                     console_socket.on 'data', (data) ->
                         session.history += data
+                        n = session.history.length
+                        if n > 15000  # TODO: totally arbitrary; also have to change the same thing in hub.coffee
+                            session.history = session.history.slice(10000)
                         client_socket.write(data)
 
                     @_sessions[mesg.session_uuid] = session
@@ -228,6 +248,18 @@ plug = (s1, s2) ->
 class SageSessions
     constructor: () ->
         @_sessions = {}
+
+    session_exists: (session_uuid) =>
+        return @_sessions[session_uuid]?
+
+        
+    terminate_session: (session_uuid, cb) =>
+        S = @_sessions[session_uuid]
+        if not S?
+            cb()
+        else
+            winston.debug("terminate sage session -- STUB!")
+            cb()
 
     # Connect to (if 'running'), restart (if 'dead'), or create (if
     # non-existing) the Sage session with mesg.session_uuid.
@@ -298,8 +330,26 @@ connect_to_session = (socket, mesg) ->
         else
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
+        
 
+###############################################
+# Kill an existing session.
+###############################################
 
+terminate_session = (socket, mesg) ->
+    cb = (err) ->
+        if err
+            mesg = message.error(id:mesg.id, error:err)
+        socket.write_mesg('json', mesg)
+        
+    sid = mesg.session_uuid
+    if console_sessions.session_exists(sid)
+        console_sessions.terminate_session(sid, cb)        
+    else if sage_sessions.session_exists(sid)
+        sage_sessions.terminate_session(sid, cb)
+    else
+        cb()
+        
 ###############################################
 # Read and write individual files
 ###############################################
@@ -473,6 +523,8 @@ handle_mesg = (socket, mesg) ->
                 process.kill(mesg.pid, signal)
                 if mesg.id?
                     socket.write_mesg('json', message.signal_sent(id:mesg.id))
+            when 'terminate_session'
+                terminate_session(socket, mesg)
             else
                 if mesg.id?
                     err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")

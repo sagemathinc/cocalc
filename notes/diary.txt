@@ -10468,7 +10468,7 @@ underlined, but actually CSI 4 m is underline.
 CSI > Ps; Ps T
           Reset one or more features of the title modes to the default
           value.  Normally, "reset" disables the feature.  It is possi-
-          ble to 
+          ble to
 
 ==================================================================
 
@@ -10486,84 +10486,121 @@ CSI > Ps; Ps T
 
 
 
-(est:1:30) -->      [x] upgrade to codemirror-3.1, and enable search plugin for editor  
+(est:1:30) -->      [x] upgrade to codemirror-3.1, and enable search plugin for editor
                     [x] add support for color themes with solarized as default.
                     [x] add exactly the right codemirror-3.1 files to git
                     [x] fix all the issues with keyboard shortcuts in the editor; probably caused by backwards incompat changes.
-                    
-                    
-(est: 1:00)   [x] include xyjax in SMC   https://github.com/sonoisa/XyJax                    
--->           [x] fix weird scrollbar insanity on bottom of text editor      
 
-(est: 3:00)   [x] when you edit a .tex file with the editor, put a mode button in, which changes the 
+
+(est: 1:00)   [x] include xyjax in SMC   https://github.com/sonoisa/XyJax
+-->           [x] fix weird scrollbar insanity on bottom of text editor
+
+(est: 3:00)   [x] when you edit a .tex file with the editor, put a mode button in, which changes the
          view from codemirror editor to tex'd version of the file.
          "convert -density 200 a.pdf a.png"
          This should be really easy to implement and will be a *surprise* for people!
              [x] Create class "LatexEditor" using the codemirror editor class with new html/css
              [x] Put buttons to switch mode -- "Source", "Preview", "Output" -- just quick and dirty; can use a switch later.
-             [x] Also make a "Run LaTeX" button. 
+             [x] Also make a "Run LaTeX" button.
              [x] latex editor -- script to make buttons call/do something
              [x] latex editor -- make the latex function actually call latex on the server, and put output in log.
              [x] Define html/css for Preview view and output.
-             [x] Implement Preview view; it will do pdflatex, then convert to png's, and also push the pdflatex 
+             [x] Implement Preview view; it will do pdflatex, then convert to png's, and also push the pdflatex
                  output to output view, plus number of pages, plus update the previewed page.
              [x] The preview view when shown updates the *current* page.  Maybe I could just use some standard
-                 AJAX plugin for a carsol of png's, which is a very standard thing.   But for first version, just have a 
+                 AJAX plugin for a carsol of png's, which is a very standard thing.   But for first version, just have a
                  next/previous page button, and load on switch.
-                 
-             [x] latex_editor: main issue is (1) slow, and (2) when page number exceeds document, get CONFUSED    
+
+             [x] latex_editor: main issue is (1) slow, and (2) when page number exceeds document, get CONFUSED
                  FIX this by (1) using ghostscript with pngmono, and (2) a high dpi, and (3) loading all images at once.
- 
-             [ ] make the latex command and what it is run on (!!) customizable.
-             [ ] option to autolatex on switching to the preview screen and save
-                    
-########################## 
 
-@@@@@@@@@@@@@@@@ TODAY's GOALS:
-           
               [x] (1:00) Codemirror cursor is too thin!
-              
+
               [x] (0:15) terminal: make it focus when tab is selected.
-              
+
               [x] (0:38) edit window resize (and initial size) is a DISASTER. -- make it less so; temporary fix.
-              
+
               [x] console: make a little visible paste area for terminal so people can paste no matter what/where.
-`
-(est - 0:45)  [ ] (0:15) make it so current view in a codemirror editor is preserved no matter damned what.
-Tools:
-   - cm.getViewport() -- returns {from, to} 
-   - cm.scrollIntoView(from)
-Need a repeatable failure, and to decide *when* to save viewport.
 
-           
-(est:2:00)    [ ] make persistent console sessions actually work very well
+(est:1:00)    [x] add or implement search plugin for codemirror editor.
 
-              [ ] make collection of open files persist between sessions (where -- on localStorage or central... don't know.)
 
+ (est: 0:30)   [X] (2:15) pdf preview -- preserve page position on reload, if easy. (took way longer, since required clever idea)
+
+(est:1:00)    [x] (0:51) pdf preview -- use whenever user clicks on a PDF.  viola, suddenly SMC can be used to browse all your pdf's of papers!
+ (est:0:10)   [x] (0:03) editor -- make it so "command-s" is also save, for OS X.
+
+  (est:1:30) [x] (6 hours?) make persistent console sessions actually persist --
+                    [x] when opening a console, automatically open all the corresponding terminals that are current
+                    [x] when closing a console, actually end that session
+               
+          [x] (0:04) Make File Browser appear by default.
+          
+          [x] (0:08) fix codemirror editor MODE -- I seem to have totally broken it getting set.
+       
+          [x] console -- discard history after some point (configurable, but just make it 10,000 characters now?)
+
+          [x] console -- when displaying it, resize to its stored size.
+
+@@@@@@@@@@@@@@@@@@@@@@
+IMMEDIATE's GOALS:
+===================
+
+          [x] (0:41) text editor -- get rid of all trailing whitespace on save; this is getting ridiculous
+  
+          [ ] search input in the project file listing [TODO: which returns *all* matches (by doing a new git-ls if need be)]
+      
+ (est:3+) [ ] file edit session server, with everything persistent.
+
+  (est 6:00) [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
+
+ (est:3:00)  [ ] default location account(s)
+
+
+
+
+
+             ----
 (est:1:00)    [ ] make it so user can change the location of the project:
                   started this -- see project.coffee "TODO -- actually implement project location change"
 
-(est:1:00)    [ ] add or implement search plugin for codemirror editor.
+              [ ] admin -- way to create pre-made accounts *from* admin, and put their existence in database
 
+              [ ] hub -- use pre-made accounts when creating a new user
+
+              [ ] hub -- option to switch-to-a-new-account in case user feels it is needed.
 
 ----
 
+     [ ] Terminal -- put a copy icon button next to the paste one that copies whatever the contents are?
+
+     [ ] pdf preview -- better error when gv not installed; should warn user about everything that needs to be installed for full functionality...
+
+     [ ] MOBILE: codemirror doesn't scroll -- serious issue.
 
 
       [ ] project.coffee -- BUG -- if you start clicking around directories quickly you can easily get to a nonexistent path due to
           time of gitls round trip.  So... when that happens display the last valid path.
-         
 
-     [ ] make it so one can add sketches to noes -- this looks really good: http://intridea.github.com/sketch.js/
+
+     [ ] make it so one can add sketches to notes -- this looks really good: http://intridea.github.com
+     
+     
+     sketch.js/
          This should also be an interact control, since then one can sketch and use it elsewhere in an interact.
-      
+
      [ ] idea -- make it so when opening an HTML file, can easily switch between actual HTML (maybe contenteditable?) and source...?
-     
-     [ ] idea -- make it so borders around cells (and notes) is easy to toggle on/off     
-     
+
+     [ ] idea -- make it so borders around cells (and notes) is easy to toggle on/off
+
     [ ] bug --copy/paste inside of note involving math often results in something un-texable.
-     
-     
+
+     (est - 0:45)  [ ] (0:15) make it so current view in a codemirror editor is preserved no matter damned what.
+Tools:
+   - cm.getViewport() -- returns {from, to}
+   - cm.scrollIntoView(from)
+Need a repeatable failure, and to decide *when* to save viewport.
+
 
     [ ] SECURITY: I *need* -- absolutely need -- to modify all this so
         that the private key used by the hub depends on the user, and
@@ -10578,10 +10615,10 @@ Need a repeatable failure, and to decide *when* to save viewport.
            Tell them to put public ssh key in accounts that they want to be accessible.
            Use passphrase.  For port forwarding, I don't know how to do that except
            by having hundreds of accounts on the hub machine, which is ridiculous!
-
+           
+      IDEA -- maybe set HOME to something in /tmp with temporary ssh keys in it?!
 
      [ ] code_editor -- remove trailing whitespace mode
-
 
     [ ] control-s in worksheet should save it?
 
@@ -10617,7 +10654,7 @@ AWS usage ideas:
 
     [ ] $$'s in note get you latex.  Another symbol should get you sage without output hiding input (?).  E.g., ||.  Also $\sage{ ... }$ should work.
 
-    [ ] note area needs an undo that persists between edits...  can use the diffs it sends out. 
+    [ ] note area needs an undo that persists between edits...  can use the diffs it sends out.
 
     [ ] shift enter in a note creates a new note... with code hidden
     [ ] css around note.
@@ -10626,10 +10663,14 @@ AWS usage ideas:
     pops up and asks you to define it; make that macro part of your
     profile; include in worksheets you share.
 
+    [ ] make the latex command and what it is run on (!!) customizable.
+
+    [ ] option to autolatex on switching to the preview screen and save
+
     [ ] control-; to split in *NOTE* cell too!
 
     [ ] Note area should be a restricted subset of text formatting/math that can be rendered in both latex and html.
-        Example: matrices, commutative diagrams, etc. 
+        Example: matrices, commutative diagrams, etc.
 
     [ ] cell depencies would be nice, e.g., if you evaluate cell foo and bar hasn't been evaluated, evaluate it first... ?
 
@@ -11096,8 +11137,8 @@ Ideas -- typing this defines macros easily:
     [ ] file editor (advanced): split view
     [ ] file editor (advanced): live preview (esp. for html, .md,; latex, etc.)
           convert -density 200 a.pdf a.png    # looks pretty nice!
-    
-    
+
+
     [ ] file editor (advanced): action -- run (for certain file types)
 
 

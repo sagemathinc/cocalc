@@ -523,7 +523,18 @@ class Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
-
+                    
+    mesg_terminate_session: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if not err  # get_project sends error to client
+                project.terminate_session
+                    session_uuid : mesg.session_uuid
+                    cb           : (err, resp) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(mesg)  # same message back.
+                            
     ######################################################
     # Message: introspections
     #   - completions of an identifier / methods on an object (may result in code evaluation)
@@ -1173,15 +1184,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             project_id   : required
             timeout      : 5
             cb           : required  # cb(err, socket)
+        socket = @_sockets[opts.type][opts.session_uuid]
+        if socket?
+            opts.cb(false, socket)
+            return
+
         # We do not currently have an active open socket connection to this session.
         # We make a new socket connection to the local_hub, then
         # send a connect_to_session message, which will either
         # plug this socket into an existing session with the given session_uuid, or
         # create a new session with that uuid and plug this socket into it.
-        socket = @_sockets[opts.type][opts.session_uuid]
-        if socket?
-            opts.cb(false, socket)
-            return
         async.series([
             (cb) =>
                 winston.debug("getting new socket to a local_hub")
@@ -1220,6 +1232,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         ], (err) =>
             if socket?
                 @_sockets[opts.type][opts.session_uuid] = socket
+                socket.history = ''
             opts.cb(err, socket)
         )
 
@@ -1246,9 +1259,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 if err
                     # There was an error getting the socket connection above.
                     delete @_status; delete @_socket # this is an exceptional situation; reconfirm everything next time this local_hub is used
+                    winston.debug("Error getting a console socket -- #{err}")
                     opts.cb(err)
                     return
-
+                
+                console_socket.on 'end', () =>
+                    delete @_sockets.console[opts.session_uuid]
+                    
                 # Plug the two consoles together
                 #
                 # client --> console:
@@ -1258,21 +1275,25 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 channel = opts.client.register_data_handler (data)->
                     console_socket.write(data)
 
+                mesg = message.session_connected
+                    session_uuid : opts.session_uuid
+                    data_channel : channel
+                opts.cb(false, mesg)
+
+                history = console_socket.history
+
                 # console --> client:
                 # When data comes in from the socket, we push it on to the connected
                 # client over the channel we just created.
                 console_socket.on 'data', (data) ->
+                    console_socket.history += data
+                    n = console_socket.history.length
+                    if n > 15000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                        console_socket.history = console_socket.history.slice(10000)
                     opts.client.push_data_to_client(channel, data)
 
-                console_socket.on 'end', () =>
-                    delete @_sockets.console[opts.session_uuid]
-
-                mesg = message.session_connected
-                    session_uuid : opts.session_uuid
-                    data_channel : channel
-
-                opts.cb(false, mesg)
-
+                opts.client.push_data_to_client(channel, history)
+                    
     sage_session:  (opts) =>
         opts = defaults opts,
             session_uuid : undefined
@@ -1280,6 +1301,20 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb           : required
         # TODO!!!
 
+        
+    terminate_session: (opts) =>
+        opts = defaults opts,
+            session_uuid : required
+            project_id   : required
+            cb           : undefined
+        @call
+            mesg : 
+                message.terminate_session
+                    session_uuid : opts.session_uuid
+                    project_id   : opts.project_id
+            timeout : 30
+            cb      : opts.cb
+        
     # TODO:
     #
     #    file_editor_session -- for multiple simultaneous file editing, etc.
@@ -1581,25 +1616,32 @@ class Project
             message : message.project_session_info(project_id:@project_id)
             cb : cb
 
-    read_file: (opts) ->
+    read_file: (opts) =>
         @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.read_file(opts)
 
-    write_file: (opts) ->
+    write_file: (opts) =>
         @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.write_file(opts)
 
-    console_session: (opts) ->
+    console_session: (opts) =>
         @_fixpath(opts.params)
         opts.project_id = @project_id
         @local_hub.console_session(opts)
 
-    sage_session: (opts) ->
+    sage_session: (opts) =>
         @_fixpath(opts.path)
         opts.project_id = @project_id
         @local_hub.sage_session(opts)
+        
+    terminate_session: (opts) =>
+        opts = defaults opts,
+            session_uuid : required
+            cb           : undefined
+        opts.project_id = @project_id
+        @local_hub.terminate_session(opts)
 
     # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
     save: (cb) =>

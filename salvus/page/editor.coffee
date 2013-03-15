@@ -8,7 +8,9 @@ async = require('async')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
-{trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split} = require('misc')
+misc = require('misc')
+# TODO: undo doing the import below -- just use misc.[stuff] is more readable.
+{copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -29,13 +31,14 @@ codemirror_associations =
     html   : 'htmlmixed'
     js     : 'javascript'
     lua    : 'lua'
-    md     : 'markdown'  : 'python'
+    md     : 'markdown'
     r      : 'r'
     rst    : 'rst'
     sage   : 'python'
     scala  : 'text/x-scala'
     sh     : 'shell'
     spyx   : 'python'
+    sql    : 'mysql'
     txt    : 'text'
     tex    : 'stex'
     xml    : 'xml'
@@ -47,11 +50,11 @@ for ext, mode of codemirror_associations
     file_associations[ext] =
         editor : 'codemirror'
         opts   : {mode:mode}
-        
+
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'icon-edit'
-    opts   : {mode:'stex', indent_unit:2, tab_size:2}    
+    opts   : {mode:'stex', indent_unit:2, tab_size:2}
 
 file_associations['salvus-terminal'] =
     editor : 'terminal'
@@ -75,8 +78,10 @@ for ext in ['png', 'jpg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'image'
         opts   : {}
-        
 
+file_associations['pdf'] =
+    editor : 'pdf'
+    opts   : {}
 
 # Given a text file (defined by content), try to guess
 # what the extension should be.
@@ -95,12 +100,6 @@ guess_file_extension_type = (content) ->
     if first_line.indexOf('/*') != -1 or first_line.indexOf('//') != -1   # kind of a stretch
         return 'c++'
     return undefined
-
-
-
-
-
-
 
 templates = $("#salvus-editor-templates")
 
@@ -154,6 +153,8 @@ class exports.Editor
         if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
             ext = filename_extension(filename)
             switch ext
+                when 'pdf'
+                    @tabs[filename] = @create_tab(filename:filename)
                 when 'png', 'svg', 'jpg', 'gif'
                     salvus_client.read_file_from_project
                         project_id : @project_id
@@ -179,22 +180,28 @@ class exports.Editor
                             else
                                 @tabs[filename] = @create_tab(filename:filename, content:mesg.content)
 
-    # Close this tab.  If it has unsaved changes, the user will be warned.
+    # Close this tab.
     close: (filename) =>
         @save filename, (err) =>
-            if not err
-                tab = @tabs[filename]
-                if not tab? # nothing to do -- file isn't opened anymore
-                    return
-                tab.link.remove()
-                tab.editor.remove()
-                delete @tabs[filename]
-                @update_counter()
+            if err
+                alert_message(type:"error", message:"Error saving file '#{filename}' -- #{err}")
+                return
 
-                names = keys(@tabs)
-                if names.length > 0
-                    # select new tab
-                    @display_tab(names[0])
+            tab = @tabs[filename]
+            if not tab? # nothing to do -- file isn't opened anymore
+                return
+
+            # Send a message to terminate the session (if relevant)
+            tab.editor.terminate_session()
+            tab.link.remove()
+            tab.editor.remove()
+            delete @tabs[filename]
+            @update_counter()
+
+            names = keys(@tabs)
+            if names.length > 0
+                # select new tab
+                @display_tab(names[0])
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -236,6 +243,9 @@ class exports.Editor
             else
                 tab.link.removeClass("active")
                 tab.editor.hide()
+
+    onshow: () =>  # should be called when the editor is shown.
+        @active_tab.editor.show()
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -285,9 +295,10 @@ class exports.Editor
 
     create_tab: (opts) =>
         opts = defaults opts,
-            filename : required
-            content  : undefined
-            url      : undefined
+            filename     : required
+            content      : undefined
+            url          : undefined
+            session_uuid : undefined
 
         filename = opts.filename
         ext = filename_extension(opts.filename)
@@ -299,22 +310,30 @@ class exports.Editor
 
         content = opts.content
         url = opts.url
+
+        extra_opts = copy(x.opts)
+
+        if opts.session_uuid?
+            extra_opts.session_uuid = opts.session_uuid
+
         switch x.editor
-            # codemirror is the default... since it is the only thing implemented now.  JSON will be next, since I have that plugin.
+            # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
-                editor = new CodeMirrorEditor(@, filename, content, x.opts)
+                editor = new CodeMirrorEditor(@, filename, content, extra_opts)
             when 'terminal'
-                editor = new Terminal(@, filename, content, x.opts)
+                editor = new Terminal(@, filename, content, extra_opts)
             when 'worksheet'
-                editor = new Worksheet(@, filename, content, x.opts)
+                editor = new Worksheet(@, filename, content, extra_opts)
             when 'spreadsheet'
-                editor = new Spreadsheet(@, filename, content, x.opts)
+                editor = new Spreadsheet(@, filename, content, extra_opts)
             when 'slideshow'
-                editor = new Slideshow(@, filename, content, x.opts)
+                editor = new Slideshow(@, filename, content, extra_opts)
             when 'image'
-                editor = new Image(@, filename, url, x.opts)
+                editor = new Image(@, filename, url, extra_opts)
             when 'latex'
-                editor = new LatexEditor(@, filename, content, x.opts)
+                editor = new LatexEditor(@, filename, content, extra_opts)
+            when 'pdf'
+                editor = new PDF_Preview(@, filename, undefined, extra_opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
@@ -397,6 +416,9 @@ class FileEditor extends EventEmitter
     remove: () =>
         @element.remove()
 
+    terminate_session: () =>
+        # If some backend session on a remote machine is serving this session, terminate it.
+
 
 ###############################################
 # Codemirror-based File Editor
@@ -405,13 +427,14 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             mode              : required
+            delete_trailing_whitespace : true   # delete all trailing whitespace on save
             line_numbers      : true
             indent_unit       : 4
             tab_size          : 4
             smart_indent      : true
-            undo_depth        : 100
+            undo_depth        : 1000
             match_brackets    : true
-            line_wrapping     : true
+            line_wrapping     : true            
             theme             : "solarized"  # see static/codemirror*/themes or head.html
 
 
@@ -431,7 +454,8 @@ class CodeMirrorEditor extends FileEditor
             lineWrapping    : opts.line_wrapping
             extraKeys       :
                 "Shift-Enter" : (editor) => @click_save_button()
-                "Ctrl-S" : (editor) => @click_save_button()
+                "Ctrl-S"    : (editor) => @click_save_button()
+                "Cmd-S"     : (editor) => @click_save_button()
                 "Shift-Tab" : (editor) => editor.unindent_selection()
                 "Tab"       : (editor) =>
                     c = editor.getCursor(); d = editor.getCursor(true)
@@ -440,16 +464,16 @@ class CodeMirrorEditor extends FileEditor
                     else
                         CodeMirror.commands.defaultTab(editor)
 
-        scroller = $(@codemirror.getScrollerElement())                  
+        scroller = $(@codemirror.getScrollerElement())
         #scroller.css
             #'max-height' : @opts.editor_max_height
             #margin       : '5px'
-        scroller.css('height':$(window).height()*2/3)                
-        @element.resizable(alsoResize:scroller, handles: "s").on('resize', @focus)                                                                          
+        scroller.css('height':$(window).height()*2/3)
+        @element.resizable(alsoResize:scroller, handles: "s").on('resize', @focus)
 
         @init_save_button()
         @init_change_event()
-        
+
     init_save_button: () =>
         save = @save = @element.find("a[href=#save]")
         save.find(".spinner").hide()
@@ -474,10 +498,15 @@ class CodeMirrorEditor extends FileEditor
             @save.removeClass('disabled')
 
     _get: () =>
-        return @codemirror.getValue()
+        val = @codemirror.getValue()
+        if @opts.delete_trailing_whitespace
+            val = misc.delete_trailing_whitespace(val)
+        return val
 
     _set: (content) =>
+        {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
+        @codemirror.scrollIntoView(from)        
 
     show: () =>
         @element?.show()
@@ -488,126 +517,163 @@ class CodeMirrorEditor extends FileEditor
             'max-height' : @element.height()
         @codemirror?.focus()
         @codemirror?.refresh()
-                
+
 ###############################################
 # LateX Editor
 ###############################################
-class PDF_Preview
+
+# Make a temporary uuid-named directory in path.
+tmp_dir = (project_id, path, cb) ->      # cb(err, directory_name)
+    name = uuid()
+    salvus_client.exec
+        project_id : project_id
+        path       : path
+        command    : "mkdir"
+        args       : [name]
+        cb         : (err, output) =>
+            if err
+                cb("Problem creating temporary PDF preview path.")
+            else
+                cb(false, name)
+
+remove_tmp_dir = (project_id, path, tmp_dir, cb) ->
+    salvus_client.exec
+        project_id : project_id
+        path       : path
+        command    : "rm"
+        args       : ['-rf', tmp_dir]
+        cb         : (err, output) =>
+            cb?(err)
+
+class PDF_Preview extends FileEditor
     # Compute single page
-    constructor: (@editor, @path, @filename, opts) ->
+    constructor: (@editor, @filename, contents, opts) ->
         @element = templates.find(".salvus-editor-pdf-preview").clone()
-        
+        @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
+
         @page_number = 1
-        @density = 300  # impacts the clarity
-        n = @filename.length
-        @png = @filename.slice(0,n-3)+"png"
-        if @path != ""
-            @png_path = @path + "/preview/"
-        else
-            @png_path = "preview/"
-        
-        salvus_client.exec
-            project_id : @editor.project_id
-            path       : @path
-            command    : "mkdir"
-            args       : ['-p', @png_path]
-            cb         : (err, output) =>
-                if err
-                    alert_message(type:"error", message:"Preview of PDF may not work -- #{err}")
-        
-        @element.find("a[href=#prev]").click(@prev_page)
-        @element.find("a[href=#next]").click(@next_page)
-        @element.find("a[href=#zoom-in]").click(@zoom_in)
-        @element.find("a[href=#zoom-out]").click(@zoom_out)
-        
+        @density = 250  # impacts the clarity
+
+        s = path_split(@filename)
+        @path = s.head
+        if @path == ''
+            @path = './'
+        @file = s.tail
+
+        #@element.find("a[href=#prev]").click(@prev_page)
+        #@element.find("a[href=#next]").click(@next_page)
+        #@element.find("a[href=#zoom-in]").click(@zoom_in)
+        #@element.find("a[href=#zoom-out]").click(@zoom_out)
+
         @output = @element.find(".salvus-editor-pdf-preview-page")
-        
-        @element.css('height':$(window).height()*2/3)                
-        @element.resizable(handles: "s,se")   #.on('resize', @focus)                                                                          
 
+        @element.css('height':$(window).height()*2/3)
+        @element.resizable(handles: "s,se")   #.on('resize', @focus)
 
-    update: () =>
-        salvus_client.exec
-            project_id : @editor.project_id
-            path       : @path
-            
-            # gs -dFirstPage=6 -dLastPage=6 -dBATCH -dNOPAUSE -sDEVICE=pngmono -sOutputFile=0-200-pngmono.png -r200 sqrt5.pdf
-            command    : 'gs'            
-            args       : ["-dBATCH", "-dNOPAUSE",
-                          "-sDEVICE=pngmono", 
-                          "-sOutputFile=preview/%d.png", "-r#{@density}", @filename]
-            
-            #command    : 'convert'
-            #args       : ['-trim', '-density', @density, "#{@filename}[#{@page_number-1}]", @png]
-            
-            timeout    : 10
-            err_on_exit: false
-            cb         : (err, output) =>
-                if err
-                    alert_message(type:"error", message:err)
-                else
-                    @output.html("")
-                    i = output.stdout.indexOf("Page")
-                    s = output.stdout.slice(i)
-                    pages = {}
-                    tasks = []
-                    while s.length>4
-                        i = s.indexOf('\n')
-                        if i == -1
-                            break
-                        page_number = s.slice(5,i)
-                        s = s.slice(i+1)
+        @update()
 
-                        png_file = @png_path + '/' + page_number + '.png'
-                        
-                        f = (cb) =>
-                            num  = arguments.callee.page_number
-                            salvus_client.read_file_from_project
-                                project_id : @editor.project_id
-                                path       : arguments.callee.png_file
-                                cb         : (err, result) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        if result.url?
-                                            pages[num] = $("<img src='#{result.url}' class='salvus-editor-pdf-preview-image'><br>")                                        
-                                        cb()
-                                        
-                        f.png_file = png_file                
-                        f.page_number = parseInt(page_number)                        
-                        tasks.push(f)
-                                        
-                    async.parallel tasks, (err) =>
-                        if err
-                            alert_message(type:"error", message:"Error downloading png preview -- #{err}")
-                        else
-                            for n in [1..len(pages)]
-                                @output.append(pages[n])
-                            
-               
+    update: (cb) =>
+        @spinner.show().spin(true)
+        tmp_dir @editor.project_id, @path, (err, tmp) =>
+            if err
+                @spinner.hide().spin(false)
+                alert_message(type:"error", message:err)
+                cb?(err)
+                return
+            # Update the PNG's which provide a preview of the PDF
+            salvus_client.exec
+                project_id : @editor.project_id
+                path       : @path
+                command    : 'gs'
+                args       : ["-dBATCH", "-dNOPAUSE",
+                              "-sDEVICE=pngmono",
+                              "-sOutputFile=#{tmp}/%d.png", "-r#{@density}", @file]
+
+                timeout    : 10
+                err_on_exit: false
+                cb         : (err, output) =>
+                    if err
+                        alert_message(type:"error", message:err)
+                        remove_tmp_dir(@editor.project_id, @path, tmp)
+                        cb?(err)
+                    else
+                        i = output.stdout.indexOf("Page")
+                        s = output.stdout.slice(i)
+                        pages = {}
+                        tasks = []
+                        while s.length>4
+                            i = s.indexOf('\n')
+                            if i == -1
+                                break
+                            page_number = s.slice(5,i)
+                            s = s.slice(i+1)
+
+                            png_file = @path + "/#{tmp}/" + page_number + '.png'
+                            f = (cb) =>
+                                num  = arguments.callee.page_number
+                                salvus_client.read_file_from_project
+                                    project_id : @editor.project_id
+                                    path       : arguments.callee.png_file
+                                    cb         : (err, result) =>
+                                        if err
+                                            cb(err)
+                                        else
+                                            if result.url?
+                                                pages[num] = result.url
+                                            cb()
+
+                            f.png_file = png_file
+                            f.page_number = parseInt(page_number)
+                            tasks.push(f)
+
+                        async.parallel tasks, (err) =>
+                            remove_tmp_dir(@editor.project_id, @path, tmp)
+                            if err
+                                alert_message(type:"error", message:"Error downloading png preview -- #{err}")
+                                @spinner.spin(false).hide()
+                                cb?(err)
+                            else
+                                if len(pages) == 0
+                                    @output.html('')
+                                else
+                                    children = @output.children()
+                                    # We replace existing pages if possible, which nicely avoids all nasty scrolling issues/crap.
+                                    for n in [0...len(pages)]
+                                        url = pages[n+1]
+                                        if n < children.length
+                                            $(children[n]).attr('src', url)
+                                        else
+                                            @output.append($("<img src='#{url}' class='salvus-editor-pdf-preview-image'>"))
+                                    # Delete any remaining pages from before (if doc got shorter)
+                                    for n in [len(pages)...children.length]
+                                        $(children[n]).remove()
+                                @spinner.spin(false).hide()
+                                cb?()
+
     next_page: () =>
         @page_number += 1   # TODO: !what if last page?
         @update()
-        
+
     prev_page: () =>
         if @page_number >= 2
             @page_number -= 1
             @update()
-    
+
     zoom_out: () =>
         if @density >= 75
             @density -= 25
             @update()
-        
+
     zoom_in: () =>
         @density += 25
         @update()
-        
+
     show: () =>
         @element.show()
-    
+
     hide: () =>
         @element.hide()
+
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -617,77 +683,92 @@ class LatexEditor extends FileEditor
         #     * log -- log of latex command
         opts.mode = 'stex'
 
+        @_current_page = 'latex_editor'
         @element = templates.find(".salvus-editor-latex").clone()
-        
+
         # initialize the latex_editor
-        @latex_editor = new CodeMirrorEditor(@editor, @filename, content, opts)  
+        @latex_editor = new CodeMirrorEditor(@editor, @filename, content, opts)
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
-        
+
         v = path_split(@filename)
         @_path = v.head
-        @_target = v.tail        
-        
+        @_target = v.tail
+
         # initialize the preview
         n = @filename.length
-        @preview = new PDF_Preview(@editor, @_path, @_target.slice(0,n-3)+"pdf", {})
+        @preview = new PDF_Preview(@editor, @_target.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-preview").append(@preview.element)
-        
+
         # initalize the log
-        @log = @element.find(".salvus-editor-latex-log")   
-        
+        @log = @element.find(".salvus-editor-latex-log")
+
         @_init_buttons()
-        
+
         @preview.update()
-        
+
     _init_buttons: () =>
         @element.find("a[href=#latex_editor]").click () =>
             @show_page('latex_editor')
             @latex_editor.focus()
+            return false
+
         @element.find("a[href=#preview]").click () =>
+            @compile_and_update()
             @show_page('preview')
-            #@preview.update()
-        #@element.find("a[href=#log]").click () =>            
+            return false
+
+        #@element.find("a[href=#log]").click () =>
             #@show_page('log')
+            return false
+
         @element.find("a[href=#latex]").click () =>
             @show_page('log')
-            async.series([
-                (cb) =>
-                    @editor.save(@filename, cb)
-                (cb) =>
-                    @run_latex(cb)
-                (cb) =>
-                    @preview.update()
-                    cb()
-            ])
+            @compile_and_update()
+            return false
+
         @element.find("a[href=#pdf]").click () =>
             @download_pdf()
-        
+            return false
+
+    compile_and_update: (cb) =>
+        async.series([
+            (cb) =>
+                @editor.save(@filename, cb)
+            (cb) =>
+                @run_latex(cb)
+            (cb) =>
+                @preview.update(cb)
+        ], (err) -> cb?(err))
+
     _get: () =>
         return @latex_editor._get()
 
     _set: (content) =>
         @latex_editor._set(content)
-    
+
     show: () =>
         @element?.show()
         @latex_editor?.show()
 
     focus: () =>
         @latex_editor?.focus()
-        
+
     has_unsaved_changes: (val) =>
         return @latex_editor?.has_unsaved_changes(val)
-               
+
     show_page: (name) =>
+        if name == @_current_page
+            return
         for n in ['latex_editor', 'preview', 'log']
-            e = @element.find(".salvus-editor-latex-#{n}")            
+            e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
             if n == name
                 e.show()
                 button.addClass('btn-primary')
             else
-                e.hide() 
+                e.hide()
                 button.removeClass('btn-primary')
+        @_current_page = name
 
     run_latex: (cb) =>
         salvus_client.exec
@@ -701,12 +782,13 @@ class LatexEditor extends FileEditor
                 if err
                     alert_message(type:"error", message:err)
                 else
-                    @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)     
+                    @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
+                    # Scroll to the bottom of the textarea
                     f = @log.find('textarea')
                     f.scrollTop(f[0].scrollHeight)
-                    
-                cb?()    
-        
+
+                cb?()
+
     download_pdf: () =>
         # TODO: THIS replicates code in project.coffee
         salvus_client.read_file_from_project
@@ -719,34 +801,43 @@ class LatexEditor extends FileEditor
                     url = result.url + "&download"
                     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                     setTimeout((() -> iframe.remove()), 1000)
-    
-    
+
+
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts, {}
+        opts = @opts = defaults opts,
+            session_uuid : undefined
+            rows         : 24
+            cols         : 80
+        elt = $("<div>").salvus_console
+            title   : "Terminal"
+            cols    : @opts.cols
+            rows    : @opts.rows
+        @console = elt.data("console")
+        @element = @console.element
         @connect_to_server()
 
     connect_to_server: (cb) =>
-        @element = $("<div>Connecting to console server...</div>")  # TODO -- make much nicer
-        salvus_client.new_session
-            timeout    : 15  # make longer later -- TODO -- mainly for testing!
+        mesg =
+            timeout    : 30  # just for making the connection; not the timeout of the session itself!
             type       : 'console'
             project_id : @editor.project_id
-            params     : {command:'bash', rows:@opts.rows, cols:@opts.cols}
             cb : (err, session) =>
                 if err
-                    @element.text(err)   # TODO--nicer
                     alert_message(type:'error', message:err)
                 else
-                    @element.salvus_console
-                        title   : "Terminal"
-                        session : session,
-                        cols    : @opts.cols
-                        rows    : @opts.rows
-                    @console = @element.data("console")
-                    @element = @console.element
+                    @console.set_session(session)
                 cb?(err)
+
+        if @opts.session_uuid?
+            console.log("Connecting to an existing session.")
+            mesg.session_uuid = @opts.session_uuid
+            salvus_client.connect_to_session(mesg)
+        else
+            console.log("Opening a new session.")
+            mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols}
+            salvus_client.new_session(mesg)
 
         # TODO
         #@filename_tab.set_icon('console')
@@ -759,9 +850,20 @@ class Terminal extends FileEditor
     focus: () =>
         @console?.focus()
 
+    terminate_session: () =>
+        @console?.terminate_session()
+
+    show: () =>
+        @element.show()
+        if @console?
+            e = $(@console.terminal.element)
+            e.height((@console.opts.rows * 1.1) + "em")
+            @console.focus()
+
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts,{}  # nothing yet
+        opts = @opts = defaults opts,
+            session_uuid : undefined
         @_set(content)
         @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
 

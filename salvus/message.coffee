@@ -123,12 +123,13 @@ message
     session_uuid : required
     id           : undefined
 
-# browser <----> hub <--> sage_server
+# client <----> hub <--> sage_server
 message
     event        : 'terminate_session'
+    project_id   : undefined
     session_uuid : undefined
     reason       : undefined
-    done         : true
+    done         : undefined
 
 # browser --> hub --> sage_server
 message

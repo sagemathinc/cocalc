@@ -36,16 +36,27 @@ class Session extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
             conn         : required     # a Connection instance
+            project_id   : required
             session_uuid : required
             data_channel : undefined    # optional extra channel that is used for raw data
 
         @start_time   = misc.walltime()
         @conn         = opts.conn
+        @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @data_channel = opts.data_channel
         @emit("open")
-
-    walltime: () ->
+        
+    terminate_session: (cb) =>
+        @conn.call
+            message : 
+                message.terminate_session
+                    project_id   : @project_id
+                    session_uuid : @session_uuid
+            timeout : 30
+            cb      : cb
+        
+    walltime: () =>
         return misc.walltime() - @start_time
 
     handle_data: (data) =>
@@ -227,7 +238,7 @@ class exports.Connection extends EventEmitter
                 data    = data.slice(1)
 
                 @_handle_data(channel, data)
-
+                
                 # give other listeners a chance to do something with this data.
                 @emit("data", channel, data)
 
@@ -332,6 +343,7 @@ class exports.Connection extends EventEmitter
                     when 'session_connected'
                         @_create_session_object
                             type         : opts.type
+                            project_id   : opts.project_id
                             session_uuid : opts.session_uuid
                             data_channel : reply.data_channel
                             cb           : opts.cb
@@ -363,6 +375,7 @@ class exports.Connection extends EventEmitter
                     else if reply.event == "session_started" or reply.event == "session_connected"
                         @_create_session_object
                             type         : opts.type
+                            project_id   : opts.project_id
                             session_uuid : reply.session_uuid
                             data_channel : reply.data_channel
                             cb           : opts.cb
@@ -373,12 +386,14 @@ class exports.Connection extends EventEmitter
     _create_session_object: (opts) =>
         opts = defaults opts,
             type         : required
+            project_id   : required
             session_uuid : required
             data_channel : undefined
             cb           : required
 
         session_opts =
             conn         : @
+            project_id   : opts.project_id
             session_uuid : opts.session_uuid
             data_channel : opts.data_channel
 

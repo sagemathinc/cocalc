@@ -7,7 +7,7 @@
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
-{series}        = require('async')
+async           = require('async')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = require('misc')
 {file_associations, Editor} = require('editor')
 {scroll_top, human_readable_size}    = require('misc_page')
@@ -111,13 +111,6 @@ move_path_dialog = new Dialog
 
 class ProjectPage
     constructor: (@project) ->
-        console.log("requesting session info...")
-        salvus_client.project_session_info
-            project_id: @project.project_id
-            cb: (err, mesg) =>
-                if mesg?
-                    console.log("project session info: ", err, mesg.info)
-
         @container = templates.find(".salvus-project").clone()
         $("#footer").before(@container)
 
@@ -252,7 +245,54 @@ class ProjectPage
                 move_path_dialog.show(that)
             return false
 
+        @init_open_sessions()
 
+        
+    ########################################
+    # Launch open sessions
+    ########################################
+        
+    init_open_sessions: (cb) =>
+        salvus_client.project_session_info
+            project_id: @project.project_id
+            cb: (err, mesg) =>
+                if err
+                    alert_message(type:"error", message:"Error getting open sessions -- #{err}")
+                    cb?(err)
+                    return
+                console.log(mesg)
+                if not (mesg? and mesg.info?)
+                    cb?()
+                    return
+                    
+                async.series([
+                    (cb) =>
+                        @init_console_sessions(mesg.info.console_sessions, cb)
+                    (cb) =>
+                        @init_sage_sessions(mesg.info.sage_sessions, cb)
+                    (cb) =>
+                        @init_file_sessions(mesg.info.file_sessions, cb)
+                ], (err) => cb?(err))
+                
+    init_console_sessions: (sessions, cb) =>
+        console.log("initialize console sessions: ", sessions)
+        #@display_tab("project-editor")
+        for session_uuid, obj of sessions
+            if obj.status == 'running'
+                console.log("session_uuid = ", session_uuid)
+                filename = "scratch/#{session_uuid.slice(0,8)}.salvus-terminal"                                                                
+                tab = @editor.create_tab(filename:filename, session_uuid:session_uuid)                
+        cb?()
+        
+    init_sage_sessions: (sessions, cb) =>
+        console.log("initialize sage sessions: ", sessions)
+        cb?()
+        
+    init_file_sessions: (sessions, cb) =>
+        console.log("initialize file sessions: ", sessions)
+        cb?()
+        
+        
     ########################################
     # Console buttons
     ########################################
@@ -462,7 +502,7 @@ class ProjectPage
             alert_message(type:'error', message:"Invalid branch name '#{branch}'")
             return
 
-        series([
+        async.series([
             (c) =>
                 salvus_client.project_branch_op
                     project_id : @project.project_id
@@ -498,6 +538,9 @@ class ProjectPage
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.update_file_list_tab()
+            else if name == "project-editor"
+                tab.onshow = () ->
+                    that.editor.onshow()
 
         @display_tab("project-file-listing")
 
@@ -789,13 +832,9 @@ class ProjectPage
 
     open_file: (path) =>
         ext = filename_extension(path)
-        switch ext
-            when "pdf"
-                @open_file_in_another_browser_tab(path)
-            else
-                @editor.open(path)
-                @display_tab("project-editor")
-                @editor.display_tab(path)
+        @editor.open(path)
+        @display_tab("project-editor")
+        @editor.display_tab(path)
 
     switch_displayed_branch: (new_branch) =>
         if new_branch != @meta.display_branch
@@ -886,7 +925,7 @@ class ProjectPage
 
         spin_timer = undefined
 
-        series([
+        async.series([
             # Display the file/listing spinner
             (cb) =>
                 spinner = @container.find(".project-file-listing-spinner")
