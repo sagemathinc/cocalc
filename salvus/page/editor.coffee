@@ -8,7 +8,7 @@ async = require('async')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
-{trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
+{copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -183,22 +183,28 @@ class exports.Editor
                             else
                                 @tabs[filename] = @create_tab(filename:filename, content:mesg.content)
 
-    # Close this tab.  If it has unsaved changes, the user will be warned.
+    # Close this tab.  
     close: (filename) =>
         @save filename, (err) =>
-            if not err
-                tab = @tabs[filename]
-                if not tab? # nothing to do -- file isn't opened anymore
-                    return
-                tab.link.remove()
-                tab.editor.remove()
-                delete @tabs[filename]
-                @update_counter()
+            if err
+                alert_message(type:"error", message:"Error saving file '#{filename}' -- #{err}")
+                return
+            
+            tab = @tabs[filename]
+            if not tab? # nothing to do -- file isn't opened anymore
+                return
+            
+            # Send a message to terminate the session (if relevant)                        
+            tab.editor.terminate_session()
+            tab.link.remove()
+            tab.editor.remove()
+            delete @tabs[filename]
+            @update_counter()
 
-                names = keys(@tabs)
-                if names.length > 0
-                    # select new tab
-                    @display_tab(names[0])
+            names = keys(@tabs)
+            if names.length > 0
+                # select new tab
+                @display_tab(names[0])
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -289,9 +295,10 @@ class exports.Editor
 
     create_tab: (opts) =>
         opts = defaults opts,
-            filename : required
-            content  : undefined
-            url      : undefined
+            filename     : required
+            content      : undefined
+            url          : undefined
+            session_uuid : undefined
 
         filename = opts.filename
         ext = filename_extension(opts.filename)
@@ -303,24 +310,30 @@ class exports.Editor
 
         content = opts.content
         url = opts.url
+        
+        extra_opts = copy(extra_opts)
+        
+        if opts.session_uuid?
+            extra_opts.session_uuid = opts.session_uuid
+        
         switch x.editor
-            # codemirror is the default... since it is the only thing implemented now.  JSON will be next, since I have that plugin.
+            # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
-                editor = new CodeMirrorEditor(@, filename, content, x.opts)
+                editor = new CodeMirrorEditor(@, filename, content, extra_opts)
             when 'terminal'
-                editor = new Terminal(@, filename, content, x.opts)
+                editor = new Terminal(@, filename, content, extra_opts)
             when 'worksheet'
-                editor = new Worksheet(@, filename, content, x.opts)
+                editor = new Worksheet(@, filename, content, extra_opts)
             when 'spreadsheet'
-                editor = new Spreadsheet(@, filename, content, x.opts)
+                editor = new Spreadsheet(@, filename, content, extra_opts)
             when 'slideshow'
-                editor = new Slideshow(@, filename, content, x.opts)
+                editor = new Slideshow(@, filename, content, extra_opts)
             when 'image'
-                editor = new Image(@, filename, url, x.opts)
+                editor = new Image(@, filename, url, extra_opts)
             when 'latex'
-                editor = new LatexEditor(@, filename, content, x.opts)
+                editor = new LatexEditor(@, filename, content, extra_opts)
             when 'pdf'
-                editor = new PDF_Preview(@, filename, undefined, x.opts)
+                editor = new PDF_Preview(@, filename, undefined, extra_opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
 
@@ -367,7 +380,7 @@ class exports.Editor
 class FileEditor extends EventEmitter
     constructor: (@editor, @filename, content, opts) ->
         @val(content)
-
+        
     val: (content) =>
         if not content?
             # If content not defined, returns current value.
@@ -402,6 +415,9 @@ class FileEditor extends EventEmitter
 
     remove: () =>
         @element.remove()
+        
+    terminate_session: () =>
+        # If some backend session on a remote machine is serving this session, terminate it.
 
 
 ###############################################
@@ -415,7 +431,7 @@ class CodeMirrorEditor extends FileEditor
             indent_unit       : 4
             tab_size          : 4
             smart_indent      : true
-            undo_depth        : 100
+            undo_depth        : 1000
             match_brackets    : true
             line_wrapping     : true
             theme             : "solarized"  # see static/codemirror*/themes or head.html
@@ -784,29 +800,38 @@ class LatexEditor extends FileEditor
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts, {}
+        opts = @opts = defaults opts, 
+            session_uuid : undefined
+            rows         : 24
+            cols         : 80
+        elt = $("<div>").salvus_console
+            title   : "Terminal"
+            cols    : @opts.cols
+            rows    : @opts.rows
+        @console = elt.data("console")
+        @element = @console.element        
         @connect_to_server()
 
     connect_to_server: (cb) =>
-        @element = $("<div>Connecting to console server...</div>")  # TODO -- make much nicer
-        salvus_client.new_session
-            timeout    : 15  # make longer later -- TODO -- mainly for testing!
+        mesg = 
+            timeout    : 30  # just for making the connection; not the timeout of the session itself!
             type       : 'console'
             project_id : @editor.project_id
-            params     : {command:'bash', rows:@opts.rows, cols:@opts.cols}
             cb : (err, session) =>
                 if err
-                    @element.text(err)   # TODO--nicer
                     alert_message(type:'error', message:err)
                 else
-                    @element.salvus_console
-                        title   : "Terminal"
-                        session : session,
-                        cols    : @opts.cols
-                        rows    : @opts.rows
-                    @console = @element.data("console")
-                    @element = @console.element
+                    @console.set_session(session)
                 cb?(err)
+                
+        if @opts.session_uuid?
+            console.log("Connecting to an existing session.")
+            mesg.session_uuid = @opts.session_uuid
+            salvus_client.connect_to_session(mesg)           
+        else        
+            console.log("Opening a new session.")
+            mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols}            
+            salvus_client.new_session(mesg)
 
         # TODO
         #@filename_tab.set_icon('console')
@@ -818,10 +843,15 @@ class Terminal extends FileEditor
 
     focus: () =>
         @console?.focus()
-
+            
+    terminate_session: () =>
+        @console?.terminate_session()
+            
+            
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts,{}  # nothing yet
+        opts = @opts = defaults opts, 
+            session_uuid : undefined        
         @_set(content)
         @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
 

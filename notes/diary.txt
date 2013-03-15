@@ -10514,9 +10514,6 @@ CSI > Ps; Ps T
              [x] latex_editor: main issue is (1) slow, and (2) when page number exceeds document, get CONFUSED    
                  FIX this by (1) using ghostscript with pngmono, and (2) a high dpi, and (3) loading all images at once.
  
-             [ ] make the latex command and what it is run on (!!) customizable.
-             [ ] option to autolatex on switching to the preview screen and save
-                    
               [x] (1:00) Codemirror cursor is too thin!
               
               [x] (0:15) terminal: make it focus when tab is selected.
@@ -10534,11 +10531,14 @@ CSI > Ps; Ps T
 (est:1:00)    [x] (0:51) pdf preview -- use whenever user clicks on a PDF.  viola, suddenly SMC can be used to browse all your pdf's of papers!
  (est:0:10)   [x] (0:03) editor -- make it so "command-s" is also save, for OS X.           
 
+--> (est:1:30) [ ] make persistent console sessions actually persist --
+                    [ ] when opening a console, automatically open all the corresponding terminals that are current
+                    [ ] when closing a console, actually end that session (saving history at some point?)
 
-(est:1:30)    [ ] make persistent console sessions actually work very well
-(est:1:30)    [ ] make collection of open files persist between sessions (where -- on localStorage or central... don't know.)
-
-
+  (est:2:00) [ ] make collection of open worksheets in a project persistent (and later shared)
+             [ ] when opening a project, automatically open all the worksheets.
+  
+  (est:2+)  [ ] file edit session server, with everything persistent.                   
 
 (est:1:00)    [ ] make it so user can change the location of the project:
                   started this -- see project.coffee "TODO -- actually implement project location change"
@@ -10551,7 +10551,8 @@ CSI > Ps; Ps T
 
 ----
 
-
+     [ ] Terminal -- put a copy icon next to the paste one that copies whatever the contents are?
+     
      [ ] pdf preview -- better error when gv not installed; should warn user about everything that needs to be installed for full functionality...
 
      [ ] MOBILE: codemirror doesn't scroll -- serious issue.
@@ -10638,6 +10639,10 @@ AWS usage ideas:
     pops up and asks you to define it; make that macro part of your
     profile; include in worksheets you share.
 
+    [ ] make the latex command and what it is run on (!!) customizable.
+    
+    [ ] option to autolatex on switching to the preview screen and save
+                    
     [ ] control-; to split in *NOTE* cell too!
 
     [ ] Note area should be a restricted subset of text formatting/math that can be rendered in both latex and html.

@@ -61,7 +61,7 @@ class Console extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
-            session     : required   # a console_session
+            session     : undefined  # a console_session; use .set_session to set it later instead.
             title       : ""
             rows        : 16
             cols        : 80
@@ -144,23 +144,26 @@ class Console extends EventEmitter
         # Initialize fullscreen button
         @_init_fullscreen()
 
-        # Initialize pinging the server to keep the console alive
-        @_init_session_ping()
-
         # delete scroll buttons except on mobile
         if not IS_MOBILE
             @element.find(".salvus-console-up").hide()
             @element.find(".salvus-console-down").hide()
 
+        if opts.session?
+            @set_session(opts.session)
+            
+        @blur()        
+        
+    set_session: (session) =>
         # Store the remote session, which is a connection to a HUB
         # that is in turn connected to a console_server.
-        @session = opts.session
+        @session = session
 
         # Plug the remote session into the terminal.
 
         # The user types in the terminal, so we send the text to the remote server:
         @terminal.on 'data',  (data) =>
-            #console.log("user typed: '#{data}' into #{@opts.session.session_uuid}")
+            #console.log("user typed: '#{data}' into #{@session.session_uuid}")
             @session.write_data(data)
 
         # The terminal receives a 'set my title' message.
@@ -171,9 +174,9 @@ class Console extends EventEmitter
             # console.log("From remote: '#{data}'")
             @terminal.write(data)
 
-        @blur()
-
-
+        # Initialize pinging the server to keep the console alive
+        @_init_session_ping()
+        
     #######################################################################
     # Private Methods
     #######################################################################
@@ -233,7 +236,7 @@ class Console extends EventEmitter
                 @opts.color_scheme = "default"
 
     _init_session_ping: () =>
-        @opts.session.ping(@console_is_open)
+        @session.ping(@console_is_open)
 
     _init_codemirror: () ->
         that = @
@@ -295,7 +298,7 @@ class Console extends EventEmitter
             'font-size'   : "#{@opts.font.size}px"
             'line-height' : "#{@opts.font.line_height}%"
 
-        @element.resizable(alsoResize:ter, handles: "sw,se").on('resize', @resize)
+        @element.resizable(alsoResize:ter, handles: "sw,s,se").on('resize', @resize)
 
         # Set the entire console to be draggable.
         if @opts.draggable
@@ -369,10 +372,10 @@ class Console extends EventEmitter
         paste_bin.live 'blur keyup paste', (evt) =>
             data = paste_bin.val()
             paste_bin.val('')
-            @session.write_data(data)
+            @session?.write_data(data)
         paste_bin.keydown (evt) =>
             if evt.which <= 48   # backspace, return, escape, etc.
-                @session.write_data(String.fromCharCode(evt.which))
+                @session?.write_data(String.fromCharCode(evt.which))
                 return false
     
     _start_session_timer: (seconds) ->
@@ -391,6 +394,9 @@ class Console extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
+    terminate_session: () =>
+        @session?.terminate_session()
+        
     # enter fullscreen mode
     fullscreen: () =>
         h = $(".navbar-fixed-top").height()
@@ -435,6 +441,11 @@ class Console extends EventEmitter
         if @opts.renderer != 'ttyjs'
             # nothing implemented except in the ttyjs case
             return
+        
+        if not @session?
+            # don't bother if we don't even have a remote connection
+            # (todo: could queue this up to send)
+            return
 
         # Determine size of container DOM.
 
@@ -472,7 +483,6 @@ class Console extends EventEmitter
             # CSI Ps ; Ps ; Ps t
             # CSI[4];[height];[width]t
             return CSI + "4;#{rows};#{cols}t"
-
         @session.write_data(resize_code(new_cols, new_rows))
 
         # Record new size
