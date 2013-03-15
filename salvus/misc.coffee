@@ -206,8 +206,10 @@ exports.trunc = (s, max_length) ->
 
 exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
 
-# Delete trailing whitespace in the string s.  See 
-exports.delete_trailing_whitespace = (s) -> 
-    return s.replace(/[^\S\n]+$/gm, "")    
+# Delete trailing whitespace in the string s.  See
+exports.delete_trailing_whitespace = (s) ->
+    return s.replace(/[^\S\n]+$/gm, "")
 
-    
+exports.assert = (condition, mesg) ->
+    if not condition
+        throw mesg
