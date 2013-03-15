@@ -210,6 +210,9 @@ class ConsoleSessions
                         console_socket.write(data)
                     console_socket.on 'data', (data) ->
                         session.history += data
+                        n = session.history.length
+                        if n > 15000  # TODO: totally arbitrary; also have to change the same thing in hub.coffee
+                            session.history = session.history.slice(10000)
                         client_socket.write(data)
 
                     @_sessions[mesg.session_uuid] = session

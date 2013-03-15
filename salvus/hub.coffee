@@ -1287,6 +1287,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # client over the channel we just created.
                 console_socket.on 'data', (data) ->
                     console_socket.history += data
+                    n = console_socket.history.length
+                    if n > 15000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                        console_socket.history = console_socket.history.slice(10000)
                     opts.client.push_data_to_client(channel, data)
 
                 opts.client.push_data_to_client(channel, history)
