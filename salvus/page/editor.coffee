@@ -434,7 +434,7 @@ class CodeMirrorEditor extends FileEditor
             smart_indent      : true
             undo_depth        : 1000
             match_brackets    : true
-            line_wrapping     : true            
+            line_wrapping     : true
             theme             : "solarized"  # see static/codemirror*/themes or head.html
 
 
@@ -506,7 +506,7 @@ class CodeMirrorEditor extends FileEditor
     _set: (content) =>
         {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
-        @codemirror.scrollIntoView(from)        
+        @codemirror.scrollIntoView(from)
 
     show: () =>
         @element?.show()

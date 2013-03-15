@@ -10577,6 +10577,28 @@ Design:
            [ ] client/hub -- make it so there is a comm channel between client and local_hub via message to session.
            [ ] editor.coffee -- implement something very lightweight that allows for interacting with the above
 
+The communications for the CodeMirror session are:
+
+           "A document represents the editor content, plus a selection, an undo history, and a mode."
+
+client <--> hub <--> local_hub
+
+codemirror_change: make this change   -- abbrev, since will be sent a lot
+success: sent to acknowledge change
+codemirror_write_to_disk: write out whatever is on local_hub to the physical disk
+codemirror_read_from_disk: replace what is on local_hub by what is on physical disk (will push out a changeObj)
+codemirror_get_content: request the current content of the file being edited
+codemirror_content: this is the current content
+
+
+
+
+
+
+
+
+
+
            PLAN
 
 

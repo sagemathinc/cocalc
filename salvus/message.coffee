@@ -33,7 +33,7 @@ message
 # Sage session management; executing code
 #############################################
 
-# hub --> sage_server&console_server and browser --> hub
+# hub --> sage_server&console_server, etc. and browser --> hub
 message
     event        : 'start_session'
     type         : required           # "sage", "console";  later this could be "R", "octave", etc.
@@ -116,7 +116,7 @@ message
 
 # Restart the underlying Sage process for this session; the session
 # with the given id still exists, it's just that the underlying sage
-# process got restarted.   
+# process got restarted.
 # client --> hub
 message
     event        : 'restart_session'
@@ -212,6 +212,52 @@ message
     target      : required
     source_code : required
 
+
+
+############################################
+# CodeMirror editor sessions
+#############################################
+
+# Message describing a change (or sequence of changes) to the editor.
+# A message.success message is sent in respone to acknowledge that the change was noted.
+# client <--> hub <--> local_hub
+message
+    event        : 'codemirror_change'
+    id           : undefined
+    change_obj   : required       # as specified in the  codemirror docs.
+    project_id   : required
+    session_uuid : required
+
+# Write out whatever is on local_hub to the physical disk
+# client --> hub --> local_hub
+message
+    event        : 'codemirror_write_to_disk'
+    id           : undefined
+    project_id   : required
+    session_uuid : required
+
+# Replace what is on local_hub by what is on physical disk (will push out a codemirror_change message).
+# client --> hub --> local_hub
+message
+    event        : 'codemirror_read_from_disk'
+    id           : undefined
+    project_id   : required
+    session_uuid : required
+
+# Request the current content of the file being edited.
+# client --> hub --> local_hub
+message
+    event        : 'codemirror_get_content'
+    id           : undefined
+    project_id   : required
+    session_uuid : required
+
+# Sent in response to a codemirror_get_content message.
+# local_hub --> hub --> client
+message
+    event        : 'codemirror_content'
+    id           : undefined
+    content      : required
 
 
 ############################################
@@ -620,7 +666,7 @@ message
 # or directory. If path is a directory, the optional archive field
 # specifies how to create a single file archive, with supported
 # options including:  'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'.
-# 
+#
 # client --> hub --> project_server
 message
     event        : 'read_file_from_project'
