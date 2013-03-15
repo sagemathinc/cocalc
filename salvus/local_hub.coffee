@@ -335,7 +335,11 @@ class CodeMirrorSessions
             @_sessions[mesg.session_uuid] = {clients:[client_socket], desc:"", status:"running"}
         client_socket.write_mesg('json', message.success(id:mesg.id))
 
-    # Return object that describes status of CodeMirro sessions
+        client_socket.on 'mesg', (type, mesg) ->
+            winston.debug("RECEIVED MESG -- #{misc.to_json(mesg)}")
+            client_socket.write_mesg('json', message.success(id:mesg.id))
+
+    # Return object that describes status of CodeMirror sessions
     info: () =>
         obj = {}
         for id, info of @_sessions

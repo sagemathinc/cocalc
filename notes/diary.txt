@@ -10568,11 +10568,16 @@ Design:
  ----->
   ** file edit session server, with everything persistent, using sync'd objects  **
 
-       -->    [ ] client FileEditSession with a little test of it from a Sage worksheet
-           [ ] hub FileEditSession (stubbed)
-           [ ] local_hub FileEditSession
-           [ ] make hub use local_hub FileEditSession
-           [ ] client editor.coffee use FileEditSession
+           [x] client FileEditSession with a little test of it from a Sage worksheet
+           [x] hub FileEditSession (stubbed)
+           [x] local_hub FileEditSession
+           [x] make hub use local_hub FileEditSession
+
+           [ ] local_hub -- implement something trivially simple with actual state and some messages -- but trivial (!)
+           [ ] client/hub -- make it so there is a comm channel between client and local_hub via message to session.
+           [ ] editor.coffee -- implement something very lightweight that allows for interacting with the above
+
+           PLAN
 
 
 

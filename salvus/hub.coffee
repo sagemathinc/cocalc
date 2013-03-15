@@ -1353,11 +1353,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 if err
                     opts.cb(err)
                     return
+
+                if not socket.clients?
+                    socket.clients = []
+                else
+                    socket.clients.push(opts.client)
+
                 socket.on 'end', () =>
                     delete @_sockets[opts.session_uuid]
+
                 socket.on 'mesg', (type, mesg) =>
-                    opts.client.push_to_client(mesg)
-                # client --> console
+                    winston.debug("GOT A MESSAGE FROM THE CodeMirror local-hub server: #{misc.to_json(mesg)}")
+
                 mesg = message.session_connected(session_uuid : opts.session_uuid)
                 opts.cb(false, mesg)
 
@@ -1693,6 +1700,7 @@ class Project
         opts.project_id = @project_id
         @local_hub.write_file(opts)
 
+    # TODO -- refactor all of these foo_sessions things into one session function
     console_session: (opts) =>
         @_fixpath(opts.params)
         opts.project_id = @project_id
