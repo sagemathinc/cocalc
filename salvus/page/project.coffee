@@ -538,6 +538,9 @@ class ProjectPage
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.update_file_list_tab()
+            else if name == "project-editor"
+                tab.onshow = () ->
+                    that.editor.onshow()
 
         @display_tab("project-file-listing")
 

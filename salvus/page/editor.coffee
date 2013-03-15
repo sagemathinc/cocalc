@@ -248,6 +248,9 @@ class exports.Editor
                 tab.link.removeClass("active")
                 tab.editor.hide()
 
+    onshow: () =>  # should be called when the editor is shown.
+        @active_tab.editor.show()
+
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
         if not filename?  # if filename not given, save all files
@@ -848,6 +851,12 @@ class Terminal extends FileEditor
     terminate_session: () =>
         @console?.terminate_session()
 
+    show: () =>
+        @element.show()
+        if @console?
+            e = $(@console.terminal.element)
+            e.height((@console.opts.rows * 1.1) + "em")
+            @console.focus()
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

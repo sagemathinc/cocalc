@@ -302,7 +302,6 @@ class Console extends EventEmitter
 
         # Set the entire console to be draggable.
         if @opts.draggable
-            console.log("drag", @element.find('.salvus-console-title'))
             @element.draggable(handle:@element.find('.salvus-console-title'))
 
         # Focus/blur handler.
@@ -507,7 +506,6 @@ class Console extends EventEmitter
 
     focus: () =>
         $(@terminal.element).focus()
-        
         if not @_character_height?
             height = $(@terminal.element).height()
             if height != 0 and @opts.rows?
@@ -520,7 +518,6 @@ class Console extends EventEmitter
             $(document).on('keydown', @mobile_keydown)
         else
             @terminal.focus()
-
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?
