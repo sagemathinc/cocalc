@@ -1,6 +1,7 @@
 {EventEmitter} = require('events')
 
 async = require('async')  # don't delete even if not used below, since this needs to be available to page/
+sync_obj = require('sync_obj')  # needed by page/
 
 message = require("message")
 misc    = require("misc")
@@ -46,16 +47,16 @@ class Session extends EventEmitter
         @session_uuid = opts.session_uuid
         @data_channel = opts.data_channel
         @emit("open")
-        
+
     terminate_session: (cb) =>
         @conn.call
-            message : 
+            message :
                 message.terminate_session
                     project_id   : @project_id
                     session_uuid : @session_uuid
             timeout : 30
             cb      : cb
-        
+
     walltime: () =>
         return misc.walltime() - @start_time
 
@@ -138,7 +139,7 @@ class SageSession extends Session
         @conn.introspect(opts)
 
 # TODO -- for 'interact2'
-# 
+#
 #     variable: (opts) ->
 #         opts = defaults opts,
 #             name      : required
@@ -238,7 +239,7 @@ class exports.Connection extends EventEmitter
                 data    = data.slice(1)
 
                 @_handle_data(channel, data)
-                
+
                 # give other listeners a chance to do something with this data.
                 @emit("data", channel, data)
 

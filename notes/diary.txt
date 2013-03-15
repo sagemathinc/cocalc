@@ -10533,11 +10533,11 @@ CSI > Ps; Ps T
   (est:1:30) [x] (6 hours?) make persistent console sessions actually persist --
                     [x] when opening a console, automatically open all the corresponding terminals that are current
                     [x] when closing a console, actually end that session
-               
+
           [x] (0:04) Make File Browser appear by default.
-          
+
           [x] (0:08) fix codemirror editor MODE -- I seem to have totally broken it getting set.
-       
+
           [x] console -- discard history after some point (configurable, but just make it 10,000 characters now?)
 
           [x] console -- when displaying it, resize to its stored size.
@@ -10547,10 +10547,26 @@ IMMEDIATE's GOALS:
 ===================
 
           [x] (0:41) text editor -- get rid of all trailing whitespace on save; this is getting ridiculous
-  
-          [ ] search input in the project file listing [TODO: which returns *all* matches (by doing a new git-ls if need be)]
-      
- (est:3+) [ ] file edit session server, with everything persistent.
+
+          [ ] create a class in a new non-node-only file "sync_obj.coffee" that is defines a synced object abstract base class
+Design:
+    This is a class that has:
+         * one function that can be used to specify a change to the object via a JSON-able message.
+         * the state of the object (which must be JSON-able)
+         * a list of functions that get called when the object changes state
+         * the object will continually try to call all those functions until it receives ack's that they were successful.
+         * since diff's do not in general commute, there will be objects that get out of sync with each other; this
+           is unavoidable if we want "real time" local updates.
+         * the local_hub state -- which sits directly next to the file
+
+         * for testing define the above and derive a class FileEditSession from it, with minimal functionality.
+
+ (est:3+) --> [ ] file edit session server, with everything persistent, using sync'd objects
+           file edit session
+           [ ] implement "apply codemirror-style diff to it"
+           [ ] test out purely in the browser as a 1:1 mirror of file contents
+           [ ] add to the hub, so there is a new session type "file_editor"
+           [ ] add to the local hub, so that multiple hubs work.
 
   (est 6:00) [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
 
@@ -10584,10 +10600,14 @@ IMMEDIATE's GOALS:
 
 
      [ ] make it so one can add sketches to notes -- this looks really good: http://intridea.github.com
-     
-     
+
+
      sketch.js/
          This should also be an interact control, since then one can sketch and use it elsewhere in an interact.
+
+     [ ] idea -- search input in the project file listing [TODO: which returns *all* matches (by doing a new git-ls if need be)]
+
+     [ ] idea -- starred projects -- always appear at the top (same with files)
 
      [ ] idea -- make it so when opening an HTML file, can easily switch between actual HTML (maybe contenteditable?) and source...?
 
@@ -10615,7 +10635,7 @@ Need a repeatable failure, and to decide *when* to save viewport.
            Tell them to put public ssh key in accounts that they want to be accessible.
            Use passphrase.  For port forwarding, I don't know how to do that except
            by having hundreds of accounts on the hub machine, which is ridiculous!
-           
+
       IDEA -- maybe set HOME to something in /tmp with temporary ssh keys in it?!
 
      [ ] code_editor -- remove trailing whitespace mode
