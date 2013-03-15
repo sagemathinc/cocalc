@@ -276,7 +276,7 @@ class ProjectPage
                 
     init_console_sessions: (sessions, cb) =>
         console.log("initialize console sessions: ", sessions)
-        @display_tab("project-editor")
+        #@display_tab("project-editor")
         for session_uuid, obj of sessions
             if obj.status == 'running'
                 console.log("session_uuid = ", session_uuid)
