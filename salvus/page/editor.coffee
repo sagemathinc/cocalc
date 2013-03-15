@@ -8,6 +8,8 @@ async = require('async')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
+misc = require('misc')
+# TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
 
 codemirror_associations =
@@ -98,12 +100,6 @@ guess_file_extension_type = (content) ->
     if first_line.indexOf('/*') != -1 or first_line.indexOf('//') != -1   # kind of a stretch
         return 'c++'
     return undefined
-
-
-
-
-
-
 
 templates = $("#salvus-editor-templates")
 
@@ -431,13 +427,14 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             mode              : required
+            delete_trailing_whitespace : true   # delete all trailing whitespace on save
             line_numbers      : true
             indent_unit       : 4
             tab_size          : 4
             smart_indent      : true
             undo_depth        : 1000
             match_brackets    : true
-            line_wrapping     : true
+            line_wrapping     : true            
             theme             : "solarized"  # see static/codemirror*/themes or head.html
 
 
@@ -501,10 +498,15 @@ class CodeMirrorEditor extends FileEditor
             @save.removeClass('disabled')
 
     _get: () =>
-        return @codemirror.getValue()
+        val = @codemirror.getValue()
+        if @opts.delete_trailing_whitespace
+            val = misc.delete_trailing_whitespace(val)
+        return val
 
     _set: (content) =>
+        {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
+        @codemirror.scrollIntoView(from)        
 
     show: () =>
         @element?.show()

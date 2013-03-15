@@ -10533,11 +10533,6 @@ CSI > Ps; Ps T
   (est:1:30) [x] (6 hours?) make persistent console sessions actually persist --
                     [x] when opening a console, automatically open all the corresponding terminals that are current
                     [x] when closing a console, actually end that session
-
-
-@@@@@@@@@@@@@@@@@@@@@@
-IMMEDIATE's GOALS:
-===================
                
           [x] (0:04) Make File Browser appear by default.
           
@@ -10546,15 +10541,25 @@ IMMEDIATE's GOALS:
           [x] console -- discard history after some point (configurable, but just make it 10,000 characters now?)
 
           [x] console -- when displaying it, resize to its stored size.
-           
-          [ ] text editor -- get rid of all trailing whitespace on save; this is getting ridiculous
-      
 
+@@@@@@@@@@@@@@@@@@@@@@
+IMMEDIATE's GOALS:
+===================
+
+          [x] (0:41) text editor -- get rid of all trailing whitespace on save; this is getting ridiculous
+  
+          [ ] search input in the project file listing [TODO: which returns *all* matches (by doing a new git-ls if need be)]
+      
  (est:3+) [ ] file edit session server, with everything persistent.
 
-
   (est 6:00) [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
-                          
+
+ (est:3:00)  [ ] default location account(s)
+
+
+
+
+
              ----
 (est:1:00)    [ ] make it so user can change the location of the project:
                   started this -- see project.coffee "TODO -- actually implement project location change"
