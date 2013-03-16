@@ -541,10 +541,13 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @_set(content)
                 session.on 'change', (diff) =>
                     if diff.changeObj?
+                        console.log("hub sent changeObj: #{misc.to_json(diff.changeObj)}")
                         @_apply_changeObj(diff.changeObj)
+
                 @codemirror.on 'change', (instance, changeObj) =>
                     # TODO: I'm worried -- what if some nested changeObj doesn't have .origin set?
                     if changeObj.origin?
+                        console.log("codemirror generated origin changeObj: #{misc.to_json(changeObj)}")
                         # origin is only set if the event was caused by the user (rather than calling replaceRange below).
                         @_session.change({changeObj:changeObj})
 
@@ -557,14 +560,23 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         if not @save_button.hasClass('disabled')
             @save_button.find('span').text("Saving...")
             spin = setTimeout((() => @save_button.find(".spinner").show()), 100)
-            @_session.write_to_disk (err) =>
+            @save (err) =>
                 clearTimeout(spin)
                 @save_button.find(".spinner").hide()
                 @save_button.find('span').text('Save')
                 if not err
                     @save_button.addClass('disabled')
                     @has_unsaved_changes(false)
+                else
+                    alert_message(type:"error", message:"Error writing out '#{@filename}' to disk -- #{err}")
         return false
+
+    save: (cb) =>
+        if @_session?
+            @_session.write_to_disk(cb)
+        else
+            cb("Unable to save '#{@filename}' since it is not yet loaded.")
+
 
 ###############################################
 # LateX Editor

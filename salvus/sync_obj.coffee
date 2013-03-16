@@ -123,6 +123,7 @@ class exports.CodeMirrorSession extends exports.SyncObj
                 lines.splice(from.line, 1)   # just delete it completely.
 
     insert_at: (text, pos) =>
+        # NOTE -- this function must not modify the array text.
         # Insert string at the given position pos = {line:?, ch:?}
         lines = @state.lines
         # Add blank lines at the end, as needed
@@ -139,10 +140,10 @@ class exports.CodeMirrorSession extends exports.SyncObj
             # Modify the given line
             lines[pos.line] = m.slice(0, pos.ch) + text[0] + at_end
         else
-            text[text.length-1] += at_end
             lines[pos.line] = m.slice(0, pos.ch) + text[0]
-            for i in [1...text.length]
+            for i in [1...text.length-1]
                 lines.splice(pos.line+i, 0, text[i])  # insert a new line
+            lines.splice(pos.line+i, 0, text[text.length-1] + at_end)
 
     replaceRange: (text, from, to) =>
         assert(from.ch? and from.line?, "replaceRange -- second argument 'from' must have ch and line properties")
