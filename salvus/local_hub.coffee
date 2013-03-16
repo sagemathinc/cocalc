@@ -339,8 +339,7 @@ sage_sessions = new SageSessions()
 
 class CodeMirrorListener extends sync_obj.SyncObj
     constructor: (@socket, @session_uuid) ->
-        @init()  # init initializes the id attribute
-        @id = @socket
+        @init(id: @socket)
 
     change: (opts) =>
         opts = defaults opts,
@@ -379,6 +378,8 @@ class CodeMirrorSession
                 socket.write_mesg('json', resp)
 
     write_to_disk: (socket, mesg) =>
+        # TODO -- this is *dangerous* -- for a while, I may store copy of the file in the database before doing
+        # this, or something, to avoid any potential for loss (?).
         fs.writeFile @path, @obj.getValue(), (err) =>
             if err
                 resp = message.error(id:mesg.id, message:"Error writing file '#{@path}' to disk")
@@ -413,7 +414,7 @@ class CodeMirrorSession
     get_content: (socket, mesg) =>
         socket.write_mesg('json', message.codemirror_content(id:mesg.id, content:@obj.getValue()))
 
-# Collection of all codemirror sessions hosted by this local_hub.
+# Collection of all CodeMirror sessions hosted by this local_hub.
 
 class CodeMirrorSessions
     constructor: () ->

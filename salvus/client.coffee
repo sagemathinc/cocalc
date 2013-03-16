@@ -204,11 +204,11 @@ class CodeMirrorSession
                 path         : undefined   # at least one of path or session_uuid must be defined
                 session_uuid : undefined
                 project_id   : undefined   # only used for client --> hub
-###
-
 
         @conn.on 'codemirror_change', (mesg) =>
             console.log("CodeMirrorSession -- got a change event", mesg)
+
+###
 
 
 
@@ -391,7 +391,7 @@ class exports.Connection extends EventEmitter
     new_session: (opts) ->
         opts = defaults opts,
             timeout : 10          # how long until give up on getting a new session
-            type    : "sage"      # "sage", "console", "codemirror"
+            type    : "sage"      # "sage", "console"
             params  : undefined   # extra params relevant to the session
             project_id : undefined # project that this session starts in (TODO: make required)
             cb      : required    # cb(error, session)  if error is defined it is a string
@@ -440,8 +440,6 @@ class exports.Connection extends EventEmitter
                 session = new SageSession(session_opts)
             when 'console'
                 session = new ConsoleSession(session_opts)
-            when 'codemirror'
-                session = new CodeMirrorSession(session_opts)
             else
                 opts.cb("Unknown session type: '#{opts.type}'")
         @_sessions[opts.session_uuid] = session

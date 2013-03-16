@@ -462,8 +462,6 @@ class Client extends EventEmitter
                             @push_to_client(message.session_started(id:mesg.id, session_uuid:session.session_uuid))
             when 'console'
                 @connect_to_console_session(mesg)
-            when 'codemirror'
-                @connect_to_codemirror_session(mesg)
             else
                 @error_to_client(id:mesg.id, error:"Unknown message type '#{mesg.type}'")
 
@@ -481,8 +479,6 @@ class Client extends EventEmitter
                         @push_to_client(message.session_connected(id:mesg.id, session_uuid:mesg.session_uuid))
             when 'console'
                 @connect_to_console_session(mesg)
-            when 'codemirror'
-                @connect_to_codemirror_session(mesg)
             else
                 # TODO
                 @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
@@ -492,20 +488,6 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if not err  # get_project sends error to client
                 project.console_session
-                    client       : @
-                    params       : mesg.params
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, connect_mesg) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            connect_mesg.id = mesg.id
-                            @push_to_client(connect_mesg)
-
-    connect_to_codemirror_session: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if not err  # get_project sends error to client
-                project.connect_to_codemirror_session
                     client       : @
                     params       : mesg.params
                     session_uuid : mesg.session_uuid
@@ -990,14 +972,20 @@ class Client extends EventEmitter
             if err
                 return
             project.get_codemirror_session
-                path         : mesg.path
-                cb : (err, session_uuid) =>
+                path : mesg.path
+                cb   : (err, session) =>
                     if err
                         @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
                     else
-                        # We add the client, so it gets messages about changes to the document.
-                        codemirror_sessions.by_uuid[session_uuid].add_client(@)
-                        @push_to_client(message.codemirror_session(id : mesg.id, session_uuid : session_uuid))
+                        # We add the client, so it will gets messages about changes to the document.
+                        session.add_client(@)
+                        # Send parameters of session to client
+                        mesg = message.codemirror_session
+                            id           : mesg.id
+                            session_uuid : session.session_uuid
+                            path         : session.path
+                            content      : session.obj.getValue()
+                        @push_to_client(mesg)
 
     get_codemirror_session : (mesg, cb) =>
         session = codemirror_sessions.by_uuid[mesg.session_uuid]
@@ -1138,10 +1126,10 @@ push_to_clients = (opts) ->
 # CodeMirror sessions
 ##############################
 
+# ClientListener represents a web browser client
 class CodeMirrorClientListener extends sync_obj.SyncObj
     constructor: (@client, @session_uuid) ->
-        @init()  # init initializes the id attribute
-        @id = @client
+        @init(id: @client)
 
     change: (opts) =>
         opts = defaults opts,
@@ -1153,12 +1141,13 @@ class CodeMirrorClientListener extends sync_obj.SyncObj
             change_obj   : opts.diff
             session_uuid : @session_uuid
         @client.push_to_client(mesg, opts.cb)
-        opts.cb()  # TODO: need to get a client ACK back to be sure the message was sent; otherwise, try again for a while.
+        opts.cb()  # TODO: need to get a client ack back to be sure the
+                   # message was sent; if fail, will try again for a while.
 
+# LocalHubListener represents a local hub
 class CodeMirrorLocalHubListener extends sync_obj.SyncObj
     constructor: (@local_hub, @session_uuid) ->
-        @init()
-        @id = @local_hub
+        @init(id: @local_hub)
 
     change: (opts) =>
         opts = defaults opts,
@@ -1166,13 +1155,12 @@ class CodeMirrorLocalHubListener extends sync_obj.SyncObj
             id        : undefined
             timeout   : 30
             cb        : undefined
-        mesg = message.codemirror_change
-            change_obj   : opts.diff
-            session_uuid : @session_uuid
         @local_hub.call
-            mesg    : mesg
             timeout : opts.timeout
             cb      : opts.cb
+            mesg    : message.codemirror_change
+                change_obj   : opts.diff
+                session_uuid : @session_uuid
 
 codemirror_sessions = {by_path:{}, by_uuid:{}}
 
@@ -1183,15 +1171,16 @@ class CodeMirrorSession
             session_uuid : required
             path         : required
             content      : required
-        @local_hub = opts.local_hub
+        @local_hub    = opts.local_hub
         @session_uuid = opts.session_uuid
-        @path = opts.path
-        @obj = new sync_obj.CodeMirrorSession(content:opts.content)
+        @path         = opts.path
+        @obj          = new sync_obj.CodeMirrorSession(content: opts.content)
         @obj.add_listener(new CodeMirrorLocalHubListener(@local_hub, @session_uuid))
 
     add_client: (client) =>
         @obj.add_listener(new CodeMirrorClientListener(client, @session_uuid))
 
+    # Process a change reported by a browser client.
     client_change: (client, mesg) =>
         @obj.change
             diff : mesg.change_obj
@@ -1203,6 +1192,7 @@ class CodeMirrorSession
                     resp = message.success(id:mesg.id)
                 client.push_to_client(resp)
 
+    # Process a change reported by the local hub handling this session.
     local_hub_change: (change_obj, cb) =>
         @obj.change
             diff : change_obj
@@ -1226,8 +1216,7 @@ class CodeMirrorSession
                 client.push_to_client(resp)
 
     get_content: (client, mesg) =>
-        client.push_to_client
-            message.codemirror_content(id:mesg.id, content:@obj.getValue())
+        client.push_to_client( message.codemirror_content(id:mesg.id, content:@obj.getValue()) )
 
 ##############################
 # LocalHub
@@ -1499,7 +1488,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         opts = defaults opts,
             session_uuid : undefined   # give at least one of the session uuid or filename
             path         : undefined
-            cb           : required
+            cb           : required    # cb(err, session)
         if opts.session_uuid?
             session = codemirror_sessions.by_uuid[opts.session_uuid]
             if session?
@@ -1872,7 +1861,7 @@ class Project
     # (if such a thing exists somewhere), or with the given path.
     get_codemirror_session: (opts) =>
         opts = defaults opts,
-            session_uuid : undefined   # give at least one of the session uuid or filename
+            session_uuid : undefined   # give at least one of the session uuid or path
             path         : undefined
             cb           : required
         @_fixpath(opts)

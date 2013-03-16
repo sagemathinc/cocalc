@@ -1,3 +1,9 @@
+#################################################################################################
+#
+# Sync'ed objects -- used to support simultaneous multiple editing sessions by different clients
+#
+#################################################################################################
+
 async = require('async')
 {defaults, required, uuid, keys, assert} = require('misc')
 
@@ -7,8 +13,13 @@ class exports.SyncObj
     constructor: () ->
         @init()
 
-    init: () =>
-        @id        = uuid()
+    init: (opts={}) =>
+        opts = defaults opts,
+            id : undefined
+        if opts.id?
+            @id = opts.id
+        else
+            @id = uuid()
         @listeners = {}
         @state     = {}
 
@@ -71,7 +82,7 @@ class exports.CodeMirrorSession extends exports.SyncObj
             return
 
         if from.line > to.line
-            # nothing at all
+            # nothing at all to delete
             return
 
         lines = @state.lines
