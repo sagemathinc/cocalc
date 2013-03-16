@@ -23,6 +23,8 @@ async          = require 'async'
 fs             = require 'fs'
 net            = require 'net'
 child_process  = require 'child_process'
+uuid           = require 'node-uuid'
+
 message        = require 'message'
 misc           = require 'misc'
 misc_node      = require 'misc_node'
@@ -441,6 +443,7 @@ class CodeMirrorSessions
                 finish(session)
                 return
 
+        mesg.session_uuid = uuid.v4()
         new CodeMirrorSession mesg, (err, session) =>
             if err
                 client_socket.write_mesg('json', message.error(id:mesg.id, message:err))

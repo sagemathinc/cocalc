@@ -406,7 +406,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
         host        : required
         ssh_port    : 22
         remote_port : required
-        activity_time : 3600 # kill connection if the HUB doesn't
+        activity_time : 1800 # kill connection if the HUB doesn't
                              # actively *receive* something on this
                              # port for this many seconds.
         keep_alive_time :  5 # network activity every this many
@@ -426,7 +426,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
 
     winston.debug("Forward a remote port #{opts.remote_port} on #{opts.host} to localhost.")
 
-    remote_address = "#{opts.username}@#{opts.host}:#{opts.ssh_port}"
+    remote_address = "#{opts.username}@#{opts.host}:#{opts.remote_port} -p#{opts.ssh_port}"
     local_port = address_to_local_port[remote_address]
 
     if local_port?

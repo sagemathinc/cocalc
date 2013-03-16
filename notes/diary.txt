@@ -10542,10 +10542,6 @@ CSI > Ps; Ps T
 
           [x] console -- when displaying it, resize to its stored size.
 
-@@@@@@@@@@@@@@@@@@@@@@
-IMMEDIATE's GOALS:
-===================
-
           [x] (0:41) text editor -- get rid of all trailing whitespace on save; this is getting ridiculous
 
           [ ] create a class in a new non-node-only file "sync_obj.coffee" that is defines a synced object abstract base class
@@ -10573,9 +10569,9 @@ Design:
            [x] local_hub FileEditSession
            [x] make hub use local_hub FileEditSession
 
-           [ ] local_hub -- implement something trivially simple with actual state and some messages -- but trivial (!)
-           [ ] client/hub -- make it so there is a comm channel between client and local_hub via message to session.
-           [ ] editor.coffee -- implement something very lightweight that allows for interacting with the above
+           [x] local_hub -- implement something trivially simple with actual state and some messages -- but trivial (!)
+           [x] client/hub -- make it so there is a comm channel between client and local_hub via message to session.
+           [x] editor.coffee -- implement something very lightweight that allows for interacting with the above
 
 The communications for the CodeMirror session are:
 
@@ -10602,16 +10598,34 @@ does it mean?  Playing with it after done should make this clear.
          [x]  BUG/issue -- If I have multiple console session on same local_hub in different *projects*, they get merged since the info thing doesn't sort by project. ; I am writing code to address this right now.
 
 
+@@@@@@@@@@@@@@@@@@@@@@
+IMMEDIATE's GOALS:
+===================
 
 
-           PLAN
+        [ ] codemirror_sessions: test/debug the existing hub and local_hub code at a low level via the notebook
+
+        [ ] codemirror_sessions: come up with a plan for how the client will work
+
+        [ ] codemirror_sessions: implement client (multi-colored cursors?!)
+
+        [ ] codemirror_sessions: test everything together
+
+        [ ] codemirror_sessions: add additional layer of robustness against loss/failure
+
+        [ ] refactor all code to abstract these shared persistent sessions
+
+        [ ] worksheet_sessions: as above, but for sage worksheets
 
 
 
 
-  (est 6:00) [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
+=========================
 
- (est:3:00)  [ ] default location account(s)
+
+
+       [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
+  [ ] default location account(s)
 
 
 

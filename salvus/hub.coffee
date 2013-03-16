@@ -1325,17 +1325,27 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     delete @_socket
                 cb(false, @_socket)
 
-    # Get a new socket connection to the local_hub; this socket has been
+    # Get a new socket connection to the local_hub; this socket will have been
     # authenticated via the secret_token, and enhanced to be able to
     # send/receive json and blob messages.
-    new_socket: (cb) =>     # cb(err, socket)
+    new_socket: (cb, retries) =>     # cb(err, socket)
+        if not retries?
+            retries = 0
         @open   (err, port, secret_token) =>
             if err
                 cb(err); return
             connect_to_a_local_hub
                 port         : port
                 secret_token : secret_token
-                cb           : cb
+                cb           : (err, socket) =>
+                    if not err
+                        cb(err, socket)
+                    else
+                        if retries > 1
+                            cb(err)
+                        else
+                            delete @_status
+                            @new_socket(cb, retries + 1)
 
     call: (opts) =>
         opts = defaults opts,
@@ -1555,6 +1565,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # port is supposed to be a valid port portforward to a local_hub somewhere.
     open: (cb) =>    # cb(err, port, secret_token)
         winston.debug("Opening a local_hub.")
+        # TODO delete this log message
+        winston.debug("@_status = #{misc.to_json(@_status)}")
         if @_status? and @_status.local_port? and @_status.secret_token?
             # TODO: check here that @_port is actually still open and valid...
             cb(false, @_status.local_port, @_status.secret_token)

@@ -2,9 +2,10 @@
 
 npm install coffee-script
 npm install async
-npm install winston 
+npm install winston
 npm install temp
 npm install commander
 npm install start-stop-daemon
 npm install pty.js
 npm install posix
+npm install node-uuid
