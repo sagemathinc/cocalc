@@ -10613,6 +10613,8 @@ IMMEDIATE's GOALS:
 
         [ ] codemirror_sessions: add additional layer of robustness against loss/failure
 
+        [ ] codemirror_sessions: implement *disconnect*/termination of sessions
+
         [ ] refactor all code to abstract these shared persistent sessions
 
         [ ] worksheet_sessions: as above, but for sage worksheets

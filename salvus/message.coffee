@@ -236,11 +236,12 @@ message
 
 # Message describing a change (or sequence of changes) to the editor.
 # A message.success message is sent in respone to acknowledge that the change was noted.
+# Example diff: {changeObj:{from:{line:0,ch:0}, to:{line:0,ch:0}, text:"HELLO WORLD -- this is it!"}}
 # client <--> hub <--> local_hub
 message
     event        : 'codemirror_change'
     id           : undefined
-    diff         : required     # {changeObj:{from:{line:?,ch:?}, to:?, text:?, next:?}, ... ?}
+    diff         : required
     session_uuid : required
 
 # Write out whatever is on local_hub to the physical disk

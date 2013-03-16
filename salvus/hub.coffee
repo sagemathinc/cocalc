@@ -143,6 +143,9 @@ class Client extends EventEmitter
 
         @ip_address = @conn.remoteAddress
 
+        # A unique id -- can come in handy
+        @id = uuid.v4()
+
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully
         # authenticated as.  Use @account_id to decide whether or not
@@ -1129,7 +1132,7 @@ push_to_clients = (opts) ->
 # ClientListener represents a web browser client
 class CodeMirrorClientListener extends sync_obj.SyncObj
     constructor: (@client, @session_uuid) ->
-        @init(id: @client.account_id)
+        @init(id: @client.id)
 
     change: (opts) =>
         opts = defaults opts,
@@ -1137,7 +1140,7 @@ class CodeMirrorClientListener extends sync_obj.SyncObj
             id        : undefined
             timeout   : undefined   # TODO -- ignored
             cb        : undefined
-        winston.debug("ClientListener got change message: #{to_json(opts)}  curious: #{@id==@id}")
+        winston.debug("ClientListener got change message: #{to_json(opts)} ")
         mesg = message.codemirror_change
             diff  : opts.diff
             session_uuid : @session_uuid
@@ -1186,10 +1189,11 @@ class CodeMirrorSession
     client_change: (client, mesg) =>
         @obj.change
             diff : mesg.diff
-            id   : client.account_id
+            id   : client.id
             cb   : (err) =>
                 if err
-                    resp = message.error(id:mesg.id, error:"Error making change to CodeMirrorSession -- #{err}")
+                    resp = message.error(id:mesg.id,
+                       error:"CodeMirrorSession -- unable to push changes to the following listeners -- #{misc.to_json(err)}")
                 else
                     resp = message.success(id:mesg.id)
                 client.push_to_client(resp)

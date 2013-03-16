@@ -186,31 +186,61 @@ class ConsoleSession extends Session
 # CodeMirror Editing Sessions
 ###########################################################
 
-###
-class CodeMirrorSession
-    constructor: (opts) ->
+# Emits a 'change' with data the diff whenever a change message is received from the hub.
+class CodeMirrorSession extends EventEmitter
+    constructor : (opts) ->
         opts = defaults opts,
-            conn         : required     # a Connection instance
-            project_id   : required
-            session_uuid : required
-            cb           : required     # (err, session)
-
-        @conn         = opts.conn
-        @project_id   = opts.project_id
-        @session_uuid = opts.session_uuid
-
+            conn       : required
+            project_id : required
+            path       : required
+            cb         : required
+        @conn = opts.conn
+        @project_id = opts.project_id
+        @path = opts.path
         @conn.call
-            message.codemirror_get_session
-                path         : undefined   # at least one of path or session_uuid must be defined
-                session_uuid : undefined
-                project_id   : undefined   # only used for client --> hub
+            message: message.codemirror_get_session
+                path       : @path
+                project_id : @project_id
+            cb : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    @session_uuid = resp.session_uuid
+                    @conn.on 'codemirror_change', (m) =>
+                        if m.session_uuid = @session_uuid
+                            @emit 'change', m.diff
+                    opts.cb(false, @, resp.content)
 
-        @conn.on 'codemirror_change', (mesg) =>
-            console.log("CodeMirrorSession -- got a change event", mesg)
+    change: (diff, cb) =>
+        @conn.call
+            message: message.codemirror_change
+                session_uuid : @session_uuid
+                diff         : diff
+            cb : cb
 
-###
+    write_to_disk: (cb) =>
+        @conn.call
+            message: message.codemirror_write_to_disk
+                session_uuid : @session_uuid
+            cb : cb
 
+    read_from_disk: (cb) =>
+        @conn.call
+            message: message.codemirror_read_from_disk
+                session_uuid : @session_uuid
+            cb : cb
 
+    get_content: (cb) =>   # cb(err, content)
+        @conn.call
+            message : message.codemirror_get_content
+                session_uuid : @session_uuid
+            cb : (err, resp) =>
+                if err
+                    cb(err)
+                else
+                    cb(false, resp.content)
 
 ###########################################################
 
@@ -499,11 +529,24 @@ class exports.Connection extends EventEmitter
                 ), opts.timeout*1000
             )
 
+    #################################################
+    # CodeMirror Sessions
+    #################################################
+    codemirror_session: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required      # cb(err, session, current_content)
+        session = new CodeMirrorSession
+            conn       : @
+            project_id : opts.project_id
+            path       : opts.path
+            cb         : opts.cb
 
     #################################################
     # Account Management
     #################################################
-    create_account: (opts) ->
+    create_account: (opts) =>
         opts = defaults(opts,
             first_name     : required
             last_name      : required

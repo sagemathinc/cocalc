@@ -36,7 +36,7 @@ class exports.SyncObj
             diff      : required
             id        : undefined     # id of object sending this change, or not defined if change originates here.
             timeout   : 30
-            cb        : undefined     # cb(err)
+            cb        : undefined     # cb(false) or cb([array of id's of failed listeners])
 
         # Apply the diff to self -- this gets modified in the derived class.
         @_apply_diff(opts.diff)
@@ -46,14 +46,23 @@ class exports.SyncObj
         # Make sure that recipients know that this object is doing the sending.
         opts.id = @id
 
+        # We push to *all* listeners even if an error occurs along the way.
+        errors = []
         that = @
         notify = (id, cb) ->
             if id != sender_id
-                that.listeners[id].change(opts, cb)
+                that.listeners[id].change opts, (err) ->
+                    if err
+                        errors.push(id)
+                    cb()
             else
                 cb()
 
-        async.map(keys(@listeners), notify, ((err,results) -> opts.cb?(err)))
+        async.map keys(@listeners), notify,  () ->
+            if errors.length > 0 and opts.cb?
+                opts.cb(errors)
+            else
+                opts.cb?()
 
 class exports.CodeMirrorSession extends exports.SyncObj
     constructor: (opts) ->
