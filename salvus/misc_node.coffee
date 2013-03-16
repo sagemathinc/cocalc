@@ -52,11 +52,14 @@ exports.enable_mesg = enable_mesg = (socket) ->
                 mesg = socket._buf.slice(5, socket._buf_target_length)
                 switch type
                     when 'j'   # JSON
-                        s = mesg.toString()
+                        s = unescape(mesg.toString())
                         try
                             obj = JSON.parse(s)
                         catch e
                             winston.debug("Error parsing JSON message '#{s}'")
+                            # TODO -- this throw can seriously mess up the server; handle this
+                            # in a better way in production.  This could happen if there is
+                            # corruption of the connection.
                             throw(e)
                         socket.emit('mesg', 'json', obj)
                     when 'b'   # BLOB (tagged by a uuid)
@@ -80,7 +83,7 @@ exports.enable_mesg = enable_mesg = (socket) ->
             socket.write(s, cb)
         switch type
             when 'json'
-                send('j' + JSON.stringify(data))
+                send('j' + escape(JSON.stringify(data)))
             when 'blob'
                 assert(data.uuid?, "data object *must* have a uuid attribute")
                 assert(data.blob?, "data object *must* have a blob attribute")

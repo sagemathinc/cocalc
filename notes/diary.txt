@@ -11641,5 +11641,3 @@ def mat(s):
 +"d = E.dimension() * sigma(" doesn't work either.
 
 
-
-Idea: reverse port forwarding -- https://mail.google.com/mail/u/0/?shva=1#inbox/13d3d87fe30015ef

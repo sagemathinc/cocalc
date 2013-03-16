@@ -541,13 +541,13 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @_set(content)
                 session.on 'change', (diff) =>
                     if diff.changeObj?
-                        console.log("hub sent changeObj: #{misc.to_json(diff.changeObj)}")
+                        #console.log("hub sent changeObj: #{misc.to_json(diff.changeObj)}")
                         @_apply_changeObj(diff.changeObj)
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     # TODO: I'm worried -- what if some nested changeObj doesn't have .origin set?
                     if changeObj.origin?
-                        console.log("codemirror generated origin changeObj: #{misc.to_json(changeObj)}")
+                        #console.log("codemirror generated origin changeObj: #{misc.to_json(changeObj)}")
                         # origin is only set if the event was caused by the user (rather than calling replaceRange below).
                         @_session.change({changeObj:changeObj})
 
