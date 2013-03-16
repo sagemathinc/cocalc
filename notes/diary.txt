@@ -10609,9 +10609,21 @@ IMMEDIATE's GOALS:
 
         [x] codemirror_sessions: implement client javascript
 
-        [ ] codemirror editor: make the text editor itself using the CodeMirrorSession
+        [x] codemirror editor: make the text editor itself using the CodeMirrorSession
 
-        [ ] codemirror_sessions: test everything together
+        [x] codemirror_sessions: test everything together
+
+        [x] found and fixed a subtle issue with sending JSON strings between nodejs processes -- I evidently have to escape/unescape when there are certain very funny unicode characters.   This is evidently not needed for SockJS -- maybe it does this internally.
+
+        [x] codemirrorsession editor: add a refresh button, which replace the current view with whatever is on local_hub (??) -- I will probably remove this, but it is good to have it for testing, maybe.
+
+        [x] codemirror_session: properly support delete trailing whitespace on save.
+
+        [ ] codemirror_session: finish _objs_to_propagate in editor
+
+        [ ] implement reconnect support (when get this, do something in client to transparently handle it):
+               debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"reconnect","id":"aedd0a30-b1d0-4363-8486-c6cba5f47cb6"}
+
 
         [ ] codemirror_sessions: add additional layer of robustness against loss/failure -- currently the above will
             be very brittle, probably breaking when any component vanishes!  Make everything way more robust, including
@@ -11639,5 +11651,3 @@ def mat(s):
 +tab completion doesn't work for:" M = ModularSymbols(N*p,sign=1).cuspidal_su[tab]"
 +
 +"d = E.dimension() * sigma(" doesn't work either.
-
-

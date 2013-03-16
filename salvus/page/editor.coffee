@@ -474,12 +474,12 @@ class CodeMirrorEditor extends FileEditor
         @element.resizable(alsoResize:scroller, handles: "s").on('resize', @focus)
 
         @init_save_button()
+        @init_refresh_button()
         @init_change_event()
 
     init_save_button: () =>
-        save = @save_button = @element.find("a[href=#save]")
-        save.find(".spinner").hide()
-        save.click @click_save_button
+        @save_button = @element.find("a[href=#save]").click(@click_save_button)
+        @save_button.find(".spinner").hide()
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
@@ -498,6 +498,13 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.on 'change', (instance, changeObj) =>
             @has_unsaved_changes(true)
             @save_button.removeClass('disabled')
+
+    init_refresh_button: () =>
+        @refresh_button = @element.find("a[href=#refresh]").click(@click_refresh_button)
+        @refresh_button.find(".spinner").hide()
+
+    click_refresh_button: () =>
+        # not implemented
 
     _get: () =>
         val = @codemirror.getValue()
@@ -546,15 +553,33 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     # TODO: I'm worried -- what if some nested changeObj doesn't have .origin set?
-                    if changeObj.origin?
-                        #console.log("codemirror generated origin changeObj: #{misc.to_json(changeObj)}")
+                    obj = @_objs_to_propagate(changeObj)
+                    # console.log("codemirror generated origin changeObj: #{misc.to_json(obj)}")
+                    if obj?
                         # origin is only set if the event was caused by the user (rather than calling replaceRange below).
-                        @_session.change({changeObj:changeObj})
+                        @_session.change({changeObj:obj})
+
+    # Return only the part of the input changeObj that we want to propagate to other editors.
+    # In particular, we do not include ones for which origin is not set, since they are caused
+    # by the replaceRange we call internally when applying a changeObj.  Returns undefined
+    # if nothing to propagate
+    _objs_to_propagate: (changeObj) =>
+        if changeObj.origin? and changeObj.origin != 'setValue'
+            return changeObj
+        else
+            return undefined
 
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
+
+    # Applying a changeObj using @_apply_changeObj does not push it
+    # out to the hub, hence this method, which also does.  This is
+    # for programmatically changing the buffer and having the changes propagate.
+    _apply_and_push_changeObj: (changeObj) =>
+        @_apply_changeObj(changeObj)
+        @_session.change({changeObj:changeObj})
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
@@ -572,11 +597,46 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         return false
 
     save: (cb) =>
+        if @opts.delete_trailing_whitespace
+            @delete_trailing_whitespace()
         if @_session?
             @_session.write_to_disk(cb)
         else
             cb("Unable to save '#{@filename}' since it is not yet loaded.")
 
+    click_refresh_button: () =>
+        @refresh_button.find('span').text("Refreshing...")
+        spin = setTimeout((() => @refresh_button.find(".spinner").show()), 100)
+        @_session.get_content (err, content) =>
+            clearTimeout(spin)
+            @refresh_button.find(".spinner").hide()
+            @refresh_button.find('span').text('Refresh')
+            if err
+                alert_message(type:"error", message:"Error refreshing '#{@filename}' from server-- #{err}")
+            else
+                @codemirror.setValue(content)
+        return false
+
+    delete_trailing_whitespace: () =>
+        changeObj = undefined
+        val = @codemirror.getValue()
+        text1 = val.split('\n')
+        text2 = misc.delete_trailing_whitespace(val).split('\n')
+        if text1.length != text2.length
+            alert_message(type:"error", message:"Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
+            return
+        for i in [0...text1.length]
+            if text1[i].length != text2[i].length
+                obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
+                if not changeObj?
+                    changeObj = obj
+                    currentObj = changeObj
+                else
+                    currentObj.next = obj
+                    currentObj = obj
+
+        if changeObj?
+            @_apply_and_push_changeObj(changeObj)
 
 ###############################################
 # LateX Editor
@@ -891,11 +951,11 @@ class Terminal extends FileEditor
                 cb?(err)
 
         if @opts.session_uuid?
-            console.log("Connecting to an existing session.")
+            #console.log("Connecting to an existing session.")
             mesg.session_uuid = @opts.session_uuid
             salvus_client.connect_to_session(mesg)
         else
-            console.log("Opening a new session.")
+            #console.log("Opening a new session.")
             mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols}
             salvus_client.new_session(mesg)
 
