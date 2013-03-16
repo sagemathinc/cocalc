@@ -218,6 +218,20 @@ message
 # CodeMirror editor sessions
 #############################################
 
+# hub --> local_hub
+message
+    event        : 'codemirror_get_session'
+    path         : undefined   # at least one of path or session_uuid must be defined
+    session_uuid : undefined
+    id           : undefined
+
+# local_hub --> hub
+message
+    event       : 'codemirror_session'
+    id          : undefined
+    session_uuid : required
+    path         : required
+
 # Message describing a change (or sequence of changes) to the editor.
 # A message.success message is sent in respone to acknowledge that the change was noted.
 # client <--> hub <--> local_hub
@@ -225,7 +239,6 @@ message
     event        : 'codemirror_change'
     id           : undefined
     change_obj   : required       # as specified in the  codemirror docs.
-    project_id   : required
     session_uuid : required
 
 # Write out whatever is on local_hub to the physical disk
@@ -233,7 +246,6 @@ message
 message
     event        : 'codemirror_write_to_disk'
     id           : undefined
-    project_id   : required
     session_uuid : required
 
 # Replace what is on local_hub by what is on physical disk (will push out a codemirror_change message).
@@ -241,7 +253,6 @@ message
 message
     event        : 'codemirror_read_from_disk'
     id           : undefined
-    project_id   : required
     session_uuid : required
 
 # Request the current content of the file being edited.
@@ -249,7 +260,6 @@ message
 message
     event        : 'codemirror_get_content'
     id           : undefined
-    project_id   : required
     session_uuid : required
 
 # Sent in response to a codemirror_get_content message.
@@ -259,6 +269,13 @@ message
     id           : undefined
     content      : required
 
+# local_hub --> hub
+# client --> hub
+message
+    event        : 'codemirror_close_session'
+    id           : undefined
+    session_uuid : required
+    path         : required
 
 ############################################
 # Ping/pong

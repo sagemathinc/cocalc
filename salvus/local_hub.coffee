@@ -338,31 +338,27 @@ sage_sessions = new SageSessions()
 ###############################################
 
 class SyncObjListener extends sync_obj.SyncObj
-    constructor: (@socket) ->
-        @init()
+    constructor: (@socket, @session_uuid) ->
+        @init()  # init initializes the id attribute
         @socket.id = @id
 
     change: (opts) =>
         opts = defaults opts,
             diff      : required
             id        : undefined
-            timeout   : 30    # ignored
+            timeout   : 30          # TODO ? -- do something with this?
             cb        : undefined
-
         mesg = message.codemirror_change
             change_obj   : opts.diff
-            project_id   : required
-            session_uuid : required
-
+            session_uuid : @session_uuid
         socket.write_mesg('json', mesg, opts.cb)
 
 
 class CodeMirrorSession
     constructor: (mesg, cb) ->
-        @filename = mesg.filename
+        @path = mesg.path
         @session_uuid = mesg.session_uuid
-        @project_id = mesg.project_id
-        fs.readFile @filename, (err, data) =>
+        fs.readFile @path, (err, data) =>
             if err
                 cb(err)
             else
@@ -370,7 +366,7 @@ class CodeMirrorSession
                 cb(false, @)
 
     add_client: (socket) =>
-        @obj.add_listener(new SyncObjListener(socket))
+        @obj.add_listener(new SyncObjListener(socket, @session_uuid))
 
     change: (socket, mesg) =>
         @obj.change
@@ -384,17 +380,17 @@ class CodeMirrorSession
                 socket.write_mesg('json', resp)
 
     write_to_disk: (socket, mesg) =>
-        fs.writeFile @filename, @obj.getValue(), (err) =>
+        fs.writeFile @path, @obj.getValue(), (err) =>
             if err
-                resp = message.error(id:mesg.id, message:"Error writing file '#{@filename}' to disk")
+                resp = message.error(id:mesg.id, message:"Error writing file '#{@path}' to disk")
             else
                 resp = message.success(id:mesg.id)
             socket.write_mesg('json', resp)
 
     read_from_disk: (socket, mesg) =>
-        fs.readFile @filename, (err, data) =>
+        fs.readFile @path, (err, data) =>
             if err
-                socket.write_mesg('json', message.error(id:mesg.id, message:"Error reading file '#{@filename}' to disk"))
+                socket.write_mesg('json', message.error(id:mesg.id, message:"Error reading file '#{@path}' to disk"))
             else
                 value = data.toString()
                 if value == @obj.getValue()
@@ -402,7 +398,7 @@ class CodeMirrorSession
                     socket.write_mesg('json', message.success(id:mesg.id))
                     return
 
-                # TODO: optimize this to be a much diff than just changing the whole document!
+                # TODO: optimize this to use diff instead of just doing the whole thing
                 n = @obj.state.lines.length
                 change_obj = {from:{line:0,ch:0}, to:{line:n+1,ch:0}, text:value}
                 @obj.change
@@ -418,35 +414,52 @@ class CodeMirrorSession
     get_content: (socket, mesg) =>
         socket.write_mesg('json', message.codemirror_content(id:mesg.id, content:@obj.getValue()))
 
+# Collection of all codemirror sessions hosted by this local_hub.
+
 class CodeMirrorSessions
     constructor: () ->
-        @_sessions = {}
+        @_sessions = {by_uuid:{}, by_path:{}}
 
-    # Connect to (if 'running'), restart (if 'dead'), or create (if
-    # non-existing) the CodeMirror session with mesg.session_uuid.
     connect: (client_socket, mesg) =>
-        session = @_sessions[mesg.session_uuid]
-        if session?
-            session.add_client(client_socket)
-        else
-            new CodeMirrorSession mesg, (err,session) =>
-                if err
-                    client_socket.write_mesg('json', message.error(id:mesg.id, message:err))
-                else
-                    @_sessions[mesg.session_uuid] = session
-                    session.add_client(client_socket)
-                    client_socket.write_mesg('json', message.success(id:mesg.id))
+        if mesg.session_uuid?
+            session = @_sessions.by_uuid[mesg.session_uuid]
+            if session?
+                session.add_client(client_socket)
+                return
+        if mesg.path?
+            session = @_sessions.by_path[mesg.path]
+            if session?
+                session.add_client(client_socket)
+                return
 
-    # Return object that describes status of CodeMirror sessions
+        new CodeMirrorSession mesg, (err, session) =>
+            if err
+                client_socket.write_mesg('json', message.error(id:mesg.id, message:err))
+            else
+                @_sessions.by_uuid[session.session_uuid] = session
+                @_sessions.by_path[session.path] = session
+                session.add_client(client_socket)
+                resp = message.codemirror_session
+                    id           : mesg.id,
+                    session_uuid : session.session_uuid
+                    path         : session.path
+                client_socket.write_mesg('json', resp)
+
+    # Return object that describes status of CodeMirror sessions for a given project
     info: (project_id) =>
         obj = {}
         for id, session of @_sessions
             if session.project_id == project_id
-                obj[id] = {session_uuid : session.session_uuid, filename : session.filename}
+                obj[id] = {session_uuid : session.session_uuid, path : session.path}
         return obj
 
     handle_mesg: (client_socket, mesg) =>
-        session = @_sessions[mesg.session_uuid]
+        if mesg.event == 'codemirror_get_session'
+            @connect(client_socket, mesg)
+            return
+
+        # all other message types identify the session only by the uuid.
+        session = @_sessions.by_uuid[mesg.session_uuid]
         if not session?
             client_socket.write_mesg('json', message.error(id:mesg.id, message:"Unknown CodeMirror session: #{mesg.session_uuid}."))
             return
@@ -459,7 +472,8 @@ class CodeMirrorSessions
                 session.read_from_disk(client_socket, mesg)
             when 'codemirror_get_content'
                 session.get_content(client_socket, mesg)
-
+            else
+                client_socket.write_mesg('json', message.error(id:mesg.id, message:"Unknown CodeMirror session event: #{mesg.event}."))
 
 codemirror_sessions = new CodeMirrorSessions()
 
@@ -475,8 +489,6 @@ connect_to_session = (socket, mesg) ->
             console_sessions.connect(socket, mesg)
         when 'sage'
             sage_sessions.connect(socket, mesg)
-        when 'codemirror'
-            codemirror_sessions.connect(socket, mesg)
         else
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
@@ -647,6 +659,10 @@ project_exec = (socket, mesg) ->
 
 handle_mesg = (socket, mesg) ->
     try
+        if mesg.event.split('_')[0] == 'codemirror'
+            codemirror_sessions.handle_mesg(socket, mesg)
+            return
+
         switch mesg.event
             when 'connect_to_session', 'start_session'
                 connect_to_session(socket, mesg)
@@ -656,8 +672,6 @@ handle_mesg = (socket, mesg) ->
                     project_id : mesg.project_id
                     info       : session_info(mesg.project_id)
                 socket.write_mesg('json', resp)
-            when 'codemirror_change', 'codemirror_write_to_disk', 'codemirror_read_from_disk', 'codemirror_get_content'
-                codemirror_sessions.handle_mesg(socket, mesg)
             when 'project_exec'
                 project_exec(socket, mesg)
             when 'read_file_from_project'
