@@ -1,0 +1,8 @@
+THE FINAL PUSH!
+
+[ ] File editor sync
+[ ] Worksheet sync
+[ ] Multiple users on a single project
+[ ] Publish (including homework grading)
+[ ] Deploy on servers
+[ ] Presentation mode
