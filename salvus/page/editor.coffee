@@ -564,10 +564,19 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
     # by the replaceRange we call internally when applying a changeObj.  Returns undefined
     # if nothing to propagate
     _objs_to_propagate: (changeObj) =>
-        if changeObj.origin? and changeObj.origin != 'setValue'
-            return changeObj
-        else
-            return undefined
+        result = undefined
+        while changeObj?
+            if changeObj.origin? and changeObj.origin != 'setValue'
+                if result?
+                    result.next = changeObj
+                    result = changeObj
+                else
+                    result = changeObj
+            changeObj = changeObj.next
+        if result? and result.next?
+            delete result.next
+        return result
+
 
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
