@@ -122,35 +122,33 @@ class exports.CodeMirrorSession extends exports.SyncObj
             else
                 lines.splice(from.line, 1)   # just delete it completely.
 
-    insert_at: (string, pos) =>
+    insert_at: (text, pos) =>
         # Insert string at the given position pos = {line:?, ch:?}
         lines = @state.lines
         # Add blank lines at the end, as needed
         while lines.length <= pos.line
             lines.push("")
 
-        if string.length == ''
+        if text.length == 0
             # nothing more to do
             return
 
-        v = string.split('\n')
         m = lines[pos.line]
         at_end = m.slice(pos.ch)
-        if v.length == 1
+        if text.length == 1
             # Modify the given line
-            lines[pos.line] = m.slice(0, pos.ch) + v[0] + at_end
+            lines[pos.line] = m.slice(0, pos.ch) + text[0] + at_end
         else
-            v[v.length-1] += at_end
-            lines[pos.line] = m.slice(0, pos.ch) + v[0]
-            for i in [1...v.length]
-                lines.splice(pos.line+i, 0, v[i])  # insert a new line
+            text[text.length-1] += at_end
+            lines[pos.line] = m.slice(0, pos.ch) + text[0]
+            for i in [1...text.length]
+                lines.splice(pos.line+i, 0, text[i])  # insert a new line
 
-    replaceRange: (string, from, to) =>
-        assert(typeof string == "string", "replaceRange -- first argument must be a string")
+    replaceRange: (text, from, to) =>
         assert(from.ch? and from.line?, "replaceRange -- second argument 'from' must have ch and line properties")
         if not to?
-            @insert_at(string, from)
+            @insert_at(text, from)
         else
             assert(to.ch? and to.line?, "replaceRange -- third argument 'to' must have ch and line properties")
             @delete_range(from, to)
-            @insert_at(string, from)
+            @insert_at(text, from)

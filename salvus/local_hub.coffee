@@ -369,17 +369,14 @@ class CodeMirrorSession
         @obj.add_listener(new CodeMirrorListener(socket, @session_uuid))
 
     change: (socket, mesg) =>
-        winston.debug("CodeMirrorSession -- change: #{misc.to_json(mesg)} from id=#{socket.id}")
         @obj.change
             diff : mesg.diff
             id   : socket.id
             cb   : (err) =>
-                winston.debug("Finished making change. (err=#{err}); before='#{@obj.getValue()}'")
                 if err
                     resp = message.error(id:mesg.id, error:"Error making change to CodeMirrorSession -- #{err}")
                 else
                     resp = message.success(id:mesg.id)
-                winston.debug("Sending response #{misc.to_json(resp)}; after='#{@obj.getValue()}'")
                 socket.write_mesg('json', resp)
 
     write_to_disk: (socket, mesg) =>
@@ -405,7 +402,7 @@ class CodeMirrorSession
 
                 # TODO: optimize this to use diff instead of just doing the whole thing
                 n = @obj.state.lines.length
-                changeObj = {from:{line:0,ch:0}, to:{line:n+1,ch:0}, text:value}
+                changeObj = {from:{line:0,ch:0}, to:{line:n+1,ch:0}, text:value.split('\n')}
                 @obj.change
                     diff : {changeObj:changeObj}
                     cb   : (err) =>
@@ -589,7 +586,6 @@ read_file_from_project = (socket, mesg) ->
             socket.write_mesg 'blob', {uuid:id, blob:data}
             cb()
     ], (err) ->
-        winston.debug("Error: #{err}")
         if err and err != 'file already known'
             socket.write_mesg 'json', message.error(id:mesg.id, error:err)
         if is_dir

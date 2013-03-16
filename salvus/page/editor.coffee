@@ -269,29 +269,8 @@ class exports.Editor
             cb?()
             return
 
-        content = tab.editor.val()
-        if not content?
-            # do not overwrite file in case editor isn't initialized
-            alert_message(type:"error", message:"Editor of '#{filename}' not initialized, so nothing to save.")
-            cb?()
-            return
+        tab.editor.save(cb)
 
-        salvus_client.write_text_file_to_project
-            project_id : @project_id
-            timeout    : 10
-            path       : filename
-            content    : content
-            cb         : (err, mesg) =>
-                # TODO -- on error, we *might* consider saving to localStorage...
-                if err
-                    alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
-                    cb?(err)
-                else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error saving #{filename} -- #{to_json(mesg.error)}")
-                    cb?(mesg.error)
-                else
-                    cb?()
-                    # TODO -- change some state to reflect success (?)
 
     create_tab: (opts) =>
         opts = defaults opts,
@@ -319,7 +298,8 @@ class exports.Editor
         switch x.editor
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
-                editor = new CodeMirrorEditor(@, filename, content, extra_opts)
+                editor = new CodeMirrorSessionEditor(@, filename, content, extra_opts)
+                #editor = new CodeMirrorEditor(@, filename, content, extra_opts)
             when 'terminal'
                 editor = new Terminal(@, filename, content, extra_opts)
             when 'worksheet'
@@ -419,6 +399,29 @@ class FileEditor extends EventEmitter
     terminate_session: () =>
         # If some backend session on a remote machine is serving this session, terminate it.
 
+    save: (cb) =>
+        content = @val()
+        if not content?
+            # do not overwrite file in case editor isn't initialized
+            alert_message(type:"error", message:"Editor of '#{filename}' not initialized, so nothing to save.")
+            cb?()
+            return
+
+        salvus_client.write_text_file_to_project
+            project_id : @editor.project_id
+            timeout    : 10
+            path       : @filename
+            content    : content
+            cb         : (err, mesg) =>
+                # TODO -- on error, we *might* consider saving to localStorage...
+                if err
+                    alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
+                    cb?(err)
+                else if mesg.event == 'error'
+                    alert_message(type:"error", message:"Error saving #{filename} -- #{to_json(mesg.error)}")
+                    cb?(mesg.error)
+                else
+                    cb?()
 
 ###############################################
 # Codemirror-based File Editor
@@ -436,7 +439,6 @@ class CodeMirrorEditor extends FileEditor
             match_brackets    : true
             line_wrapping     : true
             theme             : "solarized"  # see static/codemirror*/themes or head.html
-
 
         @element = templates.find(".salvus-editor-codemirror").clone()
         @element.find("textarea").text(content)
@@ -475,27 +477,27 @@ class CodeMirrorEditor extends FileEditor
         @init_change_event()
 
     init_save_button: () =>
-        save = @save = @element.find("a[href=#save]")
+        save = @save_button = @element.find("a[href=#save]")
         save.find(".spinner").hide()
         save.click @click_save_button
 
     click_save_button: () =>
-        if not @save.hasClass('disabled')
-            @save.find('span').text("Saving...")
-            spin = setTimeout((() => @save.find(".spinner").show()), 100)
+        if not @save_button.hasClass('disabled')
+            @save_button.find('span').text("Saving...")
+            spin = setTimeout((() => @save_button.find(".spinner").show()), 100)
             @editor.save @filename, (err) =>
                 clearTimeout(spin)
-                @save.find(".spinner").hide()
-                @save.find('span').text('Save')
+                @save_button.find(".spinner").hide()
+                @save_button.find('span').text('Save')
                 if not err
-                    @save.addClass('disabled')
+                    @save_button.addClass('disabled')
                     @has_unsaved_changes(false)
         return false
 
     init_change_event: () =>
         @codemirror.on 'change', (instance, changeObj) =>
             @has_unsaved_changes(true)
-            @save.removeClass('disabled')
+            @save_button.removeClass('disabled')
 
     _get: () =>
         val = @codemirror.getValue()
@@ -513,10 +515,56 @@ class CodeMirrorEditor extends FileEditor
         @codemirror?.refresh()
 
     focus: () =>
+        if not @codemirror?
+            return
         $(@codemirror.getScrollerElement()).width(@element.width()).css
             'max-height' : @element.height()
-        @codemirror?.focus()
-        @codemirror?.refresh()
+        @codemirror.focus()
+        @codemirror.refresh()
+
+###############################################
+# CodeMirrorSession Editor
+###############################################
+class CodeMirrorSessionEditor extends CodeMirrorEditor
+    constructor: (@editor, @filename, ignored, opts) ->
+        super(@editor, @filename, "Loading '#{@filename}'...", opts)
+        salvus_client.codemirror_session
+            project_id : @editor.project_id
+            path       : @filename
+            cb         : (err, session, content) =>
+                if err
+                    error = "Error loading #{@filename} -- #{err}"
+                    @_set(err)
+                    alert_message(type:"error", message:error)
+                    return
+                @_session = session
+                @_set(content)
+                session.on 'change', (diff) =>
+                    if diff.changeObj?
+                        @_apply_changeObj(diff.changeObj)
+                @codemirror.on 'change', (instance, changeObj) =>
+                    # TODO: I'm worried -- what if some nested changeObj doesn't have .origin set?
+                    if changeObj.origin?
+                        # origin is only set if the event was caused by the user (rather than calling replaceRange below).
+                        @_session.change({changeObj:changeObj})
+
+    _apply_changeObj: (changeObj) =>
+        @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
+        if changeObj.next?
+            @_apply_changeObj(changeObj.next)
+
+    click_save_button: () =>
+        if not @save_button.hasClass('disabled')
+            @save_button.find('span').text("Saving...")
+            spin = setTimeout((() => @save_button.find(".spinner").show()), 100)
+            @_session.write_to_disk (err) =>
+                clearTimeout(spin)
+                @save_button.find(".spinner").hide()
+                @save_button.find('span').text('Save')
+                if not err
+                    @save_button.addClass('disabled')
+                    @has_unsaved_changes(false)
+        return false
 
 ###############################################
 # LateX Editor
@@ -687,7 +735,7 @@ class LatexEditor extends FileEditor
         @element = templates.find(".salvus-editor-latex").clone()
 
         # initialize the latex_editor
-        @latex_editor = new CodeMirrorEditor(@editor, @filename, content, opts)
+        @latex_editor = new CodeMirrorSessionEditor(@editor, @filename, "", opts)
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
 
         v = path_split(@filename)

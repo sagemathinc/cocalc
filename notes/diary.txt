@@ -10605,13 +10605,17 @@ IMMEDIATE's GOALS:
 
         [x] codemirror_sessions: test/debug the existing hub and local_hub code at a low level via the notebook
 
-        [ ] codemirror_sessions: come up with a plan for how the client will work
+        [x] codemirror_sessions: come up with a plan for how the client will work
 
-        [ ] codemirror_sessions: implement client (multi-colored cursors?!)
+        [x] codemirror_sessions: implement client javascript
+
+        [ ] codemirror editor: make the text editor itself using the CodeMirrorSession
 
         [ ] codemirror_sessions: test everything together
 
-        [ ] codemirror_sessions: add additional layer of robustness against loss/failure
+        [ ] codemirror_sessions: add additional layer of robustness against loss/failure -- currently the above will
+            be very brittle, probably breaking when any component vanishes!  Make everything way more robust, including
+            file being changed on disk. This can be done!
 
         [ ] codemirror_sessions: implement *disconnect*/termination of sessions
 
