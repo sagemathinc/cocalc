@@ -337,10 +337,10 @@ sage_sessions = new SageSessions()
 # CodeMirror sessions
 ###############################################
 
-class SyncObjListener extends sync_obj.SyncObj
+class CodeMirrorListener extends sync_obj.SyncObj
     constructor: (@socket, @session_uuid) ->
         @init()  # init initializes the id attribute
-        @socket.id = @id
+        @id = @socket
 
     change: (opts) =>
         opts = defaults opts,
@@ -351,8 +351,7 @@ class SyncObjListener extends sync_obj.SyncObj
         mesg = message.codemirror_change
             change_obj   : opts.diff
             session_uuid : @session_uuid
-        socket.write_mesg('json', mesg, opts.cb)
-
+        @socket.write_mesg('json', mesg, opts.cb)
 
 class CodeMirrorSession
     constructor: (mesg, cb) ->
@@ -366,12 +365,12 @@ class CodeMirrorSession
                 cb(false, @)
 
     add_client: (socket) =>
-        @obj.add_listener(new SyncObjListener(socket, @session_uuid))
+        @obj.add_listener(new CodeMirrorListener(socket, @session_uuid))
 
     change: (socket, mesg) =>
         @obj.change
             diff : mesg.change_obj
-            id   : socket.id
+            id   : socket
             cb   : (err) =>
                 if err
                     resp = message.error(id:mesg.id, message:"Error making change to CodeMirrorSession -- #{err}")
@@ -421,15 +420,24 @@ class CodeMirrorSessions
         @_sessions = {by_uuid:{}, by_path:{}}
 
     connect: (client_socket, mesg) =>
+        finish = (session) ->
+            session.add_client(client_socket)
+            client_socket.write_mesg 'json', message.codemirror_session
+                id           : mesg.id,
+                session_uuid : session.session_uuid
+                path         : session.path
+                content      : session.obj.getValue()
+
         if mesg.session_uuid?
             session = @_sessions.by_uuid[mesg.session_uuid]
             if session?
-                session.add_client(client_socket)
+                finish(session)
                 return
+
         if mesg.path?
             session = @_sessions.by_path[mesg.path]
             if session?
-                session.add_client(client_socket)
+                finish(session)
                 return
 
         new CodeMirrorSession mesg, (err, session) =>
@@ -438,12 +446,7 @@ class CodeMirrorSessions
             else
                 @_sessions.by_uuid[session.session_uuid] = session
                 @_sessions.by_path[session.path] = session
-                session.add_client(client_socket)
-                resp = message.codemirror_session
-                    id           : mesg.id,
-                    session_uuid : session.session_uuid
-                    path         : session.path
-                client_socket.write_mesg('json', resp)
+                finish(session)
 
     # Return object that describes status of CodeMirror sessions for a given project
     info: (project_id) =>

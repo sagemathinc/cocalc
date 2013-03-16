@@ -182,8 +182,40 @@ class SageSession extends Session
 class ConsoleSession extends Session
     # nothing special yet
 
-class CodeMirrorSession extends Session
-    # nothing special yet
+###########################################################
+# CodeMirror Editing Sessions
+###########################################################
+
+###
+class CodeMirrorSession
+    constructor: (opts) ->
+        opts = defaults opts,
+            conn         : required     # a Connection instance
+            project_id   : required
+            session_uuid : required
+            cb           : required     # (err, session)
+
+        @conn         = opts.conn
+        @project_id   = opts.project_id
+        @session_uuid = opts.session_uuid
+
+        @conn.call
+            message.codemirror_get_session
+                path         : undefined   # at least one of path or session_uuid must be defined
+                session_uuid : undefined
+                project_id   : undefined   # only used for client --> hub
+###
+
+
+        @conn.on 'codemirror_change', (mesg) =>
+            console.log("CodeMirrorSession -- got a change event", mesg)
+
+
+
+###########################################################
+
+
+
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -302,6 +334,8 @@ class exports.Connection extends EventEmitter
                 @account_id = mesg.account_id
                 @emit("signed_in", mesg)
             when "project_list_updated", 'project_data_changed'
+                @emit(mesg.event, mesg)
+            when "codemirror_change"
                 @emit(mesg.event, mesg)
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.

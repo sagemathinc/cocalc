@@ -10589,9 +10589,14 @@ codemirror_write_to_disk: write out whatever is on local_hub to the physical dis
 codemirror_read_from_disk: replace what is on local_hub by what is on physical disk (will push out a changeObj)
 codemirror_get_content: request the current content of the file being edited
 codemirror_content: this is the current content
+codemirror_close_session: ???? TODO
 
+It is very important that even if a single file is in *multiple* projects, there is only one codemirror
+session associated to it on the local_hub!   THUS: For codemirror sessions, the session_uuid cannot
+be determined by the hub.  It is determined by the filename and is only known to the local_hub.
 
-
+I have NOT figured out the lifecycle, i.e., when does the codemirror_close_session happen, and what
+does it mean?  Playing with it after done should make this clear.
 
 
          [x]  BUG/issue -- If I have multiple console session on same local_hub in different *projects*, they get merged since the info thing doesn't sort by project. ; I am writing code to address this right now.

@@ -29,6 +29,7 @@ fs      = require 'fs'
 mime    = require('mime')
 
 # salvus libraries
+sync_obj = require('sync_obj')
 sage    = require("sage")               # sage server
 misc    = require("misc")
 {defaults, required} = require 'misc'
@@ -504,7 +505,7 @@ class Client extends EventEmitter
     connect_to_codemirror_session: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if not err  # get_project sends error to client
-                project.codemirror_session
+                project.connect_to_codemirror_session
                     client       : @
                     params       : mesg.params
                     session_uuid : mesg.session_uuid
@@ -981,6 +982,52 @@ class Client extends EventEmitter
                             else:
                                 @push_to_client(message.success(id:mesg.id))
 
+    ################################################
+    # CodeMirror Sessions
+    ################################################
+    mesg_codemirror_get_session: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.get_codemirror_session
+                path         : mesg.path
+                cb : (err, session_uuid) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
+                    else
+                        # We add the client, so it gets messages about changes to the document.
+                        codemirror_sessions.by_uuid[session_uuid].add_client(@)
+                        @push_to_client(message.codemirror_session(id : mesg.id, session_uuid : session_uuid))
+
+    get_codemirror_session : (mesg, cb) =>
+        session = codemirror_sessions.by_uuid[mesg.session_uuid]
+        if not session?
+            @push_to_client(message.reconnect(id:mesg.id))
+            cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
+        else
+            cb(false, session)
+
+    mesg_codemirror_change: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.change(@, mesg)
+
+    mesg_codemirror_write_to_disk: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.write_to_disk(@, mesg)
+
+    mesg_codemirror_read_from_disk: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.read_from_disk(@, mesg)
+
+    mesg_codemirror_get_content: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.get_content(@, mesg)
+
+
 ##############################
 # Create the SockJS Server
 ##############################
@@ -1088,6 +1135,101 @@ push_to_clients = (opts) ->
     ])
 
 ##############################
+# CodeMirror sessions
+##############################
+
+class CodeMirrorClientListener extends sync_obj.SyncObj
+    constructor: (@client, @session_uuid) ->
+        @init()  # init initializes the id attribute
+        @id = @client
+
+    change: (opts) =>
+        opts = defaults opts,
+            diff      : required
+            id        : undefined
+            timeout   : undefined   # TODO -- ignored
+            cb        : undefined
+        mesg = message.codemirror_change
+            change_obj   : opts.diff
+            session_uuid : @session_uuid
+        @client.push_to_client(mesg, opts.cb)
+        opts.cb()  # TODO: need to get a client ACK back to be sure the message was sent; otherwise, try again for a while.
+
+class CodeMirrorLocalHubListener extends sync_obj.SyncObj
+    constructor: (@local_hub, @session_uuid) ->
+        @init()
+        @id = @local_hub
+
+    change: (opts) =>
+        opts = defaults opts,
+            diff      : required
+            id        : undefined
+            timeout   : 30
+            cb        : undefined
+        mesg = message.codemirror_change
+            change_obj   : opts.diff
+            session_uuid : @session_uuid
+        @local_hub.call
+            mesg    : mesg
+            timeout : opts.timeout
+            cb      : opts.cb
+
+codemirror_sessions = {by_path:{}, by_uuid:{}}
+
+class CodeMirrorSession
+    constructor: (opts) ->
+        opts = defaults opts,
+            local_hub    : required
+            session_uuid : required
+            path         : required
+            content      : required
+        @local_hub = opts.local_hub
+        @session_uuid = opts.session_uuid
+        @path = opts.path
+        @obj = new sync_obj.CodeMirrorSession(content:opts.content)
+        @obj.add_listener(new CodeMirrorLocalHubListener(@local_hub, @session_uuid))
+
+    add_client: (client) =>
+        @obj.add_listener(new CodeMirrorClientListener(client, @session_uuid))
+
+    client_change: (client, mesg) =>
+        @obj.change
+            diff : mesg.change_obj
+            id   : client
+            cb   : (err) =>
+                if err
+                    resp = message.error(id:mesg.id, message:"Error making change to CodeMirrorSession -- #{err}")
+                else
+                    resp = message.success(id:mesg.id)
+                client.push_to_client(resp)
+
+    local_hub_change: (change_obj, cb) =>
+        @obj.change
+            diff : change_obj
+            id   : @local_hub
+            cb   : cb
+
+    write_to_disk: (client, mesg) =>
+        @local_hub.call
+            mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
+            cb   : (err, resp) =>
+                if err
+                    resp = message.error(id:mesg.id, message:"Error writing to disk -- #{err}")
+                client.push_to_client(resp)
+
+    read_from_disk: (client, mesg) =>
+        @local_hub.call
+            mesg : message.codemirror_read_from_disk(session_uuid : @session_uuid)
+            cb   : (err, resp) =>
+                if err
+                    resp = message.error(id:mesg.id, message:"Error reading from disk -- #{err}")
+                client.push_to_client(resp)
+
+    get_content: (client, mesg) =>
+        client.push_to_client
+            message.codemirror_content(id:mesg.id, content:@obj.getValue())
+
+##############################
 # LocalHub
 ##############################
 
@@ -1163,6 +1305,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         catch e
             opts.cb("Errro sending message to session #{opts.session_uuid} -- #{e}")
 
+
+    # handle incoming JSON messages from the local_hub that do *NOT* have an id tag
+    handle_mesg: (mesg) =>
+        if mesg.id?
+            return # handled elsewhere
+        switch mesg.event
+            when 'codemirror_change'
+                session = codemirror_sessions.by_uuid[mesg.session_uuid]
+                if session?
+                    session.local_hub_change(mesg.change_obj)
+
+
     # The standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
         if @_socket?
@@ -1173,6 +1327,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err)
             else
                 @_socket = socket
+
+                socket.on 'mesg', (type, mesg) =>
+                    @handle_mesg(mesg)
+
                 socket.on 'end', () =>
                     delete @_status
                     delete @_socket
@@ -1209,6 +1367,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.cb(true, mesg.error)
                 else
                     opts.cb(false, mesg)
+
     ####################################################
     # Session management
     #####################################################
@@ -1332,41 +1491,46 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
                 opts.client.push_data_to_client(channel, history)
 
-    # Connect the client with a codemirror file editing session.
-    codemirror_session: (opts) =>
+    #########################################
+    # CodeMirror sessions
+    #########################################
+    # Return a CodeMirrorSession object corresponding to the given session_uuid or path.
+    get_codemirror_session: (opts) =>
         opts = defaults opts,
-            client       : required
-            project_id   : required
-            params       : undefined
-            session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
-            cb           : required    # cb(err, [session_connected message])
-        if not opts.session_uuid?
-            opts.session_uuid = uuid.v4()
-
-        @_open_session_socket
-            session_uuid : opts.session_uuid
-            project_id   : opts.project_id
-            type         : 'codemirror'
-            params       : opts.params
-            cb           : (err, socket) =>
-                winston.debug("open codemirror session -- #{err}")
+            session_uuid : undefined   # give at least one of the session uuid or filename
+            path         : undefined
+            cb           : required
+        if opts.session_uuid?
+            session = codemirror_sessions.by_uuid[opts.session_uuid]
+            if session?
+                opts.cb(false, session)
+                return
+        if opts.path?
+            session = codemirror_sessions.by_path[opts.path]
+            if session?
+                opts.cb(false, session)
+                return
+        # Get it.
+        @call
+            mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, path:opts.path)
+            cb   : (err, resp) =>
                 if err
                     opts.cb(err)
-                    return
-
-                if not socket.clients?
-                    socket.clients = []
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
                 else
-                    socket.clients.push(opts.client)
+                    session = new CodeMirrorSession
+                        local_hub    : @
+                        session_uuid : resp.session_uuid
+                        path         : resp.path
+                        content      : resp.content
+                    codemirror_sessions.by_uuid[resp.session_uuid] = session
+                    codemirror_sessions.by_path[resp.path] = session
+                    opts.cb(false, session)
 
-                socket.on 'end', () =>
-                    delete @_sockets[opts.session_uuid]
-
-                socket.on 'mesg', (type, mesg) =>
-                    winston.debug("GOT A MESSAGE FROM THE CodeMirror local-hub server: #{misc.to_json(mesg)}")
-
-                mesg = message.session_connected(session_uuid : opts.session_uuid)
-                opts.cb(false, mesg)
+    #########################################
+    # Sage sessions -- TODO!
+    #########################################
 
     sage_session:  (opts) =>
         opts = defaults opts,
@@ -1374,7 +1538,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             path         : undefined
             cb           : required
         # TODO!!!
-
 
     terminate_session: (opts) =>
         opts = defaults opts,
@@ -1700,16 +1863,20 @@ class Project
         opts.project_id = @project_id
         @local_hub.write_file(opts)
 
-    # TODO -- refactor all of these foo_sessions things into one session function
     console_session: (opts) =>
         @_fixpath(opts.params)
         opts.project_id = @project_id
         @local_hub.console_session(opts)
 
-    codemirror_session: (opts) =>
-        @_fixpath(opts.params)
-        opts.project_id = @project_id
-        @local_hub.codemirror_session(opts)
+    # Return a CodeMirrorSession object corresponding to the given session_uuid
+    # (if such a thing exists somewhere), or with the given path.
+    get_codemirror_session: (opts) =>
+        opts = defaults opts,
+            session_uuid : undefined   # give at least one of the session uuid or filename
+            path         : undefined
+            cb           : required
+        @_fixpath(opts)
+        @local_hub.get_codemirror_session(opts)
 
     sage_session: (opts) =>
         @_fixpath(opts.path)

@@ -218,19 +218,21 @@ message
 # CodeMirror editor sessions
 #############################################
 
-# hub --> local_hub
+# client --> hub --> local_hub
 message
     event        : 'codemirror_get_session'
     path         : undefined   # at least one of path or session_uuid must be defined
     session_uuid : undefined
+    project_id   : undefined   # only used: client --> hub
     id           : undefined
 
-# local_hub --> hub
+# local_hub --> hub --> client
 message
-    event       : 'codemirror_session'
-    id          : undefined
+    event        : 'codemirror_session'
+    id           : undefined
     session_uuid : required
-    path         : required
+    path         : required    # absolute path
+    content      : required
 
 # Message describing a change (or sequence of changes) to the editor.
 # A message.success message is sent in respone to acknowledge that the change was noted.
@@ -248,14 +250,16 @@ message
     id           : undefined
     session_uuid : required
 
-# Replace what is on local_hub by what is on physical disk (will push out a codemirror_change message).
+# Replace what is on local_hub by what is on physical disk (will push out a
+# codemirror_change message, so any browser client has a chance to undo this).
 # client --> hub --> local_hub
 message
     event        : 'codemirror_read_from_disk'
     id           : undefined
     session_uuid : required
 
-# Request the current content of the file being edited.
+# Request the current content of the file.   This may be
+# used to refresh the content in a client, even after a session started.
 # client --> hub --> local_hub
 message
     event        : 'codemirror_get_content'
@@ -269,10 +273,11 @@ message
     id           : undefined
     content      : required
 
+# Disconnect a client from a codemirror editing session.
 # local_hub --> hub
 # client --> hub
 message
-    event        : 'codemirror_close_session'
+    event        : 'codemirror_disconnect'
     id           : undefined
     session_uuid : required
     path         : required
@@ -485,6 +490,13 @@ message
 message
     event : 'success'
     id    : undefined
+
+# You need to reconnect.
+message
+    event : 'reconnect'
+    id    : undefined
+
+
 
 ############################################
 # Scratch worksheet

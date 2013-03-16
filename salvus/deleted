@@ -1,3 +1,42 @@
+    # Connect the client with a codemirror file editing session.
+    connect_to_codemirror_session: (opts) =>
+        opts = defaults opts,
+            client       : required
+            project_id   : required
+            params       : undefined
+            session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
+            cb           : required    # cb(err, [session_connected message])
+        if not opts.session_uuid?
+            opts.session_uuid = uuid.v4()
+
+        @_open_session_socket
+            session_uuid : opts.session_uuid
+            project_id   : opts.project_id
+            type         : 'codemirror'
+            params       : opts.params
+            cb           : (err, socket) =>
+                winston.debug("open codemirror session -- #{err}")
+                if err
+                    opts.cb(err)
+                    return
+
+                if not socket.clients?
+                    socket.clients = []
+                else
+                    socket.clients.push(opts.client)
+
+                socket.on 'end', () =>
+                    delete @_sockets[opts.session_uuid]
+
+                socket.on 'mesg', (type, mesg) =>
+                    winston.debug("GOT A MESSAGE FROM THE CodeMirror local-hub server: #{misc.to_json(mesg)}")
+
+                mesg = message.session_connected(session_uuid : opts.session_uuid)
+                opts.cb(false, mesg)
+
+
+
+
 ############################################################################
 ############################################################################
 
@@ -865,7 +904,7 @@ class old_Project
             cb         : opts.cb
 
     git_commit_all: (opts) =>
-        # Commit all modified files that are under revision control to the repo. 
+        # Commit all modified files that are under revision control to the repo.
         opts = defaults opts,
             project_id : required
             author     : required
@@ -958,7 +997,7 @@ class old_Project
         socket.write_mesg('json', errmesg)
         return
 
-<    
+<
 # Choose a random unused unix UID, where unused means by definition
 # that /home/UID does not exist.  We then create that directory and
 # call cb with it.  There is once in a billion years possibility of a
@@ -978,7 +1017,7 @@ create_user = (cb) ->
 #                fs.chown(
 #`    child_process.exec("useradd -U -m #{project_uuid}", (error, stdout, stderr) ->cb())
 
-    
+
     uid = misc.randint(1100, 4294967294)
     fs.exists("/home/#{uid}", (exists) ->
         if exists
@@ -1075,7 +1114,7 @@ class Plan
     save: () -> @conn.cql("UPDATE plans SET name=?, data=?, time=? WHERE plan_id=?",
                           [@name, JSON.stringify(@data), @time, @plan_id],
                         (e,r) -> console.log(e); console.log(r))
-                        
+
     number_of_accounts_with_this_plan: (cb) ->
         @conn.cql("SELECT COUNT(*) FROM accounts WHERE plan_id=?",
                   [@plan_id], (e,r) -> cb(r[0].get('count').value))
@@ -1129,10 +1168,10 @@ class Auth
             sage_conn.send(message.execute_code(0,"factor(2012)"))
     )
     ###
-    
-                                                        
 
-    
+
+
+
 
 
 
@@ -1155,12 +1194,12 @@ class TincConf(object):
         sh['tincd', '--config', path, '-K']
         open(os.path.join(path, ip_address),'w').write(
             "Subnet = %s/32\n%s"%(ip_address,open(os.path.join(path, 'rsa_key.priv')).read().strip()))
-        
+
         self._files = dict([(file, os.path.join(path, file)) for file in ['tinc-up', 'tinc.conf', ip_address, 'rsa_key.pub']])
 
     def files(self):
         return self._files
-        
+
     def __del__(self):
         shutil.rmtree(self._path)
 
@@ -1189,7 +1228,7 @@ class CassandraConf(object):
 
     def nodes(self):
         return [x['hostname'] for x in self._conf]
-                
+
 
 -------------
 
@@ -1204,10 +1243,10 @@ cache = memcache.Client(MEMCACHE_SERVERS)
 class MemCache(object):
     """
     Use memcache to implement a simple key:value store.
-    
+
        * Keys are hashed, but verified for correctness on read; hash
          collision implies only 1 object with that hash is stored.
-         
+
        * Setting is done asynchronously (in that data is sent async),
          but reading is done synchronously by default, though
          get_async is also supported.
@@ -1217,7 +1256,7 @@ class MemCache(object):
         self._async_cache = tornadoasyncmemcache.ClientPool(MEMCACHE_SERVERS, maxclients=256)
         self._ram_cache = {}
         self._namespace = namespace
-        
+
     def key(self, key):
         return self._namespace + '.' + str(hash(key))
 
@@ -1236,7 +1275,7 @@ class MemCache(object):
         c = self._cache.get(self.key(key))
         if c is not None and c[0] == key:
             return c[1]
-        
+
     def __setitem__(self, key, result):
         # async set:   self[key] = result
         key = key.strip()
@@ -1305,11 +1344,11 @@ message
     project_id : required
     command    : required
 
-    
-    
-    
-    
-    
+
+
+
+
+
 
 #################################################
 # HTML parsing functionality -- probably move
