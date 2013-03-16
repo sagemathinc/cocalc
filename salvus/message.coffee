@@ -240,7 +240,7 @@ message
 message
     event        : 'codemirror_change'
     id           : undefined
-    change_obj   : required       # as specified in the  codemirror docs.
+    diff         : required     # {changeObj:{from:{line:?,ch:?}, to:?, text:?, next:?}, ... ?}
     session_uuid : required
 
 # Write out whatever is on local_hub to the physical disk

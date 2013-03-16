@@ -981,7 +981,7 @@ server = net.createServer (socket) ->
                 winston.debug("Handling message: #{misc.to_json(mesg)}")
                 handler(socket, mesg)
             else
-                socket.write(message.error("Unknown message event '#{mesg.event}'"))
+                socket.write(message.error(error:"Unknown message event '#{mesg.event}'"))
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->

@@ -5,7 +5,7 @@
 #################################################################################################
 
 async = require('async')
-{defaults, required, uuid, keys, assert} = require('misc')
+{defaults, required, uuid, keys, assert, to_json} = require('misc')
 
 # This is a sync'd JSON-able object, which establishes the API.
 # The diff transforms the key/values for the state object a very simple way.
@@ -15,7 +15,7 @@ class exports.SyncObj
 
     init: (opts={}) =>
         opts = defaults opts,
-            id : undefined
+            id : undefined        # if you specify this, it must be a string that defines the object!
         if opts.id?
             @id = opts.id
         else
@@ -47,11 +47,13 @@ class exports.SyncObj
         opts.id = @id
 
         that = @
-        notify = (id) ->
+        notify = (id, cb) ->
             if id != sender_id
-                that.listeners[id].change(opts)
+                that.listeners[id].change(opts, cb)
+            else
+                cb()
 
-        async.map(keys(@listeners), notify, ((err,results) -> cb?(err)))
+        async.map(keys(@listeners), notify, ((err,results) -> opts.cb?(err)))
 
 class exports.CodeMirrorSession extends exports.SyncObj
     constructor: (opts) ->
@@ -65,7 +67,7 @@ class exports.CodeMirrorSession extends exports.SyncObj
 
     _apply_diff: (diff) =>
         # Transform our state
-        if diff.changeObj
+        if diff.changeObj?
             @_apply_changeObj(diff.changeObj)
         # that's all that is implemented at present.
 
@@ -73,7 +75,7 @@ class exports.CodeMirrorSession extends exports.SyncObj
         # changeObj must be a change object, exactly as defined by CodeMirror 3,
         # so it is {from, to, text, removed, next}.
 
-        @_replaceRange(changeObj.text, changeObj.from, changeObj.to)
+        @replaceRange(changeObj.text, changeObj.from, changeObj.to)
         if changeObj.next
             @_apply_changeObj(changeObj.next)
 

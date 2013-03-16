@@ -341,7 +341,7 @@ sage_sessions = new SageSessions()
 
 class CodeMirrorListener extends sync_obj.SyncObj
     constructor: (@socket, @session_uuid) ->
-        @init(id: @socket)
+        @init(id: @socket.id)
 
     change: (opts) =>
         opts = defaults opts,
@@ -350,7 +350,7 @@ class CodeMirrorListener extends sync_obj.SyncObj
             timeout   : 30          # TODO ? -- do something with this?
             cb        : undefined
         mesg = message.codemirror_change
-            change_obj   : opts.diff
+            diff         : opts.diff
             session_uuid : @session_uuid
         @socket.write_mesg('json', mesg, opts.cb)
 
@@ -369,14 +369,17 @@ class CodeMirrorSession
         @obj.add_listener(new CodeMirrorListener(socket, @session_uuid))
 
     change: (socket, mesg) =>
+        winston.debug("CodeMirrorSession -- change: #{misc.to_json(mesg)} from id=#{socket.id}")
         @obj.change
-            diff : mesg.change_obj
-            id   : socket
+            diff : mesg.diff
+            id   : socket.id
             cb   : (err) =>
+                winston.debug("Finished making change. (err=#{err}); before='#{@obj.getValue()}'")
                 if err
-                    resp = message.error(id:mesg.id, message:"Error making change to CodeMirrorSession -- #{err}")
+                    resp = message.error(id:mesg.id, error:"Error making change to CodeMirrorSession -- #{err}")
                 else
                     resp = message.success(id:mesg.id)
+                winston.debug("Sending response #{misc.to_json(resp)}; after='#{@obj.getValue()}'")
                 socket.write_mesg('json', resp)
 
     write_to_disk: (socket, mesg) =>
@@ -384,7 +387,7 @@ class CodeMirrorSession
         # this, or something, to avoid any potential for loss (?).
         fs.writeFile @path, @obj.getValue(), (err) =>
             if err
-                resp = message.error(id:mesg.id, message:"Error writing file '#{@path}' to disk")
+                resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk")
             else
                 resp = message.success(id:mesg.id)
             socket.write_mesg('json', resp)
@@ -392,7 +395,7 @@ class CodeMirrorSession
     read_from_disk: (socket, mesg) =>
         fs.readFile @path, (err, data) =>
             if err
-                socket.write_mesg('json', message.error(id:mesg.id, message:"Error reading file '#{@path}' to disk"))
+                socket.write_mesg('json', message.error(id:mesg.id, error:"Error reading file '#{@path}' to disk"))
             else
                 value = data.toString()
                 if value == @obj.getValue()
@@ -402,13 +405,13 @@ class CodeMirrorSession
 
                 # TODO: optimize this to use diff instead of just doing the whole thing
                 n = @obj.state.lines.length
-                change_obj = {from:{line:0,ch:0}, to:{line:n+1,ch:0}, text:value}
+                changeObj = {from:{line:0,ch:0}, to:{line:n+1,ch:0}, text:value}
                 @obj.change
-                    diff : change_obj
+                    diff : {changeObj:changeObj}
                     cb   : (err) =>
                         if err
                             resp = message.error(id:mesg.id,
-                                      message:"Error after reading file from disk while making change -- #{err}")
+                                      error:"Error after reading file from disk while making change -- #{err}")
                         else
                             resp = message.success(id:mesg.id)
                         socket.write_mesg('json', resp)
@@ -446,7 +449,7 @@ class CodeMirrorSessions
         mesg.session_uuid = uuid.v4()
         new CodeMirrorSession mesg, (err, session) =>
             if err
-                client_socket.write_mesg('json', message.error(id:mesg.id, message:err))
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:err))
             else
                 @_sessions.by_uuid[session.session_uuid] = session
                 @_sessions.by_path[session.path] = session
@@ -468,7 +471,7 @@ class CodeMirrorSessions
         # all other message types identify the session only by the uuid.
         session = @_sessions.by_uuid[mesg.session_uuid]
         if not session?
-            client_socket.write_mesg('json', message.error(id:mesg.id, message:"Unknown CodeMirror session: #{mesg.session_uuid}."))
+            client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session: #{mesg.session_uuid}."))
             return
         switch mesg.event
             when 'codemirror_change'
@@ -480,7 +483,7 @@ class CodeMirrorSessions
             when 'codemirror_get_content'
                 session.get_content(client_socket, mesg)
             else
-                client_socket.write_mesg('json', message.error(id:mesg.id, message:"Unknown CodeMirror session event: #{mesg.event}."))
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session event: #{mesg.event}."))
 
 codemirror_sessions = new CodeMirrorSessions()
 
@@ -714,6 +717,7 @@ server = net.createServer (socket) ->
         if err
             winston.debug(err)
         else
+            socket.id = uuid.v4()
             misc_node.enable_mesg(socket)
             socket.on 'mesg', (type, mesg) ->
                 if type == "json"   # other types are handled elsewhere in event code.

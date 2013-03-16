@@ -10603,7 +10603,7 @@ IMMEDIATE's GOALS:
 ===================
 
 
-        [ ] codemirror_sessions: test/debug the existing hub and local_hub code at a low level via the notebook
+        [x] codemirror_sessions: test/debug the existing hub and local_hub code at a low level via the notebook
 
         [ ] codemirror_sessions: come up with a plan for how the client will work
 

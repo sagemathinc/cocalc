@@ -627,7 +627,7 @@ class Client extends EventEmitter
             value : mesg.data
             cb    : (error, result) =>
                 if error
-                    @push_to_client(message.error(id:mesg.id, message:error))
+                    @push_to_client(message.error(id:mesg.id, error:error))
                 else
                     @push_to_client(message.success(id:mesg.id))
 
@@ -978,7 +978,7 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
                     else
                         # We add the client, so it will gets messages about changes to the document.
-                        session.add_client(@)
+                        session.add_listener(@)
                         # Send parameters of session to client
                         mesg = message.codemirror_session
                             id           : mesg.id
@@ -998,7 +998,7 @@ class Client extends EventEmitter
     mesg_codemirror_change: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
             if not err
-                session.change(@, mesg)
+                session.client_change(@, mesg)
 
     mesg_codemirror_write_to_disk: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
@@ -1129,7 +1129,7 @@ push_to_clients = (opts) ->
 # ClientListener represents a web browser client
 class CodeMirrorClientListener extends sync_obj.SyncObj
     constructor: (@client, @session_uuid) ->
-        @init(id: @client)
+        @init(id: @client.account_id)
 
     change: (opts) =>
         opts = defaults opts,
@@ -1137,17 +1137,18 @@ class CodeMirrorClientListener extends sync_obj.SyncObj
             id        : undefined
             timeout   : undefined   # TODO -- ignored
             cb        : undefined
+        winston.debug("ClientListener got change message: #{to_json(opts)}  curious: #{@id==@id}")
         mesg = message.codemirror_change
-            change_obj   : opts.diff
+            diff  : opts.diff
             session_uuid : @session_uuid
-        @client.push_to_client(mesg, opts.cb)
-        opts.cb()  # TODO: need to get a client ack back to be sure the
+        @client.push_to_client(mesg)
+        opts.cb?()  # TODO: need to get a client ack back to be sure the
                    # message was sent; if fail, will try again for a while.
 
 # LocalHubListener represents a local hub
 class CodeMirrorLocalHubListener extends sync_obj.SyncObj
     constructor: (@local_hub, @session_uuid) ->
-        @init(id: @local_hub)
+        @init(id: @local_hub.id)
 
     change: (opts) =>
         opts = defaults opts,
@@ -1155,11 +1156,12 @@ class CodeMirrorLocalHubListener extends sync_obj.SyncObj
             id        : undefined
             timeout   : 30
             cb        : undefined
+        winston.debug("LocalHubListener got change message: #{to_json(opts)}")
         @local_hub.call
             timeout : opts.timeout
             cb      : opts.cb
             mesg    : message.codemirror_change
-                change_obj   : opts.diff
+                diff : opts.diff
                 session_uuid : @session_uuid
 
 codemirror_sessions = {by_path:{}, by_uuid:{}}
@@ -1177,26 +1179,26 @@ class CodeMirrorSession
         @obj          = new sync_obj.CodeMirrorSession(content: opts.content)
         @obj.add_listener(new CodeMirrorLocalHubListener(@local_hub, @session_uuid))
 
-    add_client: (client) =>
+    add_listener: (client) =>
         @obj.add_listener(new CodeMirrorClientListener(client, @session_uuid))
 
     # Process a change reported by a browser client.
     client_change: (client, mesg) =>
         @obj.change
-            diff : mesg.change_obj
-            id   : client
+            diff : mesg.diff
+            id   : client.account_id
             cb   : (err) =>
                 if err
-                    resp = message.error(id:mesg.id, message:"Error making change to CodeMirrorSession -- #{err}")
+                    resp = message.error(id:mesg.id, error:"Error making change to CodeMirrorSession -- #{err}")
                 else
                     resp = message.success(id:mesg.id)
                 client.push_to_client(resp)
 
     # Process a change reported by the local hub handling this session.
-    local_hub_change: (change_obj, cb) =>
+    local_hub_change: (diff, cb) =>
         @obj.change
-            diff : change_obj
-            id   : @local_hub
+            diff : diff
+            id   : @local_hub.id
             cb   : cb
 
     write_to_disk: (client, mesg) =>
@@ -1204,7 +1206,9 @@ class CodeMirrorSession
             mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
             cb   : (err, resp) =>
                 if err
-                    resp = message.error(id:mesg.id, message:"Error writing to disk -- #{err}")
+                    resp = message.error(id:mesg.id, error:"Error writing to disk -- #{err}")
+                else
+                    resp.id = mesg.id
                 client.push_to_client(resp)
 
     read_from_disk: (client, mesg) =>
@@ -1212,7 +1216,9 @@ class CodeMirrorSession
             mesg : message.codemirror_read_from_disk(session_uuid : @session_uuid)
             cb   : (err, resp) =>
                 if err
-                    resp = message.error(id:mesg.id, message:"Error reading from disk -- #{err}")
+                    resp = message.error(id:mesg.id, error:"Error reading from disk -- #{err}")
+                else
+                    resp.id = mesg.id
                 client.push_to_client(resp)
 
     get_content: (client, mesg) =>
@@ -1268,6 +1274,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     constructor: (@username, @host, @port, cb) ->
         assert @username? and @host? and @port? and cb?
         @address = "#{username}@#{host}"
+        @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
         @local_hub_socket  (err,socket) =>
             if err
@@ -1303,7 +1310,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             when 'codemirror_change'
                 session = codemirror_sessions.by_uuid[mesg.session_uuid]
                 if session?
-                    session.local_hub_change(mesg.change_obj)
+                    session.local_hub_change(mesg.diff)
 
 
     # The standing authenticated control socket to the remote local_hub daemon.
@@ -1565,8 +1572,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # port is supposed to be a valid port portforward to a local_hub somewhere.
     open: (cb) =>    # cb(err, port, secret_token)
         winston.debug("Opening a local_hub.")
-        # TODO delete this log message
-        winston.debug("@_status = #{misc.to_json(@_status)}")
         if @_status? and @_status.local_port? and @_status.secret_token?
             # TODO: check here that @_port is actually still open and valid...
             cb(false, @_status.local_port, @_status.secret_token)

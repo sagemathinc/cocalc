@@ -36,7 +36,7 @@ server = net.createServer (socket) ->
             when 'compute_server_status'
                 socket.write(status_message())
             else
-                socket.write(message.error("Unknown message event '#{mesg.event}'"))
+                socket.write(message.error(error:"Unknown message event '#{mesg.event}'"))
 
 PATH = require('path').resolve(__dirname + '/../..')
 restrict_permissions = () ->
