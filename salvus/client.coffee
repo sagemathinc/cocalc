@@ -200,7 +200,7 @@ class CodeMirrorSession extends EventEmitter
 
         @_listener = (m) =>
             if m.session_uuid = @session_uuid
-                console.log("change request: #{misc.to_json(m.diff)}")
+                #console.log("change request: #{misc.to_json(m.diff)}")
                 @emit 'change', m.diff
 
         @conn.on 'codemirror_change', @_listener
@@ -222,7 +222,7 @@ class CodeMirrorSession extends EventEmitter
                     cb(false, @, resp.content)
 
     call: (opts) =>
-        console.log("call #{misc.to_json(opts)}")
+        #console.log("call #{misc.to_json(opts)}")
         opts = defaults opts,
             message     : required
             retry_delay : 0        # (in seconds); set to 0 to not retry
@@ -235,7 +235,7 @@ class CodeMirrorSession extends EventEmitter
                     opts.cb?(err, result)
                 else
                     if err or result.event == 'error'
-                        setTimeout((() => console.log("RETRYING!"); @call(opts)), opts.retry_delay*1000)
+                        setTimeout((() => @call(opts)), opts.retry_delay*1000)
                     else if result.event == 'reconnect'
                         @connect(() => @call(opts))
                     else

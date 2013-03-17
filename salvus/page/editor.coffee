@@ -557,7 +557,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                         @_draw_other_cursor({line:diff.changeObj.to.line,ch:diff.changeObj.to.ch+2}, 'red')  # this is just for now.
 
                 @codemirror.on 'change', (instance, changeObj) =>
-                    console.log("changeObj: #{misc.to_json(changeObj)}")
+                    #console.log("changeObj: #{misc.to_json(changeObj)}")
                     if changeObj.origin? and changeObj.origin != 'setValue'
                         # origin is only set if the event was caused by the user (rather than calling replaceRange below).
                         @_session.change({changeObj:changeObj})
