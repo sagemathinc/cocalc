@@ -52,7 +52,7 @@ exports.enable_mesg = enable_mesg = (socket) ->
                 mesg = socket._buf.slice(5, socket._buf_target_length)
                 switch type
                     when 'j'   # JSON
-                        s = unescape(mesg.toString())
+                        s = mesg.toString()
                         try
                             obj = JSON.parse(s)
                         catch e
@@ -78,12 +78,18 @@ exports.enable_mesg = enable_mesg = (socket) ->
     socket.write_mesg = (type, data, cb) ->
         send = (s) ->
             buf = new Buffer(4)
+            # This line was 4 hours of work.  It is absolutely
+            # *critical* to change the (possibly a string) s into a
+            # buffer before computing its length and sending it!!
+            # Otherwise unicode characters will cause trouble.
+            if typeof s == "string"
+                s = Buffer(s)
             buf.writeInt32BE(s.length, 0)
             socket.write(buf)
             socket.write(s, cb)
         switch type
             when 'json'
-                send('j' + escape(JSON.stringify(data)))
+                send('j' + JSON.stringify(data))
             when 'blob'
                 assert(data.uuid?, "data object *must* have a uuid attribute")
                 assert(data.blob?, "data object *must* have a blob attribute")

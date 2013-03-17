@@ -10692,15 +10692,19 @@ This doesn't scale, but it is easy to implement and is equivalent (mod speed) to
 
 *make the client-level "refresh" be done via a merge.  Let A = client, B = upstream, O = original parent (if we care)
   -- use the google library diff-match-patch somehow:
-     see https://groups.google.com/forum/?fromgroups=#!topic/diff-match-patch/6HK8QKgc5Pc [ ] make the hub have a refresh via a merge
 
     [x] include javascript diff-match-patch into SMC
 
-    [ ] fix Sage worksheet sessions -- seems like they are completely broken right now!
+    [x] fix Sage worksheet sessions -- seems like they are completely broken right now!
         - first problem: when starting a sage session, client tries to start TWO of them. Why?
-
+        - The REAL PROBLEM-- I changed my JSON protocol to
+          escape/unescape unicode, so that it would be possible to
+          send arbitrary characters (and hence support unicode users).
+          However, I didn't update sage_server.py to also support this.
 
     [ ] play around with 3-way merge and form a strategy
+          see https://groups.google.com/forum/?fromgroups=#!topic/diff-match-patch/6HK8QKgc5Pc [ ] make the hub have a refresh via a merge
+
     [ ] implement
 
 
@@ -10709,12 +10713,13 @@ This doesn't scale, but it is easy to implement and is equivalent (mod speed) to
 
 
 
-       [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
-  [ ] default location account(s)
+     [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
+
+     [ ] default location account(s)
 
 
 
-
+     [ ] latex editor -- preview still doesn't work when .tex file is in a subdirectory.
 
              ----
 (est:1:00)    [ ] make it so user can change the location of the project:

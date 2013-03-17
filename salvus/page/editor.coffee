@@ -989,9 +989,9 @@ class Worksheet extends FileEditor
 
     connect_to_server: (session_uuid, cb) =>
         if @session?
-            # already connected
+            cb('already connected or attempting to connect')
             return
-        @session = undefined
+        @session = "init"
         async.series([
             (cb) =>
                 # If the worksheet specifies a specific session_uuid,
@@ -1015,7 +1015,7 @@ class Worksheet extends FileEditor
                     # No session_uuid requested.
                     cb()
             (cb) =>
-                if @session?
+                if @session? and @session != "init"
                     # We successfully got a session above.
                     cb()
                 else

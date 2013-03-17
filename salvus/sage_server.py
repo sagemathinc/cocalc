@@ -26,11 +26,13 @@ For debugging (as root user, do):
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
 import os, sys
-sys.path.insert(0, os.path.split(os.path.realpath(__file__))[0])
+PWD = os.path.split(os.path.realpath(__file__))[0]
+sys.path.insert(0, PWD)
 
+LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 # This can be useful, just in case.
 def log(s):
-    debug_log = open("/tmp/debug.log",'a')
+    debug_log = open(LOGFILE, 'a')
     debug_log.write(s+'\n')
     debug_log.flush()
 
@@ -94,7 +96,7 @@ class ConnectionJSON(object):
             try:
                 #print "blocking recv (i = %s), pid=%s"%(i, os.getpid())
                 r = self._conn.recv(n)
-                #print "got it = '%s'"%r
+                #log("n=%s; received: '%s' of len %s"%(n,r, len(r)))
                 return r
             except socket.error as (errno, msg):
                 #print "socket.error, msg=%s"%msg
@@ -115,7 +117,12 @@ class ConnectionJSON(object):
             s += t
 
         if s[0] == 'j':
-            return 'json', json.loads(s[1:])
+            try:
+                return 'json', json.loads(s[1:])
+            except Exception, msg:
+                log("Unable to parse JSON '%s'"%s[1:])
+                raise
+
         elif s[0] == 'b':
             return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
@@ -832,24 +839,41 @@ def serve_connection(conn):
     # First the client *must* send the secret shared token. If they
     # don't, we return (and the connection will have been destroyed by
     # unlock_conn).
+    log("Serving a connection")
+    log("Waiting for client to unlock the connection...")
+    # TODO -- put in a timeout (?)
     if not unlock_conn(conn):
+        log("Client failed to unlock connection. Dumping them.")
         return
+    log("Connection unlocked.")
 
     conn = ConnectionJSON(conn)
-    typ, mesg = conn.recv()
+    try:
+        typ, mesg = conn.recv()
+        log("Received message %s"%mesg)
+    except Exception, err:
+        log("Error receiving message: %s (connection terminated)"%str(err))
+        raise
+
     if mesg['event'] == 'send_signal':
         if mesg['pid'] == 0:
-            print "invalid signal mesg (pid=0)"
+            log("invalid signal mesg (pid=0)")
         else:
+            log("Sending a signal")
             os.kill(mesg['pid'], mesg['signal'])
         return
     if mesg['event'] != 'start_session':
+        log("Received an unknown message event = %s; terminating session."%mesg['event'])
         return
+
+    log("Starting a session")
 
     pid = os.fork()
     if not pid:
         # child
-        conn.send_json(message.session_description(os.getpid()))
+        desc = message.session_description(os.getpid())
+        log("Child sending session description back: %s"%desc)
+        conn.send_json(desc)
         session(conn=conn)
 
 def serve(port, host):

@@ -461,7 +461,7 @@ class Client extends EventEmitter
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
-                            console.log("sending #{misc.to_json(message.session_started(id:mesg.id, session_uuid:session.session_uuid))}")
+                            winston.debug("sending #{misc.to_json(message.session_started(id:mesg.id, session_uuid:session.session_uuid))}")
                             @push_to_client(message.session_started(id:mesg.id, session_uuid:session.session_uuid))
             when 'console'
                 @connect_to_console_session(mesg)

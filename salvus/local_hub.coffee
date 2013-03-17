@@ -291,23 +291,28 @@ class SageSessions
         winston.debug("new sage session")
         # Connect to port, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
-            port : port
+            port  : port
             token : secret_token
-            cb : (err, sage_socket) =>
+            cb    : (err, sage_socket) =>
                 if err
                     forget_port('sage')
                     client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
                     winston.debug("_new_session: sage session denied connection: #{err}")
                     return
                 else
-                    winston.debug("successfully got a sage session connection.")
-                # Request a Sage session from sage_server
+                    winston.debug("Successfully unlocked a sage session connection.")
+
+                winston.debug("Next, request a Sage session from sage_server.")
+
                 misc_node.enable_mesg(sage_socket)
                 sage_socket.write_mesg('json', message.start_session(type:'sage'))
-                # Read one JSON message back, which describes the session
+
+                winston.debug("Waiting to read one JSON message back, which will describe the session.")
                 sage_socket.once 'mesg', (type, desc) =>
+                    winston.debug("Got message back from Sage server: #{misc.to_json(desc)}")
                     client_socket.write_mesg('json', desc)
                     plug(client_socket, sage_socket)
+                    # Finally, this socket is now connected to a sage server and ready to execute code.
                     @_sessions[mesg.session_uuid] =
                         socket     : sage_socket
                         desc       : desc
