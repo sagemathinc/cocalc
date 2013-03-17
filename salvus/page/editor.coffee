@@ -535,7 +535,7 @@ class CodeMirrorEditor extends FileEditor
 class CodeMirrorSessionEditor extends CodeMirrorEditor
     constructor: (@editor, @filename, ignored, opts) ->
 
-        @other_cursor = $("<div style='position:absolute;'><div style='position:relative; top:-1.2em; left:-.35ex; background-color:red; height:1.15em; width:1ex; opacity:0.5'></div></div>")
+        @other_cursor = $("<div style='position:absolute;'><div style='position:relative; top:-1.2em; left:-.4ex; border:solid 1px blue; height:1.15em; width:1.1ex;'></div></div>")
 
         super(@editor, @filename, "Loading '#{@filename}'...", opts)
         salvus_client.codemirror_session

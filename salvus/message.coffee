@@ -242,14 +242,14 @@ message
     event        : 'codemirror_change'
     id           : undefined
     diff         : required
-    session_uuid : required
+    session_uuid : undefined
 
 # Write out whatever is on local_hub to the physical disk
 # client --> hub --> local_hub
 message
     event        : 'codemirror_write_to_disk'
     id           : undefined
-    session_uuid : required
+    session_uuid : undefined
 
 # Replace what is on local_hub by what is on physical disk (will push out a
 # codemirror_change message, so any browser client has a chance to undo this).
@@ -257,7 +257,7 @@ message
 message
     event        : 'codemirror_read_from_disk'
     id           : undefined
-    session_uuid : required
+    session_uuid : undefined
 
 # Request the current content of the file.   This may be
 # used to refresh the content in a client, even after a session started.
@@ -265,7 +265,7 @@ message
 message
     event        : 'codemirror_get_content'
     id           : undefined
-    session_uuid : required
+    session_uuid : undefined
 
 # Sent in response to a codemirror_get_content message.
 # local_hub --> hub --> client

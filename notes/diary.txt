@@ -10623,8 +10623,11 @@ IMMEDIATE's GOALS:
 
         [x] codemirror_sessions: (minimal proof of concept of how to display these...) update messages should also be tagged with person doing them, so we can put a marker somewhere.
 
-        [ ] implement retry/reconnect support (when get this, do something in client to transparently handle it):
+        [x] implement retry/reconnect support (when get this, do something in client to transparently handle it):
                debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"reconnect","id":"aedd0a30-b1d0-4363-8486-c6cba5f47cb6"}
+ 
+            I put in a really stupid "_recent_diff_ids" thing in hub.coffee to see what it is like.  It wastes memory, and still isn't 100%... since e.g. killing/restarting the hub
+            would defeat it.  Hmm.
 
         [ ] NEXT: I need to rethink how messages get guaranteed, design, and then implement; the above playing around has shown there is no easy path.
             I need to do something that involves a QUEUE in each place, ack messages, and ID's for what is sent/ack'd.  For example, what I've done now ends up
@@ -10645,6 +10648,7 @@ IMMEDIATE's GOALS:
 
 =========================
 
+       [ ] latex editor -- preview still doesn't work when .tex file is in a subdirectory.
 
 
        [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)

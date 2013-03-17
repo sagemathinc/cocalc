@@ -1182,11 +1182,19 @@ class CodeMirrorSession
         @obj          = new sync_obj.CodeMirrorSession(content: opts.content)
         @obj.add_listener(new CodeMirrorLocalHubListener(@local_hub, @session_uuid))
 
+        @_recent_diff_ids = []
+
     add_listener: (client) =>
         @obj.add_listener(new CodeMirrorClientListener(client, @session_uuid))
 
     # Process a change reported by a browser client.
     client_change: (client, mesg) =>
+
+        if @_recent_diff_ids[mesg.diff.id]?
+            return
+        else
+            @_recent_diff_ids[mesg.diff.id] = true
+            
         @obj.change
             diff : mesg.diff
             id   : client.id
