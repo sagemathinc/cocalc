@@ -534,6 +534,9 @@ class CodeMirrorEditor extends FileEditor
 ###############################################
 class CodeMirrorSessionEditor extends CodeMirrorEditor
     constructor: (@editor, @filename, ignored, opts) ->
+
+        @other_cursor = $("<div style='position:absolute;'><div style='position:relative; top:-1.2em; left:-.35ex; background-color:red; height:1.15em; width:1ex; opacity:0.5'></div></div>")
+
         super(@editor, @filename, "Loading '#{@filename}'...", opts)
         salvus_client.codemirror_session
             project_id : @editor.project_id
@@ -551,6 +554,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                         #console.log("hub sent changeObj: #{misc.to_json(diff.changeObj)}")
                         @_apply_changeObj(diff.changeObj)
 
+                        @_draw_other_cursor({line:diff.changeObj.to.line,ch:diff.changeObj.to.ch+2}, 'red')  # this is just for now.
+
                 @codemirror.on 'change', (instance, changeObj) =>
                     # TODO: I'm worried -- what if some nested changeObj doesn't have .origin set?
                     obj = @_objs_to_propagate(changeObj)
@@ -559,11 +564,18 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                         # origin is only set if the event was caused by the user (rather than calling replaceRange below).
                         @_session.change({changeObj:obj})
 
-    # Return only the part of the input changeObj that we want to propagate to other editors.
-    # In particular, we do not include ones for which origin is not set, since they are caused
-    # by the replaceRange we call internally when applying a changeObj.  Returns undefined
-    # if nothing to propagate
+    _draw_other_cursor: (pos, color) =>
+        # Move the cursor with given color to the given pos.
+        if not @codemirror?
+            return
+        #console.log("move cursor #{color} to position #{pos.line},#{pos.ch}")
+        @codemirror.addWidget(pos, @other_cursor[0], false)
+
     _objs_to_propagate: (changeObj) =>
+        # Return only the part of the input changeObj that we want to propagate to other editors.
+        # In particular, we do not include ones for which origin is not set, since they are caused
+        # by the replaceRange we call internally when applying a changeObj.  Returns undefined
+        # if nothing to propagate
         result = undefined
         while changeObj?
             if changeObj.origin? and changeObj.origin != 'setValue'
