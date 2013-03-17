@@ -10702,16 +10702,26 @@ This doesn't scale, but it is easy to implement and is equivalent (mod speed) to
           send arbitrary characters (and hence support unicode users).
           However, I didn't update sage_server.py to also support this.
 
-    [ ] play around with 3-way merge and form a strategy
-          see https://groups.google.com/forum/?fromgroups=#!topic/diff-match-patch/6HK8QKgc5Pc [ ] make the hub have a refresh via a merge
-
-    [ ] implement
-
-
-* make the hub have a refresh via a merge
-=========================
+    [x] play around with 3-way merge and form a strategy -- see
+            https://groups.google.com/forum/?fromgroups=#!topic/diff-match-patch/6HK8QKgc5Pc
+          
 
 
+
+
+
+ GODSEND -- top google hit for "synchronizing docs network like google docs algorithm"
+ is a paper by the diff-match-patch guy called 
+    * "Differential Synchronization" (by Neil Fraser).
+    * http://neil.fraser.name/writing/sync/
+    * http://www.youtube.com/watch?v=S2Hp_1jqpY8
+
+
+ It purports -- in 8 pages -- to totally solve my problem. Awesome, because I was about
+ to loose it.
+
+     [ ] IDEA -- terminal could become way less "laggy" by using differential synchronization and just letting
+         what user types appear (?)
 
      [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
 
@@ -11723,5 +11733,3 @@ def mat(s):
 +tab completion doesn't work for:" M = ModularSymbols(N*p,sign=1).cuspidal_su[tab]"
 +
 +"d = E.dimension() * sigma(" doesn't work either.
-
-
