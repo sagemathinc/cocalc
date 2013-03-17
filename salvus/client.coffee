@@ -2,6 +2,7 @@
 
 async = require('async')  # don't delete even if not used below, since this needs to be available to page/
 sync_obj = require('sync_obj')  # needed by page/
+dsync = require('dsync')  # needed by page/
 
 message = require("message")
 misc    = require("misc")

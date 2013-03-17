@@ -10613,7 +10613,6 @@ does it mean?  Playing with it after done should make this clear.
 
         [x] codemirrorsession editor: add a refresh button, which replace the current view with whatever is on local_hub (??)
 
-@@@@@@@@@@@@@@@@@@@@@@
 IMMEDIATE's GOALS:
 ===================
 
@@ -10708,7 +10707,7 @@ This doesn't scale, but it is easy to implement and is equivalent (mod speed) to
 
 
 
-
+======================================
 
  GODSEND -- top google hit for "synchronizing docs network like google docs algorithm"
  is a paper by the diff-match-patch guy called 
@@ -10716,9 +10715,22 @@ This doesn't scale, but it is easy to implement and is equivalent (mod speed) to
     * http://neil.fraser.name/writing/sync/
     * http://www.youtube.com/watch?v=S2Hp_1jqpY8
 
-
  It purports -- in 8 pages -- to totally solve my problem. Awesome, because I was about
  to loose it.
+
+@@@@@@@@@@@@@@@@@@@@@@
+
+GOAL NOW: Implement dsync for SMC, ASAP.
+
+-->  [ ] Do a single-process coffee-script implementation for a file and test.
+
+
+
+
+
+
+
+======================================
 
      [ ] IDEA -- terminal could become way less "laggy" by using differential synchronization and just letting
          what user types appear (?)
