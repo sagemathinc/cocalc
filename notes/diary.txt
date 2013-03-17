@@ -10598,10 +10598,6 @@ does it mean?  Playing with it after done should make this clear.
          [x]  BUG/issue -- If I have multiple console session on same local_hub in different *projects*, they get merged since the info thing doesn't sort by project. ; I am writing code to address this right now.
 
 
-@@@@@@@@@@@@@@@@@@@@@@
-IMMEDIATE's GOALS:
-===================
-
 
         [x] codemirror_sessions: test/debug the existing hub and local_hub code at a low level via the notebook
 
@@ -10615,23 +10611,11 @@ IMMEDIATE's GOALS:
 
         [x] found and fixed a subtle issue with sending JSON strings between nodejs processes -- I evidently have to escape/unescape when there are certain very funny unicode characters.   This is evidently not needed for SockJS -- maybe it does this internally.
 
-        [x] codemirrorsession editor: add a refresh button, which replace the current view with whatever is on local_hub (??) -- I will probably remove this, but it is good to have it for testing, maybe.
+        [x] codemirrorsession editor: add a refresh button, which replace the current view with whatever is on local_hub (??)
 
-        [x] codemirror_session: properly support delete trailing whitespace on save.
-
-        [x] codemirror_session: finish _objs_to_propagate in editor
-
-        [x] codemirror_sessions: (minimal proof of concept of how to display these...) update messages should also be tagged with person doing them, so we can put a marker somewhere.
-
-        [x] implement retry/reconnect support (when get this, do something in client to transparently handle it):
-               debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"reconnect","id":"aedd0a30-b1d0-4363-8486-c6cba5f47cb6"}
- 
-            I put in a really stupid "_recent_diff_ids" thing in hub.coffee to see what it is like.  It wastes memory, and still isn't 100%... since e.g. killing/restarting the hub
-            would defeat it.  Hmm.
-
-        [ ] NEXT: I need to rethink how messages get guaranteed, design, and then implement; the above playing around has shown there is no easy path.
-            I need to do something that involves a QUEUE in each place, ack messages, and ID's for what is sent/ack'd.  For example, what I've done now ends up
-            sending the same message multiple times, etc., which is nuts.
+@@@@@@@@@@@@@@@@@@@@@@
+IMMEDIATE's GOALS:
+===================
 
         [ ] codemirror_sessions: add additional layer of robustness against loss/failure -- currently the above will
             be very brittle, probably breaking when any component vanishes!  Make everything way more robust, including
@@ -10644,11 +10628,85 @@ IMMEDIATE's GOALS:
         [ ] worksheet_sessions: as above, but for sage worksheets
 
 
+THOUGHTS
+--------
+
+Having multiple clients edit the same document in a consistent way... is a hard problem,
+which requires tradeoffs, especially given that the changeObj's are not patches -- they wildly
+fail to commute.  One can at most hope for eventual consistency and heuristic design
+tradeoffs.    Also, it's critical that the view on the hub and local hub exactly
+match the one in codemirror, assuming the same changeObj's have been applied in the
+same order -- there could easily be subtle discrepancies here!
+
+   [ ] refresh -- afterwards, should scroll to same position
+
+   [ ] write code in client so that as changeObj's are done *my* code for them maintains
+       a copy of the edit buffer and compares.   If anything changes, it will know exactly
+       which changeobj was interpreted differently.
+
+   [ ] correctly implement the other person cursor.
+
+Ideas/thoughts for improving the implementation:
+
+   - eventual consistency is absolutely critical
+   - no matter what we do, changes don't commute -- however, different ways of expressing them commute more than others.
+     E.g., two patches commute if they impact disjoint parts of the document, but two changeObj's don't.
+   - there seem to be two approaches:
+        (1) slow (even slightly offline) but very complicated:
+              this is what distributed revision control is -- GIT, etc. -- uses patches, complicated merge algorithsm, and is hard.
+        (2) as-fast-as-possible-but simple
+              this is what video games are.
+   - The expectation for an online multi-user text editor is 2.
+   - An offline mode must be via 1, and may as well actually use GIT.
 
 
+Here is an idea:
+   - tag every change message with a uuid (just use the id used for sending the message to the hub, so no extra bandwidth)
+   - on local_hub, keep track of the order in which changeObj's are applied, and push out this order to the hubs
+   - if hub applied changes in wrong order, it redoes them in the right order; no need to merge, since this is done by the clients
+   - hubs push this ordering to clients
+   - if client applied changes in wrong order, it:
+            redoes them in the right order, compares the two docs, and MERGEs them, then sends that merge out as a new diff.
+
+Does the above converge?  As long as the sending involves waiting a random amount of time, it has to.
+
+The above plan:
+    * guarantees eventual consistency
+    * never throw away changes made by clients.
+    * merge conflicts can be made explicit if I want -- it's all up to the client's merge algorithm.
+    * will be complicated to implement, but is reasonably well-defined.   There are timing parameters though.
+    * The same algorithm will apply to worksheet synchronization, which I hope to start by tonight or tomorrow;
+      it's exactly the same, except everything above happens locally with each cell.
+
+Interesting Question: what Javascript file merge implementations are there or should I write?
+
+Note to self: this diff code could be very useful -- http://code.google.com/p/google-diff-match-patch/
+
+I just realized that a bandwidth and otherwise inefficient version of all of the above -- which would basically
+work fine -- for now -- but be optimizable later would be:
+
+    * implement a better "refresh", which pulls in the official file from local_hub, does the merge, then pushes out changes
+    * also regularly run the refresh on each hub.
+
+This doesn't scale, but it is easy to implement and is equivalent (mod speed) to the much more complicated to implement approach.
+
+*make the client-level "refresh" be done via a merge.  Let A = client, B = upstream, O = original parent (if we care)
+  -- use the google library diff-match-patch somehow:
+     see https://groups.google.com/forum/?fromgroups=#!topic/diff-match-patch/6HK8QKgc5Pc [ ] make the hub have a refresh via a merge
+
+    [x] include javascript diff-match-patch into SMC
+
+    [ ] fix Sage worksheet sessions -- seems like they are completely broken right now!
+        - first problem: when starting a sage session, client tries to start TWO of them. Why?
+
+
+    [ ] play around with 3-way merge and form a strategy
+    [ ] implement
+
+
+* make the hub have a refresh via a merge
 =========================
 
-       [ ] latex editor -- preview still doesn't work when .tex file is in a subdirectory.
 
 
        [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
@@ -11660,3 +11718,5 @@ def mat(s):
 +tab completion doesn't work for:" M = ModularSymbols(N*p,sign=1).cuspidal_su[tab]"
 +
 +"d = E.dimension() * sigma(" doesn't work either.
+
+
