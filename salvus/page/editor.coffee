@@ -557,12 +557,10 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                         @_draw_other_cursor({line:diff.changeObj.to.line,ch:diff.changeObj.to.ch+2}, 'red')  # this is just for now.
 
                 @codemirror.on 'change', (instance, changeObj) =>
-                    # TODO: I'm worried -- what if some nested changeObj doesn't have .origin set?
-                    obj = @_objs_to_propagate(changeObj)
-                    # console.log("codemirror generated origin changeObj: #{misc.to_json(obj)}")
-                    if obj?
+                    console.log("changeObj: #{misc.to_json(changeObj)}")
+                    if changeObj.origin? and changeObj.origin != 'setValue'
                         # origin is only set if the event was caused by the user (rather than calling replaceRange below).
-                        @_session.change({changeObj:obj})
+                        @_session.change({changeObj:changeObj})
 
     _draw_other_cursor: (pos, color) =>
         # Move the cursor with given color to the given pos.
@@ -570,25 +568,6 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             return
         #console.log("move cursor #{color} to position #{pos.line},#{pos.ch}")
         @codemirror.addWidget(pos, @other_cursor[0], false)
-
-    _objs_to_propagate: (changeObj) =>
-        # Return only the part of the input changeObj that we want to propagate to other editors.
-        # In particular, we do not include ones for which origin is not set, since they are caused
-        # by the replaceRange we call internally when applying a changeObj.  Returns undefined
-        # if nothing to propagate
-        result = undefined
-        while changeObj?
-            if changeObj.origin? and changeObj.origin != 'setValue'
-                if result?
-                    result.next = changeObj
-                    result = changeObj
-                else
-                    result = changeObj
-            changeObj = changeObj.next
-        if result? and result.next?
-            delete result.next
-        return result
-
 
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)

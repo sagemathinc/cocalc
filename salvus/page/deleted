@@ -1,3 +1,23 @@
+
+    _objs_to_propagate: (changeObj) =>
+        # Return only the part of the input changeObj that we want to propagate to other editors.
+        # In particular, we do not include ones for which origin is not set, since they are caused
+        # by the replaceRange we call internally when applying a changeObj.  Returns undefined
+        # if nothing to propagate
+        cur = result = undefined
+        while changeObj?
+            if changeObj.origin? and changeObj.origin != 'setValue'
+                console.log("including #{changeObj}")
+                if result?
+                    cur.next = changeObj
+                    cur = changeObj
+                else
+                    cur = result = changeObj
+            changeObj = changeObj.next
+        if result? and result.next?
+            delete result.next
+        return result
+
     render_file_display: (path, cb) =>
         salvus_client.exec
             project_id : @project.project_id

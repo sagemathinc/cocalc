@@ -197,43 +197,73 @@ class CodeMirrorSession extends EventEmitter
         @conn = opts.conn
         @project_id = opts.project_id
         @path = opts.path
+
+        @_listener = (m) =>
+            if m.session_uuid = @session_uuid
+                console.log("change request: #{misc.to_json(m.diff)}")
+                @emit 'change', m.diff
+
+        @conn.on 'codemirror_change', @_listener
+
+        @connect(opts.cb)
+
+    connect: (cb) =>
         @conn.call
             message: message.codemirror_get_session
                 path       : @path
                 project_id : @project_id
             cb : (err, resp) =>
                 if err
-                    opts.cb(err)
+                    cb(err)
                 else if resp.event == 'error'
-                    opts.cb(resp.error)
+                    cb(resp.error)
                 else
                     @session_uuid = resp.session_uuid
-                    @conn.on 'codemirror_change', (m) =>
-                        if m.session_uuid = @session_uuid
-                            @emit 'change', m.diff
-                    opts.cb(false, @, resp.content)
+                    cb(false, @, resp.content)
+
+    call: (opts) =>
+        console.log("call #{misc.to_json(opts)}")
+        opts = defaults opts,
+            message     : required
+            retry_delay : 0        # (in seconds); set to 0 to not retry
+            cb          : undefined
+        @conn.call
+            message : opts.message
+            timeout : if opts.retry_delay then opts.retry_delay else 10
+            cb      : (err, result) =>
+                if opts.retry_delay == 0
+                    opts.cb?(err, result)
+                else
+                    if err or result.event == 'error'
+                        setTimeout((() => console.log("RETRYING!"); @call(opts)), opts.retry_delay*1000)
+                    else if result.event == 'reconnect'
+                        @connect(() => @call(opts))
+                    else
+                        opts.cb?(err, result)
+
 
     change: (diff, cb) =>
-        @conn.call
+        @call
             message: message.codemirror_change
                 session_uuid : @session_uuid
                 diff         : diff
+            retry_delay : 3
             cb : cb
 
     write_to_disk: (cb) =>
-        @conn.call
+        @call
             message: message.codemirror_write_to_disk
                 session_uuid : @session_uuid
             cb : cb
 
     read_from_disk: (cb) =>
-        @conn.call
+        @call
             message: message.codemirror_read_from_disk
                 session_uuid : @session_uuid
             cb : cb
 
     get_content: (cb) =>   # cb(err, content)
-        @conn.call
+        @call
             message : message.codemirror_get_content
                 session_uuid : @session_uuid
             cb : (err, resp) =>
