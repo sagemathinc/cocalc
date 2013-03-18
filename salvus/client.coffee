@@ -300,24 +300,24 @@ class CodeMirrorSession extends EventEmitter
 
 class CodeMirrorDiffSyncServer
     constructor: (@cm_session) ->
-        @listener = (mesg) =>
-            if mesg.session_uuid == @cm_session.session_uuid
-                @cm_session.dsync_client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
-                    console.log("Did a dsync edit.  Error return = #{err}")
-        @cm_session.conn.on 'codemirror_diffsync', @listener
+
+    connect: (remote) =>
+        @remote = remote
 
     recv_edits: (edit_stack, last_version_ack, cb) =>
         console.log("Sending the following edits to the server: ", edit_stack, last_version_ack)
         @cm_session.call
             message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
-            timeout : 10
+            timeout : 5
             cb      : (err, mesg) =>
+                console.log("Got back: ", mesg)
                 if err
                     cb(err)
                 else if mesg.event == 'error'
                     cb(mesg.event)
                 else
-                    cb()
+                    @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
+
 
 class CodeMirrorSession2 extends EventEmitter
     constructor : (opts) ->
@@ -347,10 +347,15 @@ class CodeMirrorSession2 extends EventEmitter
         @dsync_client = new diffsync.DiffSync(doc:content)
         @dsync_server = new CodeMirrorDiffSyncServer(@)
         @dsync_client.connect(@dsync_server)
+        @dsync_server.connect(@dsync_client)
 
         console.log(@dsync_client.status())
         @dsync_client.live += "\ncats"
-        @dsync_client.push_edits( (err) => console.log(err) )
+        console.log("before push live state = '#{@dsync_client.live}'")
+        @dsync_client.push_edits (err) =>
+            console.log("after push live state = '#{@dsync_client.live}'")
+            console.log("push_edits got back: ", err)
+
 
     connect: (cb) =>
         @conn.call

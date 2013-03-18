@@ -69,15 +69,15 @@ class DiffSync
     ###############################################################
     # API:
     #
-    #   * connect -- use to connect the client and the server
+    #   * connect -- use to connect the client and the remote
     #   * push_edits -- compute and push collection of edits out
     #   * recv_edits -- receive edits and apply them, then send ack.
     #
     ###############################################################
 
     # Connect this client to the other end of the connection, the "server".
-    connect: (server) =>
-        @server = server
+    connect: (remote) =>
+        @remote = remote
 
     # Do a complete sync cycle; cb() on success and cb(true) if anything goes wrong.
     # In case of failure, do *not* initiate a sync from the other side!
@@ -87,7 +87,7 @@ class DiffSync
             if err
                 cb(err)
             else
-                @server.push_edits(cb)
+                @remote.push_edits(cb)
 
     # Create a list of new edits, then send all edits not yet
     # processed to the other end of the connection.
@@ -106,11 +106,11 @@ class DiffSync
             console.log("Simulating loss!"); cb(true); return
 
         # Push any remaining edits from the stack, *AND* report the last version we have received so far.
-        @server.recv_edits(@edit_stack, @last_version_received, cb)
+        @remote.recv_edits(@edit_stack, @last_version_received, cb)
 
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
-
+        console.log("recv_edits: ", edit_stack, last_version_ack)
         if SIMULATE_LOSS and Math.random() < .5           # Simulate packet loss
             console.log("Simulating loss!"); cb(true); return
 
@@ -120,6 +120,8 @@ class DiffSync
         if edit_stack.length == 0
             cb()
             return
+
+        console.log("recv_edits length ", edit_stack.length)
 
         if edit_stack[0].shadow_version != @shadow_version and edit_stack[0].shadow_version == @backup_shadow_version
             # Lost return packet

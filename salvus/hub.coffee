@@ -1003,6 +1003,11 @@ class Client extends EventEmitter
             if not err
                 session.client_change(@, mesg)
 
+    mesg_codemirror_diffsync: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.client_diffsync(@, mesg)
+
     mesg_codemirror_write_to_disk: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
             if not err
@@ -1236,6 +1241,27 @@ class CodeMirrorSession
     get_content: (client, mesg) =>
         client.push_to_client( message.codemirror_content(id:mesg.id, content:@obj.getValue()) )
 
+
+################################################
+# DiffSync-based CodeMirror sessions
+################################################
+
+diffsync = require('diffsync')
+
+class CodeMirrorDiffSyncClient
+    constructor: (@client, @cm_session) ->
+
+    recv_edits: (edit_stack, last_version_ack, cb) =>
+        console.log("Sending the following edits to the client: ", edit_stack, last_version_ack)
+        @client.push_to_client(
+            message.codemirror_diffsync
+                id               : @current_mesg_id
+                edit_stack       : edit_stack
+                last_version_ack : last_version_ack
+                session_uuid     : @cm_session.session_uuid
+        )
+        cb()  # no way to detect failure
+
 class CodeMirrorSession2
     constructor: (opts) ->
         opts = defaults opts,
@@ -1251,8 +1277,38 @@ class CodeMirrorSession2
 
         @_recent_diff_ids = []
 
+        @diffsync_clients = {}
+
+    client_diffsync: (client, mesg) =>
+        # Message from some client reporting new edits and initiating a sync.
+        ds_server = @diffsync_clients[client.id]
+        if not ds_server?
+            client.error_to_client(id:mesg.id, error:"client #{client.id} not registered for synchronization.")
+            return
+
+        winston.debug("client_diffsync; before live state='#{ds_server.live}'")
+        ds_server.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
+            winston.debug("client_diffsync; ran edits; err = #{err}; new live state='#{ds_server.live}'")
+            if err
+                client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes -- #{err}")
+                return
+            ds_server.remote.current_mesg_id = mesg.id  # used to tag the return message
+            ds_server.push_edits (err) =>
+                winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
+
+    add_diffsync_client: (client) =>
+        # Add a new diffsync browser client.
+        ds_server = new diffsync.DiffSync(doc:@obj.getValue())
+        ds_client = new CodeMirrorDiffSyncClient(client, @)
+        ds_server.connect(ds_client)
+        @diffsync_clients[client.id] = ds_server
+
+        ds_server.live = 'dog\n' + ds_server.live
+        
     add_listener: (client) =>
         @obj.add_listener(new CodeMirrorClientListener(client, @session_uuid))
+
+        @add_diffsync_client(client)
 
     # Process a change reported by a browser client.
     client_change: (client, mesg) =>
