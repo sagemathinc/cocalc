@@ -36,7 +36,8 @@ class DSync0
         @shadow                = @_copy(@live)
         @backup_shadow         = @_copy(@shadow)
         @shadow_version        = 0
-        @last_version_received = 0
+        @backup_shadow_version = 0
+        @last_version_received = -1
         @edit_stack            = []
 
     status: () =>
@@ -83,46 +84,54 @@ class DSync0
             console.log("#{@id} -- shadow changes: '#{@shadow}' --> '#{snapshot}'  (version #{@shadow_version+1})")
             @shadow = snapshot
             @shadow_version += 1
-        else
-            # console.log("#{@id} -- push_edits -- (nothing new)")
+
+        if @id=='client' and Math.random() < .5
+            cb?(true)
+            return
 
         # Push any remaining edits from the stack, *AND* report the last version we have received so far.
-        @server.recv_edits @edit_stack, @last_version_received, cb
+        @server.recv_edits(@edit_stack, @last_version_received, cb)
 
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
-
-        if Math.random() < .5
-            cb?(true)
-            return
 
         #console.log("#{@id} -- recv_edits -- #{misc.to_json(edit_stack)}")
         # Keep only edits that we still need to send.
         @edit_stack = (edits for edits in @edit_stack when edits.shadow_version > last_version_ack)
 
-        #console.log("#{@id} -- remaining queued edits for next time: ", @edit_stack)
-        # process the incoming edits
+        if edit_stack.length == 0
+            cb?()
+            return
+
+        # Make a backup, just in case it turns out that our message back to the client that
+        # we applied these changes is lost "Lost return packet."
+        @backup_shadow = @_copy(@shadow)
+        @backup_shadow_version = @shadow_version
+
+        # Process the incoming edits
         for edits in edit_stack
             console.log("#{@id} -- our shadow version = #{@shadow_version} and other shadow version #{edits.shadow_version}")
-            # If edits.shadow_version does not equal @shadow_version, then there was a packet duplication or loss.
-            if edits.shadow_version < @shadow_version
-                console.log("Duplicate Packet: we have no interest in edits we have already processed.")
-                continue
-            else if edits.shadow_version > @shadow_version
-                @restart('shadow_version out of sync')
-            else if edits.shadow_checksum != @_checksum(@shadow)
-                # Data corruption in memory or network -- there should be no other way for this to happen.
-                # In this case, we have to just restart everything from scratch.
-                console.log("#{@id}: shadow = #{@shadow}, version = #{@shadow_version}")
-                @restart("checksum (edit_stack=#{misc.to_json(edit_stack)})")
-            else
-                # Everything looks golden.
+            if edits.shadow_version == @shadow_version
+                if edits.shadow_checksum != @_checksum(@shadow)
+                    # Data corruption in memory or network -- there should be no other way for this to happen.
+                    # In this case, we have to just restart everything from scratch.
+                    @restart("checksum (edit_stack=#{misc.to_json(edit_stack)})")
+                    cb(true)
+                    return
+                console.log("last_version_received:  #{@last_version_received} --> #{edits.shadow_version}")
                 @last_version_received = edits.shadow_version
-                console.log("#{@id} -- shadow changes: '#{@shadow}' --> '#{@_apply_edits(edits.edits, @shadow)}' (version #{@shadow_version+1})")
                 @shadow = @_apply_edits(edits.edits, @shadow)
                 @shadow_version += 1
                 @live = @_apply_edits(edits.edits, @live)
-                @backup_shadow = @_copy(@shadow)
+
+            else
+                # PACKET LOSS / CORRUPTION
+                # If edits.shadow_version does not equal @shadow_version, then there was a packet duplication or loss.
+                if edits.shadow_version < @shadow_version
+                    console.log("Duplicate Packet: we have no interest in edits we have already processed.")
+                    continue
+                else if edits.shadow_version > @shadow_version
+                    @restart('shadow_version out of sync')
 
         cb?()
 
@@ -227,10 +236,7 @@ exports.test1 = () ->
 
     go()
     client.live += "\nmore stuff"
-    go()
-
-    client.live = 'bar1\n' + client.live
-    server.live = 'bar2\n'
+    server.live = 'bar' + server.live
     status()
     while client.live != server.live
         try
