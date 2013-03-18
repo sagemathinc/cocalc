@@ -31,7 +31,7 @@ misc = require('misc')
 diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
 dmp = new diff_match_patch()
 
-class DSync
+class DistributedSync
     constructor: (opts) ->
         opts = defaults opts,
             id   : undefined
@@ -159,8 +159,8 @@ class DSync
 
 
 exports.test1 = () ->
-    client = new DSync(doc:"sage", id:"client")
-    server = new DSync(doc:"sage", id:"server")
+    client = new DistributedSync(doc:"sage", id:"client")
+    server = new DistributedSync(doc:"sage", id:"server")
     client.connect(server)
     server.connect(client)
 
@@ -207,8 +207,8 @@ exports.test2 = (n) ->
         exports.test1()
 
 exports.test3 = () ->
-    client = new DSync(doc:"cat", id:"client")
-    server = new DSync(doc:"cat", id:"server")
+    client = new DistributedSync(doc:"cat", id:"client")
+    server = new DistributedSync(doc:"cat", id:"server")
     client.connect(server)
     server.connect(client)
 
@@ -219,4 +219,4 @@ exports.test3 = () ->
         console.log(misc.to_json(client.status()))
         console.log(misc.to_json(server.status()))
 
-exports.DSync = DSync
+exports.DistributedSync = DistributedSync

@@ -10703,9 +10703,6 @@ This doesn't scale, but it is easy to implement and is equivalent (mod speed) to
 
     [x] play around with 3-way merge and form a strategy -- see
             https://groups.google.com/forum/?fromgroups=#!topic/diff-match-patch/6HK8QKgc5Pc
-          
-
-
 
 ======================================
 
@@ -10718,11 +10715,26 @@ This doesn't scale, but it is easy to implement and is equivalent (mod speed) to
  It purports -- in 8 pages -- to totally solve my problem. Awesome, because I was about
  to loose it.
 
-@@@@@@@@@@@@@@@@@@@@@@
-
 GOAL NOW: Implement dsync for SMC, ASAP.
 
--->  [ ] Do a single-process coffee-script implementation for a file and test.
+  [x] Do a single-process coffee-script implementation for a file and test.
+
+The above took about 10 hours, including reading the paper, watching a video, writing and debugging code (!!), etc.
+But I've got it.   Now to incorporate it in something that is robust/trustworthy, then make it faster...
+
+@@@@@@@@@@@@@@@@@@@@@@
+The players:
+
+      * DistributedSyncCodeMirror -- editor
+
+      * DistributedSyncNetwork -- obj an abstraction of a *remote* string buffer; *all calls get proxied on*
+
+
+  [ ] Make a class in page/edit.coffee that derives from the DistributedSync class for which the document is a CodeMirror editor.
+
+  [ ] Make DistributedSyncNetwork
+
+  [ ] Plug it all together.
 
 
 
