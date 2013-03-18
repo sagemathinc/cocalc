@@ -1236,6 +1236,73 @@ class CodeMirrorSession
     get_content: (client, mesg) =>
         client.push_to_client( message.codemirror_content(id:mesg.id, content:@obj.getValue()) )
 
+class CodeMirrorSession2
+    constructor: (opts) ->
+        opts = defaults opts,
+            local_hub    : required
+            session_uuid : required
+            path         : required
+            content      : required
+        @local_hub    = opts.local_hub
+        @session_uuid = opts.session_uuid
+        @path         = opts.path
+        @obj          = new sync_obj.CodeMirrorSession(content: opts.content)
+        @obj.add_listener(new CodeMirrorLocalHubListener(@local_hub, @session_uuid))
+
+        @_recent_diff_ids = []
+
+    add_listener: (client) =>
+        @obj.add_listener(new CodeMirrorClientListener(client, @session_uuid))
+
+    # Process a change reported by a browser client.
+    client_change: (client, mesg) =>
+
+        if @_recent_diff_ids[mesg.diff.id]?
+            return
+        else
+            @_recent_diff_ids[mesg.diff.id] = true
+
+        @obj.change
+            diff : mesg.diff
+            id   : client.id
+            cb   : (err) =>
+                if err
+                    resp = message.error(id:mesg.id,
+                       error:"CodeMirrorSession -- unable to push changes to the following listeners -- #{misc.to_json(err)}")
+                else
+                    resp = message.success(id:mesg.id)
+                client.push_to_client(resp)
+
+    # Process a change reported by the local hub handling this session.
+    local_hub_change: (diff, cb) =>
+        @obj.change
+            diff : diff
+            id   : @local_hub.id
+            cb   : cb
+
+    write_to_disk: (client, mesg) =>
+        @local_hub.call
+            mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
+            cb   : (err, resp) =>
+                if err
+                    resp = message.error(id:mesg.id, error:"Error writing to disk -- #{err}")
+                else
+                    resp.id = mesg.id
+                client.push_to_client(resp)
+
+    read_from_disk: (client, mesg) =>
+        @local_hub.call
+            mesg : message.codemirror_read_from_disk(session_uuid : @session_uuid)
+            cb   : (err, resp) =>
+                if err
+                    resp = message.error(id:mesg.id, error:"Error reading from disk -- #{err}")
+                else
+                    resp.id = mesg.id
+                client.push_to_client(resp)
+
+    get_content: (client, mesg) =>
+        client.push_to_client( message.codemirror_content(id:mesg.id, content:@obj.getValue()) )
+
 ##############################
 # LocalHub
 ##############################
@@ -1537,7 +1604,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 else if resp.event == 'error'
                     opts.cb(resp.error)
                 else
-                    session = new CodeMirrorSession
+                    session = new CodeMirrorSession2
                         local_hub    : @
                         session_uuid : resp.session_uuid
                         path         : resp.path

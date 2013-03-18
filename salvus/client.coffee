@@ -297,6 +297,114 @@ class CodeMirrorSession extends EventEmitter
             message : message.codemirror_get_content()
             cb      : (err, resp) => cb(err, resp?.content)
 
+class CodeMirrorSession2 extends EventEmitter
+    constructor : (opts) ->
+        opts = defaults opts,
+            conn       : required
+            project_id : required
+            path       : required
+            cb         : required
+        @conn         = opts.conn
+        @project_id   = opts.project_id
+        @path         = opts.path
+
+        @change_queue = []
+
+        @_listener = (m) =>
+            if m.session_uuid = @session_uuid
+                #console.log("change request: #{misc.to_json(m.diff)}")
+                @emit 'change', m.diff
+        @conn.on 'codemirror_change', @_listener
+
+        @connect(opts.cb)
+
+    connect: (cb) =>
+        console.log("connect")
+        @conn.call
+            message: message.codemirror_get_session
+                path       : @path
+                project_id : @project_id
+            cb : (err, resp) =>
+                if err
+                    cb(err)
+                else if resp.event == 'error'
+                    cb(resp.error)
+                else
+                    @session_uuid = resp.session_uuid
+                    cb(false, @, resp.content)
+
+    call: (opts) =>
+        opts = defaults opts,
+            message     : required
+            timeout     : 10
+            cb          : undefined
+        console.log("call #{misc.to_json(opts.message)}")
+        opts.message.session_uuid = @session_uuid
+        @conn.call
+            message : opts.message
+            timeout : opts.timeout
+            cb      : (err, result) =>
+                if not err and result.event == 'reconnect'
+                    # Try one time to connect then resend message.
+                    @connect (err) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            @conn.call(message: opts.message, cb:opts.cb)
+                    return
+                opts.cb(err, result)
+
+    change: (diff, cb) =>
+        @change_queue.push(diff:diff, cb:cb)
+        @send_change_queue_to_hub()
+
+    send_change_queue_to_hub: (wait) =>
+        console.log("send_change_queue_to_hub... (queue = #{misc.to_json(@change_queue)})")
+        if @_sending_to_hub
+            console.log("already sending")
+            return
+        @_sending_to_hub = true
+        if not wait?
+            wait = 0
+        else
+            wait = Math.min(15000, 1.2*wait)  # exponential backoff up to 15 seconds
+        if @change_queue.length == 0
+            @_sending_to_hub = false
+            return
+        {diff, cb} = @change_queue[0]
+        diff.id = misc.uuid()
+        console.log("Sending #{misc.to_json(diff)}")
+        @call
+            message : message.codemirror_change(diff : diff)
+            timeout : 5
+            cb      : (err, mesg) =>
+                console.log("Got back #{err}, #{misc.to_json(mesg)}")
+                @_sending_to_hub = false
+                if not err and mesg.event == 'success'
+                    console.log("succeeded at sending #{misc.to_json(diff)}")
+                    @change_queue.shift(1)
+                    cb?()
+                    if @change_queue.length > 0
+                        console.log("now send next message.")
+                        @send_change_queue_to_hub()
+                else
+                    console.log("trying again to send #{misc.to_json(diff)} after a wait of #{wait}")
+                    setTimeout((()=>@send_change_queue_to_hub(250+wait)), wait)
+
+    write_to_disk: (cb) =>
+        @call
+            message: message.codemirror_write_to_disk()
+            cb : cb
+
+    read_from_disk: (cb) =>
+        @call
+            message : message.codemirror_read_from_disk()
+            cb      : cb
+
+    get_content: (cb) =>   # cb(err, content)
+        @call
+            message : message.codemirror_get_content()
+            cb      : (err, resp) => cb(err, resp?.content)
 ###########################################################
 
 
@@ -592,7 +700,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             cb         : required      # cb(err, session, current_content)
-        session = new CodeMirrorSession
+        session = new CodeMirrorSession2
             conn       : @
             project_id : opts.project_id
             path       : opts.path

@@ -10729,19 +10729,23 @@ The players:
 
       * DistributedSyncNetwork -- obj an abstraction of a *remote* string buffer; *all calls get proxied on*
 
-  [ ] rename: dsync.coffee --> diffsync.coffee
+  [x] rename: dsync.coffee --> diffsync.coffee
 
-  [ ] decide a pair to do first:
+  [x] decide on a pair to do first:
          local_hub <--> hub
          hub <--------> client        <---- do this, since client code is always easiest to write !
 
-  [ ] make CodeMirrorSession2 objects in client and hub that are exact copies of CodeMirrorSession, and switch to using them.
-
-  [ ] modify CodeMirrorSession2 in client.coffee to also have a DiffSync attribute, and a class that enables communication with hub
-
+  [x] make a CodeMirrorSession2 objects in client and one hub that are exact copies of CodeMirrorSession, and switch to using them instead.
+  [ ] modify CodeMirrorSession2 in client.coffee to also have a DiffSync attribute, which also enables communication with hub
   [ ] modify CodeMirrorSession2 in hub.coffee to also have a DiffSync attribute, and a class that enables communication with client(s)
+  [ ] make it so editing .live on the attribute and calling sync works.
+  [ ] change editor.coffee to change .live and call sync instead of calling change, and test live!
 
-  [ ] make it so a modified diff message uses the DiffSync object instead
+- regroup and do: local_hub <--> hub
+- cleanup code and get rid of two versions
+- properly implement other cursors
+- fs.watchFile
+- optimize
 
 ======================================
 
