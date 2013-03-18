@@ -39,6 +39,15 @@ class DSync
         @last_version_received = 0
         @edit_stack            = []
 
+    status: () =>
+        return {'id':@id, 'live':@live, 'shadow':@shadow, 'shadow_version':@shadow_version, 'edit_stack':@edit_stack}
+
+    restart: (reason) =>
+        console.log("*********************************************************")
+        console.log("* THINGS WENT TO HELL. -- #{reason} --  HAVE TO RESTART!!!!! *")
+        console.log("*********************************************************")
+        throw("dang")
+
     # Copy a document; strings are immutable and the default, so we
     # just return the object.
     _copy: (doc) =>
@@ -52,8 +61,9 @@ class DSync
     _apply_edits: (edits, doc) =>
         return dmp.patch_apply(edits, doc)[0]
 
-    status: () =>
-        return {'id':@id, 'live':@live, 'shadow':@shadow, 'shadow_version':@shadow_version, 'edit_stack':@edit_stack}
+    # Return a checksum of a document
+    _checksum: (doc) =>
+        return doc.length
 
     # Connect this client to the other end of the connection, the "server".
     connect: (server) =>
@@ -66,43 +76,60 @@ class DSync
 
         if edits.edits.length > 0
             edits.shadow_version = @shadow_version
-            console.log("#{@id} -- push_edits -- #{misc.to_json(edits)}")
+            edits.shadow_checksum = @_checksum(@shadow)
+            # console.log("#{@id} -- push_edits -- #{misc.to_json(edits)}")
             @edit_stack.push(edits)
+            console.log("#{@id} -- shadow changes: '#{@shadow}' --> '#{@live}'  (version #{@shadow_version+1})")
             @shadow = @_copy(@live)
             @shadow_version += 1
         else
-            console.log("#{@id} -- push_edits -- (nothing new)")
+            # console.log("#{@id} -- push_edits -- (nothing new)")
 
-        # Push any remaining edits from the stack, *AND* report the last version received (also very important).
-        @server.recv_edits(@edit_stack, @last_version_received, cb)
+        # Push any remaining edits from the stack, *AND* report the last version we have received so far.
+        @server.recv_edits @edit_stack, @last_version_received, cb
 
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
-        console.log("#{@id} -- recv_edits -- #{misc.to_json(edit_stack)}")
+
+        #console.log("#{@id} -- recv_edits -- #{misc.to_json(edit_stack)}")
         # Keep only edits that we still need to send.
         @edit_stack = (edits for edits in @edit_stack when edits.shadow_version > last_version_ack)
-        console.log("#{@id} -- remaining queued edits for next time: ", @edit_stack)
+
+        #console.log("#{@id} -- remaining queued edits for next time: ", @edit_stack)
         # process the incoming edits
         for edits in edit_stack
-            console.log("#{@id} -- must match: server shadow version = #{@shadow_version} and edit shadow version #{edits.shadow_version}")
-            @last_version_received = edits.shadow_version
-            @shadow = @_apply_edits(edits.edits, @shadow)
-            @shadow_version += 1
-            @live = @_apply_edits(edits.edits, @live)
-            @backup_shadow = @_copy(@shadow)
+            console.log("#{@id} -- our shadow version = #{@shadow_version} and client shadow version #{edits.shadow_version}")
+            # If edits.shadow_version does not equal @shadow_version, then there was a packet duplication or loss.
+            if edits.shadow_version < @shadow_version
+                console.log("Duplicate Packet: we have no interest in edits we have already processed.")
+                continue
+            else if edits.shadow_version > @shadow_version
+                @restart('shadow_version out of sync')
+            else if edits.shadow_checksum != @_checksum(@shadow)
+                # Data corruption in memory or network -- there should be no other way for this to happen.
+                # In this case, we have to just restart everything from scratch.
+                console.log("#{@id}: shadow = #{@shadow}, version = #{@shadow_version}")
+                @restart("checksum (edit_stack=#{misc.to_json(edit_stack)})")
+            else
+                # Everything looks golden.
+                @last_version_received = edits.shadow_version
+                console.log("#{@id} -- shadow changes: '#{@shadow}' --> '#{@_apply_edits(edits.edits, @shadow)}' (version #{@shadow_version+1})")
+                @shadow = @_apply_edits(edits.edits, @shadow)
+                @shadow_version += 1
+                @live = @_apply_edits(edits.edits, @live)
+                @backup_shadow = @_copy(@shadow)
 
         cb?()
 
 
-
 exports.test1 = () ->
-    client = new DSync(doc:"cat", id:"client")
-    server = new DSync(doc:"cat", id:"server")
+    client = new DSync(doc:"sage", id:"client")
+    server = new DSync(doc:"sage", id:"server")
     client.connect(server)
     server.connect(client)
 
-    client.live = "cats"
-    server.live = "my\ncat"
+    client.live = "sage"
+    server.live = "my\nsage"
     status = () ->
         console.log("------------------------")
         console.log(misc.to_json(client.status()))
@@ -125,8 +152,14 @@ exports.test1 = () ->
     client.live = 'bar1\n' + client.live
     server.live = 'bar2\n'
     status()
-    client.push_edits()
-    server.push_edits()
+    while client.live != server.live
+        try
+            client.push_edits()
+            server.push_edits()
+            status()
+        catch e
+            status()
+            break
     status()
 
 exports.DSync = DSync
