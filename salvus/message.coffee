@@ -234,6 +234,13 @@ message
     path         : required    # absolute path
     content      : required
 
+message
+    event            : 'codemirror_diffsync'
+    id               : undefined
+    session_uuid     : undefined
+    edit_stack       : required
+    last_version_ack : required
+
 # Message describing a change (or sequence of changes) to the editor.
 # A message.success message is sent in respone to acknowledge that the change was noted.
 # Example diff: {changeObj:{from:{line:0,ch:0}, to:{line:0,ch:0}, text:["HELLO WORLD -- this is it!"]}}

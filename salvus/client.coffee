@@ -1,8 +1,8 @@
 {EventEmitter} = require('events')
 
 async = require('async')  # don't delete even if not used below, since this needs to be available to page/
-sync_obj = require('sync_obj')  # needed by page/
-dsync = require('dsync')  # needed by page/
+
+diffsync = require('diffsync')
 
 message = require("message")
 misc    = require("misc")
@@ -297,6 +297,28 @@ class CodeMirrorSession extends EventEmitter
             message : message.codemirror_get_content()
             cb      : (err, resp) => cb(err, resp?.content)
 
+
+class CodeMirrorDiffSyncServer
+    constructor: (@cm_session) ->
+        @listener = (mesg) =>
+            if mesg.session_uuid == @cm_session.session_uuid
+                @cm_session.dsync_client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
+                    console.log("Did a dsync edit.  Error return = #{err}")
+        @cm_session.conn.on 'codemirror_diffsync', @listener
+
+    recv_edits: (edit_stack, last_version_ack, cb) =>
+        console.log("Sending the following edits to the server: ", edit_stack, last_version_ack)
+        @cm_session.call
+            message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
+            timeout : 10
+            cb      : (err, mesg) =>
+                if err
+                    cb(err)
+                else if mesg.event == 'error'
+                    cb(mesg.event)
+                else
+                    cb()
+
 class CodeMirrorSession2 extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
@@ -316,10 +338,21 @@ class CodeMirrorSession2 extends EventEmitter
                 @emit 'change', m.diff
         @conn.on 'codemirror_change', @_listener
 
-        @connect(opts.cb)
+        @connect (err,session,content) =>
+            if not err
+                @init_dsync(content)
+            opts.cb(err, session, content)
+
+    init_dsync: (content) =>
+        @dsync_client = new diffsync.DiffSync(doc:content)
+        @dsync_server = new CodeMirrorDiffSyncServer(@)
+        @dsync_client.connect(@dsync_server)
+
+        console.log(@dsync_client.status())
+        @dsync_client.live += "\ncats"
+        @dsync_client.push_edits( (err) => console.log(err) )
 
     connect: (cb) =>
-        console.log("connect")
         @conn.call
             message: message.codemirror_get_session
                 path       : @path
