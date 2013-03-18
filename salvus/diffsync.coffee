@@ -110,7 +110,6 @@ class DiffSync
 
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
-        console.log("recv_edits: ", edit_stack, last_version_ack)
         if SIMULATE_LOSS and Math.random() < .5           # Simulate packet loss
             console.log("Simulating loss!"); cb(true); return
 
@@ -120,8 +119,6 @@ class DiffSync
         if edit_stack.length == 0
             cb()
             return
-
-        console.log("recv_edits length ", edit_stack.length)
 
         if edit_stack[0].shadow_version != @shadow_version and edit_stack[0].shadow_version == @backup_shadow_version
             # Lost return packet

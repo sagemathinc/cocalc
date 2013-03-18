@@ -983,7 +983,7 @@ class Client extends EventEmitter
                         # It is critical that we initialize the
                         # diffsync objects on both sides with exactly
                         # the same document.
-                        snapshot = session.obj.getValue()
+                        snapshot = session.live
                         # We add the client, so it will gets messages
                         # about changes to the document.
                         session.add_diffsync_client(@, snapshot)
@@ -1288,6 +1288,8 @@ class CodeMirrorSession2
 
         @diffsync_clients = {}
 
+        @live = opts.content
+
     client_diffsync: (client, mesg) =>
         # Message from some client reporting new edits and initiating a sync.
         ds_server = @diffsync_clients[client.id]
@@ -1297,14 +1299,14 @@ class CodeMirrorSession2
 
         before = ds_server.live
         ds_server.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
-            after = ds_server.live
+            @live = ds_server.live
             # Proposage new live state to other clients -- TODO: there
             # should just be one live document shared instead of a
             # bunch of copies.
             for id, ds of @diffsync_clients
                 if client.id != id
-                    ds.live = after
-                    if before != after
+                    ds.live = @live
+                    if before != @live    # suggest a resync
                         ds.remote.sync_ready()
 
             # Respond

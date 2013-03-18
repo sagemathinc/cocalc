@@ -305,12 +305,12 @@ class CodeMirrorDiffSyncServer
         @remote = remote
 
     recv_edits: (edit_stack, last_version_ack, cb) =>
-        console.log("Sending the following edits to the server: ", edit_stack, last_version_ack)
+        #console.log("Sending the following edits to the server: ", edit_stack, last_version_ack)
         @cm_session.call
             message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
             timeout : 5
             cb      : (err, mesg) =>
-                console.log("Got back: ", mesg)
+                #console.log("Got back: ", mesg)
                 if err
                     cb(err)
                 else if mesg.event == 'error'
@@ -357,9 +357,11 @@ class CodeMirrorSession2 extends EventEmitter
         @dsync_server.connect(@dsync_client)
 
         @conn.on 'codemirror_diffsync_ready', (mesg) =>
-            console.log("GOT #{mesg}")
+            # console.log("received sync suggestion from hub")
             if mesg.session_uuid == @session_uuid
+                before = @dsync_client.live
                 @sync (err) =>
+                    if before != @dsync_client.live
                     @emit 'change', @dsync_client.live
 
         @sync()
@@ -369,10 +371,10 @@ class CodeMirrorSession2 extends EventEmitter
             cb("already syncing")
             return
         @_syncing = true
-        console.log("before push live state = '#{@dsync_client.live}'")
+        #console.log("before push live state = '#{@dsync_client.live}'")
         @dsync_client.push_edits (err) =>
-            console.log("after push live state = '#{@dsync_client.live}'")
-            console.log("push_edits got back: err=", err)
+            #console.log("after push live state = '#{@dsync_client.live}'")
+            #console.log("push_edits got back: err=", err)
             @_syncing = false
             cb?(err)
 
@@ -392,7 +394,7 @@ class CodeMirrorSession2 extends EventEmitter
             message     : required
             timeout     : 10
             cb          : undefined
-        console.log("call #{misc.to_json(opts.message)}")
+        #console.log("call #{misc.to_json(opts.message)}")
         opts.message.session_uuid = @session_uuid
         @conn.call
             message : opts.message
