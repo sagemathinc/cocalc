@@ -32,6 +32,8 @@ winston        = require 'winston'
 temp           = require 'temp'
 sync_obj       = require 'sync_obj'
 
+diffsync       = require 'diffsync'
+
 {to_json, from_json, defaults, required}   = require 'misc'
 
 # Any non-absolute path is assumed to be relative to the user's home directory.
@@ -340,24 +342,43 @@ sage_sessions = new SageSessions()
 
 
 
-###############################################
-# CodeMirror sessions
-###############################################
+############################################################################
+#
+# Differentially-Synchronized CodeMirror editing sessions
+#
+# Here's a simple picture of the toplogy:
+#
+#   [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client]s...
+#                                   |
+#                                  \|/
+#                              [a file on disk]
+#
+#############################################################################
 
-class CodeMirrorListener extends sync_obj.SyncObj
-    constructor: (@socket, @session_uuid) ->
-        @init(id: @socket.id)
+# TODO: the disk sync part is not implemented yet -- it's the last piece in the puzzle.
 
-    change: (opts) =>
-        opts = defaults opts,
-            diff      : required
-            id        : undefined
-            timeout   : 30          # TODO ? -- do something with this?
-            cb        : undefined
-        mesg = message.codemirror_change
-            diff         : opts.diff
-            session_uuid : @session_uuid
-        @socket.write_mesg('json', mesg, opts.cb)
+# The CodeMirrorDiffSyncHub class represents a global hub viewed as a
+# remote client for this local hub.  There may be dozens of global
+# hubs connected to this single local hub, and these are the only
+# clients a local hub can have.  The local hub has no upstream server,
+# except the on-disk file itself.
+class CodeMirrorDiffSyncHub
+    constructor : (@socket, @session_uuid) ->
+
+    write_mesg: (event, obj) =>
+        if not obj?
+            obj = {}
+        obj.session_uuid = @session_uuid
+        @socket.write_mesg 'json', message['codemirror_' + event](obj)
+
+    recv_edits : (edit_stack, last_version_ack, cb) =>
+        @write_mesg 'diffsync',
+            id               : @current_mesg_id
+            edit_stack       : edit_stack
+            last_version_ack : last_version_ack
+
+    sync_ready: () =>
+        @write_mesg('diffsync_ready')
 
 class CodeMirrorSession
     constructor: (mesg, cb) ->
@@ -367,27 +388,64 @@ class CodeMirrorSession
             if err
                 cb(err)
             else
-                @obj = new sync_obj.CodeMirrorSession(content:data.toString())
+                # The global live document
+                @content = data.toString()
+                # The downstream clients of this local hub -- these are global hubs
+                @diffsync_clients = {}
                 cb(false, @)
 
-    add_client: (socket) =>
-        @obj.add_listener(new CodeMirrorListener(socket, @session_uuid))
+    set_content: (value) =>
+        @content = value
+        for id, ds_client of @diffsync_clients
+            ds_client.live = @content
 
-    change: (socket, mesg) =>
-        @obj.change
-            diff : mesg.diff
-            id   : socket.id
-            cb   : (err) =>
+    client_diffsync: (socket, mesg) =>
+        write_mesg = (event, obj) ->
+            if not obj?
+                obj = {}
+            obj.id = mesg.id
+            socket.write_mesg 'json', message['event'](obj)
+
+        # Message from some client reporting new edits, thus initiating a sync.
+        ds_client = @diffsync_clients[socket.id]
+        if not ds_client?
+            write_mesg('error', {error:"client #{socket.id} not registered for synchronization."})
+            return
+
+        before = @content
+        ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
+
+            # TODO -- should be automatic once the .live's all reference the same thing
+            @set_content(ds_client.live)
+            changed = (before != @content)
+
+            # Propogate new live state to other clients -- TODO: there
+            # should just be one live document shared instead of a
+            # bunch of copies.
+            for id, ds_client of @diffsync_clients
+                if socket.id != id
+                    ds_client.live = @content # TODO -- should be automatic once the .live's all reference the same thing
+                    if changed   # suggest a resync
+                        ds_client.remote.sync_ready()
+
+            # Respond
+            if err
+                write_message('error', {error:"CodeMirrorSession -- unable to push diffsync changes -- #{err}"})
+                return
+
+            # Now send back our own edits to this global hub.
+            ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
+            ds_client.push_edits (err) =>
                 if err
-                    resp = message.error(id:mesg.id, error:"Error making change to CodeMirrorSession -- #{err}")
-                else
-                    resp = message.success(id:mesg.id)
-                socket.write_mesg('json', resp)
+                    winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
+
+    add_client: (socket) =>
+        ds_client = new diffsync.DiffSync(doc:@content)
+        ds_client.connect(new CodeMirrorDiffSyncHub(socket, @session_uuid))
+        @diffsync_clients[socket.id] = ds_client
 
     write_to_disk: (socket, mesg) =>
-        # TODO -- this is *dangerous* -- for a while, I may store copy of the file in the database before doing
-        # this, or something, to avoid any potential for loss (?).
-        fs.writeFile @path, @obj.getValue(), (err) =>
+        fs.writeFile @path, @content, (err) =>
             if err
                 resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk")
             else
@@ -400,26 +458,17 @@ class CodeMirrorSession
                 socket.write_mesg('json', message.error(id:mesg.id, error:"Error reading file '#{@path}' to disk"))
             else
                 value = data.toString()
-                if value == @obj.getValue()
+                if value == @content
                     # nothing to do -- so do not do anything!
                     socket.write_mesg('json', message.success(id:mesg.id))
                     return
-
-                # TODO: optimize this to use diff instead of just doing the whole thing
-                n = @obj.state.lines.length
-                changeObj = {from:{line:0,ch:0}, to:{line:n+1,ch:0}, text:value.split('\n')}
-                @obj.change
-                    diff : {changeObj:changeObj}
-                    cb   : (err) =>
-                        if err
-                            resp = message.error(id:mesg.id,
-                                      error:"Error after reading file from disk while making change -- #{err}")
-                        else
-                            resp = message.success(id:mesg.id)
-                        socket.write_mesg('json', resp)
+                @set_content(value)
+                # Tell the global hubs that now might be a good time to do a sync.
+                for id, ds of @diffsync_clients
+                    ds.remote.sync_ready()
 
     get_content: (socket, mesg) =>
-        socket.write_mesg('json', message.codemirror_content(id:mesg.id, content:@obj.getValue()))
+        socket.write_mesg('json', message.codemirror_content(id:mesg.id, content:@content))
 
 # Collection of all CodeMirror sessions hosted by this local_hub.
 
@@ -434,7 +483,7 @@ class CodeMirrorSessions
                 id           : mesg.id,
                 session_uuid : session.session_uuid
                 path         : session.path
-                content      : session.obj.getValue()
+                content      : session.content
 
         if mesg.session_uuid?
             session = @_sessions.by_uuid[mesg.session_uuid]
@@ -476,8 +525,8 @@ class CodeMirrorSessions
             client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session: #{mesg.session_uuid}."))
             return
         switch mesg.event
-            when 'codemirror_change'
-                session.change(client_socket, mesg)
+            when 'codemirror_diffsync'
+                session.client_diffsync(client_socket, mesg)
             when 'codemirror_write_to_disk'
                 session.write_to_disk(client_socket, mesg)
             when 'codemirror_read_from_disk'
@@ -488,6 +537,8 @@ class CodeMirrorSessions
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session event: #{mesg.event}."))
 
 codemirror_sessions = new CodeMirrorSessions()
+
+
 
 ###############################################
 # Connecting to existing session or making a

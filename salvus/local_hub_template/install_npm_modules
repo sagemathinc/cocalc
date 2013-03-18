@@ -9,3 +9,4 @@ npm install start-stop-daemon
 npm install pty.js
 npm install posix
 npm install node-uuid
+npm install googlediff

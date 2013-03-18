@@ -185,120 +185,14 @@ class ConsoleSession extends Session
 
 ###########################################################
 # CodeMirror Editing Sessions
+#
+#   [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client]s...
+#
 ###########################################################
 
-# Emits a 'change' with data the diff whenever a change message is received from the hub.
-class CodeMirrorSession extends EventEmitter
-    constructor : (opts) ->
-        opts = defaults opts,
-            conn       : required
-            project_id : required
-            path       : required
-            cb         : required
-        @conn         = opts.conn
-        @project_id   = opts.project_id
-        @path         = opts.path
-
-        @change_queue = []
-
-        @_listener = (m) =>
-            if m.session_uuid = @session_uuid
-                #console.log("change request: #{misc.to_json(m.diff)}")
-                @emit 'change', m.diff
-        @conn.on 'codemirror_change', @_listener
-
-        @connect(opts.cb)
-
-    connect: (cb) =>
-        console.log("connect")
-        @conn.call
-            message: message.codemirror_get_session
-                path       : @path
-                project_id : @project_id
-            cb : (err, resp) =>
-                if err
-                    cb(err)
-                else if resp.event == 'error'
-                    cb(resp.error)
-                else
-                    @session_uuid = resp.session_uuid
-                    cb(false, @, resp.content)
-
-    call: (opts) =>
-        opts = defaults opts,
-            message     : required
-            timeout     : 10
-            cb          : undefined
-        console.log("call #{misc.to_json(opts.message)}")
-        opts.message.session_uuid = @session_uuid
-        @conn.call
-            message : opts.message
-            timeout : opts.timeout
-            cb      : (err, result) =>
-                if not err and result.event == 'reconnect'
-                    # Try one time to connect then resend message.
-                    @connect (err) =>
-                        if err
-                            opts.cb(err)
-                        else
-                            @conn.call(message: opts.message, cb:opts.cb)
-                    return
-                opts.cb(err, result)
-
-    change: (diff, cb) =>
-        @change_queue.push(diff:diff, cb:cb)
-        @send_change_queue_to_hub()
-
-    send_change_queue_to_hub: (wait) =>
-        console.log("send_change_queue_to_hub... (queue = #{misc.to_json(@change_queue)})")
-        if @_sending_to_hub
-            console.log("already sending")
-            return
-        @_sending_to_hub = true
-        if not wait?
-            wait = 0
-        else
-            wait = Math.min(15000, 1.2*wait)  # exponential backoff up to 15 seconds
-        if @change_queue.length == 0
-            @_sending_to_hub = false
-            return
-        {diff, cb} = @change_queue[0]
-        diff.id = misc.uuid()
-        console.log("Sending #{misc.to_json(diff)}")
-        @call
-            message : message.codemirror_change(diff : diff)
-            timeout : 5
-            cb      : (err, mesg) =>
-                console.log("Got back #{err}, #{misc.to_json(mesg)}")
-                @_sending_to_hub = false
-                if not err and mesg.event == 'success'
-                    console.log("succeeded at sending #{misc.to_json(diff)}")
-                    @change_queue.shift(1)
-                    cb?()
-                    if @change_queue.length > 0
-                        console.log("now send next message.")
-                        @send_change_queue_to_hub()
-                else
-                    console.log("trying again to send #{misc.to_json(diff)} after a wait of #{wait}")
-                    setTimeout((()=>@send_change_queue_to_hub(250+wait)), wait)
-
-    write_to_disk: (cb) =>
-        @call
-            message: message.codemirror_write_to_disk()
-            cb : cb
-
-    read_from_disk: (cb) =>
-        @call
-            message : message.codemirror_read_from_disk()
-            cb      : cb
-
-    get_content: (cb) =>   # cb(err, content)
-        @call
-            message : message.codemirror_get_content()
-            cb      : (err, resp) => cb(err, resp?.content)
-
-
-class CodeMirrorDiffSyncServer
+# The CodeMirrorDiffSyncHub class represents a global hub viewed as a
+# remote server for this client.
+class CodeMirrorDiffSyncHub
     constructor: (@cm_session) ->
 
     connect: (remote) =>
@@ -314,12 +208,12 @@ class CodeMirrorDiffSyncServer
                 if err
                     cb(err)
                 else if mesg.event == 'error'
-                    cb(mesg.event)
+                    cb(mesg.error)
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
 
-class CodeMirrorSession2 extends EventEmitter
+class CodeMirrorSession extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
             conn       : required
@@ -352,7 +246,7 @@ class CodeMirrorSession2 extends EventEmitter
 
     init_dsync: (content) =>
         @dsync_client = new diffsync.DiffSync(doc:content)
-        @dsync_server = new CodeMirrorDiffSyncServer(@)
+        @dsync_server = new CodeMirrorDiffSyncHub(@)
         @dsync_client.connect(@dsync_server)
         @dsync_server.connect(@dsync_client)
 
@@ -362,12 +256,13 @@ class CodeMirrorSession2 extends EventEmitter
                 before = @dsync_client.live
                 @sync (err) =>
                     if before != @dsync_client.live
-                    @emit 'change', @dsync_client.live
+                        @emit 'change', @dsync_client.live
 
         @sync()
 
     sync: (cb) =>
         if @_syncing
+            # TODO -- ensure that this lock times out -- we do not want to loose sync forever!!
             cb("already syncing")
             return
         @_syncing = true
@@ -378,16 +273,16 @@ class CodeMirrorSession2 extends EventEmitter
             @_syncing = false
             cb?(err)
 
-    change: (diff, cb) =>
+    change: (content, cb) =>
         if @dsync_client?
-            @dsync_client.live = diff
+            @dsync_client.live = content
             @sync (err) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
-                    cb(false, @dsync_client.live)
+                    cb?(false, @dsync_client.live)
         else
-            cb()
+            cb?()
 
     call: (opts) =>
         opts = defaults opts,
@@ -719,7 +614,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             cb         : required      # cb(err, session, current_content)
-        session = new CodeMirrorSession2
+        session = new CodeMirrorSession
             conn       : @
             project_id : opts.project_id
             path       : opts.path

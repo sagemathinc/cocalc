@@ -54,6 +54,10 @@ uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
+
+diffsync = require('diffsync')
+
+
 # defaults
 # TEMPORARY until we flesh out the account types
 DEFAULTS =
@@ -983,10 +987,10 @@ class Client extends EventEmitter
                         # It is critical that we initialize the
                         # diffsync objects on both sides with exactly
                         # the same document.
-                        snapshot = session.live
+                        snapshot = session.get_snapshot()
                         # We add the client, so it will gets messages
                         # about changes to the document.
-                        session.add_diffsync_client(@, snapshot)
+                        session.add_client(@, snapshot)
                         # Send parameters of session to client
                         mesg = message.codemirror_session
                             id           : mesg.id
@@ -1002,11 +1006,6 @@ class Client extends EventEmitter
             cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
         else
             cb(false, session)
-
-    mesg_codemirror_change: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.client_change(@, mesg)
 
     mesg_codemirror_diffsync: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
@@ -1135,124 +1134,48 @@ push_to_clients = (opts) ->
 
     ])
 
-##############################
-# CodeMirror sessions
-##############################
-
-# ClientListener represents a web browser client
-class CodeMirrorClientListener extends sync_obj.SyncObj
-    constructor: (@client, @session_uuid) ->
-        @init(id: @client.id)
-
-    change: (opts) =>
-        opts = defaults opts,
-            diff      : required
-            id        : undefined
-            timeout   : undefined   # TODO -- ignored
-            cb        : undefined
-        winston.debug("ClientListener got change message: #{to_json(opts)} ")
-        mesg = message.codemirror_change
-            diff  : opts.diff
-            session_uuid : @session_uuid
-        @client.push_to_client(mesg)
-        opts.cb?()  # TODO: need to get a client ack back to be sure the
-                   # message was sent; if fail, will try again for a while.
-
-# LocalHubListener represents a local hub
-class CodeMirrorLocalHubListener extends sync_obj.SyncObj
-    constructor: (@local_hub, @session_uuid) ->
-        @init(id: @local_hub.id)
-
-    change: (opts) =>
-        opts = defaults opts,
-            diff      : required
-            id        : undefined
-            timeout   : 30
-            cb        : undefined
-        winston.debug("LocalHubListener got change message: #{to_json(opts)}")
-        @local_hub.call
-            timeout : opts.timeout
-            cb      : opts.cb
-            mesg    : message.codemirror_change
-                diff : opts.diff
-                session_uuid : @session_uuid
+################################################
+# DiffSync-based CodeMirror sessions
+#
+#   [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client]s...
+#
+################################################
 
 codemirror_sessions = {by_path:{}, by_uuid:{}}
 
-class CodeMirrorSession
-    constructor: (opts) ->
-        opts = defaults opts,
-            local_hub    : required
-            session_uuid : required
-            path         : required
-            content      : required
-        @local_hub    = opts.local_hub
-        @session_uuid = opts.session_uuid
-        @path         = opts.path
-        @obj          = new sync_obj.CodeMirrorSession(content: opts.content)
-        @obj.add_listener(new CodeMirrorLocalHubListener(@local_hub, @session_uuid))
+# The CodeMirrorDiffSyncLocalHub class represents a local hub viewed
+# as a remote server for this hub.
+#
+# TODO later: refactor code, since it seems like all these
+# DiffSync[Hub/Client] etc. things are defined by a write_mesge function.
+#
+class CodeMirrorDiffSyncLocalHub
+    constructor: (@cm_session) ->
 
-        @_recent_diff_ids = []
+    write_mesg: (event, obj, cb) =>
+        if not obj?
+            obj = {}
+        obj.session_uuid = @cm_session.session_uuid
+        @cm_session.local_hub.call
+            timeout : 10  # ???  TODO: what is a good timeout here?
+            cb      : cb
+            mesg    : message['codemirror_' + event](obj)
 
-    add_listener: (client) =>
-        @obj.add_listener(new CodeMirrorClientListener(client, @session_uuid))
+    recv_edits : (edit_stack, last_version_ack, cb) =>
+        @write_mesg  'diffsync', {edit_stack: edit_stack, last_version_ack: last_version_ack}, (err, mesg) =>
+            if err
+                cb(err)
+            else if mesg.event == 'error'
+                cb(mesg.error)
+            else
+                # apply the changes we got back.
+                @cm_session.diffsync_server.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
-    # Process a change reported by a browser client.
-    client_change: (client, mesg) =>
+    sync_ready: () =>
+        @write_mesg('diffsync_ready')
 
-        if @_recent_diff_ids[mesg.diff.id]?
-            return
-        else
-            @_recent_diff_ids[mesg.diff.id] = true
-
-        @obj.change
-            diff : mesg.diff
-            id   : client.id
-            cb   : (err) =>
-                if err
-                    resp = message.error(id:mesg.id,
-                       error:"CodeMirrorSession -- unable to push changes to the following listeners -- #{misc.to_json(err)}")
-                else
-                    resp = message.success(id:mesg.id)
-                client.push_to_client(resp)
-
-    # Process a change reported by the local hub handling this session.
-    local_hub_change: (diff, cb) =>
-        @obj.change
-            diff : diff
-            id   : @local_hub.id
-            cb   : cb
-
-    write_to_disk: (client, mesg) =>
-        @local_hub.call
-            mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
-            cb   : (err, resp) =>
-                if err
-                    resp = message.error(id:mesg.id, error:"Error writing to disk -- #{err}")
-                else
-                    resp.id = mesg.id
-                client.push_to_client(resp)
-
-    read_from_disk: (client, mesg) =>
-        @local_hub.call
-            mesg : message.codemirror_read_from_disk(session_uuid : @session_uuid)
-            cb   : (err, resp) =>
-                if err
-                    resp = message.error(id:mesg.id, error:"Error reading from disk -- #{err}")
-                else
-                    resp.id = mesg.id
-                client.push_to_client(resp)
-
-    get_content: (client, mesg) =>
-        client.push_to_client( message.codemirror_content(id:mesg.id, content:@obj.getValue()) )
-
-
-################################################
-# DiffSync-based CodeMirror sessions
-################################################
-
-diffsync = require('diffsync')
-
+# The CodeMirrorDiffSyncClient class represents a browser client viewed as a
+# remote client for this local hub.
 class CodeMirrorDiffSyncClient
     constructor: (@client, @cm_session) ->
 
@@ -1271,85 +1194,87 @@ class CodeMirrorDiffSyncClient
     sync_ready: () =>
         @client.push_to_client(message.codemirror_diffsync_ready(session_uuid: @cm_session.session_uuid))
 
-class CodeMirrorSession2
+class CodeMirrorSession
     constructor: (opts) ->
         opts = defaults opts,
             local_hub    : required
             session_uuid : required
             path         : required
             content      : required
+
         @local_hub    = opts.local_hub
         @session_uuid = opts.session_uuid
         @path         = opts.path
-        @obj          = new sync_obj.CodeMirrorSession(content: opts.content)
-        @obj.add_listener(new CodeMirrorLocalHubListener(@local_hub, @session_uuid))
 
-        @_recent_diff_ids = []
+        # Our upstream server (the local hub)
+        @diffsync_server = new diffsync.DiffSync(doc:opts.content)
+        @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
 
+        # The downstream clients of this hub
         @diffsync_clients = {}
 
-        @live = opts.content
-
     client_diffsync: (client, mesg) =>
-        # Message from some client reporting new edits and initiating a sync.
-        ds_server = @diffsync_clients[client.id]
-        if not ds_server?
+        # Message from some client reporting new edits; we apply them,
+        # generate new edits, and send those out so that the client
+        # can complete the sync cycle.
+        ds_client = @diffsync_clients[client.id]
+        if not ds_client?
             client.error_to_client(id:mesg.id, error:"client #{client.id} not registered for synchronization.")
             return
 
-        before = ds_server.live
-        ds_server.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
-            @live = ds_server.live
-            # Proposage new live state to other clients -- TODO: there
+        before = @diffsync_server.live
+        ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
+
+            @diffsync_server.live = ds_client.live  # TODO -- should be automatic once the .live's all reference the same thing
+            changed = (before != @diffsync_server.live)
+
+            # Propagate new live state to other clients -- TODO: there
             # should just be one live document shared instead of a
             # bunch of copies.
             for id, ds of @diffsync_clients
                 if client.id != id
-                    ds.live = @live
-                    if before != @live    # suggest a resync
+                    ds.live = @diffsync_server.live   # TODO -- should be automatic once the .live's all reference the same thing
+                    if changed  # suggest a resync
                         ds.remote.sync_ready()
+
+            # Sync new state with upstream local_hub
+            @sync()
 
             # Respond
             if err
                 client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes -- #{err}")
                 return
-            ds_server.remote.current_mesg_id = mesg.id  # used to tag the return message
-            ds_server.push_edits (err) =>
-                winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
 
-
-    add_diffsync_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
-        # Add a new diffsync browser client.
-        ds_server = new diffsync.DiffSync(doc:snapshot)
-        ds_client = new CodeMirrorDiffSyncClient(client, @)
-        ds_server.connect(ds_client)
-        @diffsync_clients[client.id] = ds_server
-
-    # Process a change reported by a browser client.
-    client_change: (client, mesg) =>
-
-        if @_recent_diff_ids[mesg.diff.id]?
-            return
-        else
-            @_recent_diff_ids[mesg.diff.id] = true
-
-        @obj.change
-            diff : mesg.diff
-            id   : client.id
-            cb   : (err) =>
+            # Now send back our own edits to this client.
+            ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
+            ds_client.push_edits (err) =>
                 if err
-                    resp = message.error(id:mesg.id,
-                       error:"CodeMirrorSession -- unable to push changes to the following listeners -- #{misc.to_json(err)}")
-                else
-                    resp = message.success(id:mesg.id)
-                client.push_to_client(resp)
+                    winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
 
-    # Process a change reported by the local hub handling this session.
-    local_hub_change: (diff, cb) =>
-        @obj.change
-            diff : diff
-            id   : @local_hub.id
-            cb   : cb
+    get_snapshot: () =>
+        return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
+
+    sync: () =>
+        # Sync with upstream local_hub
+        if @_syncing
+            # TODO -- ensure that this lock times out -- we do not want to loose sync forever!!
+            return
+        @_syncing = true
+        before = @diffsync_server.live
+        @diffsync_server.push_edits (err) =>
+            @_syncing = false
+            if not err
+                if before != @diffsync_server.live
+                # Tell the clients that now might be a good time to do a sync, since content has changed.
+                    for id, ds of @diffsync_clients
+                        ds.remote.sync_ready()
+            # TODO -- do something on err?
+
+    add_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
+        # Add a new diffsync browser client.
+        ds_client = new diffsync.DiffSync(doc:snapshot)
+        ds_client.connect(new CodeMirrorDiffSyncClient(client, @))
+        @diffsync_clients[client.id] = ds_client
 
     write_to_disk: (client, mesg) =>
         @local_hub.call
@@ -1372,7 +1297,7 @@ class CodeMirrorSession2
                 client.push_to_client(resp)
 
     get_content: (client, mesg) =>
-        client.push_to_client( message.codemirror_content(id:mesg.id, content:@obj.getValue()) )
+        client.push_to_client( message.codemirror_content(id:mesg.id, content:@diffsync_server.live) )
 
 ##############################
 # LocalHub
@@ -1456,12 +1381,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     handle_mesg: (mesg) =>
         if mesg.id?
             return # handled elsewhere
-        switch mesg.event
-            when 'codemirror_change'
-                session = codemirror_sessions.by_uuid[mesg.session_uuid]
-                if session?
-                    session.local_hub_change(mesg.diff)
-
+        # NOTHING YET.
 
     # The standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
@@ -1531,7 +1451,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     _open_session_socket: (opts) =>
         opts = defaults opts,
             session_uuid : required
-            type         : required  # 'sage', 'console', 'codemirror'
+            type         : required  # 'sage', 'console'
             params       : required
             project_id   : required
             timeout      : 5
@@ -1675,7 +1595,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 else if resp.event == 'error'
                     opts.cb(resp.error)
                 else
-                    session = new CodeMirrorSession2
+                    session = new CodeMirrorSession
                         local_hub    : @
                         session_uuid : resp.session_uuid
                         path         : resp.path

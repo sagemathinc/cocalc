@@ -234,6 +234,9 @@ message
     path         : required    # absolute path
     content      : required
 
+# A list of edits that should be applied, along with the
+# last version of edits received before.
+# client <--> hub <--> local_hub
 message
     event            : 'codemirror_diffsync'
     id               : undefined
@@ -241,19 +244,11 @@ message
     edit_stack       : required
     last_version_ack : required
 
+# Suggest to the connected big hub that there is data ready to be synced:
+# local_hub --> hub --> client
 message
     event            : 'codemirror_diffsync_ready'
     session_uuid     : undefined
-
-# Message describing a change (or sequence of changes) to the editor.
-# A message.success message is sent in respone to acknowledge that the change was noted.
-# Example diff: {changeObj:{from:{line:0,ch:0}, to:{line:0,ch:0}, text:["HELLO WORLD -- this is it!"]}}
-# client <--> hub <--> local_hub
-message
-    event        : 'codemirror_change'
-    id           : undefined
-    diff         : required
-    session_uuid : undefined
 
 # Write out whatever is on local_hub to the physical disk
 # client --> hub --> local_hub

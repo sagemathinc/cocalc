@@ -298,9 +298,8 @@ class exports.Editor
         switch x.editor
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
-                #editor = new CodeMirrorSessionEditor(@, filename, content, extra_opts)
+                editor = new CodeMirrorSessionEditor(@, filename, content, extra_opts)
                 #editor = new CodeMirrorEditor(@, filename, content, extra_opts)
-                editor = new CodeMirrorSessionEditor2(@, filename, content, extra_opts)
             when 'terminal'
                 editor = new Terminal(@, filename, content, extra_opts)
             when 'worksheet'
@@ -533,115 +532,8 @@ class CodeMirrorEditor extends FileEditor
 ###############################################
 # CodeMirrorSession Editor
 ###############################################
+
 class CodeMirrorSessionEditor extends CodeMirrorEditor
-    constructor: (@editor, @filename, ignored, opts) ->
-
-        @other_cursor = $("<div style='position:absolute;'><div style='position:relative; top:-1.2em; left:-.4ex; border:solid 1px blue; height:1.15em; width:1.1ex;'></div></div>")
-
-        super(@editor, @filename, "Loading '#{@filename}'...", opts)
-        salvus_client.codemirror_session
-            project_id : @editor.project_id
-            path       : @filename
-            cb         : (err, session, content) =>
-                if err
-                    error = "Error loading #{@filename} -- #{err}"
-                    @_set(err)
-                    alert_message(type:"error", message:error)
-                    return
-                @_session = session
-                @_set(content)
-                session.on 'change', (diff) =>
-                    if diff.changeObj?
-                        #console.log("hub sent changeObj: #{misc.to_json(diff.changeObj)}")
-                        @_apply_changeObj(diff.changeObj)
-
-                        @_draw_other_cursor({line:diff.changeObj.to.line,ch:diff.changeObj.to.ch+2}, 'red')  # this is just for now.
-
-                @codemirror.on 'change', (instance, changeObj) =>
-                    #console.log("changeObj: #{misc.to_json(changeObj)}")
-                    if changeObj.origin? and changeObj.origin != 'setValue'
-                        # origin is only set if the event was caused by the user (rather than calling replaceRange below).
-                        @_session.change({changeObj:changeObj})
-
-    _draw_other_cursor: (pos, color) =>
-        # Move the cursor with given color to the given pos.
-        if not @codemirror?
-            return
-        #console.log("move cursor #{color} to position #{pos.line},#{pos.ch}")
-        @codemirror.addWidget(pos, @other_cursor[0], false)
-
-    _apply_changeObj: (changeObj) =>
-        @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
-        if changeObj.next?
-            @_apply_changeObj(changeObj.next)
-
-    # Applying a changeObj using @_apply_changeObj does not push it
-    # out to the hub, hence this method, which also does.  This is
-    # for programmatically changing the buffer and having the changes propagate.
-    _apply_and_push_changeObj: (changeObj) =>
-        @_apply_changeObj(changeObj)
-        @_session.change({changeObj:changeObj})
-
-    click_save_button: () =>
-        if not @save_button.hasClass('disabled')
-            @save_button.find('span').text("Saving...")
-            spin = setTimeout((() => @save_button.find(".spinner").show()), 100)
-            @save (err) =>
-                clearTimeout(spin)
-                @save_button.find(".spinner").hide()
-                @save_button.find('span').text('Save')
-                if not err
-                    @save_button.addClass('disabled')
-                    @has_unsaved_changes(false)
-                else
-                    alert_message(type:"error", message:"Error writing out '#{@filename}' to disk -- #{err}")
-        return false
-
-    save: (cb) =>
-        if @opts.delete_trailing_whitespace
-            @delete_trailing_whitespace()
-        if @_session?
-            @_session.write_to_disk(cb)
-        else
-            cb("Unable to save '#{@filename}' since it is not yet loaded.")
-
-    click_refresh_button: () =>
-        @refresh_button.find('span').text("Refreshing...")
-        spin = setTimeout((() => @refresh_button.find(".spinner").show()), 100)
-        @_session.get_content (err, content) =>
-            clearTimeout(spin)
-            @refresh_button.find(".spinner").hide()
-            @refresh_button.find('span').text('Refresh')
-            if err
-                alert_message(type:"error", message:"Error refreshing '#{@filename}' from server-- #{err}")
-            else
-                @codemirror.setValue(content)
-        return false
-
-    delete_trailing_whitespace: () =>  # TODO: should be a codemirror plugin (?) -- would be nice to have for worksheets too.
-        changeObj = undefined
-        val = @codemirror.getValue()
-        text1 = val.split('\n')
-        text2 = misc.delete_trailing_whitespace(val).split('\n')
-        if text1.length != text2.length
-            alert_message(type:"error", message:"Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
-            return
-        for i in [0...text1.length]
-            if text1[i].length != text2[i].length
-                obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
-                if not changeObj?
-                    changeObj = obj
-                    currentObj = changeObj
-                else
-                    currentObj.next = obj
-                    currentObj = obj
-
-        if changeObj?
-            @_apply_and_push_changeObj(changeObj)
-
-
-
-class CodeMirrorSessionEditor2 extends CodeMirrorEditor
     constructor: (@editor, @filename, ignored, opts) ->
 
         @other_cursor = $("<div style='position:absolute;'><div style='position:relative; top:-1.2em; left:-.4ex; border:solid 1px blue; height:1.15em; width:1.1ex;'></div></div>")

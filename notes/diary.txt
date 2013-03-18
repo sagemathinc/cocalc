@@ -10747,17 +10747,32 @@ The players:
 
   [x] change editor.coffee to change .live and call sync instead of calling change, and test live!
 
-  [ ] do very bad non-optimized but fully working local_hub <--> hub diffsync implementation.
+  [x] do very bad non-optimized but fully working local_hub <--> hub diffsync implementation.
 
-  [ ] cleanup code and get rid of Session2 versions -- i.e., commit to this approach
+  [x] cleanup code and get rid of Session2 versions -- i.e., commit to this approach
+
+  [ ] see the refactor note above "CodeMirrorDiffSyncLocalHub"
+
+  [ ] add one more level -- make "a file on disk" be another diffsync thing.
 
 THEN THE FUN STUFF:
-- properly implement other cursors
+  [ ] properly implement cursor location display:  see http://neil.fraser.name/writing/cursor/
 - fs.watchFile
 - optimize
 - memory leaks
+- timeline view  -- which will use the database, so is globally backed up and available even if everything else is hosed:
+                    store the starting version of the file and the edit history
 
 THEN do worksheets...
+
+Important point for worksheets: http://arstechnica.com/information-technology/2010/08/google-wave-why-we-didnt-use-it/
+    "The other problem—and this was a huge issue and a common complaint—was that everyone could watch you type. "
+
+
+    [  ] Etherpad-lite -- node.js/javascript/jquery collaborative editing, apache license, -- https://github.com/ether/etherpad-lite
+         http://sync.in/ -- uses this
+
+         These have a very cool "time slider" -- I will definitely need to have that, both for worksheets and for code!
 
 ======================================
 
