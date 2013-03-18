@@ -85,7 +85,7 @@ class DSync0
             @shadow = snapshot
             @shadow_version += 1
 
-        if @id=='client' and Math.random() < .5
+        if Math.random() < .5
             cb?(true)
             return
 
@@ -95,13 +95,22 @@ class DSync0
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
 
-        #console.log("#{@id} -- recv_edits -- #{misc.to_json(edit_stack)}")
+        if Math.random() < .5
+            cb?(true)
+            return
+
         # Keep only edits that we still need to send.
         @edit_stack = (edits for edits in @edit_stack when edits.shadow_version > last_version_ack)
 
         if edit_stack.length == 0
             cb?()
             return
+
+        if edit_stack[0].shadow_version != @shadow_version and edit_stack[0].shadow_version == @backup_shadow_version
+            # Lost return packet
+            @shadow = @_copy(@backup_shadow)
+            @shadow_version = @backup_shadow_version
+            @edit_stack = []
 
         # Make a backup, just in case it turns out that our message back to the client that
         # we applied these changes is lost "Lost return packet."
@@ -239,12 +248,12 @@ exports.test1 = () ->
     server.live = 'bar' + server.live
     status()
     while client.live != server.live
-        try
-            status()
-            go()
-        catch e
-            status()
-            break
+        status()
+        go()
     status()
+
+exports.test2 = (n) ->
+    for i in [0...n]
+        exports.test1()
 
 exports.DSync = DSync
