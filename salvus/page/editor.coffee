@@ -298,8 +298,9 @@ class exports.Editor
         switch x.editor
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
-                editor = new CodeMirrorSessionEditor(@, filename, content, extra_opts)
+                #editor = new CodeMirrorSessionEditor(@, filename, content, extra_opts)
                 #editor = new CodeMirrorEditor(@, filename, content, extra_opts)
+                editor = new CodeMirrorSessionEditor2(@, filename, content, extra_opts)
             when 'terminal'
                 editor = new Terminal(@, filename, content, extra_opts)
             when 'worksheet'
@@ -657,17 +658,32 @@ class CodeMirrorSessionEditor2 extends CodeMirrorEditor
                     return
                 @_session = session
                 @_set(content)
+
                 session.on 'change', (diff) =>
-                    if diff.changeObj?
+                    c = @codemirror.getCursor()
+                    @codemirror.setValue(diff)
+                    @codemirror.setCursor(c)
+                    #if diff.changeObj?
                         #console.log("hub sent changeObj: #{misc.to_json(diff.changeObj)}")
-                        @_apply_changeObj(diff.changeObj)
-                        @_draw_other_cursor({line:diff.changeObj.to.line,ch:diff.changeObj.to.ch+2}, 'red')  # this is just for now.
+                        # @_apply_changeObj(diff.changeObj)
+                        #@_draw_other_cursor({line:diff.changeObj.to.line,ch:diff.changeObj.to.ch+2}, 'red')  # this is just for now.
 
                 @codemirror.on 'change', (instance, changeObj) =>
-                    #console.log("changeObj: #{misc.to_json(changeObj)}")
                     if changeObj.origin? and changeObj.origin != 'setValue'
                         # origin is only set if the event was caused by the user (rather than calling replaceRange below).
-                        @_session.change({changeObj:changeObj})
+                        if not @changing
+                            @changing = true
+                            @_session.change @codemirror.getValue(), (err, new_content) =>
+                                @changing = false
+                                if not err and new_content?
+                                    c = @codemirror.getCursor()
+                                    @codemirror.setValue(new_content)
+                                    @codemirror.setCursor(c)
+
+                    #console.log("changeObj: #{misc.to_json(changeObj)}")
+                    #if changeObj.origin? and changeObj.origin != 'setValue'
+                    #    # origin is only set if the event was caused by the user (rather than calling replaceRange below).
+                    #    @_session.change({changeObj:changeObj})
 
     _draw_other_cursor: (pos, color) =>
         # Move the cursor with given color to the given pos.

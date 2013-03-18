@@ -980,14 +980,19 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
                     else
-                        # We add the client, so it will gets messages about changes to the document.
-                        session.add_listener(@)
+                        # It is critical that we initialize the
+                        # diffsync objects on both sides with exactly
+                        # the same document.
+                        snapshot = session.obj.getValue()
+                        # We add the client, so it will gets messages
+                        # about changes to the document.
+                        session.add_diffsync_client(@, snapshot)
                         # Send parameters of session to client
                         mesg = message.codemirror_session
                             id           : mesg.id
                             session_uuid : session.session_uuid
                             path         : session.path
-                            content      : session.obj.getValue()
+                            content      : snapshot
                         @push_to_client(mesg)
 
     get_codemirror_session : (mesg, cb) =>
@@ -1262,6 +1267,10 @@ class CodeMirrorDiffSyncClient
         )
         cb()  # no way to detect failure
 
+    # Suggest to the connected client that there is stuff ready to be synced
+    sync_ready: () =>
+        @client.push_to_client(message.codemirror_diffsync_ready(session_uuid: @cm_session.session_uuid))
+
 class CodeMirrorSession2
     constructor: (opts) ->
         opts = defaults opts,
@@ -1286,9 +1295,19 @@ class CodeMirrorSession2
             client.error_to_client(id:mesg.id, error:"client #{client.id} not registered for synchronization.")
             return
 
-        winston.debug("client_diffsync; before live state='#{ds_server.live}'")
+        before = ds_server.live
         ds_server.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
-            winston.debug("client_diffsync; ran edits; err = #{err}; new live state='#{ds_server.live}'")
+            after = ds_server.live
+            # Proposage new live state to other clients -- TODO: there
+            # should just be one live document shared instead of a
+            # bunch of copies.
+            for id, ds of @diffsync_clients
+                if client.id != id
+                    ds.live = after
+                    if before != after
+                        ds.remote.sync_ready()
+
+            # Respond
             if err
                 client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes -- #{err}")
                 return
@@ -1296,19 +1315,13 @@ class CodeMirrorSession2
             ds_server.push_edits (err) =>
                 winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
 
-    add_diffsync_client: (client) =>
+
+    add_diffsync_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
         # Add a new diffsync browser client.
-        ds_server = new diffsync.DiffSync(doc:@obj.getValue())
+        ds_server = new diffsync.DiffSync(doc:snapshot)
         ds_client = new CodeMirrorDiffSyncClient(client, @)
         ds_server.connect(ds_client)
         @diffsync_clients[client.id] = ds_server
-
-        ds_server.live = 'dog\n' + ds_server.live
-        
-    add_listener: (client) =>
-        @obj.add_listener(new CodeMirrorClientListener(client, @session_uuid))
-
-        @add_diffsync_client(client)
 
     # Process a change reported by a browser client.
     client_change: (client, mesg) =>

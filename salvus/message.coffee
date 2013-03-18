@@ -241,6 +241,10 @@ message
     edit_stack       : required
     last_version_ack : required
 
+message
+    event            : 'codemirror_diffsync_ready'
+    session_uuid     : undefined
+
 # Message describing a change (or sequence of changes) to the editor.
 # A message.success message is sent in respone to acknowledge that the change was noted.
 # Example diff: {changeObj:{from:{line:0,ch:0}, to:{line:0,ch:0}, text:["HELLO WORLD -- this is it!"]}}

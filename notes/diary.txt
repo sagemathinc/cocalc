@@ -10743,7 +10743,7 @@ The players:
 
   [x] test and debug communication back and forth between the DiffSync's implemented above, but with some very simple faked test code
 
-  [ ] make it so editing .live on the attribute and calling sync works.
+-->  [ ] make it so editing .live on the attribute and calling push_edits from client works.
 
   [ ] change editor.coffee to change .live and call sync instead of calling change, and test live!
 

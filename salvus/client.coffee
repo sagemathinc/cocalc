@@ -330,31 +330,10 @@ class CodeMirrorSession2 extends EventEmitter
         @project_id   = opts.project_id
         @path         = opts.path
 
-        @change_queue = []
-
-        @_listener = (m) =>
-            if m.session_uuid = @session_uuid
-                #console.log("change request: #{misc.to_json(m.diff)}")
-                @emit 'change', m.diff
-        @conn.on 'codemirror_change', @_listener
-
-        @connect (err,session,content) =>
+        @connect (err, session, content) =>
             if not err
                 @init_dsync(content)
             opts.cb(err, session, content)
-
-    init_dsync: (content) =>
-        @dsync_client = new diffsync.DiffSync(doc:content)
-        @dsync_server = new CodeMirrorDiffSyncServer(@)
-        @dsync_client.connect(@dsync_server)
-        @dsync_server.connect(@dsync_client)
-
-        console.log(@dsync_client.status())
-        @dsync_client.live += "\ncats"
-        console.log("before push live state = '#{@dsync_client.live}'")
-        @dsync_client.push_edits (err) =>
-            console.log("after push live state = '#{@dsync_client.live}'")
-            console.log("push_edits got back: ", err)
 
 
     connect: (cb) =>
@@ -370,6 +349,43 @@ class CodeMirrorSession2 extends EventEmitter
                 else
                     @session_uuid = resp.session_uuid
                     cb(false, @, resp.content)
+
+    init_dsync: (content) =>
+        @dsync_client = new diffsync.DiffSync(doc:content)
+        @dsync_server = new CodeMirrorDiffSyncServer(@)
+        @dsync_client.connect(@dsync_server)
+        @dsync_server.connect(@dsync_client)
+
+        @conn.on 'codemirror_diffsync_ready', (mesg) =>
+            console.log("GOT #{mesg}")
+            if mesg.session_uuid == @session_uuid
+                @sync (err) =>
+                    @emit 'change', @dsync_client.live
+
+        @sync()
+
+    sync: (cb) =>
+        if @_syncing
+            cb("already syncing")
+            return
+        @_syncing = true
+        console.log("before push live state = '#{@dsync_client.live}'")
+        @dsync_client.push_edits (err) =>
+            console.log("after push live state = '#{@dsync_client.live}'")
+            console.log("push_edits got back: err=", err)
+            @_syncing = false
+            cb?(err)
+
+    change: (diff, cb) =>
+        if @dsync_client?
+            @dsync_client.live = diff
+            @sync (err) =>
+                if err
+                    cb(err)
+                else
+                    cb(false, @dsync_client.live)
+        else
+            cb()
 
     call: (opts) =>
         opts = defaults opts,
@@ -391,43 +407,6 @@ class CodeMirrorSession2 extends EventEmitter
                             @conn.call(message: opts.message, cb:opts.cb)
                     return
                 opts.cb(err, result)
-
-    change: (diff, cb) =>
-        @change_queue.push(diff:diff, cb:cb)
-        @send_change_queue_to_hub()
-
-    send_change_queue_to_hub: (wait) =>
-        console.log("send_change_queue_to_hub... (queue = #{misc.to_json(@change_queue)})")
-        if @_sending_to_hub
-            console.log("already sending")
-            return
-        @_sending_to_hub = true
-        if not wait?
-            wait = 0
-        else
-            wait = Math.min(15000, 1.2*wait)  # exponential backoff up to 15 seconds
-        if @change_queue.length == 0
-            @_sending_to_hub = false
-            return
-        {diff, cb} = @change_queue[0]
-        diff.id = misc.uuid()
-        console.log("Sending #{misc.to_json(diff)}")
-        @call
-            message : message.codemirror_change(diff : diff)
-            timeout : 5
-            cb      : (err, mesg) =>
-                console.log("Got back #{err}, #{misc.to_json(mesg)}")
-                @_sending_to_hub = false
-                if not err and mesg.event == 'success'
-                    console.log("succeeded at sending #{misc.to_json(diff)}")
-                    @change_queue.shift(1)
-                    cb?()
-                    if @change_queue.length > 0
-                        console.log("now send next message.")
-                        @send_change_queue_to_hub()
-                else
-                    console.log("trying again to send #{misc.to_json(diff)} after a wait of #{wait}")
-                    setTimeout((()=>@send_change_queue_to_hub(250+wait)), wait)
 
     write_to_disk: (cb) =>
         @call
@@ -566,7 +545,7 @@ class exports.Connection extends EventEmitter
                 @emit("signed_in", mesg)
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
-            when "codemirror_change"
+            when "codemirror_diffsync_ready"
                 @emit(mesg.event, mesg)
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
