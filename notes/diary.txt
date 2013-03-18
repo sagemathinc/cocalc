@@ -10751,9 +10751,9 @@ The players:
 
   [x] cleanup code and get rid of Session2 versions -- i.e., commit to this approach
 
-  [ ] see the refactor note above "CodeMirrorDiffSyncLocalHub"
-
   [ ] add one more level -- make "a file on disk" be another diffsync thing.
+
+  [ ] see the refactor note above "CodeMirrorDiffSyncLocalHub"
 
 THEN THE FUN STUFF:
   [ ] properly implement cursor location display:  see http://neil.fraser.name/writing/cursor/

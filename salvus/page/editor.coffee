@@ -563,14 +563,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
                         # origin is only set if the event was caused by the user (rather than calling replaceRange below).
-                        if not @changing
-                            @changing = true
-                            @_session.change @codemirror.getValue(), (err, new_content) =>
-                                @changing = false
-                                if not err and new_content?
-                                    c = @codemirror.getCursor()
-                                    @codemirror.setValue(new_content)
-                                    @codemirror.setCursor(c)
+                        @sync(changeObj)
 
                     #console.log("changeObj: #{misc.to_json(changeObj)}")
                     #if changeObj.origin? and changeObj.origin != 'setValue'
@@ -589,12 +582,16 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
 
-    # Applying a changeObj using @_apply_changeObj does not push it
-    # out to the hub, hence this method, which also does.  This is
-    # for programmatically changing the buffer and having the changes propagate.
-    _apply_and_push_changeObj: (changeObj) =>
-        @_apply_changeObj(changeObj)
-        @_session.change({changeObj:changeObj})
+    sync: (changeObj) =>
+        if not @changing
+            @changing = true
+            @_session.change @codemirror.getValue(), (err, new_content) =>
+                @changing = false
+                if not err?
+                    c = @codemirror.getCursor()
+                    @codemirror.setValue(new_content)
+                    @codemirror.setCursor(c)
+
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
@@ -651,7 +648,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     currentObj = obj
 
         if changeObj?
-            @_apply_and_push_changeObj(changeObj)
+            @_apply_changeObj(changeObj)
+            @sync(changeObj)
 
 ###############################################
 # LateX Editor
