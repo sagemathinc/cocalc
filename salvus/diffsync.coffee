@@ -1,6 +1,6 @@
 ###################################################################
 #
-# Class to support simultaneous multiple editing
+# Code to support simultaneous multiple editing
 # sessions by different clients of a single object.  This uses
 # the Differential Synchronization algorithm of Neil Fraser,
 # which is the same thing that Google Docs uses.
@@ -31,7 +31,7 @@ misc = require('misc')
 diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
 dmp = new diff_match_patch()
 
-class DistributedSync
+class DiffSync
     constructor: (opts) ->
         opts = defaults opts,
             id   : undefined
@@ -159,8 +159,8 @@ class DistributedSync
 
 
 exports.test1 = () ->
-    client = new DistributedSync(doc:"sage", id:"client")
-    server = new DistributedSync(doc:"sage", id:"server")
+    client = new DiffSync(doc:"sage", id:"client")
+    server = new DiffSync(doc:"sage", id:"server")
     client.connect(server)
     server.connect(client)
 
@@ -207,8 +207,8 @@ exports.test2 = (n) ->
         exports.test1()
 
 exports.test3 = () ->
-    client = new DistributedSync(doc:"cat", id:"client")
-    server = new DistributedSync(doc:"cat", id:"server")
+    client = new DiffSync(doc:"cat", id:"client")
+    server = new DiffSync(doc:"cat", id:"server")
     client.connect(server)
     server.connect(client)
 
@@ -219,4 +219,4 @@ exports.test3 = () ->
         console.log(misc.to_json(client.status()))
         console.log(misc.to_json(server.status()))
 
-exports.DistributedSync = DistributedSync
+exports.DiffSync = DiffSync

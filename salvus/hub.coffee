@@ -1194,7 +1194,7 @@ class CodeMirrorSession
             return
         else
             @_recent_diff_ids[mesg.diff.id] = true
-            
+
         @obj.change
             diff : mesg.diff
             id   : client.id

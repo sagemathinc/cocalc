@@ -8,7 +8,7 @@ async = require('async')
 {defaults, required, uuid, keys, assert, to_json} = require('misc')
 
 # This is a sync'd JSON-able object, which establishes the API.
-# The diff transforms the key/values for the state object a very simple way.
+# The diff transforms the key/values for the state object in a very simple way.
 class exports.SyncObj
     constructor: () ->
         @init()
