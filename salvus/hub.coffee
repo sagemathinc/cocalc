@@ -1181,7 +1181,6 @@ class CodeMirrorDiffSyncClient
     constructor: (@client, @cm_session) ->
 
     recv_edits: (edit_stack, last_version_ack, cb) =>
-        console.log("Sending the following edits to the client: ", edit_stack, last_version_ack)
         @client.push_to_client(
             message.codemirror_diffsync
                 id               : @current_mesg_id
@@ -1383,7 +1382,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     handle_mesg: (mesg) =>
         if mesg.id?
             return # handled elsewhere
-        # NOTHING YET.
+        winston.debug("local_hub: #{misc.to_json(mesg)}")
+        if mesg.event == 'codemirror_diffsync_ready'
+            @get_codemirror_session
+                session_uuid : mesg.session_uuid
+                cb           : (err, session) ->
+                    if not err
+                        session.sync()
 
     # The standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>

@@ -358,7 +358,8 @@ sage_sessions = new SageSessions()
 # The "live content" of DiffSyncFile_client is the actual file on disk.
 # # TODO: when applying diffs, we could use that the file is random access.  This is not done yet!
 class DiffSyncFile_server extends diffsync.DiffSync
-    constructor:(@path, cb)  ->
+    constructor:(@cm_session, cb)  ->
+        @path = @cm_session.path
         fs.readFile @path, (err, data) =>
             if err
                 cb(err); return
@@ -368,21 +369,24 @@ class DiffSyncFile_server extends diffsync.DiffSync
             cb(err, @live)
 
     _watcher: (event) =>
-        # winston.debug("fs.watch triggered.")
-        if @_lock? and @_lock
-            # winston.debug("ignored change due to lock.")
-            return
-        # winston.debug("The file '#{@path}' changed, so we try to update our in-memory view.")
+        winston.debug("_watcher!!!!!!!!!!!!!!!!!!!!!!")
+        @_stop_watching_file()
         fs.readFile @path, (err, data) =>
-            if not err
+            if err
+                @_start_watching_file()
+            else
                 @live = data.toString()
-                # winston.debug("got new file contents = '#{@live}'")
+                @cm_session.sync_filesystem (err) =>
+                    @_start_watching_file()
 
     _start_watching_file: () =>
+        if @_fs_watcher?
+            @_stop_watching_file()
         @_fs_watcher = fs.watch(@path, @_watcher)
 
     _stop_watching_file: () =>
         @_fs_watcher.close()
+        delete @_fs_watcher
 
     snapshot: (cb) =>  # cb(err, snapshot of live document)
         cb(false, @live)
@@ -446,7 +450,7 @@ class CodeMirrorSession
         @diffsync_clients = {}
 
         # The upstream version of this document -- the *actual* file on disk.
-        fileserver = new DiffSyncFile_server @path, (err, content) =>
+        fileserver = new DiffSyncFile_server @, (err, content) =>
             if err
                 cb(err)
             else
@@ -491,27 +495,30 @@ class CodeMirrorSession
 
 
     sync_filesystem: (cb) =>
+        before = @content
         @diffsync_fileclient.sync (err) =>
             if err
-                cb("codemirror fileclient sync error -- '#{err}'")
+                cb?("codemirror fileclient sync error -- '#{err}'")
                 return
-            @set_content(@diffsync_fileclient.live)
-            cb()
+            if @diffsync_fileclient.live != @content
+                @set_content(@diffsync_fileclient.live)
+                # recommend all global hubs sync
+                for id, ds_client of @diffsync_clients
+                    ds_client.remote.sync_ready()
+            cb?()
 
     add_client: (socket) =>
         ds_client = new diffsync.DiffSync(doc:@content)
         ds_client.connect(new CodeMirrorDiffSyncHub(socket, @session_uuid))
         @diffsync_clients[socket.id] = ds_client
 
-    # TODO: Eliminating this because it is DANGEROUS.
     write_to_disk: (socket, mesg) =>
-        socket.write_mesg('json', message.success(id:mesg.id))
-    #    fs.writeFile @path, @content, (err) =>
-    #        if err
-    #            resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk")
-    #        else
-    #            resp = message.success(id:mesg.id)
-    #        socket.write_mesg('json', resp)
+        @sync_filesystem (err) =>
+            if err
+               resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk")
+            else
+               resp = message.success(id:mesg.id)
+            socket.write_mesg('json', resp)
 
     read_from_disk: (socket, mesg) =>
         fs.readFile @path, (err, data) =>
@@ -587,9 +594,7 @@ class CodeMirrorSessions
             return
         switch mesg.event
             when 'codemirror_diffsync'
-                session.sync_filesystem  (err) ->
-                    if not err
-                        session.client_diffsync(client_socket, mesg)
+                session.client_diffsync(client_socket, mesg)
             when 'codemirror_write_to_disk'
                 session.write_to_disk(client_socket, mesg)
             when 'codemirror_read_from_disk'
