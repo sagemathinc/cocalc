@@ -425,10 +425,13 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     cb()  # nothing to do
                 else
                     @live = result
-                    @_stop_watching_file()
-                    fs.writeFile @path, @live, (err) =>
-                        @_start_watching_file()
-                        cb(err)
+                    @write_to_disk(@live, cb)
+                    
+    write_to_disk: (content, cb) =>
+        @_stop_watching_file()
+        fs.writeFile @path, @live, (err) =>
+            @_start_watching_file()
+            cb?(err)
 
 # The live content of DiffSyncFile_client is our in-memory buffer.
 class DiffSyncFile_client extends diffsync.DiffSync
@@ -470,12 +473,12 @@ class CodeMirrorSession
         @diffsync_clients = {}
 
         # The upstream version of this document -- the *actual* file on disk.
-        fileserver = new DiffSyncFile_server @, (err, content) =>
+        @diffsync_fileserver = new DiffSyncFile_server @, (err, content) =>
             if err
                 cb(err)
             else
                 @content = content
-                @diffsync_fileclient = new DiffSyncFile_client(fileserver)
+                @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
                 cb(false, @)
 
     set_content: (value) =>
@@ -533,12 +536,18 @@ class CodeMirrorSession
         @diffsync_clients[socket.id] = ds_client
 
     write_to_disk: (socket, mesg) =>
+        winston.debug("write_to_disk: #{misc.to_json(mesg)} -- calling sync_filesystem")
         @sync_filesystem (err) =>
+            # TODO: doing another write is redundant and is only programming around issues
+            winston.debug("TODO: doing a redundant write_to_disk, just in case.")
+            @diffsync_fileserver.write_to_disk(@content)
+            
             if err
-               resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk")
+               resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk -- #{err}")
             else
                resp = message.success(id:mesg.id)
             socket.write_mesg('json', resp)
+
 
     read_from_disk: (socket, mesg) =>
         fs.readFile @path, (err, data) =>

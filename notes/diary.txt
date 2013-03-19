@@ -10758,6 +10758,9 @@ The players:
 
 @@@@@@@@@@@@@@@@@@@@@@
 
+  [ ] Implement code to handle this -- it happens:
+        "CodeMirrorSession -- unable to push diffsync changes -- reset"
+
   [ ] optimize for scalability
 
       [ ] when saving diary.txt, get this every time in hub logs:
