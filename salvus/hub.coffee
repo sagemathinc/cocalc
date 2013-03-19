@@ -1168,8 +1168,9 @@ class CodeMirrorDiffSyncLocalHub
             else if mesg.event == 'error'
                 cb(mesg.error)
             else
-                # apply the changes we got back.
-                @cm_session.diffsync_server.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
+                @cm_session.diffsync_server.recv_edits(mesg.edit_stack, mesg.last_version_ack, (err) =>
+                    @cm_session.set_content(@cm_session.diffsync_server.live)
+                    cb(err))
 
     sync_ready: () =>
         @write_mesg('diffsync_ready')
@@ -1207,13 +1208,16 @@ class CodeMirrorSession
         @path         = opts.path
 
         # Our upstream server (the local hub)
-        winston.debug("******************")
-        winston.debug("opts.content = ", opts.content)
         @diffsync_server = new diffsync.DiffSync(doc:opts.content)
         @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
 
         # The downstream clients of this hub
         @diffsync_clients = {}
+
+    set_content: (content) =>
+        @diffsync_server.live = content
+        for id, ds of @diffsync_clients
+            ds.live = content
 
     client_diffsync: (client, mesg) =>
         # Message from some client reporting new edits; we apply them,
@@ -1226,8 +1230,7 @@ class CodeMirrorSession
 
         before = @diffsync_server.live
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
-
-            @diffsync_server.live = ds_client.live  # TODO -- should be automatic once the .live's all reference the same thing
+            @set_content(ds_client.live)
             changed = (before != @diffsync_server.live)
 
             # Propagate new live state to other clients -- TODO: there
@@ -1257,20 +1260,18 @@ class CodeMirrorSession
         return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
 
     sync: () =>
-        # Sync with upstream local_hub
-        if @_syncing
-            # TODO -- ensure that this lock times out -- we do not want to loose sync forever!!
+        if @_upstream_sync_lock? and @_upstream_sync_lock
             return
-        @_syncing = true
+
+        @_upstream_sync_lock = true
         before = @diffsync_server.live
         @diffsync_server.push_edits (err) =>
-            @_syncing = false
+            @_upstream_sync_lock = false
             if not err
                 if before != @diffsync_server.live
-                # Tell the clients that now might be a good time to do a sync, since content has changed.
+                    # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
                     for id, ds of @diffsync_clients
                         ds.remote.sync_ready()
-            # TODO -- do something on err?
 
     add_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
         # Add a new diffsync browser client.
@@ -1333,7 +1334,6 @@ new_local_hub = (opts) ->    # cb(err, hub)
         port     : 22
         cb       : required
     hash = "#{opts.username}@#{opts.host} -p#{opts.port}"
-    winston.debug("new_local_hub: #{hash}")
     H = _local_hub_cache[hash]   # memory leak issues?
     if H?
         winston.debug("new_local_hub already cached")

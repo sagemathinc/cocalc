@@ -355,44 +355,58 @@ sage_sessions = new SageSessions()
 #
 #############################################################################
 
-
+# The "live content" of DiffSyncFile_client is the actual file on disk.
+# # TODO: when applying diffs, we could use that the file is random access.  This is not done yet!
 class DiffSyncFile_server extends diffsync.DiffSync
     constructor:(@path, cb)  ->
-        @snapshot (err, content) =>
+        fs.readFile @path, (err, data) =>
             if err
-                cb(err)
-            else
-                @init(doc:content, id:"file_server")
-                cb(err, content)
+                cb(err); return
+            @init(doc:data.toString(), id:"file_server")
+            # winston.debug("got new file contents = '#{@live}'")
+            @_start_watching_file()
+            cb(err, @live)
+
+    _watcher: (event) =>
+        # winston.debug("fs.watch triggered.")
+        if @_lock? and @_lock
+            # winston.debug("ignored change due to lock.")
+            return
+        # winston.debug("The file '#{@path}' changed, so we try to update our in-memory view.")
+        fs.readFile @path, (err, data) =>
+            if not err
+                @live = data.toString()
+                # winston.debug("got new file contents = '#{@live}'")
+
+    _start_watching_file: () =>
+        @_fs_watcher = fs.watch(@path, @_watcher)
+
+    _stop_watching_file: () =>
+        @_fs_watcher.close()
 
     snapshot: (cb) =>  # cb(err, snapshot of live document)
-        winston.debug("Reading file from disk: '#{@path}'")
-        fs.readFile @path, (err, data) =>
-            if err
-                cb(err)
-            else
-                @live = data.toString()
-                winston.deubg("file = '#{@live}'")
-                cb(err, @live)
+        cb(false, @live)
 
     _apply_edits_to_live: (edits, cb) =>
-        winston.debug("Apply edits #{misc.to_json(edits)} to @live='#{@live}' file")
+        # winston.debug("Apply edits #{misc.to_json(edits)} to @live='#{@live}' file")
         if edits.length == 0
             cb(); return
-        fs.readFile @path, (err, data) =>
+        # winston.debug("File is '#{@live}'")
+        @_apply_edits edits, @live, (err, result) =>
             if err
                 cb(err)
             else
-                @live = data.toString()
-                winston.debug("File is '#{@live}'")
-                @_apply_edits edits, @live, (err, result) =>
-                    if err
+                if result == @live
+                    cb()  # nothing to do
+                else
+                    # winston.debug("Writing out result: '#{@live}' to disk.")
+                    @live = result
+                    @_stop_watching_file()
+                    fs.writeFile @path, @live, (err) =>
+                        @_start_watching_file()
                         cb(err)
-                    else
-                        winston.debug("Writing out result of diff '#{@live}'")
-                        @live = result
-                        fs.writeFile @path, @live, cb
 
+# The live content of DiffSyncFile_client is our in-memory buffer.
 class DiffSyncFile_client extends diffsync.DiffSync
     constructor:(@server) ->
         super(doc:@server.live, id:"file_client")
@@ -439,9 +453,6 @@ class CodeMirrorSession
                 @content = content
                 @diffsync_fileclient = new DiffSyncFile_client(fileserver)
                 cb(false, @)
-                fileserver.snapshot (err, content) =>
-                    winston.debug("TESTING got '#{content}'")
-
 
     set_content: (value) =>
         @content = value
@@ -464,51 +475,43 @@ class CodeMirrorSession
 
         before = @content
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
-
-            # TODO -- should be automatic once the .live's all reference the same thing
             @set_content(ds_client.live)
-            changed = (before != @content)
-
-            if changed
-                winston.debug("CodeMirrorSession -- Synchronize with upstream (the file itself)")
-                @diffsync_fileclient.sync (err) =>
-                    winston.debug("CodeMirrorSession -- fileclient sync returned -- '#{err}'")
-            else
-                winston.debug("No changes; not synchronizing file.")
-
-            # Propagate our new state to other clients -- TODO: there
-            # should just be one live document shared instead of a
-            # bunch of copies.
-            for id, ds_client of @diffsync_clients
-                if socket.id != id
-                    ds_client.live = @content # TODO -- should be automatic once the .live's all reference the same thing
-                    if changed   # suggest a resync
-                        ds_client.remote.sync_ready()
-
-            # Respond
-            if err
-                write_message('error', {error:"CodeMirrorSession -- unable to push diffsync changes -- #{err}"})
-                return
-
-            # Now send back our own edits to this global hub.
+            # Send back our own edits to the global hub.
             ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
             ds_client.push_edits (err) =>
                 if err
                     winston.debug("CodeMirrorSession -- client push_edits returned -- #{err}")
+                else
+                    changed = (before != @content)
+                    if changed
+                        # We also suggest to other clients to update their state.
+                        for id, ds_client of @diffsync_clients
+                            if socket.id != id
+                                ds_client.remote.sync_ready()
 
+
+    sync_filesystem: (cb) =>
+        @diffsync_fileclient.sync (err) =>
+            if err
+                cb("codemirror fileclient sync error -- '#{err}'")
+                return
+            @set_content(@diffsync_fileclient.live)
+            cb()
 
     add_client: (socket) =>
         ds_client = new diffsync.DiffSync(doc:@content)
         ds_client.connect(new CodeMirrorDiffSyncHub(socket, @session_uuid))
         @diffsync_clients[socket.id] = ds_client
 
+    # TODO: Eliminating this because it is DANGEROUS.
     write_to_disk: (socket, mesg) =>
-        fs.writeFile @path, @content, (err) =>
-            if err
-                resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk")
-            else
-                resp = message.success(id:mesg.id)
-            socket.write_mesg('json', resp)
+        socket.write_mesg('json', message.success(id:mesg.id))
+    #    fs.writeFile @path, @content, (err) =>
+    #        if err
+    #            resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk")
+    #        else
+    #            resp = message.success(id:mesg.id)
+    #        socket.write_mesg('json', resp)
 
     read_from_disk: (socket, mesg) =>
         fs.readFile @path, (err, data) =>
@@ -584,7 +587,9 @@ class CodeMirrorSessions
             return
         switch mesg.event
             when 'codemirror_diffsync'
-                session.client_diffsync(client_socket, mesg)
+                session.sync_filesystem  (err) ->
+                    if not err
+                        session.client_diffsync(client_socket, mesg)
             when 'codemirror_write_to_disk'
                 session.write_to_disk(client_socket, mesg)
             when 'codemirror_read_from_disk'
