@@ -569,10 +569,10 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @init_autosave()
 
                 session.on 'change', (content) =>
-                    console.log("len(content) = #{content.length}")
-                    c = @codemirror.getCursor()
-                    @codemirror.setValue(content)
-                    @codemirror.setCursor(c)
+                    if content != @codemirror.getValue()
+                        c = @codemirror.getCursor()
+                        @codemirror.setValue(content)
+                        @codemirror.setCursor(c)
                     #@_draw_other_cursor(..., 'red')
 
                 @codemirror.on 'change', (instance, changeObj) =>
@@ -607,7 +607,6 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                         c = @codemirror.getCursor()
                         @codemirror.setValue(new_content)
                         @codemirror.setCursor(c)
-
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
