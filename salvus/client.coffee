@@ -204,7 +204,7 @@ class CodeMirrorDiffSyncHub
             message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
             timeout : 5
             cb      : (err, mesg) =>
-                #console.log("Got back: ", mesg)
+                #console.log("codemirror sync got back: ", mesg)
                 if err
                     cb(err)
                 else if mesg.event == 'error'
@@ -251,7 +251,6 @@ class CodeMirrorSession extends EventEmitter
         @dsync_server.connect(@dsync_client)
 
         @conn.on 'codemirror_diffsync_ready', (mesg) =>
-            # console.log("received sync suggestion from hub")
             if mesg.session_uuid == @session_uuid
                 before = @dsync_client.live
                 @sync (err) =>

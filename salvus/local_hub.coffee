@@ -369,7 +369,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
             cb(err, @live)
 
     _watcher: (event) =>
-        winston.debug("_watcher!!!!!!!!!!!!!!!!!!!!!!")
+        winston.debug("watch: file '#{@path}' modified.")
         @_stop_watching_file()
         fs.readFile @path, (err, data) =>
             if err
@@ -380,22 +380,37 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     @_start_watching_file()
 
     _start_watching_file: () =>
-        if @_fs_watcher?
-            @_stop_watching_file()
-        @_fs_watcher = fs.watch(@path, @_watcher)
+        fs.watchFile(@path, @_watcher)
 
     _stop_watching_file: () =>
-        @_fs_watcher.close()
-        delete @_fs_watcher
+        fs.unwatchFile(@path, @_watcher)
+
+    # NOTE: I tried using fs.watch as below, but *DAMN* -- even on
+    # Linux 12.10 -- fs.watch in Node.JS totally SUCKS.  It led to
+    # file corruption, weird flakiness and errors, etc.  fs.watchFile
+    # above, on the other hand, is great for my needs (which are not
+    # for immediate sync).
+    # _start_watching_file0: () =>
+    #     winston.debug("(re)start watching...")
+    #     if @_fs_watcher?
+    #         @_stop_watching_file()
+    #     try
+    #         @_fs_watcher = fs.watch(@path, @_watcher)
+    #     catch e
+    #         setInterval(@_start_watching_file, 15000)
+    #         winston.debug("WARNING: failed to start watching '#{@path}' -- will try later -- #{e}")
+
+    # _stop_watching_file0: () =>
+    #     if @_fs_watcher?
+    #         @_fs_watcher.close()
+    #         delete @_fs_watcher
 
     snapshot: (cb) =>  # cb(err, snapshot of live document)
         cb(false, @live)
 
     _apply_edits_to_live: (edits, cb) =>
-        # winston.debug("Apply edits #{misc.to_json(edits)} to @live='#{@live}' file")
         if edits.length == 0
             cb(); return
-        # winston.debug("File is '#{@live}'")
         @_apply_edits edits, @live, (err, result) =>
             if err
                 cb(err)
@@ -403,7 +418,6 @@ class DiffSyncFile_server extends diffsync.DiffSync
                 if result == @live
                     cb()  # nothing to do
                 else
-                    # winston.debug("Writing out result: '#{@live}' to disk.")
                     @live = result
                     @_stop_watching_file()
                     fs.writeFile @path, @live, (err) =>

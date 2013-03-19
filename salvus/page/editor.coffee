@@ -576,14 +576,12 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @_set(content)
                 @init_autosave()
 
-                session.on 'change', (diff) =>
+                session.on 'change', (content) =>
+                    console.log("len(content) = #{content.length}")
                     c = @codemirror.getCursor()
-                    @codemirror.setValue(diff)
+                    @codemirror.setValue(content)
                     @codemirror.setCursor(c)
-                    #if diff.changeObj?
-                        #console.log("hub sent changeObj: #{misc.to_json(diff.changeObj)}")
-                        # @_apply_changeObj(diff.changeObj)
-                        #@_draw_other_cursor({line:diff.changeObj.to.line,ch:diff.changeObj.to.ch+2}, 'red')  # this is just for now.
+                    #@_draw_other_cursor(..., 'red') 
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'

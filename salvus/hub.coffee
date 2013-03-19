@@ -1382,7 +1382,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     handle_mesg: (mesg) =>
         if mesg.id?
             return # handled elsewhere
-        winston.debug("local_hub: #{misc.to_json(mesg)}")
         if mesg.event == 'codemirror_diffsync_ready'
             @get_codemirror_session
                 session_uuid : mesg.session_uuid

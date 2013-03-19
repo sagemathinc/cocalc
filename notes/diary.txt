@@ -10707,7 +10707,7 @@ This doesn't scale, but it is easy to implement and is equivalent (mod speed) to
 ======================================
 
  GODSEND -- top google hit for "synchronizing docs network like google docs algorithm"
- is a paper by the diff-match-patch guy called 
+ is a paper by the diff-match-patch guy called
     * "Differential Synchronization" (by Neil Fraser).
     * http://neil.fraser.name/writing/sync/
     * http://www.youtube.com/watch?v=S2Hp_1jqpY8
@@ -10722,7 +10722,6 @@ GOAL NOW: Implement dsync for SMC, ASAP.
 The above took about 10 hours, including reading the paper, watching a video, writing and debugging code (!!), etc.
 But I've got it.   Now to incorporate it in something that is robust/trustworthy, then make it faster...
 
-@@@@@@@@@@@@@@@@@@@@@@
 The players:
 
       * DistributedSyncCodeMirror -- editor
@@ -10755,16 +10754,23 @@ The players:
 
   [x] what happened to text document autosave?; implement generically
 
+  [x] I opened diary.txt on my laptop *and* a netbook, edited it on disk, and suddenly the version in the browser and on disk was 1/3 the size.  Woah.  Switching to fs.watchFile and using it more carefully helped a lot.
+
+@@@@@@@@@@@@@@@@@@@@@@
+
+  [ ] optimize for scalability
+
   [ ] see the refactor note above "CodeMirrorDiffSyncLocalHub"
 
   [ ] properly implement cursor location display:  see http://neil.fraser.name/writing/cursor/
 
-  [ ]  optimize for scalability
-
-  [ ]  memory leaks
+  [ ] memory leaks
 
   [ ] timeline view  (?) -- which will use the database, so is globally backed up and available even if everything else is hosed:
                     store the starting version of the file and the edit history
+
+
+
 
 THEN do worksheets...
 
@@ -10772,7 +10778,7 @@ Important point for worksheets: http://arstechnica.com/information-technology/20
     "The other problem—and this was a huge issue and a common complaint—was that everyone could watch you type. "
 
 
-    [  ] Etherpad-lite -- node.js/javascript/jquery collaborative editing, apache license, -- https://github.com/ether/etherpad-lite
+    [x] Etherpad-lite -- node.js/javascript/jquery collaborative editing, apache license, -- https://github.com/ether/etherpad-lite
          http://sync.in/ -- uses this
 
          These have a very cool "time slider" -- I will definitely need to have that, both for worksheets and for code!
