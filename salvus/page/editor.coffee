@@ -299,6 +299,7 @@ class exports.Editor
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
                 editor = new CodeMirrorSessionEditor(@, filename, content, extra_opts)
+                editor.init_autosave()
                 #editor = new CodeMirrorEditor(@, filename, content, extra_opts)
             when 'terminal'
                 editor = new Terminal(@, filename, content, extra_opts)
@@ -316,6 +317,7 @@ class exports.Editor
                 editor = new PDF_Preview(@, filename, undefined, extra_opts)
             else
                 throw("Unknown editor type '#{x.editor}'")
+
 
         link = templates.find(".super-menu").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
@@ -360,6 +362,28 @@ class exports.Editor
 class FileEditor extends EventEmitter
     constructor: (@editor, @filename, content, opts) ->
         @val(content)
+
+    init_autosave: () =>
+        if @_autosave_interval?
+            # This function can safely be called again to *adjust* the
+            # autosave interval, in case user changes the settings.
+            clearInterval(@_autosave_interval)
+
+        # Use the most recent autosave value.
+        autosave = require('account').account_settings.settings.autosave
+        if autosave
+            save_if_changed = () =>
+                if not @editor.tabs[@filename]?
+                    # don't autosave anymore if the doc is closed
+                    clearInterval(@_autosave_interval)
+                    return
+                if @has_unsaved_changes()
+                    if @click_save_button?
+                        # nice gui feedback
+                        @click_save_button()
+                    else
+                        @save()
+            @_autosave_interval = setInterval(save_if_changed, autosave * 1000)
 
     val: (content) =>
         if not content?
@@ -550,6 +574,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     return
                 @_session = session
                 @_set(content)
+                @init_autosave()
 
                 session.on 'change', (diff) =>
                     c = @codemirror.getCursor()

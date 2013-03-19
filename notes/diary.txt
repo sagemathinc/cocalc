@@ -10751,7 +10751,9 @@ The players:
 
   [x] cleanup code and get rid of Session2 versions -- i.e., commit to this approach
 
--->  [ ] add one more level -- make "a file on disk" be another diffsync thing. (fs.watchFile)
+  [x] add one more level -- make "a file on disk" be another diffsync thing. (fs.watchFile)
+
+  [x] what happened to text document autosave?; implement generically
 
   [ ] see the refactor note above "CodeMirrorDiffSyncLocalHub"
 
