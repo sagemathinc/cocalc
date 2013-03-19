@@ -366,6 +366,8 @@ class DiffSyncFile_server extends diffsync.DiffSync
             @init(doc:data.toString(), id:"file_server")
             # winston.debug("got new file contents = '#{@live}'")
             @_start_watching_file()
+
+            setInterval(@_restart_watching_file, 30000)
             cb(err, @live)
 
     _watcher: (event) =>
@@ -384,6 +386,10 @@ class DiffSyncFile_server extends diffsync.DiffSync
 
     _stop_watching_file: () =>
         fs.unwatchFile(@path, @_watcher)
+
+    _restart_watching_file: () =>
+        @_stop_watching_file()
+        @_start_watching_file()
 
     # NOTE: I tried using fs.watch as below, but *DAMN* -- even on
     # Linux 12.10 -- fs.watch in Node.JS totally SUCKS.  It led to
@@ -786,7 +792,7 @@ project_exec = (socket, mesg) ->
             if err
                 err_mesg = message.error
                     id    : mesg.id
-                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}, #{output.stdout}, #{output.stderr}"
+                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}, #{output?.stdout}, #{output?.stderr}"
                 socket.write_mesg('json', err_mesg)
             else
                 winston.debug(misc.trunc(misc.to_json(out),512))

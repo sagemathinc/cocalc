@@ -603,9 +603,10 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             @_session.change @codemirror.getValue(), (err, new_content) =>
                 @changing = false
                 if not err?
-                    c = @codemirror.getCursor()
-                    @codemirror.setValue(new_content)
-                    @codemirror.setCursor(c)
+                    if new_content !=  @codemirror.getValue()
+                        c = @codemirror.getCursor()
+                        @codemirror.setValue(new_content)
+                        @codemirror.setCursor(c)
 
 
     click_save_button: () =>
@@ -700,7 +701,7 @@ class PDF_Preview extends FileEditor
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
 
         @page_number = 1
-        @density = 250  # impacts the clarity
+        @density = 300  # impacts the clarity
 
         s = path_split(@filename)
         @path = s.head
@@ -844,7 +845,7 @@ class LatexEditor extends FileEditor
 
         # initialize the preview
         n = @filename.length
-        @preview = new PDF_Preview(@editor, @_target.slice(0,n-3)+"pdf", undefined, {})
+        @preview = new PDF_Preview(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-preview").append(@preview.element)
 
         # initalize the log
