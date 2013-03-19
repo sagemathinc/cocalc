@@ -498,7 +498,6 @@ class CodeMirrorEditor extends FileEditor
         @element.resizable(alsoResize:scroller, handles: "s").on('resize', @focus)
 
         @init_save_button()
-        @init_refresh_button()
         @init_change_event()
 
     init_save_button: () =>
@@ -522,13 +521,6 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.on 'change', (instance, changeObj) =>
             @has_unsaved_changes(true)
             @save_button.removeClass('disabled')
-
-    init_refresh_button: () =>
-        @refresh_button = @element.find("a[href=#refresh]").click(@click_refresh_button)
-        @refresh_button.find(".spinner").hide()
-
-    click_refresh_button: () =>
-        # not implemented
 
     _get: () =>
         val = @codemirror.getValue()
@@ -581,7 +573,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     c = @codemirror.getCursor()
                     @codemirror.setValue(content)
                     @codemirror.setCursor(c)
-                    #@_draw_other_cursor(..., 'red') 
+                    #@_draw_other_cursor(..., 'red')
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'

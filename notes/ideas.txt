@@ -1,3 +1,5 @@
+
+
 [ ] embed worksheets in pdf --
 
        Can you provide a brief sketch of how, along with links?  I can
@@ -130,8 +132,8 @@ going to become a commercial publisher :-)
 
  [ ] cross browser testing? https://browserling.com
 
- [ ] evidently d3.js (http://d3js.org/) has some amazing visualization for graphs! 
-       http://news.ycombinator.com/item?id=4706037  
+ [ ] evidently d3.js (http://d3js.org/) has some amazing visualization for graphs!
+       http://news.ycombinator.com/item?id=4706037
      this kills "the graph editor" http://bl.ocks.org/1377729
 
  [ ] 3d -- still threejs is the way to go
@@ -146,7 +148,7 @@ going to become a commercial publisher :-)
            http://news.ycombinator.com/item?id=4709005
            https://github.com/unconed/CSS3D.js
 
- [ ] "rvl.io lets you author beautiful presentations, right in your browser" 
+ [ ] "rvl.io lets you author beautiful presentations, right in your browser"
         http://www.rvl.io/; http://news.ycombinator.com/item?id=4712848
 
      - they have a very nice sign-up process! ... maybe.
@@ -170,10 +172,10 @@ going to become a commercial publisher :-)
 
      Good discussion of alternatives: http://news.ycombinator.com/item?id=4748000
 
- [ ]  this list of javascript libraries is awesome: http://microjs.com/# 
+ [ ]  this list of javascript libraries is awesome: http://microjs.com/#
 
 
- [ ] support this somehow: https://code.google.com/p/skulpt/  Why not?  
+ [ ] support this somehow: https://code.google.com/p/skulpt/  Why not?
 
      In browser python... but maybe extend it with a way to call back to a remote server for sophisticated features.
  [ ] 3d: presentation quality math with three.js and webgl: http://acko.net/blog/making-mathbox/
