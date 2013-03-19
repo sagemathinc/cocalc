@@ -22,17 +22,33 @@
 # an error above.
 ###################################################################
 # FOR TESTING:
-# coffee  -o node_modules -c dsync.coffee && echo "require('dsync').test1()" | coffee
+# coffee  -o node_modules -c diffsync.coffee && echo "require('diffsync').test1()" | coffee
 
 SIMULATE_LOSS = false
 
-misc = require('misc')
-{defaults, required} = misc
+async = require('async')
 diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
 dmp = new diff_match_patch()
 
+misc = require('misc')
+{defaults, required} = misc
+
+# debug = (s) ->
+#     w = 'winston'
+#     try
+#         require(w).debug(s)
+#     catch e
+#         # nothing
+
 class DiffSync
     constructor: (opts) ->
+        @init(opts)
+
+    # NOTE: We're using init instead of a constructor and super()
+    # because inheritence doesn't seem to work right across exports in
+    # coffeescript... this took me 2 hours to figure out :-(.  This is used
+    # in local_hub.coffee :-(
+    init: (opts) ->
         opts = defaults opts,
             id   : undefined
             doc  : required
@@ -40,7 +56,6 @@ class DiffSync
             @id = misc.uuid()
         else
             @id = opts.id
-
         @live                  = opts.doc
         @shadow                = @_copy(@live)
         @backup_shadow         = @_copy(@shadow)
@@ -48,6 +63,10 @@ class DiffSync
         @backup_shadow_version = 0
         @last_version_received = -1
         @edit_stack            = []
+
+    # This can be overloaded in a derived class
+    snapshot: (cb) => # cb(err, snapshot of live document)
+        cb(false, @_copy(@live))
 
     # Copy a document; strings are immutable and the default, so we
     # just return the object.
@@ -59,8 +78,16 @@ class DiffSync
         return dmp.patch_make(version0, version1)
 
     # "Best effort" application of array of edits.
-    _apply_edits: (edits, doc) =>
-        return dmp.patch_apply(edits, doc)[0]
+    _apply_edits: (edits, doc, cb) =>
+        cb(false, dmp.patch_apply(edits, doc)[0])
+
+    _apply_edits_to_live: (edits, cb) =>
+        @_apply_edits  edits, @live, (err, result) =>
+            if err
+                cb(err); return
+            else
+                @live = result
+                cb()
 
     # Return a checksum of a document
     _checksum: (doc) =>
@@ -92,21 +119,27 @@ class DiffSync
     # Create a list of new edits, then send all edits not yet
     # processed to the other end of the connection.
     push_edits: (cb) =>
-        snapshot = @_copy(@live)
-        edits = {edits:@_compute_edits(@shadow, snapshot)}
+        @snapshot (err, snapshot) =>
+            if err
+                cb(err); return
 
-        if edits.edits.length > 0
-            edits.shadow_version  = @shadow_version
-            edits.shadow_checksum = @_checksum(@shadow)
-            @edit_stack.push(edits)
-            @shadow          = snapshot
-            @shadow_version += 1
+            if not snapshot?
+                cb("snapshot computed in push_edits is undefined")
 
-        if SIMULATE_LOSS and Math.random() < .5  # Simulate packet loss
-            console.log("Simulating loss!"); cb(true); return
+            edits = {edits:@_compute_edits(@shadow, snapshot)}
 
-        # Push any remaining edits from the stack, *AND* report the last version we have received so far.
-        @remote.recv_edits(@edit_stack, @last_version_received, cb)
+            if edits.edits.length > 0
+                edits.shadow_version  = @shadow_version
+                edits.shadow_checksum = @_checksum(@shadow)
+                @edit_stack.push(edits)
+                @shadow          = snapshot
+                @shadow_version += 1
+
+            if SIMULATE_LOSS and Math.random() < .5  # Simulate packet loss
+                console.log("Simulating loss!"); cb(true); return
+
+            # Push any remaining edits from the stack, *AND* report the last version we have received so far.
+            @remote.recv_edits(@edit_stack, @last_version_received, cb)
 
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
@@ -133,24 +166,35 @@ class DiffSync
         @backup_shadow_version = @shadow_version
 
         # Process the incoming edits
-        for edits in edit_stack
+        i = 0
+        process_edit = (cb) =>
+            edits = edit_stack[i]
+            i += 1
             if edits.shadow_version == @shadow_version
                 if edits.shadow_checksum != @_checksum(@shadow)
                     # Data corruption in memory or network: we have to just restart everything from scratch.
                     cb('reset')
                     return
-                @last_version_received = edits.shadow_version
-                @shadow                = @_apply_edits(edits.edits, @shadow)
-                @shadow_version       += 1
-                @live                  = @_apply_edits(edits.edits, @live)
+                @_apply_edits  edits.edits, @shadow, (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        @last_version_received = edits.shadow_version
+                        @shadow = result
+                        @shadow_version  += 1
+                        @_apply_edits_to_live(edits.edits, cb)
             else
                 if edits.shadow_version < @shadow_version
-                    # Packet duplication or loss.
-                    continue
+                    # Packet duplication or loss: ignore -- it will sort itself out later.
+                    cb()
                 else if edits.shadow_version > @shadow_version
                     # This should be impossible, unless there is data corruption.
                     cb('reset')
-        cb()
+                    return
+        tasks = (process_edit for j in [0...edit_stack.length])
+        async.series(tasks, (err) -> cb?(err))
+
+
 
     # This is for debugging.
     status: () => {'id':@id, 'live':@live, 'shadow':@shadow, 'shadow_version':@shadow_version, 'edit_stack':@edit_stack}

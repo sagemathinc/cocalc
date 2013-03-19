@@ -355,7 +355,50 @@ sage_sessions = new SageSessions()
 #
 #############################################################################
 
-# TODO: the disk sync part is not implemented yet -- it's the last piece in the puzzle.
+
+class DiffSyncFile_server extends diffsync.DiffSync
+    constructor:(@path, cb)  ->
+        @snapshot (err, content) =>
+            if err
+                cb(err)
+            else
+                @init(doc:content, id:"file_server")
+                cb(err, content)
+
+    snapshot: (cb) =>  # cb(err, snapshot of live document)
+        winston.debug("Reading file from disk: '#{@path}'")
+        fs.readFile @path, (err, data) =>
+            if err
+                cb(err)
+            else
+                @live = data.toString()
+                winston.deubg("file = '#{@live}'")
+                cb(err, @live)
+
+    _apply_edits_to_live: (edits, cb) =>
+        winston.debug("Apply edits #{misc.to_json(edits)} to @live='#{@live}' file")
+        if edits.length == 0
+            cb(); return
+        fs.readFile @path, (err, data) =>
+            if err
+                cb(err)
+            else
+                @live = data.toString()
+                winston.debug("File is '#{@live}'")
+                @_apply_edits edits, @live, (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        winston.debug("Writing out result of diff '#{@live}'")
+                        @live = result
+                        fs.writeFile @path, @live, cb
+
+class DiffSyncFile_client extends diffsync.DiffSync
+    constructor:(@server) ->
+        super(doc:@server.live, id:"file_client")
+        # Connect the two together
+        @connect(@server)
+        @server.connect(@)
 
 # The CodeMirrorDiffSyncHub class represents a global hub viewed as a
 # remote client for this local hub.  There may be dozens of global
@@ -384,18 +427,25 @@ class CodeMirrorSession
     constructor: (mesg, cb) ->
         @path = mesg.path
         @session_uuid = mesg.session_uuid
-        fs.readFile @path, (err, data) =>
+
+        # The downstream clients of this local hub -- these are global hubs
+        @diffsync_clients = {}
+
+        # The upstream version of this document -- the *actual* file on disk.
+        fileserver = new DiffSyncFile_server @path, (err, content) =>
             if err
                 cb(err)
             else
-                # The global live document
-                @content = data.toString()
-                # The downstream clients of this local hub -- these are global hubs
-                @diffsync_clients = {}
+                @content = content
+                @diffsync_fileclient = new DiffSyncFile_client(fileserver)
                 cb(false, @)
+                fileserver.snapshot (err, content) =>
+                    winston.debug("TESTING got '#{content}'")
+
 
     set_content: (value) =>
         @content = value
+        @diffsync_fileclient.live = @content
         for id, ds_client of @diffsync_clients
             ds_client.live = @content
 
@@ -419,7 +469,14 @@ class CodeMirrorSession
             @set_content(ds_client.live)
             changed = (before != @content)
 
-            # Propogate new live state to other clients -- TODO: there
+            if changed
+                winston.debug("CodeMirrorSession -- Synchronize with upstream (the file itself)")
+                @diffsync_fileclient.sync (err) =>
+                    winston.debug("CodeMirrorSession -- fileclient sync returned -- '#{err}'")
+            else
+                winston.debug("No changes; not synchronizing file.")
+
+            # Propagate our new state to other clients -- TODO: there
             # should just be one live document shared instead of a
             # bunch of copies.
             for id, ds_client of @diffsync_clients
@@ -437,7 +494,8 @@ class CodeMirrorSession
             ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
             ds_client.push_edits (err) =>
                 if err
-                    winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
+                    winston.debug("CodeMirrorSession -- client push_edits returned -- #{err}")
+
 
     add_client: (socket) =>
         ds_client = new diffsync.DiffSync(doc:@content)
@@ -760,6 +818,7 @@ handle_mesg = (socket, mesg) ->
                     err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")
                 socket.write_mesg('json', err)
     catch e
+        winston.debug(new Error().stack)
         winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
 
 server = net.createServer (socket) ->
@@ -773,7 +832,7 @@ server = net.createServer (socket) ->
             misc_node.enable_mesg(socket)
             socket.on 'mesg', (type, mesg) ->
                 if type == "json"   # other types are handled elsewhere in event code.
-                    winston.debug "received control mesg #{to_json(mesg)}"
+                    winston.debug "received control mesg #{misc.trunc(to_json(mesg),300)}"
                     handle_mesg(socket, mesg)
 
 # Start listening for connections on the socket.
@@ -790,7 +849,6 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 0 = automatically allocated; saved to ~/.sagemathcloud/data/local_hub.port)', parseInt, 0)
     .option('--pidfile [string]', 'store pid in this file', String, abspath(".sagemathcloud/data/local_hub.pid"))
     .option('--logfile [string]', 'write log to this file', String, abspath(".sagemathcloud/data/local_hub.log"))
     .parse(process.argv)

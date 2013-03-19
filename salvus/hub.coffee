@@ -1207,6 +1207,8 @@ class CodeMirrorSession
         @path         = opts.path
 
         # Our upstream server (the local hub)
+        winston.debug("******************")
+        winston.debug("opts.content = ", opts.content)
         @diffsync_server = new diffsync.DiffSync(doc:opts.content)
         @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
 
@@ -3296,7 +3298,7 @@ if program._name == 'hub.js'
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
         winston.debug("Uncaught exception: " + err)
-        console.trace()
+        winston.debug(new Error().stack)
         winston.debug("BUG ****************************************************************************")
 
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)

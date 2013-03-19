@@ -10751,16 +10751,17 @@ The players:
 
   [x] cleanup code and get rid of Session2 versions -- i.e., commit to this approach
 
-  [ ] add one more level -- make "a file on disk" be another diffsync thing.
+-->  [ ] add one more level -- make "a file on disk" be another diffsync thing. (fs.watchFile)
 
   [ ] see the refactor note above "CodeMirrorDiffSyncLocalHub"
 
-THEN THE FUN STUFF:
   [ ] properly implement cursor location display:  see http://neil.fraser.name/writing/cursor/
-- fs.watchFile
-- optimize
-- memory leaks
-- timeline view  -- which will use the database, so is globally backed up and available even if everything else is hosed:
+
+  [ ]  optimize for scalability
+
+  [ ]  memory leaks
+
+  [ ] timeline view  (?) -- which will use the database, so is globally backed up and available even if everything else is hosed:
                     store the starting version of the file and the edit history
 
 THEN do worksheets...
@@ -10775,6 +10776,8 @@ Important point for worksheets: http://arstechnica.com/information-technology/20
          These have a very cool "time slider" -- I will definitely need to have that, both for worksheets and for code!
 
 ======================================
+
+    [ ] closing a terminal on one client hangs it on all of them -- better if closing it on *all* needed (or something explicit)...
 
      [ ] IDEA -- terminal could become way less "laggy" by using differential synchronization and just letting
          what user types appear (?)

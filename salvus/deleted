@@ -1,3 +1,60 @@
+    # Receive and process the edits from the other end of the sync connection.
+    recv_edits: (edit_stack, last_version_ack, cb) =>
+        if SIMULATE_LOSS and Math.random() < .5           # Simulate packet loss
+            console.log("Simulating loss!"); cb(true); return
+
+        # Keep only edits that we still need to send.
+        @edit_stack = (edits for edits in @edit_stack when edits.shadow_version > last_version_ack)
+
+        if edit_stack.length == 0
+            cb()
+            return
+
+        if edit_stack[0].shadow_version != @shadow_version and edit_stack[0].shadow_version == @backup_shadow_version
+            # Lost return packet
+            @shadow         = @_copy(@backup_shadow)
+            @shadow_version = @backup_shadow_version
+            @edit_stack     = []
+
+        # Make a backup, just in case it turns out that our message
+        # back to the client that we applied these changes is lost
+        # "Lost return packet."
+        @backup_shadow         = @_copy(@shadow)
+        @backup_shadow_version = @shadow_version
+
+        tasks = []
+        for edits in edit_stack
+            tasks.push(
+                (cb) =>
+                    if edits.shadow_version == @shadow_version
+                        if edits.shadow_checksum != @_checksum(@shadow)
+                            # Data corruption in memory or network: we have to just restart everything from scratch.
+                            cb('reset')
+                            return
+                        @last_version_received = edits.shadow_version
+                        @shadow                = @_apply_edits0(edits.edits, @shadow)
+                        @shadow_version       += 1
+                        @live                  = @_apply_edits0(edits.edits, @live)
+                        cb()
+                        # @_apply_edits  edits.edits, @shadow, (err, result) =>
+                        #     if err
+                        #         cb(err)
+                        #     else
+                        #         @shadow = result
+                        #         @shadow_version  += 1
+                        #         @_apply_edits_to_live(edits.edits, cb)
+                    else
+                        if edits.shadow_version < @shadow_version
+                            # Packet duplication or loss: ignore -- it will sort itself out later.
+                            cb()
+                        else if edits.shadow_version > @shadow_version
+                            # This should be impossible, unless there is data corruption.
+                            cb('reset')
+            )
+
+        async.series(tasks, (err) => cb?(err))
+
+
     # Connect the client with a codemirror file editing session.
     connect_to_codemirror_session: (opts) =>
         opts = defaults opts,
