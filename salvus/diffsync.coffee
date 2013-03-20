@@ -25,7 +25,7 @@
 # coffee  -o node_modules -c diffsync.coffee && echo "require('diffsync').test1()" | coffee
 
 SIMULATE_LOSS = false
-SIMULATE_LOSS = true
+#SIMULATE_LOSS = true
 
 async = require('async')
 diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
@@ -184,6 +184,7 @@ class DiffSync
                         @shadow = result
                         @shadow_version  += 1
                         @_apply_edits_to_live(edits.edits, cb)
+
             else
                 if edits.shadow_version < @shadow_version
                     # Packet duplication or loss: ignore -- it will sort itself out later.
@@ -203,8 +204,9 @@ class DiffSync
 
 class CustomDiffSync extends DiffSync
     constructor: (opts) ->
-        #IMPORTANT: None of the custom functions below take callbacks
+        #IMPORTANT: (1) None of the custom functions below take callbacks
         # as the last argument!
+        # (2) You really, really want to define patch_in_place.  You must if doc0 = doc1 doesn't work.
         opts = defaults opts,
             id       : undefined   # anything you want; or leave empty to have a uuid randomly assigned
             doc      : required    # the starting live document
@@ -214,20 +216,25 @@ class CustomDiffSync extends DiffSync
             checksum : required    # checksum(doc0) -> something simple
             patch_in_place : undefined  # patch(d, doc0) modified doc0 in place to become doc1.
 
+        @opts = opts
         @init(id : opts.id,  doc : opts.doc)
 
-        @_copy           = opts.copy
-        @_compute_edits  = opts.diff
         @_patch          = opts.patch
         @_patch_in_place = opts.patch_in_place
         @_checksum       = opts.checksum
 
+    _copy: (doc) =>
+        return @opts.copy(doc)
+
+    _compute_edits: (version0, version1) =>
+        return @opts.diff(version0, version1)
+
     _apply_edits: (edits, doc, cb) =>
-        cb(false, @_patch(edits, doc))
+        cb(false, @opts.patch(edits, doc))
 
     _apply_edits_to_live: (edits, cb) =>
-        if @_patch_in_place?
-            @_patch_in_place(edits, @live)
+        if @opts.patch_in_place?
+            @opts.patch_in_place(edits, @live)
             cb()
         else
             @_apply_edits  edits, @live, (err, result) =>
@@ -237,17 +244,29 @@ class CustomDiffSync extends DiffSync
                     @live = result
                     cb()
 
+    _checksum: (doc) =>
+        return @opts.checksum(doc)
 
-test0 = (client, server) ->
-    client.live = "sage"
-    server.live = "my\nsage"
+test0 = (client, server, DocClass, Doc_equal, Doc_str) ->
+    if DocClass?
+        client.live = new DocClass("sage")
+        server.live = new DocClass("my\nsage")
+    else
+        client.live = "sage"
+        server.live = "my\nsage"
+
+    if not Doc_equal?
+        Doc_equal = (s,t) -> s==t
+    if not Doc_str?
+        Doc_print = (s) -> s
+
     status = () ->
         #console.log("------------------------")
         #console.log(misc.to_json(client.status()))
         #console.log(misc.to_json(server.status()))
         console.log("------------------------")
-        console.log("'#{client.live}'")
-        console.log("'#{server.live}'")
+        console.log("'#{Doc_str(client.live)}'")
+        console.log("'#{Doc_str(server.live)}'")
 
     pusher = undefined
     go = () ->
@@ -271,10 +290,14 @@ test0 = (client, server) ->
                     throw err
 
     go()
-    client.live += "more stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj"
-    server.live = 'bar' + server.live + "lkajsdfllkjasdfl jasdlfj alsdkfjas'dfjlkasdjflasjdfkljasdf"
+    if DocClass?
+        client.live = new DocClass("bar more stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj" + misc.uuid())
+        server.live = new DocClass("bar lkajsdfllkjasdfl jasdlfj alsdkfjasdfjlkasdjflasjdfkljasdf" + misc.uuid())
+    else
+        client.live += "more stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj" + misc.uuid()
+        server.live = 'bar' + server.live + "lkajsdfllkjasdfl jasdlfj alsdkfjas'dfjlkasdjflasjdfkljasdf" + misc.uuid()
     status()
-    while client.live != server.live
+    while not Doc_equal(client.live, server.live)
         status()
         go()
     status()
@@ -304,6 +327,7 @@ exports.test3 = () ->
         console.log(misc.to_json(server.status()))
 
 exports.test4 = (n=1) ->
+    # Just use the standard dmp functions on strings again.
     copy      = (s) -> s
     diff      = (v0,v1)  -> dmp.patch_make(v0,v1)
     patch     = (d, doc) -> dmp.patch_apply(d, doc)[0]
@@ -330,6 +354,58 @@ exports.test4 = (n=1) ->
             console.log(misc.to_json(client.status()))
             console.log(misc.to_json(server.status()))
         test0(client, server)
+
+exports.test6 = (n=1) ->
+    #
+    # Make the documents a mutable version of strings (defined via a class) instead.
+    #
+
+    class Doc
+        constructor: (@doc) ->
+            if @doc.doc?
+                console.log("tried to make Doc(Doc)")
+                traceback()
+            if @doc == '[object Object]'
+                console.log("tried to make Doc from obvious mistake")
+                traceback()
+            if not @doc?
+                console.log("tried to make Doc with undefined doc")
+                traceback() # cause stack trace
+            if not (typeof @doc == 'string')
+                console.log("tried to make Doc from non-string '#{misc.to_json(@doc)}'")
+                traceback()
+
+    copy      = (s) ->
+        console.log("copying: ", s.doc)
+        return new Doc(s.doc)
+    diff      = (v0,v1)  -> console.log(v0, v0.doc, v1, v1.doc); return dmp.patch_make(v0.doc, v1.doc)
+    patch     = (d, doc) -> new Doc(dmp.patch_apply(d, doc.doc)[0])
+    checksum  = (s) -> s.doc.length + 3    # +3 for luck
+    patch_in_place = (d, s) -> s.doc = dmp.patch_apply(d, s.doc)[0]  # modifies s.doc inside object
+
+    DS = (id, doc) -> return new CustomDiffSync
+        id       : id
+        doc      : doc
+        copy     : copy
+        diff     : diff
+        patch    : patch
+        patch_in_place : patch_in_place
+        checksum : checksum
+
+    for i in [0...n]
+        client = DS("client", new Doc("cat"))
+        server = DS("server", new Doc("cat"))
+
+        client.connect(server)
+        server.connect(client)
+
+        client.live = new Doc("cats")
+        server.live = new Doc("my\ncat")
+        client.sync () =>
+            console.log(misc.to_json(client.status()))
+            console.log(misc.to_json(server.status()))
+        test0(client, server, Doc, ((s,t) -> s.doc ==t.doc), ((s) -> s.doc))
+
 
 
 exports.DiffSync = DiffSync
