@@ -589,11 +589,19 @@ class CodeMirrorDiffSyncDoc
         # there were edits as an optimization
         return diffsync.dmp.patch_make(@string(), v1.string())
 
-    patch: (d) =>
-        return new CodeMirrorDiffSyncDoc(string: diffsync.dmp.patch_apply(d, @.string())[0])
+    patch: (p) =>
+        return new CodeMirrorDiffSyncDoc(string: diffsync.dmp.patch_apply(p, @string())[0])
 
     checksum: () =>
         return @string().length
+
+    patch_in_place: (p) =>
+        if @opts.string
+            console.log("patching string in place")  # should never need to happen
+            @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
+        else
+            console.log("patching codemirror in place")
+            @opts.cm.setValue(diffsync.dmp.patch_apply(p, @string())[0])
 
 
 codemirror_diffsync_client = (cm_session, content) ->
@@ -606,16 +614,19 @@ codemirror_diffsync_client = (cm_session, content) ->
         return v0.patch(d)
     checksum  = (s) ->
         return s.checksum()
+    patch_in_place = (p, v0) ->
+        v0.patch_in_place(p)
 
     #patch_in_place = (d, s) -> s.doc = dmp.patch_apply(d, s.doc)[0]  # modifies s.doc inside object
 
     cm_session.codemirror.setValue(content)
     return new diffsync.CustomDiffSync
-        doc      : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
-        copy     : copy
-        diff     : diff
-        patch    : patch
-        checksum : checksum
+        doc            : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
+        copy           : copy
+        diff           : diff
+        patch          : patch
+        checksum       : checksum
+        patch_in_place : patch_in_place
 
 # The CodeMirrorDiffSyncHub class represents a global hub viewed as a
 # remote server for this client.
