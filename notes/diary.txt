@@ -10763,9 +10763,9 @@ March 20, 2013
 
   [x] diffsync -- make the code more flexible
 
-  [ ] client codemirror editor sessions -- optimize diff application; step 1: lock/apply diff/unlock
+  [x] (1:15) client codemirror editor sessions -- optimize diff application; step 1: lock/apply diff/unlock;  Also major refactoring of code.
 
-  [ ] client codemirror editor sessions -- optimize diff application; step 2: lock/apply diff efficiently (via changeObj)/unlock
+-->  [ ] client codemirror editor sessions -- optimize diff application; step 2: lock/apply diff efficiently (via changeObj)/unlock
 
   [ ] client codemirror editor sessions -- optimize/scale diff creation -- use changeObj region so do not have to diff entire document
 

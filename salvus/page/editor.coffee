@@ -560,6 +560,62 @@ class CodeMirrorEditor extends FileEditor
 
 diffsync = require('diffsync')
 
+class CodeMirrorDiffSyncDoc
+    # Define exactly one of cm or string.
+    #     cm     = a live codemirror editor
+    #     string = a string
+    constructor: (opts) ->
+        @opts = defaults opts,
+            cm     : undefined
+            string : undefined
+        if not ((opts.cm? and not opts.string?) or (opts.string? and not opts.cm?))
+            console.log("BUG -- exactly one of opts.cm and opts.string must be defined!")
+
+    copy: () =>
+        # always degrades to a string
+        if @opts.cm
+            return new CodeMirrorDiffSyncDoc(string:@opts.cm.getValue())
+        else
+            return new CodeMirrorDiffSyncDoc(string:@opts.string)
+
+    string: () =>
+        if @opts.string?
+            return @opts.string
+        else
+            return @opts.cm.getValue()
+
+    diff: (v1) =>
+        # TODO: when either is a codemirror object, can use knowledge of where/if
+        # there were edits as an optimization
+        return diffsync.dmp.patch_make(@string(), v1.string())
+
+    patch: (d) =>
+        return new CodeMirrorDiffSyncDoc(string: diffsync.dmp.patch_apply(d, @.string())[0])
+
+    checksum: () =>
+        return @string().length
+
+
+codemirror_diffsync_client = (cm_session, content) ->
+
+    copy      = (s) ->
+        return s.copy()
+    diff      = (v0,v1)  ->
+        return v0.diff(v1)
+    patch     = (d, v0) ->
+        return v0.patch(d)
+    checksum  = (s) ->
+        return s.checksum()
+
+    #patch_in_place = (d, s) -> s.doc = dmp.patch_apply(d, s.doc)[0]  # modifies s.doc inside object
+
+    cm_session.codemirror.setValue(content)
+    return new diffsync.CustomDiffSync
+        doc      : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
+        copy     : copy
+        diff     : diff
+        patch    : patch
+        checksum : checksum
 
 # The CodeMirrorDiffSyncHub class represents a global hub viewed as a
 # remote server for this client.
@@ -613,7 +669,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 # TODO -- if our content is already set, maybe don't do this, so instead we cause a merge!?
                 @_set(resp.content)
 
-                @dsync_client = new diffsync.DiffSync(doc:resp.content)
+                @dsync_client = codemirror_diffsync_client(@, resp.content)
                 @dsync_server = new CodeMirrorDiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
@@ -652,8 +708,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             return
         @_syncing = true
 
-        before = @codemirror.getValue()
-        @dsync_client.live = before
+        before = @dsync_client.live.string()
 
         @codemirror.setOption('readOnly', true)  # lock editor
         @dsync_client.push_edits (err) =>
@@ -662,9 +717,10 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @codemirror.setOption('readOnly', false)
                 alert_message(type:"error", message:"Error synchronizing '#{@filename}' with server -- '#{err}'")
             else
-                if @dsync_client.live != before
+                after = @dsync_client.live.string()
+                if after != before
                     c = @codemirror.getCursor()
-                    @codemirror.setValue(@dsync_client.live)
+                    @codemirror.setValue(after)
                     @codemirror.setCursor(c)
                 @codemirror.setOption('readOnly', false)
                 @_syncing = false

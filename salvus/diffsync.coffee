@@ -28,8 +28,10 @@ SIMULATE_LOSS = false
 #SIMULATE_LOSS = true
 
 async = require('async')
+
 diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
 dmp = new diff_match_patch()
+exports.dmp = dmp
 
 misc = require('misc')
 {defaults, required} = misc
@@ -246,6 +248,8 @@ class CustomDiffSync extends DiffSync
 
     _checksum: (doc) =>
         return @opts.checksum(doc)
+
+exports.CustomDiffSync = CustomDiffSync
 
 test0 = (client, server, DocClass, Doc_equal, Doc_str) ->
     if DocClass?
