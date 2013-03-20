@@ -258,7 +258,7 @@ test0 = (client, server, DocClass, Doc_equal, Doc_str) ->
     if not Doc_equal?
         Doc_equal = (s,t) -> s==t
     if not Doc_str?
-        Doc_print = (s) -> s
+        Doc_str = (s) -> s
 
     status = () ->
         #console.log("------------------------")
@@ -291,11 +291,11 @@ test0 = (client, server, DocClass, Doc_equal, Doc_str) ->
 
     go()
     if DocClass?
-        client.live = new DocClass("bar more stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj" + misc.uuid())
-        server.live = new DocClass("bar lkajsdfllkjasdfl jasdlfj alsdkfjasdfjlkasdjflasjdfkljasdf" + misc.uuid())
+        client.live = new DocClass("bar more stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj\n" + misc.uuid())
+        server.live = new DocClass("bar lkajsdfllkjasdfl jasdlfj alsdkfjasdfjlkasdjflasjdfkljasdf\n" + misc.uuid())
     else
-        client.live += "more stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj" + misc.uuid()
-        server.live = 'bar' + server.live + "lkajsdfllkjasdfl jasdlfj alsdkfjas'dfjlkasdjflasjdfkljasdf" + misc.uuid()
+        client.live += "more stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj\n" + misc.uuid()
+        server.live = 'bar\n' + server.live + "lkajsdfllkjasdfl jasdlfj alsdkfjas'dfjlkasdjflasjdfkljasdf\n" + misc.uuid()
     status()
     while not Doc_equal(client.live, server.live)
         status()
@@ -355,7 +355,7 @@ exports.test4 = (n=1) ->
             console.log(misc.to_json(server.status()))
         test0(client, server)
 
-exports.test6 = (n=1) ->
+exports.test5 = (n=1) ->
     #
     # Make the documents a mutable version of strings (defined via a class) instead.
     #
@@ -376,9 +376,11 @@ exports.test6 = (n=1) ->
                 traceback()
 
     copy      = (s) ->
-        console.log("copying: ", s.doc)
         return new Doc(s.doc)
-    diff      = (v0,v1)  -> console.log(v0, v0.doc, v1, v1.doc); return dmp.patch_make(v0.doc, v1.doc)
+
+    diff      = (v0,v1)  ->
+        return dmp.patch_make(v0.doc, v1.doc)
+
     patch     = (d, doc) -> new Doc(dmp.patch_apply(d, doc.doc)[0])
     checksum  = (s) -> s.doc.length + 3    # +3 for luck
     patch_in_place = (d, s) -> s.doc = dmp.patch_apply(d, s.doc)[0]  # modifies s.doc inside object
@@ -400,12 +402,140 @@ exports.test6 = (n=1) ->
         server.connect(client)
 
         client.live = new Doc("cats")
-        server.live = new Doc("my\ncat")
+        server.live = new Doc("my\nbat")
         client.sync () =>
             console.log(misc.to_json(client.status()))
             console.log(misc.to_json(server.status()))
         test0(client, server, Doc, ((s,t) -> s.doc ==t.doc), ((s) -> s.doc))
 
+exports.test6 = (n=1) ->
+    #
+    # Do all diffs at a line level (could be used for a "list of worksheet cells", if followed by a post-processing to remove dups -- see below)
+    # WARNING: ALL lines must end in \n
+    #
 
+    class Doc
+        constructor: (@doc) ->
+            if not (typeof @doc == 'string')
+                console.log("tried to make Doc from non-string '#{misc.to_json(@doc)}'")
+                traceback()
+
+    copy      = (s) ->
+        return new Doc(s.doc)
+
+    # See http://code.google.com/p/google-diff-match-patch/wiki/LineOrWordDiffs
+    diff      = (v0,v1)  ->
+        a = dmp.diff_linesToChars_(v0.doc, v1.doc)
+        diffs = dmp.diff_main(a.chars1, a.chars2, false)
+        dmp.diff_charsToLines_(diffs, a.lineArray)
+        return dmp.patch_make(diffs)
+
+    patch     = (d, doc) -> new Doc(dmp.patch_apply(d, doc.doc)[0])
+    checksum  = (s) -> s.doc.length + 3    # +3 for luck
+    patch_in_place = (d, s) -> s.doc = dmp.patch_apply(d, s.doc)[0]  # modifies s.doc inside object
+
+    DS = (id, doc) -> return new CustomDiffSync
+        id       : id
+        doc      : doc
+        copy     : copy
+        diff     : diff
+        patch    : patch
+        patch_in_place : patch_in_place
+        checksum : checksum
+
+    for i in [0...n]
+        client = DS("client", new Doc("cat"))
+        server = DS("server", new Doc("cat"))
+
+        status = () ->
+            console.log(client.live.doc)
+            console.log("-----")
+            console.log(server.live.doc)
+            console.log("================")
+
+        client.connect(server)
+        server.connect(client)
+
+        status()
+        client.live = new Doc("cat\nwilliam\nb\nstein\n")
+        server.live = new Doc("cats\nstein\na\nb\nwilliam\n")
+        client.sync () =>
+            status()
+
+        # test0(client, server, Doc, ((s,t) -> s.doc ==t.doc), ((s) -> s.doc))
+
+exports.test7 = (n=1) ->
+    #
+    # Do all diffs at a line level then delete dup lines (could be used for a "list of worksheet cells")
+    # WARNING: ALL lines must end in \n
+    #
+
+    dedup = (s) ->
+        # delete duplicate lines
+        v = s.split('\n')
+        lines_so_far = {}
+        w = []
+        for line in v
+            if not lines_so_far[line]?
+                w.push(line)
+                lines_so_far[line] = true
+        return w.join('\n')
+
+    class Doc
+        constructor: (@doc, dedup_doc) ->
+            if not (typeof @doc == 'string')
+                console.log("tried to make Doc from non-string '#{misc.to_json(@doc)}'")
+                traceback()
+            if dedup_doc? and dedup_doc
+                @doc = dedup(@doc)
+
+    copy      = (s) ->
+        return new Doc(s.doc, true)
+
+    # See http://code.google.com/p/google-diff-match-patch/wiki/LineOrWordDiffs
+    diff      = (v0,v1)  ->
+        a = dmp.diff_linesToChars_(v0.doc, v1.doc)
+        diffs = dmp.diff_main(a.chars1, a.chars2, false)
+        dmp.diff_charsToLines_(diffs, a.lineArray)
+        return dmp.patch_make(diffs)
+
+    patch     = (d, doc) ->
+        new Doc(dmp.patch_apply(d, doc.doc)[0], true)
+
+    checksum  = (s) -> s.doc.length + 3    # +3 for luck
+
+    patch_in_place = (d, s) ->
+        s.doc = dedup(dmp.patch_apply(d, s.doc)[0])  # modifies s.doc inside object
+
+    DS = (id, doc) -> return new CustomDiffSync
+        id       : id
+        doc      : doc
+        copy     : copy
+        diff     : diff
+        patch    : patch
+        patch_in_place : patch_in_place
+        checksum : checksum
+
+    for i in [0...n]
+        client = DS("client", new Doc("cat"))
+        server = DS("server", new Doc("cat"))
+
+        status = () ->
+            console.log(client.live.doc)
+            console.log("-----")
+            console.log(server.live.doc)
+            console.log("================")
+
+        client.connect(server)
+        server.connect(client)
+        status()
+
+        # This is like adding a cell at the beginning of both -- one gets added, the other deleted!?
+        client.live = new Doc("laskdjf\ncat\ncat\nwilliam\nb\nstein\n")
+        server.live = new Doc("1290384\ncat\ncats\nstein\na\nb\nwilliam\n")
+        client.sync () =>
+            status()
+
+        #test0(client, server, Doc, ((s,t) -> s.doc ==t.doc), ((s) -> s.doc))
 
 exports.DiffSync = DiffSync
