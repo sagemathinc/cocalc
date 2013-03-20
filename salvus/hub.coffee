@@ -1213,6 +1213,33 @@ class CodeMirrorSession
         # The downstream clients of this hub
         @diffsync_clients = {}
 
+    reconnect: (cb) =>
+        delete codemirror_sessions.by_uuid[@session_uuid]
+        @local_hub.call
+            mesg : message.codemirror_get_session(path:@path)
+            cb   : (err, resp) =>
+                if err
+                    cb?(err)
+                else if resp.event == 'error'
+                    cb?(resp.error)
+                else
+                    @session_uuid = resp.session_uuid
+                    codemirror_sessions.by_uuid[@session_uuid] = @
+
+                    # Reconnect to the upstream (local_hub) server, reset live to what we have now.
+                    content = @diffsync_server.live
+                    @diffsync_server = new diffsync.DiffSync(doc:resp.content)
+                    @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
+                    @diffsync_server.live = content
+
+                    # Forget our downstream clients -- they will get reconnect messages, and keep
+                    # going fine without no noticed side effect!
+                    @diffsync_clients = {}
+
+                    # Sync with upstream.
+                    @sync(cb)
+
+
     set_content: (content) =>
         @diffsync_server.live = content
         for id, ds of @diffsync_clients
@@ -1258,7 +1285,7 @@ class CodeMirrorSession
     get_snapshot: () =>
         return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
 
-    sync: () =>
+    sync: (cb) =>
         if @_upstream_sync_lock? and @_upstream_sync_lock
             return
 
@@ -1266,11 +1293,15 @@ class CodeMirrorSession
         before = @diffsync_server.live
         @diffsync_server.push_edits (err) =>
             @_upstream_sync_lock = false
-            if not err
+            if err
+                winston.debug("Error pushing codemirror changes to upstream -- reconnecting")
+                @reconnect(cb)
+            else
                 if before != @diffsync_server.live
                     # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
                     for id, ds of @diffsync_clients
                         ds.remote.sync_ready()
+                cb?()
 
     add_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
         # Add a new diffsync browser client.
@@ -1283,20 +1314,26 @@ class CodeMirrorSession
             mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
             cb   : (err, resp) =>
                 if err
-                    resp = message.error(id:mesg.id, error:"Error writing to disk -- #{err}")
+                    winston.debug("Error writing to disk -- #{err} -- reconnecting")
+                    @reconnect () =>
+                        resp = message.reconnect(id:mesg.id)
+                        client.push_to_client(resp)
                 else
                     resp.id = mesg.id
-                client.push_to_client(resp)
+                    client.push_to_client(resp)
 
     read_from_disk: (client, mesg) =>
         @local_hub.call
             mesg : message.codemirror_read_from_disk(session_uuid : @session_uuid)
             cb   : (err, resp) =>
                 if err
-                    resp = message.error(id:mesg.id, error:"Error reading from disk -- #{err}")
+                    winston.debug("Error reading from disk -- #{err} -- reconnecting")
+                    @reconnect () =>
+                        resp = message.reconnect(id:mesg.id)
+                        client.push_to_client(resp)
                 else
                     resp.id = mesg.id
-                client.push_to_client(resp)
+                    client.push_to_client(resp)
 
     get_content: (client, mesg) =>
         client.push_to_client( message.codemirror_content(id:mesg.id, content:@diffsync_server.live) )
@@ -1406,6 +1443,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 socket.on 'end', () =>
                     delete @_status
                     delete @_socket
+
                 cb(false, @_socket)
 
     # Get a new socket connection to the local_hub; this socket will have been
@@ -1592,7 +1630,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if session?
                 opts.cb(false, session)
                 return
-        # Get it.
+        # Create a new session object.
         @call
             mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, path:opts.path)
             cb   : (err, resp) =>

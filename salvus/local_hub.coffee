@@ -427,7 +427,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
                 else
                     @live = result
                     @write_to_disk(@live, cb)
-                    
+
     write_to_disk: (content, cb) =>
         @_stop_watching_file()
         fs.writeFile @path, @live, (err) =>
@@ -539,10 +539,6 @@ class CodeMirrorSession
     write_to_disk: (socket, mesg) =>
         winston.debug("write_to_disk: #{misc.to_json(mesg)} -- calling sync_filesystem")
         @sync_filesystem (err) =>
-            # TODO: doing another write is redundant and is only programming around issues
-            winston.debug("TODO: doing a redundant write_to_disk, just in case.")
-            @diffsync_fileserver.write_to_disk(@content)
-            
             if err
                resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk -- #{err}")
             else
@@ -613,6 +609,7 @@ class CodeMirrorSessions
         return obj
 
     handle_mesg: (client_socket, mesg) =>
+        winston.debug("codemirror.handle_mesg: '#{misc.to_json(mesg)}'")
         if mesg.event == 'codemirror_get_session'
             @connect(client_socket, mesg)
             return
@@ -620,6 +617,7 @@ class CodeMirrorSessions
         # all other message types identify the session only by the uuid.
         session = @_sessions.by_uuid[mesg.session_uuid]
         if not session?
+            winston.debug("codemirror.handle_mesg -- Unknown CodeMirror session: #{mesg.session_uuid}.")
             client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session: #{mesg.session_uuid}."))
             return
         switch mesg.event
@@ -818,7 +816,8 @@ project_exec = (socket, mesg) ->
 ###############################################
 
 handle_mesg = (socket, mesg) ->
-    try
+    #try
+        winston.debug("Handling '#{misc.to_json(mesg)}'")
         if mesg.event.split('_')[0] == 'codemirror'
             codemirror_sessions.handle_mesg(socket, mesg)
             return
@@ -857,9 +856,9 @@ handle_mesg = (socket, mesg) ->
                 if mesg.id?
                     err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")
                 socket.write_mesg('json', err)
-    catch e
-        winston.debug(new Error().stack)
-        winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
+    #catch e
+    #    winston.debug(new Error().stack)
+    #    winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
 
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"
