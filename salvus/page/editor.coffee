@@ -573,7 +573,7 @@ class CodeMirrorDiffSyncDoc
 
     copy: () =>
         # always degrades to a string
-        if @opts.cm
+        if @opts.cm?
             return new CodeMirrorDiffSyncDoc(string:@opts.cm.getValue())
         else
             return new CodeMirrorDiffSyncDoc(string:@opts.string)
@@ -597,36 +597,29 @@ class CodeMirrorDiffSyncDoc
 
     patch_in_place: (p) =>
         if @opts.string
-            console.log("patching string in place")  # should never need to happen
+            #console.log("patching string in place")  # should never need to happen
             @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
         else
-            console.log("patching codemirror in place")
-            @opts.cm.setValue(diffsync.dmp.patch_apply(p, @string())[0])
+            cm = @opts.cm
+            c = cm.getCursor()
+            scroll = cm.getScrollInfo()
+            cm.setValue(diffsync.dmp.patch_apply(p, @string())[0])
+            cm.setCursor(c) # TODO -- read and implement http://neil.fraser.name/writing/cursor/
+            cm.scrollTo(scroll.left, scroll.top)
+
 
 
 codemirror_diffsync_client = (cm_session, content) ->
 
-    copy      = (s) ->
-        return s.copy()
-    diff      = (v0,v1)  ->
-        return v0.diff(v1)
-    patch     = (d, v0) ->
-        return v0.patch(d)
-    checksum  = (s) ->
-        return s.checksum()
-    patch_in_place = (p, v0) ->
-        v0.patch_in_place(p)
-
-    #patch_in_place = (d, s) -> s.doc = dmp.patch_apply(d, s.doc)[0]  # modifies s.doc inside object
-
     cm_session.codemirror.setValue(content)
+
     return new diffsync.CustomDiffSync
         doc            : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
-        copy           : copy
-        diff           : diff
-        patch          : patch
-        checksum       : checksum
-        patch_in_place : patch_in_place
+        copy           : (s) -> s.copy()
+        diff           : (v0,v1) -> v0.diff(v1)
+        patch          : (d, v0) -> v0.patch(d)
+        checksum       : (s) -> s.checksum()
+        patch_in_place : (p, v0) -> v0.patch_in_place(p)
 
 # The CodeMirrorDiffSyncHub class represents a global hub viewed as a
 # remote server for this client.
@@ -661,7 +654,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @init_autosave()
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
-                        @sync(changeObj)
+                        @sync()
 
     connect: (cb) =>
         salvus_client.call
@@ -703,6 +696,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             timeout : opts.timeout
             cb      : (err, result) =>
                 if not err and result.event == 'reconnect'
+                    console.log("reconnecting...")
                     # Try one time to connect then resend message.
                     @connect (err) =>
                         if err
@@ -713,28 +707,38 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     return
                 opts.cb(err, result)
 
-    sync: (changeObj) =>
+    sync: (cb) =>
+        #console.log('sync')
         if @_syncing? and @_syncing
             # can only sync once a complete cycle is done, or declared failure.
+            cb?()
+            #console.log('skipping since already syncing')
             return
         @_syncing = true
 
         before = @dsync_client.live.string()
 
-        @codemirror.setOption('readOnly', true)  # lock editor
         @dsync_client.push_edits (err) =>
+            #console.log("sync: sent edits")
             if err
+                #console.log('sync: error')
                 @_syncing = false
                 @codemirror.setOption('readOnly', false)
-                alert_message(type:"error", message:"Error synchronizing '#{@filename}' with server -- '#{err}'")
+                if not @_sync_failures?
+                    @_sync_failures = 1
+                else
+                    @_sync_failures += 1
+                #console.log("_sync_failures = ", @_sync_failures)
+                if @_sync_failures % 6 == 0
+                    alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
+
+                setTimeout(@sync, 5000)  # try again in 5 seconds no matter what
+                cb?()
             else
-                after = @dsync_client.live.string()
-                if after != before
-                    c = @codemirror.getCursor()
-                    @codemirror.setValue(after)
-                    @codemirror.setCursor(c)
-                @codemirror.setOption('readOnly', false)
+                #console.log('sync: ok')
+                @_sync_failures = 0
                 @_syncing = false
+                cb?()
 
     _draw_other_cursor: (pos, color) =>
         # Move the cursor with given color to the given pos.
@@ -760,17 +764,17 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     @save_button.addClass('disabled')
                     @has_unsaved_changes(false)
                 else
-                    alert_message(type:"error", message:"Error writing out '#{@filename}' to disk -- #{err}")
+                    alert_message(type:"error", message:"Error saving '#{@filename}' to disk -- #{err}")
         return false
 
     save: (cb) =>
-        #if @opts.delete_trailing_whitespace
-        #    @delete_trailing_whitespace()
-
+        if @opts.delete_trailing_whitespace
+            @delete_trailing_whitespace()
         if @dsync_client?
-            @call
-                message: message.codemirror_write_to_disk()
-                cb : cb
+            @sync () =>
+                @call
+                    message: message.codemirror_write_to_disk()
+                    cb : cb
         else
             cb("Unable to save '#{@filename}' since it is not yet loaded.")
 
@@ -794,7 +798,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
         if changeObj?
             @_apply_changeObj(changeObj)
-            @sync()
+
 
 
 ###############################################
@@ -845,9 +849,10 @@ class PDF_Preview extends FileEditor
         #@element.find("a[href=#zoom-out]").click(@zoom_out)
 
         @output = @element.find(".salvus-editor-pdf-preview-page")
+        @output.css('height':$(window).height())
 
-        @element.css('height':$(window).height()*2/3)
-        @element.resizable(handles: "s,se")   #.on('resize', @focus)
+        @element.css('height':$(window).height())
+        @element.resizable(handles: "s", alsoResize:@output)   #.on('resize', @focus)
 
         @update()
 
@@ -1009,6 +1014,12 @@ class LatexEditor extends FileEditor
             @download_pdf()
             return false
 
+    click_save_button: () =>
+        @latex_editor.click_save_button()
+
+    save: (cb) =>
+        @latex_editor.save(cb)
+
     compile_and_update: (cb) =>
         async.series([
             (cb) =>
@@ -1050,23 +1061,25 @@ class LatexEditor extends FileEditor
         @_current_page = name
 
     run_latex: (cb) =>
-        salvus_client.exec
-            project_id : @editor.project_id
-            path       : @_path
-            command    : 'pdflatex'
-            args       : ['-interaction=nonstopmode', '\\input', @_target]
-            timeout    : 5
-            err_on_exit : false
-            cb         : (err, output) =>
-                if err
-                    alert_message(type:"error", message:err)
-                else
-                    @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
-                    # Scroll to the bottom of the textarea
-                    f = @log.find('textarea')
-                    f.scrollTop(f[0].scrollHeight)
+        @save (err) =>
+            # TODO -- what about error?
+            salvus_client.exec
+                project_id : @editor.project_id
+                path       : @_path
+                command    : 'pdflatex'
+                args       : ['-interaction=nonstopmode', '\\input', @_target]
+                timeout    : 5
+                err_on_exit : false
+                cb         : (err, output) =>
+                    if err
+                        alert_message(type:"error", message:err)
+                    else
+                        @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
+                        # Scroll to the bottom of the textarea
+                        f = @log.find('textarea')
+                        f.scrollTop(f[0].scrollHeight)
 
-                cb?()
+                    cb?()
 
     download_pdf: () =>
         # TODO: THIS replicates code in project.coffee

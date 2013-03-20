@@ -1224,7 +1224,7 @@ class CodeMirrorSession
         # can complete the sync cycle.
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
-            client.error_to_client(id:mesg.id, error:"client #{client.id} not registered for synchronization.")
+            client.push_to_client(message.reconnect(id:mesg.id))
             return
 
         before = @diffsync_server.live
