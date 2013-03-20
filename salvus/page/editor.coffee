@@ -493,11 +493,8 @@ class CodeMirrorEditor extends FileEditor
                         CodeMirror.commands.defaultTab(editor)
 
         scroller = $(@codemirror.getScrollerElement())
-        #scroller.css
-            #'max-height' : @opts.editor_max_height
-            #margin       : '5px'
         scroller.css('height':$(window).height()*2/3)
-        @element.resizable(alsoResize:scroller, handles: "s").on('resize', @focus)
+        @element.find(".salvus-editor-input-box").resizable(alsoResize:scroller, handles: "sw,w,s,e,se").on('resize', @focus)
 
         @init_save_button()
         @init_change_event()
@@ -540,10 +537,14 @@ class CodeMirrorEditor extends FileEditor
         @codemirror?.refresh()
 
     focus: () =>
+        console.log("FOCUS")
         if not @codemirror?
             return
-        $(@codemirror.getScrollerElement()).width(@element.width()).css
+
+        $(@codemirror.getWrapperElement()).css
             'max-height' : @element.height()
+            'max-width': @element.width()
+
         @codemirror.focus()
         @codemirror.refresh()
 
@@ -1031,7 +1032,7 @@ class LatexEditor extends FileEditor
                         cb(err)
                     else
                         @run_latex(cb)
-                
+
             (cb) =>
                 @preview.update(cb)
         ], (err) -> cb?(err))

@@ -21,11 +21,11 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror {
-    /*border: 1px solid #aaa;
+    /*
+    border: 1px solid #aaa;
     box-shadow: 6px 6px 3px #888;
-    margin: 10px;*/
-    border-bottom: 5px solid #aaa;
     margin-top: 0px;
+    */
     padding:5px;
 }
 
@@ -46,7 +46,7 @@ Editor for files in a project
     border-bottom:5px solid #aaa;
     overflow-y:auto;
     padding:5px;
-}    
+}
 
 .salvus-editor-pdf-preview-image {
     margin:1em;
@@ -54,4 +54,4 @@ Editor for files in a project
     border:1px solid aaa;
     width:95%;
     box-shadow: 3px 3px 3px 3px #888;
-} 
+}
