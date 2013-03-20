@@ -10758,6 +10758,30 @@ The players:
 
 @@@@@@@@@@@@@@@@@@@@@@
 
+March 20, 2013
+----------------
+
+  [x] diffsync -- make the code more flexible
+
+  [ ] client codemirror editor sessions -- optimize diff application; step 1: lock/apply diff/unlock
+
+  [ ] client codemirror editor sessions -- optimize diff application; step 2: lock/apply diff efficiently (via changeObj)/unlock
+
+  [ ] client codemirror editor sessions -- optimize/scale diff creation -- use changeObj region so do not have to diff entire document
+
+  [ ] client codemirror editor sessions -- read paper about cursor preservation and implement: http://neil.fraser.name/writing/cursor/
+
+  [ ] client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
+
+  [ ] client codemirror editor sessions -- implement very, very simple out-of-band chat (global hub can store chat session longterm)
+
+
+
+
+=============================
+
+
+
   [ ] Implement code to handle this -- it happens:
         "CodeMirrorSession -- unable to push diffsync changes -- reset"
 

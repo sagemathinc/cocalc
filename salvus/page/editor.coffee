@@ -4,6 +4,8 @@
 
 async = require('async')
 
+message = require('message')
+
 {salvus_client} = require('salvus_client')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
@@ -545,45 +547,127 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.focus()
         @codemirror.refresh()
 
-###############################################
+##############################################################################
 # CodeMirrorSession Editor
-###############################################
+#
+# A map
+#
+#     [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client] <--- YOU ARE HERE
+#                                   |
+#                                  \|/
+#                              [a file on disk]
+##############################################################################
 
+diffsync = require('diffsync')
+
+
+# The CodeMirrorDiffSyncHub class represents a global hub viewed as a
+# remote server for this client.
+class CodeMirrorDiffSyncHub
+    constructor: (@cm_session) ->
+
+    connect: (remote) =>
+        @remote = remote
+
+    recv_edits: (edit_stack, last_version_ack, cb) =>
+        @cm_session.call
+            message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
+            timeout : 5
+            cb      : (err, mesg) =>
+                if err
+                    cb(err)
+                else if mesg.event == 'error'
+                    cb(mesg.error)
+                else
+                    @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
+
+# CURSOR
+# $("<div style='position:absolute;'><div style='position:relative; top:-1.2em; left:-.4ex; border:solid 1px blue; height:1.15em; width:1.1ex;'></div></div>")
 class CodeMirrorSessionEditor extends CodeMirrorEditor
     constructor: (@editor, @filename, ignored, opts) ->
-
-        @other_cursor = $("<div style='position:absolute;'><div style='position:relative; top:-1.2em; left:-.4ex; border:solid 1px blue; height:1.15em; width:1.1ex;'></div></div>")
-
         super(@editor, @filename, "Loading '#{@filename}'...", opts)
-        salvus_client.codemirror_session
-            project_id : @editor.project_id
-            path       : @filename
-            cb         : (err, session, content) =>
-                if err
-                    error = "Error loading #{@filename} -- #{err}"
-                    @_set(err)
-                    alert_message(type:"error", message:error)
-                    return
-                @_session = session
-                @_set(content)
+        @connect (err, resp) =>
+            if err
+                @_set(err)
+                alert_message(type:"error", message:err)
+            else
                 @init_autosave()
-
-                session.on 'change', (content) =>
-                    if content != @codemirror.getValue()
-                        c = @codemirror.getCursor()
-                        @codemirror.setValue(content)
-                        @codemirror.setCursor(c)
-                    #@_draw_other_cursor(..., 'red')
-
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
-                        # origin is only set if the event was caused by the user (rather than calling replaceRange below).
                         @sync(changeObj)
 
-                    #console.log("changeObj: #{misc.to_json(changeObj)}")
-                    #if changeObj.origin? and changeObj.origin != 'setValue'
-                    #    # origin is only set if the event was caused by the user (rather than calling replaceRange below).
-                    #    @_session.change({changeObj:changeObj})
+    connect: (cb) =>
+        salvus_client.call
+            timeout : 15
+            message : message.codemirror_get_session
+                path       : @filename
+                project_id : @editor.project_id
+            cb      : (err, resp) =>
+                if err
+                    cb(err); return
+                if resp.event == 'error'
+                    cb(resp.event); return
+
+                @session_uuid = resp.session_uuid
+
+                # TODO -- if our content is already set, maybe don't do this, so instead we cause a merge!?
+                @_set(resp.content)
+
+                @dsync_client = new diffsync.DiffSync(doc:resp.content)
+                @dsync_server = new CodeMirrorDiffSyncHub(@)
+                @dsync_client.connect(@dsync_server)
+                @dsync_server.connect(@dsync_client)
+
+                salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
+                cb()
+
+    _diffsync_ready: (mesg) =>
+        if mesg.session_uuid == @session_uuid
+            @sync()
+
+    call: (opts) =>
+        opts = defaults opts,
+            message     : required
+            timeout     : 10
+            cb          : undefined
+        opts.message.session_uuid = @session_uuid
+        salvus_client.call
+            message : opts.message
+            timeout : opts.timeout
+            cb      : (err, result) =>
+                if not err and result.event == 'reconnect'
+                    # Try one time to connect then resend message.
+                    @connect (err) =>
+                        if err
+                            opts.cb?(err)
+                        else
+                            # try again
+                            salvus_client.call(message: opts.message, timeout:opts.timeout, cb:opts.cb)
+                    return
+                opts.cb(err, result)
+
+    sync: (changeObj) =>
+        if @_syncing? and @_syncing
+            # can only sync once a complete cycle is done, or declared failure.
+            return
+        @_syncing = true
+
+        before = @codemirror.getValue()
+        @dsync_client.live = before
+
+        @codemirror.setOption('readOnly', true)  # lock editor
+        @dsync_client.push_edits (err) =>
+            if err
+                @_syncing = false
+                @codemirror.setOption('readOnly', false)
+                alert_message(type:"error", message:"Error synchronizing '#{@filename}' with server -- '#{err}'")
+            else
+                if @dsync_client.live != before
+                    c = @codemirror.getCursor()
+                    @codemirror.setValue(@dsync_client.live)
+                    @codemirror.setCursor(c)
+                @codemirror.setOption('readOnly', false)
+                @_syncing = false
 
     _draw_other_cursor: (pos, color) =>
         # Move the cursor with given color to the given pos.
@@ -596,17 +680,6 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
-
-    sync: (changeObj) =>
-        if not @changing
-            @changing = true
-            @_session.change @codemirror.getValue(), (err, new_content) =>
-                @changing = false
-                if not err?
-                    if new_content !=  @codemirror.getValue()
-                        c = @codemirror.getCursor()
-                        @codemirror.setValue(new_content)
-                        @codemirror.setCursor(c)
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
@@ -624,27 +697,17 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         return false
 
     save: (cb) =>
-        if @opts.delete_trailing_whitespace
-            @delete_trailing_whitespace()
-        if @_session?
-            @_session.write_to_disk(cb)
+        #if @opts.delete_trailing_whitespace
+        #    @delete_trailing_whitespace()
+
+        if @dsync_client?
+            @call
+                message: message.codemirror_write_to_disk()
+                cb : cb
         else
             cb("Unable to save '#{@filename}' since it is not yet loaded.")
 
-    click_refresh_button: () =>
-        @refresh_button.find('span').text("Refreshing...")
-        spin = setTimeout((() => @refresh_button.find(".spinner").show()), 100)
-        @_session.get_content (err, content) =>
-            clearTimeout(spin)
-            @refresh_button.find(".spinner").hide()
-            @refresh_button.find('span').text('Refresh')
-            if err
-                alert_message(type:"error", message:"Error refreshing '#{@filename}' from server-- #{err}")
-            else
-                @codemirror.setValue(content)
-        return false
-
-    delete_trailing_whitespace: () =>  # TODO: should be a codemirror plugin (?) -- would be nice to have for worksheets too.
+    delete_trailing_whitespace: () =>
         changeObj = undefined
         val = @codemirror.getValue()
         text1 = val.split('\n')
@@ -664,7 +727,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
         if changeObj?
             @_apply_changeObj(changeObj)
-            @sync(changeObj)
+            @sync()
+
 
 ###############################################
 # LateX Editor

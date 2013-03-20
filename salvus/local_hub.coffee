@@ -346,8 +346,8 @@ sage_sessions = new SageSessions()
 #
 # Differentially-Synchronized CodeMirror editing sessions
 #
-# Here's a simple picture of the toplogy:
-#
+# Here's a map                    YOU ARE HERE
+#                                   |
 #   [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client]s...
 #                                   |
 #                                  \|/

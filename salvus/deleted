@@ -1,3 +1,132 @@
+
+# The CodeMirrorDiffSyncHub class represents a global hub viewed as a
+# remote server for this client.
+class CodeMirrorDiffSyncHub
+    constructor: (@cm_session) ->
+
+    connect: (remote) =>
+        @remote = remote
+
+    recv_edits: (edit_stack, last_version_ack, cb) =>
+        #console.log("Sending the following edits to the server: ", edit_stack, last_version_ack)
+        @cm_session.call
+            message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
+            timeout : 5
+            cb      : (err, mesg) =>
+                #console.log("codemirror sync got back: ", mesg)
+                if err
+                    cb(err)
+                else if mesg.event == 'error'
+                    cb(mesg.error)
+                else
+                    @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
+
+
+class CodeMirrorSession extends EventEmitter
+    constructor : (opts) ->
+        opts = defaults opts,
+            conn       : required
+            project_id : required
+            path       : required
+            cb         : required
+        @conn         = opts.conn
+        @project_id   = opts.project_id
+        @path         = opts.path
+
+        @connect (err, session, content) =>
+            if not err
+                @init_dsync(content)
+            opts.cb(err, session, content)
+
+
+    connect: (cb) =>
+        @conn.call
+            message: message.codemirror_get_session
+                path       : @path
+                project_id : @project_id
+            cb : (err, resp) =>
+                if err
+                    cb(err)
+                else if resp.event == 'error'
+                    cb(resp.error)
+                else
+                    @session_uuid = resp.session_uuid
+                    cb(false, @, resp.content)
+
+    init_dsync: (content) =>
+        @dsync_client = new diffsync.DiffSync(doc:content)
+        @dsync_server = new CodeMirrorDiffSyncHub(@)
+        @dsync_client.connect(@dsync_server)
+        @dsync_server.connect(@dsync_client)
+
+        @conn.on 'codemirror_diffsync_ready', (mesg) =>
+            if mesg.session_uuid == @session_uuid
+                
+                before = @dsync_client.live
+                @sync (err) =>
+                    if before != @dsync_client.live
+                        @emit 'change', @dsync_client.live
+
+        @sync()
+
+    sync: (cb) =>
+        if @_syncing
+            # TODO -- ensure that this lock times out -- we do not want to loose sync forever!!
+            cb("already syncing")
+            return
+        @_syncing = true
+        @dsync_client.push_edits (err) =>
+            @_syncing = false
+            cb?(err)
+
+    change: (content, cb) =>
+        if @dsync_client?
+            @dsync_client.live = content
+            @sync (err) =>
+                if err
+                    cb?(err)
+                else
+                    cb?(false, @dsync_client.live)
+        else
+            cb?()
+
+    call: (opts) =>
+        opts = defaults opts,
+            message     : required
+            timeout     : 10
+            cb          : undefined
+        #console.log("call #{misc.to_json(opts.message)}")
+        opts.message.session_uuid = @session_uuid
+        @conn.call
+            message : opts.message
+            timeout : opts.timeout
+            cb      : (err, result) =>
+                if not err and result.event == 'reconnect'
+                    # Try one time to connect then resend message.
+                    @connect (err) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            @conn.call(message: opts.message, cb:opts.cb)
+                    return
+                opts.cb(err, result)
+
+    write_to_disk: (cb) =>
+        @call
+            message: message.codemirror_write_to_disk()
+            cb : cb
+
+    read_from_disk: (cb) =>
+        @call
+            message : message.codemirror_read_from_disk()
+            cb      : cb
+
+    get_content: (cb) =>   # cb(err, content)
+        @call
+            message : message.codemirror_get_content()
+            cb      : (err, resp) => cb(err, resp?.content)
+###########################################################
+
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
         if SIMULATE_LOSS and Math.random() < .5           # Simulate packet loss
