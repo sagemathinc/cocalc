@@ -1025,7 +1025,13 @@ class LatexEditor extends FileEditor
             (cb) =>
                 @editor.save(@filename, cb)
             (cb) =>
-                @run_latex(cb)
+                @run_latex (err) =>
+                    # latex prefers to be run twice...
+                    if err
+                        cb(err)
+                    else
+                        @run_latex(cb)
+                
             (cb) =>
                 @preview.update(cb)
         ], (err) -> cb?(err))

@@ -382,6 +382,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     @_start_watching_file()
 
     _start_watching_file: () =>
+        fs.unwatchFile(@path, @_watcher)
         fs.watchFile(@path, @_watcher)
 
     _stop_watching_file: () =>
