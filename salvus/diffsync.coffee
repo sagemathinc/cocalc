@@ -25,6 +25,7 @@
 # coffee  -o node_modules -c diffsync.coffee && echo "require('diffsync').test1()" | coffee
 
 SIMULATE_LOSS = false
+SIMULATE_LOSS = true
 
 async = require('async')
 diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
@@ -48,7 +49,7 @@ class DiffSync
     # because inheritence doesn't seem to work right across exports in
     # coffeescript... this took me 2 hours to figure out :-(.  This is used
     # in local_hub.coffee :-(
-    init: (opts) ->
+    init: (opts) =>
         opts = defaults opts,
             id   : undefined
             doc  : required
@@ -200,25 +201,58 @@ class DiffSync
     status: () => {'id':@id, 'live':@live, 'shadow':@shadow, 'shadow_version':@shadow_version, 'edit_stack':@edit_stack}
 
 
+class CustomDiffSync extends DiffSync
+    constructor: (opts) ->
+        #IMPORTANT: None of the custom functions below take callbacks
+        # as the last argument!
+        opts = defaults opts,
+            id       : undefined   # anything you want; or leave empty to have a uuid randomly assigned
+            doc      : required    # the starting live document
+            copy     : required    # copy(doc) --> copy of the doc      -- return, not callback!
+            diff     : required    # diff(doc0, doc1) --> p such that patch(p, doc0) = doc1
+            patch    : required    # patch(d, doc0) = doc1
+            checksum : required    # checksum(doc0) -> something simple
+            patch_in_place : undefined  # patch(d, doc0) modified doc0 in place to become doc1.
 
-exports.test1 = () ->
-    client = new DiffSync(doc:"sage", id:"client")
-    server = new DiffSync(doc:"sage", id:"server")
-    client.connect(server)
-    server.connect(client)
+        @init(id : opts.id,  doc : opts.doc)
 
+        @_copy           = opts.copy
+        @_compute_edits  = opts.diff
+        @_patch          = opts.patch
+        @_patch_in_place = opts.patch_in_place
+        @_checksum       = opts.checksum
+
+    _apply_edits: (edits, doc, cb) =>
+        cb(false, @_patch(edits, doc))
+
+    _apply_edits_to_live: (edits, cb) =>
+        if @_patch_in_place?
+            @_patch_in_place(edits, @live)
+            cb()
+        else
+            @_apply_edits  edits, @live, (err, result) =>
+                if err
+                    cb(err); return
+                else
+                    @live = result
+                    cb()
+
+
+test0 = (client, server) ->
     client.live = "sage"
     server.live = "my\nsage"
     status = () ->
+        #console.log("------------------------")
+        #console.log(misc.to_json(client.status()))
+        #console.log(misc.to_json(server.status()))
         console.log("------------------------")
-        console.log(misc.to_json(client.status()))
-        console.log(misc.to_json(server.status()))
-        console.log("------------------------")
+        console.log("'#{client.live}'")
+        console.log("'#{server.live}'")
 
     pusher = undefined
     go = () ->
         if not pusher?
-            console.log("SWITCH")
+            console.log("SWITCH client/server")
             if Math.random() < .5
                 pusher = 'client'
             else
@@ -237,13 +271,20 @@ exports.test1 = () ->
                     throw err
 
     go()
-    client.live += "\nmore stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj"
-    server.live = 'bar' + server.live + "lkajsdfllkjasdfl jasdlfj\n\nalsdkfjas'dfjlkasdjflasjdfkljasdf"
+    client.live += "more stuffklajsdf lasdjf lasdj flasdjf lasjdfljas dfaklsdjflkasjd flajsdflkjasdklfj"
+    server.live = 'bar' + server.live + "lkajsdfllkjasdfl jasdlfj alsdkfjas'dfjlkasdjflasjdfkljasdf"
     status()
     while client.live != server.live
         status()
         go()
     status()
+
+exports.test1 = () ->
+    client = new DiffSync(doc:"sage", id:"client")
+    server = new DiffSync(doc:"sage", id:"server")
+    client.connect(server)
+    server.connect(client)
+    test0(client, server)
 
 exports.test2 = (n) ->
     for i in [0...n]
@@ -255,11 +296,40 @@ exports.test3 = () ->
     client.connect(server)
     server.connect(client)
 
-    client.live = "cats are cool!"
+    client.live = "cats"
     server.live = "my\ncat"
 
     client.sync () =>
         console.log(misc.to_json(client.status()))
         console.log(misc.to_json(server.status()))
+
+exports.test4 = (n=1) ->
+    copy      = (s) -> s
+    diff      = (v0,v1)  -> dmp.patch_make(v0,v1)
+    patch     = (d, doc) -> dmp.patch_apply(d, doc)[0]
+    checksum  = (s) -> s.length + 3    # +3 for luck
+
+    DS = (id, doc) -> return new CustomDiffSync
+        id       : id
+        doc      : doc
+        copy     : copy
+        diff     : diff
+        patch    : patch
+        checksum : checksum
+
+    for i in [0...n]
+        client = DS("client", "cat")
+        server = DS("server", "cat")
+
+        client.connect(server)
+        server.connect(client)
+
+        client.live = "cats"
+        server.live = "my\ncat"
+        client.sync () =>
+            console.log(misc.to_json(client.status()))
+            console.log(misc.to_json(server.status()))
+        test0(client, server)
+
 
 exports.DiffSync = DiffSync

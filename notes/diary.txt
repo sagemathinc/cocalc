@@ -10763,16 +10763,16 @@ The players:
 
   [ ] optimize for scalability
 
+      [ ] correctly do diffing when applying incoming changes from hub to client.
+          (in particular, make a changeObj, instead of using setValue, etc.)
+          This is critical, since editor "jumps" otherwise, which is confusing.
+
       [ ] when saving diary.txt, get this every time in hub logs:
          "debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"error","id":"afa799ab-6dcb-4c65-97d3-4b7c2b6baea3","error":"Error writing to disk -- true"}"
          This may have been purely a function of needing to restart things...
          When I woke up the next day, I couldn't save, but got NO errors.
          I think the file watching stuff sucks. (?)
          I've added a restart-every-30-seconds timer.  Hmmm.
-
-      [ ] correctly do diffing when applying incoming changes from hub to client.
-          (in particular, make a changeObj, instead of using setValue, etc.)
-          This is critical, since editor "jumps" otherwise, which is confusing.
 
       [ ] use changeObj to more efficiently compute the edits.
 
