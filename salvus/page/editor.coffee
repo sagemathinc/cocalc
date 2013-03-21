@@ -433,8 +433,11 @@ class CodeMirrorEditor extends FileEditor
             match_brackets    : true
             line_wrapping     : true
             theme             : "solarized"  # see static/codemirror*/themes or head.html
-            cursor_interval   : 2000   # minimum time (in ms) between sending cursor position info to hub -- only used in sync version
-            sync_interval     : 2000   # minimum time (in ms) between synchronizing text with hub. -- only used in sync version below
+            # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
+            # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
+            # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
+            cursor_interval   : 150   # minimum time (in ms) between sending cursor position info to hub -- only used in sync version
+            sync_interval     : 150   # minimum time (in ms) between synchronizing text with hub. -- only used in sync version below
 
         @element = templates.find(".salvus-editor-codemirror").clone()
         @element.find("textarea").text(content)
@@ -738,7 +741,6 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         @_sync_soon = setTimeout(do_sync, @opts.sync_interval)
 
     sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
-        console.log("sync")
         if @_syncing? and @_syncing
             # can only sync once a complete cycle is done, or declared failure.
             cb?("skipping since already syncing")
@@ -772,18 +774,18 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
-            @_queue_cursor_info_to_hub()
+            @send_cursor_info_to_hub_soon()
 
-    _send_cursor_info_to_hub: () =>
-        delete @_waiting_to_send
-        console.log("_send_cursor_info_to_hub")
+    send_cursor_info_to_hub: () =>
+        delete @_waiting_to_send_cursor
+        console.log("send_cursor_info_to_hub")
         cursor = @codemirror.getCursor()
         console.log("cursor = ", cursor)
 
-    _queue_cursor_info_to_hub: () =>
-        if @_waiting_to_send?
+    send_cursor_info_to_hub_soon: () =>
+        if @_waiting_to_send_cursor?
             return
-        @_waiting_to_send = setTimeout(@_send_cursor_info_to_hub, @opts.cursor_interval)
+        @_waiting_to_send_cursor = setTimeout(@send_cursor_info_to_hub, @opts.cursor_interval)
 
     _draw_other_cursor: (pos, color) =>
         # Move the cursor with given color to the given pos.
@@ -818,7 +820,9 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         if @dsync_client?
             @sync (didnt_save) =>
                 if didnt_save
-                    alert_message(type:"info", message:"WARNING: Error synchronizing '#{@filename}' ' ' ' ' ' with the server, so a slightly old version of the file may get saved -- '#{didnt_save}'")
+                    # A warning here isn't so useful, since this case can easily arise, and only means not saving a fraction
+                    # of a second of work.
+                    #alert_message(type:"info", message:"WARNING: Error synchronizing '#{@filename}' with the server, so a slightly old version of the file may get saved -- '#{didnt_save}'")
                 @call
                     message: message.codemirror_write_to_disk()
                     cb : cb
