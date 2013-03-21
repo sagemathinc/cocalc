@@ -601,11 +601,50 @@ class CodeMirrorDiffSyncDoc
             @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
         else
             cm = @opts.cm
-            c = cm.getCursor()
+
+            # We maintain our cursor position using the following trick:
+            #    1. Insert a non-used unicode character where the cursor is.
+            #    2. Apply the patches.
+            #    3. Find the unicode character (start the search at the line it was at before, moving in
+            #       both directions), remove it, and put the cursor there.
+            #       If the unicode character vanished, just put the cursor at the coordinates
+            #       where it used to be (better than nothing).
+            # There is a more sophisticated approach described at http://neil.fraser.name/writing/cursor/
+            # but it is harder to implement given that we'll have to dive into the details of his
+            # patch_apply implementation.  This thing below took only a few minutes to implement.
+            pos0 = cm.getCursor()
+            cursor = "\uFE10"   # chosen from http://billposer.org/Linguistics/Computation/UnicodeRanges.html
+                                # since it is (1) undefined, and (2) looks like a cursor..
+            cm.replaceRange(cursor, pos0)
             scroll = cm.getScrollInfo()
-            cm.setValue(diffsync.dmp.patch_apply(p, @string())[0])
-            cm.setCursor(c) # TODO -- read and implement http://neil.fraser.name/writing/cursor/
+            new_value = diffsync.dmp.patch_apply(p, @string())[0]
+            cm.setValue(new_value)
+            line = pos0.line
+            line1 = undefined
+            n = cm.lineCount()
+            offset = 0
+            while offset < n
+                if offset <= line
+                    ch = cm.getLine(line-offset).indexOf(cursor)
+                    if ch != -1
+                        line1 = line - offset
+                        break
+                if line + offset < n
+                    ch = cm.getLine(line+offset).indexOf(cursor)
+                    if ch != -1
+                        line1 = line + offset
+                        break
+                offset += 1
+            if line1?
+                pos = {line:line1, ch:ch}
+                console.log("found out", pos)
+                cm.replaceRange("", pos, {line:line1, ch:ch+1})
+            else
+                console.log("couldn't find")
+                pos = pos0
+            cm.setCursor(pos)
             cm.scrollTo(scroll.left, scroll.top)
+
 
 codemirror_diffsync_client = (cm_session, content) ->
 

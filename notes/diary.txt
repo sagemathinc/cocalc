@@ -10780,8 +10780,9 @@ with that meaningless session_id.  There seem to be two possible fixes:
 - get rid of local_hub redundant write to filesystem.
 
 
---> [ ] client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
-  [ ] client codemirror editor sessions -- read paper about cursor preservation and implement: http://neil.fraser.name/writing/cursor/
+   [ ] client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
+
+--> [ ] client codemirror editor sessions -- read paper about cursor preservation and implement: http://neil.fraser.name/writing/cursor/
 
   [ ] client codemirror editor sessions -- implement very, very, very simple out-of-band chat (global hub can store chat session longterm)
 
