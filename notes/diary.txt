@@ -10756,8 +10756,6 @@ The players:
 
   [x] I opened diary.txt on my laptop *and* a netbook, edited it on disk, and suddenly the version in the browser and on disk was 1/3 the size.  Woah.  Switching to fs.watchFile and using it more carefully helped a lot.
 
-@@@@@@@@@@@@@@@@@@@@@@
-
 March 20, 2013
 ----------------
 
@@ -10770,19 +10768,18 @@ March 20, 2013
   [x] fixed what's up with files not writing on the local hub.  Basically, if the local hub is restarted for any reason,
 it forgets about all file editing sessions.  The global hub doesn't know this, and continues sending messages, e.g., "save file" tagged
 with that meaningless session_id.  There seem to be two possible fixes:
-
     * make local_hub more robust: restarting/dieing doesn't loose sessions -- BAD, hard, and not flexible enough
-
-    * make global_hub more robust: when session_uuid not valid, get a new session for the same path, reset content,
+x    * make global_hub more robust: when session_uuid not valid, get a new session for the same path, reset content,
       and send reconnect message to clients.
+x- finish issueing reconnect in hub for *all* issues
+x- get rid of local_hub redundant write to filesystem.
 
-- finish issueing reconnect in hub for *all* issues
-- get rid of local_hub redundant write to filesystem.
+  [x] client codemirror editor sessions -- read paper about cursor preservation and implement: http://neil.fraser.name/writing/cursor/
+@@@@@@@@@@@@@@@@@@@@@@
 
+  [ ] client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
 
-   [ ] client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
-
---> [ ] client codemirror editor sessions -- read paper about cursor preservation and implement: http://neil.fraser.name/writing/cursor/
+  [ ] range selection -- need to also preserve that.
 
   [ ] client codemirror editor sessions -- implement very, very, very simple out-of-band chat (global hub can store chat session longterm)
 

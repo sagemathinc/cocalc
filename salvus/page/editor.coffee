@@ -498,6 +498,7 @@ class CodeMirrorEditor extends FileEditor
 
         @init_save_button()
         @init_change_event()
+        @init_cursorActivity_event()
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").click(@click_save_button)
@@ -520,6 +521,14 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.on 'change', (instance, changeObj) =>
             @has_unsaved_changes(true)
             @save_button.removeClass('disabled')
+
+    init_cursorActivity_event: () =>
+        @codemirror.on 'cursorActivity', (instance) =>
+            @_send_cursor_info_to_hub()
+
+    _send_cursor_info_to_hub: () =>
+        # Do not do anything yet.
+        #
 
     _get: () =>
         val = @codemirror.getValue()
@@ -605,8 +614,7 @@ class CodeMirrorDiffSyncDoc
             # We maintain our cursor position using the following trick:
             #    1. Insert a non-used unicode character where the cursor is.
             #    2. Apply the patches.
-            #    3. Find the unicode character (start the search at the line it was at before, moving in
-            #       both directions), remove it, and put the cursor there.
+            #    3. Find the unicode character,, remove it, and put the cursor there.
             #       If the unicode character vanished, just put the cursor at the coordinates
             #       where it used to be (better than nothing).
             # There is a more sophisticated approach described at http://neil.fraser.name/writing/cursor/
@@ -618,30 +626,20 @@ class CodeMirrorDiffSyncDoc
             cm.replaceRange(cursor, pos0)
             scroll = cm.getScrollInfo()
             new_value = diffsync.dmp.patch_apply(p, @string())[0]
-            cm.setValue(new_value)
+            v = new_value.split('\n')
             line = pos0.line
             line1 = undefined
-            n = cm.lineCount()
-            offset = 0
-            while offset < n
-                if offset <= line
-                    ch = cm.getLine(line-offset).indexOf(cursor)
-                    if ch != -1
-                        line1 = line - offset
-                        break
-                if line + offset < n
-                    ch = cm.getLine(line+offset).indexOf(cursor)
-                    if ch != -1
-                        line1 = line + offset
-                        break
-                offset += 1
+            for k in [0...v.length]
+                ch = v[k].indexOf(cursor)
+                if ch != -1
+                    line1 = k
+                    break
             if line1?
+                v[line1] = v[line1].slice(0,ch) + v[line1].slice(ch+1)
                 pos = {line:line1, ch:ch}
-                console.log("found out", pos)
-                cm.replaceRange("", pos, {line:line1, ch:ch+1})
             else
-                console.log("couldn't find")
                 pos = pos0
+            cm.setValue(v.join('\n'))
             cm.setCursor(pos)
             cm.scrollTo(scroll.left, scroll.top)
 
@@ -745,7 +743,6 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 opts.cb(err, result)
 
     sync: (cb) =>
-        #console.log('sync')
         if @_syncing? and @_syncing
             # can only sync once a complete cycle is done, or declared failure.
             cb?()
