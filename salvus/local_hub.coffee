@@ -367,11 +367,13 @@ class DiffSyncFile_server extends diffsync.DiffSync
             # winston.debug("got new file contents = '#{@live}'")
             @_start_watching_file()
 
-            setInterval(@_restart_watching_file, 30000)
             cb(err, @live)
 
     _watcher: (event) =>
         winston.debug("watch: file '#{@path}' modified.")
+        if not @_do_watch
+            winston.debug("watch: skipping read do to watching being turned off.")
+            return
         @_stop_watching_file()
         fs.readFile @path, (err, data) =>
             if err
@@ -382,15 +384,14 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     @_start_watching_file()
 
     _start_watching_file: () =>
-        fs.unwatchFile(@path, @_watcher)
+        if @_do_watch?
+            @_do_watch = true
+            return
+        @_do_watch = true
         fs.watchFile(@path, @_watcher)
 
     _stop_watching_file: () =>
-        fs.unwatchFile(@path, @_watcher)
-
-    _restart_watching_file: () =>
-        @_stop_watching_file()
-        @_start_watching_file()
+        @_do_watch = false
 
     # NOTE: I tried using fs.watch as below, but *DAMN* -- even on
     # Linux 12.10 -- fs.watch in Node.JS totally SUCKS.  It led to

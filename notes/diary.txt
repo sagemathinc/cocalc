@@ -10775,14 +10775,17 @@ x- finish issueing reconnect in hub for *all* issues
 x- get rid of local_hub redundant write to filesystem.
 
   [x] client codemirror editor sessions -- read paper about cursor preservation and implement: http://neil.fraser.name/writing/cursor/
+
 @@@@@@@@@@@@@@@@@@@@@@
+---
+March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet sync.  !!
+---
 
   [ ] client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
 
   [ ] range selection -- need to also preserve that.
 
   [ ] client codemirror editor sessions -- implement very, very, very simple out-of-band chat (global hub can store chat session longterm)
-
 
  [ ] THEN... worksheet synchronization.
 
