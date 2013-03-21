@@ -858,6 +858,8 @@ class PDF_Preview extends FileEditor
         @output.width(@element.width())
 
     update: (cb) =>
+        @output.height(@element.height())
+        @output.width(@element.width())
         @spinner.show().spin(true)
         tmp_dir @editor.project_id, @path, (err, tmp) =>
             if err
