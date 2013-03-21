@@ -549,9 +549,10 @@ class CodeMirrorEditor extends FileEditor
         if not @codemirror?
             return
 
+        width = @element.width(); height = @element.height()
         $(@codemirror.getWrapperElement()).css
-            'max-height' : @element.height()
-            'max-width': @element.width()
+            'max-height' : height
+            'max-width'  : width
 
         @codemirror.focus()
         @codemirror.refresh()
