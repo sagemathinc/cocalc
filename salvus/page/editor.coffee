@@ -537,7 +537,6 @@ class CodeMirrorEditor extends FileEditor
         @codemirror?.refresh()
 
     focus: () =>
-        console.log("FOCUS")
         if not @codemirror?
             return
 
@@ -849,13 +848,14 @@ class PDF_Preview extends FileEditor
         #@element.find("a[href=#zoom-in]").click(@zoom_in)
         #@element.find("a[href=#zoom-out]").click(@zoom_out)
 
+        @element.css('height':$(window).height()*.8)
         @output = @element.find(".salvus-editor-pdf-preview-page")
-        @output.css('height':$(window).height())
+        @update () =>
+            @element.resizable(handles: "e,w,s,sw,se").on('resize', @focus)
 
-        @element.css('height':$(window).height())
-        @element.resizable(handles: "s", alsoResize:@output)   #.on('resize', @focus)
-
-        @update()
+    focus: () =>
+        @output.height(@element.height())
+        @output.width(@element.width())
 
     update: (cb) =>
         @spinner.show().spin(true)
@@ -955,6 +955,7 @@ class PDF_Preview extends FileEditor
 
     show: () =>
         @element.show()
+        @focus()
 
     hide: () =>
         @element.hide()

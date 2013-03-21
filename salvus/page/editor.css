@@ -38,14 +38,16 @@ Editor for files in a project
     border-radius: 5px;
 }
 
+.salvus-editor-pdf-preview {
+    border: 2px solid #888;
+}
+
 .salvus-editor-pdf-preview-page {
-    margin:1em;
+    border: 2px solid #888;
     background-color:#eee;
-    width:100%;
-    border: 1px solid #aaa;
-    border-bottom:5px solid #aaa;
-    overflow-y:auto;
-    padding:5px;
+    border: 3px solid #aaa;
+    overflow-x:hidden;
+    overflow-y:scroll;
 }
 
 .salvus-editor-pdf-preview-image {
