@@ -502,6 +502,7 @@ message
 message
     event : 'reconnect'
     id    : undefined
+    reason : undefined  # optional to make logs more informative
 
 
 

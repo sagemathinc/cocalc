@@ -816,7 +816,7 @@ project_exec = (socket, mesg) ->
 ###############################################
 
 handle_mesg = (socket, mesg) ->
-    #try
+    try
         winston.debug("Handling '#{misc.to_json(mesg)}'")
         if mesg.event.split('_')[0] == 'codemirror'
             codemirror_sessions.handle_mesg(socket, mesg)
@@ -856,9 +856,9 @@ handle_mesg = (socket, mesg) ->
                 if mesg.id?
                     err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")
                 socket.write_mesg('json', err)
-    #catch e
-    #    winston.debug(new Error().stack)
-    #    winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
+    catch e
+        winston.debug(new Error().stack)
+        winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
 
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"

@@ -1002,7 +1002,7 @@ class Client extends EventEmitter
     get_codemirror_session : (mesg, cb) =>
         session = codemirror_sessions.by_uuid[mesg.session_uuid]
         if not session?
-            @push_to_client(message.reconnect(id:mesg.id))
+            @push_to_client(message.reconnect(id:mesg.id, reason:"Global hub does not no about a codemirror session with session_uuid='#{mesg.session_uuid}'"))
             cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
         else
             cb(false, session)
@@ -1251,7 +1251,7 @@ class CodeMirrorSession
         # can complete the sync cycle.
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
-            client.push_to_client(message.reconnect(id:mesg.id))
+            client.push_to_client(message.reconnect(id:mesg.id, reason:"Client with id #{client.id} is not registered with this hub."))
             return
 
         before = @diffsync_server.live
@@ -1314,9 +1314,8 @@ class CodeMirrorSession
             mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
             cb   : (err, resp) =>
                 if err
-                    winston.debug("Error writing to disk -- #{err} -- reconnecting")
                     @reconnect () =>
-                        resp = message.reconnect(id:mesg.id)
+                        resp = message.reconnect(id:mesg.id, reason:"Error writing to disk -- #{err} -- reconnecting")
                         client.push_to_client(resp)
                 else
                     resp.id = mesg.id
@@ -1329,7 +1328,7 @@ class CodeMirrorSession
                 if err
                     winston.debug("Error reading from disk -- #{err} -- reconnecting")
                     @reconnect () =>
-                        resp = message.reconnect(id:mesg.id)
+                        resp = message.reconnect(id:mesg.id, reason:"error reading from disk -- #{err}")
                         client.push_to_client(resp)
                 else
                     resp.id = mesg.id

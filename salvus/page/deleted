@@ -1,3 +1,25 @@
+            cm = @opts.cm
+            pos = cm.getCursor()
+            cursor = "\u5077"
+            cm.replaceRange(cursor, pos)
+            scroll = cm.getScrollInfo()
+            new_value = diffsync.dmp.patch_apply(p, @string())[0]
+            line = 0
+            for v in new_value.split('\n')
+                ch = v.indexOf(cursor)
+                if ch != -1
+                    break
+                else
+                    line += 1
+            if ch != -1
+                pos = {line:line, ch:ch}
+            cm.setValue(new_value)
+            cm.replaceRange("", pos, {line:line, ch:ch+1})
+            cm.setCursor(pos) # TODO -- read and implement http://neil.fraser.name/writing/cursor/
+            cm.scrollTo(scroll.left, scroll.top)
+
+
+
 
     _objs_to_propagate: (changeObj) =>
         # Return only the part of the input changeObj that we want to propagate to other editors.
@@ -310,7 +332,7 @@ $.event.special.destroyed =
                     output += "<span class='sage-stderr'>#{mesg.stderr}</span>"
                 selection.insertNode("<span>" + input + "<br>" + output + "</span>")
                 Mercury.trigger('reinitialize')
-        
+
     $(window).on 'mercury:ready', () ->
 
 

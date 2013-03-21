@@ -607,8 +607,6 @@ class CodeMirrorDiffSyncDoc
             cm.setCursor(c) # TODO -- read and implement http://neil.fraser.name/writing/cursor/
             cm.scrollTo(scroll.left, scroll.top)
 
-
-
 codemirror_diffsync_client = (cm_session, content) ->
 
     cm_session.codemirror.setValue(content)
