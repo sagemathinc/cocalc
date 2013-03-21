@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# This is the Salvus HUB module.  It runs as a daemon, sitting in the
+# This is the Salvus Global HUB module.  It runs as a daemon, sitting in the
 # middle of the action, connected to potentially thousands of clients,
 # many Sage sessions, and a Cassandra database cluster.  There are
 # many HUBs running on VM's all over the installation.
@@ -1002,7 +1002,7 @@ class Client extends EventEmitter
     get_codemirror_session : (mesg, cb) =>
         session = codemirror_sessions.by_uuid[mesg.session_uuid]
         if not session?
-            @push_to_client(message.reconnect(id:mesg.id, reason:"Global hub does not no about a codemirror session with session_uuid='#{mesg.session_uuid}'"))
+            @push_to_client(message.reconnect(id:mesg.id, reason:"Global hub does not know about a codemirror session with session_uuid='#{mesg.session_uuid}'"))
             cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
         else
             cb(false, session)

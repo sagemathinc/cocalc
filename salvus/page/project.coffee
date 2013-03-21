@@ -247,11 +247,11 @@ class ProjectPage
 
         @init_open_sessions()
 
-        
+
     ########################################
     # Launch open sessions
     ########################################
-        
+
     init_open_sessions: (cb) =>
         salvus_client.project_session_info
             project_id: @project.project_id
@@ -264,7 +264,7 @@ class ProjectPage
                 if not (mesg? and mesg.info?)
                     cb?()
                     return
-                    
+
                 async.series([
                     (cb) =>
                         @init_console_sessions(mesg.info.console_sessions, cb)
@@ -273,26 +273,26 @@ class ProjectPage
                     (cb) =>
                         @init_file_sessions(mesg.info.file_sessions, cb)
                 ], (err) => cb?(err))
-                
+
     init_console_sessions: (sessions, cb) =>
         console.log("initialize console sessions: ", sessions)
         #@display_tab("project-editor")
         for session_uuid, obj of sessions
             if obj.status == 'running'
                 console.log("session_uuid = ", session_uuid)
-                filename = "scratch/#{session_uuid.slice(0,8)}.salvus-terminal"                                                                
-                tab = @editor.create_tab(filename:filename, session_uuid:session_uuid)                
+                filename = "scratch/#{session_uuid.slice(0,8)}.salvus-terminal"
+                tab = @editor.create_tab(filename:filename, session_uuid:session_uuid)
         cb?()
-        
+
     init_sage_sessions: (sessions, cb) =>
         console.log("initialize sage sessions: ", sessions)
         cb?()
-        
+
     init_file_sessions: (sessions, cb) =>
         console.log("initialize file sessions: ", sessions)
         cb?()
-        
-        
+
+
     ########################################
     # Console buttons
     ########################################
@@ -304,7 +304,7 @@ class ProjectPage
             filename = "scratch/#{uuid().slice(0,8)}.salvus-terminal"
             if filename[0] == '/'
                 filename = filename.slice(1)
-            tab = @editor.create_tab(filename:filename)
+            tab = @editor.create_tab(filename:filename, content:"")
             tab.editor.val('')
             return false
 
@@ -314,8 +314,7 @@ class ProjectPage
             filename = "scratch/#{uuid().slice(0,8)}.salvus-worksheet"
             if filename[0] == '/'
                 filename = filename.slice(1)
-            tab = @editor.create_tab(filename:filename)
-            tab.editor.val('')
+            tab = @editor.create_tab(filename:filename, content:"")
             return false
 
     ########################################
@@ -486,7 +485,7 @@ class ProjectPage
     #     # bash completion on the VM host using pexpect (!).
     #     if not @_last_listing?
     #         return
-        
+
 
     branch_op: (opts) =>
         opts = defaults opts,

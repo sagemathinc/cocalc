@@ -153,34 +153,67 @@ class exports.Editor
 
     open: (filename) =>
         if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
-            ext = filename_extension(filename)
-            switch ext
-                when 'pdf'
-                    @tabs[filename] = @create_tab(filename:filename)
-                when 'png', 'svg', 'jpg', 'gif'
-                    salvus_client.read_file_from_project
-                        project_id : @project_id
-                        timeout    : 10
-                        path       : filename
-                        cb         : (err, mesg) =>
-                            if err
-                                alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
-                            else if mesg.event == 'error'
-                                alert_message(type:"error", message:"Error getting #{filename} -- #{to_json(mesg.error)}")
-                            else
-                                @tabs[filename] = @create_tab(filename:filename, url:mesg.url)
-                else
-                    salvus_client.read_text_file_from_project
-                        project_id : @project_id
-                        timeout    : 10
-                        path       : filename
-                        cb         : (err, mesg) =>
-                            if err
-                                alert_message(type:"error", message:"Communications issue loading #{filename} -- #{err}")
-                            else if mesg.event == 'error'
-                                alert_message(type:"error", message:"Error loading #{filename} -- #{to_json(mesg.error)}")
-                            else
-                                @tabs[filename] = @create_tab(filename:filename, content:mesg.content)
+            @tabs[filename] = @create_tab(filename:filename)
+
+    create_tab: (opts) =>
+        opts = defaults opts,
+            filename     : required
+            content      : undefined
+            session_uuid : undefined
+
+        filename = opts.filename
+        ext = filename_extension(opts.filename)
+        if not ext? and opts.content?   # no recognized extension
+            ext = guess_file_extension_type(content)
+        x = file_associations[ext]
+        if not x?
+            x = file_associations['']
+        extra_opts = copy(x.opts)
+        if opts.session_uuid?
+            extra_opts.session_uuid = opts.session_uuid
+        content = opts.content
+
+        switch x.editor
+            # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
+            when 'codemirror', undefined
+                editor = new CodeMirrorSessionEditor(@, filename, "", extra_opts)
+                editor.init_autosave()
+                #editor = new CodeMirrorEditor(@, filename, content, extra_opts)
+            when 'terminal'
+                editor = new Terminal(@, filename, content, extra_opts)
+            when 'worksheet'
+                editor = new Worksheet(@, filename, content, extra_opts)
+            when 'spreadsheet'
+                editor = new Spreadsheet(@, filename, content, extra_opts)
+            when 'slideshow'
+                editor = new Slideshow(@, filename, content, extra_opts)
+            when 'image'
+                editor = new Image(@, filename, content, extra_opts)
+            when 'latex'
+                editor = new LatexEditor(@, filename, content, extra_opts)
+            when 'pdf'
+                editor = new PDF_Preview(@, filename, content, extra_opts)
+            else
+                throw("Unknown editor type '#{x.editor}'")
+
+
+        link = templates.find(".super-menu").clone().show()
+        link_filename = link.find(".salvus-editor-tab-filename")
+        link_filename.text(filename) #trunc(filename,15))
+        link.find(".salvus-editor-close-button-x").click () =>
+            @close(link_filename.text())
+        link.find("a").click () => @display_tab(link_filename.text())
+        @nav_tabs.append(link)
+        @tabs[filename] =
+            link     : link
+            editor   : editor
+            filename : filename
+        @display_tab(filename)
+        @element.find(".salvus-editor-content").append(editor.element.show())
+        @update_counter()
+        setTimeout(editor.focus, 250)
+        return @tabs[filename]
+
 
     # Close this tab.
     close: (filename) =>
@@ -272,71 +305,6 @@ class exports.Editor
             return
 
         tab.editor.save(cb)
-
-
-    create_tab: (opts) =>
-        opts = defaults opts,
-            filename     : required
-            content      : undefined
-            url          : undefined
-            session_uuid : undefined
-
-        filename = opts.filename
-        ext = filename_extension(opts.filename)
-        if not ext? and opts.content?   # no recognized extension
-            ext = guess_file_extension_type(content)
-        x = file_associations[ext]
-        if not x?
-            x = file_associations['']
-
-        content = opts.content
-        url = opts.url
-
-        extra_opts = copy(x.opts)
-
-        if opts.session_uuid?
-            extra_opts.session_uuid = opts.session_uuid
-
-        switch x.editor
-            # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
-            when 'codemirror', undefined
-                editor = new CodeMirrorSessionEditor(@, filename, content, extra_opts)
-                editor.init_autosave()
-                #editor = new CodeMirrorEditor(@, filename, content, extra_opts)
-            when 'terminal'
-                editor = new Terminal(@, filename, content, extra_opts)
-            when 'worksheet'
-                editor = new Worksheet(@, filename, content, extra_opts)
-            when 'spreadsheet'
-                editor = new Spreadsheet(@, filename, content, extra_opts)
-            when 'slideshow'
-                editor = new Slideshow(@, filename, content, extra_opts)
-            when 'image'
-                editor = new Image(@, filename, url, extra_opts)
-            when 'latex'
-                editor = new LatexEditor(@, filename, content, extra_opts)
-            when 'pdf'
-                editor = new PDF_Preview(@, filename, undefined, extra_opts)
-            else
-                throw("Unknown editor type '#{x.editor}'")
-
-
-        link = templates.find(".super-menu").clone().show()
-        link_filename = link.find(".salvus-editor-tab-filename")
-        link_filename.text(filename) #trunc(filename,15))
-        link.find(".salvus-editor-close-button-x").click () =>
-            @close(link_filename.text())
-        link.find("a").click () => @display_tab(link_filename.text())
-        @nav_tabs.append(link)
-        @tabs[filename] =
-            link     : link
-            editor   : editor
-            filename : filename
-        @display_tab(filename)
-        @element.find(".salvus-editor-content").append(editor.element.show())
-        @update_counter()
-        setTimeout(editor.focus, 250)
-        return @tabs[filename]
 
     change_tab_filename: (old_filename, new_filename) =>
         tab = @tabs[old_filename]
@@ -465,6 +433,8 @@ class CodeMirrorEditor extends FileEditor
             match_brackets    : true
             line_wrapping     : true
             theme             : "solarized"  # see static/codemirror*/themes or head.html
+            cursor_interval   : 2000   # minimum time (in ms) between sending cursor position info to hub -- only used in sync version
+            sync_interval     : 2000   # minimum time (in ms) between synchronizing text with hub. -- only used in sync version below
 
         @element = templates.find(".salvus-editor-codemirror").clone()
         @element.find("textarea").text(content)
@@ -498,7 +468,6 @@ class CodeMirrorEditor extends FileEditor
 
         @init_save_button()
         @init_change_event()
-        @init_cursorActivity_event()
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").click(@click_save_button)
@@ -521,14 +490,6 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.on 'change', (instance, changeObj) =>
             @has_unsaved_changes(true)
             @save_button.removeClass('disabled')
-
-    init_cursorActivity_event: () =>
-        @codemirror.on 'cursorActivity', (instance) =>
-            @_send_cursor_info_to_hub()
-
-    _send_cursor_info_to_hub: () =>
-        # Do not do anything yet.
-        #
 
     _get: () =>
         val = @codemirror.getValue()
@@ -626,21 +587,37 @@ class CodeMirrorDiffSyncDoc
                                 # since it is (1) undefined, and (2) looks like a cursor..
             cm.replaceRange(cursor, pos0)
             scroll = cm.getScrollInfo()
-            new_value = diffsync.dmp.patch_apply(p, @string())[0]
+            t = misc.walltime()
+            s = @string()
+            #console.log(1, misc.walltime(t)); t = misc.walltime()
+            new_value = diffsync.dmp.patch_apply(p, s)[0]
+            #console.log(2, misc.walltime(t)); t = misc.walltime()
             v = new_value.split('\n')
+            #console.log(3, misc.walltime(t)); t = misc.walltime()
             line = pos0.line
             line1 = undefined
-            for k in [0...v.length]
+            # We first try an interval around the cursor, since that is where the cursor is most likely to be.
+            for k in [Math.max(0, line-10)...Math.max(0,Math.min(line-10, v.length))].concat([0...v.length])
                 ch = v[k].indexOf(cursor)
                 if ch != -1
                     line1 = k
                     break
+
             if line1?
                 v[line1] = v[line1].slice(0,ch) + v[line1].slice(ch+1)
                 pos = {line:line1, ch:ch}
             else
                 pos = pos0
-            cm.setValue(v.join('\n'))
+            #console.log(4, misc.walltime(t)); t = misc.walltime()
+            s = v.join('\n')
+            #console.log(5, misc.walltime(t)); t = misc.walltime()
+            # Benchmarking reveals that this line 'cm.setValue(s)' is by far the dominant time taker.
+            # This can be optimized by taking into account the patch itself (and maybe stuff returned
+            # when applying it) to instead only change a small range of the editor.  This is TODO
+            # for later though.  For reference, a 200,000 line doc on a Samsung chromebook takes < 1s still, and about .4 s
+            # on a fast intel laptop.
+            cm.setValue(s)
+            #console.log(6, misc.walltime(t)); t = misc.walltime()
             cm.setCursor(pos)
             cm.scrollTo(scroll.left, scroll.top)
 
@@ -668,7 +645,7 @@ class CodeMirrorDiffSyncHub
     recv_edits: (edit_stack, last_version_ack, cb) =>
         @cm_session.call
             message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
-            timeout : 5
+            timeout : 60
             cb      : (err, mesg) =>
                 if err
                     cb(err)
@@ -682,6 +659,7 @@ class CodeMirrorDiffSyncHub
 class CodeMirrorSessionEditor extends CodeMirrorEditor
     constructor: (@editor, @filename, ignored, opts) ->
         super(@editor, @filename, "Loading '#{@filename}'...", opts)
+        @init_cursorActivity_event()
         @connect (err, resp) =>
             if err
                 @_set(err)
@@ -690,11 +668,11 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @init_autosave()
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
-                        @sync()
+                        @sync_soon()
 
     connect: (cb) =>
         salvus_client.call
-            timeout : 15
+            timeout : 60     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
                 path       : @filename
                 project_id : @editor.project_id
@@ -719,12 +697,12 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
-            @sync()
+            @sync_soon()
 
     call: (opts) =>
         opts = defaults opts,
             message     : required
-            timeout     : 10
+            timeout     : 60
             cb          : undefined
         opts.message.session_uuid = @session_uuid
         salvus_client.call
@@ -743,11 +721,28 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     return
                 opts.cb(err, result)
 
-    sync: (cb) =>
+    sync_soon: (multiplier) =>
+        if @_sync_soon?
+            # We have already set a timer to do a sync soon.
+            return
+        do_sync = () =>
+            delete @_sync_soon
+            @sync (didnt_sync) =>
+                if didnt_sync
+                    # We may as well try again
+                    @sync_soon(5)
+        if multiplier?
+            t = multiplier * @opts.sync_interval
+        else
+            t = @opts.sync_interval
+        @_sync_soon = setTimeout(do_sync, @opts.sync_interval)
+
+    sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
+        console.log("sync")
         if @_syncing? and @_syncing
             # can only sync once a complete cycle is done, or declared failure.
-            cb?()
-            #console.log('skipping since already syncing')
+            cb?("skipping since already syncing")
+            console.log('skipping since already syncing')
             return
         @_syncing = true
 
@@ -767,13 +762,28 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 if @_sync_failures % 6 == 0
                     alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
 
-                setTimeout(@sync, 5000)  # try again in 5 seconds no matter what
-                cb?()
+                setTimeout(@sync, 10000)  # try again in 10 seconds no matter what
+                cb?(err)
             else
                 #console.log('sync: ok')
                 @_sync_failures = 0
                 @_syncing = false
                 cb?()
+
+    init_cursorActivity_event: () =>
+        @codemirror.on 'cursorActivity', (instance) =>
+            @_queue_cursor_info_to_hub()
+
+    _send_cursor_info_to_hub: () =>
+        delete @_waiting_to_send
+        console.log("_send_cursor_info_to_hub")
+        cursor = @codemirror.getCursor()
+        console.log("cursor = ", cursor)
+
+    _queue_cursor_info_to_hub: () =>
+        if @_waiting_to_send?
+            return
+        @_waiting_to_send = setTimeout(@_send_cursor_info_to_hub, @opts.cursor_interval)
 
     _draw_other_cursor: (pos, color) =>
         # Move the cursor with given color to the given pos.
@@ -806,7 +816,9 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         if @opts.delete_trailing_whitespace
             @delete_trailing_whitespace()
         if @dsync_client?
-            @sync () =>
+            @sync (didnt_save) =>
+                if didnt_save
+                    alert_message(type:"info", message:"WARNING: Error synchronizing '#{@filename}' ' ' ' ' ' with the server, so a slightly old version of the file may get saved -- '#{didnt_save}'")
                 @call
                     message: message.codemirror_write_to_disk()
                     cb : cb
@@ -911,7 +923,7 @@ class PDF_Preview extends FileEditor
                               "-sDEVICE=pngmono",
                               "-sOutputFile=#{tmp}/%d.png", "-r#{@density}", @file]
 
-                timeout    : 10
+                timeout    : 20
                 err_on_exit: false
                 cb         : (err, output) =>
                     if err
@@ -1143,6 +1155,7 @@ class LatexEditor extends FileEditor
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
+        # TODO: content currently ignored.
         opts = @opts = defaults opts,
             session_uuid : undefined
             rows         : 24
@@ -1201,8 +1214,21 @@ class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             session_uuid : undefined
-        @_set(content)
         @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
+        if content?
+            @_set(content)
+        else
+            salvus_client.read_text_file_from_project
+                project_id : @editor.project_id
+                timeout    : 30
+                path       : filename
+                cb         : (err, mesg) =>
+                    if err
+                        alert_message(type:"error", message:"Communications issue loading worksheet #{@filename} -- #{err}")
+                    else if mesg.event == 'error'
+                        alert_message(type:"error", message:"Error loading worksheet #{@filename} -- #{to_json(mesg.error)}")
+                    else
+                        @_set(mesg.content)
 
     connect_to_server: (session_uuid, cb) =>
         if @session?
@@ -1217,7 +1243,7 @@ class Worksheet extends FileEditor
                 if session_uuid?
                     salvus_client.connect_to_session
                         type         : 'sage'
-                        timeout      : 15
+                        timeout      : 60
                         project_id   : @editor.project_id
                         session_uuid : session_uuid
                         cb           : (err, _session) =>
@@ -1238,7 +1264,7 @@ class Worksheet extends FileEditor
                 else
                     # Create a completely new session on the given project.
                     salvus_client.new_session
-                        timeout    : 15
+                        timeout    : 60
                         type       : "sage"
                         project_id : @editor.project_id
                         cb : (err, _session) =>
@@ -1296,7 +1322,21 @@ class Worksheet extends FileEditor
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts,{}
-        @element = $("<img src='#{url}'>")
+        @element = $("<img>")
+        if url?
+            @element.attr('src', url)
+        else
+            salvus_client.read_file_from_project
+                project_id : @editor.project_id
+                timeout    : 30
+                path       : @filename
+                cb         : (err, mesg) =>
+                    if err
+                        alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
+                    else if mesg.event == 'error'
+                        alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
+                    else
+                        @element.attr('src', mesg.url)
 
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

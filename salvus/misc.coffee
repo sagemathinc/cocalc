@@ -64,10 +64,18 @@ exports.defaults = (obj1, obj2) ->
 exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
 
 # Current time in milliseconds since epoch
-exports.mswalltime = -> (new Date()).getTime()
+exports.mswalltime = (t) ->
+    if t?
+        return (new Date()).getTime() - t
+    else
+        return (new Date()).getTime()
 
 # Current time in seconds since epoch, as a floating point number (so much more precise than just seconds).
-exports.walltime = -> exports.mswalltime()/1000.0
+exports.walltime = (t) ->
+    if t?
+        return exports.mswalltime()/1000.0 - t
+    else
+        return exports.mswalltime()/1000.0
 
 # We use this uuid implementation only for the browser client.  For node code, use node-uuid.
 exports.uuid = ->

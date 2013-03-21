@@ -248,7 +248,7 @@ class exports.Connection extends EventEmitter
 
         @_last_pong = misc.walltime()
         @_connected = false
-        @_ping_check_interval = 10000
+        @_ping_check_interval = 60000
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->

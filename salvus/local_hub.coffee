@@ -36,6 +36,9 @@ diffsync       = require 'diffsync'
 
 {to_json, from_json, defaults, required}   = require 'misc'
 
+json = (out) -> misc.trunc(misc.to_json(out),512)
+
+
 # Any non-absolute path is assumed to be relative to the user's home directory.
 # This function converts such a path to an absolute path.
 abspath = (path) ->
@@ -182,7 +185,7 @@ class ConsoleSessions
                     @_new_session(client_socket, mesg, port)
 
     _new_session: (client_socket, mesg, port) =>
-        winston.debug("_new_session: defined by #{misc.to_json(mesg)}")
+        winston.debug("_new_session: defined by #{json(mesg)}")
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
             port  : port
@@ -311,7 +314,7 @@ class SageSessions
 
                 winston.debug("Waiting to read one JSON message back, which will describe the session.")
                 sage_socket.once 'mesg', (type, desc) =>
-                    winston.debug("Got message back from Sage server: #{misc.to_json(desc)}")
+                    winston.debug("Got message back from Sage server: #{json(desc)}")
                     client_socket.write_mesg('json', desc)
                     plug(client_socket, sage_socket)
                     # Finally, this socket is now connected to a sage server and ready to execute code.
@@ -538,7 +541,7 @@ class CodeMirrorSession
         @diffsync_clients[socket.id] = ds_client
 
     write_to_disk: (socket, mesg) =>
-        winston.debug("write_to_disk: #{misc.to_json(mesg)} -- calling sync_filesystem")
+        winston.debug("write_to_disk: #{json(mesg)} -- calling sync_filesystem")
         @sync_filesystem (err) =>
             if err
                resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk -- #{err}")
@@ -610,7 +613,7 @@ class CodeMirrorSessions
         return obj
 
     handle_mesg: (client_socket, mesg) =>
-        winston.debug("codemirror.handle_mesg: '#{misc.to_json(mesg)}'")
+        winston.debug("codemirror.handle_mesg: '#{json(mesg)}'")
         if mesg.event == 'codemirror_get_session'
             @connect(client_socket, mesg)
             return
@@ -804,7 +807,7 @@ project_exec = (socket, mesg) ->
                     error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}, #{output?.stdout}, #{output?.stderr}"
                 socket.write_mesg('json', err_mesg)
             else
-                winston.debug(misc.trunc(misc.to_json(out),512))
+                winston.debug(json(out))
                 socket.write_mesg 'json', message.project_exec_output
                     id        : mesg.id
                     stdout    : out.stdout
@@ -818,7 +821,7 @@ project_exec = (socket, mesg) ->
 
 handle_mesg = (socket, mesg) ->
     try
-        winston.debug("Handling '#{misc.to_json(mesg)}'")
+        winston.debug("Handling '#{json(mesg)}'")
         if mesg.event.split('_')[0] == 'codemirror'
             codemirror_sessions.handle_mesg(socket, mesg)
             return
@@ -859,7 +862,7 @@ handle_mesg = (socket, mesg) ->
                 socket.write_mesg('json', err)
     catch e
         winston.debug(new Error().stack)
-        winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
+        winston.error "ERROR: '#{e}' handling message '#{json(mesg)}'"
 
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"
@@ -872,7 +875,7 @@ server = net.createServer (socket) ->
             misc_node.enable_mesg(socket)
             socket.on 'mesg', (type, mesg) ->
                 if type == "json"   # other types are handled elsewhere in event code.
-                    winston.debug "received control mesg #{misc.trunc(to_json(mesg),300)}"
+                    winston.debug "received control mesg #{json(mesg)}"
                     handle_mesg(socket, mesg)
 
 # Start listening for connections on the socket.
