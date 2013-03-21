@@ -289,12 +289,14 @@ message
     session_uuid : required
     path         : required
 
+# Information about a cursor in a codemirror editor
+# client <--> hub <--> local_hub
 message
     event        : 'codemirror_cursor'
-    id           : undefined    # for tagging; is unused since no point in ack'ing a cursor pos
     session_uuid : required
     pos          : required     # {line:?, ch:?} -- the cursor position
     name         : undefined    # user who owns cursor; based on first/last name; hub fills this in on receipt; client displays it.
+    color        : undefined
 
 ############################################
 # Ping/pong

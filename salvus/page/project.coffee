@@ -149,7 +149,7 @@ class ProjectPage
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
-        @_sort_by_time = false
+        @_sort_by_time = true
 
         @init_tabs()
 

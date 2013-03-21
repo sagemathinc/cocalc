@@ -221,6 +221,8 @@ class Client extends EventEmitter
     # Call this method when the user has successfully signed in.
     signed_in: (signed_in_mesg) =>
 
+        @signed_in_mesg = signed_in_mesg  # save it, since the properties are handy to have.
+
         # Record that this connection is authenticated as user with given uuid.
         @account_id = signed_in_mesg.account_id
 
@@ -233,6 +235,10 @@ class Client extends EventEmitter
             first_name    : signed_in_mesg.first_name
             last_name     : signed_in_mesg.last_name
 
+    # Return the full name if user has signed in; otherwise returns undefined.
+    fullname: () =>
+        if @signed_in_mesg?
+            return @signed_in_mesg.first_name + " " + @signed_in_mesg.last_name
 
     signed_out: () =>
         @account_id = undefined
@@ -1012,6 +1018,11 @@ class Client extends EventEmitter
             if not err
                 session.client_diffsync(@, mesg)
 
+    mesg_codemirror_cursor: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.client_cursor(@, mesg)
+
     mesg_codemirror_write_to_disk: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
             if not err
@@ -1190,9 +1201,12 @@ class CodeMirrorDiffSyncClient
         )
         cb()  # no way to detect failure
 
+    send_mesg: (mesg) =>
+        @client.push_to_client(mesg)
+
     # Suggest to the connected client that there is stuff ready to be synced
     sync_ready: () =>
-        @client.push_to_client(message.codemirror_diffsync_ready(session_uuid: @cm_session.session_uuid))
+        @send_mesg(message.codemirror_diffsync_ready(session_uuid: @cm_session.session_uuid))
 
 class CodeMirrorSession
     constructor: (opts) ->
@@ -1244,6 +1258,25 @@ class CodeMirrorSession
         @diffsync_server.live = content
         for id, ds of @diffsync_clients
             ds.live = content
+
+    client_cursor: (client, mesg) =>
+        # Message from some client reporting new cursor position.
+        ds_client = @diffsync_clients[client.id]
+        if not ds_client?
+            return # it's just a cursor; who cares
+
+        winston.debug("client_cursor: #{misc.to_json(mesg)}")
+
+        # 1. Fill in the user's name
+        if client.signed_in_mesg?
+            mesg.name = client.fullname()
+            mesg.color = client.id.slice(0,6)  # use first 6 digits of uuid... one color per session NOT username!
+        # 2. Send cursor info to other clients connected to this hub.
+        for id, ds of @diffsync_clients
+            if id != client.id
+                ds.remote.send_mesg(mesg)
+
+        # 3. Send message on to the local_hub.
 
     client_diffsync: (client, mesg) =>
         # Message from some client reporting new edits; we apply them,

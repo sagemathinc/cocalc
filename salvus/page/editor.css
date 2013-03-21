@@ -29,6 +29,30 @@ Editor for files in a project
     padding:5px;
 }
 
+.salvus-editor-codemirror-cursor {
+    position: absolute;
+    width:15em;
+}
+
+.salvus-editor-codemirror-cursor-inside {
+    position:absolute;
+    top:-1.3em;
+    left:.5ex;
+    height:1.15em;
+    width:1.1ex;
+    border-left: 2px solid black;
+    border: 1px solid #aaa;
+    opacity:.7;
+}
+
+.salvus-editor-codemirror-cursor-label {
+    position:absolute;
+    top:-2.9em;
+    left:1.5ex;
+    font-size:8pt;
+    font-family:serif;
+}
+
 .salvus-editor-button-bar {
     margin-bottom:0em;
 }

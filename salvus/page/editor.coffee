@@ -424,7 +424,7 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             mode              : required
-            delete_trailing_whitespace : true   # delete all trailing whitespace on save
+            delete_trailing_whitespace : false   # delete all trailing whitespace on save
             line_numbers      : true
             indent_unit       : 4
             tab_size          : 4
@@ -585,11 +585,11 @@ class CodeMirrorDiffSyncDoc
             # There is a more sophisticated approach described at http://neil.fraser.name/writing/cursor/
             # but it is harder to implement given that we'll have to dive into the details of his
             # patch_apply implementation.  This thing below took only a few minutes to implement.
+            scroll = cm.getScrollInfo()
             pos0 = cm.getCursor()
             cursor = "\uFE10"   # chosen from http://billposer.org/Linguistics/Computation/UnicodeRanges.html
                                 # since it is (1) undefined, and (2) looks like a cursor..
             cm.replaceRange(cursor, pos0)
-            scroll = cm.getScrollInfo()
             t = misc.walltime()
             s = @string()
             #console.log(1, misc.walltime(t)); t = misc.walltime()
@@ -609,8 +609,10 @@ class CodeMirrorDiffSyncDoc
             if line1?
                 v[line1] = v[line1].slice(0,ch) + v[line1].slice(ch+1)
                 pos = {line:line1, ch:ch}
+                console.log("Found cursor again at ", pos)
             else
                 pos = pos0
+                console.log("LOST CURSOR!")
             #console.log(4, misc.walltime(t)); t = misc.walltime()
             s = v.join('\n')
             #console.log(5, misc.walltime(t)); t = misc.walltime()
@@ -623,11 +625,16 @@ class CodeMirrorDiffSyncDoc
             #console.log(6, misc.walltime(t)); t = misc.walltime()
             cm.setCursor(pos)
             cm.scrollTo(scroll.left, scroll.top)
+            cm.scrollIntoView(pos)  # just in case
 
 
 codemirror_diffsync_client = (cm_session, content) ->
-
-    cm_session.codemirror.setValue(content)
+    # This happens on initialization and reconnect.  On reconnect, we could be more
+    # clever regarding restoring the cursor and the scroll location.
+    cm = cm_session.codemirror
+    scroll = cm.getScrollInfo(); pos = cm.getCursor()
+    cm.setValue(content)
+    cm.setCursor(pos); cm.scrollTo(scroll.left, scroll.top); cm.scrollIntoView(pos)
 
     return new diffsync.CustomDiffSync
         doc            : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
@@ -657,8 +664,8 @@ class CodeMirrorDiffSyncHub
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
-# CURSOR
-# $("<div style='position:absolute;'><div style='position:relative; top:-1.2em; left:-.4ex; border:solid 1px blue; height:1.15em; width:1.1ex;'></div></div>")
+
+
 class CodeMirrorSessionEditor extends CodeMirrorEditor
     constructor: (@editor, @filename, ignored, opts) ->
         super(@editor, @filename, "Loading '#{@filename}'...", opts)
@@ -696,6 +703,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @dsync_server.connect(@dsync_client)
 
                 salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
+                salvus_client.on 'codemirror_cursor', @_cursor
                 cb()
 
     _diffsync_ready: (mesg) =>
@@ -778,21 +786,48 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
     send_cursor_info_to_hub: () =>
         delete @_waiting_to_send_cursor
-        console.log("send_cursor_info_to_hub")
-        cursor = @codemirror.getCursor()
-        console.log("cursor = ", cursor)
+        if not @session_uuid # not yet connected to a session
+            return
+        mesg = message.codemirror_cursor
+            pos : @codemirror.getCursor()
+            session_uuid : @session_uuid
+        salvus_client.send(mesg)
 
     send_cursor_info_to_hub_soon: () =>
         if @_waiting_to_send_cursor?
             return
         @_waiting_to_send_cursor = setTimeout(@send_cursor_info_to_hub, @opts.cursor_interval)
 
-    _draw_other_cursor: (pos, color) =>
+    _cursor: (mesg) =>
+        @_draw_other_cursor(mesg.pos, '#' + mesg.color, mesg.name)
+
+    _draw_other_cursor: (pos, color, name) =>
         # Move the cursor with given color to the given pos.
         if not @codemirror?
             return
-        #console.log("move cursor #{color} to position #{pos.line},#{pos.ch}")
-        @codemirror.addWidget(pos, @other_cursor[0], false)
+        if not @_cursors?
+            @_cursors = {}
+        id = color + name
+        cursor_data = @_cursors[id]
+        if not cursor_data?
+            cursor = templates.find(".salvus-editor-codemirror-cursor").clone().show()
+            inside = cursor.find(".salvus-editor-codemirror-cursor-inside")
+            inside.css
+                'background-color': color
+            label = cursor.find(".salvus-editor-codemirror-cursor-label")
+            label.css('color':color)
+            label.text(name)
+            cursor_data = {cursor: cursor, pos:pos}
+            @_cursors[id] = cursor_data
+        else
+            cursor_data.pos = pos
+
+        # first fade the label out
+        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:4000)
+        # Then fade the cursor out (a non-active cursor is a waste of space).
+        cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
+        console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
+        @codemirror.addWidget(pos, cursor_data.cursor[0], false)
 
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
@@ -819,7 +854,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             @delete_trailing_whitespace()
         if @dsync_client?
             @sync (didnt_save) =>
-                if didnt_save
+                #if didnt_save
                     # A warning here isn't so useful, since this case can easily arise, and only means not saving a fraction
                     # of a second of work.
                     #alert_message(type:"info", message:"WARNING: Error synchronizing '#{@filename}' with the server, so a slightly old version of the file may get saved -- '#{didnt_save}'")

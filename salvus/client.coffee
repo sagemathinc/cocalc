@@ -305,6 +305,8 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "codemirror_diffsync_ready"
                 @emit(mesg.event, mesg)
+            when "codemirror_cursor"
+                @emit(mesg.event, mesg)
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
         f = @call_callbacks[id]

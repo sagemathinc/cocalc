@@ -10784,20 +10784,22 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
   [x] (2:00) editor sync/cursor -- implement minimum update intervals to make much better use of bandwidth
 
   [ ] PLAN (0:32) client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
--->     [x] (0:14) editor cursor sync -- create a new message:
+     [x] (0:24) editor cursor sync -- create a new message:
                  codemirror_cursor:
                      id - of the message
                      pos - {line:, ch:}
                      account_id - undefined; gets filled in by global hub
-        [ ] cm session in global hub receives message
-        [ ] global_hub then pushes out same message to other clients connected to it
-        [ ] client renders other cursors in browser:
+     [x] (0:56) cm session in global hub receives message; global_hub then pushes out same message to other clients connected to it
+     [x] (1:45) client renders other cursors in browser:
                 - adding a clever cursor-looking widget
-                - color choice will be a hash of the account_id.
+                - color choice will be a hash of the client's id (so different color for same person).
+                
         [ ] global_hub pushes out message to the local hub
         [ ] local hub pushes the message to other global hubs connected to it
         [ ] global_hubs get message from local hub and push message to their connected clients
             (test this by putting a cursor move originating at the local hub in, triggered by file io)
+        [ ] preserve all cursors on sync, not just one!  this means a bunch of unicode characters, etc.
+            Oh wait, this is automatic.  When the other cursors move, they rebroadcast their position.
 
   [ ] client codemirror editor sessions -- implement very, very, very simple out-of-band chat (global hub can store chat session longterm)
 
