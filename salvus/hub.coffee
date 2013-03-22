@@ -1280,6 +1280,12 @@ class CodeMirrorSession
             # TODO: this could be done client side in a way that respects their color scheme...?
             mesg.color = client.id.slice(0,6)  
             
+        # If this is a chat message, also fill in the time.
+        if mesg.mesg?.event == 'chat'
+            # This is weird, but it does do-JSON to a string t so that 'new Date(t)' works.
+            s = misc.to_json(new Date())
+            mesg.date = s.slice(1, s.length-1)
+            
         # 2. Send fire-and-forget message on to the local_hub, which will forward this message
         # on to all the other hubs.
         @local_hub.local_hub_socket (err, socket) ->
@@ -1291,6 +1297,8 @@ class CodeMirrorSession
         for id, ds of @diffsync_clients
             if include_self or id != client.id
                 ds.remote.send_mesg(mesg)
+                
+                
 
     client_diffsync: (client, mesg) =>
         # Message from some client reporting new edits; we apply them,

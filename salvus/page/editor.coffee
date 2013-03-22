@@ -704,6 +704,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @_set(err)
                 alert_message(type:"error", message:err)
             else
+                @_previous_successful_set = true
                 @init_autosave()
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
@@ -724,8 +725,10 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
                 @session_uuid = resp.session_uuid
 
-                # TODO -- if our content is already set, maybe don't do this, so instead we cause a merge!?
-                @_set(resp.content)
+                # If our content is already set, don't use new content from the server;
+                # instead, we'll end up doing a merge.
+                if not (@_previous_successful_set? and @_previous_successful_set)                    
+                    @_set(resp.content)
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
                 @dsync_server = new CodeMirrorDiffSyncHub(@)
@@ -829,6 +832,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
     _receive_chat: (mesg) =>
         output = @element.find(".salvus-editor-codemirror-chat-output")
         output.append($("<div>").text(mesg.name).css(color:"#"+mesg.color))
+        date = (new Date(mesg.date)).toISOString()
+        output.append($("<div>").attr('title', date).css('font-size':10, color:'#666').timeago())
         output.append($("<div>").text(mesg.mesg.content).mathjax())
         
     send_broadcast_message: (mesg, self) ->
@@ -1448,3 +1453,4 @@ class Slideshow extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}
         @element = $("<div>Salvus slideshow not implemented yet.</div>")
+

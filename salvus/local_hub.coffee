@@ -498,7 +498,7 @@ class CodeMirrorSession
         # one that just sent it to us.
         for id, ds_client of @diffsync_clients
             if socket.id != id
-                windton.debug("sending message on to socket with id #{socket.id}")
+                winston.debug("sending message on to socket with id #{socket.id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
 
     client_diffsync: (socket, mesg) =>
