@@ -57,7 +57,17 @@ file_associations['tex'] =
     editor : 'latex'
     icon   : 'icon-edit'
     opts   : {mode:'stex', indent_unit:2, tab_size:2}
+    
+file_associations['html'] =
+    editor : 'codemirror'
+    icon   : 'icon-edit'
+    opts   : {mode:'htmlmixed', indent_unit:2, tab_size:2}    
 
+file_associations['css'] =
+    editor : 'codemirror'
+    icon   : 'icon-edit'
+    opts   : {mode:'css', indent_unit:2, tab_size:2}    
+    
 file_associations['salvus-terminal'] =
     editor : 'terminal'
     icon   : 'icon-credit-card'
@@ -447,7 +457,7 @@ class CodeMirrorEditor extends FileEditor
             mode            : opts.mode
             lineNumbers     : opts.line_numbers
             indentUnit      : opts.indent_unit
-            tabSave         : opts.tab_size
+            tabSize         : opts.tab_size
             smartIndent     : opts.smart_indent
             undoDepth       : opts.undo_depth
             matchBrackets   : opts.match_brackets
