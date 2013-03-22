@@ -492,6 +492,14 @@ class CodeMirrorSession
         for id, ds_client of @diffsync_clients
             ds_client.live = @content
 
+    client_cursor: (socket, mesg) =>
+        winston.debug("client_cursor")
+        # The only thing we do is forward this message on to all global hubs except the
+        # one that just sent it to us.
+        for id, ds_client of @diffsync_clients
+            if socket.id != id
+                ds_client.remote.socket.write_mesg('json', mesg)
+
     client_diffsync: (socket, mesg) =>
         write_mesg = (event, obj) ->
             if not obj?
@@ -627,6 +635,8 @@ class CodeMirrorSessions
         switch mesg.event
             when 'codemirror_diffsync'
                 session.client_diffsync(client_socket, mesg)
+            when 'codemirror_cursor'
+                session.client_cursor(client_socket, mesg)
             when 'codemirror_write_to_disk'
                 session.write_to_disk(client_socket, mesg)
             when 'codemirror_read_from_disk'

@@ -1271,12 +1271,14 @@ class CodeMirrorSession
         if client.signed_in_mesg?
             mesg.name = client.fullname()
             mesg.color = client.id.slice(0,6)  # use first 6 digits of uuid... one color per session NOT username!
+        # 3. Send fire-and-forget message on to the local_hub.
+        @local_hub.local_hub_socket (err, socket) ->
+            if not err
+                socket.write_mesg 'json', mesg
         # 2. Send cursor info to other clients connected to this hub.
         for id, ds of @diffsync_clients
             if id != client.id
                 ds.remote.send_mesg(mesg)
-
-        # 3. Send message on to the local_hub.
 
     client_diffsync: (client, mesg) =>
         # Message from some client reporting new edits; we apply them,
@@ -1317,6 +1319,11 @@ class CodeMirrorSession
 
     get_snapshot: () =>
         return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
+
+    broadcast_mesg_to_clients: (mesg, exclude_id) =>
+        for id, ds of @diffsync_clients
+            if id != exclude_id
+                ds.remote.send_mesg(mesg)
 
     sync: (cb) =>
         if @_upstream_sync_lock? and @_upstream_sync_lock
@@ -1457,6 +1464,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb           : (err, session) ->
                     if not err
                         session.sync()
+        if mesg.event == 'codemirror_cursor'
+            @get_codemirror_session
+                session_uuid : mesg.session_uuid
+                cb           : (err, session) ->
+                    if not err
+                        session.broadcast_mesg_to_clients(mesg)
 
     # The standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
