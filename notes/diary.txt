@@ -10776,14 +10776,13 @@ x- get rid of local_hub redundant write to filesystem.
 
   [x] client codemirror editor sessions -- read paper about cursor preservation and implement: http://neil.fraser.name/writing/cursor/
 
-@@@@@@@@@@@@@@@@@@@@@@
 ---
 March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet sync.  !!
 ---
 
   [x] (2:00) editor sync/cursor -- implement minimum update intervals to make much better use of bandwidth
 
-[ ] PLAN (0:32) client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
+[x] PLAN (0:32) client codemirror editor sessions -- push out cursor info, so other clients can see everybody's cursors...
     [x] (0:24) editor cursor sync -- create a new message:
              codemirror_cursor:
                  id - of the message
@@ -10800,17 +10799,36 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
     [x] global_hubs get message from local hub and push message to their connected clients
         (test this by putting a cursor move originating at the local hub in, triggered by file io)
 
-  [ ] client codemirror editor sessions -- implement very, very, very simple out-of-band chat (global hub can store chat session longterm)
+
+@@@@@@@@@@@@@@@@@@@@@@
+
+   [ ] using the codemirror editor in SMC is unbearable because it is not using the full screen.  ARGH.  Do _something_
+   about this.
+--->      [x] making project display bearable: move the title/description/location well into "settings".
+          [ ] [File Icon] [open file tabs...]  ... [settings]
+    
+
+  [ ] CHAT: client codemirror editor sessions -- implement simple out-of-band math-enabled chat (global hub can store chat session longterm) 
+
+Since this is so much like cursors, I can probably do it more "all at once." 
+  
+-->    [ ] change the cursor system into a message broadcast system
+    [ ] add client UI area in which to enter a chat message.  send on enter.
+    [ ] add handler function that crafts a message and sends it.
     [ ] chat message; basically same info as cursor message, with pos replaced by a string that gets mathjax'd.
     [ ] push it around via the same architecture as above...
     [ ] display scrolling by in the right margin.
     [ ] persistence: have the hub store it in a database; on session start, have hub grab it.  Send it along with content.
+        
+================================    
+== Worksheet Synchronization! ==
+================================
 
-  [ ] range selection -- need to also preserve that on update.
+
+
 
   [ ] editor -- on sync, should reposition the line being edited at same location in buffer as it was on before, to avoid jumpiness?
-
-  [ ] THEN... worksheet synchronization.
+  [ ] range selection -- need to also preserve that on update.
 
   [ ] default account per user + backups
 

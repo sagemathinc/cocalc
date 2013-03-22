@@ -466,8 +466,9 @@ class CodeMirrorEditor extends FileEditor
                         CodeMirror.commands.defaultTab(editor)
 
         scroller = $(@codemirror.getScrollerElement())
-        scroller.css('height':$(window).height()*2/3)
-        @element.find(".salvus-editor-input-box").resizable(alsoResize:scroller, handles: "sw,w,s,e,se").on('resize', @focus)
+        scroller.css('height':$(window).height())
+        
+        #@element.find(".salvus-editor-input-box").resizable(alsoResize:scroller, handles: "sw,w,s,e,se").on('resize', @focus)
 
         @init_save_button()
         @init_change_event()
@@ -571,7 +572,7 @@ class CodeMirrorDiffSyncDoc
 
     patch_in_place: (p) =>
         if @opts.string
-            #console.log("patching string in place")  # should never need to happen
+            console.log("patching string in place")  # should never need to happen
             @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
         else
             cm = @opts.cm
@@ -655,7 +656,7 @@ class CodeMirrorDiffSyncHub
     recv_edits: (edit_stack, last_version_ack, cb) =>
         @cm_session.call
             message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
-            timeout : 60
+            timeout : 30
             cb      : (err, mesg) =>
                 if err
                     cb(err)
@@ -772,7 +773,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 if @_sync_failures % 6 == 0
                     alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
 
-                setTimeout(@sync, 10000)  # try again in 10 seconds no matter what
+                setTimeout(@sync, 45000)  # try again soon...
                 cb?(err)
             else
                 #console.log('sync: ok')
@@ -826,7 +827,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:4000)
         # Then fade the cursor out (a non-active cursor is a waste of space).
         cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
-        console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
+        #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
         @codemirror.addWidget(pos, cursor_data.cursor[0], false)
 
     _apply_changeObj: (changeObj) =>
