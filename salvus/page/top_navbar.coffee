@@ -14,7 +14,7 @@ class TopNavbar  extends EventEmitter
 
     constructor: () ->
         @pages            = {}
-        @navbar           = $(".navbar-fixed-top")
+        @navbar           = $(".salvus-top_navbar")
         @buttons          = @navbar.find("ul.nav.pull-left")   # the list of buttons on the left
         @buttons_right    = @navbar.find("ul.nav.pull-right")  # the list of buttons on the right
         @button_template  = $("#top_navbar-button-template")

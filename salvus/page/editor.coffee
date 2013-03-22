@@ -14,7 +14,7 @@ misc = require('misc')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
 
-top_navbar = $(".navbar-fixed-top")
+top_navbar =  $(".salvus-top_navbar")
 
 codemirror_associations =
     c      : 'text/x-c'
