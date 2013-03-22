@@ -10806,7 +10806,7 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
    about this.
           [x] (0:08) making project display bearable: move the title/description/location well into "settings".
           [x] (0:07) html/css modes -- make them use 2-space indentation by default, and fix a bug where I wrote tabSave instead of tabSize.
-          [ ] make a keystroke that is "autoindent-region", since it was "shift-tab" before. 
+          [x] make a keystroke that is "autoindent-region", since it was "shift-tab" before. 
           [ ] [File Icon] [open file tabs...]  ... [settings]
     
 

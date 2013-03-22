@@ -446,8 +446,8 @@ class CodeMirrorEditor extends FileEditor
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
-            cursor_interval   : 150   # minimum time (in ms) between sending cursor position info to hub -- only used in sync version
-            sync_interval     : 150   # minimum time (in ms) between synchronizing text with hub. -- only used in sync version below
+            cursor_interval   : 150   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval     : 150   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
         @element = templates.find(".salvus-editor-codemirror").clone()
         @element.find("textarea").text(content)
@@ -464,11 +464,12 @@ class CodeMirrorEditor extends FileEditor
             theme           : opts.theme
             lineWrapping    : opts.line_wrapping
             extraKeys       :
-                "Shift-Enter" : (editor) => @click_save_button()
-                "Ctrl-S"    : (editor) => @click_save_button()
-                "Cmd-S"     : (editor) => @click_save_button()
-                "Shift-Tab" : (editor) => editor.unindent_selection()
-                "Tab"       : (editor) =>
+                "Shift-Enter"  : (editor)   => @click_save_button()
+                "Ctrl-S"       : (editor)   => @click_save_button()
+                "Cmd-S"        : (editor)   => @click_save_button()
+                "Shift-Tab"    : (editor)   => editor.unindent_selection()
+                "Shift-Space"  : "indentAuto"
+                "Tab"          : (editor)   =>
                     c = editor.getCursor(); d = editor.getCursor(true)
                     if c.line==d.line and c.ch == d.ch
                         editor.tab_as_space()
