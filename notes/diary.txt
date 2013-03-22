@@ -10811,7 +10811,7 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
               do this by moving the footer info into settings (temporarily), then scroll to bottom.
 
           [x] editor: vertical size and position to make this damned thing at least usable. 
-     -->  [ ] update project timestamp when it's local hub is opened; it is so hard to find projects otherwise.
+          [x] update project timestamp when it's local hub is opened; it is so hard to find projects otherwise.
           [ ] save/restore list of open files (not just terminals)
 
 [ ] CHAT: client codemirror editor sessions -- implement simple out-of-band math-enabled chat (global hub can store chat session longterm) 
@@ -10884,7 +10884,8 @@ Since this is so much like cursors, I can probably do it more "all at once."
 
       [ ] use changeObj to more efficiently compute the edits.
 
-
+  [ ] delete stuff like this from Cassandra.coffee:COMPUTE_SERVER_PORTS = COMPUTE_SERVER_PORTS
+  
   [ ] Keep getting this in hub log when trying to save diary.txt to disk.
 debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"error","id":"f336cfd9-fda5-4104-be26-44cd21a1c8e0","error":"Error writing to disk -- true"}
 
