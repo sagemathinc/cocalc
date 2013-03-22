@@ -10823,11 +10823,11 @@ Since this is so much like cursors, I can probably do it more "all at once."
 [x] (0:50)change the cursor system into a message broadcast system
 @@@@@@@@@@@@@@@@@@@@@@
 
-    [ ] add *trivial* client UI area in which to enter a chat message, and to display output
-    [ ] add handler function that crafts a message and sends it.
-    [ ] chat message; basically same info as cursor message, with pos replaced by a string that gets mathjax'd.
-    [ ] push it around via the same architecture as above...
-    [ ] display reuslt in output place
+    [x] (0:17) add *trivial* client UI area in which to enter a chat message, and to display output
+    [x] add handler function that crafts a message and sends it.
+    [x] chat message; basically same info as cursor message, with pos replaced by a string that gets mathjax'd.
+    [x] push it around via the same architecture as above...
+    [x] display result in output place
     [ ] persistence: have the hub store it in a database; on session start, have hub grab it.  Send it along with content.
     [ ] make the chat UI nicer
 

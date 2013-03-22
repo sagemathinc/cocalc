@@ -652,8 +652,10 @@ codemirror_diffsync_client = (cm_session, content) ->
     # clever regarding restoring the cursor and the scroll location.
     cm = cm_session.codemirror
     scroll = cm.getScrollInfo(); pos = cm.getCursor()
+    console.log("(before) codemirror_diffsync_client: ", scroll, pos)
     cm.setValue(content)
     cm.setCursor(pos); cm.scrollTo(scroll.left, scroll.top); cm.scrollIntoView(pos)
+    console.log("(after) codemirror_diffsync_client: ", scroll, pos)
 
     return new diffsync.CustomDiffSync
         doc            : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
@@ -692,7 +694,11 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             delete opts.session_uuid
 
         super(@editor, @filename, "Loading '#{@filename}'...", opts)
+        
         @init_cursorActivity_event()
+        
+        @init_chat()
+        
         @connect (err,resp) =>
             if err
                 @_set(err)
@@ -776,7 +782,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
     sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
         if @_syncing? and @_syncing
             # can only sync once a complete cycle is done, or declared failure.
-            cb?("skipping since already syncing")
+            cb?()
             console.log('skipping since already syncing')
             return
         @_syncing = true
@@ -788,7 +794,6 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             if err
                 #console.log('sync: error')
                 @_syncing = false
-                @codemirror.setOption('readOnly', false)
                 if not @_sync_failures?
                     @_sync_failures = 1
                 else
@@ -808,15 +813,36 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
             @send_cursor_info_to_hub_soon()
+            
+    init_chat: () =>
+        console.log('init_chat')
+        chat = @element.find(".salvus-editor-codemirror-chat")
+        input = chat.find(".salvus-editor-codemirror-chat-input")
+        chat.find("a[href=#send]").click  () =>
+            console.log("do chat")
+            content = $.trim(input.val())
+            if content != ""
+                input.val("")
+                @send_broadcast_message({event:'chat', content:content}, true)
+            return false
 
+    _receive_chat: (mesg) =>
+        output = @element.find(".salvus-editor-codemirror-chat-output")
+        output.append($("<div>").text(mesg.name).css(color:"#"+mesg.color))
+        output.append($("<div>").text(mesg.mesg.content).mathjax())
+        
+    send_broadcast_message: (mesg, self) ->
+        m = message.codemirror_bcast
+            session_uuid : @session_uuid
+            mesg         : mesg
+            self         : self    #if true, then also send include this client to receive message
+        salvus_client.send(m)        
+        
     send_cursor_info_to_hub: () =>
         delete @_waiting_to_send_cursor
         if not @session_uuid # not yet connected to a session
             return
-        mesg = message.codemirror_bcast
-            session_uuid : @session_uuid
-            mesg         : {event:'cursor', pos:@codemirror.getCursor()}
-        salvus_client.send(mesg)
+        @send_broadcast_message({event:'cursor', pos:@codemirror.getCursor()})
 
     send_cursor_info_to_hub_soon: () =>
         if @_waiting_to_send_cursor?
@@ -828,6 +854,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         switch mesg.mesg.event
             when 'cursor'
                 @_cursor(mesg)
+            when 'chat'
+                @_receive_chat(mesg)
 
     _cursor: (mesg) =>
         @_draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)

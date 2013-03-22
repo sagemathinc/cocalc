@@ -295,6 +295,7 @@ message
 message
     event        : 'codemirror_bcast'
     session_uuid : required
+    self         : undefined    # if true, message will also be sent to self from global hub.
     name         : undefined
     account_id   : undefined
     mesg         : required     # arbitrary message, can have event, etc., attributes.

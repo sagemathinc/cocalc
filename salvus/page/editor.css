@@ -60,7 +60,6 @@ Editor for files in a project
     top:50px;
     width:9em;
     height:20em;    
-    overflow-y:auto;
 }
 
 .salvus-editor-codemirror-chat-input {
@@ -73,6 +72,7 @@ Editor for files in a project
     border:solid 1px black;    
     width:12em;
     height:60%;
+    overflow-y:auto;
 }
 
 

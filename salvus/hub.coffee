@@ -1287,8 +1287,9 @@ class CodeMirrorSession
                 socket.write_mesg 'json', mesg
                 
         # 3. Send message to other clients connected to this hub.
+        include_self = mesg.self? and mesg.self
         for id, ds of @diffsync_clients
-            if id != client.id
+            if include_self or id != client.id
                 ds.remote.send_mesg(mesg)
 
     client_diffsync: (client, mesg) =>
@@ -1331,7 +1332,7 @@ class CodeMirrorSession
     get_snapshot: () =>
         return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
 
-    broadcast_mesg_to_clients: (mesg, exclude_id) =>
+    broadcast_mesg_to_clients: (mesg, exclude_id) =>        
         for id, ds of @diffsync_clients
             if id != exclude_id
                 ds.remote.send_mesg(mesg)
