@@ -162,6 +162,7 @@
     color:#333;
     font-size:10pt;
     max-height:12em;
+    max-width:20em;
     overflow:auto;
 }
 .project-command-line-stderr {
@@ -170,6 +171,7 @@
     color:#922;
     font-size:10pt;
     max-height:12em;
+    max-width:20em;
     overflow:auto;
 }
 

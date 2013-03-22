@@ -14,6 +14,8 @@ misc = require('misc')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
 
+top_navbar = $(".navbar-fixed-top")
+
 codemirror_associations =
     c      : 'text/x-c'
     'c++'  : 'text/x-c++src'
@@ -477,7 +479,7 @@ class CodeMirrorEditor extends FileEditor
                         CodeMirror.commands.defaultTab(editor)
 
         scroller = $(@codemirror.getScrollerElement())
-        scroller.css('height':$(window).height())
+        scroller.css('height':$(window).height() - 2*top_navbar.height())
         
         #@element.find(".salvus-editor-input-box").resizable(alsoResize:scroller, handles: "sw,w,s,e,se").on('resize', @focus)
 
@@ -1258,7 +1260,8 @@ class Terminal extends FileEditor
         @element.show()
         if @console?
             e = $(@console.terminal.element)
-            e.height((@console.opts.rows * 1.1) + "em")
+            #e.height((@console.opts.rows * 1.1) + "em")
+            e.height($(window).height() - 2*top_navbar.height())
             @console.focus()
 
 class Worksheet extends FileEditor

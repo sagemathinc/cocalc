@@ -10808,7 +10808,8 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
           [x] (0:07) html/css modes -- make them use 2-space indentation by default, and fix a bug where I wrote tabSave instead of tabSize.
           [x] make a keystroke that is "autoindent-region", since it was "shift-tab" before. 
           [ ] [File Icon] [open file tabs...]  ... [settings]
-    
+          
+     -->  [ ] update project timestamp when it's local hub is opened; it is so hard to find projects otherwise.
 
   [ ] CHAT: client codemirror editor sessions -- implement simple out-of-band math-enabled chat (global hub can store chat session longterm) 
 
