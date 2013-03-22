@@ -724,9 +724,10 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @dsync_server = new CodeMirrorDiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
-
+                
+                console.log("ADDING NEW codemirror listeners -- need to free old ones (TODO).")
                 salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
-                salvus_client.on 'codemirror_cursor', @_cursor
+                salvus_client.on 'codemirror_bcast', (mesg) => @_receive_broadcast(mesg)
                 cb()
 
     _diffsync_ready: (mesg) =>
@@ -811,9 +812,9 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         delete @_waiting_to_send_cursor
         if not @session_uuid # not yet connected to a session
             return
-        mesg = message.codemirror_cursor
-            pos : @codemirror.getCursor()
+        mesg = message.codemirror_bcast
             session_uuid : @session_uuid
+            mesg         : {event:'cursor', pos:@codemirror.getCursor()}
         salvus_client.send(mesg)
 
     send_cursor_info_to_hub_soon: () =>
@@ -821,8 +822,14 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             return
         @_waiting_to_send_cursor = setTimeout(@send_cursor_info_to_hub, @opts.cursor_interval)
 
+    _receive_broadcast: (mesg) =>
+        console.log("received broadcast message:",mesg)
+        switch mesg.mesg.event
+            when 'cursor'
+                @_cursor(mesg)
+
     _cursor: (mesg) =>
-        @_draw_other_cursor(mesg.pos, '#' + mesg.color, mesg.name)
+        @_draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)
 
     _draw_other_cursor: (pos, color, name) =>
         # Move the cursor with given color to the given pos.

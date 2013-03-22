@@ -10806,27 +10806,26 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
    about this.
           [x] (0:08) making project display bearable: move the title/description/location well into "settings".
           [x] (0:07) html/css modes -- make them use 2-space indentation by default, and fix a bug where I wrote tabSave instead of tabSize.
-          [x] make a keystroke that is "autoindent-region", since it was "shift-tab" before. 
+          [x] make a keystroke that is "autoindent-region", since it was "shift-tab" before.
           [x] editor: quick temporary usability hack -- make it so selecting a file fills the screen
               do this by moving the footer info into settings (temporarily), then scroll to bottom.
 
-          [x] editor: vertical size and position to make this damned thing at least usable. 
+          [x] editor: vertical size and position to make this damned thing at least usable.
           [x] update project timestamp when it's local hub is opened; it is so hard to find projects otherwise.
-          
- -->          [ ] save/restore list of open files (not just terminals)
- 
 
-
+          [x] (1:30) save/restore list of open files (not just terminals)
           [ ] this is driving me crazy!
                * reconnecting... index.js:8065... then jumps to the TOP! :-(
-          
 
-[ ] CHAT: client codemirror editor sessions -- implement simple out-of-band math-enabled chat (global hub can store chat session longterm) 
 
-Since this is so much like cursors, I can probably do it more "all at once." 
-  
--->    [ ] change the cursor system into a message broadcast system
+[ ] CHAT: client codemirror editor sessions -- implement simple out-of-band math-enabled chat (global hub can store chat session longterm)
+
+Since this is so much like cursors, I can probably do it more "all at once."
+
+    [x] change the cursor system into a message broadcast system
+
     [ ] add client UI area in which to enter a chat message.  send on enter.
+
     [ ] add handler function that crafts a message and sends it.
     [ ] chat message; basically same info as cursor message, with pos replaced by a string that gets mathjax'd.
     [ ] push it around via the same architecture as above...
@@ -10836,12 +10835,18 @@ Since this is so much like cursors, I can probably do it more "all at once."
           [ ] editor/sync:resetting file jumps cursor to the top, which SUCKS.
 
 
-================================    
+
+  [ ] ** Session CLEANUP **
+
+================================
 == Worksheet Synchronization! ==
 ================================
 
 
 
+          [ ] when closing a file, disable corresponding listeners.
+
+          [ ] codemirror sync -- add a close button that closes a file for everybody.
 
   [ ] editor -- on sync, should reposition the line being edited at same location in buffer as it was on before, to avoid jumpiness?
   [ ] range selection -- need to also preserve that on update.
@@ -10860,7 +10865,7 @@ Since this is so much like cursors, I can probably do it more "all at once."
           [ ] codemirror -- Mac scrolling is broken in my codemirror's, but it works fine on their website. e.g.,
                   http://codemirror.net/mode/haskell/index.html
               This even works fine in linux.  I must fix this!
-      
+
 
 
   [ ] worksheet -- default start location is relative to home directory not project.  Yuck.
@@ -10892,7 +10897,7 @@ Since this is so much like cursors, I can probably do it more "all at once."
       [ ] use changeObj to more efficiently compute the edits.
 
   [ ] delete stuff like this from Cassandra.coffee:COMPUTE_SERVER_PORTS = COMPUTE_SERVER_PORTS
-  
+
   [ ] Keep getting this in hub log when trying to save diary.txt to disk.
 debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"error","id":"f336cfd9-fda5-4104-be26-44cd21a1c8e0","error":"Error writing to disk -- true"}
 

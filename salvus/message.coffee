@@ -289,15 +289,16 @@ message
     session_uuid : required
     path         : required
 
-# Information about a cursor in a codemirror editor
+# Broadcast mesg to all clients connected to this session. 
+# This is used for cursors and out-of-band chat.
 # client <--> hub <--> local_hub
 message
-    event        : 'codemirror_cursor'
+    event        : 'codemirror_bcast'
     session_uuid : required
-    pos          : required     # {line:?, ch:?} -- the cursor position
-    name         : undefined    # user who owns cursor; based on first/last name; hub fills this in on receipt; client displays it.
-    color        : undefined
-
+    name         : undefined
+    account_id   : undefined
+    mesg         : required     # arbitrary message, can have event, etc., attributes.
+    
 ############################################
 # Ping/pong
 #############################################

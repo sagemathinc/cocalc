@@ -206,6 +206,7 @@ class exports.Connection extends EventEmitter
 
 
     constructor: (@url) ->
+        @setMaxListeners(100)   #TODO: lower this to <=10 and track down issues/remove leaks.
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
@@ -305,7 +306,7 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "codemirror_diffsync_ready"
                 @emit(mesg.event, mesg)
-            when "codemirror_cursor"
+            when "codemirror_bcast"
                 @emit(mesg.event, mesg)
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.

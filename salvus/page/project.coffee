@@ -286,12 +286,21 @@ class ProjectPage
 
     init_sage_sessions: (sessions, cb) =>
         console.log("initialize sage sessions: ", sessions)
+        #TODO -- not enough info to do this yet. 
+        #for session_uuid, obj of sessions
+        #    tab = @editor.create_tab(filename : obj.path, session_uuid:session_uuid)
         cb?()
 
     init_file_sessions: (sessions, cb) =>
         console.log("initialize file sessions: ", sessions)
         for session_uuid, obj of sessions
-            tab = @editor.create_tab(filename : obj.path, session_uuid:session_uuid)
+            if obj.path?  #just in case
+                # The filename contains the path to the project...
+                filename = obj.path.slice(@project.location.path.length + 1)
+                # Now create the tab in which to edit the file.
+                tab = @editor.create_tab(filename : filename, session_uuid:session_uuid)
+            else
+                log("GOT suspicious session -- sessions=#{misc.to_json(sessions)}")
         cb?()
 
 

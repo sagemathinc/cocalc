@@ -1021,10 +1021,10 @@ class Client extends EventEmitter
             if not err
                 session.client_diffsync(@, mesg)
 
-    mesg_codemirror_cursor: (mesg) =>
+    mesg_codemirror_bcast: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
             if not err
-                session.client_cursor(@, mesg)
+                session.client_broadcast(@, mesg)
 
     mesg_codemirror_write_to_disk: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
@@ -1262,23 +1262,31 @@ class CodeMirrorSession
         for id, ds of @diffsync_clients
             ds.live = content
 
-    client_cursor: (client, mesg) =>
-        # Message from some client reporting new cursor position.
+    client_broadcast: (client, mesg) =>
+        # Broadcast message from some client reporting something (e.g., cursor position, chat, etc.)
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
-            return # it's just a cursor; who cares
+            return # something wrong -- just drop the message
 
-        winston.debug("client_cursor: #{misc.to_json(mesg)}")
+        winston.debug("client_broadcast: #{misc.to_json(mesg)}")
 
+        # We tag the broadcast message, in order to make it more useful to recipients (but do not
+        # go so far as to advertise the account_id or email)..
+        
         # 1. Fill in the user's name
         if client.signed_in_mesg?
             mesg.name = client.fullname()
-            mesg.color = client.id.slice(0,6)  # use first 6 digits of uuid... one color per session NOT username!
-        # 3. Send fire-and-forget message on to the local_hub.
+            # Use first 6 digits of uuid... one color per session, NOT per username.
+            # TODO: this could be done client side in a way that respects their color scheme...?
+            mesg.color = client.id.slice(0,6)  
+            
+        # 2. Send fire-and-forget message on to the local_hub, which will forward this message
+        # on to all the other hubs.
         @local_hub.local_hub_socket (err, socket) ->
             if not err
                 socket.write_mesg 'json', mesg
-        # 2. Send cursor info to other clients connected to this hub.
+                
+        # 3. Send message to other clients connected to this hub.
         for id, ds of @diffsync_clients
             if id != client.id
                 ds.remote.send_mesg(mesg)
@@ -1467,7 +1475,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb           : (err, session) ->
                     if not err
                         session.sync()
-        if mesg.event == 'codemirror_cursor'
+        if mesg.event == 'codemirror_bcast'
             @get_codemirror_session
                 session_uuid : mesg.session_uuid
                 cb           : (err, session) ->
