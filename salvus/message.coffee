@@ -223,7 +223,7 @@ message
     event        : 'codemirror_get_session'
     path         : undefined   # at least one of path or session_uuid must be defined
     session_uuid : undefined
-    project_id   : undefined   # only used for client --> hub, where it is *required*
+    project_id   : undefined
     id           : undefined
 
 # local_hub --> hub --> client

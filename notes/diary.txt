@@ -10812,7 +10812,14 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
 
           [x] editor: vertical size and position to make this damned thing at least usable. 
           [x] update project timestamp when it's local hub is opened; it is so hard to find projects otherwise.
-          [ ] save/restore list of open files (not just terminals)
+          
+ -->          [ ] save/restore list of open files (not just terminals)
+ 
+
+
+          [ ] this is driving me crazy!
+               * reconnecting... index.js:8065... then jumps to the TOP! :-(
+          
 
 [ ] CHAT: client codemirror editor sessions -- implement simple out-of-band math-enabled chat (global hub can store chat session longterm) 
 

@@ -290,6 +290,8 @@ class ProjectPage
 
     init_file_sessions: (sessions, cb) =>
         console.log("initialize file sessions: ", sessions)
+        for session_uuid, obj of sessions
+            tab = @editor.create_tab(filename : obj.path, session_uuid:session_uuid)
         cb?()
 
 

@@ -580,7 +580,7 @@ class CodeMirrorSession
 
 class CodeMirrorSessions
     constructor: () ->
-        @_sessions = {by_uuid:{}, by_path:{}}
+        @_sessions = {by_uuid:{}, by_path:{}, by_project:{}}
 
     connect: (client_socket, mesg) =>
         finish = (session) ->
@@ -610,14 +610,19 @@ class CodeMirrorSessions
             else
                 @_sessions.by_uuid[session.session_uuid] = session
                 @_sessions.by_path[session.path] = session
+                if mesg.project_id?
+                    if  not @_sessions.by_project[mesg.project_id]?
+                         @_sessions.by_project[mesg.project_id] = {}                           
+                    @_sessions.by_project[mesg.project_id][session.path] = session
                 finish(session)
 
     # Return object that describes status of CodeMirror sessions for a given project
     info: (project_id) =>
         obj = {}
-        for id, session of @_sessions
-            if session.project_id == project_id
-                obj[id] = {session_uuid : session.session_uuid, path : session.path}
+        X = @_sessions.by_project[project_id]
+        if X?
+            for path, session of X
+                obj[session.session_uuid] = {path : session.path}
         return obj
 
     handle_mesg: (client_socket, mesg) =>
@@ -791,9 +796,9 @@ write_file_to_project = (socket, mesg) ->
 ###############################################
 session_info = (project_id) ->
     return {
-        'sage_sessions'       : sage_sessions.info(project_id)
-        'console_sessions'    : console_sessions.info(project_id)
-        'codemirror_sessions' : codemirror_sessions.info(project_id)
+        'sage_sessions'     : sage_sessions.info(project_id)
+        'console_sessions'  : console_sessions.info(project_id)
+        'file_sessions'     : codemirror_sessions.info(project_id)
     }
 
 

@@ -986,8 +986,10 @@ class Client extends EventEmitter
             if err
                 return
             project.get_codemirror_session
-                path : mesg.path
-                cb   : (err, session) =>
+                path         : mesg.path
+                project_id   : mesg.project_id
+                session_uuid : mesg.session_uuid
+                cb           : (err, session) =>
                     if err
                         @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
                     else
@@ -1664,6 +1666,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     get_codemirror_session: (opts) =>
         opts = defaults opts,
             session_uuid : undefined   # give at least one of the session uuid or filename
+            project_id   : undefined
             path         : undefined
             cb           : required    # cb(err, session)
         if opts.session_uuid?
@@ -1678,7 +1681,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 return
         # Create a new session object.
         @call
-            mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, path:opts.path)
+            mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, project_id:opts.project_id, path:opts.path)
             cb   : (err, resp) =>
                 if err
                     opts.cb(err)
@@ -2040,6 +2043,7 @@ class Project
         opts = defaults opts,
             session_uuid : undefined   # give at least one of the session uuid or path
             path         : undefined
+            project_id   : undefined
             cb           : required
         @_fixpath(opts)
         @local_hub.get_codemirror_session(opts)

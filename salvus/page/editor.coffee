@@ -220,10 +220,12 @@ class exports.Editor
             link     : link
             editor   : editor
             filename : filename
-        @display_tab(filename)
-        @element.find(".salvus-editor-content").append(editor.element.show())
+
+        #@display_tab(filename)
+        #setTimeout(editor.focus, 250)
+
+        @element.find(".salvus-editor-content").append(editor.element.hide())
         @update_counter()
-        setTimeout(editor.focus, 250)
         return @tabs[filename]
 
 
@@ -517,7 +519,7 @@ class CodeMirrorEditor extends FileEditor
     show: () =>
         if not (@element? and @codemirror?)
             console.log('skipping show because things not defined yet.')
-            return        
+            return
         @element.show()
         scroller = $(@codemirror.getScrollerElement())
         height = $(window).height() - 3*top_navbar.height()
@@ -684,9 +686,13 @@ class CodeMirrorDiffSyncHub
 
 class CodeMirrorSessionEditor extends CodeMirrorEditor
     constructor: (@editor, @filename, ignored, opts) ->
+        if opts.session_uuid
+            @session_uuid = opts.session_uuid
+            delete opts.session_uuid
+
         super(@editor, @filename, "Loading '#{@filename}'...", opts)
         @init_cursorActivity_event()
-        @connect (err, resp) =>
+        @connect (err,resp) =>
             if err
                 @_set(err)
                 alert_message(type:"error", message:err)
@@ -700,8 +706,9 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         salvus_client.call
             timeout : 60     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
-                path       : @filename
-                project_id : @editor.project_id
+                path         : @filename
+                project_id   : @editor.project_id
+                session_uuid : @session_uuid
             cb      : (err, resp) =>
                 if err
                     cb(err); return
