@@ -9,8 +9,8 @@ Editor for files in a project
 }
 
 .salvus-editor-close-button-x {
-   font-size: 18px;
-   margin-left:5px;
+    font-size: 18px;
+    margin-left:5px;
 }
 
 .salvus-editor-close-button-x:hover {
@@ -53,11 +53,35 @@ Editor for files in a project
     font-family:serif;
 }
 
-.salvus-editor-button-bar {
-    margin-bottom:0em;
+.salvus-editor-codemirror-chat {
+    border:solid 1px black;  
+    position:fixed;
+    right:0px;
+    top:50px;
+    width:9em;
+    height:20em;    
+    overflow-y:auto;
 }
 
-.salvus-editor-input-box {
+.salvus-editor-codemirror-chat-input {
+    border:solid 1px black;    
+    width:12em;    
+    height:3em;
+}
+
+.salvus-editor-codemirror-chat-output {
+    border:solid 1px black;    
+    width:12em;
+    height:60%;
+}
+
+
+
+.salvus-editor-button-bar {
+    margin-bottom : 0em;
+}
+
+.salvus-editor-codemirror-input-box {
     border: 3px solid #9a9;
     border-radius: 5px;
 }

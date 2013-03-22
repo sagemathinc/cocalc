@@ -58,17 +58,17 @@ for ext, mode of codemirror_associations
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'icon-edit'
-    opts   : {mode:'stex', indent_unit:2, tab_size:2}
+    opts   : {mode:'stex', indent_unit:4, tab_size:4}
     
 file_associations['html'] =
     editor : 'codemirror'
     icon   : 'icon-edit'
-    opts   : {mode:'htmlmixed', indent_unit:2, tab_size:2}    
+    opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}    
 
 file_associations['css'] =
     editor : 'codemirror'
     icon   : 'icon-edit'
-    opts   : {mode:'css', indent_unit:2, tab_size:2}    
+    opts   : {mode:'css', indent_unit:4, tab_size:4}    
     
 file_associations['salvus-terminal'] =
     editor : 'terminal'
@@ -454,8 +454,9 @@ class CodeMirrorEditor extends FileEditor
             sync_interval     : 150   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
         @element = templates.find(".salvus-editor-codemirror").clone()
-        @element.find("textarea").text(content)
-        @codemirror = CodeMirror.fromTextArea @element.find("textarea")[0],
+        elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
+        elt.text(content)
+        @codemirror = CodeMirror.fromTextArea elt[0],
             firstLineNumber : 1
             autofocus       : false
             mode            : opts.mode

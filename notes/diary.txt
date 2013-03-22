@@ -10800,8 +10800,6 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
         (test this by putting a cursor move originating at the local hub in, triggered by file io)
 
 
-@@@@@@@@@@@@@@@@@@@@@@
-
    [ ] using the codemirror editor in SMC is unbearable because it is not using the full screen.  ARGH.  Do _something_
    about this.
           [x] (0:08) making project display bearable: move the title/description/location well into "settings".
@@ -10822,17 +10820,16 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
 
 Since this is so much like cursors, I can probably do it more "all at once."
 
-    [x] change the cursor system into a message broadcast system
+[x] (0:50)change the cursor system into a message broadcast system
+@@@@@@@@@@@@@@@@@@@@@@
 
-    [ ] add client UI area in which to enter a chat message.  send on enter.
-
+    [ ] add *trivial* client UI area in which to enter a chat message, and to display output
     [ ] add handler function that crafts a message and sends it.
     [ ] chat message; basically same info as cursor message, with pos replaced by a string that gets mathjax'd.
     [ ] push it around via the same architecture as above...
-    [ ] display scrolling by in the right margin.
+    [ ] display reuslt in output place
     [ ] persistence: have the hub store it in a database; on session start, have hub grab it.  Send it along with content.
-
-          [ ] editor/sync:resetting file jumps cursor to the top, which SUCKS.
+    [ ] make the chat UI nicer
 
 
 
