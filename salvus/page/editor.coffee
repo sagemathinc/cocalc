@@ -478,11 +478,6 @@ class CodeMirrorEditor extends FileEditor
                     else
                         CodeMirror.commands.defaultTab(editor)
 
-        scroller = $(@codemirror.getScrollerElement())
-        scroller.css('height':$(window).height() - 2*top_navbar.height())
-        
-        #@element.find(".salvus-editor-input-box").resizable(alsoResize:scroller, handles: "sw,w,s,e,se").on('resize', @focus)
-
         @init_save_button()
         @init_change_event()
 
@@ -520,8 +515,15 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.scrollIntoView(from)
 
     show: () =>
-        @element?.show()
-        @codemirror?.refresh()
+        if not (@element? and @codemirror?)
+            console.log('skipping show because things not defined yet.')
+            return        
+        @element.show()
+        scroller = $(@codemirror.getScrollerElement())
+        height = $(window).height() - 3*top_navbar.height()
+        scroller.css('height':height)
+        window.scrollTo(0, document.body.scrollHeight); $(".salvus-top-scroll").show()
+        @codemirror.refresh()
 
     focus: () =>
         if not @codemirror?
@@ -1217,6 +1219,7 @@ class Terminal extends FileEditor
             title   : "Terminal"
             cols    : @opts.cols
             rows    : @opts.rows
+            resizable: false
         @console = elt.data("console")
         @element = @console.element
         @connect_to_server()
@@ -1261,8 +1264,9 @@ class Terminal extends FileEditor
         if @console?
             e = $(@console.terminal.element)
             #e.height((@console.opts.rows * 1.1) + "em")
-            e.height($(window).height() - 2*top_navbar.height())
+            e.height($(window).height() - 3*top_navbar.height())
             @console.focus()
+            window.scrollTo(0, document.body.scrollHeight); $(".salvus-top-scroll").show()
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

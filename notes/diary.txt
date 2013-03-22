@@ -10807,11 +10807,14 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
           [x] (0:08) making project display bearable: move the title/description/location well into "settings".
           [x] (0:07) html/css modes -- make them use 2-space indentation by default, and fix a bug where I wrote tabSave instead of tabSize.
           [x] make a keystroke that is "autoindent-region", since it was "shift-tab" before. 
-          [ ] [File Icon] [open file tabs...]  ... [settings]
-          
-     -->  [ ] update project timestamp when it's local hub is opened; it is so hard to find projects otherwise.
+          [x] editor: quick temporary usability hack -- make it so selecting a file fills the screen
+              do this by moving the footer info into settings (temporarily), then scroll to bottom.
 
-  [ ] CHAT: client codemirror editor sessions -- implement simple out-of-band math-enabled chat (global hub can store chat session longterm) 
+          [x] editor: vertical size and position to make this damned thing at least usable. 
+     -->  [ ] update project timestamp when it's local hub is opened; it is so hard to find projects otherwise.
+          [ ] save/restore list of open files (not just terminals)
+
+[ ] CHAT: client codemirror editor sessions -- implement simple out-of-band math-enabled chat (global hub can store chat session longterm) 
 
 Since this is so much like cursors, I can probably do it more "all at once." 
   
@@ -10822,7 +10825,10 @@ Since this is so much like cursors, I can probably do it more "all at once."
     [ ] push it around via the same architecture as above...
     [ ] display scrolling by in the right margin.
     [ ] persistence: have the hub store it in a database; on session start, have hub grab it.  Send it along with content.
-        
+
+          [ ] editor/sync:resetting file jumps cursor to the top, which SUCKS.
+
+
 ================================    
 == Worksheet Synchronization! ==
 ================================
@@ -10843,6 +10849,12 @@ Since this is so much like cursors, I can probably do it more "all at once."
 
 
 =============================
+
+          [ ] codemirror -- Mac scrolling is broken in my codemirror's, but it works fine on their website. e.g.,
+                  http://codemirror.net/mode/haskell/index.html
+              This even works fine in linux.  I must fix this!
+      
+
 
   [ ] worksheet -- default start location is relative to home directory not project.  Yuck.
 

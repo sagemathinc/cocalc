@@ -65,6 +65,7 @@ class Console extends EventEmitter
             title       : ""
             rows        : 16
             cols        : 80
+            resizable   : false
 
             font        :   # only for 'ttyjs' renderer
                 family : 'Courier, "Courier New", monospace' # CSS font-family
@@ -142,7 +143,7 @@ class Console extends EventEmitter
         @_init_paste_bin()
 
         # Initialize fullscreen button
-        @_init_fullscreen()
+        #@_init_fullscreen()
 
         # delete scroll buttons except on mobile
         if not IS_MOBILE
@@ -298,7 +299,8 @@ class Console extends EventEmitter
             'font-size'   : "#{@opts.font.size}px"
             'line-height' : "#{@opts.font.line_height}%"
 
-        @element.resizable(alsoResize:ter, handles: "sw,s,se").on('resize', @resize)
+        if @opts.resizable
+            @element.resizable(alsoResize:ter, handles: "sw,s,se").on('resize', @resize)
 
         # Set the entire console to be draggable.
         if @opts.draggable

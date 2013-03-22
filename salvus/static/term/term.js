@@ -914,6 +914,9 @@ Terminal.prototype.refresh = function(start, end) {
     console.log("line=",ln); */
 
     for (; i < w; i++) {
+      if (!(line[i] != null)) {
+         continue;
+      }
       data = line[i][0];
       ch = line[i][1];
 

@@ -2,6 +2,12 @@
 # top_navbar -- the top level navbar
 #########################################################################
 
+# Temporary hack test
+$("a[href=#top-scroll]").click () ->
+    window.scrollTo(0, 0)
+    $(".salvus-top-scroll").hide()
+    return false
+$(".salvus-top-scroll").hide()
 
 misc = require("misc")
 to_json = misc.to_json
@@ -152,7 +158,7 @@ $.fn.extend
 
 $("#about").top_navbar
     id      : "about"
-    label   : "<span class='small'>SageMathCloud&trade;</span>"
+    label   : "About"
     close   : false
 
 $("#projects").top_navbar

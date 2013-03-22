@@ -112,7 +112,7 @@ move_path_dialog = new Dialog
 class ProjectPage
     constructor: (@project) ->
         @container = templates.find(".salvus-project").clone()
-        $("#footer").before(@container)
+        $("body").append(@container)
 
         # Create a new tab in the top navbar
         @container.top_navbar

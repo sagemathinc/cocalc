@@ -1,12 +1,30 @@
 .close-button-x {
-   font-size: 18px;
+  font-size: 18px;
 }
 
 .close-button-x:hover {
-    color: #fff;
-    font-size: 18px;
+  color: #fff;
+  font-size: 18px;
 }
 
 .navbar-big {
-    font-size:18px;
+  font-size:18px;
+}
+
+.salvus-connection-status {
+  position  : fixed; 
+  z-index   : 10000; 
+  top       : 0px; 
+  left      : 0px;  
+  width     : 5em; 
+  font-size : 8pt; 
+  color     : #779;
+}
+
+.salvus-top-scroll {
+  position :fixed;
+  z-index   : 10000; 
+  top       : 40px; 
+  left      : 0px;    
+  font-size : 32pt;
 }
