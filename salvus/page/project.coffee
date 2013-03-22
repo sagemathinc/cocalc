@@ -350,7 +350,7 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : cmd + " | cut -c 1-100"
-            timeout    : 3
+            timeout    : 10
             max_output : max_output
             bash       : true
             cb         : (err, output) =>

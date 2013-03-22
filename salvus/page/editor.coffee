@@ -126,7 +126,7 @@ class exports.Editor
 
         @project_id = opts.project_id
         @element = templates.find(".salvus-editor").clone().show()
-        @nav_tabs = @element.find(".nav-tabs")
+        @nav_tabs = @element.find(".nav-pills")
 
         @tabs = {}   # filename:{useful stuff}
 

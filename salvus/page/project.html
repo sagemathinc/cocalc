@@ -56,19 +56,12 @@
     
     
     <div class="row">
-      <!-- buttons to create new consoles -->
-      <div class="pull-right">
-        <span class="btn-group">
-          <a class="btn" href="#new-worksheet"><i class="icon-file-alt"> </i> New Worksheet</a>
-          <a class="btn" href="#new-terminal"><i class="icon-credit-card"></i> New Terminal</a>
-        </span>
-      </div>
-      
-      
       <!-- Tabs -- place where you click on them -->
       <ul class="nav nav-tabs project-pages">
         <!-- Browse through files in the project -->
-        <li class="active super-menu"><a href="#project-file-listing">File Browser</a></li>
+        <li class="super-menu">
+            <a class="project-home-icon btn btn-info" href="#project-file-listing"><i class="icon-home"></i></a>
+        </li>
         
         <!-- Use an interactive console in the project -->
         <!--	  <li class="super-menu"><a href="#project-consoles">Sessions (<span class="project-consoles-count">0</span>)</a></li> -->
@@ -85,7 +78,7 @@
         <!--	  <li class="super-menu"><a href="#project-chats">Chat</a></li> -->
         
         <!-- Settings specific to this project -->
-        <li class="super-menu"><a href="#project-settings">Settings</a></li>
+        <li class="pull-right super-menu"><a href="#project-settings">Settings</a></li>
         
         <!-- Git revision log of this project -->
         <!--
@@ -103,7 +96,7 @@
         
         
         <!-- Search -->
-        <li class="super-menu"><a href="#project-search"><input class="project-search-form-input search-query" type="text"
+        <li class="super-menu pull-right"><a href="#project-search"><input class="project-search-form-input search-query" type="text"
           placeholder="Search"></a></li>
       </ul>
       
@@ -120,6 +113,8 @@
           </div>
           
           <div>
+
+            
             <!-- command line prompt -->
             <span class="project-command-line pull-right">
               <input class="project-command-line-input" type="text" placeholder="bash command...">
@@ -130,6 +125,14 @@
               </span>
             </span>
             
+            <!-- buttons to create new consoles -->
+            <div class="pull-right">
+              <span class="btn-group">
+                <a class="btn" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
+                <a class="btn" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                <a class="btn" href="#new-file"><i class="icon-file"></i> File</a>
+              </span>
+            </div>            
             
             <!-- Buttons for basic file operations -->
             <!--
@@ -358,8 +361,9 @@ course.
 </div>
 
 <a class="project-home-icon btn btn-info">
-  <i class="icon-home"> </i>
+    home
 </a>
+
 
 <a class="project-new-file-link  btn btn-warning" rel="tooltip" title="Create a new file here">
   <span class="project-new-file-icon">

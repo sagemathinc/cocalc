@@ -3,37 +3,37 @@ Editor for files in a project
 -->
 
 <span id="salvus-editor-templates" class="hide">
-
+  
   <!-- Template for the entire editor, both tabs and the actual content -->
   <div class="salvus-editor">
-
+    
     <div class="row salvus-editor-button-bar">
       <div class="span12">
-	<!-- The editor tabs go in this ul: -->
-	<ul class="nav nav-tabs">
-	</ul>
+        <!-- The editor tabs go in this ul: -->
+        <ul class="nav nav-pills">
+        </ul>
       </div>
-
+      
       <!-- The file actions toolbar -->
-<!--
-      <div class="pull-right">
-	<span class="btn-group">
-	  <a href="#save" class="btn btn-small btn-primary">Save</a>
-	  <a href="#reload" class="btn btn-small btn-warning">Reload</a>
-	  <a href="#move" class="btn btn-small btn-warning">Move</a>
-	  <a href="#delete" class="btn btn-small btn-danger">Delete</a>
-	</span>
-      </div>
+      <!--
+<div class="pull-right">
+<span class="btn-group">
+<a href="#save" class="btn btn-small btn-primary">Save</a>
+<a href="#reload" class="btn btn-small btn-warning">Reload</a>
+<a href="#move" class="btn btn-small btn-warning">Move</a>
+<a href="#delete" class="btn btn-small btn-danger">Delete</a>
+</span>
+</div>
 -->
     </div>
-
+    
     <div class="row">
       <!-- The editor content gets displayed here -->
       <div class="salvus-editor-content">
       </div>
     </div>
   </div>
-
+  
   <!-- Template for the tab at the top of the editor with filename and an x -->
   <li class="super-menu">
     <a>
@@ -41,52 +41,51 @@ Editor for files in a project
       <span class="salvus-editor-close-button-x">×</span>
     </a>
   </li>
-
+  
   <!-- Template for the codemirror text editor -->
   <div class="salvus-editor-codemirror">
     <div class="row salvus-editor-codemirror-button-row">
       <div class="span12">
-	<a href="#save" class="btn btn-info disabled"><i class="icon-save"></i> <span>Save</span> <i class="icon-spinner spinner"></i></a>
-
-    <!-- <a href="#refresh" class="btn btn-warning"><i class="icon-refresh"></i> <span>Refresh</span>
-             <i class="icon-spinner spinner"></i></a>-->
+        <a href="#save" class="btn btn-info disabled"><i class="icon-save"></i> <span>Save</span> <i class="icon-spinner spinner"></i></a>
+        
+        <!-- <a href="#refresh" class="btn btn-warning"><i class="icon-refresh"></i> <span>Refresh</span>
+<i class="icon-spinner spinner"></i></a>-->
       </div>
     </div>
     <div class="row">
       <div class="span12 salvus-editor-input-box">
-	<textarea></textarea>
+        <textarea></textarea>
       </div>
     </div>
   </div>
-
+  
   <!-- Template for the codemirror text editor other user cursors -->
-    <div class="salvus-editor-codemirror-cursor"><span class="salvus-editor-codemirror-cursor-label"></span><div class="salvus-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
-
+  <div class="salvus-editor-codemirror-cursor"><span class="salvus-editor-codemirror-cursor-label"></span><div class="salvus-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
+  
   <!-- Template for the PDF previewer -->
-
+  
   <div class="salvus-editor-pdf-preview">
-      <div class="salvus-editor-pdf-preview-spinner hide"></div>
-      <div class="salvus-editor-pdf-preview-page">
-      </div>
+    <div class="salvus-editor-pdf-preview-spinner hide"></div>
+    <div class="salvus-editor-pdf-preview-page">
+    </div>
   </div>
-
+  
   <!-- Template for the LaTeX editor -->
   <div class="salvus-editor-latex">
-      <div class="btn-group">
-          <a href="#latex_editor" class="btn btn-primary">Edit</a>
-          <a href="#preview" class="btn"><i class="icon-refresh"></i> Preview</a>
-          <!--<a href="#log" class="btn">Log</a>-->
-          <a href="#latex" class="btn ">LaTeX Log</a>
-          <a href="#pdf" class="btn  btn-success"><i class="icon-download-alt"> </i> PDF</a>
-	 </div>
-      <div class="salvus-editor-latex-latex_editor">
-      </div>
-      <div class="salvus-editor-latex-preview hide">
-      </div>
-      <div class="salvus-editor-latex-log hide">
-          <textarea rows=20 cols=100 readonly=true style="width:100%; background-color:#fff;"></textarea>
-      </div>
+    <div class="btn-group">
+      <a href="#latex_editor" class="btn btn-primary">Edit</a>
+      <a href="#preview" class="btn"><i class="icon-refresh"></i> Preview</a>
+      <!--<a href="#log" class="btn">Log</a>-->
+      <a href="#latex" class="btn ">LaTeX Log</a>
+      <a href="#pdf" class="btn  btn-success"><i class="icon-download-alt"> </i> PDF</a>
+    </div>
+    <div class="salvus-editor-latex-latex_editor">
+    </div>    <div class="salvus-editor-latex-preview hide">
+    </div>
+    <div class="salvus-editor-latex-log hide">
+      <textarea rows=20 cols=100 readonly=true style="width:100%; background-color:#fff;"></textarea>
+    </div>
   </div>
-
-
+  
+  
 </span>
