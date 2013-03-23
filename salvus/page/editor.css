@@ -51,6 +51,11 @@ Editor for files in a project
     font-family:serif;
 }
 
+.salvus-editor-chat-title {
+    color       : #666;
+    font-size: 20pt;
+}
+
 .salvus-editor-codemirror-chat {
     margin:0px;
     padding:0px;

@@ -95,7 +95,7 @@ class Worksheet extends EventEmitter
 
     chdir: (path, cb) =>
         @opts.session.execute_code
-            # os.chdir(os.environ['HOME']); os.makedirs(salvus.data['path']) if not os.path.exists(salvus.data['path']) else None; 
+            # os.chdir(os.environ['HOME']); os.makedirs(salvus.data['path']) if not os.path.exists(salvus.data['path']) else None;
             code     : "os.chdir(salvus.data['path'])"
             data     : {path: path}
             preparse : false
@@ -333,8 +333,6 @@ class Worksheet extends EventEmitter
             section.find(".salvus-worksheet-section-show").hide()
             section.find(".salvus-worksheet-section-hide").show()
             section.find(".salvus-worksheet-section-cells").show()
-
-        section.find(".salvus-worksheet-section-hide")
 
         section.find(".salvus-worksheet-section-title-user").blur () ->
             t = $(@)

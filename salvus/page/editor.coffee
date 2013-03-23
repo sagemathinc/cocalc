@@ -438,12 +438,12 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             mode              : required
-            delete_trailing_whitespace : true   # delete all trailing whitespace on save
+            delete_trailing_whitespace : false   # delete all trailing whitespace on save
             line_numbers      : true
             indent_unit       : 4
             tab_size          : 4
             smart_indent      : true
-            electric_chars    : false
+            #electric_chars    : false
             undo_depth        : 1000
             match_brackets    : true
             line_wrapping     : true
@@ -465,7 +465,7 @@ class CodeMirrorEditor extends FileEditor
             indentUnit      : opts.indent_unit
             tabSize         : opts.tab_size
             smartIndent     : opts.smart_indent
-            electricChars   : opts.electric_chars
+            electricChars   : false   #BUGGY
             undoDepth       : opts.undo_depth
             matchBrackets   : opts.match_brackets
             theme           : opts.theme
@@ -485,6 +485,24 @@ class CodeMirrorEditor extends FileEditor
 
         @init_save_button()
         @init_change_event()
+        @init_chat_toggle()
+
+    init_chat_toggle: () =>
+        title = @element.find(".salvus-editor-chat-title")
+        title.click () =>
+            title.find('i').hide()
+            if @_chat_is_hidden? and @_chat_is_hidden
+                # SHOW the chat window
+                @_chat_is_hidden = false
+                @element.find(".salvus-editor-chat-hide").show()
+                @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
+                @element.find(".salvus-editor-codemirror-chat-column").show()
+            else
+                # HIDE the chat window
+                @_chat_is_hidden = true
+                @element.find(".salvus-editor-chat-show").show()
+                @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
+                @element.find(".salvus-editor-codemirror-chat-column").hide()
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").click(@click_save_button)
