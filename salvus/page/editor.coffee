@@ -866,8 +866,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             message : opts.message
             timeout : opts.timeout
             cb      : (err, result) =>
-                if not err and result.event == 'reconnect'
-                    console.log("codemirror sync session #{@session_uuid}: reconnecting (attempt once automatically)")
+                if result? and result.event == 'reconnect'
+                    console.log("codemirror sync session #{@session_uuid}: reconnecting ")
                     @connect (err) =>
                         if err
                             console.log("codemirror sync session #{@session_uuid}: failed to reconnect")
@@ -887,7 +887,9 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             @sync (didnt_sync) =>
                 if didnt_sync
                     # We may as well try again
-                    @sync_soon(5)
+                    if multiplier?
+                        multiplier = Math.min(30000, 2*multiplier)
+                    @sync_soon(multiplier)
         if multiplier?
             t = multiplier * @opts.sync_interval
         else
@@ -902,31 +904,23 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             return
 
         @_syncing = true
-        try
-            before = @dsync_client.live.string()
-            @dsync_client.push_edits (err) =>
-                #console.log("sync: sent edits")
-                if err
-                    #console.log('sync: error')
-                    @_syncing = false
-                    if not @_sync_failures?
-                        @_sync_failures = 1
-                    else
-                        @_sync_failures += 1
-                    #console.log("_sync_failures = ", @_sync_failures)
-                    if @_sync_failures % 6 == 0
-                        alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
-
-                    setTimeout(@sync, 45000)  # try again soon...
-                    cb?(err)
+        before = @dsync_client.live.string()
+        @dsync_client.push_edits (err) =>
+            if err
+                @_syncing = false
+                if not @_sync_failures?
+                    @_sync_failures = 1
                 else
-                    #console.log('sync: ok')
-                    @_sync_failures = 0
-                    @_syncing = false
-                    cb?()
-        catch e
-            @_syncing = false
-            cb?(e)
+                    @_sync_failures += 1
+                if @_sync_failures % 6 == 0
+                    alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
+
+                setTimeout(@sync, 45000)  # try again soon...
+                cb?(err)
+            else
+                @_sync_failures = 0
+                @_syncing = false
+                cb?()
 
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>

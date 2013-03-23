@@ -10905,11 +10905,11 @@ I will change the "sockjs break connection timeout" from about a minute down to
 First, conceptually, what *should* happen:
 
   1. Client decides connection is gone and wants to start over. This should happen!
-  2. Client connects to a hub (possibly a different one in general), and 
+  2. Client connects to a hub (possibly a different one in general), and
      includes in the connect message "I was the client
      with *this* id; please let me reconnect as that client session."
    -- or -- maybe we should just trash any client object when the connection dies.
-  3. (Hub authenticates user as usual.)   Hub then re-uses an existing 
+  3. (Hub authenticates user as usual.)   Hub then re-uses an existing
 
 ACTION: connection, open a new a codemirror session, then pause/unpause hub, watch
 client make new connection...
@@ -10926,12 +10926,12 @@ client by the hub... or it could be a different hub.  The right thing to do is:
 
    (1) if call results in a reconnect, respond accordingly to the caller with an error message
    (2) rewrite *all* code that calls "call" to handle this error message.  In particular, the
-       sync code must be redone. 
+       sync code must be redone.
 
-OR (?) just return an error on reconnect, and anything (such as sync) will properly happen 
+OR (?) just return an error on reconnect, and anything (such as sync) will properly happen
 the next time around?
 
-My first attempt at this got rid of the tracebacks / errors totally breaking sync (as 
+My first attempt at this got rid of the tracebacks / errors totally breaking sync (as
 it should)... but unfortunately, the document just gets reset rather than merging the
 offline changes in.  Not acceptable.
 
@@ -10939,9 +10939,10 @@ offline changes in.  Not acceptable.
 and apply them to the new content we get from hub.  **
 
 
-   [ ] restart hub
-   [ ] restart local_hub
+   [x] restart hub -- this worked... though it would be cleaner, I guess, if it were more automatic.
 
+-->   [ ] restart local_hub -- it seems to work, but really it can't.  I need to implement merging
+      just like I did with clients.
 
    [ ] If I hub gets no activity from a client for n seconds, it
        should boot client.

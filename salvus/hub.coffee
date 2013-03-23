@@ -1256,14 +1256,21 @@ class CodeMirrorSession
                     @session_uuid = resp.session_uuid
                     codemirror_sessions.by_uuid[@session_uuid] = @
 
-                    # Reconnect to the upstream (local_hub) server, reset live to what we have now.
-                    content = @diffsync_server.live
+                    # Reconnect to the upstream (local_hub) server, being careful to save our current edits.
+                    edit_stack = @diffsync_server.edit_stack
                     @diffsync_server = new diffsync.DiffSync(doc:resp.content)
                     @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
-                    @diffsync_server.live = content
 
-                    # Forget our downstream clients -- they will get reconnect messages, and keep
-                    # going fine without no noticed side effect!
+                    # Apply all of the edits we couldn't send while the local hub was down
+                    # to upstream, then set this to our live.  When there are multiple hubs,
+                    # a lot can happen between sync's with a local_hub.
+                    live_content = resp.content
+                    for p in edit_stack
+                        live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
+                    @diffsync_server.live = live_content
+
+                    # Forget our downstream clients -- they will get
+                    # reconnect messages, and keep going fine, eventually.
                     @diffsync_clients = {}
 
                     # Sync with upstream.
