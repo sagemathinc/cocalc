@@ -457,7 +457,7 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             mode              : required
-            delete_trailing_whitespace : false   # delete all trailing whitespace on save
+            delete_trailing_whitespace : true   # delete all trailing whitespace on save
             line_numbers      : true
             indent_unit       : 4
             tab_size          : 4
@@ -776,11 +776,17 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
                         @sync_soon()
-                                               
-    disconnect_from_session: (cb) =>        
+                        
+    _add_listeners: () =>
+        salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
+        salvus_client.on 'codemirror_bcast', @_receive_broadcast
+
+    _remove_listeners: () =>    
         salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
-    
+                                               
+    disconnect_from_session: (cb) =>        
+        @_remove_listeners()
         salvus_client.call
             timeout : 10
             message : message.codemirror_disconnect(session_uuid : @session_uuid)
@@ -790,6 +796,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         @local_storage('auto_open', false)
 
     connect: (cb) =>
+        @_remove_listeners()
         salvus_client.call
             timeout : 60     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
@@ -817,9 +824,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @dsync_server = new CodeMirrorDiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
+                @_add_listeners()
 
-                salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
-                salvus_client.on 'codemirror_bcast', @_receive_broadcast
                 cb()
 
     _diffsync_ready: (mesg) =>
@@ -870,31 +876,34 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             cb?()
             console.log('skipping since already syncing')
             return
+
         @_syncing = true
-
-        before = @dsync_client.live.string()
-
-        @dsync_client.push_edits (err) =>
-            #console.log("sync: sent edits")
-            if err
-                #console.log('sync: error')
-                @_syncing = false
-                if not @_sync_failures?
-                    @_sync_failures = 1
+        try
+            before = @dsync_client.live.string()
+            @dsync_client.push_edits (err) =>
+                #console.log("sync: sent edits")
+                if err
+                    #console.log('sync: error')
+                    @_syncing = false
+                    if not @_sync_failures?
+                        @_sync_failures = 1
+                    else
+                        @_sync_failures += 1
+                    #console.log("_sync_failures = ", @_sync_failures)
+                    if @_sync_failures % 6 == 0
+                        alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
+    
+                    setTimeout(@sync, 45000)  # try again soon...
+                    cb?(err)
                 else
-                    @_sync_failures += 1
-                #console.log("_sync_failures = ", @_sync_failures)
-                if @_sync_failures % 6 == 0
-                    alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
-
-                setTimeout(@sync, 45000)  # try again soon...
-                cb?(err)
-            else
-                #console.log('sync: ok')
-                @_sync_failures = 0
-                @_syncing = false
-                cb?()
-
+                    #console.log('sync: ok')
+                    @_sync_failures = 0
+                    @_syncing = false
+                    cb?()
+        catch e
+            @_syncing = false
+            cb?(e)
+            
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
             @send_cursor_info_to_hub_soon()

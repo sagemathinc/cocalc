@@ -692,13 +692,15 @@ class CodeMirrorSessions
         opt = defaults opts,
             session : required
             project_id : undefined
-            timeout : 3600   # time in seconds
+            timeout : 3600   #" time in seconds
+        winston.debug("Adding session #{opts.session.session_uuid} (of project #{opts.project_id}) to cache.")
         @_sessions.by_uuid[opts.session.session_uuid] = opts.session
         @_sessions.by_path[opts.session.path] = opts.session
         if opts.project_id?
             if  not @_sessions.by_project[opts.project_id]?
                 @_sessions.by_project[opts.project_id] = {}
-                @_sessions.by_project[opts.project_id][opts.session.path] = opts.session
+            @_sessions.by_project[opts.project_id][opts.session.path] = opts.session
+                
         if opts.timeout?
             destroy_if_inactive = () =>
                 if not (opts.session.is_active? and opts.session.is_active)
@@ -717,8 +719,7 @@ class CodeMirrorSessions
                     setTimeout(destroy_if_inactive, opts.timeout*1000)
                     
             setTimeout(destroy_if_inactive, opts.timeout*1000)
-            
-
+          
     # Return object that describes status of CodeMirror sessions for a given project
     info: (project_id) =>
         obj = {}

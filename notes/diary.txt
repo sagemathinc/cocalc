@@ -10841,9 +10841,9 @@ Since this is so much like cursors, I can probably do it more "all at once."
     [x] (0:35) codemirror session: change chat title temporarily if there is a new activity
 
     [x] (0:25) codemirror session file close: come up with semantics
-        
-        * There is no good reason to every explicitly close a local_hub file session, 
-          since that *should* happen automatically after a certain period of inactivity.  
+
+        * There is no good reason to every explicitly close a local_hub file session,
+          since that *should* happen automatically after a certain period of inactivity.
         * If you close a nav-pill/file session, next time anybody visits that project,
           then that particular session does not automatically open...  until somebody
           explicitly opens that session.
@@ -10854,28 +10854,68 @@ Since this is so much like cursors, I can probably do it more "all at once."
 
 
     [x] (0:22) codemirror editor: only revive other cursors... if they move (which can include us moving them... if they are connected.)!
-    
+
     [x] (0:39) codemirror editor: save cursor location in localStorage.
-        
-  
+
+
     [x] (0:55) codemirror session: close file
         * implement as follows:
           * When click x, message codemirror_disconnect is sent to global_hub:
                - global_hub handles this by removing client connection from everything related to that session (broadcast, etc.)
-        * then just put a preference in local storage to not automatically reopen the file.       
+        * then just put a preference in local storage to not automatically reopen the file.
         * the cleanup of non-used sessions will take care of the rest.
-      - editor event listeners.   
+      - editor event listeners.
+
+    [x] ** Session CLEANUP **
+      - local hub will kill a codemirror editing session if it hasn't been used
+        after a certain amount of time....
 
 @@@@@@@@@@@@@@@@@@@@@@
-    
-    [ ] ** Session CLEANUP **         
- -->     - local hub will kill a codemirror editing session if it hasn't been used
-        after a certain amount of time....
-    
-    [ ] Worksheet Synchronization
-    
+
+   [x] (0:05) bugfix: editor -- after a reconnect, chat gets doubled.
+
+
+-->   [ ] file sessions by project isn't working.
+
+
+
+[ ] hub/local hub death = disaster
+
+There is no reason that we shouldn't be able to have *any* subset of the following 
+entities restart, and not have everything come back working fine, with very little
+hicup for users:
+
+   * a client
+   * a global hub
+   * the local hub
+
+Right now, it's a disaster.  I need to fix this, with a systematic
+pre-planned test at each point, before moving on to worksheet sync.
+
+
+
+
+
+
+
+
+
+(0:05)(0:05)   [ ] Worksheet Synchronization
+
+I
+--------------
+
+
+
+
+
+
+
+
+------------
+
     [ ] CONSOLE: store session_uuid in file as first line, and the actual session as the rest of the file.
-    
+
     [ ] for project file browser -- specially indicate any file for which there is an open session, and show first, filed by
       everything in alphabetical order.
 
