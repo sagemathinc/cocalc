@@ -10854,8 +10854,10 @@ Since this is so much like cursors, I can probably do it more "all at once."
 
 @@@@@@@@@@@@@@@@@@@@@@
 
-    [x] codemirror editor: only revive other cursors... if they move!
-
+    [x] (0:22) codemirror editor: only revive other cursors... if they move (which can include us moving them... if they are connected.)!
+    
+    [ ] codemirror editor: save cursor location in localStorage.
+  
     [ ] codemirror session: close file
         
         * implement as follows:

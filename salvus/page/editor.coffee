@@ -389,6 +389,7 @@ class FileEditor extends EventEmitter
     _set: (content) =>
         throw("TODO: implement _set in derived class")
 
+    restore_cursor_position : () =>
 
     show: () =>
         @element.show()
@@ -437,8 +438,8 @@ class CodeMirrorEditor extends FileEditor
             line_numbers      : true
             indent_unit       : 4
             tab_size          : 4
-            smart_indent      : false
-            electric_chars    : false
+            smart_indent      : true
+            electric_chars    : true
             undo_depth        : 1000
             match_brackets    : true
             line_wrapping     : true
@@ -470,7 +471,7 @@ class CodeMirrorEditor extends FileEditor
                 "Ctrl-S"       : (editor)   => @click_save_button()
                 "Cmd-S"        : (editor)   => @click_save_button()
                 "Shift-Tab"    : (editor)   => editor.unindent_selection()
-                "Shift-Space"  : "indentAuto"
+                "Ctrl-Space"  : "indentAuto"
                 "Tab"          : (editor)   =>
                     c = editor.getCursor(); d = editor.getCursor(true)
                     if c.line==d.line and c.ch == d.ch
@@ -567,6 +568,8 @@ class CodeMirrorEditor extends FileEditor
         chat.height(height-25)  #todo
         output = chat.find(".salvus-editor-codemirror-chat-output")
         output.scrollTop(output[0].scrollHeight)
+        
+        @restore_cursor_position()
 
     focus: () =>
         if not @codemirror?
@@ -736,7 +739,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         @init_cursorActivity_event()
 
         @init_chat()
-
+        
         @connect (err,resp) =>
             if err
                 @_set(err)
@@ -858,7 +861,21 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
             @send_cursor_info_to_hub_soon()
-
+            storage = window.localStorage
+            if storage?
+                storage['cursor-' + @editor.project_id + @filename] = misc.to_json(@codemirror.getCursor())
+            
+    restore_cursor_position: () =>
+        if @_cursor_previously_restored
+            return
+        @_cursor_previously_restore = true
+        storage = window.localStorage
+        if storage? and @codemirror?
+            pos = storage['cursor-' + @editor.project_id + @filename]
+            console.log(pos)
+            if pos?                
+                @codemirror.setCursor(misc.from_json(pos))
+            
     init_chat: () =>
         console.log('init_chat')
         chat = @element.find(".salvus-editor-codemirror-chat")
