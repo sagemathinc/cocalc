@@ -536,14 +536,25 @@ class CodeMirrorSession
 
     chat_log: () =>
         return @chat_recorder.log
+        
+    kill: () =>
+        # Put any cleanup here...
+        winston.debug("Killing session #{@session_uuid}")
+        @sync_filesystem () =>
+            # TODO: Are any of these deletes needed?  I don't know.
+            delete @content
+            delete @diffsync_fileclient
+            delete @diffsync_fileserver
 
     set_content: (value) =>
+        @is_active = true
         @content = value
         @diffsync_fileclient.live = @content
         for id, ds_client of @diffsync_clients
             ds_client.live = @content
 
     client_bcast: (socket, mesg) =>
+        @is_active = true
         winston.debug("client_bcast: #{json(mesg)}")
 
         # Forward this message on to all global hubs except the
@@ -558,6 +569,7 @@ class CodeMirrorSession
             @chat_recorder.save(mesg)
 
     client_diffsync: (socket, mesg) =>
+        @is_active = true
         write_mesg = (event, obj) ->
             if not obj?
                 obj = {}
@@ -588,6 +600,7 @@ class CodeMirrorSession
 
 
     sync_filesystem: (cb) =>
+        @is_active = true
         before = @content
         @diffsync_fileclient.sync (err) =>
             if err
@@ -601,11 +614,13 @@ class CodeMirrorSession
             cb?()
 
     add_client: (socket) =>
+        @is_active = true
         ds_client = new diffsync.DiffSync(doc:@content)
         ds_client.connect(new CodeMirrorDiffSyncHub(socket, @session_uuid))
         @diffsync_clients[socket.id] = ds_client
 
     write_to_disk: (socket, mesg) =>
+        @is_active = true
         winston.debug("write_to_disk: #{json(mesg)} -- calling sync_filesystem")
         @sync_filesystem (err) =>
             if err
@@ -631,6 +646,7 @@ class CodeMirrorSession
                     ds.remote.sync_ready()
 
     get_content: (socket, mesg) =>
+        @is_active = true
         socket.write_mesg('json', message.codemirror_content(id:mesg.id, content:@content))
 
 # Collection of all CodeMirror sessions hosted by this local_hub.
@@ -666,13 +682,42 @@ class CodeMirrorSessions
             if err
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:err))
             else
-                @_sessions.by_uuid[session.session_uuid] = session
-                @_sessions.by_path[session.path] = session
-                if mesg.project_id?
-                    if  not @_sessions.by_project[mesg.project_id]?
-                         @_sessions.by_project[mesg.project_id] = {}
-                    @_sessions.by_project[mesg.project_id][session.path] = session
+                @add_session_to_cache
+                    session    : session
+                    project_id : mesg.project_id
+                    timeout    : 3600 # one hour, for now...
                 finish(session)
+
+    add_session_to_cache: (opts) =>
+        opt = defaults opts,
+            session : required
+            project_id : undefined
+            timeout : 3600   # time in seconds
+        @_sessions.by_uuid[opts.session.session_uuid] = opts.session
+        @_sessions.by_path[opts.session.path] = opts.session
+        if opts.project_id?
+            if  not @_sessions.by_project[opts.project_id]?
+                @_sessions.by_project[opts.project_id] = {}
+                @_sessions.by_project[opts.project_id][opts.session.path] = opts.session
+        if opts.timeout?
+            destroy_if_inactive = () =>
+                if not (opts.session.is_active? and opts.session.is_active)
+                    winston.debug("Session #{opts.session.session_uuid} is inactive for #{opts.timeout} seconds; killing.")
+                    opts.session.kill()
+                    delete @_sessions.by_uuid[opts.session.session_uuid]
+                    delete @_sessions.by_path[opts.session.path]
+                    x =  @_sessions.by_project[opts.project_id]
+                    if x?
+                        delete x[opts.session.path]
+                else
+                    opts.session.is_active = false  # it must be changed by the session before the next timer.
+                    # We use setTimeout instead of setInterval, because we want to *ensure* that the 
+                    # checks are spaced out over at *least* opts.timeout time.
+                    winston.debug("Starting a new activity check timer for session #{opts.session.session_uuid}.")
+                    setTimeout(destroy_if_inactive, opts.timeout*1000)
+                    
+            setTimeout(destroy_if_inactive, opts.timeout*1000)
+            
 
     # Return object that describes status of CodeMirror sessions for a given project
     info: (project_id) =>

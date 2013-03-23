@@ -10869,7 +10869,7 @@ Since this is so much like cursors, I can probably do it more "all at once."
 @@@@@@@@@@@@@@@@@@@@@@
     
     [ ] ** Session CLEANUP **         
-      - local hub will kill a codemirror editing session if it hasn't been used
+ -->     - local hub will kill a codemirror editing session if it hasn't been used
         after a certain amount of time....
     
     [ ] Worksheet Synchronization
