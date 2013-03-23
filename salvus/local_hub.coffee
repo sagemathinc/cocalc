@@ -469,6 +469,48 @@ class CodeMirrorDiffSyncHub
     sync_ready: () =>
         @write_mesg('diffsync_ready')
 
+class ChatRecorder
+    constructor: (path, cb) ->
+        p = misc.path_split(path)
+        @path = p.head
+        if p.head != ''
+            @path += '/'
+        @path += "." + p.tail + ".smc-chat"
+        winston.debug("ChatRecorder '#{@path}'")
+        @log = []
+        fs.readFile @path, (err, data) =>
+            if err
+                cb(false, @)  #ok -- just start new log
+            else
+                # Take the lines that parse
+                for line in data.toString().split('\n')
+                    if line.length > 0
+                        try
+                            @log.push(misc.from_json(line))
+                        catch e
+                            # do nothing -- no worries.
+                cb(false, @)
+
+    save: (mesg) =>  # WARNING: this deletes the session_uuid!
+        m =   # what is saved is also defined in local_hub.coffee in client_broadcast.
+            name  : mesg.name
+            color : mesg.color
+            date  : mesg.date
+            mesg  : mesg.mesg
+        @log.push(m)
+        @_save_to_file(m)
+
+    _save_to_file: (mesg) =>
+        if @_appending_to_file? and @_appending_to_file
+            # Try again in 500ms....
+            setTimeout( (() => @_save_to_file(mesg)), 500)
+            return
+
+        @_appending_to_file = true
+        fs.appendFile @path, JSON.stringify(mesg)+'\n', () =>
+            @_appending_to_file = false
+
+
 class CodeMirrorSession
     constructor: (mesg, cb) ->
         @path = mesg.path
@@ -480,11 +522,20 @@ class CodeMirrorSession
         # The upstream version of this document -- the *actual* file on disk.
         @diffsync_fileserver = new DiffSyncFile_server @, (err, content) =>
             if err
-                cb(err)
-            else
-                @content = content
-                @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
-                cb(false, @)
+                cb(err); return
+
+            @content = content
+            @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
+
+            new ChatRecorder @path, (err, obj) =>
+                if err
+                    cb(err)
+                else
+                    @chat_recorder = obj
+                    cb(false, @)
+
+    chat_log: () =>
+        return @chat_recorder.log
 
     set_content: (value) =>
         @content = value
@@ -494,12 +545,17 @@ class CodeMirrorSession
 
     client_bcast: (socket, mesg) =>
         winston.debug("client_bcast: #{json(mesg)}")
+
         # Forward this message on to all global hubs except the
         # one that just sent it to us.
         for id, ds_client of @diffsync_clients
             if socket.id != id
                 winston.debug("sending message on to socket with id #{socket.id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
+
+        # If this is a chat message, save it.
+        if mesg?.mesg.event == 'chat'
+            @chat_recorder.save(mesg)
 
     client_diffsync: (socket, mesg) =>
         write_mesg = (event, obj) ->
@@ -553,9 +609,9 @@ class CodeMirrorSession
         winston.debug("write_to_disk: #{json(mesg)} -- calling sync_filesystem")
         @sync_filesystem (err) =>
             if err
-               resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk -- #{err}")
+                resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk -- #{err}")
             else
-               resp = message.success(id:mesg.id)
+                resp = message.success(id:mesg.id)
             socket.write_mesg('json', resp)
 
 
@@ -591,6 +647,7 @@ class CodeMirrorSessions
                 session_uuid : session.session_uuid
                 path         : session.path
                 content      : session.content
+                chat         : session.chat_log()
 
         if mesg.session_uuid?
             session = @_sessions.by_uuid[mesg.session_uuid]
@@ -613,7 +670,7 @@ class CodeMirrorSessions
                 @_sessions.by_path[session.path] = session
                 if mesg.project_id?
                     if  not @_sessions.by_project[mesg.project_id]?
-                         @_sessions.by_project[mesg.project_id] = {}                           
+                         @_sessions.by_project[mesg.project_id] = {}
                     @_sessions.by_project[mesg.project_id][session.path] = session
                 finish(session)
 

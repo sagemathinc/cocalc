@@ -232,7 +232,8 @@ message
     id           : undefined
     session_uuid : required
     path         : required    # absolute path
-    content      : required
+    content      : required    
+    chat         : required
 
 # A list of edits that should be applied, along with the
 # last version of edits received before.

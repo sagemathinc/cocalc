@@ -59,17 +59,17 @@ file_associations['tex'] =
     editor : 'latex'
     icon   : 'icon-edit'
     opts   : {mode:'stex', indent_unit:4, tab_size:4}
-    
+
 file_associations['html'] =
     editor : 'codemirror'
     icon   : 'icon-edit'
-    opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}    
+    opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
 
 file_associations['css'] =
     editor : 'codemirror'
     icon   : 'icon-edit'
-    opts   : {mode:'css', indent_unit:4, tab_size:4}    
-    
+    opts   : {mode:'css', indent_unit:4, tab_size:4}
+
 file_associations['salvus-terminal'] =
     editor : 'terminal'
     icon   : 'icon-credit-card'
@@ -438,11 +438,12 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             mode              : required
-            delete_trailing_whitespace : false   # delete all trailing whitespace on save
+            delete_trailing_whitespace : true   # delete all trailing whitespace on save
             line_numbers      : true
             indent_unit       : 4
             tab_size          : 4
             smart_indent      : true
+            electric_chars    : false
             undo_depth        : 1000
             match_brackets    : true
             line_wrapping     : true
@@ -464,6 +465,7 @@ class CodeMirrorEditor extends FileEditor
             indentUnit      : opts.indent_unit
             tabSize         : opts.tab_size
             smartIndent     : opts.smart_indent
+            electricChars   : opts.electric_chars
             undoDepth       : opts.undo_depth
             matchBrackets   : opts.match_brackets
             theme           : opts.theme
@@ -507,10 +509,7 @@ class CodeMirrorEditor extends FileEditor
             @save_button.removeClass('disabled')
 
     _get: () =>
-        val = @codemirror.getValue()
-        if @opts.delete_trailing_whitespace
-            val = misc.delete_trailing_whitespace(val)
-        return val
+        return @codemirror.getValue()
 
     _set: (content) =>
         {from} = @codemirror.getViewport()
@@ -652,10 +651,8 @@ codemirror_diffsync_client = (cm_session, content) ->
     # clever regarding restoring the cursor and the scroll location.
     cm = cm_session.codemirror
     scroll = cm.getScrollInfo(); pos = cm.getCursor()
-    console.log("(before) codemirror_diffsync_client: ", scroll, pos)
     cm.setValue(content)
     cm.setCursor(pos); cm.scrollTo(scroll.left, scroll.top); cm.scrollIntoView(pos)
-    console.log("(after) codemirror_diffsync_client: ", scroll, pos)
 
     return new diffsync.CustomDiffSync
         doc            : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
@@ -694,11 +691,11 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             delete opts.session_uuid
 
         super(@editor, @filename, "Loading '#{@filename}'...", opts)
-        
+
         @init_cursorActivity_event()
-        
+
         @init_chat()
-        
+
         @connect (err,resp) =>
             if err
                 @_set(err)
@@ -718,6 +715,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 project_id   : @editor.project_id
                 session_uuid : @session_uuid
             cb      : (err, resp) =>
+                console.log("new session: ", resp)
                 if err
                     cb(err); return
                 if resp.event == 'error'
@@ -727,14 +725,16 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
                 # If our content is already set, don't use new content from the server;
                 # instead, we'll end up doing a merge.
-                if not (@_previous_successful_set? and @_previous_successful_set)                    
+                if not (@_previous_successful_set? and @_previous_successful_set)
                     @_set(resp.content)
+                    for m in resp.chat
+                        @_receive_chat(m)
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
                 @dsync_server = new CodeMirrorDiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
-                
+
                 console.log("ADDING NEW codemirror listeners -- need to free old ones (TODO).")
                 salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
                 salvus_client.on 'codemirror_bcast', (mesg) => @_receive_broadcast(mesg)
@@ -816,7 +816,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
             @send_cursor_info_to_hub_soon()
-            
+
     init_chat: () =>
         console.log('init_chat')
         chat = @element.find(".salvus-editor-codemirror-chat")
@@ -835,14 +835,14 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         date = (new Date(mesg.date)).toISOString()
         output.append($("<div>").attr('title', date).css('font-size':10, color:'#666').timeago())
         output.append($("<div>").text(mesg.mesg.content).mathjax())
-        
+
     send_broadcast_message: (mesg, self) ->
         m = message.codemirror_bcast
             session_uuid : @session_uuid
             mesg         : mesg
             self         : self    #if true, then also send include this client to receive message
-        salvus_client.send(m)        
-        
+        salvus_client.send(m)
+
     send_cursor_info_to_hub: () =>
         delete @_waiting_to_send_cursor
         if not @session_uuid # not yet connected to a session
@@ -1453,4 +1453,3 @@ class Slideshow extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,{}
         @element = $("<div>Salvus slideshow not implemented yet.</div>")
-

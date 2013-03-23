@@ -10828,11 +10828,13 @@ Since this is so much like cursors, I can probably do it more "all at once."
     [x]  "     chat message; basically same info as cursor message, with pos replaced by a string that gets mathjax'd.
     [x]  "    push it around via the same architecture as above...
     [x]  "    display result in output place
-  -->  [ ] persistence: store chat in .filename.smc-chat
-                  - first append to stupid file
-                  - then make nicely formated
-                  - then send to client on connect (both hub and local hub)
-                  - 
+    [x] (0:25) date stamps on chat messages and fix scroll/overwrite-loss on reconnect when editing
+    [x] (1:20) chat persistence: store chat in .filename.smc-chat and propagate all over the place.
+          [x] local_hub: append chats to a file (one line per message), plus keep copy in memory
+          [x] local_hub: load from chats file on startup (take lines that aren't corrupt).
+          [x] local_hub: send chat list to client=global hub on connect (both hub and local hub)
+          [x] hub: send chat list to client on connect
+
     [ ] make the chat UI nicer
 
 

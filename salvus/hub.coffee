@@ -1005,6 +1005,7 @@ class Client extends EventEmitter
                             id           : mesg.id
                             session_uuid : session.session_uuid
                             path         : session.path
+                            chat         : session.chat
                             content      : snapshot
                         @push_to_client(mesg)
 
@@ -1218,10 +1219,12 @@ class CodeMirrorSession
             session_uuid : required
             path         : required
             content      : required
+            chat         : required
 
         @local_hub    = opts.local_hub
         @session_uuid = opts.session_uuid
         @path         = opts.path
+        @chat         = opts.chat
 
         # Our upstream server (the local hub)
         @diffsync_server = new diffsync.DiffSync(doc:opts.content)
@@ -1272,33 +1275,38 @@ class CodeMirrorSession
 
         # We tag the broadcast message, in order to make it more useful to recipients (but do not
         # go so far as to advertise the account_id or email)..
-        
+
         # 1. Fill in the user's name
         if client.signed_in_mesg?
             mesg.name = client.fullname()
             # Use first 6 digits of uuid... one color per session, NOT per username.
             # TODO: this could be done client side in a way that respects their color scheme...?
-            mesg.color = client.id.slice(0,6)  
-            
-        # If this is a chat message, also fill in the time.
+            mesg.color = client.id.slice(0,6)
+
+        # If this is a chat message, also fill in the time and store it.
         if mesg.mesg?.event == 'chat'
             # This is weird, but it does do-JSON to a string t so that 'new Date(t)' works.
             s = misc.to_json(new Date())
             mesg.date = s.slice(1, s.length-1)
-            
+            @chat.push   # what is saved is also defined in local_hub.coffee in save method of ChatRecorder.
+                name  : mesg.name
+                color : mesg.color
+                date  : mesg.date
+                mesg  : mesg.mesg
+
         # 2. Send fire-and-forget message on to the local_hub, which will forward this message
         # on to all the other hubs.
         @local_hub.local_hub_socket (err, socket) ->
             if not err
                 socket.write_mesg 'json', mesg
-                
+
         # 3. Send message to other clients connected to this hub.
         include_self = mesg.self? and mesg.self
         for id, ds of @diffsync_clients
             if include_self or id != client.id
                 ds.remote.send_mesg(mesg)
-                
-                
+
+
 
     client_diffsync: (client, mesg) =>
         # Message from some client reporting new edits; we apply them,
@@ -1340,7 +1348,7 @@ class CodeMirrorSession
     get_snapshot: () =>
         return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
 
-    broadcast_mesg_to_clients: (mesg, exclude_id) =>        
+    broadcast_mesg_to_clients: (mesg, exclude_id) =>
         for id, ds of @diffsync_clients
             if id != exclude_id
                 ds.remote.send_mesg(mesg)
@@ -1710,6 +1718,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         session_uuid : resp.session_uuid
                         path         : resp.path
                         content      : resp.content
+                        chat         : resp.chat
                     codemirror_sessions.by_uuid[resp.session_uuid] = session
                     codemirror_sessions.by_path[resp.path] = session
                     opts.cb(false, session)
