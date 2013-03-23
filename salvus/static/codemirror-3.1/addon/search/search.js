@@ -70,6 +70,10 @@
       if (!cursor.find(rev)) return;
     }
     cm.setSelection(cursor.from(), cursor.to());
+
+    var pos = cursor.from();
+    cm.scrollIntoView({line:pos.line+2, ch:pos.ch});  /* Added by william stein */
+
     state.posFrom = cursor.from(); state.posTo = cursor.to();
   });}
   function clearSearch(cm) {cm.operation(function() {

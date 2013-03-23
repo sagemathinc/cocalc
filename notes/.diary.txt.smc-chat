@@ -6,3 +6,4 @@
 {"name":"William A. Stein","color":"0d4a03","date":"2013-03-23T11:40:17.636Z","mesg":{"event":"chat","content":"For file versions use patch log stored by localhub and timestamps."}}
 {"name":"William 7 Stein","color":"416c32","date":"2013-03-23T11:51:10.582Z","mesg":{"event":"chat","content":"ping"}}
 {"name":"William A. Stein","color":"898a5c","date":"2013-03-23T11:51:42.766Z","mesg":{"event":"chat","content":"Pong"}}
+{"name":"William 7 Stein","color":"86e9fd","date":"2013-03-23T13:21:31.540Z","mesg":{"event":"chat","content":"file closing -- easy to implement whatever; but what whatever should be... that's tricky."}}

@@ -1,7 +1,7 @@
 Aug 10, 2012:
 ------------
 
-I'm setting up VM's on my i nfrastructure.  Right now I have:
+I'm setting up VM's on my infrastructure.  Right now I have:
 
    * virtualbox machines running in spare cycles on geom.math.washington.edu (24-core, 128GB RAM, 128GB SSD for salvus):
 
@@ -10841,10 +10841,29 @@ Since this is so much like cursors, I can probably do it more "all at once."
 
     [x] (0:35) codemirror session: change chat title temporarily if there is a new activity
 
- [ ] codemirror session: close file
+    [x] (0:25) codemirror session file close: come up with semantics
+        
+        * There is no good reason to every explicitly close a local_hub file session, 
+          since that *should* happen automatically after a certain period of inactivity.  
+        * If you close a nav-pill/file session, next time anybody visits that project,
+          then that particular session does not automatically open...  until somebody
+          explicitly opens that session.
 
-  [ ] ** Session CLEANUP **
+    [ ] codemirror session: close file
+        
+        * implement as follows:
+          * When click x, message gets sent to global_hub saying "file closed" (by user with
+            given account_id)
+          * global_hub forwards message to local_hub
+          * local_hub sets info; this flag impacts the info object later, which has
+            data specific to each user.
+          * When somebody opens a file, similar message that sets flag the other way.
 
+
+  [ ] ** Session CLEANUP **  
+      - local hub will kill a codemirror editing session if it hasn't been used
+        after a certain amount of time....
+      - editor event listeners.      
 
 ================================
 == Worksheet Synchronization! ==
