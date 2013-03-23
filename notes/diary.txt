@@ -10821,7 +10821,6 @@ March 21 will be awesome!  finish codemirror cursor stuff, then do worksheet syn
 Since this is so much like cursors, I can probably do it more "all at once."
 
 [x] (0:50)change the cursor system into a message broadcast system
-@@@@@@@@@@@@@@@@@@@@@@
 
     [x] (0:17) add *trivial* client UI area in which to enter a chat message, and to display output
     [x] (0:45) add handler function that crafts a message and sends it.
@@ -10849,16 +10848,21 @@ Since this is so much like cursors, I can probably do it more "all at once."
           then that particular session does not automatically open...  until somebody
           explicitly opens that session.
 
+    [x] (0:20) fix codemirror search not showing result on the damned screen. WTF.
+
+    [x] (0:05) editor: fix that stupid bug where it wouldn't unindent regions with an empty line.
+
+@@@@@@@@@@@@@@@@@@@@@@
+
     [ ] codemirror session: close file
         
         * implement as follows:
-          * When click x, message gets sent to global_hub saying "file closed" (by user with
-            given account_id)
-          * global_hub forwards message to local_hub
-          * local_hub sets info; this flag impacts the info object later, which has
+-->          * When click x, message codemirror_disconnect is sent to global_hub:
+               - global_hub handles this by removing client connection from everything related to that session (broadcast, etc.)
+               - forwarding message on to local_hub          
+          * local_hub sets flag that impacts the info object later, which has
             data specific to each user.
           * When somebody opens a file, similar message that sets flag the other way.
-
 
   [ ] ** Session CLEANUP **  
       - local hub will kill a codemirror editing session if it hasn't been used

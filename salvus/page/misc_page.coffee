@@ -152,7 +152,6 @@ $.fn.extend
 
 CodeMirror.defineExtension 'unindent_selection', () ->
     editor     = @
-    cursor     = editor.getCursor()
     start      = editor.getCursor(true)
     start_line = start.line
     end        = editor.getCursor()
@@ -162,7 +161,7 @@ CodeMirror.defineExtension 'unindent_selection', () ->
         s = editor.getLine(n)
         if not s?
             return
-        if s[0] == '\t' or s[0] == ' '
+        if s.length ==0 or s[0] == '\t' or s[0] == ' '
             continue
         else
             all_need_unindent = false
