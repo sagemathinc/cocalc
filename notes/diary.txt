@@ -10835,8 +10835,7 @@ Since this is so much like cursors, I can probably do it more "all at once."
           [x] local_hub: send chat list to client=global hub on connect (both hub and local hub)
           [x] hub: send chat list to client on connect
 
-    [ ] make the chat UI nicer
-
+ -->   [ ] make the chat UI nicer
 
 
   [ ] ** Session CLEANUP **

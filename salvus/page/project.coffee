@@ -286,7 +286,7 @@ class ProjectPage
 
     init_sage_sessions: (sessions, cb) =>
         console.log("initialize sage sessions: ", sessions)
-        #TODO -- not enough info to do this yet. 
+        #TODO -- not enough info to do this yet.
         #for session_uuid, obj of sessions
         #    tab = @editor.create_tab(filename : obj.path, session_uuid:session_uuid)
         cb?()

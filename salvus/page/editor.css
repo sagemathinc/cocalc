@@ -21,11 +21,9 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror {
-    /*
     border: 1px solid #aaa;
     box-shadow: 6px 6px 3px #888;
     margin-top: 0px;
-    */
     padding:5px;
 }
 
@@ -54,26 +52,49 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-chat {
-    border:solid 1px black;  
-    position:fixed;
-    right:0px;
-    top:50px;
-    width:9em;
-    height:20em;    
-}
-
-.salvus-editor-codemirror-chat-input {
-    border:solid 1px black;    
-    width:12em;    
-    height:3em;
+    margin:0px;
+    padding:0px;
+    width:100%;
+    border: 3px solid #9a9;
+    border-radius: 5px;
 }
 
 .salvus-editor-codemirror-chat-output {
-    border:solid 1px black;    
-    width:12em;
-    height:60%;
+    padding:0px;
+    margin:0ex;
+    width:100%;
+    height:90%;
     overflow-y:auto;
+    overflow-x:hidden;
+    overflow-wrap: break-word;
+    background-color:#fafafa;
 }
+
+.salvus-editor-codemirror-chat-input {
+    padding:0px;
+    margin:0px;
+    height:10%;
+    width:100%;
+    background-color:#fdf6e3;
+}
+
+.salvus-chat-entry {
+}
+
+.salvus-chat-header {
+    padding-top:2px;
+    border-top:dashed 1px #bbb;
+}
+
+.salvus-chat-header-name {
+    font-weight:bold;
+}
+
+.salvus-chat-header-date {
+    font-size: 9pt;
+    color:#999;
+}
+
 
 
 

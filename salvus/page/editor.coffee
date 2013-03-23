@@ -520,12 +520,21 @@ class CodeMirrorEditor extends FileEditor
         if not (@element? and @codemirror?)
             console.log('skipping show because things not defined yet.')
             return
-        @element.show()
+        height = $(window).height() - 2.5*top_navbar.height() #todo
+
+        @element.height(height+5).show()
+
         scroller = $(@codemirror.getScrollerElement())
-        height = $(window).height() - 3*top_navbar.height()
-        scroller.css('height':height)
+        scroller.css('height':height-25)  #todo
+
         window.scrollTo(0, document.body.scrollHeight); $(".salvus-top-scroll").show()
+
         @codemirror.refresh()
+
+        chat = @element.find(".salvus-editor-codemirror-chat")
+        chat.height(height-25)  #todo
+        output = chat.find(".salvus-editor-codemirror-chat-output")
+        output.scrollTop(output[0].scrollHeight)
 
     focus: () =>
         if not @codemirror?
@@ -821,20 +830,29 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         console.log('init_chat')
         chat = @element.find(".salvus-editor-codemirror-chat")
         input = chat.find(".salvus-editor-codemirror-chat-input")
-        chat.find("a[href=#send]").click  () =>
-            console.log("do chat")
-            content = $.trim(input.val())
-            if content != ""
-                input.val("")
-                @send_broadcast_message({event:'chat', content:content}, true)
-            return false
+        input.keydown (evt) =>
+            if evt.which == 13 # enter
+                content = $.trim(input.val())
+                if content != ""
+                    input.val("")
+                    @send_broadcast_message({event:'chat', content:content}, true)
+                return false
 
     _receive_chat: (mesg) =>
         output = @element.find(".salvus-editor-codemirror-chat-output")
-        output.append($("<div>").text(mesg.name).css(color:"#"+mesg.color))
-        date = (new Date(mesg.date)).toISOString()
-        output.append($("<div>").attr('title', date).css('font-size':10, color:'#666').timeago())
-        output.append($("<div>").text(mesg.mesg.content).mathjax())
+        date = new Date(mesg.date)
+        entry = templates.find(".salvus-chat-entry").clone()
+        output.append(entry)
+        header = entry.find(".salvus-chat-header")
+        if (not @_last_chat_name?) or @_last_chat_name != mesg.name or ((date.getTime() - @_last_chat_time) > 60000)
+            header.find(".salvus-chat-header-name").text(mesg.name).css(color:"#"+mesg.color)
+            header.find(".salvus-chat-header-date").attr('title', date.toISOString()).timeago()
+        else
+            header.hide()
+        @_last_chat_name = mesg.name
+        @_last_chat_time = new Date(mesg.date).getTime()
+        entry.find(".salvus-chat-entry-content").text(mesg.mesg.content).mathjax()
+        output.scrollTop(output[0].scrollHeight)
 
     send_broadcast_message: (mesg, self) ->
         m = message.codemirror_bcast
@@ -855,7 +873,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         @_waiting_to_send_cursor = setTimeout(@send_cursor_info_to_hub, @opts.cursor_interval)
 
     _receive_broadcast: (mesg) =>
-        console.log("received broadcast message:",mesg)
+        if mesg.session_uuid != @session_uuid
+            return
         switch mesg.mesg.event
             when 'cursor'
                 @_cursor(mesg)
