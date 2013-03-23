@@ -9,7 +9,7 @@
 {alert_message} = require('alerts')
 async           = require('async')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = require('misc')
-{file_associations, Editor} = require('editor')
+{file_associations, Editor, local_storage} = require('editor')
 {scroll_top, human_readable_size}    = require('misc_page')
 
 MAX_TITLE_LENGTH = 25
@@ -279,9 +279,10 @@ class ProjectPage
         #@display_tab("project-editor")
         for session_uuid, obj of sessions
             if obj.status == 'running'
-                console.log("session_uuid = ", session_uuid)
                 filename = "scratch/#{session_uuid.slice(0,8)}.salvus-terminal"
-                tab = @editor.create_tab(filename:filename, session_uuid:session_uuid)
+                auto_open = local_storage(@project.project_id, filename, 'auto_open')
+                if not auto_open? or auto_open
+                    tab = @editor.create_tab(filename:filename, session_uuid:session_uuid)
         cb?()
 
     init_sage_sessions: (sessions, cb) =>
@@ -297,8 +298,10 @@ class ProjectPage
             if obj.path?  #just in case
                 # The filename contains the path to the project...
                 filename = obj.path.slice(@project.location.path.length + 1)
-                # Now create the tab in which to edit the file.
-                tab = @editor.create_tab(filename : filename, session_uuid:session_uuid)
+                auto_open = local_storage(@project.project_id, filename, 'auto_open')
+                if not auto_open? or auto_open
+                    # Now create the tab in which to edit the file.
+                    tab = @editor.create_tab(filename : filename, session_uuid:session_uuid)
             else
                 log("GOT suspicious session -- sessions=#{misc.to_json(sessions)}")
         cb?()

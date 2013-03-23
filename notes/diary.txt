@@ -10852,30 +10852,35 @@ Since this is so much like cursors, I can probably do it more "all at once."
 
     [x] (0:05) editor: fix that stupid bug where it wouldn't unindent regions with an empty line.
 
-@@@@@@@@@@@@@@@@@@@@@@
 
     [x] (0:22) codemirror editor: only revive other cursors... if they move (which can include us moving them... if they are connected.)!
     
-    [ ] codemirror editor: save cursor location in localStorage.
-  
-    [ ] codemirror session: close file
+    [x] (0:39) codemirror editor: save cursor location in localStorage.
         
+  
+    [x] (0:55) codemirror session: close file
         * implement as follows:
--->          * When click x, message codemirror_disconnect is sent to global_hub:
+          * When click x, message codemirror_disconnect is sent to global_hub:
                - global_hub handles this by removing client connection from everything related to that session (broadcast, etc.)
-               - forwarding message on to local_hub          
-          * local_hub sets flag that impacts the info object later, which has
-            data specific to each user.
-          * When somebody opens a file, similar message that sets flag the other way.
+        * then just put a preference in local storage to not automatically reopen the file.       
+        * the cleanup of non-used sessions will take care of the rest.
+      - editor event listeners.   
 
-  [ ] ** Session CLEANUP **  
+@@@@@@@@@@@@@@@@@@@@@@
+    
+    [ ] ** Session CLEANUP **         
       - local hub will kill a codemirror editing session if it hasn't been used
         after a certain amount of time....
-      - editor event listeners.      
+    
+    [ ] Worksheet Synchronization
+    
+    [ ] CONSOLE: store session_uuid in file as first line, and the actual session as the rest of the file.
+    
+    [ ] for project file browser -- specially indicate any file for which there is an open session, and show first, filed by
+      everything in alphabetical order.
 
-================================
-== Worksheet Synchronization! ==
-================================
+
+
 
   [ ] ?? UI ideas -- have a button (keystroke) to toggle showing all the nav-pills
       for all open files.   Make it very easy to change their order by dragging.  This way

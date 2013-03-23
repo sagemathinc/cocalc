@@ -288,7 +288,6 @@ message
     event        : 'codemirror_disconnect'
     id           : undefined
     session_uuid : required
-    path         : required
 
 # Broadcast mesg to all clients connected to this session. 
 # This is used for cursors and out-of-band chat.
@@ -483,7 +482,7 @@ exports.account_settings_defaults =
     connect_Github     : ''
     connect_Google     : ''
     connect_Dropbox    : ''
-    autosave           : 20
+    autosave           : 180
     terminal           : {font_size:14, color_scheme:'solarized-light'}
 
 # client <--> hub

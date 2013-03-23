@@ -1017,6 +1017,11 @@ class Client extends EventEmitter
         else
             cb(false, session)
 
+    mesg_codemirror_disconnect: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.client_disconnect(@, mesg)
+                
     mesg_codemirror_diffsync: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
             if not err
@@ -1306,7 +1311,11 @@ class CodeMirrorSession
             if include_self or id != client.id
                 ds.remote.send_mesg(mesg)
 
-
+    client_disconnect: (client, mesg) =>
+        # Disconnect the given client from this session.
+        delete @diffsync_clients[client.id]
+        client.push_to_client(message.success(id:mesg.id))
+        winston.debug("Disconnected a client from session #{@session_uuid}; there are now #{misc.len(@diffsync_clients)} clients.")
 
     client_diffsync: (client, mesg) =>
         # Message from some client reporting new edits; we apply them,

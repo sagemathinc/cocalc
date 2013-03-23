@@ -115,6 +115,22 @@ guess_file_extension_type = (content) ->
         return 'c++'
     return undefined
 
+
+_local_storage_key = (project_id, filename, key) ->
+    return project_id + filename + "\uFE10" + key
+
+local_storage = exports.local_storage = (project_id, filename, key, value) ->
+    storage = window.localStorage
+    if storage?
+        if value?
+            storage[_local_storage_key(project_id, filename, key)] = misc.to_json(value)
+        else
+            x = storage[_local_storage_key(project_id, filename, key)]
+            if not x?
+                return x
+            else
+                return misc.from_json(x)
+
 templates = $("#salvus-editor-templates")
 
 class exports.Editor
@@ -390,7 +406,14 @@ class FileEditor extends EventEmitter
         throw("TODO: implement _set in derived class")
 
     restore_cursor_position : () =>
+        # implement in a derived class if you need this        
+    
+    disconnect_from_session : (cb) =>
+        # implement in a derived class if you need this
 
+    local_storage: (key, value) =>
+        return local_storage(@editor.project_id, @filename, key, value)
+    
     show: () =>
         @element.show()
 
@@ -740,6 +763,9 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
         @init_chat()
         
+        # by default we will auto-reopen a file unless we explicitly close it.
+        @local_storage('auto_open', true)
+        
         @connect (err,resp) =>
             if err
                 @_set(err)
@@ -750,6 +776,18 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
                         @sync_soon()
+                                               
+    disconnect_from_session: (cb) =>        
+        salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
+        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
+    
+        salvus_client.call
+            timeout : 10
+            message : message.codemirror_disconnect(session_uuid : @session_uuid)
+            cb      : cb
+            
+        # store pref in localStorage to not auto-open this file next time
+        @local_storage('auto_open', false)
 
     connect: (cb) =>
         salvus_client.call
@@ -780,9 +818,8 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
 
-                console.log("ADDING NEW codemirror listeners -- need to free old ones (TODO).")
                 salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
-                salvus_client.on 'codemirror_bcast', (mesg) => @_receive_broadcast(mesg)
+                salvus_client.on 'codemirror_bcast', @_receive_broadcast
                 cb()
 
     _diffsync_ready: (mesg) =>
@@ -861,20 +898,15 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
             @send_cursor_info_to_hub_soon()
-            storage = window.localStorage
-            if storage?
-                storage['cursor-' + @editor.project_id + @filename] = misc.to_json(@codemirror.getCursor())
+            @local_storage('cursor', @codemirror.getCursor())
             
     restore_cursor_position: () =>
         if @_cursor_previously_restored
             return
         @_cursor_previously_restore = true
-        storage = window.localStorage
-        if storage? and @codemirror?
-            pos = storage['cursor-' + @editor.project_id + @filename]
-            console.log(pos)
-            if pos?                
-                @codemirror.setCursor(misc.from_json(pos))
+        pos = @local_storage('cursor')        
+        if pos? and @codemirror?
+            @codemirror.setCursor(pos)
             
     init_chat: () =>
         console.log('init_chat')
@@ -1351,6 +1383,7 @@ class Terminal extends FileEditor
         @console = elt.data("console")
         @element = @console.element
         @connect_to_server()
+        @local_storage("auto_open", true)
 
     connect_to_server: (cb) =>
         mesg =
@@ -1385,7 +1418,8 @@ class Terminal extends FileEditor
         @console?.focus()
 
     terminate_session: () =>
-        @console?.terminate_session()
+        #@console?.terminate_session()
+        @local_storage("auto_open", false)
 
     show: () =>
         @element.show()
