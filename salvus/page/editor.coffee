@@ -231,26 +231,21 @@ class exports.Editor
 
     # Close this tab.
     close: (filename) =>
-        @save filename, (err) =>
-            if err
-                alert_message(type:"error", message:"Error saving file '#{filename}' -- #{err}")
-                return
+        tab = @tabs[filename]
+        if not tab? # nothing to do -- tab isn't opened anymore
+            return
+      
+        # Disconnect from remote session (if relevant)
+        tab.editor.disconnect_from_session()
+        tab.link.remove()
+        tab.editor.remove()
+        delete @tabs[filename]
+        @update_counter() 
 
-            tab = @tabs[filename]
-            if not tab? # nothing to do -- file isn't opened anymore
-                return
-
-            # Send a message to terminate the session (if relevant)
-            tab.editor.terminate_session()
-            tab.link.remove()
-            tab.editor.remove()
-            delete @tabs[filename]
-            @update_counter()
-
-            names = keys(@tabs)
-            if names.length > 0
-                # select new tab
-                @display_tab(names[0])
+        names = keys(@tabs)
+        if names.length > 0
+            # select new tab
+            @display_tab(names[0])
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -916,15 +911,25 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             return
         switch mesg.mesg.event
             when 'cursor'
-                @_cursor(mesg)
+                @_receive_cursor(mesg)
             when 'chat'
                 @_receive_chat(mesg)
 
-    _cursor: (mesg) =>
+    _receive_cursor: (mesg) =>
+        # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really
+        # annoying having a pointless indicator of another person.
+        if not @_last_cursor_pos?
+            @_last_cursor_pos = {}
+        else
+            pos = @_last_cursor_pos[mesg.color] 
+            if pos? and pos.line == mesg.mesg.pos.line and pos.ch == mesg.mesg.pos.ch
+                return                
+        # cursor moved.
+        @_last_cursor_pos[mesg.color] = mesg.mesg.pos   # record current position              
         @_draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)
 
+    # Move the cursor with given color to the given pos.
     _draw_other_cursor: (pos, color, name) =>
-        # Move the cursor with given color to the given pos.
         if not @codemirror?
             return
         if not @_cursors?
@@ -945,7 +950,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             cursor_data.pos = pos
 
         # first fade the label out
-        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:4000)
+        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:8000)
         # Then fade the cursor out (a non-active cursor is a waste of space).
         cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)

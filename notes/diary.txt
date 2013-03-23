@@ -10854,6 +10854,8 @@ Since this is so much like cursors, I can probably do it more "all at once."
 
 @@@@@@@@@@@@@@@@@@@@@@
 
+    [x] codemirror editor: only revive other cursors... if they move!
+
     [ ] codemirror session: close file
         
         * implement as follows:
