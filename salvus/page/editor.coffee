@@ -442,8 +442,8 @@ class CodeMirrorEditor extends FileEditor
             line_numbers      : true
             indent_unit       : 4
             tab_size          : 4
-            smart_indent      : true
-            #electric_chars    : false
+            smart_indent      : false
+            electric_chars    : false
             undo_depth        : 1000
             match_brackets    : true
             line_wrapping     : true
@@ -465,7 +465,7 @@ class CodeMirrorEditor extends FileEditor
             indentUnit      : opts.indent_unit
             tabSize         : opts.tab_size
             smartIndent     : opts.smart_indent
-            electricChars   : false   #BUGGY
+            electricChars   : opts.electric_chars
             undoDepth       : opts.undo_depth
             matchBrackets   : opts.match_brackets
             theme           : opts.theme
@@ -490,19 +490,38 @@ class CodeMirrorEditor extends FileEditor
     init_chat_toggle: () =>
         title = @element.find(".salvus-editor-chat-title")
         title.click () =>
-            title.find('i').hide()
             if @_chat_is_hidden? and @_chat_is_hidden
-                # SHOW the chat window
-                @_chat_is_hidden = false
-                @element.find(".salvus-editor-chat-hide").show()
-                @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
-                @element.find(".salvus-editor-codemirror-chat-column").show()
+                @show_chat_window()
             else
-                # HIDE the chat window
-                @_chat_is_hidden = true
-                @element.find(".salvus-editor-chat-show").show()
-                @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
-                @element.find(".salvus-editor-codemirror-chat-column").hide()
+                @hide_chat_window()
+        @hide_chat_window()  #start hidden for now, until we have a way to save this.
+           
+    show_chat_window: () =>    
+        # SHOW the chat window
+        @_chat_is_hidden = false
+        @element.find(".salvus-editor-chat-show").hide()
+        @element.find(".salvus-editor-chat-hide").show()
+        @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
+        @element.find(".salvus-editor-codemirror-chat-column").show()
+        @new_chat_indicator(false)
+                
+    hide_chat_window: () =>                
+        # HIDE the chat window
+        @_chat_is_hidden = true
+        @element.find(".salvus-editor-chat-hide").hide()
+        @element.find(".salvus-editor-chat-show").show()
+        @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
+        @element.find(".salvus-editor-codemirror-chat-column").hide()
+    
+    new_chat_indicator: (new_chats) =>
+        # Show a new chat indicator of the chat window is closed.
+        # if new_chats, indicate that there are new chats
+        # if new_chats, don't indicate new chats.
+        elt = @element.find(".salvus-editor-chat-new-chats")
+        if new_chats and @_chat_is_hidden
+            elt.show()
+        else
+            elt.hide()
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").click(@click_save_button)
@@ -756,6 +775,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     @_set(resp.content)
                     for m in resp.chat
                         @_receive_chat(m)
+                    @new_chat_indicator(false)  # don't count all of this chat.
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
                 @dsync_server = new CodeMirrorDiffSyncHub(@)
@@ -857,6 +877,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 return false
 
     _receive_chat: (mesg) =>
+        @new_chat_indicator(true)
         output = @element.find(".salvus-editor-codemirror-chat-output")
         date = new Date(mesg.date)
         entry = templates.find(".salvus-chat-entry").clone()

@@ -52,15 +52,15 @@ Editor for files in a project
 }
 
 .salvus-editor-chat-title {
-    color       : #666;
-    font-size: 20pt;
+    color     : #666;
+    font-size : 18pt;
 }
 
 .salvus-editor-codemirror-chat {
     margin:0px;
     padding:0px;
     width:100%;
-    border: 3px solid #9a9;
+    border: 2px solid #9a9;
     border-radius: 5px;
 }
 
@@ -108,7 +108,7 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-input-box {
-    border: 3px solid #9a9;
+    border: 2px solid #9a9;
     border-radius: 5px;
 }
 

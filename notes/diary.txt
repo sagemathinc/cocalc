@@ -10839,7 +10839,7 @@ Since this is so much like cursors, I can probably do it more "all at once."
 
     [x] (0:40) codemirror session: toggle chat messages
 
-    [ ] codemirror session: change chat title temporarily if there is a new activity
+    [x] (0:35) codemirror session: change chat title temporarily if there is a new activity
 
  [ ] codemirror session: close file
 
