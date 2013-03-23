@@ -249,6 +249,8 @@ class exports.Connection extends EventEmitter
 
         @_last_pong = misc.walltime()
         @_connected = false
+
+        # have to get a round trip packet between client and hub every this many ms, or client will start freaking out and trying to reconnect
         @_ping_check_interval = 60000
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 

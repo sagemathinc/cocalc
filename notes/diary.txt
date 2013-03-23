@@ -10873,15 +10873,11 @@ Since this is so much like cursors, I can probably do it more "all at once."
 @@@@@@@@@@@@@@@@@@@@@@
 
    [x] (0:05) bugfix: editor -- after a reconnect, chat gets doubled.
+   [x] (0:20) file sessions by project isn't working.
 
+Hub/local hub death = disasters
 
--->   [ ] file sessions by project isn't working.
-
-
-
-[ ] hub/local hub death = disaster
-
-There is no reason that we shouldn't be able to have *any* subset of the following 
+There is no reason that we shouldn't be able to have *any* subset of the following
 entities restart, and not have everything come back working fine, with very little
 hicup for users:
 
@@ -10892,23 +10888,72 @@ hicup for users:
 Right now, it's a disaster.  I need to fix this, with a systematic
 pre-planned test at each point, before moving on to worksheet sync.
 
+I will do each of the following, then fix the issues that are unveiled, if any:
+
+   [x] restart a client completely -- good!
+   [x] pause/disable client network for ~30 seconds -- good!
+(using  "/sbin/ifdown lo" and "/sbin/ifup lo")
+   [x] restart network connection of client (i.e., break the websocket) -- did a bunch to make this actually work correctly.
+This resulted in:
+  -- reconnecting (ok)
+  -- completely loosing any text typed after connection loss   (not ok)
+  -- this exception: "Uncaught TypeError: Cannot read property      [definitely not ok]
+     'length' of undefined salvus.js:2866; DiffSync.recv_edits"
+
+I will change the "sockjs break connection timeout" from about a minute down to
+2 seconds to make the above easier to replicate.  Then tackle each issue.
+First, conceptually, what *should* happen:
+
+  1. Client decides connection is gone and wants to start over. This should happen!
+  2. Client connects to a hub (possibly a different one in general), and 
+     includes in the connect message "I was the client
+     with *this* id; please let me reconnect as that client session."
+   -- or -- maybe we should just trash any client object when the connection dies.
+  3. (Hub authenticates user as usual.)   Hub then re-uses an existing 
+
+ACTION: connection, open a new a codemirror session, then pause/unpause hub, watch
+client make new connection...
+
+RESULT: should be that session  reconnects and any changes during downtime are nicely merged.
+
+What actually happens: everything reconnects fine, but most of the changes that were
+made are just lost, then get overwritten.
+
+The problem is that currently the client just resends the message that
+was created before the "reconnect".  That means nothing, since the
+shadow is wrong, and the client is viewed as a completely different
+client by the hub... or it could be a different hub.  The right thing to do is:
+
+   (1) if call results in a reconnect, respond accordingly to the caller with an error message
+   (2) rewrite *all* code that calls "call" to handle this error message.  In particular, the
+       sync code must be redone. 
+
+OR (?) just return an error on reconnect, and anything (such as sync) will properly happen 
+the next time around?
+
+My first attempt at this got rid of the tracebacks / errors totally breaking sync (as 
+it should)... but unfortunately, the document just gets reset rather than merging the
+offline changes in.  Not acceptable.
+
+** If we're resetting, what we need to do is take the list of all patches that didn't get applied
+and apply them to the new content we get from hub.  **
 
 
+   [ ] restart hub
+   [ ] restart local_hub
 
 
+   [ ] If I hub gets no activity from a client for n seconds, it
+       should boot client.
 
 
+(0:05)   [ ] Worksheet Synchronization
 
+Thoughts:
 
-(0:05)(0:05)   [ ] Worksheet Synchronization
-
-I
---------------
-
-
-
-
-
+   Start on the client by refactoring the CodeMirrorEditorSession code and making
+   a worksheet session... that is purely string based and sync'd.  This shoudl
+    work but be slow.
 
 
 

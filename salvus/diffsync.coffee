@@ -176,7 +176,7 @@ class DiffSync
             if edits.shadow_version == @shadow_version
                 if edits.shadow_checksum != @_checksum(@shadow)
                     # Data corruption in memory or network: we have to just restart everything from scratch.
-                    cb('reset')
+                    cb("reset -- checksum mismatch (#{edits.shadow_checksum} != #{@_checksum(@shadow)})")
                     return
                 @_apply_edits  edits.edits, @shadow, (err, result) =>
                     if err
@@ -193,7 +193,7 @@ class DiffSync
                     cb()
                 else if edits.shadow_version > @shadow_version
                     # This should be impossible, unless there is data corruption.
-                    cb('reset')
+                    cb("reset -- shadow version from the future #{edits.shadow_version} > #{@shadow_version}")
                     return
         tasks = (process_edit for j in [0...edit_stack.length])
         async.series(tasks, (err) -> cb?(err))
@@ -284,13 +284,13 @@ test0 = (client, server, DocClass, Doc_equal, Doc_str) ->
             client.sync (err) ->
                 if not err
                     pusher = undefined
-                if err == 'reset'
+                if err.slice(0,5) == 'reset'
                     throw err
         else
             server.push_edits (err) ->
                 if not err
                     pusher = undefined
-                if err == 'reset'
+                if err.slice(0,5) == 'reset'
                     throw err
 
     go()

@@ -148,7 +148,7 @@ class Client extends EventEmitter
         @ip_address = @conn.remoteAddress
 
         # A unique id -- can come in handy
-        @id = uuid.v4()
+        @id = @conn.id
 
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully
@@ -165,10 +165,15 @@ class Client extends EventEmitter
 
         @check_for_remember_me()
 
-        @conn.on("data", @handle_data_from_client)
+        @conn.on "data", @handle_data_from_client
+
         @conn.on "close", () =>
+            winston.debug("connection: hub <--> client(id=#{@id})  CLOSED")
             @compute_session_uuids = []
             delete clients[@conn.id]
+
+        winston.debug("connection: hub <--> client(id=#{@id})  ESTABLISHED")
+
 
 
     check_for_remember_me: () =>
@@ -1321,6 +1326,8 @@ class CodeMirrorSession
         # Message from some client reporting new edits; we apply them,
         # generate new edits, and send those out so that the client
         # can complete the sync cycle.
+
+        winston.debug("client_diffsync; the clients are #{misc.keys(@diffsync_clients)}")
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
             client.push_to_client(message.reconnect(id:mesg.id, reason:"Client with id #{client.id} is not registered with this hub."))
@@ -1345,7 +1352,7 @@ class CodeMirrorSession
 
             # Respond
             if err
-                client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes -- #{err}")
+                client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes from client (id=#{client.id}) -- #{err}")
                 return
 
             # Now send back our own edits to this client.

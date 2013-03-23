@@ -250,13 +250,13 @@ class exports.Editor
         tab = @tabs[filename]
         if not tab? # nothing to do -- tab isn't opened anymore
             return
-      
+
         # Disconnect from remote session (if relevant)
         tab.editor.disconnect_from_session()
         tab.link.remove()
         tab.editor.remove()
         delete @tabs[filename]
-        @update_counter() 
+        @update_counter()
 
         names = keys(@tabs)
         if names.length > 0
@@ -406,14 +406,14 @@ class FileEditor extends EventEmitter
         throw("TODO: implement _set in derived class")
 
     restore_cursor_position : () =>
-        # implement in a derived class if you need this        
-    
+        # implement in a derived class if you need this
+
     disconnect_from_session : (cb) =>
         # implement in a derived class if you need this
 
     local_storage: (key, value) =>
         return local_storage(@editor.project_id, @filename, key, value)
-    
+
     show: () =>
         @element.show()
 
@@ -514,8 +514,8 @@ class CodeMirrorEditor extends FileEditor
             else
                 @hide_chat_window()
         @hide_chat_window()  #start hidden for now, until we have a way to save this.
-           
-    show_chat_window: () =>    
+
+    show_chat_window: () =>
         # SHOW the chat window
         @_chat_is_hidden = false
         @element.find(".salvus-editor-chat-show").hide()
@@ -523,15 +523,15 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
         @element.find(".salvus-editor-codemirror-chat-column").show()
         @new_chat_indicator(false)
-                
-    hide_chat_window: () =>                
+
+    hide_chat_window: () =>
         # HIDE the chat window
         @_chat_is_hidden = true
         @element.find(".salvus-editor-chat-hide").hide()
         @element.find(".salvus-editor-chat-show").show()
         @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
-    
+
     new_chat_indicator: (new_chats) =>
         # Show a new chat indicator of the chat window is closed.
         # if new_chats, indicate that there are new chats
@@ -591,7 +591,7 @@ class CodeMirrorEditor extends FileEditor
         chat.height(height-25)  #todo
         output = chat.find(".salvus-editor-codemirror-chat-output")
         output.scrollTop(output[0].scrollHeight)
-        
+
         @restore_cursor_position()
 
     focus: () =>
@@ -712,14 +712,19 @@ class CodeMirrorDiffSyncDoc
             cm.scrollTo(scroll.left, scroll.top)
             cm.scrollIntoView(pos)  # just in case
 
+codemirror_setValue_less_moving = (cm, value) ->
+    scroll = cm.getScrollInfo()
+    pos = cm.getCursor()
+    cm.setValue(value)
+    cm.setCursor(pos)
+    cm.scrollTo(scroll.left, scroll.top)
+    cm.scrollIntoView(pos)
+
 
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more
     # clever regarding restoring the cursor and the scroll location.
-    cm = cm_session.codemirror
-    scroll = cm.getScrollInfo(); pos = cm.getCursor()
-    cm.setValue(content)
-    cm.setCursor(pos); cm.scrollTo(scroll.left, scroll.top); cm.scrollIntoView(pos)
+    codemirror_setValue_less_moving(cm_session.codemirror, content)
 
     return new diffsync.CustomDiffSync
         doc            : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
@@ -762,36 +767,35 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         @init_cursorActivity_event()
 
         @init_chat()
-        
+
         # by default we will auto-reopen a file unless we explicitly close it.
         @local_storage('auto_open', true)
-        
+
         @connect (err,resp) =>
             if err
                 @_set(err)
                 alert_message(type:"error", message:err)
             else
-                @_previous_successful_set = true
                 @init_autosave()
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
                         @sync_soon()
-                        
+
     _add_listeners: () =>
         salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.on 'codemirror_bcast', @_receive_broadcast
 
-    _remove_listeners: () =>    
+    _remove_listeners: () =>
         salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
-                                               
-    disconnect_from_session: (cb) =>        
+
+    disconnect_from_session: (cb) =>
         @_remove_listeners()
         salvus_client.call
             timeout : 10
             message : message.codemirror_disconnect(session_uuid : @session_uuid)
             cb      : cb
-            
+
         # store pref in localStorage to not auto-open this file next time
         @local_storage('auto_open', false)
 
@@ -812,19 +816,39 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
                 @session_uuid = resp.session_uuid
 
-                # If our content is already set, don't use new content from the server;
-                # instead, we'll end up doing a merge.
-                if not (@_previous_successful_set? and @_previous_successful_set)
+                # Render the chat
+                @element.find(".salvus-editor-codemirror-chat-output").html('')
+                for m in resp.chat
+                    @_receive_chat(m)
+                @new_chat_indicator(false)  # not necessarily new
+
+                # If our content is already set, we'll end up doing a merge.
+                resetting = @_previous_successful_set? and @_previous_successful_set
+
+                if not resetting
+                    # very easy
+                    @_previous_successful_set = true
                     @_set(resp.content)
-                    for m in resp.chat
-                        @_receive_chat(m)
-                    @new_chat_indicator(false)  # don't count all of this chat.
+                    live_content = resp.content
+                else
+                    # Doing a reset -- apply all the edits to the current version of the document.
+                    edit_stack = @dsync_client.edit_stack
+                    # Apply our offline edits to the new live version of the document.
+                    live_content = resp.content
+                    for p in edit_stack
+                        live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
                 @dsync_server = new CodeMirrorDiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
                 @_add_listeners()
+
+                if resetting
+                    codemirror_setValue_less_moving(@codemirror, live_content)
+                    # Force a sync.
+                    @_syncing = false
+                    @sync()
 
                 cb()
 
@@ -843,16 +867,16 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             timeout : opts.timeout
             cb      : (err, result) =>
                 if not err and result.event == 'reconnect'
-                    console.log("reconnecting...")
-                    # Try one time to connect then resend message.
+                    console.log("codemirror sync session #{@session_uuid}: reconnecting (attempt once automatically)")
                     @connect (err) =>
                         if err
+                            console.log("codemirror sync session #{@session_uuid}: failed to reconnect")
                             opts.cb?(err)
                         else
-                            # try again
-                            salvus_client.call(message: opts.message, timeout:opts.timeout, cb:opts.cb)
-                    return
-                opts.cb(err, result)
+                            console.log("codemirror sync session #{@session_uuid}: successful reconnect")
+                            opts.cb?('reconnect')  # still an error condition
+                else
+                    opts.cb?(err, result)
 
     sync_soon: (multiplier) =>
         if @_sync_soon?
@@ -892,7 +916,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     #console.log("_sync_failures = ", @_sync_failures)
                     if @_sync_failures % 6 == 0
                         alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
-    
+
                     setTimeout(@sync, 45000)  # try again soon...
                     cb?(err)
                 else
@@ -903,20 +927,20 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         catch e
             @_syncing = false
             cb?(e)
-            
+
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
             @send_cursor_info_to_hub_soon()
             @local_storage('cursor', @codemirror.getCursor())
-            
+
     restore_cursor_position: () =>
         if @_cursor_previously_restored
             return
         @_cursor_previously_restore = true
-        pos = @local_storage('cursor')        
+        pos = @local_storage('cursor')
         if pos? and @codemirror?
             @codemirror.setCursor(pos)
-            
+
     init_chat: () =>
         console.log('init_chat')
         chat = @element.find(".salvus-editor-codemirror-chat")
@@ -979,11 +1003,11 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         if not @_last_cursor_pos?
             @_last_cursor_pos = {}
         else
-            pos = @_last_cursor_pos[mesg.color] 
+            pos = @_last_cursor_pos[mesg.color]
             if pos? and pos.line == mesg.mesg.pos.line and pos.ch == mesg.mesg.pos.ch
-                return                
+                return
         # cursor moved.
-        @_last_cursor_pos[mesg.color] = mesg.mesg.pos   # record current position              
+        @_last_cursor_pos[mesg.color] = mesg.mesg.pos   # record current position
         @_draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)
 
     # Move the cursor with given color to the given pos.
