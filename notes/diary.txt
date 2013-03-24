@@ -10954,9 +10954,6 @@ I fixed all the above sync-on-restart issues.
 
 ------------
 
-@@@@@@@@@@@@@@@@@@@@@@
-
-
     [x] (0:03) important ui thing -- when showing chat (via toggle) need to scroll to bottom.
 
     [x] (0:28) add a graphical indicator of recent verified successful sync (versus non-successful one),
@@ -10986,6 +10983,10 @@ level and work in.
          This is perfectly reasonable.  It was caused by the local hub being temporarily broken (autokilling sessions after 0 seconds!).
          However, we need expontial backoff, otherwise we kill the server... in practice, of course, something really could go wrong
          with the local hub and cause a reconnect loop for a while.
+
+     [ ] local_hub -- load the newer of the file and backup file, if both exist.
+     
+@@@@@@@@@@@@@@@@@@@@@@
 
 
      [ ] Clean up and abstract editsync.coffee

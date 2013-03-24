@@ -364,21 +364,36 @@ class DiffSyncFile_server extends diffsync.DiffSync
     constructor:(@cm_session, cb)  ->
         @path = @cm_session.path
         @_backup_file = meta_file(@path, 'backup')
-        @_autosave = setInterval(@write_backup, 10000)  # check for need to save a backup every this many milliseconds
-        fs.exists @_backup_file, (exists) =>
-            if exists
-                file = @_backup_file
-            else
-                file = @path
+        # check for need to save a backup every this many milliseconds
+        @_autosave = setInterval(@write_backup, 10000)
 
-            fs.readFile file, (err, data) =>
-                if err
-                    cb(err); return
-                @init(doc:data.toString(), id:"file_server")
-                # winston.debug("got new file contents = '#{@live}'")
-                @_start_watching_file()
+        # We prefer the backup file only if it both (1) exists, and
+        # (2) is *newer* than the master file.  This is because some
+        # other editing program could have edited the master, not
+        # knowing about the backup, in which case it makes more sense
+        # to just go with the master.
 
-                cb(err, @live)
+        fs.stat @path, (no_master,stats_path) =>
+            fs.stat @_backup_file, (no_backup,stats_backup) =>
+                if no_backup # no backup file -- always use master
+                    file = @path
+                else if no_master # no master file but there is a backup file -- use backup
+                    file = @_backup_file
+                else
+                    # both master and backup exist
+                    if stats_path.mtime.getTime() >= stats_backup.mtime.getTime()
+                        # master is newer
+                        file = @path
+                    else
+                        # backup is newer
+                        file = @_backup_file
+                fs.readFile file, (err, data) =>
+                    if err
+                        cb(err); return
+                    @init(doc:data.toString(), id:"file_server")
+                    # winston.debug("got new file contents = '#{@live}'")
+                    @_start_watching_file()
+                    cb(err, @live)
 
     kill: () =>
         if @_autosave?
