@@ -3,6 +3,7 @@
 async = require('async')  # don't delete even if not used below, since this needs to be available to page/
 
 diffsync = require('diffsync')
+sync_hub = require('sync_hub')  # used by page/
 
 message = require("message")
 misc    = require("misc")

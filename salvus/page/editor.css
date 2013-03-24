@@ -27,6 +27,13 @@ Editor for files in a project
     padding:5px;
 }
 
+.salvus-editor-codemirror-filename {
+    margin-left:3em;
+    font-size: 20px;
+    font-weight: bold;
+    color:#777;
+}    
+
 .salvus-editor-codemirror-cursor {
     position: absolute;
     width:15em;

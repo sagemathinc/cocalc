@@ -536,6 +536,7 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
+        @element.find(".salvus-editor-codemirror-filename").text(@filename)
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
         @codemirror = CodeMirror.fromTextArea elt[0],

@@ -1,30 +1,42 @@
 ###
-Synchronized Documents
 
-A merge map, with the arrows pointing upstream:
+Code that runs in the webpage that supports each sync type.
 
+Sync Types:
 
-     [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client] <--- YOU ARE HERE
-                      /|\             |
-     [client]-----------             \|/
-                              [a file on disk]
-
-The Global Architecture of Synchronized Documents:
-
-Imagine say 1000 clients divided evenly amongst 10 hubs (so 100 clients per hub).  
-There is only 1 local hub, since it is directly linked to an on-disk file. 
-
-The global hubs manage their 100 clients each, merging together sync's, and sending them 
-(as a batch) to the local hub.  Broadcast messages go from a client, to its hub, then back
-to the other 99 clients, then on to the local hub, out to 9 other global hubs, and off to
-their 900 clients in parallel.  
+    * PlainText -- for text editing
+    * CodeMirror -- text string linked to a CodeMirro instance; compatible with PlainText on the hub side.
+    * SageWorksheet -- for using Sage; only compatible with SageWorksheet on the hub side.
 
 ###
 
-
-log = (s) -> console.log(s)
-
 diffsync = require('diffsync')
+sync_hub = require('sync_hub')
+
+###
+PlainText
+###
+
+# They are identical on client and server.
+exports.PlainTextObj = PlainTextObj
+
+
+###
+CodeMirror
+###
+
+
+
+
+###
+SageWorksheet
+###
+
+
+###
+The Synchronization System
+###
+
 
 misc     = require('misc')
 {defaults, required} = misc
@@ -36,131 +48,17 @@ message  = require('message')
 
 templates = $("#salvus-editor-templates")
 
-class CodeMirrorDiffSyncDoc
-    # Define exactly one of cm or string.
-    #     cm     = a live codemirror editor
-    #     string = a string
-    constructor: (opts) ->
-        @opts = defaults opts,
-            cm     : undefined
-            string : undefined
-        if not ((opts.cm? and not opts.string?) or (opts.string? and not opts.cm?))
-            console.log("BUG -- exactly one of opts.cm and opts.string must be defined!")
 
-    copy: () =>
-        # always degrades to a string
-        if @opts.cm?
-            return new CodeMirrorDiffSyncDoc(string:@opts.cm.getValue())
-        else
-            return new CodeMirrorDiffSyncDoc(string:@opts.string)
-
-    string: () =>
-        if @opts.string?
-            return @opts.string
-        else
-            return @opts.cm.getValue()
-
-    diff: (v1) =>
-        # TODO: when either is a codemirror object, can use knowledge of where/if
-        # there were edits as an optimization
-        return diffsync.dmp.patch_make(@string(), v1.string())
-
-    patch: (p) =>
-        return new CodeMirrorDiffSyncDoc(string: diffsync.dmp.patch_apply(p, @string())[0])
-
-    checksum: () =>
-        return @string().length
-
-    patch_in_place: (p) =>
-        if @opts.string
-            console.log("patching string in place")  # should never need to happen
-            @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
-        else
-            cm = @opts.cm
-
-            # We maintain our cursor position using the following trick:
-            #    1. Insert a non-used unicode character where the cursor is.
-            #    2. Apply the patches.
-            #    3. Find the unicode character,, remove it, and put the cursor there.
-            #       If the unicode character vanished, just put the cursor at the coordinates
-            #       where it used to be (better than nothing).
-            # There is a more sophisticated approach described at http://neil.fraser.name/writing/cursor/
-            # but it is harder to implement given that we'll have to dive into the details of his
-            # patch_apply implementation.  This thing below took only a few minutes to implement.
-            scroll = cm.getScrollInfo()
-            pos0 = cm.getCursor()
-            cursor = "\uFE10"   # chosen from http://billposer.org/Linguistics/Computation/UnicodeRanges.html
-                                # since it is (1) undefined, and (2) looks like a cursor..
-            cm.replaceRange(cursor, pos0)
-            t = misc.walltime()
-            s = @string()
-            #console.log(1, misc.walltime(t)); t = misc.walltime()
-            new_value = diffsync.dmp.patch_apply(p, s)[0]
-            #console.log(2, misc.walltime(t)); t = misc.walltime()
-            v = new_value.split('\n')
-            #console.log(3, misc.walltime(t)); t = misc.walltime()
-            line = pos0.line
-            line1 = undefined
-            # We first try an interval around the cursor, since that is where the cursor is most likely to be.
-            for k in [Math.max(0, line-10)...Math.max(0,Math.min(line-10, v.length))].concat([0...v.length])
-                ch = v[k].indexOf(cursor)
-                if ch != -1
-                    line1 = k
-                    break
-
-            if line1?
-                v[line1] = v[line1].slice(0,ch) + v[line1].slice(ch+1)
-                pos = {line:line1, ch:ch}
-                #console.log("Found cursor again at ", pos)
-            else
-                pos = pos0
-                #console.log("LOST CURSOR!")
-            #console.log(4, misc.walltime(t)); t = misc.walltime()
-            s = v.join('\n')
-            #console.log(5, misc.walltime(t)); t = misc.walltime()
-            # Benchmarking reveals that this line 'cm.setValue(s)' is by far the dominant time taker.
-            # This can be optimized by taking into account the patch itself (and maybe stuff returned
-            # when applying it) to instead only change a small range of the editor.  This is TODO
-            # for later though.  For reference, a 200,000 line doc on a Samsung chromebook takes < 1s still, and about .4 s
-            # on a fast intel laptop.
-            cm.setValue(s)
-            #console.log(6, misc.walltime(t)); t = misc.walltime()
-            cm.setCursor(pos)
-            cm.scrollTo(scroll.left, scroll.top)
-            cm.scrollIntoView(pos)  # just in case
-
-
-codemirror_setValue_less_moving = (cm, value) ->
-    scroll = cm.getScrollInfo()
-    pos = cm.getCursor()
-    cm.setValue(value)
-    cm.setCursor(pos)
-    cm.scrollTo(scroll.left, scroll.top)
-    cm.scrollIntoView(pos)
-
-codemirror_diffsync_client = (cm_session, content) ->
-    # This happens on initialization and reconnect.  On reconnect, we could be more
-    # clever regarding restoring the cursor and the scroll location.
-    codemirror_setValue_less_moving(cm_session.codemirror, content)
-
-    return new diffsync.CustomDiffSync
-        doc            : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
-        copy           : (s) -> s.copy()
-        diff           : (v0,v1) -> v0.diff(v1)
-        patch          : (d, v0) -> v0.patch(d)
-        checksum       : (s) -> s.checksum()
-        patch_in_place : (p, v0) -> v0.patch_in_place(p)
-
-# The CodeMirrorDiffSyncHub class represents a global hub viewed as a
-# remote server for this client.
-class CodeMirrorDiffSyncHub
-    constructor: (@cm_session) ->
+# The DiffSyncHub class represents a global hub viewed as the
+# remote server for this web browser-based sync client.
+class DiffSyncHub
+    constructor: (@session) ->
 
     connect: (remote) =>
         @remote = remote
 
     recv_edits: (edit_stack, last_version_ack, cb) =>
-        @cm_session.call
+        @session.call
             message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
             timeout : 30
             cb      : (err, mesg) =>
@@ -173,104 +71,74 @@ class CodeMirrorDiffSyncHub
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
-
-class CodeMirrorSessionEditor
-    constructor: (@editor, opts) ->
+class SynchronizedObject
+    constructor: (opts, cb) ->
         @opts = defaults opts,
-            cursor_interval : 150
-            sync_interval   : 150
-        @editor.save = @save
-        @codemirror = @editor.codemirror
-        @element    = @editor.element
-        @filename   = @editor.filename
-
-        @init_cursorActivity_event()
-        @init_chat()
-
-        @connect (err, resp) =>
-            if err
-                @editor._set(err)
-                alert_message(type:"error", message:err)
-            else
-                @ui_synced(true)
-                @editor.init_autosave()
-                @codemirror.on 'change', (instance, changeObj) =>
-                    if changeObj.origin? and changeObj.origin != 'setValue'
-                        @ui_synced(false)
-                        @sync_soon()
-
+            make_object     : required
+            project_id      : required
+            filename        : required
+            cursor_interval : 150    # milliseconds
+            sync_interval   : 150    # milliseconds
+        @connect(cb)
+        
     _add_listeners: () =>
         salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.on 'codemirror_bcast', @_receive_broadcast
 
     _remove_listeners: () =>
         salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
-        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
-
-    disconnect_from_session: (cb) =>
-        @_remove_listeners()
-        salvus_client.call
-            timeout : 10
-            message : message.codemirror_disconnect(session_uuid : @session_uuid)
-            cb      : cb
-
-        # store pref in localStorage to not auto-open this file next time
-        @editor.local_storage('auto_open', false)
-
+        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast        
+        
     connect: (cb) =>
-        @element.find(".salvus-editor-codemirror-loading").show()
-        @_remove_listeners()        
+        @_remove_listeners()    
         salvus_client.call
             timeout : 45     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
-                path         : @filename
-                project_id   : @editor.project_id
+                project_id   : @opts.project_id
+                path         : @opts.filename
             cb      : (err, resp) =>
-                @element.find(".salvus-editor-codemirror-loading").hide()
-                #console.log("new session: ", resp)
                 if err
-                    cb(err); return
+                    cb?(err); return
                 if resp.event == 'error'
-                    cb(resp.event); return
-
+                    cb?(resp.event); return
                 @session_uuid = resp.session_uuid
-
-                # Render the chat
-                @element.find(".salvus-editor-codemirror-chat-output").html('')
-                for m in resp.chat
-                    @_receive_chat(m)
-                @new_chat_indicator(false)  # not necessarily new
-
+                
                 # If our content is already set, we'll end up doing a merge.
                 resetting = @_previous_successful_set? and @_previous_successful_set
-
+                content = opts.make_object(resp.content)
                 if not resetting
-                    # very easy
                     @_previous_successful_set = true
-                    @editor._set(resp.content)
-                    live_content = resp.content
-                else
+                    @obj = content
+                else                    
                     # Doing a reset -- apply all the edits to the current version of the document.
                     edit_stack = @dsync_client.edit_stack
                     # Apply our offline edits to the new live version of the document.
-                    live_content = resp.content
+                    live_content = content
                     for p in edit_stack
-                        live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
+                        live_content.patch(p.edits)
 
-                @dsync_client = codemirror_diffsync_client(@, resp.content)
-                @dsync_server = new CodeMirrorDiffSyncHub(@)
+                @dsync_client = codemirror_diffsync_client(@, opts.make_object(resp.content))
+                @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
                 @_add_listeners()
 
                 if resetting
-                    codemirror_setValue_less_moving(@codemirror, live_content)
                     # Force a sync.
                     @_syncing = false
                     @sync()
 
-                cb()
+                cb?()
 
+    disconnect: (cb) =>
+        @_remove_listeners()    
+        if not @session_uuid?
+            cb?(); return            
+        salvus_client.call
+            timeout : 10
+            message : message.codemirror_disconnect(session_uuid : @session_uuid)
+            cb      : cb
+            
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
             @sync_soon()
@@ -553,4 +421,4 @@ class CodeMirrorSessionEditor
             @_apply_changeObj(changeObj)
 
 
-exports.CodeMirrorSessionEditor = CodeMirrorSessionEditor
+exports.Session = Session
