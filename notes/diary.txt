@@ -10992,9 +10992,11 @@ level and work in.
 
 @@@@@@@@@@@@@@@@@@@@@@
  
-    [ ] nav-pills -- whenver clicking on a file, make that one go to the front. 
+    [x] (0:13) nav-pills -- whenver clicking on a file, make that one go to the front. 
 
-  --> [ ] Clean up and abstract syncdoc.coffee
+    [x] (0:05) when file session is loading, we REALLY need a visual indicator.  This is distrubing otherwise!  Add something trivial.
+
+ --> [ ] Clean up and abstract syncdoc.coffee
 
     [ ] Implement a simple worksheet on top of this as a test.
   

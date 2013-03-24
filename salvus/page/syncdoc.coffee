@@ -221,13 +221,15 @@ class CodeMirrorSessionEditor
         @editor.local_storage('auto_open', false)
 
     connect: (cb) =>
-        @_remove_listeners()
+        @element.find(".salvus-editor-codemirror-loading").show()
+        @_remove_listeners()        
         salvus_client.call
             timeout : 45     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @editor.project_id
             cb      : (err, resp) =>
+                @element.find(".salvus-editor-codemirror-loading").hide()
                 #console.log("new session: ", resp)
                 if err
                     cb(err); return
