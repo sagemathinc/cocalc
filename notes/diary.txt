@@ -10959,19 +10959,32 @@ I fixed all the above sync-on-restart issues.
 
   [x] (0:03) important ui thing -- when showing chat (via toggle) need to scroll to bottom.
 
-  [ ] (0:26) add a graphical indicator of recent verified successful sync (versus non-successful one),
+  [x] (0:28) add a graphical indicator of recent verified successful sync (versus non-successful one),
       and get rid of all the console.log messages about sync.
 
+NEXT!!!
   [ ] Worksheet Synchronization
 
 Thoughts:
 
    Start on the client by refactoring the CodeMirrorEditorSession code and making
-   a worksheet session... that is purely string based and sync'd.  This shoudl
-    work but be slow.
+   a worksheet session... that is purely string based and sync'd.  This should
+   work but be slow.
+
+   As a thought experiment, I wonder if I could just make all the sync be string based?
+
+----------------------------------------------------------------------------------------
+
+   [x] temporarily turning off local_hub session timeouts so I can get work done without
+       them screwing everything up.
 
 
 
+
+---------------------------------------------------------------------------------------
+
+   [ ] when a session has timed out, chat just doesn't work.
+       typing once into the session and waiting... makes chat work.
 
 
    [ ] The "open files in project" thing is annoying.  This should be done via metainformation for the project or something, I guess.  I'm not sure.

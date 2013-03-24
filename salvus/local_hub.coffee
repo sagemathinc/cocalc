@@ -629,6 +629,9 @@ class CodeMirrorSession
     sync_filesystem: (cb) =>
         @is_active = true
         before = @content
+        if not @diffsync_fileclient?
+            cb?("filesystem sync object (@diffsync_fileclient) no longer defined")
+            return
         @diffsync_fileclient.sync (err) =>
             if err
                 cb?("codemirror fileclient sync error -- '#{err}'")
@@ -716,14 +719,14 @@ class CodeMirrorSessions
                 @add_session_to_cache
                     session    : session
                     project_id : mesg.project_id
-                    timeout    : 3600 # one hour, for now...
+                    timeout    : 0 # one hour, for now...
                 finish(session)
 
     add_session_to_cache: (opts) =>
         opt = defaults opts,
             session    : required
             project_id : undefined
-            timeout    : 3600   #" time in seconds
+            timeout    : 0   #" time in seconds
         winston.debug("Adding session #{opts.session.session_uuid} (of project #{opts.project_id}) to cache.")
         @_sessions.by_uuid[opts.session.session_uuid] = opts.session
         @_sessions.by_path[opts.session.path] = opts.session

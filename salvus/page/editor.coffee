@@ -758,8 +758,6 @@ class CodeMirrorDiffSyncHub
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
-
-
 class CodeMirrorSessionEditor extends CodeMirrorEditor
     constructor: (@editor, @filename, ignored, opts) ->
         if opts.session_uuid
