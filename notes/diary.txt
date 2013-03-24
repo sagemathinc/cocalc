@@ -10870,7 +10870,6 @@ Since this is so much like cursors, I can probably do it more "all at once."
       - local hub will kill a codemirror editing session if it hasn't been used
         after a certain amount of time....
 
-@@@@@@@@@@@@@@@@@@@@@@
 
    [x] (0:05) bugfix: editor -- after a reconnect, chat gets doubled.
    [x] (0:20) file sessions by project isn't working.
@@ -10952,7 +10951,18 @@ I fixed all the above sync-on-restart issues.
 
 
 
-(0:05)   [ ] Worksheet Synchronization
+
+------------
+
+@@@@@@@@@@@@@@@@@@@@@@
+
+
+ --> [ ] important ui thing -- when showing chat (via toggle) need to scroll to bottom.
+
+  [ ] add a graphical indicator of recent verified successful sync (versus non-successful one),
+      and get rid of all the console.log messages about sync.
+
+  [ ] Worksheet Synchronization
 
 Thoughts:
 
@@ -10962,7 +10972,7 @@ Thoughts:
 
 
 
-------------
+
 
    [ ] The "open files in project" thing is annoying.  This should be done via metainformation for the project or something, I guess.  I'm not sure.
        It's fixable, but a bit ugly.

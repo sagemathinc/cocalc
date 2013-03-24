@@ -522,6 +522,8 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".salvus-editor-chat-hide").show()
         @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
         @element.find(".salvus-editor-codemirror-chat-column").show()
+        output = @element.find(".salvus-editor-codemirror-chat-output")
+        output.scrollTop(output[0].scrollHeight)
         @new_chat_indicator(false)
 
     hide_chat_window: () =>
@@ -887,7 +889,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             wait = @opts.sync_interval
         if @_sync_soon?
             # We have already set a timer to do a sync soon.
-            console.log("not sync_soon since -- We have already set a timer to do a sync soon.") 
+            console.log("not sync_soon since -- We have already set a timer to do a sync soon.")
             return
         do_sync = () =>
             delete @_sync_soon
