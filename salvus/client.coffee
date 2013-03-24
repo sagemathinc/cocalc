@@ -783,7 +783,7 @@ class exports.Connection extends EventEmitter
             path       : required
             content    : required
             timeout    : 10
-            cb         : required
+            cb         : undefined
 
         @call
             message :
@@ -794,7 +794,7 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb : (err, result) =>
                 @save_project(project_id : opts.project_id)
-                opts.cb(err, result)
+                opts.cb?(err, result)
 
     read_text_file_from_project: (opts) ->
         opts = defaults opts,

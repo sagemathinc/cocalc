@@ -947,19 +947,27 @@ class LatexEditor extends FileEditor
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        # TODO: content currently ignored.
-        opts = @opts = defaults opts,
-            session_uuid : undefined
-            rows         : 24
-            cols         : 80
-        elt = $("<div>").salvus_console
-            title   : "Terminal"
-            cols    : @opts.cols
-            rows    : @opts.rows
-            resizable: false
-        @console = elt.data("console")
-        @element = @console.element
-        @connect_to_server()
+        @element = $("<div>")
+        salvus_client.read_text_file_from_project
+            project_id : @editor.project_id
+            path       : @filename
+            cb         : (err, result) =>
+                if err
+                    alert_message(type:"error", message: "Error connecting to console server.")
+                else
+                    # New session
+                    opts = @opts = defaults opts,
+                        session_uuid : result.content
+                        rows         : 24
+                        cols         : 80
+                    elt = @element.salvus_console
+                        title   : "Terminal"
+                        cols    : @opts.cols
+                        rows    : @opts.rows
+                        resizable: false
+                    @console = elt.data("console")
+                    @element = @console.element
+                    @connect_to_server()
 
     connect_to_server: (cb) =>
         mesg =
@@ -969,9 +977,14 @@ class Terminal extends FileEditor
             cb : (err, session) =>
                 if err
                     alert_message(type:'error', message:err)
+                    cb?(err)
                 else
                     @console.set_session(session)
-                cb?(err)
+                    salvus_client.write_text_file_to_project
+                        project_id : @editor.project_id
+                        path       : @filename
+                        content    : session.session_uuid     
+                        cb         : cb
 
         if @opts.session_uuid?
             #console.log("Connecting to an existing session.")

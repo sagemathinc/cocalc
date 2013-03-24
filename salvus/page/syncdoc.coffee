@@ -365,14 +365,6 @@ class CodeMirrorSessionEditor
             @send_cursor_info_to_hub_soon()
             @editor.local_storage('cursor', @codemirror.getCursor())
 
-    restore_cursor_position: () =>
-        if @_cursor_previously_restored
-            return
-        @_cursor_previously_restore = true
-        pos = @editor.local_storage('cursor')
-        if pos? and @codemirror?
-            @codemirror.setCursor(pos)
-
     init_chat: () =>
         chat = @element.find(".salvus-editor-codemirror-chat")
         input = chat.find(".salvus-editor-codemirror-chat-input")

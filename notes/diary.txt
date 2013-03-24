@@ -10984,19 +10984,18 @@ level and work in.
          However, we need expontial backoff, otherwise we kill the server... in practice, of course, something really could go wrong
          with the local hub and cause a reconnect loop for a while.
 
-     [x] local_hub -- load the newer of the file and backup file, if both exist.
+    [x] local_hub -- load the newer of the file and backup file, if both exist.
      
-     [x] retain open files status via localStorage, along with cursor... since otherwise this is just UNUSABLE!
+    [x] (1:15) retain open files status via localStorage, along with cursor... since otherwise this is just UNUSABLE!
      
-@@@@@@@@@@@@@@@@@@@@@@
+    [x] (0:20) terminal sessions -- make them persistent based on a *filename*
 
+@@@@@@@@@@@@@@@@@@@@@@
 
     [ ] Clean up and abstract syncdoc.coffee
 
-
     [ ] Implement a simple worksheet on top of this as a test.
   
-
 
 
 ---------------------------------------------------------------------------------------
