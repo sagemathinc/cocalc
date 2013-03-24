@@ -10957,10 +10957,12 @@ I fixed all the above sync-on-restart issues.
 @@@@@@@@@@@@@@@@@@@@@@
 
 
-  [x] (0:03) important ui thing -- when showing chat (via toggle) need to scroll to bottom.
+    [x] (0:03) important ui thing -- when showing chat (via toggle) need to scroll to bottom.
 
-  [x] (0:28) add a graphical indicator of recent verified successful sync (versus non-successful one),
+    [x] (0:28) add a graphical indicator of recent verified successful sync (versus non-successful one),
       and get rid of all the console.log messages about sync.
+
+    [x] temporarily turning off local_hub session timeouts so I can get work done without them screwing everything up.
 
 NEXT!!!
   [ ] Worksheet Synchronization
@@ -10975,12 +10977,18 @@ Thoughts:
 
 ----------------------------------------------------------------------------------------
 
-   [x] temporarily turning off local_hub session timeouts so I can get work done without
-       them screwing everything up.
+Let's start the worksheet synchronization.  I will be begin by refactoring at the client
+level and work in.
+
+-->  [x] Move the 500 lines of CodeMirrorSessionEditor to another file called syncdoc.coffee, with a little bit of codemirror-specific code back in editor.coffee (but no cleanup yet -- just working).
+
+     [ ] Clean up and abstract editsync.coffee
+
+     [ ] Implement a simple worksheet on top of this as a test.
 
 
-
-
+     [ ] got an infinite loop of this in hub log: "debug: codemirror session sync -- error pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub
+     debug: local_hub --> hub: (reconnect) {"event":"codemirror_session",...
 ---------------------------------------------------------------------------------------
 
    [ ] when a session has timed out, chat just doesn't work.

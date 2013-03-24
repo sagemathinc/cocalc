@@ -2,7 +2,7 @@
 # This is a template for the file static/index.js
 # List .coffee files on each line.   This is built by
 # salvus/salvus/gen_page.   Each coffeescript file
-# is automatically compiled, and wrapped as a 
+# is automatically compiled, and wrapped as a
 # modules with its name, which can be require'd.
 ##################################################
 
@@ -34,7 +34,10 @@ account.coffee
 worksheet1.coffee
 #worksheet2.coffee
 
+syncdoc.coffee
+
 editor.coffee
+
 project.coffee
 projects.coffee
 

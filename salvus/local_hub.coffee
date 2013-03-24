@@ -719,14 +719,14 @@ class CodeMirrorSessions
                 @add_session_to_cache
                     session    : session
                     project_id : mesg.project_id
-                    timeout    : 0 # one hour, for now...
+                    timeout    : undefined   # time in seconds (or undefined to not use timer)
                 finish(session)
 
     add_session_to_cache: (opts) =>
         opt = defaults opts,
             session    : required
             project_id : undefined
-            timeout    : 0   #" time in seconds
+            timeout    : undefined   # or a time in seconds
         winston.debug("Adding session #{opts.session.session_uuid} (of project #{opts.project_id}) to cache.")
         @_sessions.by_uuid[opts.session.session_uuid] = opts.session
         @_sessions.by_path[opts.session.path] = opts.session
