@@ -10980,15 +10980,21 @@ Thoughts:
 Let's start the worksheet synchronization.  I will be begin by refactoring at the client
 level and work in.
 
--->  [x] Move the 500 lines of CodeMirrorSessionEditor to another file called syncdoc.coffee, with a little bit of codemirror-specific code back in editor.coffee (but no cleanup yet -- just working).
+-->  [x] (1:15) Move the 500 lines of CodeMirrorSessionEditor to another file called syncdoc.coffee, with a little bit of codemirror-specific code back in editor.coffee (but no cleanup yet -- just working).
+
+     [x] (0:48) robustification -- got an infinite loop of this in hub log: "debug: codemirror session sync -- error pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub
+         This is perfectly reasonable.  It was caused by the local hub being temporarily broken (autokilling sessions after 0 seconds!).
+         However, we need expontial backoff, otherwise we kill the server... in practice, of course, something really could go wrong
+         with the local hub and cause a reconnect loop for a while.
+
 
      [ ] Clean up and abstract editsync.coffee
 
      [ ] Implement a simple worksheet on top of this as a test.
 
 
-     [ ] got an infinite loop of this in hub log: "debug: codemirror session sync -- error pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub
-     debug: local_hub --> hub: (reconnect) {"event":"codemirror_session",...
+
+
 ---------------------------------------------------------------------------------------
 
    [ ] when a session has timed out, chat just doesn't work.

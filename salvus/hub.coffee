@@ -1245,40 +1245,46 @@ class CodeMirrorSession
         @diffsync_clients = {}
 
     reconnect: (cb) =>
-        delete codemirror_sessions.by_uuid[@session_uuid]
-        delete @_upstream_sync_lock
-        @local_hub.call
-            mesg : message.codemirror_get_session(path:@path)
-            cb   : (err, resp) =>
-                winston.debug("local_hub --> hub: (reconnect) #{misc.trunc(to_safe_str(resp),300)} -- #{misc.to_json(err)}")
-                if err
-                    cb?(err)
-                else if resp.event == 'error'
-                    cb?(resp.error)
-                else
-                    @session_uuid = resp.session_uuid
-                    codemirror_sessions.by_uuid[@session_uuid] = @
+        misc.retry_until_success
+            start_delay : 1000
+            max_delay   : 15000
+            factor      : 1.5
+            cb          : cb
+            f           : (cb) =>
+                delete codemirror_sessions.by_path[@path]
+                delete codemirror_sessions.by_uuid[@session_uuid]
+                delete @_upstream_sync_lock
+                @local_hub.call
+                    mesg : message.codemirror_get_session(path:@path)
+                    cb   : (err, resp) =>
+                        winston.debug("local_hub --> hub: (reconnect) #{misc.trunc(to_safe_str(resp),300)} -- #{misc.to_json(err)}")
+                        if err
+                            cb?(err)
+                        else if resp.event == 'error'
+                            cb?(resp.error)
+                        else
+                            @session_uuid = resp.session_uuid
+                            codemirror_sessions.by_uuid[@session_uuid] = @
 
-                    # Reconnect to the upstream (local_hub) server, being careful to save our current edits.
-                    edit_stack = @diffsync_server.edit_stack
-                    @diffsync_server = new diffsync.DiffSync(doc:resp.content)
-                    @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
+                            # Reconnect to the upstream (local_hub) server, being careful to save our current edits.
+                            edit_stack = @diffsync_server.edit_stack
+                            @diffsync_server = new diffsync.DiffSync(doc:resp.content)
+                            @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
 
-                    # Apply all of the edits we couldn't send while the local hub was down
-                    # to upstream, then set this to our live.  When there are multiple hubs,
-                    # a lot can happen between sync's with a local_hub.
-                    live_content = resp.content
-                    for p in edit_stack
-                        live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
-                    @diffsync_server.live = live_content
+                            # Apply all of the edits we couldn't send while the local hub was down
+                            # to upstream, then set this to our live.  When there are multiple hubs,
+                            # a lot can happen between sync's with a local_hub.
+                            live_content = resp.content
+                            for p in edit_stack
+                                live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
+                            @diffsync_server.live = live_content
 
-                    # Forget our downstream clients -- they will get
-                    # reconnect messages, and keep going fine, eventually.
-                    @diffsync_clients = {}
+                            # Forget our downstream clients -- they will get
+                            # reconnect messages, and keep going fine, eventually.
+                            @diffsync_clients = {}
 
-                    # Sync with upstream.
-                    @sync(cb)
-
+                            # Sync with upstream.
+                            @sync(cb)
 
     set_content: (content) =>
         @diffsync_server.live = content
@@ -1371,7 +1377,7 @@ class CodeMirrorSession
                 # Also, sync new state with upstream local_hub.
                 @sync (err) =>
                     if err
-                        reconnect()
+                        @reconnect()
 
     get_snapshot: () =>
         return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
@@ -1394,7 +1400,7 @@ class CodeMirrorSession
             #winston.debug("codemirror session sync -- AFTER='#{@diffsync_server.live}'; edit_stack='#{misc.to_json(@diffsync_server.edit_stack)}'")
             @_upstream_sync_lock = false
             if err
-                winston.debug("codemirror session sync -- error pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub")
+                winston.debug("codemirror session sync -- ERROR pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub")
                 @reconnect(cb)
             else
                 winston.debug("codemirror session sync -- pushed edits, thus completing cycle")
@@ -1423,9 +1429,9 @@ class CodeMirrorSession
             mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
             cb   : (err, resp) =>
                 if err
-                    @reconnect () =>
-                        resp = message.reconnect(id:mesg.id, reason:"Error writing to disk -- #{err} -- reconnecting")
-                        client.push_to_client(resp)
+                    resp = message.reconnect(id:mesg.id, reason:"Error writing to disk -- #{err}")
+                    client.push_to_client(resp)
+                    @sync() # will cause a reconnect
                 else
                     resp.id = mesg.id
                     client.push_to_client(resp)

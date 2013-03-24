@@ -911,7 +911,7 @@ write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
     path = abspath(mesg.path)
 
-    # Listen for the blob containg the actual content that we will write.
+    # Listen for the blob containing the actual content that we will write.
     write_file = (type, value) ->
         if type == 'blob' and value.uuid == data_uuid
             socket.removeListener 'mesg', write_file

@@ -221,3 +221,21 @@ exports.delete_trailing_whitespace = (s) ->
 exports.assert = (condition, mesg) ->
     if not condition
         throw mesg
+
+exports.retry_until_success = (opts) ->
+    opts = exports.defaults opts,
+        f           : exports.required   # f((err) => )
+        start_delay : 100             # milliseconds
+        max_delay   : 30000           # milliseconds -- stop increasing time at this point
+        factor      : 1.5             # multiply delay by this each time
+        cb          : undefined       # called with cb() on *success* only -- obviously no way for this function to return an error
+
+    delta = opts.start_delay
+    g = () ->
+        opts.f (err)->
+            if err
+                delta = Math.min(opts.max_delay, opts.factor * delta)
+                setTimeout(g, delta)
+            else
+                opts.cb?()
+    setTimeout(g, delta)

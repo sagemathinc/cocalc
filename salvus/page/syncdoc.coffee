@@ -211,7 +211,7 @@ class CodeMirrorSessionEditor
     connect: (cb) =>
         @_remove_listeners()
         salvus_client.call
-            timeout : 60     # a reasonable amount of time, since file could be *large*
+            timeout : 45     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @editor.project_id
@@ -267,7 +267,7 @@ class CodeMirrorSessionEditor
     call: (opts) =>
         opts = defaults opts,
             message     : required
-            timeout     : 60
+            timeout     : 45
             cb          : undefined
         opts.message.session_uuid = @session_uuid
         salvus_client.call
@@ -340,7 +340,7 @@ class CodeMirrorSessionEditor
                 if @_sync_failures % 6 == 0 and not err == 'retry'
                     alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
 
-                setTimeout(@sync, 45000)  # try again soon...
+                setTimeout(@sync, 30000)  # try again soon...
                 cb?(err)
             else
                 @_sync_failures = 0
