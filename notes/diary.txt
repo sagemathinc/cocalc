@@ -10994,14 +10994,20 @@ level and work in.
  
     [x] (0:13) nav-pills -- whenver clicking on a file, make that one go to the front. 
 
-    [x] (0:05) when file session is loading, we REALLY need a visual indicator.  This is distrubing otherwise!  Add something trivial.
+    [x] (0:05) when file session is loading, we REALLY need a visual indicator.  This is distrubing otherwise!
 
- --> [ ] Clean up and abstract syncdoc.coffee
+-->    [ ] (0:30) fix paste textarea selection in console if it is EASY only!   (fixed weird "can't select" region)
+
+    [ ] in console, when paste -- show something graphical (like in chromeos console).
+    
+    [ ] in codemirror search, starting again should start with whatever last search was.
+        
+    [ ] Clean up and abstract syncdoc.coffee
 
     [ ] Implement a simple worksheet on top of this as a test.
   
-
-
+    [ ] chat -- need another project-wide chat, in addition to file chat.  Work exactly the same way, except store in ~/.sagemathcloud/persist
+      
 ---------------------------------------------------------------------------------------
 
     [ ] when a session has timed out, chat just doesn't work.

@@ -32,6 +32,7 @@
      font-family: Courier, "Courier New", monospace;
      padding: 5px;
      margin: 0px;
+    border: 10px solid black;
 }
 
 .salvus-console-cursor-blur  {
@@ -81,6 +82,11 @@
 }
 
 .salvus-console-textarea {
+    height:0px;
+    width:0px;
+    border:0px solid white;
+    opacity:0;
+    position:fixed;
 }
 
 .salvus-console-focus {

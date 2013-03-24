@@ -309,7 +309,7 @@ class Console extends EventEmitter
         # Focus/blur handler.
         if IS_MOBILE  # so keyboard appears
             if @opts.renderer == 'ttyjs'
-                @mobile_target = @element.find(".salvus-console-for-mobile")
+                @mobile_target = @element.find(".salvus-console-for-mobile").show()
                 @mobile_target.css('width', ter.css('width'))
                 @mobile_target.css('height', ter.css('height'))
                 $(document).on('click', (e) =>
@@ -369,15 +369,18 @@ class Console extends EventEmitter
                 @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
 
     _init_paste_bin: () =>
-        paste_bin = @element.find(".salvus-console-paste-bin")
-        paste_bin.live 'blur keyup paste', (evt) =>
-            data = paste_bin.val()
-            paste_bin.val('')
-            @session?.write_data(data)
-        paste_bin.keydown (evt) =>
-            if evt.which <= 48   # backspace, return, escape, etc.
-                @session?.write_data(String.fromCharCode(evt.which))
-                return false
+        paste_bins = [@element.find(".salvus-console-paste-bin"),
+                      @element.find(".salvus-console-textarea")]
+        
+        for paste_bin in paste_bins
+            paste_bin.live 'blur keyup paste', (evt) =>
+                data = paste_bin.val()
+                paste_bin.val('')
+                @session?.write_data(data)
+            paste_bin.keydown (evt) =>
+                if evt.which <= 48   # backspace, return, escape, etc.
+                    @session?.write_data(String.fromCharCode(evt.which))
+                    return false
     
     _start_session_timer: (seconds) ->
         t = new Date()
@@ -515,11 +518,14 @@ class Console extends EventEmitter
 
         @resize()
 
-        @is_focused = true
         if IS_MOBILE
             $(document).on('keydown', @mobile_keydown)
         else
             @terminal.focus()
+            if not @is_focused
+                @element.find(".salvus-console-textarea").focus()
+            
+        @is_focused = true
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?
