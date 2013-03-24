@@ -10941,10 +10941,15 @@ and apply them to the new content we get from hub.  **
 
    [x] restart hub -- this worked... though it would be cleaner, I guess, if it were more automatic.
 
-   [ ] restart local_hub -- it seems to work, but really it can't.  I need to implement merging
-      just like I did with clients.
+   [x] restart local_hub:
+           [x] see cursor for self.
+           [x] new input gets thrown away.
+           [x] it seems like there are a dozen connections between local_hub and hub that get restarted.
 
-   [ ] what happens if the hub broadcasts to a disconnected client?
+   [x] what happens if the hub broadcasts to a disconnected client?
+
+I fixed all the above sync-on-restart issues.
+
 
 
 (0:05)   [ ] Worksheet Synchronization
@@ -10958,6 +10963,9 @@ Thoughts:
 
 
 ------------
+
+   [ ] The "open files in project" thing is annoying.  This should be done via metainformation for the project or something, I guess.  I'm not sure.
+       It's fixable, but a bit ugly.
 
     [ ] CONSOLE: store session_uuid in file as first line, and the actual session as the rest of the file.
 

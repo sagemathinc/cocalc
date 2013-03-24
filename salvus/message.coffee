@@ -251,6 +251,14 @@ message
     event            : 'codemirror_diffsync_ready'
     session_uuid     : undefined
 
+# Hub uses this message to tell client that client should try to sync later, since hub is
+# busy now with some other locking sync operation.
+# local_hub <-- hub
+message
+    event            : 'codemirror_diffsync_retry_later'
+    id               : undefined
+    
+
 # Write out whatever is on local_hub to the physical disk
 # client --> hub --> local_hub
 message

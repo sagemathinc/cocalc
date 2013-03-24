@@ -164,7 +164,7 @@ exports.connect_to_locked_socket = (opts) ->
         timeout : 5
         cb      : required
 
-    console.log("connecting to a locked socket on port #{port}...")
+    winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
 
     timed_out = () ->
@@ -176,7 +176,7 @@ exports.connect_to_locked_socket = (opts) ->
 
     socket = net.connect {port:port}, () =>
         listener = (data) ->
-            console.log("got back response: #{data}")
+            winston.debug("misc_node: got back response: #{data}")
             socket.removeListener('data', listener)
             if data.toString() == 'y'
                 if timer?
@@ -188,7 +188,7 @@ exports.connect_to_locked_socket = (opts) ->
                     clearTimeout(timer)
                     cb("Permission denied (invalid secret token) when connecting to the local hub.")
         socket.on 'data', listener
-        console.log("connected, now sending secret token")
+        winston.debug("misc_node: connected, now sending secret token")
         socket.write(token)
 
 

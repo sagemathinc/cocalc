@@ -1246,9 +1246,11 @@ class CodeMirrorSession
 
     reconnect: (cb) =>
         delete codemirror_sessions.by_uuid[@session_uuid]
+        delete @_upstream_sync_lock
         @local_hub.call
             mesg : message.codemirror_get_session(path:@path)
             cb   : (err, resp) =>
+                winston.debug("local_hub --> hub: (reconnect) #{misc.trunc(to_safe_str(resp),300)} -- #{misc.to_json(err)}")
                 if err
                     cb?(err)
                 else if resp.event == 'error'
@@ -1335,6 +1337,11 @@ class CodeMirrorSession
         # generate new edits, and send those out so that the client
         # can complete the sync cycle.
 
+
+        if @_upstream_sync_lock? and @_upstream_sync_lock
+            client.push_to_client(message.codemirror_diffsync_retry_later(id:mesg.id))
+            return
+
         winston.debug("client_diffsync; the clients are #{misc.keys(@diffsync_clients)}")
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
@@ -1343,31 +1350,28 @@ class CodeMirrorSession
 
         before = @diffsync_server.live
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
-            @set_content(ds_client.live)
-            changed = (before != @diffsync_server.live)
-
-            # Propagate new live state to other clients -- TODO: there
-            # should just be one live document shared instead of a
-            # bunch of copies.
-            for id, ds of @diffsync_clients
-                if client.id != id
-                    ds.live = @diffsync_server.live   # TODO -- should be automatic once the .live's all reference the same thing
-                    if changed  # suggest a resync
-                        ds.remote.sync_ready()
-
-            # Sync new state with upstream local_hub
-            @sync()
-
-            # Respond
             if err
                 client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes from client (id=#{client.id}) -- #{err}")
                 return
 
-            # Now send back our own edits to this client.
+            # Update master live document with result.
+            @set_content(ds_client.live)
+
+            # Send back our own edits to this client.
             ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
             ds_client.push_edits (err) =>
                 if err
                     winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
+
+            if before != @diffsync_server.live
+                # Master view of the document changed, so suggest other clients sync
+                for id, ds of @diffsync_clients
+                    if client.id != id
+                        ds.remote.sync_ready()
+                # Also, sync new state with upstream local_hub.
+                @sync (err) =>
+                    if err
+                        reconnect()
 
     get_snapshot: () =>
         return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
@@ -1379,17 +1383,23 @@ class CodeMirrorSession
 
     sync: (cb) =>
         if @_upstream_sync_lock? and @_upstream_sync_lock
+            winston.debug("codemirror session: not sync'ing due to lock")
+            cb?()
             return
 
         @_upstream_sync_lock = true
         before = @diffsync_server.live
+        #winston.debug("codemirror session sync -- BEFORE='#{before}'; edit_stack='#{misc.to_json(@diffsync_server.edit_stack)}'")
         @diffsync_server.push_edits (err) =>
+            #winston.debug("codemirror session sync -- AFTER='#{@diffsync_server.live}'; edit_stack='#{misc.to_json(@diffsync_server.edit_stack)}'")
             @_upstream_sync_lock = false
             if err
-                winston.debug("Error pushing codemirror changes to upstream -- reconnecting")
+                winston.debug("codemirror session sync -- error pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub")
                 @reconnect(cb)
             else
+                winston.debug("codemirror session sync -- pushed edits, thus completing cycle")
                 if before != @diffsync_server.live
+                    winston.debug("codemirror session sync -- there were changes.")
                     # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
                     for id, ds of @diffsync_clients
                         ds.remote.sync_ready()
@@ -1483,6 +1493,7 @@ new_local_hub = (opts) ->    # cb(err, hub)
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@username, @host, @port, cb) ->
+        winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
         assert @username? and @host? and @port? and cb?
         @address = "#{username}@#{host}"
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
@@ -1530,14 +1541,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if not err
                         session.broadcast_mesg_to_clients(mesg)
 
-    # The standing authenticated control socket to the remote local_hub daemon.
+    # The unique standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
         if @_socket?
             cb(false, @_socket)
             return
+
+        if @_local_hub_socket_connecting? and @_local_hub_socket_connecting
+            @_local_hub_socket_queue.push(cb)
+            return
+        @_local_hub_socket_connecting = true
+        @_local_hub_socket_queue = [cb]
         @new_socket (err, socket) =>
+            @_local_hub_socket_connecting = false
             if err
-                cb(err)
+                for c in @_local_hub_socket_queue
+                    c(err)
             else
                 @_socket = socket
 
@@ -1548,14 +1567,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     delete @_status
                     delete @_socket
 
-                cb(false, @_socket)
+                for c in @_local_hub_socket_queue
+                    c(false, @_socket)
 
     # Get a new socket connection to the local_hub; this socket will have been
     # authenticated via the secret_token, and enhanced to be able to
     # send/receive json and blob messages.
     new_socket: (cb, retries) =>     # cb(err, socket)
         if not retries?
-            retries = 0
+            retries = 2
         @open   (err, port, secret_token) =>
             if err
                 cb(err); return
@@ -1791,7 +1811,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # The callback gets called via "cb(err, port, secret_token)"; if err=false, then
     # port is supposed to be a valid port portforward to a local_hub somewhere.
     open: (cb) =>    # cb(err, port, secret_token)
-        winston.debug("Opening a local_hub.")
+        winston.debug("opening a local_hub: #{@id}")
         if @_status? and @_status.local_port? and @_status.secret_token?
             # TODO: check here that @_port is actually still open and valid...
             cb(false, @_status.local_port, @_status.secret_token)

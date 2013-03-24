@@ -363,14 +363,26 @@ sage_sessions = new SageSessions()
 class DiffSyncFile_server extends diffsync.DiffSync
     constructor:(@cm_session, cb)  ->
         @path = @cm_session.path
-        fs.readFile @path, (err, data) =>
-            if err
-                cb(err); return
-            @init(doc:data.toString(), id:"file_server")
-            # winston.debug("got new file contents = '#{@live}'")
-            @_start_watching_file()
+        @_backup_file = meta_file(@path, 'backup')
+        @_autosave = setInterval(@write_backup, 10000)  # check for need to save a backup every this many milliseconds
+        fs.exists @_backup_file, (exists) =>
+            if exists
+                file = @_backup_file
+            else
+                file = @path
 
-            cb(err, @live)
+            fs.readFile file, (err, data) =>
+                if err
+                    cb(err); return
+                @init(doc:data.toString(), id:"file_server")
+                # winston.debug("got new file contents = '#{@live}'")
+                @_start_watching_file()
+
+                cb(err, @live)
+
+    kill: () =>
+        if @_autosave?
+            clearInterval(@_autosave)
 
     _watcher: (event) =>
         winston.debug("watch: file '#{@path}' modified.")
@@ -430,13 +442,24 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     cb()  # nothing to do
                 else
                     @live = result
-                    @write_to_disk(@live, cb)
+                    @write_to_disk(cb)
 
-    write_to_disk: (content, cb) =>
+    write_to_disk: (cb) =>
         @_stop_watching_file()
         fs.writeFile @path, @live, (err) =>
             @_start_watching_file()
+            if not err
+                fs.exists @_backup_file, (exists) =>
+                    fs.unlink(@_backup_file)
             cb?(err)
+
+    write_backup: (cb) =>
+        if @cm_session.content != @_last_backup
+            x = @cm_session.content
+            fs.writeFile @_backup_file, x, (err) =>
+                if not err
+                    @_last_backup = x
+                cb?(err)
 
 # The live content of DiffSyncFile_client is our in-memory buffer.
 class DiffSyncFile_client extends diffsync.DiffSync
@@ -469,13 +492,16 @@ class CodeMirrorDiffSyncHub
     sync_ready: () =>
         @write_mesg('diffsync_ready')
 
+meta_file = (path, ext) ->
+    p = misc.path_split(path)
+    path = p.head
+    if p.head != ''
+        path += '/'
+    return path + "." + p.tail + ".smc-" + ext
+
 class ChatRecorder
     constructor: (path, cb) ->
-        p = misc.path_split(path)
-        @path = p.head
-        if p.head != ''
-            @path += '/'
-        @path += "." + p.tail + ".smc-chat"
+        @path = meta_file(path, 'chat')
         winston.debug("ChatRecorder '#{@path}'")
         @log = []
         fs.readFile @path, (err, data) =>
@@ -541,6 +567,7 @@ class CodeMirrorSession
         # Put any cleanup here...
         winston.debug("Killing session #{@session_uuid}")
         @sync_filesystem () =>
+            @diffsync_fileserver.kill()
             # TODO: Are any of these deletes needed?  I don't know.
             delete @content
             delete @diffsync_fileclient
@@ -618,6 +645,10 @@ class CodeMirrorSession
         ds_client = new diffsync.DiffSync(doc:@content)
         ds_client.connect(new CodeMirrorDiffSyncHub(socket, @session_uuid))
         @diffsync_clients[socket.id] = ds_client
+
+        # Ensure we do not broadcast to a hub if it has already disconnected.
+        socket.on 'end', () =>
+            delete @diffsync_clients[socket.id]
 
     write_to_disk: (socket, mesg) =>
         @is_active = true
@@ -697,7 +728,7 @@ class CodeMirrorSessions
         @_sessions.by_uuid[opts.session.session_uuid] = opts.session
         @_sessions.by_path[opts.session.path] = opts.session
         if opts.project_id?
-            if  not @_sessions.by_project[opts.project_id]?
+            if not @_sessions.by_project[opts.project_id]?
                 @_sessions.by_project[opts.project_id] = {}
             @_sessions.by_project[opts.project_id][opts.session.path] = opts.session
 

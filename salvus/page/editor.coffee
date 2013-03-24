@@ -751,6 +751,8 @@ class CodeMirrorDiffSyncHub
                     cb(err)
                 else if mesg.event == 'error'
                     cb(mesg.error)
+                else if mesg.event == 'codemirror_diffsync_retry_later'
+                    cb('retry')
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
@@ -808,7 +810,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 project_id   : @editor.project_id
                 session_uuid : @session_uuid
             cb      : (err, resp) =>
-                console.log("new session: ", resp)
+                #console.log("new session: ", resp)
                 if err
                     cb(err); return
                 if resp.event == 'error'
@@ -868,33 +870,31 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             cb      : (err, result) =>
                 if result? and result.event == 'reconnect'
                     console.log("codemirror sync session #{@session_uuid}: reconnecting ")
-                    @connect (err) =>
-                        if err
-                            console.log("codemirror sync session #{@session_uuid}: failed to reconnect")
-                            opts.cb?(err)
-                        else
-                            console.log("codemirror sync session #{@session_uuid}: successful reconnect")
-                            opts.cb?('reconnect')  # still an error condition
+                    do_reconnect = () =>
+                        @connect (err) =>
+                            if err
+                                console.log("codemirror sync session #{@session_uuid}: failed to reconnect")
+                                opts.cb?(err)
+                            else
+                                console.log("codemirror sync session #{@session_uuid}: successful reconnect")
+                                opts.cb?('reconnect')  # still an error condition
+                    setTimeout(do_reconnect, 1000)  # give server some room
                 else
                     opts.cb?(err, result)
 
-    sync_soon: (multiplier) =>
+    sync_soon: (wait) =>
+        if not wait?
+            wait = @opts.sync_interval
         if @_sync_soon?
             # We have already set a timer to do a sync soon.
+            console.log("not sync_soon since -- We have already set a timer to do a sync soon.") 
             return
         do_sync = () =>
             delete @_sync_soon
             @sync (didnt_sync) =>
                 if didnt_sync
-                    # We may as well try again
-                    if multiplier?
-                        multiplier = Math.min(30000, 2*multiplier)
-                    @sync_soon(multiplier)
-        if multiplier?
-            t = multiplier * @opts.sync_interval
-        else
-            t = @opts.sync_interval
-        @_sync_soon = setTimeout(do_sync, @opts.sync_interval)
+                    @sync_soon(Math.min(5000, wait*1.5))
+        @_sync_soon = setTimeout(do_sync, wait)
 
     sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
         if @_syncing? and @_syncing
@@ -904,15 +904,19 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             return
 
         @_syncing = true
+        if @_sync_soon?
+            clearTimeout(@_sync_soon)
+            delete @_sync_soon
         before = @dsync_client.live.string()
         @dsync_client.push_edits (err) =>
+            console.log("dsync_client result: ", err)
             if err
                 @_syncing = false
                 if not @_sync_failures?
                     @_sync_failures = 1
                 else
                     @_sync_failures += 1
-                if @_sync_failures % 6 == 0
+                if @_sync_failures % 6 == 0 and not err == 'retry'
                     alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
 
                 setTimeout(@sync, 45000)  # try again soon...
@@ -1056,11 +1060,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
         if @opts.delete_trailing_whitespace
             @delete_trailing_whitespace()
         if @dsync_client?
-            @sync (didnt_save) =>
-                #if didnt_save
-                    # A warning here isn't so useful, since this case can easily arise, and only means not saving a fraction
-                    # of a second of work.
-                    #alert_message(type:"info", message:"WARNING: Error synchronizing '#{@filename}' with the server, so a slightly old version of the file may get saved -- '#{didnt_save}'")
+            @sync () =>
                 @call
                     message: message.codemirror_write_to_disk()
                     cb : cb
