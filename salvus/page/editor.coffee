@@ -117,22 +117,71 @@ guess_file_extension_type = (content) ->
         return 'c++'
     return undefined
 
+SEP = "\uFE10"
 
-_local_storage_key = (project_id, filename, key) ->
-    return project_id + filename + "\uFE10" + key
+_local_storage_prefix = (project_id, filename, key) ->
+    s = project_id
+    if filename?
+        s += filename + SEP
+    if key?
+        s += key
+    return s
+#
+# Set or get something about a project from local storage:
+#
+#    local_storage(project_id):  returns everything known about this project.
+#    local_storage(project_id, filename):  get everything about given filename in project
+#    local_storage(project_id, filename, key):  get value of key for given filename in project
+#    local_storage(project_id, filename, key, value):   set value of key
+#
+# In all cases, returns undefined if localStorage is not supported in this browser.
+#
+
+local_storage_delete = exports.local_storage_delete = (project_id, filename, key) ->
+    storage = window.localStorage
+    if storage?
+        prefix = _local_storage_prefix(project_id, filename, key)
+        n = prefix.length
+        for k, v of storage
+            if k.slice(0,n) == prefix
+                delete storage[k]
 
 local_storage = exports.local_storage = (project_id, filename, key, value) ->
     storage = window.localStorage
     if storage?
-        if value?
-            storage[_local_storage_key(project_id, filename, key)] = misc.to_json(value)
-        else
-            x = storage[_local_storage_key(project_id, filename, key)]
-            if not x?
-                return x
+        prefix = _local_storage_prefix(project_id, filename, key)
+        n = prefix.length
+        if filename?
+            if key?
+                if value?
+                    storage[prefix] = misc.to_json(value)
+                else
+                    x = storage[prefix]
+                    if not x?
+                        return x
+                    else
+                        return misc.from_json(x)
             else
-                return misc.from_json(x)
-
+                # Everything about a given filename                
+                obj = {}
+                for k, v of storage
+                    if k.slice(0,n) == prefix
+                        obj[k.split(SEP)[1]] = v
+                return obj
+        else
+            # Everything about project
+            obj = {}
+            for k, v of storage
+                if k.slice(0,n) == prefix
+                    x = k.slice(n)
+                    z = x.split(SEP)
+                    filename = z[0]
+                    key = z[1]
+                    if not obj[filename]?
+                        obj[filename] = {}
+                    obj[filename][key] = v
+            return obj                        
+                        
 templates = $("#salvus-editor-templates")
 
 class exports.Editor
@@ -189,7 +238,6 @@ class exports.Editor
         opts = defaults opts,
             filename     : required
             content      : undefined
-            session_uuid : undefined
 
         filename = opts.filename
         ext = filename_extension(opts.filename)
@@ -202,7 +250,7 @@ class exports.Editor
         if opts.session_uuid?
             extra_opts.session_uuid = opts.session_uuid
         content = opts.content
-
+                
         switch x.editor
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
@@ -224,6 +272,7 @@ class exports.Editor
             else
                 throw("Unknown editor type '#{x.editor}'")
 
+        local_storage(@project_id, filename, "auto_open", true)
 
         link = templates.find(".super-menu").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
@@ -251,6 +300,9 @@ class exports.Editor
         if not tab? # nothing to do -- tab isn't opened anymore
             return
 
+        # Do not auto_open this file on this browser next time.
+        local_storage_delete(@project_id, filename, "auto_open")
+        
         # Disconnect from remote session (if relevant)
         tab.editor.disconnect_from_session()
         tab.link.remove()
@@ -535,6 +587,14 @@ class CodeMirrorEditor extends FileEditor
         {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
         @codemirror.scrollIntoView(from)
+        # even better, if available
+        @restore_cursor_position()
+        
+    restore_cursor_position: () =>
+        pos = @local_storage("cursor")    
+        if pos?
+            @codemirror.setCursor(pos)
+            @codemirror.scrollIntoView({line:pos.line-5, ch:0})   # todo -- would be better to center rather than a magic "5".
 
     show: () =>
         if not (@element? and @codemirror?)
@@ -555,8 +615,6 @@ class CodeMirrorEditor extends FileEditor
         chat.height(height-25)  #todo
         output = chat.find(".salvus-editor-codemirror-chat-output")
         output.scrollTop(output[0].scrollHeight)
-
-        @restore_cursor_position()
 
     focus: () =>
         if not @codemirror?
@@ -902,7 +960,6 @@ class Terminal extends FileEditor
         @console = elt.data("console")
         @element = @console.element
         @connect_to_server()
-        @local_storage("auto_open", true)
 
     connect_to_server: (cb) =>
         mesg =

@@ -10984,26 +10984,26 @@ level and work in.
          However, we need expontial backoff, otherwise we kill the server... in practice, of course, something really could go wrong
          with the local hub and cause a reconnect loop for a while.
 
-     [ ] local_hub -- load the newer of the file and backup file, if both exist.
+     [x] local_hub -- load the newer of the file and backup file, if both exist.
+     
+     [x] retain open files status via localStorage, along with cursor... since otherwise this is just UNUSABLE!
      
 @@@@@@@@@@@@@@@@@@@@@@
 
 
-     [ ] Clean up and abstract editsync.coffee
+    [ ] Clean up and abstract syncdoc.coffee
 
-     [ ] Implement a simple worksheet on top of this as a test.
 
+    [ ] Implement a simple worksheet on top of this as a test.
+  
 
 
 
 ---------------------------------------------------------------------------------------
 
-   [ ] when a session has timed out, chat just doesn't work.
-       typing once into the session and waiting... makes chat work.
+    [ ] when a session has timed out, chat just doesn't work.
+        typing once into the session and waiting... makes chat work.
 
-
-   [ ] The "open files in project" thing is annoying.  This should be done via metainformation for the project or something, I guess.  I'm not sure.
-       It's fixable, but a bit ugly.
 
     [ ] CONSOLE: store session_uuid in file as first line, and the actual session as the rest of the file.
 

@@ -245,13 +245,13 @@ class ProjectPage
                 move_path_dialog.show(that)
             return false
 
-        @init_open_sessions()
-
+        @init_file_sessions()
 
     ########################################
     # Launch open sessions
     ########################################
 
+    # TODO -- not used right now -- just use init_file_sessions only -- delete this.
     init_open_sessions: (cb) =>
         salvus_client.project_session_info
             project_id: @project.project_id
@@ -274,6 +274,7 @@ class ProjectPage
                         @init_file_sessions(mesg.info.file_sessions, cb)
                 ], (err) => cb?(err))
 
+    # TODO -- not used right now -- just use init_file_sessions only -- delete this.
     init_console_sessions: (sessions, cb) =>
         console.log("initialize console sessions: ", sessions)
         #@display_tab("project-editor")
@@ -285,6 +286,7 @@ class ProjectPage
                     tab = @editor.create_tab(filename:filename, session_uuid:session_uuid)
         cb?()
 
+    # TODO -- not used right now -- just use init_file_sessions only -- delete this.        
     init_sage_sessions: (sessions, cb) =>
         console.log("initialize sage sessions: ", sessions)
         #TODO -- not enough info to do this yet.
@@ -293,6 +295,11 @@ class ProjectPage
         cb?()
 
     init_file_sessions: (sessions, cb) =>
+        for filename, data of local_storage(@project.project_id)
+            if data.auto_open
+                tab = @editor.create_tab(filename : filename)                
+        cb?()
+        ###
         console.log("initialize file sessions: ", sessions)
         for session_uuid, obj of sessions
             if obj.path?  #just in case
@@ -301,11 +308,11 @@ class ProjectPage
                 auto_open = local_storage(@project.project_id, filename, 'auto_open')
                 if not auto_open? or auto_open
                     # Now create the tab in which to edit the file.
-                    tab = @editor.create_tab(filename : filename, session_uuid:session_uuid)
+                    tab = @editor.create_tab(filename : filename)
             else
                 log("GOT suspicious session -- sessions=#{misc.to_json(sessions)}")
         cb?()
-
+        ###
 
     ########################################
     # Console buttons
