@@ -277,9 +277,12 @@ class exports.Editor
         link = templates.find(".super-menu").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
         link_filename.text(filename) #trunc(filename,15))
+        
         link.find(".salvus-editor-close-button-x").click () =>
             @close(link_filename.text())
-        link.find("a").click () => @display_tab(link_filename.text())
+        link.find("a").click () => 
+            @display_tab(link_filename.text())
+            
         @nav_tabs.append(link)
         @tabs[filename] =
             link     : link
@@ -346,8 +349,9 @@ class exports.Editor
         if not @tabs[filename]?
             return
         for name, tab of @tabs
-            if name == filename
+            if name == filename                
                 @active_tab = tab
+                @nav_tabs.prepend(tab.link)
                 tab.link.addClass("active")
                 tab.editor.show()
                 setTimeout(tab.editor.focus, 100)
@@ -355,6 +359,7 @@ class exports.Editor
             else
                 tab.link.removeClass("active")
                 tab.editor.hide()
+       
 
     onshow: () =>  # should be called when the editor is shown.
         @active_tab?.editor.show()

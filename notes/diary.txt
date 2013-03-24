@@ -10991,8 +10991,10 @@ level and work in.
     [x] (0:20) terminal sessions -- make them persistent based on a *filename*
 
 @@@@@@@@@@@@@@@@@@@@@@
+ 
+    [ ] nav-pills -- whenver clicking on a file, make that one go to the front. 
 
-    [ ] Clean up and abstract syncdoc.coffee
+  --> [ ] Clean up and abstract syncdoc.coffee
 
     [ ] Implement a simple worksheet on top of this as a test.
   
