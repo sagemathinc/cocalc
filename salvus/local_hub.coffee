@@ -536,7 +536,7 @@ class CodeMirrorSession
 
     chat_log: () =>
         return @chat_recorder.log
-        
+
     kill: () =>
         # Put any cleanup here...
         winston.debug("Killing session #{@session_uuid}")
@@ -690,9 +690,9 @@ class CodeMirrorSessions
 
     add_session_to_cache: (opts) =>
         opt = defaults opts,
-            session : required
+            session    : required
             project_id : undefined
-            timeout : 3600   #" time in seconds
+            timeout    : 3600   #" time in seconds
         winston.debug("Adding session #{opts.session.session_uuid} (of project #{opts.project_id}) to cache.")
         @_sessions.by_uuid[opts.session.session_uuid] = opts.session
         @_sessions.by_path[opts.session.path] = opts.session
@@ -700,26 +700,29 @@ class CodeMirrorSessions
             if  not @_sessions.by_project[opts.project_id]?
                 @_sessions.by_project[opts.project_id] = {}
             @_sessions.by_project[opts.project_id][opts.session.path] = opts.session
-                
+
+        destroy = () =>
+            opts.session.kill()
+            delete @_sessions.by_uuid[opts.session.session_uuid]
+            delete @_sessions.by_path[opts.session.path]
+            x =  @_sessions.by_project[opts.project_id]
+            if x?
+                delete x[opts.session.path]
+
         if opts.timeout?
             destroy_if_inactive = () =>
                 if not (opts.session.is_active? and opts.session.is_active)
                     winston.debug("Session #{opts.session.session_uuid} is inactive for #{opts.timeout} seconds; killing.")
-                    opts.session.kill()
-                    delete @_sessions.by_uuid[opts.session.session_uuid]
-                    delete @_sessions.by_path[opts.session.path]
-                    x =  @_sessions.by_project[opts.project_id]
-                    if x?
-                        delete x[opts.session.path]
+                    destroy()
                 else
                     opts.session.is_active = false  # it must be changed by the session before the next timer.
-                    # We use setTimeout instead of setInterval, because we want to *ensure* that the 
+                    # We use setTimeout instead of setInterval, because we want to *ensure* that the
                     # checks are spaced out over at *least* opts.timeout time.
                     winston.debug("Starting a new activity check timer for session #{opts.session.session_uuid}.")
                     setTimeout(destroy_if_inactive, opts.timeout*1000)
-                    
+
             setTimeout(destroy_if_inactive, opts.timeout*1000)
-          
+
     # Return object that describes status of CodeMirror sessions for a given project
     info: (project_id) =>
         obj = {}

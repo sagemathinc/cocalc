@@ -169,6 +169,7 @@ class Client extends EventEmitter
 
         @conn.on "close", () =>
             winston.debug("connection: hub <--> client(id=#{@id})  CLOSED")
+            @emit 'close'
             @compute_session_uuids = []
             delete clients[@conn.id]
 
@@ -1324,7 +1325,7 @@ class CodeMirrorSession
                 ds.remote.send_mesg(mesg)
 
     client_disconnect: (client, mesg) =>
-        # Disconnect the given client from this session.
+        # Explicitly disconnect the given client from this session.
         delete @diffsync_clients[client.id]
         client.push_to_client(message.success(id:mesg.id))
         winston.debug("Disconnected a client from session #{@session_uuid}; there are now #{misc.len(@diffsync_clients)} clients.")
@@ -1394,11 +1395,18 @@ class CodeMirrorSession
                         ds.remote.sync_ready()
                 cb?()
 
+    # Add a new diffsync browser client.
     add_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
-        # Add a new diffsync browser client.
+        # Create object that represents this side of the diffsync connection with client
         ds_client = new diffsync.DiffSync(doc:snapshot)
+        # Connected it to object that represents the client side
         ds_client.connect(new CodeMirrorDiffSyncClient(client, @))
+        # Remember the client object
         @diffsync_clients[client.id] = ds_client
+        # Make sure to remove the client object when the client's WebSocket disconnects.
+        # This avoid broadcasting messages willy-nilly (and illegally).
+        client.on 'close', () =>
+            delete @diffsync_clients[client.id]
 
     write_to_disk: (client, mesg) =>
         @local_hub.call

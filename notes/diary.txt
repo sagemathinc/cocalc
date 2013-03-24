@@ -10941,11 +10941,10 @@ and apply them to the new content we get from hub.  **
 
    [x] restart hub -- this worked... though it would be cleaner, I guess, if it were more automatic.
 
--->   [ ] restart local_hub -- it seems to work, but really it can't.  I need to implement merging
+   [ ] restart local_hub -- it seems to work, but really it can't.  I need to implement merging
       just like I did with clients.
 
-   [ ] If I hub gets no activity from a client for n seconds, it
-       should boot client.
+   [ ] what happens if the hub broadcasts to a disconnected client?
 
 
 (0:05)   [ ] Worksheet Synchronization
