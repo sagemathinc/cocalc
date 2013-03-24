@@ -576,7 +576,7 @@ class CodeMirrorEditor extends FileEditor
 
     show: () =>
         if not (@element? and @codemirror?)
-            console.log('skipping show because things not defined yet.')
+            #console.log('skipping show because things not defined yet.')
             return
         height = $(window).height() - 2.5*top_navbar.height() #todo
 
@@ -696,10 +696,10 @@ class CodeMirrorDiffSyncDoc
             if line1?
                 v[line1] = v[line1].slice(0,ch) + v[line1].slice(ch+1)
                 pos = {line:line1, ch:ch}
-                console.log("Found cursor again at ", pos)
+                #console.log("Found cursor again at ", pos)
             else
                 pos = pos0
-                console.log("LOST CURSOR!")
+                #console.log("LOST CURSOR!")
             #console.log(4, misc.walltime(t)); t = misc.walltime()
             s = v.join('\n')
             #console.log(5, misc.walltime(t)); t = misc.walltime()
@@ -772,6 +772,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
 
         @init_chat()
 
+
         # by default we will auto-reopen a file unless we explicitly close it.
         @local_storage('auto_open', true)
 
@@ -780,9 +781,11 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                 @_set(err)
                 alert_message(type:"error", message:err)
             else
+                @ui_synced(true)
                 @init_autosave()
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
+                        @ui_synced(false)
                         @sync_soon()
 
     _add_listeners: () =>
@@ -810,7 +813,6 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @editor.project_id
-                session_uuid : @session_uuid
             cb      : (err, resp) =>
                 #console.log("new session: ", resp)
                 if err
@@ -871,14 +873,14 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             timeout : opts.timeout
             cb      : (err, result) =>
                 if result? and result.event == 'reconnect'
-                    console.log("codemirror sync session #{@session_uuid}: reconnecting ")
+                    #console.log("codemirror sync session #{@session_uuid}: reconnecting ")
                     do_reconnect = () =>
                         @connect (err) =>
                             if err
-                                console.log("codemirror sync session #{@session_uuid}: failed to reconnect")
+                                #console.log("codemirror sync session #{@session_uuid}: failed to reconnect")
                                 opts.cb?(err)
                             else
-                                console.log("codemirror sync session #{@session_uuid}: successful reconnect")
+                                #console.log("codemirror sync session #{@session_uuid}: successful reconnect")
                                 opts.cb?('reconnect')  # still an error condition
                     setTimeout(do_reconnect, 1000)  # give server some room
                 else
@@ -889,7 +891,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             wait = @opts.sync_interval
         if @_sync_soon?
             # We have already set a timer to do a sync soon.
-            console.log("not sync_soon since -- We have already set a timer to do a sync soon.")
+            #console.log("not sync_soon since -- We have already set a timer to do a sync soon.")
             return
         do_sync = () =>
             delete @_sync_soon
@@ -898,11 +900,26 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
                     @sync_soon(Math.min(5000, wait*1.5))
         @_sync_soon = setTimeout(do_sync, wait)
 
+    ui_synced: (synced) =>
+        if synced
+            if @_ui_synced_timer?
+                clearTimeout(@_ui_synced_timer)
+                delete @_ui_synced_timer
+            @element.find(".salvus-editor-codemirror-not-synced").hide()
+            @element.find(".salvus-editor-codemirror-synced").show()
+        else
+            if @_ui_synced_timer?
+                return
+            show_spinner = () =>
+                @element.find(".salvus-editor-codemirror-not-synced").show()
+                @element.find(".salvus-editor-codemirror-synced").hide()
+            @_ui_synced_timer = setTimeout(show_spinner, 1500)
+
     sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
         if @_syncing? and @_syncing
             # can only sync once a complete cycle is done, or declared failure.
             cb?()
-            console.log('skipping since already syncing')
+            #console.log('skipping since already syncing')
             return
 
         @_syncing = true
@@ -911,7 +928,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             delete @_sync_soon
         before = @dsync_client.live.string()
         @dsync_client.push_edits (err) =>
-            console.log("dsync_client result: ", err)
+            #console.log("dsync_client result: ", err)
             if err
                 @_syncing = false
                 if not @_sync_failures?
@@ -926,6 +943,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             else
                 @_sync_failures = 0
                 @_syncing = false
+                @ui_synced(true)
                 cb?()
 
     init_cursorActivity_event: () =>
@@ -942,7 +960,7 @@ class CodeMirrorSessionEditor extends CodeMirrorEditor
             @codemirror.setCursor(pos)
 
     init_chat: () =>
-        console.log('init_chat')
+        #console.log('init_chat')
         chat = @element.find(".salvus-editor-codemirror-chat")
         input = chat.find(".salvus-editor-codemirror-chat-input")
         input.keydown (evt) =>

@@ -112,6 +112,11 @@ Editor for files in a project
     border-radius: 5px;
 }
 
+.salvus-editor-codemirror-sync {
+    font-size:11pt;
+    color:#bbb;
+}
+
 .salvus-editor-pdf-preview {
     border: 2px solid #888;
 }

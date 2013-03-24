@@ -10957,9 +10957,9 @@ I fixed all the above sync-on-restart issues.
 @@@@@@@@@@@@@@@@@@@@@@
 
 
- --> [ ] important ui thing -- when showing chat (via toggle) need to scroll to bottom.
+  [x] (0:03) important ui thing -- when showing chat (via toggle) need to scroll to bottom.
 
-  [ ] add a graphical indicator of recent verified successful sync (versus non-successful one),
+  [ ] (0:26) add a graphical indicator of recent verified successful sync (versus non-successful one),
       and get rid of all the console.log messages about sync.
 
   [ ] Worksheet Synchronization
