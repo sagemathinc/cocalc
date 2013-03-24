@@ -282,12 +282,15 @@ class exports.Editor
             @close(link_filename.text())
         link.find("a").click () => 
             @display_tab(link_filename.text())
-            
+        
         @nav_tabs.append(link)
         @tabs[filename] =
             link     : link
             editor   : editor
             filename : filename
+            
+        if not @active_tab?
+            @active_tab = @tabs[filename]
 
         #@display_tab(filename)
         #setTimeout(editor.focus, 250)
@@ -359,10 +362,10 @@ class exports.Editor
             else
                 tab.link.removeClass("active")
                 tab.editor.hide()
-       
 
     onshow: () =>  # should be called when the editor is shown.
-        @active_tab?.editor.show()
+        if @active_tab?
+            @display_tab(@active_tab.filename)
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -651,7 +654,7 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
 
 # Make a temporary uuid-named directory in path.
 tmp_dir = (project_id, path, cb) ->      # cb(err, directory_name)
-    name = uuid()
+    name = "." + uuid()   # hidden
     salvus_client.exec
         project_id : project_id
         path       : path
@@ -952,7 +955,7 @@ class LatexEditor extends FileEditor
 
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        @element = $("<div>")
+        @element = $("<div>").hide()
         salvus_client.read_text_file_from_project
             project_id : @editor.project_id
             path       : @filename

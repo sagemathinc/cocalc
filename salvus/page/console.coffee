@@ -56,6 +56,10 @@ codemirror_renderer = (start, end) ->
         # showing an image
         #e.addLineWidget(end+terminal.ydisp, $("<img width=50 src='http://vertramp.org/2012-10-12b.png'>")[0])
 
+focused_console = undefined
+client_keydown = (ev) ->
+    focused_console?.client_keydown(ev)
+        
 
 class Console extends EventEmitter
     constructor: (opts={}) ->
@@ -69,7 +73,7 @@ class Console extends EventEmitter
 
             font        :   # only for 'ttyjs' renderer
                 family : 'Courier, "Courier New", monospace' # CSS font-family
-                size   : undefined                           # CSS font-size in pixels
+                size   : undefined                           # CSS font-size in points
                 line_height : 115                            # CSS line-height percentage
 
             highlight_mode : 'none'
@@ -116,7 +120,11 @@ class Console extends EventEmitter
         @terminal = new Terminal
             cols: @opts.cols
             rows: @opts.rows
-            client_keydown: @_client_keydown
+            
+        # The first time Terminal.bindKeys is called, it makes Terminal
+        # listen on *all* keystrokes for the rest of the program.  It
+        # only has to be done once -- any further times are ignored.
+        Terminal.bindKeys(client_keydown)
 
         # this object (=@) is needed by the custom renderer, if it is used.
         @terminal.salvus_console = @
@@ -138,6 +146,9 @@ class Console extends EventEmitter
 
         # Initialize buttons
         @_init_buttons()
+        
+        # Initialize the "set default font size" button that appears.
+        @_init_font_make_default()
         
         # Initialize the paste bin
         @_init_paste_bin()
@@ -164,7 +175,6 @@ class Console extends EventEmitter
 
         # The user types in the terminal, so we send the text to the remote server:
         @terminal.on 'data',  (data) =>
-            #console.log("user typed: '#{data}' into #{@session.session_uuid}")
             @session.write_data(data)
 
         # The terminal receives a 'set my title' message.
@@ -172,7 +182,6 @@ class Console extends EventEmitter
 
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
-            # console.log("From remote: '#{data}'")
             @terminal.write(data)
 
         # Initialize pinging the server to keep the console alive
@@ -199,8 +208,7 @@ class Console extends EventEmitter
         Terminal.colors[256] = Terminal.defaultColors.bg
         Terminal.colors[257] = Terminal.defaultColors.fg
 
-    _client_keydown: (ev) =>
-        #console.log(ev)
+    client_keydown: (ev) =>
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
                 when 190       # "control-shift->"
@@ -223,7 +231,17 @@ class Console extends EventEmitter
     _font_size_changed: () =>
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
         delete @_character_height
+        @element.find(".salvus-console-font-indicator-size").text(@opts.font.size)
+        @element.find(".salvus-console-font-indicator").stop().show().animate(opacity:100).fadeOut(duration:8000)
         @resize()
+        
+    _init_font_make_default: () =>
+        @element.find("a[href=#font-make-default]").click () =>
+            account_settings = require('account').account_settings
+            account_settings.settings.terminal.font_size = @opts.font.size
+            account_settings.save_to_server(cb:()=>)
+            account_settings.set_view()
+            return false
 
     _init_default_settings: () =>
         settings = require('account').account_settings.settings.terminal
@@ -452,7 +470,6 @@ class Console extends EventEmitter
             return
 
         # Determine size of container DOM.
-
         # Determine the width of a character using a little trick:
         c = $("<span style:'padding:0px;margin:0px;border:0px;'>X</span>").appendTo(@terminal.element)
         character_width = c.width()
@@ -497,6 +514,9 @@ class Console extends EventEmitter
         return @element.closest(document.documentElement).length > 0
 
     blur: () =>
+        if focused_console == @
+            focused_console = undefined
+            
         @is_focused = false
         if IS_MOBILE
             $(document).off('keydown', @mobile_keydown)
@@ -510,6 +530,8 @@ class Console extends EventEmitter
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
     focus: () =>
+        focused_console = @
+        
         $(@terminal.element).focus()
         if not @_character_height?
             height = $(@terminal.element).height()

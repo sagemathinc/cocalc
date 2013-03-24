@@ -10996,10 +10996,13 @@ level and work in.
 
     [x] (0:05) when file session is loading, we REALLY need a visual indicator.  This is distrubing otherwise!
 
--->    [ ] (0:30) fix paste textarea selection in console if it is EASY only!   (fixed weird "can't select" region)
-
-    [ ] in console, when paste -- show something graphical (like in chromeos console).
+    [x] (0:43) fix paste textarea selection in console if it is EASY only!   (fixed weird "can't select" region)
     
+-->    [ ] in console, when copy -- show something graphical (like in chromeos console).
+    
+    [ ] from a user point of view, all chats for a project should be integrated in one single file.  
+        Could keep manageable by restricting their length (a la twitter) to 1024 and at most 1 per x seconds.
+
     [ ] in codemirror search, starting again should start with whatever last search was.
         
     [ ] Clean up and abstract syncdoc.coffee
