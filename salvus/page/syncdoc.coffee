@@ -11,13 +11,13 @@ A merge map, with the arrows pointing upstream:
 
 The Global Architecture of Synchronized Documents:
 
-Imagine say 1000 clients divided evenly amongst 10 hubs (so 100 clients per hub).  
-There is only 1 local hub, since it is directly linked to an on-disk file. 
+Imagine say 1000 clients divided evenly amongst 10 hubs (so 100 clients per hub).
+There is only 1 local hub, since it is directly linked to an on-disk file.
 
-The global hubs manage their 100 clients each, merging together sync's, and sending them 
+The global hubs manage their 100 clients each, merging together sync's, and sending them
 (as a batch) to the local hub.  Broadcast messages go from a client, to its hub, then back
 to the other 99 clients, then on to the local hub, out to 9 other global hubs, and off to
-their 900 clients in parallel.  
+their 900 clients in parallel.
 
 ###
 
@@ -219,7 +219,7 @@ class SynchronizedDocument
 
     connect: (cb) =>
         @element.find(".salvus-editor-codemirror-loading").show()
-        @_remove_listeners()        
+        @_remove_listeners()
         salvus_client.call
             timeout : 45     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
@@ -516,7 +516,7 @@ class SynchronizedDocument
         return false
 
     save: (cb) =>
-        if @opts.delete_trailing_whitespace
+        if @editor.opts.delete_trailing_whitespace
             @delete_trailing_whitespace()
         if @dsync_client?
             @sync () =>
@@ -530,7 +530,7 @@ class SynchronizedDocument
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
-            
+
     delete_trailing_whitespace: () =>
         changeObj = undefined
         val = @codemirror.getValue()

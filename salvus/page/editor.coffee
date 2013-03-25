@@ -162,7 +162,7 @@ local_storage = exports.local_storage = (project_id, filename, key, value) ->
                     else
                         return misc.from_json(x)
             else
-                # Everything about a given filename                
+                # Everything about a given filename
                 obj = {}
                 for k, v of storage
                     if k.slice(0,n) == prefix
@@ -180,8 +180,8 @@ local_storage = exports.local_storage = (project_id, filename, key, value) ->
                     if not obj[filename]?
                         obj[filename] = {}
                     obj[filename][key] = v
-            return obj                        
-                        
+            return obj
+
 templates = $("#salvus-editor-templates")
 
 class exports.Editor
@@ -199,6 +199,8 @@ class exports.Editor
         @nav_tabs = @element.find(".nav-pills")
 
         @tabs = {}   # filename:{useful stuff}
+
+        @init_buffer_search()
 
         if opts.initial_files?
             for filename in opts.initial_files
@@ -227,6 +229,38 @@ class exports.Editor
                 that.commit(filename, "save #{filename}")
             return false
 
+    init_buffer_search: () =>
+        search_box = @element.find(".salvus-editor-search-buffers-input")
+        include = 'salvus-editor-buffer-included-in-search'
+        exclude = 'salvus-editor-buffer-excluded-from-search'
+        search_box.keyup (event) =>
+            if event.keyCode == 27 # escape -- clear box
+                search_box.val("")
+            v = $.trim(search_box.val()).toLowerCase()
+            if v == ""
+                for filename, tab of @tabs
+                    tab.link.removeClass(include)
+                    tab.link.removeClass(exclude)
+                return
+
+            terms = v.split(' ')
+            match = (s) ->
+                s = s.toLowerCase()
+                for t in terms
+                    if s.indexOf(t) == -1
+                        return false
+                return true
+
+            first = true
+            for filename, tab of @tabs
+                if match(filename)
+                    if first and event.keyCode == 13 # enter -- select first match (if any)
+                        @display_tab(filename)
+                        first = false
+                    tab.link.addClass(include); tab.link.removeClass(exclude)
+                else
+                    tab.link.addClass(exclude); tab.link.removeClass(include)
+
     update_counter: () =>
         if @counter?
             @counter.text(len(@tabs))
@@ -251,7 +285,7 @@ class exports.Editor
         if opts.session_uuid?
             extra_opts.session_uuid = opts.session_uuid
         content = opts.content
-                
+
         switch x.editor
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
@@ -278,22 +312,22 @@ class exports.Editor
         link = templates.find(".salvus-editor-filename-pill").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
         link_filename.text(filename) #trunc(filename,15))
-        
+
         link.find(".salvus-editor-close-button-x").click () =>
             @close(link_filename.text())
-            
+
         containing_path = misc.path_split(filename).head
-        link.find("a").click () => 
+        link.find("a").click () =>
             @display_tab(link_filename.text())
             @project_page.set_current_path(containing_path)
-            
-        
+
+
         @nav_tabs.append(link)
         @tabs[filename] =
             link     : link
             editor   : editor
             filename : filename
-            
+
         if not @active_tab?
             @active_tab = @tabs[filename]
 
@@ -313,7 +347,7 @@ class exports.Editor
 
         # Do not auto_open this file on this browser next time.
         local_storage_delete(@project_id, filename, "auto_open")
-        
+
         # Disconnect from remote session (if relevant)
         tab.editor.disconnect_from_session()
         tab.link.remove()
@@ -358,7 +392,7 @@ class exports.Editor
         if not @tabs[filename]?
             return
         for name, tab of @tabs
-            if name == filename                
+            if name == filename
                 @active_tab = tab
                 @nav_tabs.prepend(tab.link)
                 tab.link.addClass("active")
@@ -604,9 +638,9 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.scrollIntoView(from)
         # even better, if available
         @restore_cursor_position()
-        
+
     restore_cursor_position: () =>
-        pos = @local_storage("cursor")    
+        pos = @local_storage("cursor")
         if pos?
             @codemirror.setCursor(pos)
             @codemirror.scrollIntoView({line:pos.line-5, ch:0})   # todo -- would be better to center rather than a magic "5".
@@ -997,7 +1031,7 @@ class Terminal extends FileEditor
                     salvus_client.write_text_file_to_project
                         project_id : @editor.project_id
                         path       : @filename
-                        content    : session.session_uuid     
+                        content    : session.session_uuid
                         cb         : cb
 
         if @opts.session_uuid?

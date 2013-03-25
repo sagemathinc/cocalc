@@ -51,68 +51,72 @@
 <!-- The actual project file browser, etc., interface -->
 
 <span id="salvus-project-templates" class="hide">
-    
+
     <div class="container salvus-project">
-        
-        
+
+
         <div class="row">
             <!-- Tabs -- place where you click on them -->
             <ul class="nav nav-tabs  project-pages">
-                
+
                 <!-- Browse through files in the project -->
                 <li class="super-menu">
-                    <a href="#project-file-listing"><i class="icon-home"></i> <span class="project-file-top-current-path-display"></span></a>
+                    <a href="#project-file-listing"><i class="icon-folder-close"></i> <span class="project-file-top-current-path-display"></span></a>
                 </li>
-                
+
                 <!-- Use an interactive console in the project -->
                 <!--	  <li class="super-menu"><a href="#project-consoles">Sessions (<span class="project-consoles-count">0</span>)</a></li> -->
-                
+
                 <!-- File editor -->
                 <li class="super-menu"><a href="#project-editor">Buffers (<span class="project-editor-file-count">0</span>)</a></li>
-                
+
                 <!-- Publications -->
                 <!--	  <li class="super-menu"><a href="#project-pubs">Publish (<span class="project-editor-publish-count">?</span>)</a></li> -->
-                
-                
+
+
                 <!-- Chat about this project -->
                 <!--	  <li class="super-menu"><a href="#project-chats">Chat</a></li> -->
-                
+
                 <!-- buttons to create new consoles -->
                 <div class="pull-right"  style="margin-right:1em;">
+                    <span style="font-weight:bold; margin-right:1em; font-size:15px;"><i class="icon-bolt"> </i> Create new...</span>
                     <span class="btn-group">
                         <a class="btn btn-primary" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
                         <a class="btn btn-primary" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
-                        <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>                
+                        <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>
                     </span>
-                </div>            
-                
+                </div>
+
                 <!-- Git revision log of this project -->
                 <!--
 <li class="super-menu"><a href="#project-commits">Changes (<span class="project-editor-commit-count">?</span>)</a></li>-->
-                
+
                 <!-- Git branches --><!--(<span class="project-editor-branch-count">?</span>)-->
                 <!--
 <li class="super-menu"><a href="#project-branches"><i class="icon-time"> </i> </a></li>
 -->
-                
+
                 <!-- Git forks -->
                 <!--
 <li class="super-menu"><a href="#project-forks">Forks</a></li>
 -->
-                
+
                 <!-- Settings specific to this project -->
                 <li class="super-menu"><a href="#project-settings">Project</a></li>
-                
-                
+
+
                 <!-- Search -->
-                <li class="super-menu"><a href="#project-search"><input class="project-search-form-input search-query" type="text"
-                    placeholder="Search..."></a>
+                <li class="super-menu">
+                    <div style="margin-top:4px; margin-left:10px;">
+                        <a href="#project-search"><input class="project-search-form-input search-query" type="text"
+                            placeholder="Search files..."></a>
+                    </div>
                 </li>
-                
+
             </ul>
-            
+
             <!-- The actual screens that get revealed by each tab: -->
-            
+
             <!-- List of all files in the project, which is browsable -->
             <div class="project-file-listing">
                 <div class="row">
@@ -122,25 +126,25 @@
                             <!--<div class="lighten">(shown branch)</div>-->
                         </label>
                     </div>
-                    
+
                     <div>
-                        
-                        <!-- sort order -->  
-                        
+
+                        <!-- sort order -->
+
                         <!-- <span class="project-file-list-sort-order pull-right">
-<input type="checkbox" class="project-file-list-sort-order-checkbox"> sort by time  </input> 
+<input type="checkbox" class="project-file-list-sort-order-checkbox"> sort by time  </input>
 </span> -->
-                        
+
                         <!-- command line prompt -->
                         <span class="project-command-line pull-right">
-                            <input class="project-command-line-input" type="text" placeholder="bash command...">
+                            <input class="project-command-line-input" type="text" placeholder="Terminal command...">
                             <span class="project-command-line-output">
                                 <div class="project-command-line-spinner hide"></div>
                                 <pre class="project-command-line-stdout hide"></pre>
                                 <pre class="project-command-line-stderr hide"></pre>
                             </span>
                         </span>
-                        
+
                         <!-- Buttons for basic file operations -->
                         <!--
 <span class="project-file-tools pull-right">
@@ -151,29 +155,29 @@
 </span>
 -->
                     </div>
-                    
+
                     <!-- The current path -->
                     <div class="project-file-listing-current_path"></div>
-                    
-                    
+
+
                     <!-- List of files -->
                     <div class="row">
                         <div class="project-file-listing-spinner hide"></div>
                         <div class="project-file-listing-file-list"></div>
                     </div>
-                    
+
                 </div>
             </div>
-            
+
             <!-- Open files in this project. -->
             <div class="project-editor hide">
             </div>
-            
+
             <!-- Consoles on this project (multiple tabs, of course) -->
             <div class="project-consoles hide">
             </div>
-            
-            
+
+
             <!-- Chatroom/logs for this project -->
             <div class="project-chats hide">
                 <b>Not yet implemented:</b> This will be basically a less
@@ -181,7 +185,7 @@
                 (loading old cells on demand), with each cell tagged by who
                 typed that input.
             </div>
-            
+
             <!-- Publications of this project -->
             <!--
 <div class="project-pubs hide">
@@ -202,7 +206,7 @@ of pub can be a homework assignment for students in a
 course.
 </div>
 -->
-            
+
             <!-- Git history log for this project -->
             <div class="project-commits hide">
                 <div class="row">
@@ -210,7 +214,7 @@ course.
                     </div>
                 </div>
             </div>
-            
+
             <!-- Git branches -->
             <div class="project-branches hide">
                 Nothing implemented yet.
@@ -220,17 +224,17 @@ course.
 <div class="project-branches-list"></div>
 -->
             </div>
-            
+
             <!-- Git forks -->
             <div class="project-forks hide">
                 Known forks of this project listed here.
             </div>
-            
+
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-                
+
                 <div class="row">
-                    
+
                     <div class="well span12" style="margin-left:0em;">
                         <div class="span12">
                             <div class="pull-right"   style="margin-right:2em">
@@ -248,24 +252,24 @@ course.
                                 Location:
                                 <span class="project-location"></span>
                             </div>
-                            
+
                             <!-- Title of the project (editable) -->
                             <h4>
                                 <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
                                 <span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                 <span class="project-project_title" contenteditable="true"></span>
                             </h4>
-                            
+
                             <!-- Description of the project (editable) -->
                             <div class="project-project_description" contenteditable="true">
                             </div>
-                            
+
                         </div>
                     </div>
                 </div>
-                
+
             </div>
-            
+
             <!-- Search -->
             <div class="project-search hide">
                 <div class="project-search-spinner hide">
@@ -286,16 +290,16 @@ course.
                     </div>
                 </div>
                 <div class="row">
-                    
+
                     <div class="project-search-output-further-results hide">There were more results than displayed below.  Try making your search more specific.</div>
                     <div class="project-search-output well span11"></div>
                     <div class="project-search-output-command well span11"></div>
                 </div>
             </div>
-            
+
         </div>
     </div>
-    
+
 </div>
 
 <div class="row span11 well well-small project-commit-single">
@@ -331,14 +335,14 @@ course.
     <div class="span" style="width: 10px;">
         <input type="checkbox">
     </div>
-    <div class="span" style="width: 20px;">
-        <i class="icon-file project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+    <div class="span" style="width: 30px;">
+        <i class="icon-folder-close project-file-icon" style="font-size:24px;">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>
-    
+
     <div class="span" style="width:150px;">
         <a><span class="project-file-name"></span><span class="project-file-name-extension"></span></a>
     </div>
-    
+
     <div class="span smallish" style="width:140px;">
         <span class="project-file-last-mod-date">
         </span>
@@ -374,7 +378,7 @@ course.
 </div>
 
 <a class="project-home-icon btn btn-info">
-    <i class="icon-home"> </i>
+    <i class="icon-folder-open"> </i>
 </a>
 
 
@@ -398,7 +402,7 @@ course.
 </span>
 
 <span class="hide">
-    
+
     <div class="row span9 well well-small  project-file" id="project-file-template">
         <b><a href="">worksheet.sws</a></b>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="lighten"></span>

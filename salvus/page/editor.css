@@ -150,3 +150,12 @@ Editor for files in a project
 .salvus-editor-search-buffers-input {
     width:100%;
 }
+
+.salvus-editor-buffer-excluded-from-search {
+    opacity:.3;
+}
+
+.salvus-editor-buffer-included-in-search {
+    border-radius:3px;
+    box-shadow: 2px 2px 2px 2px #aaa;
+}

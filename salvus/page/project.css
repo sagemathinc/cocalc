@@ -60,7 +60,7 @@
 }
 
 .project-search-form-input {
-    width:10em;
+    width:15em;
 }
 
 .project-search-output  {
@@ -159,7 +159,7 @@
 .project-command-line-input {
     margin-top:0em;
     margin-left:0em;
-    width:20em;
+    width:40em;
 }
 
 .project-command-line-stdout {
@@ -168,7 +168,7 @@
     color:#333;
     font-size:10pt;
     max-height:12em;
-    max-width:20em;
+    max-width:40em;
     overflow:auto;
 }
 .project-command-line-stderr {
@@ -177,7 +177,7 @@
     color:#922;
     font-size:10pt;
     max-height:12em;
-    max-width:20em;
+    max-width:40em;
     overflow:auto;
 }
 

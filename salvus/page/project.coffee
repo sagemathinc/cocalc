@@ -125,7 +125,7 @@ class ProjectPage
                 window.scrollTo(0, 0)
             onblur: () =>
                 $(".salvus-top-scroll").hide()
-                
+
         # Initialize the close project button.
         # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").
         #@container.find("a[href='#close-project']").click () =>
@@ -289,7 +289,7 @@ class ProjectPage
                     tab = @editor.create_tab(filename:filename, session_uuid:session_uuid)
         cb?()
 
-    # TODO -- not used right now -- just use init_file_sessions only -- delete this.        
+    # TODO -- not used right now -- just use init_file_sessions only -- delete this.
     init_sage_sessions: (sessions, cb) =>
         console.log("initialize sage sessions: ", sessions)
         #TODO -- not enough info to do this yet.
@@ -300,7 +300,7 @@ class ProjectPage
     init_file_sessions: (sessions, cb) =>
         for filename, data of local_storage(@project.project_id)
             if data.auto_open
-                tab = @editor.create_tab(filename : filename)                
+                tab = @editor.create_tab(filename : filename)
         cb?()
         ###
         console.log("initialize file sessions: ", sessions)
@@ -352,14 +352,14 @@ class ProjectPage
             t = $(@)
             # Sync the multiple search boxes
             input_boxes.val(t.val())
-            if evt.which== 13 
+            if evt.which== 13
                 # Do the search.
                 try
                     that.search(t.val())
                 catch e
                     console.log(e)
                 return false
-            
+
         @container.find(".project-search-output-recursive").change () =>
             @search($(input_boxes[0]).val())
         @container.find(".project-search-output-case-sensitive").change () =>
@@ -379,12 +379,12 @@ class ProjectPage
         else
             ins = ""
         if recursive
-            cmd = "find * -type f | grep #{ins} " + query + "; rgrep -H #{ins} " + query + " *"        
+            cmd = "find * -type f | grep #{ins} " + query + "; rgrep -H #{ins} " + query + " *"
         else
             cmd = "ls -1 | grep #{ins} " + query + "; grep -H #{ins} " + query + " *"
-        
+
         path = @current_pathname()
-        
+
         @container.find(".project-search-output-command").text(cmd)
         @container.find(".project-search-output-path").text(@project.location.path + '/' + path)
 
@@ -410,7 +410,7 @@ class ProjectPage
                 if output.stdout.length >= max_output or results.length > max_results
                     @container.find(".project-search-output-further-results").show()
                 else
-                    @container.find(".project-search-output-further-results").hide()                
+                    @container.find(".project-search-output-further-results").hide()
                 for line in results
                     i = line.indexOf(":")
                     num_results += 1
@@ -694,7 +694,7 @@ class ProjectPage
     # Return the string representation of the current path, as a
     # relative path from the root of the project.
     current_pathname: () => @current_path.join('/')
-    
+
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
         if path == ""
@@ -707,7 +707,7 @@ class ProjectPage
     # the list of files (or current file)
     update_current_path: () =>
         @container.find(".project-file-top-current-path-display").text(@current_pathname())
-                                                                       
+
         t = @container.find(".project-file-listing-current_path")
         t.empty()
         t.append($("<a>").html(template_home_icon.clone().click(() =>
@@ -748,8 +748,8 @@ class ProjectPage
         sort_by_time = local_storage(@project.project_id, path, 'sort_by_time')
         if not sort_by_time?
             sort_by_time = false
-        
-        path = @current_path.join('/')                     
+
+        path = @current_path.join('/')
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path
