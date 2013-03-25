@@ -114,14 +114,18 @@ class ProjectPage
         @container = templates.find(".salvus-project").clone()
         $("body").append(@container)
 
-        # Create a new tab in the top navbar
+        # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
         @container.top_navbar
             id    : @project.project_id
             label : @project.project_id
             onclose : () =>
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
-
+            onshow: () =>
+                window.scrollTo(0, 0)
+            onblur: () =>
+                $(".salvus-top-scroll").hide()
+                
         # Initialize the close project button.
         # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").
         #@container.find("a[href='#close-project']").click () =>
@@ -168,8 +172,8 @@ class ProjectPage
         if @project.location?
             l = @project.location
             l = "#{l.username}@#{l.host}:#{l.path}" + (if l.port != 22 then " -p #{l.port}" else "")
-            @container.find(".project-location").text(l).attr('contenteditable', true).blur () ->
-                alert_message(message:"Changing project location not yet implemented.", type:'info')
+            @container.find(".project-location").text(l)#.attr('contenteditable', true).blur () ->
+            #    alert_message(message:"Changing project location not yet implemented.", type:'info')
                 # TODO -- actually implement project location change -- show a notification and send
                 # a message if makes sense; otherwise, don't.  Also, we should store all past
                 # project location in the database, and make it possible for the user to see them (?).
@@ -362,6 +366,8 @@ class ProjectPage
             @search($(input_boxes[0]).val())
 
     search: (query) =>
+        if $.trim(query) == ""
+            return
         @display_tab("project-search")
         search_output = @container.find(".project-search-output").empty()
         recursive   = @container.find(".project-search-output-recursive").is(':checked')
@@ -585,7 +591,7 @@ class ProjectPage
 
     create_editor: (initial_files) =>   # initial_files (optional)
         @editor = new Editor
-            project_id    : @project.project_id
+            project_page  : @
             counter       : @container.find(".project-editor-file-count")
             initial_files : initial_files
         @container.find(".project-editor").append(@editor.element)
@@ -688,10 +694,20 @@ class ProjectPage
     # Return the string representation of the current path, as a
     # relative path from the root of the project.
     current_pathname: () => @current_path.join('/')
+    
+    # Set the current path array from a path string to a directory
+    set_current_path: (path) =>
+        if path == ""
+            @current_path = []
+        else
+            @current_path = path.split('/')
+        @container.find(".project-file-top-current-path-display").text(path)
 
     # Render the slash-separated and clickable path that sits above
     # the list of files (or current file)
     update_current_path: () =>
+        @container.find(".project-file-top-current-path-display").text(@current_pathname())
+                                                                       
         t = @container.find(".project-file-listing-current_path")
         t.empty()
         t.append($("<a>").html(template_home_icon.clone().click(() =>
@@ -699,9 +715,12 @@ class ProjectPage
 
         new_current_path = []
         that = @
+        first = true
         for segment in @current_path
             new_current_path.push(segment)
-            t.append(template_segment_sep.clone())
+            if not first
+                t.append(template_segment_sep.clone())
+            first = false
             t.append($("<a>"
             ).text(segment
             ).data("current_path",new_current_path[..]  # [..] means "make a copy"
@@ -710,12 +729,10 @@ class ProjectPage
                 @update_file_list_tab()
             ))
 
-        t.append(template_segment_sep.clone())
-
         # Put a link to create a new file or directory here.
-        t.append(template_new_file_link.clone().data("current_path", @current_path).click( (elt) ->
-            that.new_file($(@).data("current_path").join('/'))
-        ))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
+        #t.append(template_new_file_link.clone().data("current_path", @current_path).click( (elt) ->
+        #    that.new_file($(@).data("current_path").join('/'))
+        #))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
 
     # Update the listing of files in the current_path, or display of the current file.

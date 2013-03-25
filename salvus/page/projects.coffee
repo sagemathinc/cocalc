@@ -114,7 +114,10 @@ create_project_item = (project) ->
             d += " -p#{project.location.port}"
         item.find(".projects-location").text(d)
     item.click (event) ->
-        open_project(project)
+        try
+            open_project(project)
+        catch e
+            console.log(e)
         return false
     item.find("a[href='#download-project']").click () ->
         download_project

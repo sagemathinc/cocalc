@@ -187,13 +187,14 @@ templates = $("#salvus-editor-templates")
 class exports.Editor
     constructor: (opts) ->
         opts = defaults opts,
-            project_id    : required
+            project_page   : required
             initial_files : undefined # if given, attempt to open these files on creation
             counter       : undefined # if given, is a jQuery set of DOM objs to set to the number of open files
 
         @counter = opts.counter
 
-        @project_id = opts.project_id
+        @project_page  = opts.project_page
+        @project_id = opts.project_page.project.project_id
         @element = templates.find(".salvus-editor").clone().show()
         @nav_tabs = @element.find(".nav-pills")
 
@@ -274,14 +275,18 @@ class exports.Editor
 
         local_storage(@project_id, filename, "auto_open", true)
 
-        link = templates.find(".super-menu").clone().show()
+        link = templates.find(".salvus-editor-filename-pill").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
         link_filename.text(filename) #trunc(filename,15))
         
         link.find(".salvus-editor-close-button-x").click () =>
             @close(link_filename.text())
+            
+        containing_path = misc.path_split(filename).head
         link.find("a").click () => 
             @display_tab(link_filename.text())
+            @project_page.set_current_path(containing_path)
+            
         
         @nav_tabs.append(link)
         @tabs[filename] =
@@ -316,10 +321,11 @@ class exports.Editor
         delete @tabs[filename]
         @update_counter()
 
-        names = keys(@tabs)
-        if names.length > 0
+        # Display some other tab.
+        #names = keys(@tabs)
+        #if names.length > 0
             # select new tab
-            @display_tab(names[0])
+        #    @display_tab(names[0])
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>

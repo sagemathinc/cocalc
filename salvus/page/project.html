@@ -61,14 +61,14 @@
                 
                 <!-- Browse through files in the project -->
                 <li class="super-menu">
-                    <a href="#project-file-listing"><i class="icon-home"></i></a>
+                    <a href="#project-file-listing"><i class="icon-home"></i> <span class="project-file-top-current-path-display"></span></a>
                 </li>
                 
                 <!-- Use an interactive console in the project -->
                 <!--	  <li class="super-menu"><a href="#project-consoles">Sessions (<span class="project-consoles-count">0</span>)</a></li> -->
                 
                 <!-- File editor -->
-                <li class="super-menu"><a href="#project-editor">Recent (<span class="project-editor-file-count">0</span>)</a></li>
+                <li class="super-menu"><a href="#project-editor">Buffers (<span class="project-editor-file-count">0</span>)</a></li>
                 
                 <!-- Publications -->
                 <!--	  <li class="super-menu"><a href="#project-pubs">Publish (<span class="project-editor-publish-count">?</span>)</a></li> -->
@@ -77,8 +77,14 @@
                 <!-- Chat about this project -->
                 <!--	  <li class="super-menu"><a href="#project-chats">Chat</a></li> -->
                 
-                <!-- Settings specific to this project -->
-                <li class="pull-right super-menu"><a href="#project-settings">Settings</a></li>
+                <!-- buttons to create new consoles -->
+                <div class="pull-right"  style="margin-right:1em;">
+                    <span class="btn-group">
+                        <a class="btn btn-primary" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
+                        <a class="btn btn-primary" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                        <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>                
+                    </span>
+                </div>            
                 
                 <!-- Git revision log of this project -->
                 <!--
@@ -94,10 +100,15 @@
 <li class="super-menu"><a href="#project-forks">Forks</a></li>
 -->
                 
+                <!-- Settings specific to this project -->
+                <li class="super-menu"><a href="#project-settings">Project</a></li>
+                
                 
                 <!-- Search -->
-                <li class="super-menu pull-right"><a href="#project-search"><input class="project-search-form-input search-query" type="text"
-                    placeholder="Search"></a></li>
+                <li class="super-menu"><a href="#project-search"><input class="project-search-form-input search-query" type="text"
+                    placeholder="Search..."></a>
+                </li>
+                
             </ul>
             
             <!-- The actual screens that get revealed by each tab: -->
@@ -129,15 +140,6 @@
                                 <pre class="project-command-line-stderr hide"></pre>
                             </span>
                         </span>
-                        
-                        <!-- buttons to create new consoles -->
-                        <div class="pull-right"  style="margin-right:1em;">
-                            <span class="btn-group">
-                                <a class="btn" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
-                                <a class="btn" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
-                                <a class="btn" href="#new-file"><i class="icon-file"></i> File</a>                
-                            </span>
-                        </div>            
                         
                         <!-- Buttons for basic file operations -->
                         <!--
@@ -262,17 +264,6 @@ course.
                     </div>
                 </div>
                 
-                <b>Not yet implemented:</b>
-                <ul>
-                    <li> Which tabs ("Browser, Console, editor, etc.") are
-                        displayed and in what order.</li>
-                    <li> Line numbers. Editor autosave. Editor autocommit.  Inherit from global. </li>
-                    <li> Which console session buttons to list -- could depend a lot on particular project.</li>
-                    <li> Whether project is public or private </li>
-                    <li> Collaborators </li>
-                    <li> Compute resource limitations </li>
-                </ul>
-                
             </div>
             
             <!-- Search -->
@@ -383,7 +374,7 @@ course.
 </div>
 
 <a class="project-home-icon btn btn-info">
-    home
+    <i class="icon-home"> </i>
 </a>
 
 

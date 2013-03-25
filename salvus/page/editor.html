@@ -7,15 +7,18 @@ Editor for files in a project
     <!-- Template for the entire editor, both tabs and the actual content -->
     <div class="salvus-editor">
 
-        <div class="row salvus-editor-button-bar">
-            <div class="span12">
+        <div class="row salvus-editor-button-bar  well">
+            <div class="span2">
+                <input class="salvus-editor-search-buffers-input search-query pull-right" type="text" placeholder="Choose buffer...">
+            </div>
+            <div class="span9">
                 <!-- The editor tabs go in this ul: -->
                 <ul class="nav nav-pills">
                 </ul>
             </div>
         </div>
 
-        <div class="row">
+        <div class="row well" style="margin-top:1ex;">
             <!-- The editor content gets displayed here -->
             <div class="salvus-editor-content">
             </div>
@@ -23,7 +26,7 @@ Editor for files in a project
     </div>
 
     <!-- Template for the tab at the top of the editor with filename and an x -->
-    <li class="super-menu">
+    <li class="super-menu salvus-editor-filename-pill">
         <a>
             <span class="salvus-editor-tab-filename"></span>
             <span class="salvus-editor-close-button-x">×</span>
@@ -34,7 +37,7 @@ Editor for files in a project
     <div class="salvus-editor-codemirror">
         <div class="row salvus-editor-codemirror-button-row">
             <div class="span10">
-                <a href="#save" class="btn btn-info disabled">
+                <a href="#save" class="btn btn-success disabled">
                     <i class="icon-save"></i>
                     <span>Save</span>
                     <i class="icon-spinner spinner"></i>

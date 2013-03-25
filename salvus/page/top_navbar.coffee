@@ -7,6 +7,7 @@ $("a[href=#top-scroll]").click () ->
     window.scrollTo(0, 0)
     $(".salvus-top-scroll").hide()
     return false
+
 $(".salvus-top-scroll").hide()
 
 misc = require("misc")
@@ -37,6 +38,8 @@ class TopNavbar  extends EventEmitter
             pull_right    : false      # if true, place button in the right-hand side group of buttons.
             close         : true       # if true, include a "close" x.
             onclose       : undefined  # called if defined when the page is closed
+            onshow        : undefined  # called if defined right after page is shown 
+            onblur        : undefined  # called if defined right after page is blured
 
         button = @button_template.clone()
         if opts.pull_right
@@ -45,7 +48,12 @@ class TopNavbar  extends EventEmitter
         else
             @buttons.append(button)
             #button.after(@divider_template.clone())
-        @pages[opts.id] = {page:opts.page, button:button, onclose:opts.onclose}
+        @pages[opts.id] = 
+            page    : opts.page
+            button  : button
+            onclose : opts.onclose
+            onshow  : opts.onshow
+            onblur  : opts.onblur
 
         a = button.find("a")
         a.data("id", opts.id)
@@ -79,6 +87,7 @@ class TopNavbar  extends EventEmitter
             @emit("switch_from_page-#{@current_page_id}", @current_page_id)
             d.page.hide()
             d.button.removeClass("active")
+            d.onblur?()
         else
             for m, p of @pages
                 if m != id
@@ -89,6 +98,7 @@ class TopNavbar  extends EventEmitter
         n.button.show().addClass("active")
         @current_page_id = id
         @emit("switch_to_page-#{id}", id)
+        n.onshow?()
 
     switch_to_next_available_page: (id) ->
         # Switch to the next page after the page

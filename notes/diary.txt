@@ -11022,12 +11022,14 @@ PLAN:
   
 ---------------------------------------------------------------------------------------
    
-   [ ] project search box should only search *current* directory, not whole project (which may take too long)
+   [x] project search box should only search *current* directory, not whole project (which may take too long)
        have an optional switch (after showing results) to search subdirectories. 
    
    [x]  terminal bug -- shift is acting like up arrow or "previous" in some terminals?!  very annoying!
        it COMES AND GOES AWAY.  If you focus without clicking on the terminal, get the funny shift behavior.
        Otherwise it works fine.  Putting cursor in paste area and pressing shift cause it too.
+       
+   [x] Make current directory should always equal directory of file being edited (?)... kind of like emacs.
        
    [ ] when clicking to close a file, don't call "display tab", since maybe user wants to select a diff file.
 
