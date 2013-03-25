@@ -236,13 +236,13 @@ class exports.Editor
         search_box = @element.find(".salvus-editor-search-buffers-input")
         include = 'salvus-editor-buffer-included-in-search'
         exclude = 'salvus-editor-buffer-excluded-from-search'
+        search_box.focus () =>
+            search_box.select()
+
         search_box.keyup (event) =>
             @active_tab?.editor?.hide()
 
-            if event.keyCode == 27 # escape -- clear box
-                search_box.val("")
-
-            if (event.metaKey or event.ctrlKey) and event.keyCode == 79
+            if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
                 @project_page.display_tab("project-file-listing")
                 return false
 
@@ -251,25 +251,30 @@ class exports.Editor
                 for filename, tab of @tabs
                     tab.link.removeClass(include)
                     tab.link.removeClass(exclude)
-                return
-
-            terms = v.split(' ')
-            match = (s) ->
-                s = s.toLowerCase()
-                for t in terms
-                    if s.indexOf(t) == -1
-                        return false
-                return true
+                match = (s) -> true
+            else
+                terms = v.split(' ')
+                match = (s) ->
+                    s = s.toLowerCase()
+                    for t in terms
+                        if s.indexOf(t) == -1
+                            return false
+                    return true
 
             first = true
-            for filename, tab of @tabs
+
+            for link in @nav_tabs.children()
+                tab = $(link).data('tab')
+                filename = tab.filename
                 if match(filename)
                     if first and event.keyCode == 13 # enter -- select first match (if any)
                         @display_tab(filename)
                         first = false
-                    tab.link.addClass(include); tab.link.removeClass(exclude)
+                    if v != ""
+                        tab.link.addClass(include); tab.link.removeClass(exclude)
                 else
-                    tab.link.addClass(exclude); tab.link.removeClass(include)
+                    if v != ""
+                        tab.link.addClass(exclude); tab.link.removeClass(include)
 
     update_counter: () =>
         if @counter?
@@ -331,15 +336,17 @@ class exports.Editor
             @display_tab(link_filename.text())
             @project_page.set_current_path(containing_path)
 
-
-        @nav_tabs.append(link)
         @tabs[filename] =
             link     : link
             editor   : editor
             filename : filename
+        link.data('tab', @tabs[filename])
+
+        @nav_tabs.append(link)
 
         if not @active_tab?
             @active_tab = @tabs[filename]
+
 
         #@display_tab(filename)
         #setTimeout(editor.focus, 250)
@@ -401,17 +408,18 @@ class exports.Editor
     display_tab: (filename) =>
         if not @tabs[filename]?
             return
+        prev_active_tab = @active_tab
         for name, tab of @tabs
             if name == filename
                 @active_tab = tab
-                @nav_tabs.prepend(tab.link)
-                tab.link.addClass("active")
                 tab.editor.show()
                 setTimeout(tab.editor.focus, 100)
                 @element.find(".btn-group").children().removeClass('disabled')
             else
-                tab.link.removeClass("active")
                 tab.editor.hide()
+
+        if prev_active_tab.filename != @active_tab.filename
+            @nav_tabs.prepend(prev_active_tab.link)
 
     onshow: () =>  # should be called when the editor is shown.
         if @active_tab?

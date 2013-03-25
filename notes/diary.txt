@@ -11011,14 +11011,18 @@ level and work in.
 @@@@@@@@@@@@@@@@@@@@@@
 
     [x] very easy ways to get the buffer search box with input area focused
+    [x] "project" --> settings; never hide that "top of page" icon
+    [x] editor: make it so sorted list of open files is actually correctly respected, and that last file to close becomes first.
+    [ ] Some trivial polish: "buffers" --> opened files;
+    [ ] control-o in search tab should bring up open file in editor tab.
     [ ] implement the 'choose a file' search box for project.coffee
          - as an option to git-ls
          - just use find command remotely instead of doing it all client side, so can easily include subdirectories.
     [ ] search then click on link to file fails if the file is not in the top directory
     [ ] move the about page to be another tab next to settings that is the first thing shown.
+        make the "user name/sign out" link... just three bars like in chrome?
     [ ] page up / page down in codemirror makes no sense!
          page up/down should: (1) not move the cursor, and (2) move buffer by *exactly* a page!  Gees.
-    [ ] Some trivial polish: "buffers" --> opened files; "project" --> settings; never hide that "top of page" icon
     [ ] Do quick minimalist version of: accounts   (so at least we're in polish stage!)
     [ ] Do quick versions of: publish   (so at least we're in polish stage!)
     [ ] Move "delete trailing whitespace" to be a codemirror extension, then use it that way.
@@ -11028,6 +11032,7 @@ level and work in.
 
 ---------------------------------------------------------------------------------------
 
+    [ ] idea: In project "Navigate to a different folder to search in it.", the folder where search happened could be contenteditable...
 
 -----------
 

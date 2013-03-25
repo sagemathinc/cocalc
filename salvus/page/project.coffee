@@ -764,9 +764,9 @@ class ProjectPage
 
         timer = setTimeout( (() -> spinner.show().spin()), 300 )
 
-        sort_by_time = local_storage(@project.project_id, path, 'sort_by_time')
-        if not sort_by_time?
-            sort_by_time = false
+        #sort_by_time = local_storage(@project.project_id, path, 'sort_by_time')
+        #if not sort_by_time?
+        sort_by_time = false
 
         path = @current_path.join('/')
         salvus_client.project_directory_listing

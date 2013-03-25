@@ -353,7 +353,7 @@ function getSelectionHtml() { /* from http://stackoverflow.com/questions/5222814
 
 Terminal.keys_are_bound = false;
 Terminal.bindKeys = function(client_keydown) {
-  if (Terminal.focus) return;  
+  if (Terminal.focus) return;
 
    /* It is critical that we only bind to the keyboard once in the whole program.
       If we bind more than once, than multiple terms on the same
@@ -361,11 +361,11 @@ Terminal.bindKeys = function(client_keydown) {
     */
   if (Terminal.keys_are_bound) return;
   Terminal.keys_are_bound = true;
-    
+
   on(document, 'keydown', function(ev) {
       if (typeof Terminal.focus === "undefined") {
           return;
-      }    
+      }
       /* TODO -- REFACTOR -- put all stuff like this in client of this library. */
     if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
       return false;
@@ -388,8 +388,8 @@ Terminal.bindKeys = function(client_keydown) {
   on(document, 'keypress', function(ev) {
       if (typeof Terminal.focus === "undefined") {
           return;
-      }    
-      
+      }
+
     if (ev.metaKey) {
 	return false;
     }

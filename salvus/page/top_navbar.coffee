@@ -182,7 +182,7 @@ $.fn.extend
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
-    label   : "Projects"
+    label   : "<i class='icon-reorder'> </i> Projects"
     pull_right : true
     close   : false
 
@@ -202,8 +202,8 @@ $("#account").top_navbar
     pull_right : true
     close   : false
 
-$("#about").top_navbar
-    id      : "about"
-    label   : "About"
-    pull_right : true
-    close   : false
+#$("#about").top_navbar
+#    id      : "about"
+#    label   : "About"
+#    pull_right : true
+#    close   : false
