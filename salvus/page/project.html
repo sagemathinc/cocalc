@@ -79,11 +79,11 @@
 
                 <!-- buttons to create new consoles -->
                 <div class="pull-right"  style="margin-right:1em;">
-                    <span style="font-weight:bold; margin-right:1em; font-size:15px;"><i class="icon-bolt"> </i> Create new...</span>
+                    <span style="font-weight:bold; margin-right:1em; font-size:15px;"><i class="icon-bolt" style="color:orange"> </i> Create new...</span>
                     <span class="btn-group">
-                        <a class="btn btn-primary" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
-                        <a class="btn btn-primary" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
-                        <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>
+                        <a class="btn btn-warning" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
+                        <a class="btn btn-warning" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                        <a class="btn btn-warning" href="#new-file"><i class="icon-file"></i> File</a>
                     </span>
                 </div>
 
@@ -102,14 +102,13 @@
 -->
 
                 <!-- Settings specific to this project -->
-                <li class="super-menu"><a href="#project-settings">Project</a></li>
-
+                <li class="super-menu"><a href="#project-settings">Settings</a></li>
 
                 <!-- Search -->
                 <li class="super-menu">
                     <div style="margin-top:4px; margin-left:10px;">
                         <a href="#project-search"><input class="project-search-form-input search-query" type="text"
-                            placeholder="Search files..."></a>
+                            placeholder="Search in files..."></a>
                     </div>
                 </li>
 
@@ -121,7 +120,7 @@
             <div class="project-file-listing">
                 <div class="row">
                     <div class="span2">
-                        <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose file...">
+                        <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Open file...">
                     </div>
 
                     <!-- The current path -->
@@ -344,7 +343,7 @@ course.
         </span>
     </div>
 </div>
-<div class="row span11 well well-small project-directory-link">
+<div class="row span12 well well-small project-directory-link">
     <div class="span" style="width: 10px;">
         <input type="checkbox">
     </div>

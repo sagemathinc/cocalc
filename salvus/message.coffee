@@ -232,7 +232,7 @@ message
     id           : undefined
     session_uuid : required
     path         : required    # absolute path
-    content      : required    
+    content      : required
     chat         : required
 
 # A list of edits that should be applied, along with the
@@ -257,7 +257,7 @@ message
 message
     event            : 'codemirror_diffsync_retry_later'
     id               : undefined
-    
+
 
 # Write out whatever is on local_hub to the physical disk
 # client --> hub --> local_hub
@@ -297,7 +297,7 @@ message
     id           : undefined
     session_uuid : required
 
-# Broadcast mesg to all clients connected to this session. 
+# Broadcast mesg to all clients connected to this session.
 # This is used for cursors and out-of-band chat.
 # client <--> hub <--> local_hub
 message
@@ -308,7 +308,7 @@ message
     color        : undefined
     date         : undefined
     mesg         : required     # arbitrary message, can have event, etc., attributes.
-    
+
 ############################################
 # Ping/pong
 #############################################

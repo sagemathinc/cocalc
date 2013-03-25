@@ -2,20 +2,28 @@
 # top_navbar -- the top level navbar
 #########################################################################
 
-# Temporary hack test
-$("a[href=#top-scroll]").click () ->
+top_view = () ->
+    top_navbar.switch_to_page()  # redisplay current page
     window.scrollTo(0, 0)
-    $(".salvus-top-scroll").hide()
     return false
+$("a[href=#top-scroll]").click(top_view)
 
-$(".salvus-top-scroll").hide()
+$(document).on 'keydown', (ev) ->
+    if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
+        return false
+
+$(document).on 'keyup', (ev) ->
+    if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
+        top_view()
+        return false
+
+#$(".salvus-top-scroll").hide()
 
 misc = require("misc")
 to_json = misc.to_json
 defaults = misc.defaults
 required = defaults.required
 {EventEmitter} = require('events')
-
 
 class TopNavbar  extends EventEmitter
 
@@ -44,10 +52,10 @@ class TopNavbar  extends EventEmitter
         button = @button_template.clone()
         if opts.pull_right
             @buttons_right.append(button)
-            #button.before(@divider_template.clone())
+            button.before(@divider_template.clone())
         else
             @buttons.append(button)
-            #button.after(@divider_template.clone())
+            button.after(@divider_template.clone())
         @pages[opts.id] =
             page    : opts.page
             button  : button
@@ -78,26 +86,31 @@ class TopNavbar  extends EventEmitter
             #a.addClass(klass)
 
     switch_to_page: (id) ->
+        if not id?
+            id = @current_page_id
+
         n = @pages[id]
         if not n?
             return
 
-        d = @pages[@current_page_id]
-        if d?
-            @emit("switch_from_page-#{@current_page_id}", @current_page_id)
-            d.page.hide()
-            d.button.removeClass("active")
-            d.onblur?()
-        else
-            for m, p of @pages
-                if m != id
-                    p.page.hide()
-                    p.button.removeClass("active")
+        if id != @current_page_id
+            d = @pages[@current_page_id]
+            if d?
+                @emit("switch_from_page-#{@current_page_id}", @current_page_id)
+                d.page.hide()
+                d.button.removeClass("active")
+                d.onblur?()
+            else
+                for m, p of @pages
+                    if m != id
+                        p.page.hide()
+                        p.button.removeClass("active")
+            n.button.show().addClass("active")
+            @current_page_id = id
+            @emit("switch_to_page-#{id}", id)
 
+        # We still call show even if already on this page.
         n.page.show()
-        n.button.show().addClass("active")
-        @current_page_id = id
-        @emit("switch_to_page-#{id}", id)
         n.onshow?()
 
     switch_to_next_available_page: (id) ->
@@ -166,15 +179,11 @@ $.fn.extend
 ###############################################################
 # Add the standard pages
 
-$("#about").top_navbar
-    id      : "about"
-    label   : "About"
-    close   : false
-
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
     label   : "Projects"
+    pull_right : true
     close   : false
 
 #$("#worksheet2").top_navbar
@@ -190,5 +199,11 @@ $("#projects").top_navbar
 $("#account").top_navbar
     id     : "account"
     label  : "Sign in"
+    pull_right : true
+    close   : false
+
+$("#about").top_navbar
+    id      : "about"
+    label   : "About"
     pull_right : true
     close   : false

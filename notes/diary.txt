@@ -10990,8 +10990,6 @@ level and work in.
 
     [x] (0:20) terminal sessions -- make them persistent based on a *filename*
 
-@@@@@@@@@@@@@@@@@@@@@@
-
     [x] (0:13) nav-pills -- whenver clicking on a file, make that one go to the front.
 
     [x] (0:05) when file session is loading, we REALLY need a visual indicator.  This is distrubing otherwise!
@@ -10999,45 +10997,41 @@ level and work in.
     [x] (0:43) fix paste textarea selection in console if it is EASY only!   (fixed weird "can't select" region)
 
     [x] (2:15) spent a while fixing several very subtle bugs/issues with consoles.  This is worth dealing with though.
+    [x] Delete "CodeMirror" from diffsync.coffee, except where it really is using codemirror; test still works.
+    [x] project search box should only search *current* directory, not whole project (which may take too long)
+        have an optional switch (after showing results) to search subdirectories.
+    [x] terminal bug -- shift is acting like up arrow or "previous" in some terminals?!  very annoying!
+        it COMES AND GOES AWAY.  If you focus without clicking on the terminal, get the funny shift behavior.
+        Otherwise it works fine.  Putting cursor in paste area and pressing shift cause it too.
+    [x] Make current directory should always equal directory of file being edited (?)... kind of like emacs.
+    [x] when clicking to close a file, don't call "display tab", since maybe user wants to select a diff file.
+    [x] search for buffer box -- implemented, and DAMN, it is awesome!
+    [x] project search: added more emphasis about where a search takes place and how to search elsewhere.
 
+@@@@@@@@@@@@@@@@@@@@@@
 
-
--->    [ ] Clean up and abstract syncdoc.coffee
-
-PLAN:
-
-   [x] Delete "CodeMirror" from diffsync.coffee, except where it really is using codemirror; test still works.
-   [ ] Move some tiny amount of codemirror-specific code out; test.
-         - move delete trailing whitespace to be a codemirror extension, then use it that way.
-
-   [ ] Move more specific cout out; test.
-   [ ] Worksheet version (naive)
-
-
-
-
-
-
-    [ ] Implement a simple worksheet on top of this as a test.
+    [x] very easy ways to get the buffer search box with input area focused
+    [ ] implement the 'choose a file' search box for project.coffee
+         - as an option to git-ls
+         - just use find command remotely instead of doing it all client side, so can easily include subdirectories.
+    [ ] search then click on link to file fails if the file is not in the top directory
+    [ ] move the about page to be another tab next to settings that is the first thing shown.
+    [ ] page up / page down in codemirror makes no sense!
+         page up/down should: (1) not move the cursor, and (2) move buffer by *exactly* a page!  Gees.
+    [ ] Some trivial polish: "buffers" --> opened files; "project" --> settings; never hide that "top of page" icon
+    [ ] Do quick minimalist version of: accounts   (so at least we're in polish stage!)
+    [ ] Do quick versions of: publish   (so at least we're in polish stage!)
+    [ ] Move "delete trailing whitespace" to be a codemirror extension, then use it that way.
+    [ ] Move a bunch more specific code out of syncdiff....
+    [ ] editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
+    [ ] error message when file doesn't load should not be *in* codemirror
 
 ---------------------------------------------------------------------------------------
 
-   [x] project search box should only search *current* directory, not whole project (which may take too long)
-       have an optional switch (after showing results) to search subdirectories.
 
-   [x]  terminal bug -- shift is acting like up arrow or "previous" in some terminals?!  very annoying!
-       it COMES AND GOES AWAY.  If you focus without clicking on the terminal, get the funny shift behavior.
-       Otherwise it works fine.  Putting cursor in paste area and pressing shift cause it too.
+-----------
 
-   [x] Make current directory should always equal directory of file being edited (?)... kind of like emacs.
-
-   [x] when clicking to close a file, don't call "display tab", since maybe user wants to select a diff file.
-
-   [x] search for buffer box -- implemented, and DAMN, it is awesome!
-
-   [x] project search: added more emphasis about where a search takes place and how to search elsewhere.
-
-   [ ] very easy way (button and keystroke) to get the buffer search box with input area focused
+   [ ] Account Settings --> button to log out all other clients
 
    [ ] correct vertical display of document at all times.
 

@@ -1027,7 +1027,7 @@ class Client extends EventEmitter
         @get_codemirror_session mesg, (err, session) =>
             if not err
                 session.client_disconnect(@, mesg)
-                
+
     mesg_codemirror_diffsync: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
             if not err

@@ -13,17 +13,16 @@ diffsync = require('diffsync')
 
 class PlainTextObj
     construct: (@string) =>
-        @cursors = {}    
-    to_string: () => 
-        return @string        
-    copy: () => 
+        @cursors = {}
+    to_string: () =>
+        return @string
+    copy: () =>
         return new PlainTextObj(@string)
     diff: (version2) => # Compute a patch that transforms this into version2.
-        return diffsync.dmp.patch_make(@string, version2.string)        
+        return diffsync.dmp.patch_make(@string, version2.string)
     patch: (patch) => # Apply a patch in place
-        @string = diffsync.dmp.patch_apply(p, @string)[0]        
+        @string = diffsync.dmp.patch_apply(p, @string)[0]
     checksum: () =>
-        return @string.length        
+        return @string.length
     cursor: (user, location) =>
-        @cursors[user] = location        
-    
+        @cursors[user] = location

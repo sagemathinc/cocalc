@@ -2,7 +2,7 @@
 [x] fix Ctrl-D EOF bug in worker.py -- process gets left running full steam on EOF
 [x] worker: forked process gets left as a zombie when it quits; fix this.
 [x] implement auth token for worker
-[x] user switching: How will this work?  
+[x] user switching: How will this work?
 * It runs as either root or normal user
 * Imports the sage library
 * Client connects to socket
@@ -24,7 +24,7 @@
       - use a separate thread in the worker root process
       - it will check every n seconds to see if anything needs to be killed:
            use the Connection object
-      - if so, sends SIGQUIT, SIGKILL, etc. 
+      - if so, sends SIGQUIT, SIGKILL, etc.
 
 [x] when main server terminates, it needs to kill the other thread that is watching
     for connections to kill.
@@ -62,15 +62,15 @@ This works perfectly on Linux:
 [x] simple load balancing + haproxy + sockjs demo
 [x] move the one static file to nginx instead of tornado
    [x] optparse backend.py
-   [x] new file: sagews.conf 
+   [x] new file: sagews.conf
    [x] move conf files to a subdirectory conf/
-   [x] rename "launch.py" to "admin.py". 
+   [x] rename "launch.py" to "admin.py".
 
    [x] base class functionality for each component:
           * start(which='all')
           * status(which='all')
           * stop(which='all')
-   [x] refactor existing code to work as above 
+   [x] refactor existing code to work as above
 
    [x] read about multiple ip addresses for one name (=round robin dns)
    [x] read through admin.py cleaning up; finish implementing postgresql options command
@@ -78,7 +78,7 @@ This works perfectly on Linux:
    [x] properly daemonize backend
    [x] admin: support start/stop/status backend
    [x] LOGGING THINKING: I've spent a while now thinking about logging, and have
-       changed my mind about what I want to do.  
+       changed my mind about what I want to do.
          * get rid of log.py; it is potentially too low performance and is
            tied to Python.
          * do what is suggested on stackoverflow: "Write locally to
@@ -99,21 +99,21 @@ This works perfectly on Linux:
        when it stops anything, it stops corresponding logwatch.py
 
    [-not-] idea about doing nginx right:
-See http://www.ruby-forum.com/topic/134115   
+See http://www.ruby-forum.com/topic/134115
       in particular,
        mv error.log error.log.0
        kill -USR1 `cat master.nginx.pid`
        wait 1 second and do anything with log
      But instead do "nginx -s reload"
-   [x] nginx logging 
+   [x] nginx logging
    [x] memcached logging
    [x] backend logging
    [x] issue with postgresql pid -- nothing; I was confused
-   [x] worker pidfile, logging, Process object, etc. 
+   [x] worker pidfile, logging, Process object, etc.
    [x] haproxy logging (hardest) -- have to patch/modify log.c to:
          print instead of send to network socket -- printf("%s", log_ptr); in "__send_log"
 
-   [x] admin -- systematic logfile support: 
+   [x] admin -- systematic logfile support:
          - must specify logfile when creating Process
          - function to read what is new in logfile since last read
          - function to empty logfile
@@ -134,13 +134,13 @@ See http://www.ruby-forum.com/topic/134115
         Evidently one must patch stunnel -- http://www.completefusion.com/ssl-load-balancing-with-haproxy-and-stunnel-on-debian/
   [x] make top-level mobile friendly index.html and also for cell
   [x] make top level index.html, etc. for desktop look jquery-ish
-  [x] worker.py: 
+  [x] worker.py:
         [x] running as root
         [x] making up a user
         [x] limitations
   [x] figure out how to use a proper ssl certificate
   [x] switch to using PB for worker.py, since without a sane and efficient
-      message format I will be very, very unhappy.  
+      message format I will be very, very unhappy.
   [x] user PB in backend demo class that uses worker.py
   [x] use PB between backend and javascript client, if possible/sensible (?)
         nope; using protobuf with javascript evidently sucks, and isn't the right solution anyways.
@@ -148,7 +148,7 @@ See http://www.ruby-forum.com/topic/134115
         - simple standalone auth demo using tornadoweb with both Google and Facebook auth
   [x] authentication -- integrate into backend.  the cookie-cached "username" is still very ugly, but fixing that up is easy.
   [x] add protobuf to build.py system
-  [x] get it to work on linux again. 
+  [x] get it to work on linux again.
   [x] ensure workers die when spawned
   [x] switch to use worker.py for backend
    [x] make it so the entry screen is live -- desktop
@@ -160,8 +160,8 @@ See http://www.ruby-forum.com/topic/134115
 
        See https://groups.google.com/forum/?fromgroups#!topic/sockjs/BeMG5MLKb0c
 
-       Fact: Putting 'return "wss"'   as line 249 in data/local/lib/python2.7/site-packages/sockjs_tornado-0.0.4-py2.7.egg/sockjs/tornado/websocket.py fixes the problem.  
- 
+       Fact: Putting 'return "wss"'   as line 249 in data/local/lib/python2.7/site-packages/sockjs_tornado-0.0.4-py2.7.egg/sockjs/tornado/websocket.py fixes the problem.
+
    [x] browser/platform testing with https all passes -- need external internet connection to do this due to checking certs:
          os x: chrom (websocket)e, firefox new (websocket), firefox old (xhr-streaming), opera (iframe-eventsource), safari (websocket)
          linux: chrome (websocket), firefox (websocket), opera (iframe-xhr-polling)
@@ -170,18 +170,18 @@ See http://www.ruby-forum.com/topic/134115
          iphone: safari (websocket), chrome (xhr-streaming).
          ipad: safari (websocket), chrome (xhr-streaming).
 
-   [x] delete a bunch of old static/ html/js -- need to start cleaner 
+   [x] delete a bunch of old static/ html/js -- need to start cleaner
    [x] the way haproxy is doing load balancing, it needs to stop trying a server when it is gone.
    [x] implement basic message routing between workers and connected clients (?)
    [x] admin: support start/stop/status worker
    [x] simplify worker for my particular application and properly daemonize worker using same options as for backend
-   [x] use memcached to cache single cell evaluations 
+   [x] use memcached to cache single cell evaluations
    [x] if user submits a new stateless request in same session, then current one should be killed.
    [x] var x isn't defined
-   [x] rewrite stateless execution as a separate class; 
+   [x] rewrite stateless execution as a separate class;
        this may address the "done=True" message not getting through weirdness
    [x] implement limited backend stateful session support
-   [x] log watcher should kill self if process it is watching dies 
+   [x] log watcher should kill self if process it is watching dies
    [x] refactor main() loop of logwatch -- too long!
    [x] implement very basic "single cell server"
    PLAN: Implement each component without UI polish.

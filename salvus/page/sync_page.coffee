@@ -80,17 +80,17 @@ class SynchronizedObject
             cursor_interval : 150    # milliseconds
             sync_interval   : 150    # milliseconds
         @connect(cb)
-        
+
     _add_listeners: () =>
         salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.on 'codemirror_bcast', @_receive_broadcast
 
     _remove_listeners: () =>
         salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
-        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast        
-        
+        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
+
     connect: (cb) =>
-        @_remove_listeners()    
+        @_remove_listeners()
         salvus_client.call
             timeout : 45     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
@@ -102,14 +102,14 @@ class SynchronizedObject
                 if resp.event == 'error'
                     cb?(resp.event); return
                 @session_uuid = resp.session_uuid
-                
+
                 # If our content is already set, we'll end up doing a merge.
                 resetting = @_previous_successful_set? and @_previous_successful_set
                 content = opts.make_object(resp.content)
                 if not resetting
                     @_previous_successful_set = true
                     @obj = content
-                else                    
+                else
                     # Doing a reset -- apply all the edits to the current version of the document.
                     edit_stack = @dsync_client.edit_stack
                     # Apply our offline edits to the new live version of the document.
@@ -131,14 +131,14 @@ class SynchronizedObject
                 cb?()
 
     disconnect: (cb) =>
-        @_remove_listeners()    
+        @_remove_listeners()
         if not @session_uuid?
-            cb?(); return            
+            cb?(); return
         salvus_client.call
             timeout : 10
             message : message.codemirror_disconnect(session_uuid : @session_uuid)
             cb      : cb
-            
+
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
             @sync_soon()

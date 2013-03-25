@@ -229,13 +229,23 @@ class exports.Editor
                 that.commit(filename, "save #{filename}")
             return false
 
+    focus: () =>
+        @element.find(".salvus-editor-search-buffers-input").focus()
+
     init_buffer_search: () =>
         search_box = @element.find(".salvus-editor-search-buffers-input")
         include = 'salvus-editor-buffer-included-in-search'
         exclude = 'salvus-editor-buffer-excluded-from-search'
         search_box.keyup (event) =>
+            @active_tab?.editor?.hide()
+
             if event.keyCode == 27 # escape -- clear box
                 search_box.val("")
+
+            if (event.metaKey or event.ctrlKey) and event.keyCode == 79
+                @project_page.display_tab("project-file-listing")
+                return false
+
             v = $.trim(search_box.val()).toLowerCase()
             if v == ""
                 for filename, tab of @tabs

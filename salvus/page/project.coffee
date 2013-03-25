@@ -4,6 +4,7 @@
 #
 ###############################################################################
 
+{IS_MOBILE} = require("feature")
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -12,7 +13,7 @@ async           = require('async')
 {file_associations, Editor, local_storage} = require('editor')
 {scroll_top, human_readable_size}    = require('misc_page')
 
-MAX_TITLE_LENGTH = 25
+MAX_TITLE_LENGTH = 20
 
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
@@ -123,6 +124,7 @@ class ProjectPage
                 delete project_pages[@project.project_id]
             onshow: () =>
                 window.scrollTo(0, 0)
+                @focus()
             onblur: () =>
                 $(".salvus-top-scroll").hide()
 
@@ -159,6 +161,8 @@ class ProjectPage
         @update_topbar()
 
         @create_editor()
+
+        @init_file_search()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id.slice(0,8))
@@ -344,6 +348,17 @@ class ProjectPage
     ########################################
     # Search
     ########################################
+
+    init_file_search: () =>
+        search_box = @container.find(".salvus-project-search-for-file-input")
+        search_box.keyup (event) =>
+            if event.keyCode == 27 # escape -- clear box
+                search_box.val("")
+
+            if (event.metaKey or event.ctrlKey) and event.keyCode == 79
+                @display_tab("project-editor")
+                return false
+
 
     init_search_form: () =>
         that = @
@@ -600,10 +615,11 @@ class ProjectPage
         scroll_top()
         for tab in @tabs
             if tab.name == name
+                @current_tab = tab
                 tab.target.show()
                 tab.label.addClass('active')
-                if tab.onshow?
-                    tab.onshow()
+                tab.onshow?()
+                @focus()
             else
                 tab.target.hide()
                 tab.label.removeClass('active')
@@ -731,6 +747,14 @@ class ProjectPage
         #    that.new_file($(@).data("current_path").join('/'))
         #))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
+    focus: () =>
+        if not IS_MOBILE  # do *NOT* do on mobile, since is very annoying to have a keyboard pop up.
+            switch @current_tab.name
+                when "project-file-listing"
+                    @container.find(".salvus-project-search-for-file-input").focus()
+                when "project-editor"
+                    @editor.focus()
+
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: () =>
@@ -740,8 +764,6 @@ class ProjectPage
 
         timer = setTimeout( (() -> spinner.show().spin()), 300 )
 
-        # focus on the command line
-        @container.find(".project-command-line").find("input").focus()
         sort_by_time = local_storage(@project.project_id, path, 'sort_by_time')
         if not sort_by_time?
             sort_by_time = false
