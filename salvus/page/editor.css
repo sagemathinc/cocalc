@@ -29,7 +29,7 @@ Editor for files in a project
 
 .salvus-editor-codemirror-button-row {
     margin-bottom: 5px;
-    margin-top: 1px;   
+    margin-top: 1px;
 }
 
 .salvus-editor-codemirror-filename {
@@ -37,7 +37,7 @@ Editor for files in a project
     font-size: 20px;
     font-weight: bold;
     color:#777;
-}    
+}
 
 .salvus-editor-codemirror-cursor {
     position: absolute;
@@ -148,11 +148,11 @@ Editor for files in a project
 }
 
 .salvus-editor-search-buffers-input {
-    width:100%;
+    width:90%;
 }
 
 .salvus-editor-buffer-excluded-from-search {
-    opacity:.3;
+    opacity:.5;
 }
 
 .salvus-editor-buffer-included-in-search {

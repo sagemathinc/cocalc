@@ -1,5 +1,5 @@
-.project-home-icon {
-    margin-right:2em;
+.project-file-listing-current_path {
+    margin-top:4px;
 }
 
 .project-file-tools {
@@ -159,7 +159,7 @@
 .project-command-line-input {
     margin-top:0em;
     margin-left:0em;
-    width:40em;
+    width:100%;
 }
 
 .project-command-line-stdout {
@@ -168,7 +168,7 @@
     color:#333;
     font-size:10pt;
     max-height:12em;
-    max-width:40em;
+    max-width:100%;
     overflow:auto;
 }
 .project-command-line-stderr {
@@ -177,7 +177,7 @@
     color:#922;
     font-size:10pt;
     max-height:12em;
-    max-width:40em;
+    max-width:100%;
     overflow:auto;
 }
 
@@ -231,5 +231,9 @@
 
 
 .project-file-list-sort-order {
-     margin-left:2em;   
+     margin-left:2em;
+}
+
+.salvus-project-search-for-file-input {
+    width:100%;
 }

@@ -120,53 +120,31 @@
             <!-- List of all files in the project, which is browsable -->
             <div class="project-file-listing">
                 <div class="row">
-                    <div class="span2 pull-right hide">  <!-- TODO -- hid! -->
-                        <label for="project-commits-branch">
-                            <select name="project-commits-branch" class="project-commits-branch"></select>
-                            <!--<div class="lighten">(shown branch)</div>-->
-                        </label>
-                    </div>
-
-                    <div>
-
-                        <!-- sort order -->
-
-                        <!-- <span class="project-file-list-sort-order pull-right">
-<input type="checkbox" class="project-file-list-sort-order-checkbox"> sort by time  </input>
-</span> -->
-
-                        <!-- command line prompt -->
-                        <span class="project-command-line pull-right">
-                            <input class="project-command-line-input" type="text" placeholder="Terminal command...">
-                            <span class="project-command-line-output">
-                                <div class="project-command-line-spinner hide"></div>
-                                <pre class="project-command-line-stdout hide"></pre>
-                                <pre class="project-command-line-stderr hide"></pre>
-                            </span>
-                        </span>
-
-                        <!-- Buttons for basic file operations -->
-                        <!--
-<span class="project-file-tools pull-right">
-<span class="btn-group">
-<a href="#move" class="btn btn-warning">Move</a>
-<a href="#delete" class="btn btn-danger">Delete</a>
-</span>
-</span>
--->
+                    <div class="span2">
+                        <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose file...">
                     </div>
 
                     <!-- The current path -->
-                    <div class="project-file-listing-current_path"></div>
-
-
-                    <!-- List of files -->
-                    <div class="row">
-                        <div class="project-file-listing-spinner hide"></div>
-                        <div class="project-file-listing-file-list"></div>
+                    <div class="span6">
+                        <div class="project-file-listing-current_path"></div>
                     </div>
 
+                    <!-- command line prompt -->
+                    <div class="span4 project-command-line">
+                        <input class="project-command-line-input" type="text" placeholder="Terminal command...">
+                        <span class="project-command-line-output">
+                            <div class="project-command-line-spinner hide"></div>
+                            <pre class="project-command-line-stdout hide"></pre>
+                            <pre class="project-command-line-stderr hide"></pre>
+                        </span>
+                    </div>
                 </div>
+                <!-- List of files -->
+                <div class="row">
+                    <div class="project-file-listing-spinner hide"></div>
+                    <div class="project-file-listing-file-list"></div>
+                </div>
+
             </div>
 
             <!-- Open files in this project. -->
@@ -336,8 +314,8 @@ course.
     <div class="span" style="width: 10px;">
         <input type="checkbox">
     </div>
-    <div class="span" style="width: 30px;">
-        <i class="icon-folder-close project-file-icon" style="font-size:24px;">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+    <div class="span" style="width: 20px;">
+        <i class="icon-file project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>
 
     <div class="span" style="width:150px;">
@@ -378,8 +356,8 @@ course.
     </div>
 </div>
 
-<a class="project-home-icon btn btn-info">
-    <i class="icon-folder-open"> </i>
+<a class="project-home-icon">
+    <i class="icon-circle"> </i>
 </a>
 
 

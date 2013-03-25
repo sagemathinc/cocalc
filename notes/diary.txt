@@ -11035,6 +11035,8 @@ PLAN:
 
    [x] search for buffer box -- implemented, and DAMN, it is awesome!
 
+   [x] project search: added more emphasis about where a search takes place and how to search elsewhere.
+
    [ ] very easy way (button and keystroke) to get the buffer search box with input area focused
 
    [ ] correct vertical display of document at all times.

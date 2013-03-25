@@ -59,7 +59,7 @@ codemirror_renderer = (start, end) ->
 focused_console = undefined
 client_keydown = (ev) ->
     focused_console?.client_keydown(ev)
-        
+
 
 class Console extends EventEmitter
     constructor: (opts={}) ->
@@ -120,7 +120,7 @@ class Console extends EventEmitter
         @terminal = new Terminal
             cols: @opts.cols
             rows: @opts.rows
-            
+
         # The first time Terminal.bindKeys is called, it makes Terminal
         # listen on *all* keystrokes for the rest of the program.  It
         # only has to be done once -- any further times are ignored.
@@ -146,10 +146,10 @@ class Console extends EventEmitter
 
         # Initialize buttons
         @_init_buttons()
-        
+
         # Initialize the "set default font size" button that appears.
         @_init_font_make_default()
-        
+
         # Initialize the paste bin
         @_init_paste_bin()
 
@@ -163,9 +163,9 @@ class Console extends EventEmitter
 
         if opts.session?
             @set_session(opts.session)
-            
-        @blur()        
-        
+
+        @blur()
+
     set_session: (session) =>
         # Store the remote session, which is a connection to a HUB
         # that is in turn connected to a console_server.
@@ -186,7 +186,7 @@ class Console extends EventEmitter
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
-        
+
     #######################################################################
     # Private Methods
     #######################################################################
@@ -234,7 +234,7 @@ class Console extends EventEmitter
         @element.find(".salvus-console-font-indicator-size").text(@opts.font.size)
         @element.find(".salvus-console-font-indicator").stop().show().animate(opacity:100).fadeOut(duration:8000)
         @resize()
-        
+
     _init_font_make_default: () =>
         @element.find("a[href=#font-make-default]").click () =>
             account_settings = require('account').account_settings
@@ -389,14 +389,14 @@ class Console extends EventEmitter
     _init_paste_bin: () =>
         paste_bins = [@element.find(".salvus-console-paste-bin"),
                       @element.find(".salvus-console-textarea")]
-        
+
         for paste_bin in paste_bins
             paste_bin.live 'blur keyup paste', (evt) =>
                 for pb in paste_bins
                     data = pb.val()
                     pb.val('')
                     @session?.write_data(data)
-                
+
     _start_session_timer: (seconds) ->
         t = new Date()
         t.setTime(t.getTime() + seconds*1000)
@@ -415,7 +415,7 @@ class Console extends EventEmitter
 
     terminate_session: () =>
         @session?.terminate_session()
-        
+
     # enter fullscreen mode
     fullscreen: () =>
         h = $(".navbar-fixed-top").height()
@@ -460,7 +460,7 @@ class Console extends EventEmitter
         if @opts.renderer != 'ttyjs'
             # nothing implemented except in the ttyjs case
             return
-        
+
         if not @session?
             # don't bother if we don't even have a remote connection
             # (todo: could queue this up to send)
@@ -513,7 +513,7 @@ class Console extends EventEmitter
     blur: () =>
         if focused_console == @
             focused_console = undefined
-            
+
         @is_focused = false
         if IS_MOBILE
             $(document).off('keydown', @mobile_keydown)
@@ -528,7 +528,7 @@ class Console extends EventEmitter
 
     focus: () =>
         focused_console = @
-        
+
         $(@terminal.element).focus()
         if not @_character_height?
             height = $(@terminal.element).height()
@@ -543,7 +543,7 @@ class Console extends EventEmitter
             @terminal.focus()
             if not @is_focused
                 @element.find(".salvus-console-textarea").focus()
-            
+
         @is_focused = true
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
         editor = @terminal.editor

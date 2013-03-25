@@ -38,7 +38,7 @@ class TopNavbar  extends EventEmitter
             pull_right    : false      # if true, place button in the right-hand side group of buttons.
             close         : true       # if true, include a "close" x.
             onclose       : undefined  # called if defined when the page is closed
-            onshow        : undefined  # called if defined right after page is shown 
+            onshow        : undefined  # called if defined right after page is shown
             onblur        : undefined  # called if defined right after page is blured
 
         button = @button_template.clone()
@@ -48,7 +48,7 @@ class TopNavbar  extends EventEmitter
         else
             @buttons.append(button)
             #button.after(@divider_template.clone())
-        @pages[opts.id] = 
+        @pages[opts.id] =
             page    : opts.page
             button  : button
             onclose : opts.onclose

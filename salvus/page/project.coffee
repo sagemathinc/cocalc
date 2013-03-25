@@ -715,12 +715,9 @@ class ProjectPage
 
         new_current_path = []
         that = @
-        first = true
         for segment in @current_path
             new_current_path.push(segment)
-            if not first
-                t.append(template_segment_sep.clone())
-            first = false
+            t.append(template_segment_sep.clone())
             t.append($("<a>"
             ).text(segment
             ).data("current_path",new_current_path[..]  # [..] means "make a copy"

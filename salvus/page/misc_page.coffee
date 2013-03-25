@@ -180,9 +180,9 @@ CodeMirror.defineExtension 'apply_changeObj', (changeObj) ->
     @replaceRange(changeObj.text, changeObj.from, changeObj.to)
     if changeObj.next?
         @_apply_changeObj(changeObj.next)
-            
-            
-            
+
+
+
 delete_trailing_whitespace: () =>
     changeObj = undefined
     val = @codemirror.getValue()
@@ -202,4 +202,4 @@ delete_trailing_whitespace: () =>
                 currentObj = obj
     if changeObj?
         @_apply_changeObj(changeObj)
-###    
+###
