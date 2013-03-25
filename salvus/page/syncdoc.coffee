@@ -36,7 +36,7 @@ message  = require('message')
 
 templates = $("#salvus-editor-templates")
 
-class CodeMirrorDiffSyncDoc
+class DiffSyncDoc
     # Define exactly one of cm or string.
     #     cm     = a live codemirror editor
     #     string = a string
@@ -50,9 +50,9 @@ class CodeMirrorDiffSyncDoc
     copy: () =>
         # always degrades to a string
         if @opts.cm?
-            return new CodeMirrorDiffSyncDoc(string:@opts.cm.getValue())
+            return new DiffSyncDoc(string:@opts.cm.getValue())
         else
-            return new CodeMirrorDiffSyncDoc(string:@opts.string)
+            return new DiffSyncDoc(string:@opts.string)
 
     string: () =>
         if @opts.string?
@@ -66,7 +66,7 @@ class CodeMirrorDiffSyncDoc
         return diffsync.dmp.patch_make(@string(), v1.string())
 
     patch: (p) =>
-        return new CodeMirrorDiffSyncDoc(string: diffsync.dmp.patch_apply(p, @string())[0])
+        return new DiffSyncDoc(string: diffsync.dmp.patch_apply(p, @string())[0])
 
     checksum: () =>
         return @string().length
@@ -144,16 +144,16 @@ codemirror_diffsync_client = (cm_session, content) ->
     codemirror_setValue_less_moving(cm_session.codemirror, content)
 
     return new diffsync.CustomDiffSync
-        doc            : new CodeMirrorDiffSyncDoc(cm:cm_session.codemirror)
+        doc            : new DiffSyncDoc(cm:cm_session.codemirror)
         copy           : (s) -> s.copy()
         diff           : (v0,v1) -> v0.diff(v1)
         patch          : (d, v0) -> v0.patch(d)
         checksum       : (s) -> s.checksum()
         patch_in_place : (p, v0) -> v0.patch_in_place(p)
 
-# The CodeMirrorDiffSyncHub class represents a global hub viewed as a
+# The DiffSyncHub class represents a global hub viewed as a
 # remote server for this client.
-class CodeMirrorDiffSyncHub
+class DiffSyncHub
     constructor: (@cm_session) ->
 
     connect: (remote) =>
@@ -174,7 +174,7 @@ class CodeMirrorDiffSyncHub
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
 
-class CodeMirrorSessionEditor
+class SynchronizedDocument
     constructor: (@editor, opts) ->
         @opts = defaults opts,
             cursor_interval : 150
@@ -258,7 +258,7 @@ class CodeMirrorSessionEditor
                         live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
-                @dsync_server = new CodeMirrorDiffSyncHub(@)
+                @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
                 @_add_listeners()
@@ -553,4 +553,4 @@ class CodeMirrorSessionEditor
             @_apply_changeObj(changeObj)
 
 
-exports.CodeMirrorSessionEditor = CodeMirrorSessionEditor
+exports.SynchronizedDocument = SynchronizedDocument

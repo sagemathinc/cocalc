@@ -644,9 +644,8 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
     opts =
         cursor_interval : E.opts.cursor_interval
         sync_interval   : E.opts.sync_interval
-    E.syncdoc = new (syncdoc.CodeMirrorSessionEditor)(E, opts)
+    E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
     return E
-
 
 
 ###############################################

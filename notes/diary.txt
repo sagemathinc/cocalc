@@ -11000,12 +11000,20 @@ level and work in.
 
     [x] (2:15) spent a while fixing several very subtle bugs/issues with consoles.  This is worth dealing with though.
     
-    [ ] easy -- might as well implement the checkbox for sort order for file browser.  To do it right there is one
-        serious complication, which is that to be like OS X it would be sticky on a per-path basis. 
-        Do this at least using localStorage... and maybe sync or push that to DB at some point.        
-      
+
 
 -->    [ ] Clean up and abstract syncdoc.coffee
+
+PLAN:
+
+   [ ] Delete "CodeMirror" from diffsync.coffee, except where it really is using codemirror; test still works.
+   [ ] Move some amount of codemirror-specific code out; test.
+   [ ] Move more specific cout out; test.
+   [ ] Worksheet version (naive)
+   
+
+
+
 
 
     [ ] Implement a simple worksheet on top of this as a test.
@@ -11013,6 +11021,7 @@ level and work in.
 
 ---------------------------------------------------------------------------------------
 
+   [ ] when clicking to close a file, don't call "display tab", since maybe user wants to select a diff file.
 
    [ ] from a user point of view, all chats for a project should be integrated in one single file.  
         Could keep manageable by restricting their length (a la twitter) to 1024 and at most 1 per x seconds.
@@ -11031,6 +11040,10 @@ level and work in.
       everything in alphabetical order.
 
 
+    [ ] implement the checkbox for sort order for file browser.  To do it right there is one
+        serious complication, which is that to be like OS X it would be sticky on a per-path basis. 
+        Do this at least using localStorage... and maybe sync or push that to DB at some point.        
+      
 
 
   [ ] ?? UI ideas -- have a button (keystroke) to toggle showing all the nav-pills
