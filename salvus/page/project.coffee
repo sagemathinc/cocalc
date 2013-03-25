@@ -149,7 +149,6 @@ class ProjectPage
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
-        @_sort_by_time = true
 
         @init_tabs()
 
@@ -709,11 +708,15 @@ class ProjectPage
 
         # focus on the command line
         @container.find(".project-command-line").find("input").focus()
-
+        sort_by_time = local_storage(@project.project_id, path, 'sort_by_time')
+        if not sort_by_time?
+            sort_by_time = false
+        
+        path = @current_path.join('/')                     
         salvus_client.project_directory_listing
             project_id : @project.project_id
-            path       : @current_path.join('/')
-            time       : @_sort_by_time
+            path       : path
+            time       : sort_by_time
             cb         : (err, listing) =>
                 clearTimeout(timer)
                 spinner.spin(false).hide()

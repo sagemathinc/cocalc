@@ -10999,6 +10999,11 @@ level and work in.
     [x] (0:43) fix paste textarea selection in console if it is EASY only!   (fixed weird "can't select" region)
 
     [x] (2:15) spent a while fixing several very subtle bugs/issues with consoles.  This is worth dealing with though.
+    
+    [ ] easy -- might as well implement the checkbox for sort order for file browser.  To do it right there is one
+        serious complication, which is that to be like OS X it would be sticky on a per-path basis. 
+        Do this at least using localStorage... and maybe sync or push that to DB at some point.        
+      
 
 -->    [ ] Clean up and abstract syncdoc.coffee
 
