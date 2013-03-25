@@ -392,14 +392,11 @@ class Console extends EventEmitter
         
         for paste_bin in paste_bins
             paste_bin.live 'blur keyup paste', (evt) =>
-                data = paste_bin.val()
-                paste_bin.val('')
-                @session?.write_data(data)
-            paste_bin.keydown (evt) =>
-                if evt.which <= 48   # backspace, return, escape, etc.
-                    @session?.write_data(String.fromCharCode(evt.which))
-                    return false
-    
+                for pb in paste_bins
+                    data = pb.val()
+                    pb.val('')
+                    @session?.write_data(data)
+                
     _start_session_timer: (seconds) ->
         t = new Date()
         t.setTime(t.getTime() + seconds*1000)

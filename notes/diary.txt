@@ -11006,8 +11006,10 @@ level and work in.
 
 PLAN:
 
-   [ ] Delete "CodeMirror" from diffsync.coffee, except where it really is using codemirror; test still works.
-   [ ] Move some amount of codemirror-specific code out; test.
+   [x] Delete "CodeMirror" from diffsync.coffee, except where it really is using codemirror; test still works.
+   [ ] Move some tiny amount of codemirror-specific code out; test.
+         - move delete trailing whitespace to be a codemirror extension, then use it that way.         
+         
    [ ] Move more specific cout out; test.
    [ ] Worksheet version (naive)
    
@@ -11018,7 +11020,10 @@ PLAN:
 
     [ ] Implement a simple worksheet on top of this as a test.
   
-
+   [x] FIXED!  terminal bug -- shift is acting like up arrow or "previous" in some terminals?!  very annoying!
+       it COMES AND GOES AWAY.  If you focus without clicking on the terminal, get the funny shift behavior.
+       Otherwise it works fine.  Putting cursor in paste area and pressing shift cause it too.
+       
 ---------------------------------------------------------------------------------------
 
    [ ] when clicking to close a file, don't call "display tab", since maybe user wants to select a diff file.
