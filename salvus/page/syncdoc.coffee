@@ -500,11 +500,6 @@ class SynchronizedDocument
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
         @codemirror.addWidget(pos, cursor_data.cursor[0], false)
 
-    _apply_changeObj: (changeObj) =>
-        @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
-        if changeObj.next?
-            @_apply_changeObj(changeObj.next)
-
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
             @save_button.find('span').text("Saving...")
@@ -531,13 +526,18 @@ class SynchronizedDocument
         else
             cb("Unable to save '#{@filename}' since it is not yet loaded.")
 
+    _apply_changeObj: (changeObj) =>
+        @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
+        if changeObj.next?
+            @_apply_changeObj(changeObj.next)
+            
     delete_trailing_whitespace: () =>
         changeObj = undefined
         val = @codemirror.getValue()
         text1 = val.split('\n')
         text2 = misc.delete_trailing_whitespace(val).split('\n')
         if text1.length != text2.length
-            alert_message(type:"error", message:"Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
+            console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
             return
         for i in [0...text1.length]
             if text1[i].length != text2[i].length
@@ -548,7 +548,6 @@ class SynchronizedDocument
                 else
                     currentObj.next = obj
                     currentObj = obj
-
         if changeObj?
             @_apply_changeObj(changeObj)
 

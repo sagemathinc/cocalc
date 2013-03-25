@@ -345,34 +345,53 @@ class ProjectPage
         that = @
         input_boxes = @container.find(".project-search-form-input")
         input_boxes.keypress (evt) ->
-            if evt.which== 13
-                t = $(@)
-                # Sync the multiple search boxes
-                input_boxes.val(t.val())
+            t = $(@)
+            # Sync the multiple search boxes
+            input_boxes.val(t.val())
+            if evt.which== 13 
+                # Do the search.
                 try
                     that.search(t.val())
                 catch e
                     console.log(e)
                 return false
+            
+        @container.find(".project-search-output-recursive").change () =>
+            @search($(input_boxes[0]).val())
+        @container.find(".project-search-output-case-sensitive").change () =>
+            @search($(input_boxes[0]).val())
 
     search: (query) =>
         @display_tab("project-search")
         search_output = @container.find(".project-search-output").empty()
-        max_results = 300
+        recursive   = @container.find(".project-search-output-recursive").is(':checked')
+        insensitive = not @container.find(".project-search-output-case-sensitive").is(':checked')
+        max_results = 1000
         max_output  = 110*max_results  # just in case
-        cmd = "find * -type f | grep -i " + query + "; rgrep -H -i " + query + " *"
-
+        if insensitive
+            ins = " -i "
+        else
+            ins = ""
+        if recursive
+            cmd = "find * -type f | grep #{ins} " + query + "; rgrep -H #{ins} " + query + " *"        
+        else
+            cmd = "ls -1 | grep #{ins} " + query + "; grep -H #{ins} " + query + " *"
+        
+        path = @current_pathname()
+        
         @container.find(".project-search-output-command").text(cmd)
+        @container.find(".project-search-output-path").text(@project.location.path + '/' + path)
 
         spinner = @container.find(".project-search-spinner")
         timer = setTimeout(( () -> spinner.show().spin()), 300)
         that = @
         salvus_client.exec
             project_id : @project.project_id
-            command    : cmd + " | cut -c 1-100"
-            timeout    : 10
+            command    : cmd + " | cut -c 1-1000"
+            timeout    : 3
             max_output : max_output
             bash       : true
+            path       : path
             cb         : (err, output) =>
                 clearTimeout(timer)
                 spinner.spin(false).hide()
@@ -383,8 +402,9 @@ class ProjectPage
                 num_results = 0
                 results = output.stdout.split('\n')
                 if output.stdout.length >= max_output or results.length > max_results
-                    # TODO: make nicer
-                    search_output.append($("<div>NOTE: There were further results.  Try making your search more specific.</div><hr>"))
+                    @container.find(".project-search-output-further-results").show()
+                else
+                    @container.find(".project-search-output-further-results").hide()                
                 for line in results
                     i = line.indexOf(":")
                     num_results += 1

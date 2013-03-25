@@ -174,3 +174,32 @@ CodeMirror.defineExtension 'tab_as_space', () ->
     cursor = @getCursor()
     for i in [0...@.options.tabSize]
         @replaceRange(' ', cursor)
+
+###
+CodeMirror.defineExtension 'apply_changeObj', (changeObj) ->
+    @replaceRange(changeObj.text, changeObj.from, changeObj.to)
+    if changeObj.next?
+        @_apply_changeObj(changeObj.next)
+            
+            
+            
+delete_trailing_whitespace: () =>
+    changeObj = undefined
+    val = @codemirror.getValue()
+    text1 = val.split('\n')
+    text2 = misc.delete_trailing_whitespace(val).split('\n')
+    if text1.length != text2.length
+        console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
+        return
+    for i in [0...text1.length]
+        if text1[i].length != text2[i].length
+            obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
+            if not changeObj?
+                changeObj = obj
+                currentObj = changeObj
+            else
+                currentObj.next = obj
+                currentObj = obj
+    if changeObj?
+        @_apply_changeObj(changeObj)
+###    

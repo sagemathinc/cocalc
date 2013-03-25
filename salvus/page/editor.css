@@ -61,6 +61,7 @@ Editor for files in a project
 .salvus-editor-chat-title {
     color     : #666;
     font-size : 18pt;
+    font-weight: bold;
 }
 
 .salvus-editor-codemirror-chat {
