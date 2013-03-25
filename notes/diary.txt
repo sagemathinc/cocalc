@@ -11013,12 +11013,13 @@ level and work in.
     [x] very easy ways to get the buffer search box with input area focused
     [x] "project" --> settings; never hide that "top of page" icon
     [x] editor: make it so sorted list of open files is actually correctly respected, and that last file to close becomes first.
+    [x] search then click on link to file fails if the file is not in the top directory
+    [ ] typing at beginning of fulltext project search box puts text at END!
     [ ] Some trivial polish: "buffers" --> opened files;
     [ ] control-o in search tab should bring up open file in editor tab.
     [ ] implement the 'choose a file' search box for project.coffee
          - as an option to git-ls
          - just use find command remotely instead of doing it all client side, so can easily include subdirectories.
-    [ ] search then click on link to file fails if the file is not in the top directory
     [ ] move the about page to be another tab next to settings that is the first thing shown.
         make the "user name/sign out" link... just three bars like in chrome?
     [ ] page up / page down in codemirror makes no sense!

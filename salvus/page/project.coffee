@@ -400,6 +400,10 @@ class ProjectPage
 
         path = @current_pathname()
 
+        path_prefix = path
+        if path_prefix != ''
+            path_prefix += '/'
+
         @container.find(".project-search-output-command").text(cmd)
         @container.find(".project-search-output-path").text(@project.location.path + '/' + path)
 
@@ -433,7 +437,7 @@ class ProjectPage
                         # the find part
                         filename = line
                         r = search_result.clone()
-                        r.find("a").text(filename).data(filename: filename).click () ->
+                        r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
                             that.open_file($(@).data('filename'))
                     else
                         # the rgrep part
@@ -441,7 +445,7 @@ class ProjectPage
                         context  = trunc(line.slice(i+1),80)
                         r = search_result.clone()
                         r.find("span").text(context)
-                        r.find("a").text(filename).data(filename: filename).click () ->
+                        r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
                             that.open_file($(@).data('filename'))
 
                     search_output.append(r)
