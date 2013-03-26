@@ -237,3 +237,15 @@
 .salvus-project-search-for-file-input {
     width:100%;
 }
+
+.project-listing-search-include {
+    border-left  : 10px solid #08c;
+    border-right : 10px solid #08c;
+}
+
+.project-listing-search-exclude {
+    opacity : .1;
+    height  : 1px;
+    margin  : 0px;
+    padding : 0px;
+}

@@ -11019,11 +11019,30 @@ level and work in.
     [x] Move "delete trailing whitespace" to be a codemirror extension, then use it that way.
 
 @@@@@@@@@@@@@@@@@@@@@@
--->    [ ] page up / page down in codemirror makes no sense!
-         page up/down should: (1) not move the cursor, and (2) move buffer by *exactly* a page!  Gees.
-         This is something to do with messed up CSS on my part, since the demos on the codemirror page work fine.
 
-    [ ] implement the 'choose a file' search box for project.coffee
+    [ ] 1:42) general cleanup and css fixes; surveying situation regarding codemirror, etc.
+
+--> [ ] Motivated by:  "page up / page down in codemirror makes no sense!
+         page up/down should: (1) not move the cursor, and (2) move buffer by *exactly* a page!  Gees.
+         This is something to do with messed up CSS on my part, since the demos on the codemirror page work fine."
+...
+       I'm going to implement the "editors are the full page" thing *NOW* and right, finally.
+       This will deal with the page up/down issues, etc., and make working on smc much less painful.
+
+   - contraint: no browser scrollbars!
+Here's the plan:
+   - change project html so there is a container for control and a container for an editor (later, for many editors in a tiled page)
+   -
+
+
+Top bar:
+
+
+
+
+-----
+
+    [x] implement the 'choose a file' search box for project.coffee
          - just restrict list in the main page
          - make it so the file select in the open files page shows *two* wells, with the second
            being closed files that match, using a list computed... when?
@@ -11043,6 +11062,8 @@ level and work in.
     [ ] error message when file doesn't load should not be *in* codemirror
     [ ] bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
         characters typed get jumbled.
+
+    [ ] need a "save all open files" button somewhere (in editor's list of open files page)
 
 ---------------------------------------------------------------------------------------
 

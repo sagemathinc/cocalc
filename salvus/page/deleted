@@ -1,4 +1,10 @@
-            cm = @opts.cm
+        label += "<a href='' style='margin:5px'><i class='icon-folder-open-alt'> </i></a>"
+        label += "<a href='' style='margin:5px'><i class='icon-search'> </i></a>"
+        label += "<a href='' style='margin:5px'><i class='icon-cog'> </i></a>"
+
+
+
+cm = @opts.cm
             pos = cm.getCursor()
             cursor = "\u5077"
             cm.replaceRange(cursor, pos)

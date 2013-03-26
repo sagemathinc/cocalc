@@ -430,8 +430,9 @@ class exports.Editor
             @nav_tabs.prepend(prev_active_tab.link)
 
     onshow: () =>  # should be called when the editor is shown.
-        if @active_tab?
-            @display_tab(@active_tab.filename)
+        #if @active_tab?
+        #    @display_tab(@active_tab.filename)
+        @element.find(".salvus-editor-search-openfiles-input").focus()
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -705,11 +706,11 @@ class CodeMirrorEditor extends FileEditor
         width = @element.width(); height = @element.height()
 
         $(@codemirror.getWrapperElement()).css
-            'height' : '35em'
+            'height' : '40em'
             'width'  : width
 
         scroller = $(@codemirror.getScrollerElement())
-        scroller.css('height':'35em')
+        scroller.css('height':'40em')
 
         if not IS_MOBILE
             @codemirror.focus()

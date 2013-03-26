@@ -9,7 +9,8 @@
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 async           = require('async')
-{filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = require('misc')
+misc            = require('misc')
+{filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage} = require('editor')
 {scroll_top, human_readable_size}    = require('misc_page')
 
@@ -348,15 +349,57 @@ class ProjectPage
     ########################################
 
     init_file_search: () =>
-        search_box = @container.find(".salvus-project-search-for-file-input")
-        search_box.keyup (event) =>
-            if event.keyCode == 27 # escape -- clear box
-                search_box.val("")
-
+        @_file_search_box = @container.find(".salvus-project-search-for-file-input")
+        @_file_search_box.keyup (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 @display_tab("project-editor")
                 return false
+            @update_file_search()
 
+    clear_file_search: () =>
+        @_file_search_box.val('')
+
+    focus_file_search: () =>
+        if not IS_MOBILE
+            @_file_search_box.focus()
+
+    update_file_search: () =>
+        search_box = @_file_search_box
+        include = 'project-listing-search-include'
+        exclude = 'project-listing-search-exclude'
+        v = $.trim(search_box.val()).toLowerCase()
+
+        listing = @container.find(".project-file-listing-file-list")
+
+        if v == ""
+            # remove all styling
+            for entry in listing.children()
+                $(entry).removeClass(include)
+                $(entry).removeClass(exclude)
+            match = (s) -> true
+        else
+            terms = v.split(' ')
+            match = (s) ->
+                s = s.toLowerCase()
+                for t in terms
+                    if s.indexOf(t) == -1
+                        return false
+                return true
+
+        first = true
+        for e in listing.children()
+            entry = $(e)
+            fullpath = entry.data('name')
+            filename = misc.path_split(fullpath).tail
+            if match(filename)
+                if first and event.keyCode == 13 # enter -- select first match (if any)
+                    entry.click()
+                    first = false
+                if v != ""
+                    entry.addClass(include); entry.removeClass(exclude)
+            else
+                if v != ""
+                    entry.addClass(exclude); entry.removeClass(include)
 
     init_search_form: () =>
         that = @
@@ -702,7 +745,8 @@ class ProjectPage
         @container.find(".project-project_description").text(@project.description)
 
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
-        top_navbar.set_button_label(@project.project_id, "<i class='icon-sitemap'> </i> " + label)
+        label = "<i class='icon-sitemap'> </i> " + label
+        top_navbar.set_button_label(@project.project_id, label)
         return @
 
 
@@ -806,6 +850,19 @@ class ProjectPage
                     @container.find(".project-file-tools a[href=#delete]").addClass("disabled")
 
                 that = @
+
+                if that.current_path.length > 0
+                    # Create special link to the parent directory
+                    t = template_project_directory.clone()
+                    t.find(".project-directory-name").html("<i class='icon-reply'> </i> Parent Directory")
+                    t.find("input").hide()  # hide checkbox, etc.
+                    # Clicking to open the directory
+                    t.data('name', '..').click (e) ->
+                        that.current_path.pop()
+                        that.update_file_list_tab()
+                        return false
+                    file_or_listing.append(t)
+
                 # Show the files
                 for obj in listing['files']
                     if obj.isdir? and obj.isdir
@@ -883,6 +940,9 @@ class ProjectPage
                             that.open_file($(@).data('name'))
                             return false
                     file_or_listing.append(t)
+
+                @clear_file_search()
+                @focus_file_search()
 
     download_project: (opts={}) =>
         download_project
