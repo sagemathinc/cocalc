@@ -1,10 +1,10 @@
 .salvus-worksheet {
-    border           : 1px solid #aaa;
+/*    border           : 1px solid #aaa; */
     background-color : #fff;
     padding          : 20px;
     margin           : 10px;
     margin-top       : 0px;
-    box-shadow       : 6px 6px 3px #888;
+/*    box-shadow       : 6px 6px 3px #888; */
     padding-bottom   : 25px;
     /* border-radius: 5px; */
  /*   overflow: auto;
@@ -60,6 +60,8 @@
 .salvus-worksheet-worksheet {
     background-color: white;
     padding: 1ex;
+    overflow-y:auto;
+    height:40em;
 }
 
 .salvus-worksheet-view {
