@@ -35,6 +35,7 @@ net = require('net')
 message = require 'message'
 
 exports.enable_mesg = enable_mesg = (socket) ->
+    socket.setMaxListeners(200)  # we use a lot of listeners for listening for messages
     socket._buf = null
     socket._buf_target_length = -1
     socket._listen_for_mesg = (data) ->
