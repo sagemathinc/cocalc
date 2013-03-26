@@ -6,6 +6,7 @@ top_view = () ->
     top_navbar.switch_to_page()  # redisplay current page
     window.scrollTo(0, 0)
     return false
+
 $("a[href=#top-scroll]").click(top_view)
 
 $(document).on 'keydown', (ev) ->
@@ -16,8 +17,6 @@ $(document).on 'keyup', (ev) ->
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
         top_view()
         return false
-
-#$(".salvus-top-scroll").hide()
 
 misc = require("misc")
 to_json = misc.to_json

@@ -125,8 +125,6 @@ class ProjectPage
             onshow: () =>
                 window.scrollTo(0, 0)
                 @focus()
-            onblur: () =>
-                $(".salvus-top-scroll").hide()
 
         # Initialize the close project button.
         # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").

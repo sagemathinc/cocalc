@@ -16,14 +16,6 @@
     font-size : 8pt;
 }
 
-.salvus-top-scroll {
-    position :fixed;
-    z-index   : 10000;
-    top       : 40px;
-    left      : 0px;
-    font-size : 20pt;
-}
-
 .salvus-top_navbar {
     font-size: 9pt;
     font-weight:bold;
