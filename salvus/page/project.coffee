@@ -365,8 +365,6 @@ class ProjectPage
         input_boxes = @container.find(".project-search-form-input")
         input_boxes.keypress (evt) ->
             t = $(@)
-            # Sync the multiple search boxes
-            input_boxes.val(t.val())
             if evt.which== 13
                 # Do the search.
                 try
@@ -394,9 +392,9 @@ class ProjectPage
         else
             ins = ""
         if recursive
-            cmd = "find * -type f | grep #{ins} " + query + "; rgrep -H #{ins} " + query + " *"
+            cmd = "find * -type f | grep #{ins} #{query}; rgrep -H #{ins} #{query} *"
         else
-            cmd = "ls -1 | grep #{ins} " + query + "; grep -H #{ins} " + query + " *"
+            cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} *"
 
         path = @current_pathname()
 

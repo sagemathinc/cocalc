@@ -234,7 +234,7 @@ class exports.Editor
 
     init_buffer_search: () =>
         search_box = @element.find(".salvus-editor-search-buffers-input")
-        include = 'salvus-editor-buffer-included-in-search'
+        include = 'active' #salvus-editor-buffer-included-in-search'
         exclude = 'salvus-editor-buffer-excluded-from-search'
         search_box.focus () =>
             search_box.select()

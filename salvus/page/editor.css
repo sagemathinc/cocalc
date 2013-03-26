@@ -152,10 +152,11 @@ Editor for files in a project
 }
 
 .salvus-editor-buffer-excluded-from-search {
-    opacity:.7;
+    opacity:.6;
 }
 
 .salvus-editor-buffer-included-in-search {
-    border-radius:3px;
-    box-shadow: 2px 2px 2px 2px #aaa;
+    border-radius:6px;
+    border: 1px solid #aaa;
+    box-shadow: 2px 2px 2px 2px #bbb;
 }
