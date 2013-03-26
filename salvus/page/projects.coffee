@@ -106,6 +106,8 @@ create_project_item = (project) ->
     if project.size?
         item.find(".projects-size").text(human_readable_size(project.size))
     item.find(".projects-description").text(project.description)
+    ###
+    # This is too cluttered.
     if project.location.username?
         d = "#{project.location.username}@#{project.location.host}"
         if project.location.path != '.'
@@ -113,6 +115,7 @@ create_project_item = (project) ->
         if project.location.port != 22
             d += " -p#{project.location.port}"
         item.find(".projects-location").text(d)
+    ###
     item.click (event) ->
         try
             open_project(project)
@@ -151,8 +154,8 @@ update_project_view = (show_all=false) ->
         $("#projects-show_all").hide()
 
 open_project = (project) ->
-    if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 6
-        alert_message(type:"error", message:"You have numerous open projects; please close a project before opening more projects.")
+    if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
+        alert_message(type:"error", message:"Please close a project before opening more projects.")
         return
     project_page(project)
     top_navbar.switch_to_page(project.project_id)

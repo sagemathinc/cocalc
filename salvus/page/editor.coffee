@@ -10,6 +10,8 @@ message = require('message')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
+{IS_MOBILE} = require("feature")
+
 misc = require('misc')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
@@ -673,14 +675,21 @@ class CodeMirrorEditor extends FileEditor
         if not (@element? and @codemirror?)
             #console.log('skipping show because things not defined yet.')
             return
-        height = $(window).height() - 2.5*top_navbar.height() #todo
+        @element.show()
+        @codemirror.refresh()
+
+        height = $(window).height() - 2.5*top_navbar.height()
 
         @element.height(height+5).show()
 
         scroller = $(@codemirror.getScrollerElement())
-        scroller.css('height':height-25)  #todo
+        scroller.css('height':height-25)
 
-        window.scrollTo(0, document.body.scrollHeight); $(".salvus-top-scroll").show()
+        $(@codemirror.getWrapperElement()).css
+            'background-color':'#ffffe8'
+
+        window.scrollTo(0, document.body.scrollHeight)
+        $(".salvus-top-scroll").show()
 
         @codemirror.refresh()
 
@@ -694,11 +703,16 @@ class CodeMirrorEditor extends FileEditor
             return
 
         width = @element.width(); height = @element.height()
-        $(@codemirror.getWrapperElement()).css
-            'max-height' : height
-            'max-width'  : width
 
-        @codemirror.focus()
+        $(@codemirror.getWrapperElement()).css
+            'height' : '35em'
+            'width'  : width
+
+        scroller = $(@codemirror.getScrollerElement())
+        scroller.css('height':'35em')
+
+        if not IS_MOBILE
+            @codemirror.focus()
         @codemirror.refresh()
 
 
@@ -1198,7 +1212,8 @@ class Worksheet extends FileEditor
                 @has_unsaved_changes(true)
 
     focus: () =>
-        @worksheet?.focus()
+        if not IS_MOBILE
+            @worksheet?.focus()
 
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->

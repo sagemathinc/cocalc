@@ -409,7 +409,7 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : cmd + " | cut -c 1-1000"
-            timeout    : 3
+            timeout    : 10
             max_output : max_output
             bash       : true
             path       : path
@@ -702,7 +702,7 @@ class ProjectPage
         @container.find(".project-project_description").text(@project.description)
 
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
-        top_navbar.set_button_label(@project.project_id, label)
+        top_navbar.set_button_label(@project.project_id, "<i class='icon-sitemap'> </i> " + label)
         return @
 
 

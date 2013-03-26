@@ -15,7 +15,7 @@ required = defaults.required
 set_account_tab_label = (signed_in, first_name, last_name) ->
     if signed_in
         #top_navbar.set_button_label("account", "#{first_name} #{last_name} (<a href='#sign_out'>Sign out</a>)")
-        top_navbar.set_button_label("account", "<i class='icon-cog'> </i> (<a href='#sign_out'>Sign out</a>)")
+        top_navbar.set_button_label("account", "<i class='icon-cog'> </i> Settings (<a href='#sign_out'>Sign out</a>)")
         $("a[href='#sign_out']").click((event) ->
             sign_out()
             return false

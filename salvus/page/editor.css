@@ -21,6 +21,7 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror {
+    border: 1px solid black;
     /* border: 1px solid #aaa;
     box-shadow: 6px 6px 3px #888;
     */
@@ -119,8 +120,8 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-input-box {
-    border: 2px solid #9a9;
-    border-radius: 5px;
+    /*border: 2px solid #9a9;
+    border-radius: 5px;*/
 }
 
 .salvus-editor-codemirror-sync {

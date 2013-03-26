@@ -11007,9 +11007,6 @@ level and work in.
     [x] when clicking to close a file, don't call "display tab", since maybe user wants to select a diff file.
     [x] search for buffer box -- implemented, and DAMN, it is awesome!
     [x] project search: added more emphasis about where a search takes place and how to search elsewhere.
-
-@@@@@@@@@@@@@@@@@@@@@@
-
     [x] very easy ways to get the buffer search box with input area focused
     [x] "project" --> settings; never hide that "top of page" icon
     [x] editor: make it so sorted list of open files is actually correctly respected, and that last file to close becomes first.
@@ -11021,13 +11018,26 @@ level and work in.
     [x] control-o in search tab should bring up open file in editor tab.
     [x] Move "delete trailing whitespace" to be a codemirror extension, then use it that way.
 
-    [ ] implement the 'choose a file' search box for project.coffee
-         - as an option to git-ls
-         - just use find command remotely instead of doing it all client side, so can easily include subdirectories.
-    [ ] page up / page down in codemirror makes no sense!
+@@@@@@@@@@@@@@@@@@@@@@
+-->    [ ] page up / page down in codemirror makes no sense!
          page up/down should: (1) not move the cursor, and (2) move buffer by *exactly* a page!  Gees.
+         This is something to do with messed up CSS on my part, since the demos on the codemirror page work fine.
+
+    [ ] implement the 'choose a file' search box for project.coffee
+         - just restrict list in the main page
+         - make it so the file select in the open files page shows *two* wells, with the second
+           being closed files that match, using a list computed... when?
+         - just use find command remotely instead of doing it all client side, so can easily include subdirectories.
+         - show result as a nav-pills well that appears (?)
+
+    [ ] fulltext search "Searching salvus/" thing shown in output from last search is confusing when about to do a new search!
+
     [ ] Do quick minimalist version of: accounts   (so at least we're in polish stage!)
+
     [ ] Do quick versions of: publish   (so at least we're in polish stage!)
+
+    [ ] terminals die -- this is getting annoying!
+
     [ ] Move a bunch more specific code out of syncdiff....
     [ ] editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
     [ ] error message when file doesn't load should not be *in* codemirror
@@ -11073,7 +11083,7 @@ level and work in.
         serious complication, which is that to be like OS X it would be sticky on a per-path basis.
         Do this at least using localStorage... and maybe sync or push that to DB at some point.
 
-
+  [ ] bug -- on ipad, the dropdown to show past errors doesn't go away.
 
   [ ] ?? UI ideas -- have a button (keystroke) to toggle showing all the nav-pills
       for all open files.   Make it very easy to change their order by dragging.  This way

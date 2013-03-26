@@ -27,6 +27,7 @@ async          = require("async")
 {salvus_client} = require('salvus_client')
 {Cell} = require("cell")
 
+{IS_MOBILE} = require("feature")
 
 
 templates          = $("#salvus-worksheet-templates")
@@ -439,6 +440,8 @@ class Worksheet extends EventEmitter
             c.execute()
 
     _focus_cell : (cell) ->
+        if IS_MOBILE  # on mobile, cell focusing must be initiated by the user.
+            return
         if @_current_cell?
             @_current_cell.selected(false)
         @_current_cell = cell

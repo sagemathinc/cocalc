@@ -49,18 +49,20 @@ class TopNavbar  extends EventEmitter
             onblur        : undefined  # called if defined right after page is blured
 
         button = @button_template.clone()
+        divider = @divider_template.clone()
         if opts.pull_right
             @buttons_right.prepend(button)
-            #button.before(@divider_template.clone())
+            button.before(divider)
         else
             @buttons.append(button)
-            #button.after(@divider_template.clone())
+            button.after(divider)
         @pages[opts.id] =
             page    : opts.page
             button  : button
             onclose : opts.onclose
             onshow  : opts.onshow
             onblur  : opts.onblur
+            divider : divider
 
         a = button.find("a")
         a.data("id", opts.id)
@@ -70,10 +72,10 @@ class TopNavbar  extends EventEmitter
         @set_button_label(opts.id, opts.label, opts.class, opts.close)
 
     number_of_pages_left: () =>
-        return @buttons.children().length
+        return @buttons.children().length / 2   # /2 because of dividers
 
     number_of_pages_right: () =>
-        return @buttons_right.children().length
+        return @buttons_right.children().length  # /2 because of dividers
 
     set_button_label: (id, label, klass, close=true) ->
         button = @pages[id].button
@@ -155,6 +157,7 @@ class TopNavbar  extends EventEmitter
             # Now actually the page
             p.page.remove()
             p.button.remove()
+            p.divider.remove()
             delete @pages[id]
 
             # Now switch to the next page

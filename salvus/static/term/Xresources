@@ -1,4 +1,4 @@
-! light - Default black on white
+! light - black on white
 default*foreground:  #000000
 default*background:  #ffffff
 default*color0:      #2e3436
