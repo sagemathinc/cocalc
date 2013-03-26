@@ -12,13 +12,8 @@
 }
 
 .salvus-connection-status {
-    position  : fixed;
-    z-index   : 10000;
-    top       : 0px;
-    left      : 0px;
-    width     : 5em;
+    width     : 7em;
     font-size : 8pt;
-    color     : #779;
 }
 
 .salvus-top-scroll {

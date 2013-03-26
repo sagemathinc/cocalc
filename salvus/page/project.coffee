@@ -13,7 +13,7 @@ async           = require('async')
 {file_associations, Editor, local_storage} = require('editor')
 {scroll_top, human_readable_size}    = require('misc_page')
 
-MAX_TITLE_LENGTH = 20
+MAX_TITLE_LENGTH = 15
 
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")

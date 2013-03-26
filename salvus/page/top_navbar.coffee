@@ -51,11 +51,11 @@ class TopNavbar  extends EventEmitter
 
         button = @button_template.clone()
         if opts.pull_right
-            @buttons_right.append(button)
-            button.before(@divider_template.clone())
+            @buttons_right.prepend(button)
+            #button.before(@divider_template.clone())
         else
             @buttons.append(button)
-            button.after(@divider_template.clone())
+            #button.after(@divider_template.clone())
         @pages[opts.id] =
             page    : opts.page
             button  : button
@@ -69,6 +69,12 @@ class TopNavbar  extends EventEmitter
         a.click((event) -> that.switch_to_page($(this).data("id")); return false)
 
         @set_button_label(opts.id, opts.label, opts.class, opts.close)
+
+    number_of_pages_left: () =>
+        return @buttons.children().length
+
+    number_of_pages_right: () =>
+        return @buttons_right.children().length
 
     set_button_label: (id, label, klass, close=true) ->
         button = @pages[id].button
@@ -179,10 +185,23 @@ $.fn.extend
 ###############################################################
 # Add the standard pages
 
+$("#about").top_navbar
+    id      : "about"
+    label   : "<div style='line-height:1em;text-align:center;'>SageMath<br>Cloud&trade;</div>"
+    #pull_right : true
+    close   : false
+
+
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
-    label   : "<i class='icon-reorder'> </i> Projects"
+    label   : "<span style='font-size:12pt'><i class='icon-reorder'> </i> Projects</span>"
+    #pull_right : true
+    close   : false
+
+$("#account").top_navbar
+    id     : "account"
+    label  : "Sign in"
     pull_right : true
     close   : false
 
@@ -196,14 +215,3 @@ $("#projects").top_navbar
 #    label   : "Worksheet1"
 #    close   : false
 
-$("#account").top_navbar
-    id     : "account"
-    label  : "Sign in"
-    pull_right : true
-    close   : false
-
-#$("#about").top_navbar
-#    id      : "about"
-#    label   : "About"
-#    pull_right : true
-#    close   : false
