@@ -194,7 +194,7 @@ $("#about").top_navbar
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
-    label   : "<span style='font-size:12pt'><i class='icon-reorder'> </i> Projects</span>"
+    label   : "<span style='font-size:12pt'><i class='icon-cogs'> </i> Projects</span>"
     #pull_right : true
     close   : false
 

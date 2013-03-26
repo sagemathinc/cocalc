@@ -11020,7 +11020,7 @@ level and work in.
     [x] Some trivial polish: "buffers" --> opened files;
     [x] control-o in search tab should bring up open file in editor tab.
 
-    [ ] implement the 'choose a file' search box for project.coffee
+--    [ ] implement the 'choose a file' search box for project.coffee
          - as an option to git-ls
          - just use find command remotely instead of doing it all client side, so can easily include subdirectories.
     [ ] page up / page down in codemirror makes no sense!
@@ -11031,10 +11031,20 @@ level and work in.
     [ ] Move a bunch more specific code out of syncdiff....
     [ ] editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
     [ ] error message when file doesn't load should not be *in* codemirror
+    [ ] bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
+        characters typed get jumbled.
 
 ---------------------------------------------------------------------------------------
 
     [ ] idea: In project "Navigate to a different folder to search in it.", the folder where search happened could be contenteditable...
+    [ ] idea: when searching, automatically copy highlighted text into search box.
+
+    [ ] issue: if you open a #! script the first line isn't read until connecting to the sync session,
+        so we don't have any way to know the file type... hence the codemirror editor doesn't have
+        the right mode.
+
+
+
 
 -----------
 

@@ -284,24 +284,30 @@ class exports.Editor
         if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
             @tabs[filename] = @create_tab(filename:filename)
 
+    file_options: (filename, content) =>   # content may be undefined
+        ext = filename_extension(filename)
+        if not ext? and content?   # no recognized extension, but have contents
+            ext = guess_file_extension_type(content)
+        x = file_associations[ext]
+        if not x?
+            x = file_associations['']
+        return x
+
     create_tab: (opts) =>
         opts = defaults opts,
             filename     : required
             content      : undefined
 
         filename = opts.filename
-        ext = filename_extension(opts.filename)
-        if not ext? and opts.content?   # no recognized extension
-            ext = guess_file_extension_type(content)
-        x = file_associations[ext]
-        if not x?
-            x = file_associations['']
-        extra_opts = copy(x.opts)
+        content = opts.content
+        opts0 = @file_options(filename, content)
+        extra_opts = copy(opts0.opts)
         if opts.session_uuid?
             extra_opts.session_uuid = opts.session_uuid
-        content = opts.content
 
-        switch x.editor
+        # Some of the editors below might get the content later and will call @file_options again then.
+
+        switch opts0.editor
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
                 editor = codemirror_session_editor(@, filename, extra_opts)
