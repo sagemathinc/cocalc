@@ -192,11 +192,13 @@ CodeMirror.defineExtension 'delete_trailing_whitespace', () ->
     val       = @getValue()
     text1     = val.split('\n')
     text2     = misc.delete_trailing_whitespace(val).split('\n')    # a very fast regexp.
-
+    pos       = @getCursor()
     if text1.length != text2.length
         console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
         return
     for i in [0...text1.length]
+        if i == pos.line   # very jarring to delete whitespace in line that user's cursor is in.
+            continue
         if text1[i].length != text2[i].length
             obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
             if not changeObj?

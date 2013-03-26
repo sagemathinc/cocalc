@@ -15,9 +15,11 @@ Sunday -- get prepared for my teaching on monday
 ---------------------------------------
 
 = UX =
+(0:30?)  [ ] create a new file
 (0:45?)  [ ] cursor replication when sync starts
 (0:45?)  [ ] selecting from open files suddenly not working
-(0:20?)  [ ] option -- do not delete whitespace on line that contains the cursor (codemirror plugin)
+(0:20?)  [x] (0:06) option -- do not delete whitespace on line that contains the cursor (codemirror plugin)
+(0:20?)  [ ] in project file listing search, make it so that the *other* hidden files are not clickable!
 (0:30?)  [ ] after entering a command in project command line, focus should *stay* on command line.
 (0:30?)  [ ] default filename for terminal and worksheet date/time iso format
 (0:30?)  [ ] project: When changing project title, should auto change the entry in the tab at the top.
@@ -126,11 +128,13 @@ Database table that lists all projects for a given user.
 
 = Deploy =
 
-(0:30?)  [ ] apply security updates to 01 and 06 salvus
-(2:00?)  [ ] deploy on 01 and 06
-(1:00?)  [ ] get ssl cert setup for cloud.sagemath.org
+(0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
 (1:00?)  [ ] change any hard coded "salv.us" to cloud.sagemath.org
-(1:00?)  [ ] make sure email reset works with cloud.sagemath.org
+(0:30?)  [ ] make sure email reset works with cloud.sagemath.org
+(1:00?)  [ ] build virtual machine that is up2date and has all necessary packages (including ghostview, etc.)
+(0:30?)  [ ] define topology file for deployment
+(0:30?)  [ ] get it running
+(1:00?)  [ ] get ssl cert setup for cloud.sagemath.org
 
 
 = Graphics =
