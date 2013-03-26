@@ -11042,139 +11042,39 @@ screw that... probably worse and would take all day.
          - show result as a nav-pills well that appears (?)
 
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    [x] fulltext search "Searching salvus/" thing shown in output from last search is confusing when about to do a new search!; also make it so long search show what they find instead of giving a useless error.
 
-    [x] fulltext search "Searching salvus/" thing shown in output from last search is confusing when about to do a new search!
-
-FINAL TOP PRIORITY THIS WEEK TODO LIST;
-
-    [ ] fix cursor broadcast doubling, so I can edit again!
-
-    [ ] Do quick minimalist version of: accounts   (so at least we're in polish stage!)
-
-    [ ] Do quick versions of: publish   (so at least we're in polish stage!)
-
-    [ ] terminals die -- this is getting annoying!
-
-    [ ] terminals should automatically restart if the backing session dies.  Keep history and cwd.
-
-    [ ] changing password should invalidate all cookies.
-
-    [ ] Move a bunch more specific code out of syncdiff....
-    [ ] editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
-    [ ] error message when file doesn't load should not be *in* codemirror
-    [ ] bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
-        characters typed get jumbled.
-
-    [ ] need a "save all open files" button somewhere (in editor's list of open files page)
-
-    [ ] idea: In project "Navigate to a different folder to search in it.", the folder where search happened could be contenteditable...
-    [ ] idea: when searching, automatically copy highlighted text into search box.
-
-    [ ] issue: if you open a #! script the first line isn't read until connecting to the sync session,
-        so we don't have any way to know the file type... hence the codemirror editor doesn't have
-        the right mode.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
------------
 
    [ ] Account Settings --> button to log out all other clients
 
-   [ ] correct vertical display of document at all times.
-
    [ ] from a user point of view, all chats for a project should be integrated in one single file.
-        Could keep manageable by restricting their length (a la twitter) to 1024 and at most 1 per x seconds.
+       Could keep manageable by restricting their length (a la twitter) to 1024 and at most 1 per x seconds.
 
     [ ] in codemirror search, starting again should start with whatever last search was.
 
     [ ] chat -- need another project-wide chat, in addition to file chat.  Work exactly the same way, except store in ~/.sagemathcloud/persist
-
-    [ ] when a session has timed out, chat just doesn't work.
-        typing once into the session and waiting... makes chat work.
-
 
     [ ] CONSOLE: store session_uuid in file as first line, and the actual session as the rest of the file.
 
     [ ] for project file browser -- specially indicate any file for which there is an open session, and show first, filed by
       everything in alphabetical order.
 
-
     [ ] implement the checkbox for sort order for file browser.  To do it right there is one
         serious complication, which is that to be like OS X it would be sticky on a per-path basis.
         Do this at least using localStorage... and maybe sync or push that to DB at some point.
 
-  [ ] bug -- on ipad, the dropdown to show past errors doesn't go away.
+    [ ] bug -- on ipad, the dropdown to show past errors doesn't go away.
 
-  [ ] ?? UI ideas -- have a button (keystroke) to toggle showing all the nav-pills
-      for all open files.   Make it very easy to change their order by dragging.  This way
-      we get easy management and opening of... the stuff we care about.
-      But we can still have 30 of them without cluttering the top bar. ??
+    [ ] maybe delete trailing whitespace should ignore line with cursor in it... (?) since it can be pretty annoying to have cursor move...
 
-          [ ] when closing a file, disable corresponding listeners.
+   [ ] editor -- use that diff-patch-match library to do fuzzy search.... for the "Control-F" in editor!
 
-          [ ] codemirror sync -- add a close button that closes a file for everybody.
+   [ ] editor -- get rid of max width on the codemirror element itself, since resizing is busted by it.
 
-  [ ] editor -- on sync, should reposition the line being edited at same location in buffer as it was on before, to avoid jumpiness?
-  [ ] range selection -- need to also preserve that on update.
+   [ ] Implement code to handle this -- it happens:
+         "CodeMirrorSession -- unable to push diffsync changes -- reset"
 
-  [ ] default account per user + backups
-
-  [ ] post new version
-
-  [ ] then final stretch will be debugging and tons of tricky UI cleanup.
-
-  [ ] maybe delete trailing whitespace should ignore line with cursor in it... (?) since it can be pretty annoying to have cursor move...
-
-
-=============================
-
-          [ ] codemirror -- Mac scrolling is broken in my codemirror's, but it works fine on their website. e.g.,
-                  http://codemirror.net/mode/haskell/index.html
-              This even works fine in linux.  I must fix this!
-
-
-
-  [ ] worksheet -- default start location is relative to home directory not project.  Yuck.
-
-  [ ] editor -- trailing whitespace deletion should be done server size and not where any user cursors are.
-
-  [ ] editor -- use that diff-patch-match library to do fuzzy search.... for the "Control-F" in editor!
-
-  [ ] idea -- when a local_hub is starting, show a progress meter...
-
-  [ ] editor -- get rid of max width on the codemirror element itself, since resizing is busted by it.
-
-  [ ] Implement code to handle this -- it happens:
-        "CodeMirrorSession -- unable to push diffsync changes -- reset"
-
-  [ ] optimize for scalability
+   [ ] optimize for scalability
 
       [ ] correctly do diffing when applying incoming changes from hub to client.
           (in particular, make a changeObj, instead of using setValue, etc.)
@@ -11189,7 +11089,7 @@ FINAL TOP PRIORITY THIS WEEK TODO LIST;
 
       [ ] use changeObj to more efficiently compute the edits.
 
-  [ ] delete stuff like this from Cassandra.coffee:COMPUTE_SERVER_PORTS = COMPUTE_SERVER_PORTS
+     [ ] delete stuff like this from Cassandra.coffee:COMPUTE_SERVER_PORTS = COMPUTE_SERVER_PORTS
 
   [ ] Keep getting this in hub log when trying to save diary.txt to disk.
 debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"error","id":"f336cfd9-fda5-4104-be26-44cd21a1c8e0","error":"Error writing to disk -- true"}
@@ -11220,23 +11120,12 @@ Important point for worksheets: http://arstechnica.com/information-technology/20
 
 ======================================
 
-    [ ] closing a terminal on one client hangs it on all of them -- better if closing it on *all* needed (or something explicit)...
-
      [ ] IDEA -- terminal could become way less "laggy" by using differential synchronization and just letting
          what user types appear (?)
 
-     [ ] worksheet session server, with everything persistent.make collection of open worksheets in a project persistent (and later shared)
-
-     [ ] default location account(s)
-
-
-
-     [ ] latex editor -- preview still doesn't work when .tex file is in a subdirectory.
+     [x] latex editor -- preview still doesn't work when .tex file is in a subdirectory.
 
              ----
-(est:1:00)    [ ] make it so user can change the location of the project:
-                  started this -- see project.coffee "TODO -- actually implement project location change"
-
               [ ] admin -- way to create pre-made accounts *from* admin, and put their existence in database
 
               [ ] hub -- use pre-made accounts when creating a new user
@@ -11245,24 +11134,17 @@ Important point for worksheets: http://arstechnica.com/information-technology/20
 
 ----
 
-     [ ] Terminal -- put a copy icon button next to the paste one that copies whatever the contents are?
-
      [ ] pdf preview -- better error when gv not installed; should warn user about everything that needs to be installed for full functionality...
 
-     [ ] MOBILE: codemirror doesn't scroll -- serious issue.
-
-
-      [ ] project.coffee -- BUG -- if you start clicking around directories quickly you can easily get to a nonexistent path due to
-          time of gitls round trip.  So... when that happens display the last valid path.
+     [x] MOBILE: codemirror doesn't scroll -- serious issue.
 
 
      [ ] make it so one can add sketches to notes -- this looks really good: http://intridea.github.com
 
-
      sketch.js/
          This should also be an interact control, since then one can sketch and use it elsewhere in an interact.
 
-     [ ] idea -- search input in the project file listing [TODO: which returns *all* matches (by doing a new git-ls if need be)]
+     [x] idea -- search input in the project file listing [TODO: which returns *all* matches (by doing a new git-ls if need be)]
 
      [ ] idea -- starred projects -- always appear at the top (same with files)
 
@@ -11270,7 +11152,7 @@ Important point for worksheets: http://arstechnica.com/information-technology/20
 
      [ ] idea -- make it so borders around cells (and notes) is easy to toggle on/off
 
-    [ ] bug --copy/paste inside of note involving math often results in something un-texable.
+     [ ] bug --copy/paste inside of note involving math often results in something un-texable.
 
      (est - 0:45)  [ ] (0:15) make it so current view in a codemirror editor is preserved no matter damned what.
 Tools:
@@ -11295,30 +11177,21 @@ Need a repeatable failure, and to decide *when* to save viewport.
 
       IDEA -- maybe set HOME to something in /tmp with temporary ssh keys in it?!
 
-     [ ] code_editor -- remove trailing whitespace mode
+    [x] code_editor -- remove trailing whitespace mode
 
-    [ ] control-s in worksheet should save it?
+    [x] control-s in worksheet should save it?
 
     [ ] local-hub: still lots of race conditions; visible in log; e.g., building goes crazy building on top of self!
         bug seen in log: creating one sage session creates TWO.  WEIRD.
 
     [ ] local-hub: make a binary of the complete install; note this has to be remade when I change anything, so must be very automated.
 
-
     [ ] make project disk usage be correct... or when browsing files just show usage of current path and all subdirs...
-
-    [ ] attach: I must implement the load and attach commands, for (backwards) compatibility. Sorry.
-
 
 another NAME idea:  share.sagemath.com  ?
 
-    [ ] rename: local_hub --> minihub?
-    [ ] rename: .salvus-worksheet ==> .scs (=SageCloudSheet)
+    [x] hub: when connection between local_hub and hub dies, recreate it.
 
-    [ ] hub: when connection between local_hub and hub dies, recreate it.
-
-    [ ] local_hub: automatically recreate connection to console_server if it goes down
-    [ ] local_hub: automatically recreate connection to sage_server if it goes down
 
     [ ] hub/project: move code for getting a new worksheet session to project object and test
 
@@ -11342,8 +11215,6 @@ AWS usage ideas:
 
     [ ] make the latex command and what it is run on (!!) customizable.
 
-    [ ] option to autolatex on switching to the preview screen and save
-
     [ ] control-; to split in *NOTE* cell too!
 
     [ ] Note area should be a restricted subset of text formatting/math that can be rendered in both latex and html.
@@ -11351,14 +11222,10 @@ AWS usage ideas:
 
     [ ] cell depencies would be nice, e.g., if you evaluate cell foo and bar hasn't been evaluated, evaluate it first... ?
 
-    [ ] syntax error WTF: for x in partitions(4): print x
-
     [ ] to-latex mode should intelligently change " to ``.
 
     [ ] In note field, typing "consider {\em blah} ..." could change it to emphasize.
         Really note mode needs to be easily configurable.
-
-    [ ] *need* to easily be able to resize the height of the output and have this saved!!!
 
     [ ] it would be very helpful is a "worksheet" had multiple pages.
         Maybe "worksheet" --> "mathsheet", "sagesheet", "notebook" (?)
@@ -11378,27 +11245,21 @@ AWS usage ideas:
 
     [ ] sessions: when login get a list of existing ones or make a new one.
 
-    [ ] stupid codemirror keeps scrolling to top on refocus.  Must *remember* everything exactly!
-
     [ ] still sometimes get rendered mathjax in html'data. argh.
 
 ---------
 
+    [x] hub/project: start sagemathcloud daemons via ssh/hub, then rsync back *.ports files.
 
-    [ ] hub/project: check whether or not sagemathcloud is installed/built setup on remote host
-        See this line in hub.coffee: "# TODO: at this point we have to build/start/etc., depending on the status."
+    [x] automatically restart the port forward *when* it becomes unresponsive
+    [x] hub: provide a default account, so things work without user having to provide their own, and is quick.
 
-    [ ] hub/project: start sagemathcloud daemons via ssh/hub, then rsync back *.ports files.
-
-    [ ] automatically restart the port forward *when* it becomes unresponsive
-    [ ] hub: provide a default account, so things work without user having to provide their own, and is quick.
-
-    [ ] hub: see this "TODO -- move getting a console session to a method in "class Project""
+    [x] hub: see this "TODO -- move getting a console session to a method in "class Project""
              similar for sage sessions, etc. -- should be organized by project class.
 
 ---
 
-    [ ] getting this any time I execute code: debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"error","id":"1e19ebc0-96b2-4745-a514-e0707dee0896","error":"Local hub received an invalid mesg type 'execute_code'"}
+    [x] getting this any time I execute code: debug: hub --> client (e1c99a84-d220-49b3-a385-16e8902b0882): {"event":"error","id":"1e19ebc0-96b2-4745-a514-e0707dee0896","error":"Local hub received an invalid mesg type 'execute_code'"}
 
 
 POWER/INTERNET -->
@@ -11449,21 +11310,12 @@ Error: This socket is closed.
 
      [ ] hub -- socket: method; need to get the secret token for a local hub using ssh.
 
-     [ ] regarding installing all services and scripts -- just copy
-         over via ssh on startup; will make upgrading easy, etc.;
-         maybe use rsync over ssh
-
      [ ] connect_to_session --> replace by "session_status" and just make re-connection automatic
 
      [ ] Ports of all the local services should get written to files (?) PROJECT_ROOT/.sagemathcloud/ports/service_name
          local_hub reads this on first connect and caches it, until it doesn't work, then re-reads.
 
      [ ] delete old project2 code
-
-     [ ] very, very minimal proof of concept demo that illustrates keeping the state
-         of a worksheet in memory, and having multiple simultaneous editors.
-
-     [ ] rename: session_uuid --> session_id
 
      [ ] BUG -- hub or user client creates *two* sage sessions when I open a worksheet.
 
@@ -11488,7 +11340,6 @@ Error: This socket is closed.
        Find a way to have only one filename extension.
 
    [ ] Backups:
-
       [ ] learn rsnapshot
       [ ] rsnapshot to n storage nodes in data/project_rsnasphot/project_id
       [ ] store that this was done in database
@@ -11842,8 +11693,6 @@ def f(n=[1,2,3]):
 
     [ ] sage's show_identifiers should be explicitly re-initialized after imports and monkey patches
 
-    [ ] cells: move (control-arrow) should move all cells with checkbox checked.
-
     [ ] worksheet: delete trailing whitespace menu option?
 
 
@@ -12011,14 +11860,10 @@ for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : wo
 
     [ ] projects: maybe provide a warning when you create a new project with the same title as an existing one
 
-    [ ] project: When changing project title, should auto change the entry in the tab at the top.
-
-    [ ] project: Style of project tab in the top should be different to distinguish projects from other stuff.
+    [x] project: Style of project tab in the top should be different to distinguish projects from other stuff.
 
     [ ] worksheet persistence: make it so worksheet.save() succeeds in some way, no matter what... going so far as to store
         in localStorage and saving on next connect.   Same for file save.
-
-    [ ] TODO: add id's to worksheets --? otherwise, how will sync'ing work between clients?
 
     [ ] worksheet persistence: warn before overwriting existing file with same name!
 
@@ -12044,7 +11889,7 @@ for example: clrt-: doesn't work and firefox zoom out the page clrt 3 and 4 : wo
 
     [ ] interact: update_args -- finish
 
-    [ ] interact: make labels parse typeset math
+    [x] interact: make labels parse typeset math
 
     [ ] interact: subtle issue in setattr -- this doesn't work well for input_grid,
          do to coercion of that list...
@@ -12097,7 +11942,6 @@ def f(reset  = button('Randomize', classes="btn-primary"),
     [ ] browser must browse live directory, but give git-related info
         about each file -- last commit and whether or not it was checked in.
     [ ] switches? -- useful for something in salvus? http://www.larentis.eu/switch/    -- settings pages!
-    [ ] settings: whether or not lines wrap in codemirror.
     [ ] failing to create a new project due to connection error, doesn't give a good error.
     [ ] fail: os.chdir("/home/wstein/explicit"); g = require('/home/wstein/explicit/go2.sage')
 
@@ -12235,3 +12079,11 @@ def mat(s):
 +tab completion doesn't work for:" M = ModularSymbols(N*p,sign=1).cuspidal_su[tab]"
 +
 +"d = E.dimension() * sigma(" doesn't work either.
+
+
+
+
+
+
+
+

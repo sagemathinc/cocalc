@@ -1,8 +1,125 @@
-THE FINAL PUSH!
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+FINAL TOP PRIORITY THIS WEEK TODO LIST;
+I have 54 hours.
+---------------------------------------
 
-[ ] File editor sync
-[ ] Worksheet sync
-[ ] Multiple users on a single project
-[ ] Publish (including homework grading)
-[ ] Deploy on servers
-[ ] Presentation mode
+= UX =
+
+(0:45?)    [x] (0:00) fix cursor broadcast doubling, so I can edit again! -- problem disappeared
+
+(0:30?)    [ ] default filename for terminal and worksheet date/time iso format
+(0:30?)    [ ] project: When changing project title, should auto change the entry in the tab at the top.
+(3:00?)    [ ] make all edit windows "FULL SCREEN" solidly.
+(1:30?)    [ ] terminals die -- this is getting annoying!
+(1:00?)    [ ] terminals should automatically restart if the backing session dies.  Keep history and cwd.
+(0:45?)    [ ] changing password should invalidate all cookies.
+(0:30?)    [ ] editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
+(0:45?)    [ ] error message when file doesn't load should not be *in* codemirror
+(0:30?)    [ ] need a "save all open files" button somewhere (in editor's list of open files page)
+(1:00?)    [ ] when searching, automatically copy highlighted text into search box.
+(1:30?)    [ ] split document editing (see two parts of doc at once)
+(1:00?)    [ ] editor buttons: search/replace/undo/redo/autoindent/
+(1:00?)    [ ] worksheet -- default start location is relative to home directory not project.  Yuck.
+(1:30?)    [ ] when a local_hub is starting, show a progress meter... (and sequence of messages)
+(1:00?)    [ ] show hidden files checkbox
+(1:00?)    [ ] if you start clicking around directories quickly you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
+(1:00?)    [ ] auto delete trailing whitespace should be an option in global settings
+(1:00?)    [ ] show quota info in project settings.
+(1:00?)    [ ] change filename extensions: ".smc", ".trm"
+(2:00?)    [ ] make note cells be markdown with $'s for math.
+(1:00?)    [ ] directory download
+(2:00?)    [ ] file upload
+(0:30?)    [ ] settings: whether or not lines wrap in codemirror.
+(1:00?)    [ ] codemirror color scheme
+(1:00?)    [ ] interact plus moving cells is a disaster...; just add a data attribute to those cells so skipped
+(2:00?)    [ ] worksheet: be able to print a worksheet nicely (at least something involving HTML/CSS)
+(3:00?)    [ ] write some basic documentation (?)
+(1:00?)    [ ] cells: move (control-arrow) should move all cells with checkbox checked.
+(12:00?)   [ ] basic 3d rendering using three.js (lowest priority)
+
+= Accounts =
+
+(3:00?)    [ ] admin.py -- write Python code to login, then sudo and configure accounts on a machine for users,
+               then record that this succeeded in the database.
+
+          admin.provision('03salvus-users', k, max_disk=4096)
+
+          # Makes it so the accounts of the form smc1, smc2, smc3,...,smck, exist, on that machine,
+          # with /home/smc[n] built from a template, and ssh-keys access setup
+          # Also they have the given disk quota.
+
+          Here the machine name is as listed in the the hosts file.
+
+(3:00?)	[ ] When a user logs in (if we haven't already in the last x
+	    hours) do a very compressed tarball backup of the user's
+	    root directory (without any of the project directories)
+	    and store in db.  Store when this was done.
+            Next time, only include files that were modified since the
+            last backup by using the options mentioned here:
+                http://catlingmindswipe.blogspot.com/2010/02/linux-how-to-incremental-backups-using.html
+
+(3:00?) [ ] For easy user-only recover of mistakes, setup rsnapshot
+            on the same virtual machine, made with rsync,
+            and way browse it (symlink to path of project)
+
+(3:00?) [ ] In project settings: option to make a new project from a backup of project.
+             (just show list of times when there were backups made, and sizes)
+
+= Publish =
+
+(0:30?) [ ] add UI button next to download for "publish"
+
+        [ ] when clicked, file is copied to database (as a blob with blob_uuid)
+            and entry in table 'published' with these columns:
+              pub_id  short_url    project_id     filename       timestamp  title   description  blob_uuid
+            the url is really short.
+               https://cloud.sagemath.org/pub/short_url
+
+        [ ] in the project, there's a field called pub, which gives
+            filenames/pub_id of all published documents
+
+
+
+
+= Doc Synchronization =
+
+    [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
+    [ ] A project-level chat, in addition to file level
+    [ ] Move a bunch more specific code out of syncdiff....
+    [ ] bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
+        characters typed get jumbled.
+    [ ] range selection -- need to also preserve that on update.
+    [ ] issue: if you open a #! script the first line isn't read until connecting to the sync session,
+        so we don't have any way to know the file type... hence the codemirror editor doesn't have
+        the right mode.
+    [ ] when a session has timed out, chat just doesn't work.
+        typing once into the session and waiting... makes chat work.
+    [ ] re-enable (and test) automatic timeout of sync sessions in local_hub
+
+
+= Worksheet features =
+
+    [ ] attach: I must implement the load and attach commands, for (backwards) compatibility. Sorry.
+    [ ] syntax error WTF: for x in partitions(4): print x
+    [ ] *need* to easily be able to resize the height of the output and have this saved!!!
+
+
+
+= Components =
+
+    [ ] local_hub: automatically recreate connection to console_server if it goes down
+    [ ] local_hub: automatically recreate connection to sage_server if it goes down
+
+
+
+= Deploy =
+
+(1:00?)  [ ] security updates to 01 and 06 salvus
+(3:00?)  [ ] deploy on 01 and 06
+(2:00?)  [ ] get ssl cert setup for cloud.sagemath.org
+(1:00?)  [ ] change any hard coded "salv.us" to cloud.sagemath.org
+(1:00?)  [ ] make sure email reset works with cloud.sagemath.org
+
+
+-----------
+LATER
