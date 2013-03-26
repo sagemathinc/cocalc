@@ -11019,15 +11019,15 @@ level and work in.
     [x] move the about page to be another tab next to settings that is the first thing shown.
     [x] Some trivial polish: "buffers" --> opened files;
     [x] control-o in search tab should bring up open file in editor tab.
+    [x] Move "delete trailing whitespace" to be a codemirror extension, then use it that way.
 
---    [ ] implement the 'choose a file' search box for project.coffee
+    [ ] implement the 'choose a file' search box for project.coffee
          - as an option to git-ls
          - just use find command remotely instead of doing it all client side, so can easily include subdirectories.
     [ ] page up / page down in codemirror makes no sense!
          page up/down should: (1) not move the cursor, and (2) move buffer by *exactly* a page!  Gees.
     [ ] Do quick minimalist version of: accounts   (so at least we're in polish stage!)
     [ ] Do quick versions of: publish   (so at least we're in polish stage!)
-    [ ] Move "delete trailing whitespace" to be a codemirror extension, then use it that way.
     [ ] Move a bunch more specific code out of syncdiff....
     [ ] editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
     [ ] error message when file doesn't load should not be *in* codemirror

@@ -130,18 +130,10 @@ class DiffSyncDoc
             cm.scrollIntoView(pos)  # just in case
 
 
-codemirror_setValue_less_moving = (cm, value) ->
-    scroll = cm.getScrollInfo()
-    pos = cm.getCursor()
-    cm.setValue(value)
-    cm.setCursor(pos)
-    cm.scrollTo(scroll.left, scroll.top)
-    cm.scrollIntoView(pos)
-
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more
     # clever regarding restoring the cursor and the scroll location.
-    codemirror_setValue_less_moving(cm_session.codemirror, content)
+    cm_session.codemirror.setValueNoJump(content)
 
     return new diffsync.CustomDiffSync
         doc            : new DiffSyncDoc(cm:cm_session.codemirror)
@@ -264,7 +256,7 @@ class SynchronizedDocument
                 @_add_listeners()
 
                 if resetting
-                    codemirror_setValue_less_moving(@codemirror, live_content)
+                    @codemirror.setValueNoJump(live_content)
                     # Force a sync.
                     @_syncing = false
                     @sync()
@@ -517,7 +509,7 @@ class SynchronizedDocument
 
     save: (cb) =>
         if @editor.opts.delete_trailing_whitespace
-            @delete_trailing_whitespace()
+            @codemirror.delete_trailing_whitespace()
         if @dsync_client?
             @sync () =>
                 @call
@@ -531,25 +523,6 @@ class SynchronizedDocument
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
 
-    delete_trailing_whitespace: () =>
-        changeObj = undefined
-        val = @codemirror.getValue()
-        text1 = val.split('\n')
-        text2 = misc.delete_trailing_whitespace(val).split('\n')
-        if text1.length != text2.length
-            console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
-            return
-        for i in [0...text1.length]
-            if text1[i].length != text2[i].length
-                obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
-                if not changeObj?
-                    changeObj = obj
-                    currentObj = changeObj
-                else
-                    currentObj.next = obj
-                    currentObj = obj
-        if changeObj?
-            @_apply_changeObj(changeObj)
 
 
 exports.SynchronizedDocument = SynchronizedDocument

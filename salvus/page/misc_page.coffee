@@ -1,3 +1,5 @@
+misc = require('misc')
+
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
 exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
@@ -175,19 +177,22 @@ CodeMirror.defineExtension 'tab_as_space', () ->
     for i in [0...@.options.tabSize]
         @replaceRange(' ', cursor)
 
-###
+# Apply a CodeMirror changeObj to this editing buffer.
 CodeMirror.defineExtension 'apply_changeObj', (changeObj) ->
     @replaceRange(changeObj.text, changeObj.from, changeObj.to)
     if changeObj.next?
-        @_apply_changeObj(changeObj.next)
+        @apply_changeObj(changeObj.next)
 
-
-
-delete_trailing_whitespace: () =>
+# Delete all trailing whitespace from the editor's buffer.
+CodeMirror.defineExtension 'delete_trailing_whitespace', () ->
+    # We *could* easily make a one-line version of this function that
+    # just uses setValue.  However, that would mess up the undo
+    # history (!), and potentially feel jumpy.
     changeObj = undefined
-    val = @codemirror.getValue()
-    text1 = val.split('\n')
-    text2 = misc.delete_trailing_whitespace(val).split('\n')
+    val       = @getValue()
+    text1     = val.split('\n')
+    text2     = misc.delete_trailing_whitespace(val).split('\n')    # a very fast regexp.
+
     if text1.length != text2.length
         console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
         return
@@ -201,5 +206,15 @@ delete_trailing_whitespace: () =>
                 currentObj.next = obj
                 currentObj = obj
     if changeObj?
-        @_apply_changeObj(changeObj)
-###
+        @apply_changeObj(changeObj)
+
+# Set the value of the buffer to something new, and make some attempt
+# to maintain the view, e.g., cursor position and scroll position.
+# This function is very, very naive now, but will get better using better algorithms.
+CodeMirror.defineExtension 'setValueNoJump', (value) ->
+    scroll = @getScrollInfo()
+    pos = @getCursor()
+    @setValue(value)
+    @setCursor(pos)
+    @scrollTo(scroll.left, scroll.top)
+    @scrollIntoView(pos)
