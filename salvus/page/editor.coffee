@@ -200,7 +200,7 @@ class exports.Editor
 
         @tabs = {}   # filename:{useful stuff}
 
-        @init_buffer_search()
+        @init_openfile_search()
 
         if opts.initial_files?
             for filename in opts.initial_files
@@ -230,12 +230,12 @@ class exports.Editor
             return false
 
     focus: () =>
-        @element.find(".salvus-editor-search-buffers-input").focus()
+        @element.find(".salvus-editor-search-openfiles-input").focus()
 
-    init_buffer_search: () =>
-        search_box = @element.find(".salvus-editor-search-buffers-input")
-        include = 'active' #salvus-editor-buffer-included-in-search'
-        exclude = 'salvus-editor-buffer-excluded-from-search'
+    init_openfile_search: () =>
+        search_box = @element.find(".salvus-editor-search-openfiles-input")
+        include = 'active' #salvus-editor-openfile-included-in-search'
+        exclude = 'salvus-editor-openfile-excluded-from-search'
         search_box.focus () =>
             search_box.select()
 

@@ -11016,10 +11016,10 @@ level and work in.
     [x] search then click on link to file fails if the file is not in the top directory
     [x] typing at beginning of fulltext project search box puts text at END!
     [x] (0:35) make the "user name/sign out" link... just three bars like in chrome? -- actually, make it gears.
-    [ ] move the about page to be another tab next to settings that is the first thing shown.
+    [x] move the about page to be another tab next to settings that is the first thing shown.
+    [x] Some trivial polish: "buffers" --> opened files;
+    [x] control-o in search tab should bring up open file in editor tab.
 
-    [ ] Some trivial polish: "buffers" --> opened files;
-    [ ] control-o in search tab should bring up open file in editor tab.
     [ ] implement the 'choose a file' search box for project.coffee
          - as an option to git-ls
          - just use find command remotely instead of doing it all client side, so can easily include subdirectories.

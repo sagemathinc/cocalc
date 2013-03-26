@@ -148,15 +148,15 @@ Editor for files in a project
     box-shadow: 3px 3px 3px 3px #888;
 }
 
-.salvus-editor-search-buffers-input {
+.salvus-editor-search-openfiles-input {
     width:90%;
 }
 
-.salvus-editor-buffer-excluded-from-search {
+.salvus-editor-openfile-excluded-from-search {
     opacity:.6;
 }
 
-.salvus-editor-buffer-included-in-search {
+.salvus-editor-openfile-included-in-search {
     border-radius:6px;
     border: 1px solid #aaa;
     box-shadow: 2px 2px 2px 2px #bbb;
