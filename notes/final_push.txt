@@ -6,7 +6,9 @@ I have 54 hours.
 = UX =
 
 (0:45?)    [x] (0:00) fix cursor broadcast doubling, so I can edit again! -- problem disappeared
-
+(0:30?)    [ ] chat toggle is broken
+(0:20?)    [ ] option -- do not delete whitespace on line that contains the cursor (codemirror plugin)
+(0:30?)    [ ] after entering a command in project command line, focus should *stay* on command line.
 (0:30?)    [ ] default filename for terminal and worksheet date/time iso format
 (0:30?)    [ ] project: When changing project title, should auto change the entry in the tab at the top.
 (3:00?)    [ ] make all edit windows "FULL SCREEN" solidly.
@@ -35,9 +37,26 @@ I have 54 hours.
 (2:00?)    [ ] worksheet: be able to print a worksheet nicely (at least something involving HTML/CSS)
 (3:00?)    [ ] write some basic documentation (?)
 (1:00?)    [ ] cells: move (control-arrow) should move all cells with checkbox checked.
+(1:00?)    [ ] informal terms of usage -- put up something very short but useful and serious.
+(0:45?)    [ ] in sign-up: explain that service it currently donation-supported.
+(1:00?)    [ ] in settings: ask for money and give link to donate to Sage foundation.
+               provide a checkbox that says "I have donated."  When they check it, it changes to a big thanks!
+               One month later, it changes to a suggestion to donate again.
+(0:45?)    [ ] Do not allow creation of private projects unless users claims to have donated.
+(1:00?)    [ ] way to make a new folder
+(2:30?)    [ ] way to move checked files into a folder
+(1:30?)    [ ] way to rename file
 (12:00?)   [ ] basic 3d rendering using three.js (lowest priority)
 
 = Accounts =
+
+Each account will have a list of unix users associated to it, starting with one.
+These will be listed in the settings page.
+A unix user = username@host... such that hub can ssh in.
+Unix users can be shared with other users of SMC; if a user is shared, then both users of SMC have 100% access to everything.
+Database table that lists all projects for a given user.
+
+(1:00?)    [ ] When creating a new project, option to choose from a list of users if there is more than one user.
 
 (3:00?)    [ ] admin.py -- write Python code to login, then sudo and configure accounts on a machine for users,
                then record that this succeeded in the database.
@@ -65,61 +84,94 @@ I have 54 hours.
 (3:00?) [ ] In project settings: option to make a new project from a backup of project.
              (just show list of times when there were backups made, and sizes)
 
-= Publish =
+= Browse =
+
+(0:30?) [ ] Add a new tab at the top called "Explore" that is to the left of "Your Projects"
+
+(1:00?) [ ] Very basic search page:    (similar function to https://github.com/explore)
+               * search = on project name and description (I will have to build indexes at some point...)
+               * place to show results
+
+(1:00?) [ ] clicking on a project in result list opens it (as usual) in read/write mode, if you have write access to it.
+
+(3:00?) [ ] write a "visitor" access project mode
+
+(1:00?) [ ] In project browser, any location should have a url which can be used as a shortcut to get back there.
+              https://cloud.sagemath.org/projects/project_id/path/in/filesystem
+            Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
+
+(1:30?) [ ] Add code to hub so that if user requests such a url, they get that project opened in the given location.
+
+(2:00?) [ ] Implement a simple "single cell" mode for visitor mode.
+
+(3:00?) [ ] Implement a homework assignment mode for visitor mode.
+
 
 (0:30?) [ ] add UI button next to download for "publish"
 
-        [ ] when clicked, file is copied to database (as a blob with blob_uuid)
+(1:30?) [ ] when clicked, file or DIRECTORY is copied to database (as a compressed blob with blob_uuid)
             and entry in table 'published' with these columns:
-              pub_id  short_url    project_id     filename       timestamp  title   description  blob_uuid
+              pub_id  short_url    project_id     filename       timestamp    blob_uuid    username
             the url is really short.
                https://cloud.sagemath.org/pub/short_url
 
-        [ ] in the project, there's a field called pub, which gives
-            filenames/pub_id of all published documents
+            Impose a size limit of say 10MB (or maybe 64MB).  Something.
 
+(1:00?) [ ] in the project, there's a field called pub, which gives
+            filenames/pub_id/last pub date/url of all published documents; add this.
 
+(1:30?) [ ] make it so in project settings, see list of all published docs associated with this project.
+
+(1:00?) [ ] change ui of file listing to take into account if a doc is published
+
+(1:00?) [ ] unpublish doc
+
+(1:00?) [ ] update publication
+
+(4:00?) [ ] rendering in share mode -- when a client visits a url of the form /pub/short_url, client does this:
+               - see some description of who/what/where is being published and a preview of the doc.
+               - have links to:
+                          (1) login, if they are not logged in
+                          (2) open in an existing project, if they are logged in. (it will ask which directory)
+                          (3) open as a new project, if they are logged in.
 
 
 = Doc Synchronization =
 
-    [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
-    [ ] A project-level chat, in addition to file level
-    [ ] Move a bunch more specific code out of syncdiff....
-    [ ] bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
+(0:30?) [ ] range selection -- need to also preserve that on update.
+(1:00?) [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
+(2:00?) [ ] A project-level chat, in addition to file level
+(3:00?) [ ] Move a bunch more specific code out of syncdiff....
+(1:30?) [ ] bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
         characters typed get jumbled.
-    [ ] range selection -- need to also preserve that on update.
-    [ ] issue: if you open a #! script the first line isn't read until connecting to the sync session,
+(1:00?) [ ] issue: if you open a #! script the first line isn't read until connecting to the sync session,
         so we don't have any way to know the file type... hence the codemirror editor doesn't have
         the right mode.
-    [ ] when a session has timed out, chat just doesn't work.
+(1:00?) [ ] when a session has timed out, chat just doesn't work.
         typing once into the session and waiting... makes chat work.
-    [ ] re-enable (and test) automatic timeout of sync sessions in local_hub
+(1:30?) [ ] re-enable (and test) automatic timeout of sync sessions in local_hub
+
+(1:30?) [ ] worksheet sync: define code to diff to worksheets and make a patch
+(1:30?) [ ] worksheet sync: define code to apply a patch to a worksheet
+(2:00?) [ ] worksheet sync: integrate code for using these other diff/patch functions into client
+(2:00?) [ ] worksheet sync: integrate code for using these other diff/patch functions into hub
+(2:00?) [ ] worksheet sync: integrate code for using these other diff/patch functions into local hub
 
 
 = Worksheet features =
 
-    [ ] attach: I must implement the load and attach commands, for (backwards) compatibility. Sorry.
-    [ ] syntax error WTF: for x in partitions(4): print x
-    [ ] *need* to easily be able to resize the height of the output and have this saved!!!
-
-
+(1:30?) [ ] attach: implement the attach command for (backwards) compatibility.
+(1:00?) [ ] *need* to easily be able to resize the height of the output and have this saved!!!
 
 = Components =
 
-    [ ] local_hub: automatically recreate connection to console_server if it goes down
-    [ ] local_hub: automatically recreate connection to sage_server if it goes down
-
-
+(1:00?) [ ] local_hub: automatically recreate connection to console_server when it goes down
+(1:00?) [ ] local_hub: automatically recreate connection to sage_server if it goes down
 
 = Deploy =
 
-(1:00?)  [ ] security updates to 01 and 06 salvus
+(0:30?)  [ ] apply security updates to 01 and 06 salvus
 (3:00?)  [ ] deploy on 01 and 06
 (2:00?)  [ ] get ssl cert setup for cloud.sagemath.org
 (1:00?)  [ ] change any hard coded "salv.us" to cloud.sagemath.org
 (1:00?)  [ ] make sure email reset works with cloud.sagemath.org
-
-
------------
-LATER
