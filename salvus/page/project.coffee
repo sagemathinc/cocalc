@@ -575,7 +575,7 @@ class ProjectPage
                         elt.find(".project-command-line-stderr").text(stderr).show()
                     else
                         elt.find(".project-command-line-stderr").hide()
-                @update_file_list_tab()
+                @update_file_list_tab(true)
 
     # command_line_tab_complete: () =>
     #     elt = @container.find(".project-command-line")
@@ -807,7 +807,7 @@ class ProjectPage
 
 
     # Update the listing of files in the current_path, or display of the current file.
-    update_file_list_tab: () =>
+    update_file_list_tab: (no_focus) =>
         # Update the display of the path above the listing or file preview
         @update_current_path()
         spinner = @container.find(".project-file-listing-spinner")
@@ -948,6 +948,8 @@ class ProjectPage
                     file_or_listing.append(t)
 
                 @clear_file_search()
+                if no_focus? and no_focus
+                    return
                 @focus_file_search()
 
     download_project: (opts={}) =>
