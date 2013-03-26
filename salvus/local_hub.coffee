@@ -975,7 +975,7 @@ project_exec = (socket, mesg) ->
             if err
                 err_mesg = message.error
                     id    : mesg.id
-                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}, #{output?.stdout}, #{output?.stderr}"
+                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
                 socket.write_mesg('json', err_mesg)
             else
                 winston.debug(json(out))

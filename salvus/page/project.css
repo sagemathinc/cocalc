@@ -249,3 +249,8 @@
     margin  : 0px;
     padding : 0px;
 }
+
+.project-search-output-further-results {
+    font-size:14px;
+    font-weight: bold;
+}

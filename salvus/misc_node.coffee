@@ -257,6 +257,7 @@ exports.execute_code = (opts) ->
         env = {HOME:opts.home}
 
     tmpfilename = undefined
+    ran_code = false
 
     async.series([
         (c) ->
@@ -300,6 +301,7 @@ exports.execute_code = (opts) ->
                 o.gid = opts.gid
 
             r = child_process.spawn(opts.command, opts.args, o)
+            ran_code = true
 
             winston.debug("Listen for stdout, stderr and exit events.")
             stdout = ''
@@ -365,11 +367,16 @@ exports.execute_code = (opts) ->
             exit_code = 1  # don't have one due to SIGKILL
 
         # TODO:  This is dangerous, e.g., it could print out a secret_token to a log file.
-        winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
+        # winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
         # Do not litter:
         if tmpfilename?
             fs.unlink(tmpfilename)
-        opts.cb?(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
+
+        if not opts.err_on_exit and ran_code
+            # as long as we made it to running some code, we consider this a success (that is what err_on_exit means).
+            opts.cb?(false, {stdout:stdout, stderr:stderr, exit_code:exit_code})
+        else
+            opts.cb?(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
     )
 
 

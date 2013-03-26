@@ -932,11 +932,14 @@ class exports.Connection extends EventEmitter
             command    : required
             args       : []
             timeout    : 30
+            network_timeout : undefined
             max_output : undefined
             bash       : false
             err_on_exit : true
             cb         : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
 
+        if not opts.network_timeout?
+            opts.network_timeout = opts.timeout * 1.5
         @call
             message : message.project_exec
                 project_id : opts.project_id
@@ -947,7 +950,7 @@ class exports.Connection extends EventEmitter
                 max_output : opts.max_output
                 bash       : opts.bash
                 err_on_exit : opts.err_on_exit
-            timeout : opts.timeout
+            timeout : opts.network_timeout
             cb      : (err, mesg) ->
                 if err
                     opts.cb(err, mesg)

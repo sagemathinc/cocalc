@@ -423,6 +423,8 @@ class ProjectPage
         if $.trim(query) == ""
             return
         @display_tab("project-search")
+        @container.find(".project-search-output-path-heading").show()
+        @container.find(".project-search-output-terms").text(query)
         search_output = @container.find(".project-search-output").empty()
         recursive   = @container.find(".project-search-output-recursive").is(':checked')
         insensitive = not @container.find(".project-search-output-case-sensitive").is(':checked')
@@ -451,21 +453,23 @@ class ProjectPage
         that = @
         salvus_client.exec
             project_id : @project.project_id
-            command    : cmd + " | cut -c 1-1000"
-            timeout    : 10
+            command    : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
+            timeout    : 1   # how long grep runs on client
+            network_timeout : 6   # how long network call has until it must return something or get total error.
             max_output : max_output
             bash       : true
+            err_on_exit: false
             path       : path
             cb         : (err, output) =>
                 clearTimeout(timer)
                 spinner.spin(false).hide()
-                if err
+                if (err and not output?) or (output? and not output.stdout?)
                     search_output.append($("<div>").text("Search failed -- #{err}"))
                     return
                 search_result = templates.find(".project-search-result")
                 num_results = 0
                 results = output.stdout.split('\n')
-                if output.stdout.length >= max_output or results.length > max_results
+                if output.stdout.length >= max_output or results.length > max_results or err
                     @container.find(".project-search-output-further-results").show()
                 else
                     @container.find(".project-search-output-further-results").hide()
@@ -630,11 +634,13 @@ class ProjectPage
         that = @
         for item in @container.find(".project-pages").children()
             t = $(item)
-            name = t.find("a").attr('href').slice(1)
-            t.data("name", name)
+            target = t.find("a").attr('href')
+            name = target.slice(1)
             tab = {label:t, name:name, target:@container.find(".#{name}")}
             @tabs.push(tab)
-            t.click () ->
+
+            # Make all links on this page go to this target.
+            @container.find("a[href=#{target}]").data('name',name).click () ->
                 that.display_tab($(@).data("name"))
                 return false
 
