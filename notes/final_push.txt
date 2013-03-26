@@ -15,11 +15,11 @@ Sunday -- get prepared for my teaching on monday
 ---------------------------------------
 
 = UX =
+(0:20?)  [x] (0:06) do not delete whitespace on line that contains the cursor (codemirror plugin)
 (0:30?)  [ ] create a new file
 (0:45?)  [ ] cursor replication when sync starts
 (0:45?)  [ ] selecting from open files suddenly not working
-(0:20?)  [x] (0:06) option -- do not delete whitespace on line that contains the cursor (codemirror plugin)
-(0:20?)  [ ] in project file listing search, make it so that the *other* hidden files are not clickable!
+-->(0:20?)  [ ] in project file listing search, make it so that the *other* hidden files are not clickable!
 (0:30?)  [ ] after entering a command in project command line, focus should *stay* on command line.
 (0:30?)  [ ] default filename for terminal and worksheet date/time iso format
 (0:30?)  [ ] project: When changing project title, should auto change the entry in the tab at the top.

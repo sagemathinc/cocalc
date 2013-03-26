@@ -239,15 +239,17 @@
 }
 
 .project-listing-search-include {
-    border-left  : 10px solid #08c;
-    border-right : 10px solid #08c;
+    border  : 2px solid #08c;
 }
 
 .project-listing-search-exclude {
-    opacity : .1;
-    height  : 1px;
-    margin  : 0px;
-    padding : 0px;
+    opacity : .3;
+    overflow : hidden;
+    height  : 12px;
+    font-size: 9px;
+    margin  : 0;
+    padding : 0;
+    margin-top: -8px;  /* So they overlap */
 }
 
 .project-search-output-further-results {
