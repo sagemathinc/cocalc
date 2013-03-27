@@ -7,11 +7,13 @@ exports.salvus_client = salvus_client = require("client_browser").connect("#{win
 salvus_client.on "connecting", () ->
     $("#connection_status").html("<font color='#a00'>connecting...</font>")
     $("#connection_protocol").html('')
+    $("#connection_bars").hide()
     $("#ping_time").html('')
 
 salvus_client.on "connected", (protocol) ->
     $("#connection_status").html("")
     $("#connection_protocol").html(protocol)
+    $("#connection_bars").show()
 
 salvus_client.on "ping", (ping_time) ->
     $("#ping_time").html("ping=#{(ping_time*1000).toFixed(0)}ms")

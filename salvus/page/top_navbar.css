@@ -13,7 +13,9 @@
 
 .salvus-connection-status {
     width     : 7em;
-    font-size : 8pt;
+    font-size : 9pt;
+    line-height: 10pt;
+    margin-top: 10pt;
 }
 
 .salvus-top_navbar {
