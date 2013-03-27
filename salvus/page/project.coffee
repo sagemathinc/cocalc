@@ -840,17 +840,11 @@ class ProjectPage
             if p[p.length-1] == '/'
                 create_folder()
                 return false
-            salvus_client.exec
-                project_id : @project.project_id
-                command    : "touch"
-                timeout    : 5
-                args       : [p]
-                cb         : (err, result) =>
-                    if err
-                        alert_message(type:"error", message:err)
-                    else if result.event == 'error'
-                        alert_message(type:"error", message:result.error)
-                    else
+            @ensure_file_exists
+                path : p
+                alert : true
+                cb : (err) =>
+                    if not err
                         alert_message(type:"info", message:"Created new file '#{p}'")
                         @display_tab("project-editor")
                         tab = @editor.create_tab(filename:p, content:"")
@@ -861,18 +855,11 @@ class ProjectPage
             if p.length == 0
                 @new_file_tab_input.focus()
                 return false
-            salvus_client.exec
-                project_id : @project.project_id
-                command    : "mkdir"
-                timeout    : 5
-                args       : ['-p', p]
-                cb         : (err, result) =>
-                    if err
-                        alert_message(type:"error", message:err)
-                    else if result.event == 'error'
-                        alert_message(type:"error", message:result.error)
-                    else
-                        alert_message(type:"info", message:"Created new directory '#{p}'")
+            @ensure_directory_exists
+                path : p
+                cb   : (err) =>
+                    if not err
+                        alert_message(type:"info", message:"Made directory '#{p}'")
                         for segment in @new_file_tab_input.val().split('/')
                             if segment.length > 0
                                 @current_path.push(segment)
@@ -1050,6 +1037,7 @@ class ProjectPage
         link.attr('contenteditable',true)
         link.focus()
         original_name = link.text()
+        link.text(original_name)
         doing_rename = false
         rename = () =>
             if doing_rename
@@ -1074,21 +1062,12 @@ class ProjectPage
 
 
     rename_file: (path, original_name, new_name) =>
-        salvus_client.exec
-            project_id : @project.project_id
-            command    : 'mv'
-            args        : [original_name, new_name]
-            timeout    : 4
-            network_timeout : 5
-            err_on_exit: false
-            path       : path
-            cb         : (err, output) =>
-                if err
-                    alert_message(type:"error", message:"Communication error while  renaming '#{original_name}' to '#{new_name}' -- #{err}")
-                else if output.event == 'error'
-                    alert_message(type:"error", message:"Error renaming '#{original_name}' to '#{new_name}' -- #{output.error}")
-                else
-                    alert_message(type:"info", message:"Change name of '#{original_name}' to '#{new_name}'")
+        @move_file
+            src : original_name
+            dest : new_name
+            path : path
+            cb   : (err) =>
+                if not err
                     @update_file_list_tab(true)
 
     download_project: (opts={}) =>
@@ -1096,9 +1075,87 @@ class ProjectPage
             project_id : @project.project_id
             filename   : @project.title
 
-    delete_file: (path) =>
-        console.log("delete file '#{path}'")
+    move_file: (opts) =>
+        opts = defaults opts,
+            src   : required
+            dest  : required
+            path  : undefined   # default to root of project
+            cb    : undefined   # cb(true or false)
+            alert : true        # show alerts
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : 'mv'
+            args       : [opts.src, opts.dest]
+            timeout    : 5  # move should be fast..., unless across file systems.
+            network_timeout : 10
+            err_on_exit : false
+            path       : opts.path
+            cb         : (err, output) =>
+                if opts.alert
+                    if err
+                        alert_message(type:"error", message:"Communication error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
+                    else if output.event == 'error'
+                        alert_message(type:"error", message:"Error moving '#{opts.src}' to '#{opts.dest}' -- #{output.error}")
+                    else
+                        alert_message(type:"info", message:"Moved '#{opts.src}' to '#{opts.dest}'")
+                opts.cb?(err or output.event == 'error')
 
+    ensure_directory_exists: (opts) =>
+        opts = defaults opts,
+            path  : required
+            cb    : undefined  # cb(true or false)
+            alert : true
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : "mkdir"
+            timeout    : 5
+            args       : ['-p', opts.path]
+            cb         : (err, result) =>
+                if opts.alert
+                    if err
+                        alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        alert_message(type:"error", message:result.error)
+                opts.cb?(err or output.event == 'error')
+
+    ensure_file_exists: (opts) =>
+        opts = defaults opts,
+            path  : required
+            cb    : undefined  # cb(true or false)
+            alert : true
+
+        async.series([
+            (cb) =>
+                dir = misc.path_split(opts.path).head
+                if dir == ''
+                    cb()
+                else
+                    @ensure_directory_exists(path:dir, alert:opts.alert, cb:cb)
+            (cb) =>
+                salvus_client.exec
+                    project_id : @project.project_id
+                    command    : "touch"
+                    timeout    : 5
+                    args       : [opts.path]
+                    cb         : (err, result) =>
+                        if opts.alert
+                            if err
+                                alert_message(type:"error", message:err)
+                            else if result.event == 'error'
+                                alert_message(type:"error", message:result.error)
+                        opts.cb?(err or output.event == 'error')
+        ], (err) -> opts.cb?(err))
+
+
+    delete_file: (path) =>
+        base_path = misc.path_split(path).head
+        dest = '.trash/'+base_path
+        async.series([
+            (cb) =>
+                @ensure_directory_exists(path:dest, cb:cb)
+            (cb) =>
+                @move_file(src:path, dest:dest, cb:cb)
+        ], (err) => @update_file_list_tab(true))
 
     download_file: (path) =>
         salvus_client.read_file_from_project

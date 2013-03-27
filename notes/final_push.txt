@@ -38,14 +38,14 @@ Sunday -- get prepared for my teaching on monday
 (1:00?)  [x] (1:00) way to rename file
 (0:30?)  [x] (0:42) delete/download file icons should only appear on hover; also, added a link for importing files from the web (will use wget)
          [x] (1:10) refactoring and cleanup of file listing code.
+(0:45?)  [x] (0:42) way to delete files; just moves to project_path/.trash, making that directory if necessary and printing a message
+(0:30?)  [ ] project rename just like file rename
+(0:30?)  [ ] close all recently opened files.
 (1:00?)  [ ] import files form web using wget --- make it live; add a slider for how long it will try to download until giving up.
-(0:45?)  [ ] way to delete files; just moves to project_path/.trash, making that directory if necessary and printing a message
-(0:30?)  [ ] file download is broken
-(0:45?)  [ ] implement directory download (or at least confirm it works)
 (0:30?)  [ ] way to browse trash can
 (0:30?)  [ ] way to empty trash can
 (1:30?)  [ ] way to move checked files into a folder (or ..) --> simply drag them.
-(0:30?)  [ ] project rename just like file rename
+(0:45?)  [ ] implement directory download -- need to name things sensibly; may require changes in hubs.
 (0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
 (0:30?)  [ ] fix auto-resizing of input cells of worksheet
 (1:00?)  [ ] clean up the button bar at the top of worksheets; make consistent with files...
@@ -87,6 +87,7 @@ Sunday -- get prepared for my teaching on monday
 (0:30?)  [ ] typing *while* first syncing moves editor display down one each character typed.
 (0:45?)  [ ] bug -- resizing terminal results in codes getting sprayed on the screen
 (0:45?)  [ ] Editor bookmarks?.  Ctrl-B to toggle then, Ctrl-I to move to next?
+(0:45?)  [ ] bug -- delete directory containing a file being edited -- save *appears* to work, but doesn't.
 (1:00x)  [ ] when a local_hub is starting, show a progress meter... (and sequence of messages)
 
 = Major Show-stopper Bugs =
