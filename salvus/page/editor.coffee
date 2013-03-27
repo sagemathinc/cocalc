@@ -203,6 +203,7 @@ class exports.Editor
         @tabs = {}   # filename:{useful stuff}
 
         @init_openfile_search()
+        @init_close_all_tabs_button()
 
         if opts.initial_files?
             for filename in opts.initial_files
@@ -231,6 +232,22 @@ class exports.Editor
         navbar_height = $("body").css('padding-top')
         @element.find(".salvus-editor-content").css('top':navbar_height)
         @active_tab.editor.show()
+
+    init_close_all_tabs_button: () =>
+        @element.find("a[href=#close-all-tabs]").click () =>
+            v = []
+            for filename, tab of @tabs
+                @close(filename)
+                v.push(filename)
+            undo = @element.find("a[href=#undo-close-all-tabs]")
+            undo.stop().show().animate(opacity:100).fadeOut(duration:60000).click () =>
+                undo.hide()
+                for filename in v
+                    if not @tabs[filename]?
+                        @create_tab(filename:filename)
+                return false
+            alert_message(type:'info', message:"Closed all recently opened files.")
+            return false
 
     init_openfile_search: () =>
         search_box = @element.find(".salvus-editor-search-openfiles-input")

@@ -6,15 +6,21 @@ Editor for files in a project
 
     <!-- Template for the entire editor, both tabs and the actual content -->
     <div class="salvus-editor">
-
+        <div class="row">
+            <h3>Your recently opened files</h3>
+        </div>
         <div class="row salvus-editor-button-bar  well">
             <div class="span2">
                 <input class="salvus-editor-search-openfiles-input search-query" type="text" placeholder="Choose file...">
             </div>
-            <div class="span9">
+            <div class="span8">
                 <!-- The editor tabs go in this ul: -->
                 <ul class="nav nav-pills">
                 </ul>
+            </div>
+            <div class="span1" style="margin: 0px; width: 7em; text-align: right;">
+                <a class='btn btn-danger' href="#close-all-tabs"><i class="icon-minus-sign"> </i> Clear</a>
+                <a class='btn hide' href="#undo-close-all-tabs"><i class="icon-undo"> </i> Undo</a>
             </div>
         </div>
 
