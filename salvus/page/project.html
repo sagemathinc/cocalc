@@ -77,16 +77,6 @@
                 <!-- Chat about this project -->
                 <!--	  <li class="super-menu"><a href="#project-chats">Chat</a></li> -->
 
-                <!-- buttons to create new consoles -->
-                <div class="pull-right"  style="margin-right:1em;">
-                    <span class="lighten" style="font-weight:bold; margin-right:1em; font-size:15px;"><i class="icon-bolt" style="color:orange"> </i> New...</span>
-                    <span class="btn-group">
-                        <a class="btn" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
-                        <a class="btn" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
-                        <a class="btn" href="#new-file"><i class="icon-file"></i> File</a>
-                    </span>
-                </div>
-
                 <!-- Git revision log of this project -->
                 <!--
 <li class="super-menu"><a href="#project-commits">Changes (<span class="project-editor-commit-count">?</span>)</a></li>-->
@@ -100,6 +90,8 @@
                 <!--
 <li class="super-menu"><a href="#project-forks">Forks</a></li>
 -->
+                <!-- Settings specific to this project -->
+                <li class="super-menu"><a href="#project-new-file"><i class="icon-file"> </i> New</a></li>
 
                 <!-- Settings specific to this project -->
                 <li class="super-menu"><a href="#project-settings"><i class="icon-cog"> </i> Settings</a></li>
@@ -120,7 +112,7 @@
             <div class="project-file-listing">
                 <div class="row">
                     <div class="span2">
-                       <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose file...">
+                        <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose file...">
                     </div>
 
                     <!-- The current path -->
@@ -202,9 +194,36 @@ course.
 -->
             </div>
 
-            <!-- Git forks -->
-            <div class="project-forks hide">
-                Known forks of this project listed here.
+            <!--
+new file
+new folder
+worksheet
+terminal
+in current location
+-->
+            <!-- Create a new file -->
+            <div class="project-new-file hide well">
+                <div class="row">
+                    <div class="span3">
+                        <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path">path/to/file/</span></a>
+                    </div>
+                    <div class="offset1 span7" style="padding-top: 4px;">
+
+                        <input class="project-new-file-path-input" type="text" placeholder="Name your file, worksheet, terminal or directory..." style="width:100%">
+                    </div>
+                </div>
+                <div class="row" style="margin-top:1.5em;">
+                    <div class="offset4 span7">
+                        <span class="btn-group">
+                            <a rel="tooltip" title="Use <b>Sage worksheets</b> to interactively compute using the mathematical
+                                software <a target='_new' href='http://www.sagemath.org'>Sage</a>"
+                            class="btn btn-large" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
+                            <a class="btn btn-large" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                            <a class="btn btn-large" href="#new-folder"><i class="icon-folder-close"></i> Directory</a>
+                            <a class="btn btn-large" href="#new-file"><i class="icon-file"></i> File</a>
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <!-- Page to configure the settings for this project -->

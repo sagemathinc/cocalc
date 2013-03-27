@@ -19,9 +19,10 @@ Sunday -- get prepared for my teaching on monday
 (0:20?)  [x] (0:22) in project file listing search, make it so that the *other* hidden files are not clickable!
 (0:45?)  [x] (0:14) cursor replication when sync starts -- might have fixed it -- NOT SURE!
 (0:30?)  [x] (0:30) after entering a command in project command line, focus should *stay* on command line.
-(0:30?)  [ ] create a new file
-(0:45?)  [ ] selecting from open files suddenly not working
+(0:30?)  [x] (1:55)  create a new file/directory
 (0:30?)  [ ] default filename for terminal and worksheet date/time iso format
+(0:20?)  [ ] bug: sometimes clicking the x to close an open file (in file editor pills) just leaves it -- even though counter goes down; then it can't be closed
+(0:30?)  [ ] the alert message tab thing covers the connection settings.
 (0:30?)  [ ] project: When changing project title, should auto change the entry in the tab at the top.
 (2:30?)  [ ] make all edit windows "FULL SCREEN" solidly (include fixing chat toggle, of course)
 (1:00?)  [ ] reconnecting to existing worksheet sessions isn't working making it impossible to open worksheets

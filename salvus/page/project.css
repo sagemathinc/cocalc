@@ -256,3 +256,8 @@
     font-size:14px;
     font-weight: bold;
 }
+
+.project-new-file-path {
+    font-size:16pt;
+    overflow-wrap: break-word;
+}

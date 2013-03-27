@@ -149,7 +149,6 @@ class ProjectPage
         @init_search_form()
 
         # Initialize new worksheet/xterm/etc. console buttons
-        @init_console_buttons()
 
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
@@ -162,6 +161,8 @@ class ProjectPage
         @create_editor()
 
         @init_file_search()
+
+        @init_new_file_tab()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id.slice(0,8))
@@ -319,30 +320,6 @@ class ProjectPage
                 log("GOT suspicious session -- sessions=#{misc.to_json(sessions)}")
         cb?()
         ###
-
-    ########################################
-    # Console buttons
-    ########################################
-
-    init_console_buttons: () =>
-        @container.find("a[href=#new-terminal]").click () =>
-            @display_tab("project-editor")
-            #filename = "#{@current_pathname()}/#{uuid().slice(0,8)}.salvus-terminal"
-            filename = "scratch/#{uuid().slice(0,8)}.salvus-terminal"
-            if filename[0] == '/'
-                filename = filename.slice(1)
-            tab = @editor.create_tab(filename:filename, content:"")
-            tab.editor.val('')
-            return false
-
-        @container.find("a[href=#new-worksheet]").click () =>
-            @display_tab("project-editor")
-            #filename = "#{@current_pathname()}/#{uuid().slice(0,8)}.salvus-worksheet"
-            filename = "scratch/#{uuid().slice(0,8)}.salvus-worksheet"
-            if filename[0] == '/'
-                filename = filename.slice(1)
-            tab = @editor.create_tab(filename:filename, content:"")
-            return false
 
     ########################################
     # Search
@@ -650,6 +627,9 @@ class ProjectPage
             else if name == "project-editor"
                 tab.onshow = () ->
                     that.editor.onshow()
+            else if name == "project-new-file"
+                tab.onshow = () ->
+                    that.show_new_file_tab()
 
         @display_tab("project-file-listing")
 
@@ -804,6 +784,96 @@ class ProjectPage
                     @container.find(".salvus-project-search-for-file-input").focus()
                 when "project-editor"
                     @editor.focus()
+
+    init_new_file_tab: () =>
+        # Make it so clicking on each of the new file tab buttons does the right thing.
+        @new_file_tab = @container.find(".project-new-file")
+        @new_file_tab_input = @new_file_tab.find(".project-new-file-path-input")
+
+        path = (ext) =>
+            name = $.trim(@new_file_tab_input.val())
+            if name.length == 0
+                return ''
+            s = $.trim(@new_file_tab.find(".project-new-file-path").text() + name)
+            if ext?
+                if misc.filename_extension(s) != ext
+                    s += ext
+            return s
+
+        @new_file_tab.find("a[href=#new-terminal]").click () =>
+            p = path('.salvus-terminal')
+            if p.length == 0
+                @new_file_tab_input.focus()
+                return false
+            @display_tab("project-editor")
+            tab = @editor.create_tab(filename:p, content:"")
+            tab.editor.val('')
+            return false
+
+        @new_file_tab.find("a[href=#new-worksheet]").click () =>
+            p = path('.salvus-worksheet')
+            if p.length == 0
+                @new_file_tab_input.focus()
+                return false
+            @display_tab("project-editor")
+            tab = @editor.create_tab(filename:p, content:"")
+            return false
+
+        @new_file_tab.find("a[href=#new-file]").click () =>
+            p = path()
+            if p.length == 0
+                @new_file_tab_input.focus()
+                return false
+            if p[p.length-1] == '/'
+                return create_folder()
+
+            salvus_client.exec
+                project_id : @project.project_id
+                command    : "touch"
+                timeout    : 5
+                args       : [p]
+                cb         : (err, result) =>
+                    if err
+                        alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        alert_message(type:"error", message:result.error)
+                    else
+                        alert_message(type:"info", message:"Created new file '#{p}'")
+                        @display_tab("project-editor")
+                        tab = @editor.create_tab(filename:p, content:"")
+            return false
+
+        create_folder = () =>
+            p = path()
+            if p.length == 0
+                @new_file_tab_input.focus()
+                return false
+            salvus_client.exec
+                project_id : @project.project_id
+                command    : "mkdir"
+                timeout    : 5
+                args       : ['-p', p]
+                cb         : (err, result) =>
+                    if err
+                        alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        alert_message(type:"error", message:result.error)
+                    else
+                        alert_message(type:"info", message:"Created new directory '#{p}'")
+                        @current_path.push(@new_file_tab_input.val())
+                        @display_tab("project-file-listing")
+            return false
+
+        @new_file_tab.find("a[href=#new-folder]").click(create_folder)
+
+    show_new_file_tab: () =>
+        # Update the path
+        path = @current_pathname()
+        if path != ""
+            path += "/"
+        @new_file_tab.find(".project-new-file-path").text(path)
+        # Clear the filename and focus on it
+        @new_file_tab_input.val('').focus()
 
 
     # Update the listing of files in the current_path, or display of the current file.
