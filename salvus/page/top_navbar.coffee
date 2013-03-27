@@ -232,3 +232,7 @@ $("#account").top_navbar
 #    label   : "Worksheet1"
 #    close   : false
 
+
+$(window).resize () ->
+    $("body").css
+        'padding-top': ($(".salvus-top_navbar").height()) + 'px'

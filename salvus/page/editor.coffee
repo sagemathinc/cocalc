@@ -208,40 +208,29 @@ class exports.Editor
             for filename in opts.initial_files
                 @open(filename)
 
-        that = @
-        # Enable the save/close/commit buttons
-        @element.find("a[href=#save]").addClass('disabled').click () ->
-            if not $(@).hasClass("disabled")
-                that.save(that.active_tab.filename)
-            return false
-
-        @element.find("a[href=#close]").addClass('disabled').click () ->
-            if not $(@).hasClass("disabled")
-                that.close(that.active_tab.filename)
-            return false
-
-        @element.find("a[href=#reload]").addClass('disabled').click () ->
-            if not $(@).hasClass("disabled")
-                that.reload(that.active_tab.filename)
-            return false
-
-        @element.find("a[href=#commit]").addClass('disabled').click () ->
-            if not $(@).hasClass("disabled")
-                filename = that.active_tab.filename
-                that.commit(filename, "save #{filename}")
-            return false
+        # Add resize trigger
+        $(window).resize(@_window_resize_while_editing)
 
     focus: () =>
         @element.find(".salvus-editor-search-openfiles-input").focus()
         @hide_editor_content()
 
     hide_editor_content: () =>
+        @_editor_content_visible = false
         @element.find(".salvus-editor-content").hide()
         $("a[href=#top-scroll]").addClass('disabled')
 
     show_editor_content: () =>
+        @_editor_content_visible = true
         @element.find(".salvus-editor-content").show()
         $("a[href=#top-scroll]").removeClass('disabled')
+
+    _window_resize_while_editing: () =>
+        if not @active_tab? or not @_editor_content_visible
+            return
+        navbar_height = $("body").css('padding-top')
+        @element.find(".salvus-editor-content").css('top':navbar_height)
+        @active_tab.editor.show()
 
     init_openfile_search: () =>
         search_box = @element.find(".salvus-editor-search-openfiles-input")
@@ -695,10 +684,16 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.refresh()
 
         height = $(window).height()
-        elem_height = height-top_navbar.height()
 
+        top_height = $("body").css('padding-top')
+        top_height = parseInt(top_height.slice(0,top_height.length-2))
+
+        elem_height = height-top_height
+
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height = @codemirror.defaultTextHeight()
-        cm_height = Math.floor((elem_height - 40)/font_height) * font_height
+
+        cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
         @element.height(elem_height).show()
 

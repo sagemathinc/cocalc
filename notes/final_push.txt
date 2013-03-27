@@ -31,9 +31,10 @@ Sunday -- get prepared for my teaching on monday
 
 (0:45?)  [x] (1:43) make terminal edit window "FULL SCREEN" always -- and cleaned up some related things all over, especially proper resizing math.
 (0:20?)  [x] (0:17) file selector -- putting slash at end in search should restrict to directories.
-(0:20?)  [x] (0:08) the create new file page SUCKS.  Maybe typing a name that results in no hits in file search creates it... with a button to choose type (or cancel)
+(0:20?)  [x] (0:08) create new file by typing a name that results in no hits in file search creates it... with a button to choose type (or cancel)
 (0:45?)  [ ] Editor bookmarks?.  Ctrl-B to toggle then, Ctrl-I to move to next?
-(1:00?)  [ ] all editors need to have "show" called when window is resized
+(1:00?)  [x] (0:59) editors need to have "show" called when window is resized; also, get rid of responsive top bar bullshit and do it right.
+(0:30?)  [ ] idea -- what if we allow opening the same project in multiple tabs -- then get multiple views on same project.  useful!
 (0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
 (0:30?)  [ ] fix auto-resizing of input cells of worksheet
 (1:00?)  [ ] clean up the button bar at the top of worksheets; make consistent with files...
@@ -78,6 +79,7 @@ Sunday -- get prepared for my teaching on monday
 (0:45?)  [ ] it might be nice if open file thing had -- in upper right -- "scratch: [ws] [trm]" icons...?
 (0:30?)  [ ] close brackets -- would make editor and notebook nicer, maybe -- http://codemirror.net/addon/edit/closebrackets.js
 (0:30?)  [ ] typing *while* first syncing moves editor display down one each character typed.
+(0:45?)  [ ] bug -- resizing terminal results in codes getting sprayed on the screen
 
 = Major Show-stopper Bugs =
 (1:00?) [ ] I think GAP doesn't work at all in the new worksheets.
@@ -161,3 +163,8 @@ Database table that lists all projects for a given user.
 = Graphics =
 
 (4:00x)    [ ] attempt very basic 3d rendering using three.js
+(1:00?)  [ ] bug -- changing interact control externally does change control, but doesn't re-evaluate function.
+@interact
+def f(c=Color('blue'), thickness=(1..30)):
+    show(plot(sin, color=c, thickness=thickness))
+f.thickness=20

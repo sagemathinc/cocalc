@@ -484,7 +484,6 @@ class Console extends EventEmitter
 
         # Resize the renderer
         @terminal.resize(new_cols, new_rows)
-        @refresh()
 
         # Resize the remote PTY
         resize_code = (cols, rows) ->
@@ -497,6 +496,9 @@ class Console extends EventEmitter
         # Record new size
         @opts.cols = new_cols
         @opts.rows = new_rows
+
+        # Refresh depends on correct @opts being set!        
+        @refresh()
 
     console_is_open: () =>  # not chainable
         return @element.closest(document.documentElement).length > 0

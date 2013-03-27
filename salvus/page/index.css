@@ -56,10 +56,11 @@ top_navbar.css
 
 
 
-/* workaround responsive bootstrap menu issue */
 body { padding-top:60px; }
+/* workaround responsive bootstrap menu issue */
+/*
 @media (max-width: 979px) { body { padding-top: 0px; } }
-
+*/
 
 /* so on iOS scroll-into-view modals work */
 @media (max-width: 480px)
