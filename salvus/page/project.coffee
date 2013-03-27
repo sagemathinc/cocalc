@@ -957,7 +957,7 @@ class ProjectPage
                     t.find(".project-directory-name").html("<i class='icon-reply'> </i> Parent Directory")
                     t.find("input").hide()  # hide checkbox, etc.
                     # Clicking to open the directory
-                    t.data('name', '..').click (e) ->
+                    t.click () ->
                         that.current_path.pop()
                         that.update_file_list_tab()
                         return false
@@ -968,14 +968,8 @@ class ProjectPage
                     if obj.isdir? and obj.isdir
                         t = template_project_directory.clone()
                         t.find(".project-directory-name").text(obj.name)
-                        # Clicking to open the directory
-                        t.data('name', obj.name).click (e) ->
-                            that.current_path.push($(@).data('name'))
-                            that.update_file_list_tab()
-                            return false
                     else
                         t = template_project_file.clone()
-
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
                             name = obj.name.slice(0,obj.name.length - ext.length - 1)
@@ -987,7 +981,6 @@ class ProjectPage
                             t.find(".project-file-name-extension").text('.' + ext)
                             if file_associations[ext]? and file_associations[ext].icon?
                                 t.find(".project-file-icon").removeClass("icon-file").addClass(file_associations[ext].icon)
-
                         if obj.mtime?
                             date = (new Date(obj.mtime*1000)).toISOString()
                             t.find(".project-file-last-mod-date").attr('title', date).timeago()
@@ -1000,55 +993,11 @@ class ProjectPage
                             t.find(".project-file-last-commit-date-container").hide()
                         if obj.commit?.message?
                             t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
+                    #end if
 
-                        # Record whether or not the file is currently saved to the repo
-                        #save_button = t.find("a[href=save-file]")
-                        #if obj.mtime? and obj.commit?.date? and obj.mtime <= obj.commit.date
-                        #    # Saved, disable the button:
-                        #    save_button.addClass("disabled")
-                        #else
-                        #    save_button.tooltip(title:"Save permanent snapshot", placement:"left", delay:500)
-                            # Enable the button
-                        #    save_button.click () =>
-                        #        alert('save')
-
-
-                        that = @
-
-                        move_button = t.find("a[href=#move-file]")
-                        move_button.tooltip(title:"Move or delete; copy to another project", placement:"top", delay:500)
-
-                        log_button = t.find("a[href=#log-file]")
-                        if obj.commit?
-                            log_button.tooltip(title:"Previous versions", placement:"top", delay:500)
-                        else
-                            log_button.addClass("disabled")
-
-                        download_button = t.find("a[href=#download-file]")
-                        download_button.data('filename', path + "/" + obj.name)
-                        download_button.click () ->
-                            that.download_file($(@).data('filename'))
-                            return false
-
-                        # Clicking -- open the file
-                        if path != ""
-                            name = path + '/' + obj.name
-                        else
-                            name = obj.name
-                        t.data('name', name).click (e) ->
-                            that.open_file($(@).data('name'))
-                            return false
-
-
-                    # Show project file buttons on hover only
-                    (() ->
-                        b = t.find(".project-file-buttons") # closure
-                        t.hover( (() -> b.show()) ,  (() -> b.hide()))
-                    )()
-
-                    # Filename rename
-                    that = @
-                    t.find('a').click () -> that.click_to_rename_file(path, $(@))
+                    # Define file actions using a closure
+                    @_init_listing_actions(t, path, obj.name, obj.isdir? and obj.isdir)
+                    # Finally add our new listing entry to the list:
                     file_or_listing.append(t)
 
                 @clear_file_search()
@@ -1056,9 +1005,50 @@ class ProjectPage
                     return
                 @focus_file_search()
 
+    _init_listing_actions: (t, path, name, isdir) =>
+        if path != ""
+            fullname = path + '/' + name
+        else
+            fullname = name
+
+        t.data('name', fullname)  # save for other uses outside this function
+
+        b = t.find(".project-file-buttons")
+
+        # Show project file buttons on hover only
+        t.hover( (() -> b.show()) ,  (() -> b.hide()))
+
+        # Downloading a file
+        b.find("a[href=#download-file]").click () =>
+            @download_file(fullname)
+            return false
+
+        # Deleting a file
+        b.find("a[href=#delete-file]").click () =>
+            @delete_file(fullname)
+            return false
+
+        # Clicking -- open the file
+        t.click () =>
+            if isdir
+                @current_path.push(name)
+                @update_file_list_tab()
+            else
+                @open_file(fullname)
+            return false
+
+        # Renaming a file
+        rename_link = t.find('a[href=#rename]')
+        rename_link.click () =>
+            @click_to_rename_file(path, rename_link)
+            return false
 
     click_to_rename_file: (path, link) =>
+        if link.attr('contenteditable')
+            # already done.
+            return
         link.attr('contenteditable',true)
+        link.focus()
         original_name = link.text()
         doing_rename = false
         rename = () =>
@@ -1084,7 +1074,6 @@ class ProjectPage
 
 
     rename_file: (path, original_name, new_name) =>
-        console.log('rename', path, original_name, new_name)
         salvus_client.exec
             project_id : @project.project_id
             command    : 'mv'
@@ -1106,6 +1095,10 @@ class ProjectPage
         download_project
             project_id : @project.project_id
             filename   : @project.title
+
+    delete_file: (path) =>
+        console.log("delete file '#{path}'")
+
 
     download_file: (path) =>
         salvus_client.read_file_from_project
