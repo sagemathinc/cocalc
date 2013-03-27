@@ -28,6 +28,7 @@ Sunday -- get prepared for my teaching on monday
 (1:30?)  [x] (0:50) make it so project nav tabs hide when showing editor; make codemirror edit window "FULL SCREEN" always
          [x] (0:36) greatly improve style of top bar due to fullscreening
 (0:45?)  [x] (1:30) make worksheet edit window "FULL SCREEN" always; still not so clean!
+
 (0:45?)  [ ] make terminal edit window "FULL SCREEN" always
 (1:00?)  [ ] all editors need to have "show" called when window is resized
 (0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet

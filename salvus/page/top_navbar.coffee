@@ -204,14 +204,14 @@ $("#about").top_navbar
 
 $(".salvus-explore").top_navbar
     id      : "explorer"
-    label   : "<span style='font-size:12pt'>Explore</span>"
+    label   : "Explore"
     icon : 'icon-globe'
     close   : false
 
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
-    label   : "<span style='font-size:12pt'>Projects</span>"
+    label   : "Your Projects"
     icon : 'icon-cogs'
     close   : false
 
