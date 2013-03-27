@@ -363,10 +363,13 @@ class ProjectPage
             match = (s) -> true
         else
             terms = v.split(' ')
-            match = (s) ->
+            match = (s, is_dir) ->
                 s = s.toLowerCase()
                 for t in terms
-                    if s.indexOf(t) == -1
+                    if t == '/'
+                        if not is_dir
+                            return false
+                    else if s.indexOf(t) == -1
                         return false
                 return true
 
@@ -375,7 +378,7 @@ class ProjectPage
             entry = $(e)
             fullpath = entry.data('name')
             filename = misc.path_split(fullpath).tail
-            if match(filename)
+            if match(filename, entry.hasClass('project-directory-link'))
                 if first and event.keyCode == 13 # enter -- select first match (if any)
                     entry.click()
                     first = false

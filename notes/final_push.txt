@@ -29,9 +29,10 @@ Sunday -- get prepared for my teaching on monday
          [x] (0:36) greatly improve style of top bar due to fullscreening
 (0:45?)  [x] (1:30) make worksheet edit window "FULL SCREEN" always; still not so clean!
 
---> (0:45?)  [ ] make terminal edit window "FULL SCREEN" always
-(0:20?)  [ ] file selector -- putting slash at end in search should restrict to directories.
+(0:45?)  [x] (1:43) make terminal edit window "FULL SCREEN" always -- and cleaned up some related things all over, especially proper resizing math.
+(0:20?)  [x] (0:17) file selector -- putting slash at end in search should restrict to directories.
 (0:45?)  [ ] *Need* editor bookmarks.  Ctrl-B to toggle then, Ctrl-I to move to next?
+(1:00?)  [ ] the create new file page SUCKS.  Maybe typing a name that results in no hits in file search creates it... with a button to choose type (or cancel)
 (1:00?)  [ ] all editors need to have "show" called when window is resized
 (0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
 (0:30?)  [ ] fix auto-resizing of input cells of worksheet
@@ -76,6 +77,9 @@ Sunday -- get prepared for my teaching on monday
 (1:00?)  [ ] when reconnecting to a TERMINAL session, don't display a bunch of garbage codes.
 (0:45?)  [ ] it might be nice if open file thing had -- in upper right -- "scratch: [ws] [trm]" icons...?
 (0:30?)  [ ] close brackets -- would make editor and notebook nicer, maybe -- http://codemirror.net/addon/edit/closebrackets.js
+
+= Major Bugs =
+(1:00?) [ ] I think GAP doesn't work at all in the new worksheets.
 
 = Accounts =
 
