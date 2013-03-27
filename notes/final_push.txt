@@ -23,12 +23,12 @@ Sunday -- get prepared for my teaching on monday
 (0:20?)  [x] (0:40) bug: sometimes clicking the x to close an open file (in file editor pills) just leaves it -- even though counter goes down; then it can't be closed; this is also why sometimes searching the list of open files doesn't work.;   ALSO did more work on new file page (which took most of the time)
 
 (0:30?)  [x] (0:06) project: When changing project title, should auto change the entry in the tab at the top.
+(0:30?)  [x] (0:06) editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
 
 (2:30?)  [ ] make all edit windows "FULL SCREEN" solidly (include fixing chat toggle, of course)
 (1:00?)  [ ] reconnecting to existing worksheet sessions isn't working making it impossible to open worksheets
 (1:30?)  [ ] terminals should automatically restart if the backing session dies.  Keep history and cwd. make terminals robust.
 (0:45?)  [ ] changing password should invalidate all cookies.
-(0:30?)  [ ] editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
 (0:45?)  [ ] error message when file doesn't load should not be *in* codemirror
 (0:30?)  [ ] need a "save all open files" button somewhere (in editor's list of open files page)
 (0:45?)  [ ] when searching, automatically copy highlighted text into search box.
@@ -63,6 +63,7 @@ Sunday -- get prepared for my teaching on monday
 (1:00?)  [ ] option to completely delete a project, irrevocably.   (BIG RED SCARY SERIOUS -- type your name, etc.)
 (0:30?)  [ ] range selection -- need to also preserve that on update.
 (1:00?)  [ ] when reconnecting to a TERMINAL session, don't display a bunch of garbage codes.
+(0:45?)  [ ] it might be nice if open file thing had -- in upper right -- "scratch: [ws] [trm]" icons...?
 
 = Accounts =
 

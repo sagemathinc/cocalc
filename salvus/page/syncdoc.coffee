@@ -241,6 +241,8 @@ class SynchronizedDocument
                     @_previous_successful_set = true
                     @editor._set(resp.content)
                     live_content = resp.content
+                    # Reset the undo history here, since we do not want it to start with "empty document":
+                    @codemirror.clearHistory()
                 else
                     # Doing a reset -- apply all the edits to the current version of the document.
                     edit_stack = @dsync_client.edit_stack
