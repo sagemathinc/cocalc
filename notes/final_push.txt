@@ -20,9 +20,10 @@ Sunday -- get prepared for my teaching on monday
 (1:00?)  [x] (1:55)  create a new file/directory;default filename for terminal and worksheet date/time iso format
 (0:30?)  [x] (0:16) the alert message tab thing covers the connection settings.
 
-(0:20?)  [x] (0:25) bug: sometimes clicking the x to close an open file (in file editor pills) just leaves it -- even though counter goes down; then it can't be closed; this is also why sometimes searching the list of open files doesn't work.;   ALSO did more work on new file page.
+(0:20?)  [x] (0:40) bug: sometimes clicking the x to close an open file (in file editor pills) just leaves it -- even though counter goes down; then it can't be closed; this is also why sometimes searching the list of open files doesn't work.;   ALSO did more work on new file page (which took most of the time)
 
-(0:30?)  [ ] project: When changing project title, should auto change the entry in the tab at the top.
+(0:30?)  [x] (0:06) project: When changing project title, should auto change the entry in the tab at the top.
+
 (2:30?)  [ ] make all edit windows "FULL SCREEN" solidly (include fixing chat toggle, of course)
 (1:00?)  [ ] reconnecting to existing worksheet sessions isn't working making it impossible to open worksheets
 (1:30?)  [ ] terminals should automatically restart if the backing session dies.  Keep history and cwd. make terminals robust.
