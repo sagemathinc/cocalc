@@ -233,6 +233,15 @@ class exports.Editor
 
     focus: () =>
         @element.find(".salvus-editor-search-openfiles-input").focus()
+        @hide_editor_content()
+
+    hide_editor_content: () =>
+        @element.find(".salvus-editor-content").hide()
+        $("a[href=#top-scroll]").addClass('disabled')
+
+    show_editor_content: () =>
+        @element.find(".salvus-editor-content").show()
+        $("a[href=#top-scroll]").removeClass('disabled')
 
     init_openfile_search: () =>
         search_box = @element.find(".salvus-editor-search-openfiles-input")
@@ -416,6 +425,7 @@ class exports.Editor
     display_tab: (filename) =>
         if not @tabs[filename]?
             return
+        @show_editor_content()
         prev_active_tab = @active_tab
         for name, tab of @tabs
             if name == filename
@@ -676,18 +686,26 @@ class CodeMirrorEditor extends FileEditor
         if not (@element? and @codemirror?)
             #console.log('skipping show because things not defined yet.')
             return
+
         @element.show()
         @codemirror.refresh()
 
-        height = $(window).height() - 2.5*top_navbar.height()
+        height = $(window).height()
+        elem_height = height-top_navbar.height()
 
-        @element.height(height+5).show()
+        font_height = @codemirror.defaultTextHeight()
+        cm_height = Math.floor((elem_height - 40)/font_height) * font_height
+
+        @element.height(elem_height).show()
 
         scroller = $(@codemirror.getScrollerElement())
-        scroller.css('height':height-25)
+        scroller.css('height':cm_height)
 
-        $(@codemirror.getWrapperElement()).css
+        cm_wrapper = $(@codemirror.getWrapperElement())
+        cm_wrapper.css
             'background-color':'#ffffe8'
+            height : cm_height
+            width  : $(window).width() - 20
 
         window.scrollTo(0, document.body.scrollHeight)
         $(".salvus-top-scroll").show()
@@ -695,26 +713,26 @@ class CodeMirrorEditor extends FileEditor
         @codemirror.refresh()
 
         chat = @element.find(".salvus-editor-codemirror-chat")
-        chat.height(height-25)  #todo
+        chat.height(cm_height)
+        chat.width(0)
         output = chat.find(".salvus-editor-codemirror-chat-output")
         output.scrollTop(output[0].scrollHeight)
 
     focus: () =>
         if not @codemirror?
             return
-
+        @show()
+        ###
         width = @element.width(); height = @element.height()
-
         $(@codemirror.getWrapperElement()).css
             'height' : '40em'
             'width'  : width
-
         scroller = $(@codemirror.getScrollerElement())
         scroller.css('height':'40em')
-
+        ###
         if not IS_MOBILE
             @codemirror.focus()
-        @codemirror.refresh()
+        # @codemirror.refresh()
 
 
 codemirror_session_editor = (editor, filename, extra_opts) ->

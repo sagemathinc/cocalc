@@ -25,8 +25,9 @@ Sunday -- get prepared for my teaching on monday
 (0:30?)  [x] (0:06) project: When changing project title, should auto change the entry in the tab at the top.
 (0:30?)  [x] (0:08) editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
 
-(0:45?)  [ ] make it so project nav tabs hide when showing editor
-(0:45?)  [ ] make codemirror edit window "FULL SCREEN" always
+(1:30?)  [x] (0:50) make it so project nav tabs hide when showing editor; make codemirror edit window "FULL SCREEN" always
+-->         [ ]  (0:18+) improve style of top bar due to fullscreening
+
 (0:45?)  [ ] make worksheet edit window "FULL SCREEN" always
 (0:45?)  [ ] make terminal edit window "FULL SCREEN" always
 
@@ -68,6 +69,7 @@ Sunday -- get prepared for my teaching on monday
 (0:30?)  [ ] range selection -- need to also preserve that on update.
 (1:00?)  [ ] when reconnecting to a TERMINAL session, don't display a bunch of garbage codes.
 (0:45?)  [ ] it might be nice if open file thing had -- in upper right -- "scratch: [ws] [trm]" icons...?
+(0:30?)  [ ] close brackets -- would make editor and notebook nicer, maybe -- http://codemirror.net/addon/edit/closebrackets.js
 
 = Accounts =
 

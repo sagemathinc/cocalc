@@ -5,7 +5,12 @@ Editor for files in a project
 */
 
 .salvus-editor-content {
-    margin-left:1em;
+    position: fixed;
+    top: 40px;
+    left: 0;
+    margin-left: 0;
+    width: 100%;
+    padding-top: 10px;
 }
 
 .salvus-editor-close-button-x {
@@ -21,17 +26,12 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror {
-    border: 1px solid black;
-    /* border: 1px solid #aaa;
-    box-shadow: 6px 6px 3px #888;
-    */
-    margin-top: 0px;
-    padding:5px;
 }
 
 .salvus-editor-codemirror-button-row {
     margin-bottom: 5px;
     margin-top: 1px;
+    height:30px;
 }
 
 .salvus-editor-codemirror-filename {

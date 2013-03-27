@@ -120,6 +120,7 @@ class ProjectPage
         @container.top_navbar
             id    : @project.project_id
             label : @project.project_id
+            icon  : 'icon-sitemap'
             onclose : () =>
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
@@ -737,7 +738,6 @@ class ProjectPage
         @container.find(".project-project_description").text(@project.description)
 
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
-        label = "<i class='icon-sitemap'> </i> " + label
         top_navbar.set_button_label(@project.project_id, label)
         return @
 

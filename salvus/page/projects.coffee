@@ -154,9 +154,8 @@ update_project_view = (show_all=false) ->
         $("#projects-show_all").hide()
 
 open_project = (project) ->
-    if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
-        alert_message(type:"error", message:"Please close a project before opening more projects.")
-        return
+    #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
+    #    alert_message(type:"warning", message:"Please close a project before opening more projects.")
     project_page(project)
     top_navbar.switch_to_page(project.project_id)
 

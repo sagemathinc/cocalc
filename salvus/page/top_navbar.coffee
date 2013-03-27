@@ -47,6 +47,7 @@ class TopNavbar  extends EventEmitter
             onclose       : undefined  # called if defined when the page is closed
             onshow        : undefined  # called if defined right after page is shown
             onblur        : undefined  # called if defined right after page is blured
+            icon          : undefined      # something like 'icon-globe'
 
         button = @button_template.clone()
         divider = @divider_template.clone()
@@ -63,13 +64,14 @@ class TopNavbar  extends EventEmitter
             onshow  : opts.onshow
             onblur  : opts.onblur
             divider : divider
+            icon    : opts.icon
 
         a = button.find("a")
         a.data("id", opts.id)
         that = @
         a.click((event) -> that.switch_to_page($(this).data("id")); return false)
 
-        @set_button_label(opts.id, opts.label, opts.class, opts.close)
+        @set_button_label(opts.id, opts.label, opts.class, opts.icon, opts.close)
 
     number_of_pages_left: () =>
         return @buttons.children().length / 2   # /2 because of dividers
@@ -77,7 +79,11 @@ class TopNavbar  extends EventEmitter
     number_of_pages_right: () =>
         return @buttons_right.children().length  # /2 because of dividers
 
-    set_button_label: (id, label, klass, close=true) ->
+    set_button_label: (id, label, klass, icon, close=true) ->
+        if not icon? and @pages[id]?.icon?
+            icon = @pages[id].icon
+        if icon?
+            label = "<i class='#{icon}' style='font-size:20px'> </i> " + label
         button = @pages[id].button
         a = button.find("a")
         a.find(".button-label").html(label)# + " &raquo;")
@@ -189,16 +195,24 @@ $.fn.extend
 
 $("#about").top_navbar
     id      : "about"
-    label   : "<div style='line-height:1em;text-align:center;'>SageMath<br>Cloud&trade;</div>"
-    #pull_right : true
+    #label   : "SageMathCloud&trade;"
+    label : ''
+    icon : 'icon-info-sign'
+    pull_right : true
     close   : false
 
+
+$(".salvus-explore").top_navbar
+    id      : "explorer"
+    label   : "<span style='font-size:12pt'>Explore</span>"
+    icon : 'icon-globe'
+    close   : false
 
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
-    label   : "<span style='font-size:12pt'><i class='icon-cogs'> </i> Projects</span>"
-    #pull_right : true
+    label   : "<span style='font-size:12pt'>Projects</span>"
+    icon : 'icon-cogs'
     close   : false
 
 $("#account").top_navbar
@@ -206,6 +220,7 @@ $("#account").top_navbar
     label  : "Sign in"
     pull_right : true
     close   : false
+    icon : 'icon-cog'
 
 #$("#worksheet2").top_navbar
 #    id      : "worksheet2"

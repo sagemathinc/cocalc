@@ -41,6 +41,8 @@ editor.coffee
 project.coffee
 projects.coffee
 
+explore.coffee
+
 exit_confirmation.coffee
 
 last.coffee
