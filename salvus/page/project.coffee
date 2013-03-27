@@ -819,14 +819,14 @@ class ProjectPage
             tab = @editor.create_tab(filename:p, content:"")
             return false
 
-        @new_file_tab.find("a[href=#new-file]").click () =>
+        create_file = () =>
             p = path()
             if p.length == 0
                 @new_file_tab_input.focus()
                 return false
             if p[p.length-1] == '/'
-                return create_folder()
-
+                create_folder()
+                return false
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "touch"
@@ -860,11 +860,18 @@ class ProjectPage
                         alert_message(type:"error", message:result.error)
                     else
                         alert_message(type:"info", message:"Created new directory '#{p}'")
-                        @current_path.push(@new_file_tab_input.val())
+                        for segment in @new_file_tab_input.val().split('/')
+                            if segment.length > 0
+                                @current_path.push(segment)
                         @display_tab("project-file-listing")
             return false
 
+        @new_file_tab.find("a[href=#new-file]").click(create_file)
         @new_file_tab.find("a[href=#new-folder]").click(create_folder)
+        @new_file_tab_input.keyup (event) =>
+            if event.keyCode == 13
+                create_file()
+                return false
 
     show_new_file_tab: () =>
         # Update the path

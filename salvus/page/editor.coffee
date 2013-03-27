@@ -334,10 +334,10 @@ class exports.Editor
 
         link = templates.find(".salvus-editor-filename-pill").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
-        link_filename.text(filename) #trunc(filename,15))
+        link_filename.text(trunc(filename,256))
 
         link.find(".salvus-editor-close-button-x").click () =>
-            @close(link_filename.text())
+            @close(filename)
 
         containing_path = misc.path_split(filename).head
         link.find("a").click () =>
@@ -426,7 +426,7 @@ class exports.Editor
             else
                 tab.editor.hide()
 
-        if prev_active_tab.filename != @active_tab.filename
+        if prev_active_tab.filename != @active_tab.filename and @tabs[prev_active_tab.filename]?   # ensure is still open!
             @nav_tabs.prepend(prev_active_tab.link)
 
     onshow: () =>  # should be called when the editor is shown.
