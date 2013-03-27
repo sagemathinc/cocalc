@@ -197,7 +197,7 @@ $("#about").top_navbar
     id      : "about"
     #label   : "SageMathCloud&trade;"
     label : ''
-    icon : 'icon-info-sign'
+    icon : 'icon-question-sign'
     pull_right : true
     close   : false
 
@@ -212,7 +212,7 @@ $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
     label   : "Your Projects"
-    icon : 'icon-cogs'
+    icon : 'icon-cloud'
     close   : false
 
 $("#account").top_navbar

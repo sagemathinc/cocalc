@@ -120,7 +120,7 @@ class ProjectPage
         @container.top_navbar
             id    : @project.project_id
             label : @project.project_id
-            icon  : 'icon-sitemap'
+            icon  : 'icon-edit'
             onclose : () =>
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
