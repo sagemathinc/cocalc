@@ -36,7 +36,7 @@ class TopNavbar  extends EventEmitter
 
     add_page: (opts) ->
         opts = defaults opts,
-            page          : required   # jQuery wrapped DOM element
+            page          : undefined  # jQuery wrapped DOM element -- if not given, you probably want to define onshow!
             id            : required   # id that client code uses to refer to this page; need not be a DOM id.
             label         : required   # jquery object that is placed in the button
             'class'       : undefined  # classes to apply to label
@@ -110,20 +110,20 @@ class TopNavbar  extends EventEmitter
             d = @pages[@current_page_id]
             if d?
                 @emit("switch_from_page-#{@current_page_id}", @current_page_id)
-                d.page.hide()
+                d.page?.hide()
                 d.button.removeClass("active")
                 d.onblur?()
             else
                 for m, p of @pages
                     if m != id
-                        p.page.hide()
+                        p.page?.hide()
                         p.button.removeClass("active")
             n.button.show().addClass("active")
             @current_page_id = id
             @emit("switch_to_page-#{id}", id)
 
         # We still call show even if already on this page.
-        n.page.show()
+        n.page?.show()
         n.onshow?()
 
     switch_to_next_available_page: (id) ->
@@ -161,7 +161,7 @@ class TopNavbar  extends EventEmitter
             if p.button.hasClass("active")
                 @switch_to_next_available_page(id)
             # Now actually the page
-            p.page.remove()
+            p.page?.remove()
             p.button.remove()
             p.divider.remove()
             delete @pages[id]
@@ -220,7 +220,7 @@ $("#account").top_navbar
     label  : "Sign in"
     pull_right : true
     close   : false
-    icon : 'icon-cog'
+    icon : 'icon-signin'
 
 #$("#worksheet2").top_navbar
 #    id      : "worksheet2"

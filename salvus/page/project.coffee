@@ -124,9 +124,9 @@ class ProjectPage
             onclose : () =>
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
-            #onshow: () =>
-            #    window.scrollTo(0, 0)
-            #    @focus()
+            onshow: () =>
+                window.scrollTo(0, 0)
+                @focus()
 
         # Initialize the close project button.
         # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").
@@ -1265,54 +1265,3 @@ download_project = exports.download_project = (opts) ->
                 iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                 setTimeout((() -> iframe.remove()), 1000)
 
-close_project = exports.close_project = (opts) ->
-    opts = defaults opts,
-        project_id         : required
-        title              : required
-        show_success_alert : false
-        cb                 : undefined
-
-    p = project_pages[opts.project_id]
-    if p?
-        # Close the project page if it is open.  This will first also save any locally edited data.
-        top_navbar.remove_page(opts.project_id)
-
-    save_project
-        project_id : opts.project_id
-        show_success_alert : false
-        title      : opts.title
-        cb : (err) =>
-            if err
-                alert_message(type:"error", message:"Not closing project, since there was an issue saving the project. -- #{err}")
-                return
-            salvus_client.close_project
-                project_id : opts.project_id
-                cb         : (err, mesg) =>
-                    if err
-                        alert_message(type:"error", message:"Connection error closing project #{opts.title}.")
-                    else if mesg.event == "error"
-                        alert_message(type:"error", message:mesg.error + " (closing project #{opts.title})")
-                    else
-                        if opts.show_success_alert
-                            alert_message(type:"success", message: "Shutdown project '#{opts.title}'.")
-                            require('projects').update_project_list()
-                    opts.cb?(err)
-
-
-save_project = exports.save_project = (opts) ->
-    opts = defaults opts,
-        project_id  : required
-        title       : required
-        cb          : undefined
-        show_success_alert : false
-    salvus_client.save_project
-        project_id : opts.project_id
-        cb         : (err, mesg) ->
-            if err
-                alert_message(type:"error", message:"Connection error saving project '#{opts.title}'.")
-            else if mesg.event == "error"
-                err = mesg.error
-                alert_message(type:"error", message:"Error saving project '#{opts.title}' -- #{mesg.error}")
-            else if opts.show_success_alert
-                alert_message(type:"success", message: "Saved project '#{opts.title}'.")
-            opts.cb?(err)

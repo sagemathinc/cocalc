@@ -432,6 +432,15 @@ class exports.Editor
         if prev_active_tab.filename != @active_tab.filename and @tabs[prev_active_tab.filename]?   # ensure is still open!
             @nav_tabs.prepend(prev_active_tab.link)
 
+        navbar = require('top_navbar').top_navbar
+        if not navbar.pages[filename]?
+            navbar.add_page
+                id : filename
+                label : filename
+                onshow : () =>
+                    navbar.switch_to_page(@project_id)
+                    @display_tab(filename)
+
     onshow: () =>  # should be called when the editor is shown.
         #if @active_tab?
         #    @display_tab(@active_tab.filename)
