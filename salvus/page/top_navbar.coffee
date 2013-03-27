@@ -106,18 +106,17 @@ class TopNavbar  extends EventEmitter
         if not n?
             return
 
+
+
         if id != @current_page_id
+            for m, p of @pages
+                if m != id
+                    p.page?.hide()
+                    p.button.removeClass("active")
             d = @pages[@current_page_id]
             if d?
                 @emit("switch_from_page-#{@current_page_id}", @current_page_id)
-                d.page?.hide()
-                d.button.removeClass("active")
                 d.onblur?()
-            else
-                for m, p of @pages
-                    if m != id
-                        p.page?.hide()
-                        p.button.removeClass("active")
             n.button.show().addClass("active")
             @current_page_id = id
             @emit("switch_to_page-#{id}", id)
@@ -125,6 +124,9 @@ class TopNavbar  extends EventEmitter
         # We still call show even if already on this page.
         n.page?.show()
         n.onshow?()
+
+    make_button_active: (id) ->
+        @pages[id]?.button.addClass("active")
 
     switch_to_next_available_page: (id) ->
         # Switch to the next page after the page

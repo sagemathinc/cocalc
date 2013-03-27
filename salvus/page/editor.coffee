@@ -432,14 +432,20 @@ class exports.Editor
         if prev_active_tab.filename != @active_tab.filename and @tabs[prev_active_tab.filename]?   # ensure is still open!
             @nav_tabs.prepend(prev_active_tab.link)
 
+    add_tab_to_navbar: (filename) =>
         navbar = require('top_navbar').top_navbar
-        if not navbar.pages[filename]?
+        tab = @tabs[filename]
+        if not tab?
+            return
+        id = @project_id + filename
+        if not navbar.pages[id]?
             navbar.add_page
-                id : filename
-                label : filename
+                id     : id
+                label  : filename
                 onshow : () =>
                     navbar.switch_to_page(@project_id)
                     @display_tab(filename)
+                    navbar.make_button_active(id)
 
     onshow: () =>  # should be called when the editor is shown.
         #if @active_tab?
@@ -645,6 +651,9 @@ class CodeMirrorEditor extends FileEditor
                         CodeMirror.commands.defaultTab(editor)
         @init_save_button()
         @init_change_event()
+        @element.find("a[href=#topbar]").click () =>
+            @editor.add_tab_to_navbar(@filename)
+            return false
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").click(@click_save_button)
