@@ -207,26 +207,58 @@ in current location
             <!-- Create a new file -->
             <div class="project-new-file hide well">
                 <div class="row">
-                    <div class="span4" style="line-height:3em; height:3em; text-align:right;">
+                    <div class="span12">
+                        <h3>Create a new file or directory</h3>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="span3" style="line-height:3em; height:3em; text-align:right;">
                         <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path">path/to/file/</span></a>
                     </div>
-                    <div class="span7" style="padding-top: 4px;">
+                    <div class="span8" style="padding-top: 4px;">
 
                         <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
                     </div>
                 </div>
                 <div class="row" style="margin-top:1.5em;">
-                    <div class="offset4 span7">
+                    <div class="offset3 span8">
                         <span class="btn-group">
-                            <a class="btn btn-large btn-primary" href="#new-file"><i class="icon-file"></i> Create New File</a>
+                            <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>
                             <a rel="tooltip" title="Use <b>Sage worksheets</b> to interactively compute using the mathematical
                                 software <a target='_new' href='http://www.sagemath.org'>Sage</a>"
-                            class="btn btn-large" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
-                            <a class="btn btn-large" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
-                            <a class="btn btn-large" href="#new-folder"><i class="icon-folder-close"></i> Directory</a>
+                            class="btn" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
+                            <a class="btn" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                            <a class="btn" href="#new-folder"><i class="icon-folder-close"></i> Directory</a>
 
                         </span>
                     </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="span4">
+                        <h3>Import files from the web</h3>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="span3" style="line-height:3em; height:3em; text-align:right;">
+                        <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path">path/to/file/</span></a>
+                    </div>
+                    <div class="span8" style="padding-top: 4px;">
+                        <input class="project-import-from-web" type="text" placeholder="Paste a web address here..." style="width:100%">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="offset3 span3">
+                        <a class="btn btn-primary" href="#import-from-web"><i class="icon-external-link"> </i> Copy into my project</a>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="span4">
+                        <h3>Upload a file or directory</h3>
+                        (not implemented yet)
+                    </div>
+
                 </div>
             </div>
 
@@ -363,12 +395,9 @@ in current location
         (<a class="project-file-last-commit-message lighten"></a>)
     </div>
     <div class="pull-right">
-        <span class="btn-group project-file-buttons">
-            <!--<a class="btn btn-primary btn-small" href="save-file"><i class="icon-save"> </i></a> -->
-            <!--	<a class="btn btn-info  " href="#log-file"><i class="icon-time"> </i></a>
-<a class="btn btn-warning " href="#move-file"><i class="icon-external-link"> </i></a>
--->
-            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-download-alt"> </i></a>
+        <span class="btn-group project-file-buttons  hide">
+            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-download-alt"> </i> Download</a>
+            <a class="btn btn-danger btn-small" href="#delete-file"><i class="icon-trash"> </i> Delete</a>
         </span>
     </div>
 </div>
@@ -381,6 +410,12 @@ in current location
     </div>
     <div class="span2">
         <a class="project-directory-name"></a>
+    </div>
+    <div class="pull-right">
+        <span class="btn-group project-file-buttons  hide">
+            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-download-alt"> </i> Download</a>
+            <a class="btn btn-danger btn-small" href="#delete-file"><i class="icon-trash"> </i> Delete</a>
+        </span>
     </div>
 </div>
 

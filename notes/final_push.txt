@@ -36,7 +36,15 @@ Sunday -- get prepared for my teaching on monday
 (0:30?)  [x] (0:59) idea -- what if we allow opening the same project in multiple tabs -- then get multiple views on same project.  Not good. Instead, usable implementation of files as tabs optionally to try out...
 (1:00?)  [x] way to make a new folder
 (1:00?)  [x] (1:00) way to rename file
-(0:45?)  [ ] way to delete files
+(0:30?)  [x] (0:42) delete/download file icons should only appear on hover; also, added a link for importing files from the web (will use wget)
+(1:00?)  [ ] import files form web using wget --- make it live; add a slider for how long it will try to download until giving up.
+(0:45?)  [ ] way to delete files; just moves to project_path/.trash, making that directory if necessary and printing a message
+(0:30?)  [ ] file download is broken
+(0:45?)  [ ] implement directory download (or at least confirm it works)
+(0:30?)  [ ] way to browse trash can
+(0:30?)  [ ] way to empty trash can
+(1:30?)  [ ] way to move checked files into a folder (or ..) --> simply drag them.
+(0:30?)  [ ] project rename just like file rename
 (0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
 (0:30?)  [ ] fix auto-resizing of input cells of worksheet
 (1:00?)  [ ] clean up the button bar at the top of worksheets; make consistent with files...
@@ -56,7 +64,6 @@ Sunday -- get prepared for my teaching on monday
 (0:30?)  [ ] show quota info in project settings.
 (1:00?)  [ ] change filename extensions: ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
 (1:30?)  [ ] make note cells be markdown with $'s for math.  Codemirror editor with syntax highlighting.
-(0:45?)  [ ] implement directory download (or at least confirm it works)
 (1:30?)  [ ] file upload
 (0:30?)  [ ] codemirror editor settings: whether or not lines wrap in codemirror. (apply for both files and worksheets)
 (1:00?)  [ ] codemirror editor settings: color scheme
@@ -69,7 +76,6 @@ Sunday -- get prepared for my teaching on monday
 (1:00?)  [ ] in settings: ask for money and give link to donate to Sage foundation.
                provide a checkbox that says "I have donated."  When they check it, it changes to a big thanks!
 (0:45?)  [ ] Do not allow creation of private projects unless users claims to have donated.
-(1:30?)  [ ] way to move checked files into a folder
 (1:00?)  [ ] attach: implement the attach command for (backwards) compatibility.
 (1:00?)  [ ] *need* to easily be able to resize the height of the output and have this saved!!!
 (1:00?)  [ ] option to completely delete a project, irrevocably.   (BIG RED SCARY SERIOUS -- type your name, etc.)

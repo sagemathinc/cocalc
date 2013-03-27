@@ -441,7 +441,7 @@ class exports.Editor
         if not navbar.pages[id]?
             navbar.add_page
                 id     : id
-                label  : filename
+                label  : misc.path_split(filename).tail
                 onshow : () =>
                     navbar.switch_to_page(@project_id)
                     @display_tab(filename)

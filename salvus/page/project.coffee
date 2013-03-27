@@ -1025,7 +1025,6 @@ class ProjectPage
                             log_button.addClass("disabled")
 
                         download_button = t.find("a[href=#download-file]")
-                        download_button.tooltip(title:"Download", placement:"right", delay:500)
                         download_button.data('filename', path + "/" + obj.name)
                         download_button.click () ->
                             that.download_file($(@).data('filename'))
@@ -1039,6 +1038,13 @@ class ProjectPage
                         t.data('name', name).click (e) ->
                             that.open_file($(@).data('name'))
                             return false
+
+
+                    # Show project file buttons on hover only
+                    (() ->
+                        b = t.find(".project-file-buttons") # closure
+                        t.hover( (() -> b.show()) ,  (() -> b.hide()))
+                    )()
 
                     # Filename rename
                     that = @
@@ -1088,7 +1094,6 @@ class ProjectPage
             err_on_exit: false
             path       : path
             cb         : (err, output) =>
-                console.log(err, output)
                 if err
                     alert_message(type:"error", message:"Communication error while  renaming '#{original_name}' to '#{new_name}' -- #{err}")
                 else if output.event == 'error'
