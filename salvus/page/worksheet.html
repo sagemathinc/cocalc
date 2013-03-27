@@ -1,13 +1,14 @@
 <span id="salvus-worksheet-templates" class="hide">
-  <div class="salvus-worksheet" style="padding-top:.5ex;">
+  <div class="salvus-worksheet well">
     <div class="span5 pull-right">
       <div class="pull-right">
-	<a href="#save" class="btn btn-success btn-small" style="margin-bottom:1.5ex;"><i class="icon-save"></i> Save</a>
 	<input type="text" class="salvus-worksheet-filename span2" placeholder="Choose a filename..." style="margin-right:.5ex;margin-top:0ex;"></input>
-	<span class="btn-group">
-	  <a href="#kill" class="btn btn-danger btn-small" style="margin-bottom:1.2ex;"><i class="icon-stop"></i> Kill</a>
-	  <a href="#restart" class="btn btn-danger btn-small" style="margin-bottom:1.2ex;"><i class="icon-repeat"></i> Restart</a>
-	</span>
+        <span class="btn-group">
+            <a href="#save" class="btn btn-success" ><i class="icon-save"></i> Save</a>
+            <a href="#kill" class="btn btn-danger"><i class="icon-stop"></i> Kill</a>
+            <a href="#restart" class="btn btn-danger" ><i class="icon-repeat"></i> Restart</a>
+            <a href="#download-file" class="btn btn-success" ><i class="icon-download-alt"> </i></a>
+        </span>
       </div>
       <div class="pull-right">
           <!-- TODO: hidden for now. -->
@@ -20,8 +21,6 @@
 	  <a href="#pdf-view" class="btn btn-small">PDF</a>
 	  <a href="#json-view" class="btn  btn-small">JSON</a>
 	</span>
-	&nbsp;&nbsp;
-	<a href="#download-file" class="btn btn-success btn-small" ><i class="icon-download-alt"> </i></a>
       </div>
     </div>
 
@@ -39,9 +38,6 @@
 	</div>
       </div>
     </div>
-
-    <div class="well hide salvus-worksheet-countdown pull-right" rel="tooltip"
-                title="Time until this session expires and the backend process terminates."></div>
 
     <div class="salvus-worksheet-view salvus-worksheet-worksheet-view">
       <div class="salvus-worksheet-worksheet">

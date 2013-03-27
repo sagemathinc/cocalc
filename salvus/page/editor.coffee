@@ -705,7 +705,7 @@ class CodeMirrorEditor extends FileEditor
         cm_wrapper.css
             'background-color':'#ffffe8'
             height : cm_height
-            width  : $(window).width() - 20
+            width  : $(window).width()
 
         window.scrollTo(0, document.body.scrollHeight)
         $(".salvus-top-scroll").show()
@@ -1233,6 +1233,14 @@ class Worksheet extends FileEditor
     focus: () =>
         if not IS_MOBILE
             @worksheet?.focus()
+
+    show: () =>
+        if not @worksheet?
+            return
+        win = $(window)
+        @element.width(win.width())
+        @element.height(win.height() - 40)
+        @element.find(".salvus-worksheet-worksheet").height(win.height()-40-64)
 
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->

@@ -233,8 +233,12 @@ class Cell extends EventEmitter
             extraKeys       : extraKeys
             theme           : @opts.editor_theme
 
-        $(@_editor.getWrapperElement()).addClass('salvus-cell-editor')#.tooltip(delay:1000, title:"Enter code to evaluate.")
-        $(@_editor.getScrollerElement()).css('max-height' : @opts.editor_max_height)
+        $(@_editor.getWrapperElement()).addClass('salvus-cell-editor').css('height':'auto')
+        $(@_editor.getScrollerElement()).css
+            #'max-height' : @opts.editor_max_height
+            'height'     : 'auto'
+            'overflow-y' : 'hidden'
+            'overflow-x' : 'auto'
 
         @_editor.on "change", (instance, changeObj) =>
             @emit "change", {editor:changeObj}
@@ -717,7 +721,7 @@ class Cell extends EventEmitter
                             # If no width param is specified and the
                             # button bar will take up multiple lines, make
                             # all buttons the same width as the widest, so
-                            # the buttons look nice. 
+                            # the buttons look nice.
                             w = Math.max.apply @, ($(x).width() for x in content.find("a"))
                             content.find("a").width(w)
 

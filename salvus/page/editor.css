@@ -8,9 +8,9 @@ Editor for files in a project
     position: fixed;
     top: 40px;
     left: 0;
-    margin-left: 0;
+    margin: 0;
     width: 100%;
-    padding-top: 10px;
+    padding: 0;
 }
 
 .salvus-editor-close-button-x {

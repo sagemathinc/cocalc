@@ -1,18 +1,10 @@
 .salvus-worksheet {
-/*    border           : 1px solid #aaa; */
-    background-color : #fff;
-    padding          : 20px;
-    margin           : 10px;
-    margin-top       : 0px;
-/*    box-shadow       : 6px 6px 3px #888; */
-    padding-bottom   : 25px;
-    /* border-radius: 5px; */
- /*   overflow: auto;
-    max-height: 40em; */
+    padding: 0px;
+    margin: 0px;
 }
 
 .salvus-worksheet-running {
-    border : 2px dashed #8a8;
+    background-color:#efe;
 }
 
 .salvus-worksheet-cells {
@@ -59,12 +51,8 @@
 
 .salvus-worksheet-worksheet {
     background-color: white;
-    padding: 1ex;
     overflow-y:auto;
-    height:40em;
 }
 
 .salvus-worksheet-view {
-    min-height:30em;
-    margin-top:1ex;
 }

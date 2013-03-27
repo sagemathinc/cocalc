@@ -26,16 +26,19 @@ Sunday -- get prepared for my teaching on monday
 (0:30?)  [x] (0:08) editor - the undo buffer should *NOT* start with buffer empty, but with result of loading content!!!
 
 (1:30?)  [x] (0:50) make it so project nav tabs hide when showing editor; make codemirror edit window "FULL SCREEN" always
--->         [ ]  (0:18+) improve style of top bar due to fullscreening
-
-(0:45?)  [ ] make worksheet edit window "FULL SCREEN" always
+         [x] (0:36) greatly improve style of top bar due to fullscreening
+(0:45?)  [x] (1:30) make worksheet edit window "FULL SCREEN" always; still not so clean!
 (0:45?)  [ ] make terminal edit window "FULL SCREEN" always
-
+(1:00?)  [ ] all editors need to have "show" called when window is resized
+(0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
+(0:30?)  [ ] fix auto-resizing of input cells of worksheet
+(1:00?)  [ ] clean up the button bar at the top of worksheets; make consistent with files...
 (1:00?)  [ ] reconnecting to existing worksheet sessions isn't working making it impossible to open worksheets
 (1:30?)  [ ] terminals should automatically restart if the backing session dies.  Keep history and cwd. make terminals robust.
 (0:45?)  [ ] changing password should invalidate all cookies.
 (0:45?)  [ ] error message when file doesn't load should not be *in* codemirror
-(0:30?)  [ ] need a "save all open files" button somewhere (in editor's list of open files page)
+(0:30?)  [ ] need a "save all open files" button somewhere (in editor's list of open files page); also same for "close all".
+(0:45?)  [ ] tab completion is now broken (actually underneath) worksheets...
 (0:45?)  [ ] when searching, automatically copy highlighted text into search box.
 (1:00x)  [ ] split document editing (see two parts of doc at once)
 (0:45?)  [ ] editor buttons: search/replace/undo/redo/autoindent/
