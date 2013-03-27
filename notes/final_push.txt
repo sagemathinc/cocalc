@@ -29,7 +29,9 @@ Sunday -- get prepared for my teaching on monday
          [x] (0:36) greatly improve style of top bar due to fullscreening
 (0:45?)  [x] (1:30) make worksheet edit window "FULL SCREEN" always; still not so clean!
 
-(0:45?)  [ ] make terminal edit window "FULL SCREEN" always
+--> (0:45?)  [ ] make terminal edit window "FULL SCREEN" always
+(0:20?)  [ ] file selector -- putting slash at end in search should restrict to directories.
+(0:45?)  [ ] *Need* editor bookmarks.  Ctrl-B to toggle then, Ctrl-I to move to next?
 (1:00?)  [ ] all editors need to have "show" called when window is resized
 (0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
 (0:30?)  [ ] fix auto-resizing of input cells of worksheet
@@ -142,6 +144,7 @@ Database table that lists all projects for a given user.
 = Deploy =
 
 (0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
+(1:00?)  [ ] MINIFY actual page js
 (1:00?)  [ ] change any hard coded "salv.us" to cloud.sagemath.org
 (0:30?)  [ ] make sure email reset works with cloud.sagemath.org
 (1:00?)  [ ] build virtual machine that is up2date and has all necessary packages (including ghostview, etc.)

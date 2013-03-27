@@ -3,19 +3,23 @@
 }
 
 .salvus-console {
-    border           : 1px solid #aaa;
     background-color : #eaeaea;
-    padding          : 10px;
-    margin           : 10px;
-    margin-top       : 0px;
-    margin-bottom    : 0px;
-    box-shadow       : 6px 6px 3px #888;
-    padding-bottom   : 0px;
+    padding          : 0px;
+    margin           : 0px;
     width            : 100%;
+    border: 0px solid black;
+}
+.salvus-console-topbar {
+    padding: 0px;
+    margin : 0px;
+    height : 40px;
+    overflow : hidden;
+    border-bottom : 1px solid #aaa;
 }
 
 .salvus-console-title {
-    border-bottom: 1px solid #aaa;
+    padding       : 10px;
+    overflow      : hidden;
 }
 
 .salvus-console-description {
@@ -30,9 +34,8 @@
 
 .salvus-console-terminal {
      font-family: Courier, "Courier New", monospace;
-     padding: 5px;
+     padding: 0px;
      margin: 0px;
-    border: 10px solid black;
 }
 
 .salvus-console-cursor-blur  {
@@ -76,10 +79,6 @@
   90%  { background: #fff; color:#000; }
 }
 
-.salvus-console-countdown {
-    padding: 1ex;
-    color: #888;
-}
 
 .salvus-console-textarea {
     height:0px;
@@ -91,12 +90,10 @@
 
 .salvus-console-focus {
     background-color: #ffffe8;
-    border : 2px solid #99f;
-    box-shadow: 4px 4px 2px #bbf;
 }
 
 .salvus-console-blur {
-    border : 2px solid lightgrey;
+    background-color: #ccc;
 }
 
 .salvus-console-paste-bin {

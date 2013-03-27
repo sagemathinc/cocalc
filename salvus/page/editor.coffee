@@ -254,8 +254,12 @@ class exports.Editor
             @active_tab?.editor?.hide()
 
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
-                @project_page.display_tab("project-file-listing")
+                @project_page.display_tab("project-new-file")
                 return false
+
+            if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
+                @display_tab(@active_tab.filename)
+                return
 
             v = $.trim(search_box.val()).toLowerCase()
             if v == ""
@@ -1119,10 +1123,10 @@ class Terminal extends FileEditor
         @element.show()
         if @console?
             e = $(@console.terminal.element)
-            #e.height((@console.opts.rows * 1.1) + "em")
-            e.height($(window).height() - 3*top_navbar.height())
+            top_height = top_navbar.height() + @element.find(".salvus-console-topbar").height()
+            e.height($(window).height() - top_height)
             @console.focus()
-            window.scrollTo(0, document.body.scrollHeight); $(".salvus-top-scroll").show()
+            #window.scrollTo(0, document.body.scrollHeight); $(".salvus-top-scroll").show()
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

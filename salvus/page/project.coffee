@@ -878,6 +878,10 @@ class ProjectPage
             if event.keyCode == 13
                 create_file()
                 return false
+            if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
+                @display_tab("project-file-listing")
+                return false
+
 
     show_new_file_tab: () =>
         # Update the path

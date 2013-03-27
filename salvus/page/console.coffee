@@ -362,14 +362,19 @@ class Console extends EventEmitter
     _init_buttons: () ->
         editor = @terminal.editor
 
-        # Buttons
+        @element.find("a[href=#refresh]").click () =>
+            @resize()
+            return false
+
         @element.find(".salvus-console-up").click () ->
             vp = editor.getViewport()
             editor.scrollIntoView({line:vp.from - 1, ch:0})
+            return false
 
         @element.find(".salvus-console-down").click () ->
             vp = editor.getViewport()
             editor.scrollIntoView({line:vp.to, ch:0})
+            return false
 
         if IS_MOBILE
             @element.find(".salvus-console-tab").show().click (e) =>
@@ -396,17 +401,6 @@ class Console extends EventEmitter
                     data = pb.val()
                     pb.val('')
                     @session?.write_data(data)
-
-    _start_session_timer: (seconds) ->
-        t = new Date()
-        t.setTime(t.getTime() + seconds*1000)
-        @element.find(".salvus-console-countdown").show().countdown('destroy').countdown
-            until      : t
-            compact    : true
-            layout     : '{hnn}{sep}{mnn}{sep}{snn}'
-            expiryText : "Console session killed (after #{seconds} seconds)"
-            onExpiry   : () ->
-                alert_message(type:"info", message:"Console session killed (after #{seconds} seconds).")
 
     #######################################################################
     # Public API
@@ -470,26 +464,23 @@ class Console extends EventEmitter
         # Determine the width of a character using a little trick:
         c = $("<span style:'padding:0px;margin:0px;border:0px;'>X</span>").appendTo(@terminal.element)
         character_width = c.width()
-        if true or not @_character_height?
-            character_height = @opts.font.size+2
-        else
-            character_height = @_character_height
         c.remove()
-
-        # Determine the number of columns from the width of the element.
         elt = $(@terminal.element)
-        font_size = @opts.font.size
-        new_cols = Math.floor(elt.width() / character_width)
-        if new_cols == 0
+
+        # The above trick is not reliable for getting the height of each row.  For that we use
+        # the terminal itself.
+        row_height = elt.children(":first").height()
+
+        if character_width == 0 or row_height == 0
             # The editor must not yet be visible -- do nothing
             return
 
-        # Determine number of rows from the height of the element.
-        new_rows = Math.floor(elt.height() / character_height)
+        # Determine the number of columns from the width of a character, computed above.
+        font_size = @opts.font.size
+        new_cols = Math.max(1,Math.floor(elt.width() / character_width))
 
-        if @opts.rows == new_rows and @opts.cols == new_cols
-            # nothing to do
-            return
+        # Determine number of rows from the height of the row , as computed above.
+        new_rows = Math.max(1,Math.floor(elt.height() / row_height))
 
         # Resize the renderer
         @terminal.resize(new_cols, new_rows)

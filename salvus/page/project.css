@@ -145,6 +145,13 @@
     font-size: 17px;
 }
 
+.project-file-top-current-path-container {
+    max-width     : 30%;
+    overflow      : hidden;
+    font-size     : 10pt;
+    overflow-wrap : break-word;
+}
+
 .project-move-path-dialog-filename {
     background-color:#fff;
     padding:5px;

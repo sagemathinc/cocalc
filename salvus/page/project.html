@@ -56,19 +56,22 @@
 
 
         <div class="row">
+            <!-- Displays the current path -->
+            <div class="pull-right project-file-top-current-path-container"><a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a></div>
+
             <!-- Tabs -- place where you click on them -->
             <ul class="nav nav-tabs  project-pages">
 
                 <!-- Browse through files in the project -->
                 <li class="super-menu">
-                    <a href="#project-file-listing"><i class="icon-folder-close-alt"></i> <span class="project-file-top-current-path-display"></span></a>
+                    <a href="#project-file-listing"><i class="icon-folder-close-alt"></i> Open</a>
                 </li>
 
                 <!-- Use an interactive console in the project -->
                 <!--	  <li class="super-menu"><a href="#project-consoles">Sessions (<span class="project-consoles-count">0</span>)</a></li> -->
 
                 <!-- File editor -->
-                <li class="super-menu"><a href="#project-editor"><i class="icon-folder-open-alt"> </i> Opened files (<span class="project-editor-file-count">0</span>)</a></li>
+                <li class="super-menu"><a href="#project-editor"><i class="icon-folder-open-alt"> </i> Recent (<span class="project-editor-file-count">0</span>)</a></li>
 
                 <!-- Publications -->
                 <!--	  <li class="super-menu"><a href="#project-pubs">Publish (<span class="project-editor-publish-count">?</span>)</a></li> -->
@@ -274,12 +277,12 @@ in current location
                 <div class="row well">
                     <div class="span8">
                         <div class="project-search-output-path-heading hide">
-                            <span class="lighten"><a href="#project-file-listing">Navigate to a folder</a> to search in it.</span>
+                            <span class="lighten"><a href="#project-file-listing">Navigate to a different folder</a> to search in it.</span>
                             <br><br>
-                            <h4>
-                                Results of searching <span class="project-search-output-path"></span>
+                            <h5>
+                                Results of searching in <span class="project-search-output-path"></span>
                                 for "<span class="project-search-output-terms"></span>"
-                            </h4>
+                            </h5>
                         </div>
                     </div>
                     <div class="span3">
