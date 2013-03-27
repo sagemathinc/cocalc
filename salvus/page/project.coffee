@@ -445,8 +445,8 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
-            timeout    : 1   # how long grep runs on client
-            network_timeout : 6   # how long network call has until it must return something or get total error.
+            timeout    : 5   # how long grep runs on client
+            network_timeout : 10   # how long network call has until it must return something or get total error.
             max_output : max_output
             bash       : true
             err_on_exit: false
