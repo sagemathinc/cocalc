@@ -1039,12 +1039,63 @@ class ProjectPage
                         t.data('name', name).click (e) ->
                             that.open_file($(@).data('name'))
                             return false
+
+                    # Filename rename
+                    that = @
+                    t.find('a').click () -> that.click_to_rename_file(path, $(@))
                     file_or_listing.append(t)
 
                 @clear_file_search()
                 if no_focus? and no_focus
                     return
                 @focus_file_search()
+
+
+    click_to_rename_file: (path, link) =>
+        link.attr('contenteditable',true)
+        original_name = link.text()
+        doing_rename = false
+        rename = () =>
+            if doing_rename
+                return
+            new_name = link.text()
+            if original_name != new_name
+                doing_rename = true
+                @rename_file(path, original_name, new_name)
+                return false
+
+        # Capture leaving box
+        link.on 'blur', rename
+        link.live 'blur', rename
+
+        # Capture pressing enter
+        link.keydown (evt) ->
+            if evt.keyCode == 13
+                rename()
+                return false
+
+        return false
+
+
+    rename_file: (path, original_name, new_name) =>
+        console.log('rename', path, original_name, new_name)
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : 'mv'
+            args        : [original_name, new_name]
+            timeout    : 4
+            network_timeout : 5
+            err_on_exit: false
+            path       : path
+            cb         : (err, output) =>
+                console.log(err, output)
+                if err
+                    alert_message(type:"error", message:"Communication error while  renaming '#{original_name}' to '#{new_name}' -- #{err}")
+                else if output.event == 'error'
+                    alert_message(type:"error", message:"Error renaming '#{original_name}' to '#{new_name}' -- #{output.error}")
+                else
+                    alert_message(type:"info", message:"Change name of '#{original_name}' to '#{new_name}'")
+                    @update_file_list_tab(true)
 
     download_project: (opts={}) =>
         download_project

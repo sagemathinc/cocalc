@@ -33,7 +33,10 @@ Sunday -- get prepared for my teaching on monday
 (0:20?)  [x] (0:17) file selector -- putting slash at end in search should restrict to directories.
 (0:20?)  [x] (0:08) create new file by typing a name that results in no hits in file search creates it... with a button to choose type (or cancel)
 (1:00?)  [x] (0:59) editors need to have "show" called when window is resized; also, get rid of responsive top bar bullshit and do it right.
---> (0:30?)  [ ] idea -- what if we allow opening the same project in multiple tabs -- then get multiple views on same project.  useful!
+(0:30?)  [x] (0:59) idea -- what if we allow opening the same project in multiple tabs -- then get multiple views on same project.  Not good. Instead, usable implementation of files as tabs optionally to try out...
+(1:00?)  [x] way to make a new folder
+(1:00?)  [x] (1:00) way to rename file
+(0:45?)  [ ] way to delete files
 (0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
 (0:30?)  [ ] fix auto-resizing of input cells of worksheet
 (1:00?)  [ ] clean up the button bar at the top of worksheets; make consistent with files...
@@ -47,7 +50,6 @@ Sunday -- get prepared for my teaching on monday
 (1:00x)  [ ] split document editing (see two parts of doc at once)
 (0:45?)  [ ] editor buttons: search/replace/undo/redo/autoindent/
 (0:45?)  [ ] worksheet bug -- default path is relative to home directory not project.
-(1:00x)  [ ] when a local_hub is starting, show a progress meter... (and sequence of messages)
 (0:45?)  [ ] show hidden files checkbox
 (0:30?)  [ ] if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
 (0:30?)  [ ] auto delete trailing whitespace should be an option in global settings
@@ -67,9 +69,7 @@ Sunday -- get prepared for my teaching on monday
 (1:00?)  [ ] in settings: ask for money and give link to donate to Sage foundation.
                provide a checkbox that says "I have donated."  When they check it, it changes to a big thanks!
 (0:45?)  [ ] Do not allow creation of private projects unless users claims to have donated.
-(1:00?)  [ ] way to make a new folder
 (1:30?)  [ ] way to move checked files into a folder
-(1:00?)  [ ] way to rename file
 (1:00?)  [ ] attach: implement the attach command for (backwards) compatibility.
 (1:00?)  [ ] *need* to easily be able to resize the height of the output and have this saved!!!
 (1:00?)  [ ] option to completely delete a project, irrevocably.   (BIG RED SCARY SERIOUS -- type your name, etc.)
@@ -80,6 +80,7 @@ Sunday -- get prepared for my teaching on monday
 (0:30?)  [ ] typing *while* first syncing moves editor display down one each character typed.
 (0:45?)  [ ] bug -- resizing terminal results in codes getting sprayed on the screen
 (0:45?)  [ ] Editor bookmarks?.  Ctrl-B to toggle then, Ctrl-I to move to next?
+(1:00x)  [ ] when a local_hub is starting, show a progress meter... (and sequence of messages)
 
 = Major Show-stopper Bugs =
 (1:00?) [ ] I think GAP doesn't work at all in the new worksheets.
