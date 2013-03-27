@@ -387,6 +387,10 @@ class ProjectPage
             else
                 if v != ""
                     entry.addClass(exclude); entry.removeClass(include)
+        if first and event.keyCode == 13
+            # No matches at all, and user pressed enter -- maybe they want to create a file?
+            @display_tab("project-new-file")
+            @new_file_tab_input.val(search_box.val())
 
     init_search_form: () =>
         that = @
