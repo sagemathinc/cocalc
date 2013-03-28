@@ -1291,6 +1291,7 @@ class Worksheet extends FileEditor
     show: () =>
         if not @worksheet?
             return
+        @element.show()
         win = $(window)
         @element.width(win.width())
         top = @editor.editor_top_position()

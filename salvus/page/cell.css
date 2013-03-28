@@ -3,11 +3,9 @@
 
 .salvus-cell-note {
     font-size        : 11pt;
-    background-color : #fff;
     color            : #333;
     min-height       : 1.5em;
-    /* border           : 1px solid #ccc; */
-    padding          : 4px;
+    padding-left     : 3em;
 }
 
 .salvus-cell-insert-above {
@@ -29,10 +27,11 @@
 
 .salvus-cell-input {
     min-height       : 1.5em;
-    border-left      : 2px solid #e0e0e0;
+    /*border-left      : 2px solid #e0e0e0;
     border-top      : 2px solid white;
-    border-bottom      : 2px solid white;
+    border-bottom      : 2px solid white;*/
     margin-left      : 1em;
+    margin-right     : 1em;
 }
 
 .salvus-cell-input-selected {
@@ -43,11 +42,13 @@
 }
 
 .salvus-cell-output {
-    background-color : #fff; /* #fafafa; */
+    /* background-color : #fff; #fafafa; */
     /*overflow-y       : auto; */
     overflow-x       : auto;
-    margin-left      : 2em;
+    margin-left      : 3em;
     padding          : 0ex;
+    margin-right     : 1em;
+
 }
 
 .salvus-cell-output-stdout {
@@ -71,7 +72,7 @@
 .salvus-cell-output-interact {
     padding: 1em;
     margin: 1em;
-    background-color: #fff;
+    /* background-color: #fff; */
     border: 1px solid #e0e0e0;
     box-shadow: 3px 3px 3px 3px #ccc;
 }

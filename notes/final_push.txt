@@ -76,21 +76,21 @@ With the following done, we will have 100% fixed the UI for now:
         characters typed get jumbled.   I'm not going to worry more about this, since it *only* happens if
         the local_hub goes down... and maybe then some loss is inevitable.  This is not something (like user's connection or global hub change)
         that will happen much.
-
-
-
-
-
+(0:45?) [x] cursor doubling -- this is because the same hub connects twice to the same local_hub and broadcasts to itself.
+                Solution: when connecting to local_hub, local_hub should discard all connections from that same hub.
+                Could be determined by a self-reported uuid on startup of global hub.
+(1:00?)  [x] (0:15) clean up the bar at the top of worksheets; make consistent with files...
+         [x] Make background color of worksheets consistent... and easy to change later.
+ (0:30?) [x] (0:30) when showing worksheet, need to call refresh on all cells in the worksheet
 
 
 (0:30?)  [ ] range selection -- need to also preserve that on sync.
---> (0:45?) [ ] cursor doubling -- this is because the same hub connects twice to the same local_hub and broadcasts to itself.
-                Solution: when connecting to local_hub, local_hub should discard all connections from that same hub.
-                Could be determined by a self-reported uuid on startup of global hub.
 
 (0:30?) [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
 (1:00?) [ ] when a session has timed out, chat just doesn't work.
         typing once into the session and waiting... makes chat work.
+
+        [ ] worksheet sessions: killing them doesn't work; interrupting doesn't work.
 
 (0:45?) [ ] re-enable (and test) automatic timeout of sync sessions in local_hub
 (1:00?) [ ] worksheet sync: define code to diff two worksheets and make a patch
@@ -102,6 +102,8 @@ With the following done, we will have 100% fixed the UI for now:
 
 =======================
 
+(0:45?)  [ ] bug: worksheet -- default path is relative to home directory not project.
+(1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
 
 
 
@@ -120,15 +122,8 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:45?)  [ ] bug in directory download -- need to name things sensibly; may require changes in hubs.
 
-(0:30?)  [ ] when showing worksheet, need to call refresh on all cells in the worksheet
-(1:00?)  [ ] clean up the bar at the top of worksheets; make consistent with files...
-(0:45?)  [ ] bug: worksheet -- default path is relative to home directory not project.
-(1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
 (1:00?)  [ ] change filename extensions to ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
 
-(1:00?)  [ ] terminals session should not ever timeout.  why do they?
-
-(0:45?)  [ ] when searching, automatically copy highlighted text into search box.
 (0:45?)  [ ] editor buttons: search/replace/undo/redo/autoindent/split
 (0:30?)  [ ] if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
 (0:30?)  [ ] show quota info in project settings.
