@@ -10,9 +10,6 @@ process.on 'message', (opts, socket) ->
         command : required
         args    : required
         path    : undefined
-        cputime : required  # limit on cputime                        POSIX rlimit name: 'cpu'
-        vmem    : required  # limit on virtual memory (in megabytes)  POSIX rlimit name: 'as' (address space)
-        numfiles: required  # limit on number of file descriptors     POSIX rlimit name: 'nofile'
 
     term_opts =
         name : 'xterm'

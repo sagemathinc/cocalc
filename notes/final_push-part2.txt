@@ -33,6 +33,7 @@ f.thickness=20
              (just show list of times when there were backups made, and sizes)
 
 (1:00?)  [ ] *need* to easily be able to resize the height of the output and have this saved!!!
+(1:00?) [ ] A project-level chat, in addition to file level -- this gets stored in project_root/.sage-chat
 
 Other issues
 

@@ -59,20 +59,35 @@ Sunday -- get prepared for my teaching on monday
 
 (0:10?)  [x] (0:15) bug: control-o in editor to get to recent is broken
 
+With the following done, we will have 100% fixed the UI for now:
+
+(0:30?)  [x] (0:45) do not actually open a tab in editor unless the user explicitly selects it.  Make this lazy.  this was we can leave recent as is.
+
+(1:00?)  [ ] each open file *must* corr to a tab in the second line bar. Sorry.  Get rid of the path up there and put a big pull-ed right
+             tabbar up.  Shrink to accom. arbitrary many.
+(1:00?)  [ ] provide a true 100% fullscreen mode for each editor, which covers everything...
+
+
+--------
+
+
 (1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
-(0:30?)  [ ] range selection -- need to also preserve that on sync.
-(1:00?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
+(0:45?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
+
 (0:30?)  [ ] codemirror editor settings: whether or not lines wrap in codemirror. (apply for both files and worksheets)
-(0:30?)  [ ] codemirror editor settings: color scheme
-(0:30?)  [ ] codemirror editor settings: auto delete trailing whitespace should be an option in global settings
-(0:45?)  [ ] implement directory download -- need to name things sensibly; may require changes in hubs.
-(0:30?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
+(0:20?)  [ ] codemirror editor settings: color scheme
+(0:20?)  [ ] codemirror editor settings: auto delete trailing whitespace should be an option in global settings
+
+(0:45?)  [ ] bug in directory download -- need to name things sensibly; may require changes in hubs.
+
+(0:30?)  [ ] when showing worksheet, need to call refresh on all cells in the worksheet
 (1:00?)  [ ] clean up the bar at the top of worksheets; make consistent with files...
 (0:45?)  [ ] bug: worksheet -- default path is relative to home directory not project.
 (1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
 (1:00?)  [ ] change filename extensions to ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
 
-(1:00?)  [ ] terminals should automatically restart if the backing session dies.  Keep history and cwd. make terminals robust.
+(1:00?)  [ ] terminals session should not ever timeout.  why do they?
+
 (0:45?)  [ ] when searching, automatically copy highlighted text into search box.
 (0:45?)  [ ] editor buttons: search/replace/undo/redo/autoindent/split
 (0:30?)  [ ] if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
@@ -91,7 +106,7 @@ Sunday -- get prepared for my teaching on monday
 (0:45?)  [ ] in settings: ask for money and give link to donate to Sage foundation.
                provide a checkbox that says "I have donated."  When they check it, it changes to a big thanks!
 (0:30?)  [ ] maybe nice if way to indicate which files (in recent) have unsaved changes??
-(0:45?)  [ ] provide a true fullscreen move for each editor that covers everything...
+
 
 = Accounts =
 
@@ -129,12 +144,18 @@ Database table that lists all projects for a given user.
 
 = Doc Synchronization =
 
+(0:30?)  [ ] range selection -- need to also preserve that on sync.
+--> (0:45?) [ ] cursor doubling -- this is because the same hub connects twice to the same local_hub and broadcasts to itself.
+                Solution: when connecting to local_hub, local_hub should discard all connections from that same hub.
+                Could be determined by a self-reported uuid on startup of global hub.
+
 (0:30?) [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
-(1:00?) [ ] A project-level chat, in addition to file level -- this gets stored in project_root/.sage-chat
-(1:00?) [ ] major bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
+(1:30?) [ ] major bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
         characters typed get jumbled.
+
 (1:00?) [ ] when a session has timed out, chat just doesn't work.
         typing once into the session and waiting... makes chat work.
+
 (0:45?) [ ] re-enable (and test) automatic timeout of sync sessions in local_hub
 (1:00?) [ ] worksheet sync: define code to diff two worksheets and make a patch
 (1:00?) [ ] worksheet sync: define code to apply a patch to a worksheet

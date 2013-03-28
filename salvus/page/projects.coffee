@@ -117,10 +117,10 @@ create_project_item = (project) ->
         item.find(".projects-location").text(d)
     ###
     item.click (event) ->
-        try
-            open_project(project)
-        catch e
-            console.log(e)
+        #try
+        open_project(project)
+        #catch e
+        #    console.log(e)
         return false
     item.find("a[href='#download-project']").click () ->
         download_project

@@ -1527,7 +1527,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             socket.write_mesg('json', opts.message)
             opts.cb()
         catch e
-            opts.cb("Errro sending message to session #{opts.session_uuid} -- #{e}")
+            opts.cb("Erro sending message to session #{opts.session_uuid} -- #{e}")
 
 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag

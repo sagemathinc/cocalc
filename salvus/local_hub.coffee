@@ -159,7 +159,7 @@ class ConsoleSessions
         if not session?
             cb()
         else
-            winston.debug("terminate console session '#{session_uuid}'- STUB!")
+            winston.debug("terminate console session '#{session_uuid}'")
             if session.status == 'running'
                 session.socket.end()
                 cb()
@@ -603,7 +603,7 @@ class CodeMirrorSession
         # one that just sent it to us.
         for id, ds_client of @diffsync_clients
             if socket.id != id
-                winston.debug("sending message on to socket with id #{socket.id}")
+                winston.debug("BROADCAST: sending message on to socket with id #{socket.id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
 
         # If this is a chat message, save it.

@@ -818,7 +818,6 @@ class ProjectPage
                 return false
             @display_tab("project-editor")
             tab = @editor.create_tab(filename:p, content:"")
-            tab.editor.val('')
             return false
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>

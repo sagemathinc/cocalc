@@ -247,7 +247,7 @@ class exports.Editor
     _window_resize_while_editing: () =>
         if not @active_tab? or not @_editor_content_visible
             return
-        @active_tab.editor.show()
+        @active_tab.editor().show()
 
     init_close_all_tabs_button: () =>
         @element.find("a[href=#close-all-tabs]").click () =>
@@ -273,7 +273,7 @@ class exports.Editor
             search_box.select()
 
         search_box.keyup (event) =>
-            @active_tab?.editor?.hide()
+            @active_tab?.editor().hide()
 
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
                 @project_page.display_tab("project-new-file")
@@ -342,9 +342,54 @@ class exports.Editor
         if opts.session_uuid?
             extra_opts.session_uuid = opts.session_uuid
 
-        # Some of the editors below might get the content later and will call @file_options again then.
+        local_storage(@project_id, filename, "auto_open", true)
 
-        switch opts0.editor
+        link = templates.find(".salvus-editor-filename-pill").clone().show()
+        link_filename = link.find(".salvus-editor-tab-filename")
+        link_filename.text(trunc(filename,256))
+
+        link.find(".salvus-editor-close-button-x").click () =>
+            @close(filename)
+
+        containing_path = misc.path_split(filename).head
+        link.find("a").click () =>
+            @display_tab(link_filename.text())
+            @project_page.set_current_path(containing_path)
+
+        create_editor_opts =
+            editor_name : opts0.editor
+            filename    : filename
+            content     : content
+            extra_opts  : extra_opts
+
+        editor = undefined
+        @tabs[filename] =
+            link     : link
+            filename : filename
+            editor   : () =>
+                if editor?
+                    return editor
+                else
+                    editor = @create_editor(create_editor_opts)
+                    @element.find(".salvus-editor-content").append(editor.element.hide())
+                    return editor
+            hide_editor: () -> editor?.hide()
+
+        link.data('tab', @tabs[filename])
+
+        @nav_tabs.append(link)
+        @update_counter()
+        return @tabs[filename]
+
+    create_editor: (opts) =>
+        {editor_name, filename, content, extra_opts} = defaults opts,
+            editor_name : required
+            filename    : required
+            content     : required
+            extra_opts  : required
+        #console.log('create_editor: ', opts)
+        # Some of the editors below might get the content later and will call @file_options again then.
+        switch editor_name
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
             when 'codemirror', undefined
                 editor = codemirror_session_editor(@, filename, extra_opts)
@@ -363,41 +408,9 @@ class exports.Editor
             when 'pdf'
                 editor = new PDF_Preview(@, filename, content, extra_opts)
             else
-                throw("Unknown editor type '#{x.editor}'")
+                throw("Unknown editor type '#{editor_name}'")
 
-        local_storage(@project_id, filename, "auto_open", true)
-
-        link = templates.find(".salvus-editor-filename-pill").clone().show()
-        link_filename = link.find(".salvus-editor-tab-filename")
-        link_filename.text(trunc(filename,256))
-
-        link.find(".salvus-editor-close-button-x").click () =>
-            @close(filename)
-
-        containing_path = misc.path_split(filename).head
-        link.find("a").click () =>
-            @display_tab(link_filename.text())
-            @project_page.set_current_path(containing_path)
-
-        @tabs[filename] =
-            link     : link
-            editor   : editor
-            filename : filename
-        link.data('tab', @tabs[filename])
-
-        @nav_tabs.append(link)
-
-        if not @active_tab?
-            @active_tab = @tabs[filename]
-
-
-        #@display_tab(filename)
-        #setTimeout(editor.focus, 250)
-
-        @element.find(".salvus-editor-content").append(editor.element.hide())
-        @update_counter()
-        return @tabs[filename]
-
+        return editor
 
     # Close this tab.
     close: (filename) =>
@@ -409,9 +422,9 @@ class exports.Editor
         local_storage_delete(@project_id, filename, "auto_open")
 
         # Disconnect from remote session (if relevant)
-        tab.editor.disconnect_from_session()
+        tab.editor().disconnect_from_session()
         tab.link.remove()
-        tab.editor.remove()
+        tab.editor().remove()
         delete @tabs[filename]
         @update_counter()
 
@@ -436,12 +449,12 @@ class exports.Editor
                 else if mesg.event == 'error'
                     alert_message(type:"error", message:"Error loading new version of #{filename} -- #{to_json(mesg.error)}")
                 else
-                    current_content = tab.editor.val()
+                    current_content = tab.editor().val()
                     new_content = mesg.content
                     if current_content != new_content
                         @warn_user filename, (proceed) =>
                             if proceed
-                                tab.editor.val(new_content)
+                                tab.editor().val(new_content)
 
     # Warn user about unsaved changes (modal)
     warn_user: (filename, cb) =>
@@ -456,13 +469,14 @@ class exports.Editor
         for name, tab of @tabs
             if name == filename
                 @active_tab = tab
-                tab.editor.show()
-                setTimeout(tab.editor.focus, 100)
+                ed = tab.editor()
+                ed.show()
+                setTimeout((() -> ed.show(); ed.focus()), 200)
                 @element.find(".btn-group").children().removeClass('disabled')
             else
-                tab.editor.hide()
+                tab.hide_editor()
 
-        if prev_active_tab.filename != @active_tab.filename and @tabs[prev_active_tab.filename]?   # ensure is still open!
+        if prev_active_tab? and prev_active_tab.filename != @active_tab.filename and @tabs[prev_active_tab.filename]?   # ensure is still open!
             @nav_tabs.prepend(prev_active_tab.link)
 
     add_tab_to_navbar: (filename) =>
@@ -502,12 +516,12 @@ class exports.Editor
             cb?()
             return
 
-        if not tab.editor.has_unsaved_changes()
+        if not tab.editor().has_unsaved_changes()
             # nothing to save
             cb?()
             return
 
-        tab.editor.save(cb)
+        tab.editor().save(cb)
 
     change_tab_filename: (old_filename, new_filename) =>
         tab = @tabs[old_filename]
@@ -745,7 +759,7 @@ class CodeMirrorEditor extends FileEditor
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height = @codemirror.defaultTextHeight()
 
-        cm_height = Math.floor((elem_height - button_bar_height - font_height/2)/font_height) * font_height
+        cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
         @element.height(elem_height).show()
 
