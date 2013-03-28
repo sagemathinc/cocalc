@@ -666,6 +666,7 @@ class CodeMirrorSession
 
         # Ensure we do not broadcast to a hub if it has already disconnected.
         socket.on 'end', () =>
+            winston.debug("DISCONNECT: socket connection #{socket.id} from global hub disconected.")
             delete @diffsync_clients[socket.id]
 
     write_to_disk: (socket, mesg) =>

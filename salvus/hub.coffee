@@ -1173,8 +1173,9 @@ codemirror_sessions = {by_path:{}, by_uuid:{}}
 # as a remote server for this hub.
 #
 # TODO later: refactor code, since it seems like all these
-# DiffSync[Hub/Client] etc. things are defined by a write_mesge function.
+# DiffSync[Hub/Client] etc. things are defined by a write_mesg function.
 #
+
 class CodeMirrorDiffSyncLocalHub
     constructor: (@cm_session) ->
 
@@ -1202,7 +1203,7 @@ class CodeMirrorDiffSyncLocalHub
         @write_mesg('diffsync_ready')
 
 # The CodeMirrorDiffSyncClient class represents a browser client viewed as a
-# remote client for this local hub.
+# remote client for this global hub.
 class CodeMirrorDiffSyncClient
     constructor: (@client, @cm_session) ->
 
@@ -1677,9 +1678,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
         ], (err) =>
             if err
-                # TODO -- declare total disaster !? -- start over with next connection attempt.
                 winston.debug("Error getting a socket -- (declaring total disaster) -- #{err}")
+
+                # This @_socket.destroy() below is VERY important, since just deleting the socket might not send this,
+                # and the local_hub -- if the connection were still good -- would have two connections
+                # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
+                @_socket.destroy()
                 delete @_status; delete @_socket
+
             else if socket?
                 @_sockets[opts.session_uuid] = socket
                 socket.history = ''

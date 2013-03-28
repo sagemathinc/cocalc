@@ -69,16 +69,50 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:10?)  [x] (0:15) move little upper right path
 
+(0:30?)  [x] (0:30) stacked cursors issue -- local hub should only allow global hub once as a client for given file.
+              doubled cursors issue is now fixed.
+
+(1:30?) [ ] THE BIGGEST BUG -- when visiting a synchronized editing session after a long time (and sync broken), the first few
+        characters typed get jumbled.
+
+
+        asdklfj asdlfj asdlf jlakdsfj lkasdj fklsa dfkljasdkj
+alsdjf als     djf
+
+
+
+
+
+
+
+
+(0:30?)  [ ] range selection -- need to also preserve that on sync.
+--> (0:45?) [ ] cursor doubling -- this is because the same hub connects twice to the same local_hub and broadcasts to itself.
+                Solution: when connecting to local_hub, local_hub should discard all connections from that same hub.
+                Could be determined by a self-reported uuid on startup of global hub.
+
+(0:30?) [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
+(1:00?) [ ] when a session has timed out, chat just doesn't work.
+        typing once into the session and waiting... makes chat work.
+
+(0:45?) [ ] re-enable (and test) automatic timeout of sync sessions in local_hub
+(1:00?) [ ] worksheet sync: define code to diff two worksheets and make a patch
+(1:00?) [ ] worksheet sync: define code to apply a patch to a worksheet
+(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into client
+(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into hub
+(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into local hub
+
+
+=======================
+
+
+
+
+
+
 (0:10?)  [ ] make other standard tabs only icons; move search box to search page only
 (0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
 (0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
-
-
- (0:30?)  [ ] stacked cursors issue -- local hub should only allow global hub once as a client for given file.
-
-
---------
-
 
 (1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 (0:45?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
@@ -150,26 +184,6 @@ Database table that lists all projects for a given user.
             Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
 (0:45?) [ ] Add code to hub so that if user requests such a url, they get that project opened in the given location.
 
-= Doc Synchronization =
-
-(0:30?)  [ ] range selection -- need to also preserve that on sync.
---> (0:45?) [ ] cursor doubling -- this is because the same hub connects twice to the same local_hub and broadcasts to itself.
-                Solution: when connecting to local_hub, local_hub should discard all connections from that same hub.
-                Could be determined by a self-reported uuid on startup of global hub.
-
-(0:30?) [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
-(1:30?) [ ] major bug -- when visiting a synchronized editing session after a long time (and sync broken), the first few
-        characters typed get jumbled.
-
-(1:00?) [ ] when a session has timed out, chat just doesn't work.
-        typing once into the session and waiting... makes chat work.
-
-(0:45?) [ ] re-enable (and test) automatic timeout of sync sessions in local_hub
-(1:00?) [ ] worksheet sync: define code to diff two worksheets and make a patch
-(1:00?) [ ] worksheet sync: define code to apply a patch to a worksheet
-(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into client
-(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into hub
-(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into local hub
 
 
 = Deploy =
