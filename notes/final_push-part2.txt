@@ -1,0 +1,45 @@
+
+= Graphics =
+
+(4:00x)    [ ] attempt very basic 3d rendering using three.js
+(1:00?)  [ ] bug -- changing interact control externally does change control, but doesn't re-evaluate function.
+@interact
+def f(c=Color('blue'), thickness=(1..30)):
+    show(plot(sin, color=c, thickness=thickness))
+f.thickness=20
+
+= Features =
+(0:45?)  [ ] Editor bookmarks?.  Ctrl-B to toggle then, Ctrl-I to move to next?
+(1:00x)  [ ] when a local_hub is starting, show a progress meter... (and sequence of messages)
+(1:00?)  [ ] check multiple file and drag them in a group to move them.
+(0:45?)  [ ] project rename/desc just like file rename
+
+(2:00x)  [ ] write some basic user-oriented documentation (?)
+
+
+(0:45?)  [ ] it might be nice if open file thing had -- in upper right -- "scratch: [ws] [trm]" icons...?
+(0:45?)  [ ] close brackets -- would make editor and notebook nicer, maybe -- http://codemirror.net/addon/edit/closebrackets.js
+(1:30?) [ ] Implement a simple "single cell" mode for visitor mode (basically, a sage session, but not using this project)
+(1:30x) [ ] Implement a simple homework assignment mode for visitor mode, which lets user do problems, with results getting saved somewhere not-public.
+(1:30?) [ ] For easy user-only recover of mistakes, setup rsnapshot
+            on the same virtual machine, made with rsync,
+            and way to browse it (symlink to path of project)
+(1:30?) [ ] When a user logs in and accesses a project (if we haven't already in the last x
+	       hours) do a compressed tarball backup of the project.
+            Next time, only include files that were modified since the
+            last backup by using the options mentioned here:
+                http://catlingmindswipe.blogspot.com/2010/02/linux-how-to-incremental-backups-using.html
+(1:30?) [ ] Make a new project from a specific backup of project.
+             (just show list of times when there were backups made, and sizes)
+
+(1:00?)  [ ] *need* to easily be able to resize the height of the output and have this saved!!!
+
+Other issues
+
+(1:00?) [ ] issue: if you open a #! script the first line isn't read until connecting to the sync session,
+        so we don't have any way to know the file type... hence the codemirror editor doesn't have
+        the right mode.
+
+
+(1:00?)  [ ] informal terms of usage -- put up something very short but useful and serious.
+(0:45?)  [ ] Do not allow creation of private projects unless users claims to have donated.
