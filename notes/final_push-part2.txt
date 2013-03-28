@@ -44,3 +44,5 @@ Other issues
 
 (1:00?)  [ ] informal terms of usage -- put up something very short but useful and serious.
 (0:45?)  [ ] Do not allow creation of private projects unless users claims to have donated.
+(1:00?)  [ ] provide a true 100% fullscreen mode for each editor, which covers everything...
+(0:30?)  [ ] maybe nice if way to indicate which files (in recent) have unsaved changes??

@@ -63,9 +63,14 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:30?)  [x] (0:45) do not actually open a tab in editor unless the user explicitly selects it.  Make this lazy.  this was we can leave recent as is.
 
-(1:00?)  [ ] each open file *must* corr to a tab in the second line bar. Sorry.  Get rid of the path up there and put a big pull-ed right
+(1:00?)  [ ] PLAN THIS: each open file *must* corr to a tab in the second line bar. Sorry.  Get rid of the path up there and put a big pull-ed right
              tabbar up.  Shrink to accom. arbitrary many.
-(1:00?)  [ ] provide a true 100% fullscreen mode for each editor, which covers everything...
+
+(0:10?)  [ ] get rid of little upper right path
+(0:10?)  [ ] make other standard tabs only icons; move search box to search page only
+(0:30?)  [ ] make project nav area full width
+(0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
+(0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
 
 
 --------
@@ -105,8 +110,7 @@ With the following done, we will have 100% fixed the UI for now:
 (0:30?)  [ ] in sign-up: explain that service it currently donation-supported.
 (0:45?)  [ ] in settings: ask for money and give link to donate to Sage foundation.
                provide a checkbox that says "I have donated."  When they check it, it changes to a big thanks!
-(0:30?)  [ ] maybe nice if way to indicate which files (in recent) have unsaved changes??
-
+(0:45?)  [ ] file listing pagination
 
 = Accounts =
 
