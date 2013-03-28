@@ -698,9 +698,9 @@ class CodeMirrorEditor extends FileEditor
                         CodeMirror.commands.defaultTab(editor)
         @init_save_button()
         @init_change_event()
-        @element.find("a[href=#topbar]").click () =>
-            @editor.add_tab_to_navbar(@filename)
-            return false
+        #@element.find("a[href=#topbar]").click () =>
+        #    @editor.add_tab_to_navbar(@filename)
+        #    return false
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").click(@click_save_button)
