@@ -1260,6 +1260,7 @@ class Worksheet extends FileEditor
                 project_id  : @editor.project_id
 
             @worksheet = @element.data("worksheet")
+            @worksheet.save(@filename)
             @element   = @worksheet.element
             @worksheet.on 'save', (new_filename) =>
                 if new_filename != @filename
