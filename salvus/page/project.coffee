@@ -165,6 +165,8 @@ class ProjectPage
 
         @init_new_file_tab()
 
+        @init_trash_link()
+
         # Set the project id
         @container.find(".project-id").text(@project.project_id.slice(0,8))
 
@@ -541,6 +543,8 @@ class ProjectPage
                         if k != -1
                             cwd = cwd.slice(k+1)
                             path = @project.location.path
+                            if path == '.'   # not good for our purposes here.
+                                path = ''
                             if path == cwd.slice(0, path.length)
                                 cwd = cwd.slice(path.length)
                                 while cwd[0] == '/'
@@ -1196,6 +1200,12 @@ class ProjectPage
                     else if result.event == 'error'
                         alert_message(type:"error", message:result.error)
                 opts.cb?(err or output.event == 'error')
+
+    init_trash_link: () =>
+        @container.find("a[href=#trash]").click () =>
+            @current_path = ['.trash']
+            @update_file_list_tab()
+            return false
 
     delete_file: (path) =>
         base_path = misc.path_split(path).head
