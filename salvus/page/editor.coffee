@@ -205,6 +205,10 @@ class exports.Editor
         @init_openfile_search()
         @init_close_all_tabs_button()
 
+        @element.find("a[href=#save-all]").click () =>
+            @save()
+            return false
+
         if opts.initial_files?
             for filename in opts.initial_files
                 @open(filename)
@@ -232,6 +236,7 @@ class exports.Editor
         navbar_height = $("body").css('padding-top')
         @element.find(".salvus-editor-content").css('top':navbar_height)
         @active_tab.editor.show()
+
 
     init_close_all_tabs_button: () =>
         @element.find("a[href=#close-all-tabs]").click () =>
