@@ -72,13 +72,10 @@ With the following done, we will have 100% fixed the UI for now:
 (0:30?)  [x] (0:30) stacked cursors issue -- local hub should only allow global hub once as a client for given file.
               doubled cursors issue is now fixed.
 
-(1:30?) [ ] THE BIGGEST BUG -- when visiting a synchronized editing session after a long time (and sync broken), the first few
-        characters typed get jumbled.
-
-
-        asdklfj asdlfj asdlf jlakdsfj lkasdj fklsa dfkljasdkj
-alsdjf als     djf
-
+(1:30?) [x] (0:30)  when visiting a synchronized editing session after a long time (and sync broken), the first few
+        characters typed get jumbled.   I'm not going to worry more about this, since it *only* happens if
+        the local_hub goes down... and maybe then some loss is inevitable.  This is not something (like user's connection or global hub change)
+        that will happen much.
 
 
 
