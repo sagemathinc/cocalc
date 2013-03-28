@@ -924,6 +924,10 @@ class ProjectPage
     update_file_list_tab: (no_focus) =>
         # Update the display of the path above the listing or file preview
         @update_current_path()
+
+        @container.find("a[href=#empty-trash]").toggle(@current_path[0] == '.trash')
+        @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
+
         spinner = @container.find(".project-file-listing-spinner")
 
         timer = setTimeout( (() -> spinner.show().spin()), 300 )
@@ -1201,10 +1205,36 @@ class ProjectPage
                         alert_message(type:"error", message:result.error)
                 opts.cb?(err or output.event == 'error')
 
+    visit_trash: () =>
+        @ensure_directory_exists
+            path:'.trash'
+            cb: (err) =>
+                if not err
+                    @current_path = ['.trash']
+                    @update_file_list_tab()
+
     init_trash_link: () =>
         @container.find("a[href=#trash]").click () =>
-            @current_path = ['.trash']
-            @update_file_list_tab()
+            @visit_trash()
+            return false
+
+        @container.find("a[href=#empty-trash]").click () =>
+            bootbox.confirm "<h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>You can't undo this.</span>  ", (result) =>
+                if result == true
+                    alert_message(type:"info", message:"Deleting the contents of the trash...")
+                    salvus_client.exec
+                        project_id : @project.project_id
+                        command    : "rm"
+                        timeout    : 60
+                        args       : ['-rf', '.trash']
+                        cb         : (err, result) =>
+                            if err
+                                alert_message(type:"error", message:"Network error while trying to delete the trash -- #{err}")
+                            else if result.event == 'error'
+                                alert_message(type:"error", message:"Error deleting the trash -- #{result.error}")
+                            else
+                                alert_message(type:"success", message:"Successfully deleted the contents of your trash.")
+                                @visit_trash()
             return false
 
     delete_file: (path) =>
@@ -1214,7 +1244,7 @@ class ProjectPage
             (cb) =>
                 @ensure_directory_exists(path:dest, cb:cb)
             (cb) =>
-                @move_file(src:path, dest:dest, cb:cb)
+                @move_file(src:path, dest:dest, cb:cb, alert:false)
         ], (err) => @update_file_list_tab(true))
 
     download_file: (path) =>

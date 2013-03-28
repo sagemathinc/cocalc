@@ -41,10 +41,10 @@ Sunday -- get prepared for my teaching on monday
 (0:45?)  [x] (0:42) way to delete files; just moves to project_path/.trash, making that directory if necessary and printing a message
 (0:30?)  [x] (0:30) close all recently opened files.
 (1:00?)  [x] (1:13) import files form web using wget --- make it live; add a slider for how long it will try to download until giving up.
-(0:45?)  [ ] project rename/desc just like file rename
 (0:30?)  [x] (0:15) way to browse trash can
-(0:30?)  [ ] way to empty trash can
+(0:30?)  [x] (0:36) way to empty trash can
 (1:30?)  [ ] way to move checked files into a folder (or ..) --> simply drag them.
+(0:45?)  [ ] project rename/desc just like file rename
 (0:45?)  [ ] implement directory download -- need to name things sensibly; may require changes in hubs.
 (0:45?)  [ ] when showing worksheet, need to call refresh (?) on all cells in the worksheet
 (0:30?)  [ ] fix auto-resizing of input cells of worksheet
