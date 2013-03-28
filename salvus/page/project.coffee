@@ -975,10 +975,25 @@ class ProjectPage
 
                 that = @
 
+                file_dropped_on_directory = (event, ui) ->
+                    src = ui.draggable.data('name')
+                    if not src?
+                        return
+                    dest = $(@).data('name')
+                    that.move_file
+                        src  : src
+                        dest : dest
+                        cb   : (err) =>
+                            if not err
+                                that.update_file_list_tab(true)
+
                 if that.current_path.length > 0
                     # Create special link to the parent directory
                     t = template_project_directory.clone()
-                    t.data('name', '..')
+                    parent = that.current_path.slice(0, that.current_path.length-1).join('/')
+                    if parent == ""
+                        parent = "."
+                    t.data('name', parent)
                     t.find(".project-directory-name").html("<i class='icon-reply'> </i> Parent Directory")
                     t.find("input").hide()  # hide checkbox, etc.
                     # Clicking to open the directory
@@ -986,6 +1001,7 @@ class ProjectPage
                         that.current_path.pop()
                         that.update_file_list_tab()
                         return false
+                    t.droppable(drop:file_dropped_on_directory, scope:'files')
                     file_or_listing.append(t)
 
                 # Show the files
@@ -993,6 +1009,7 @@ class ProjectPage
                     if obj.isdir? and obj.isdir
                         t = template_project_directory.clone()
                         t.find(".project-directory-name").text(obj.name)
+                        t.droppable(drop:file_dropped_on_directory, scope:'files')
                     else
                         t = template_project_file.clone()
                         if obj.name.indexOf('.') != -1
@@ -1022,6 +1039,21 @@ class ProjectPage
 
                     # Define file actions using a closure
                     @_init_listing_actions(t, path, obj.name, obj.isdir? and obj.isdir)
+
+                    # Drag handle for moving files via drag and drop.
+                    handle = t.find(".project-file-drag-handle")
+                    handle.click () =>
+                        # do not want clicking on the handle to open the file.
+                        return false
+                    t.draggable
+                        handle         : handle
+                        zIndex         : 100
+                        opacity        : 0.75
+                        revertDuration : 200
+                        revert         : "invalid"
+                        axis           : 'y'
+                        scope          : 'files'
+
                     # Finally add our new listing entry to the list:
                     file_or_listing.append(t)
 
