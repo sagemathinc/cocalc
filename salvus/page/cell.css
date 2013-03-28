@@ -180,3 +180,22 @@
     font-family : "Courier New";
     font-size   : 13pt;
 }
+
+
+.salvus-completions {
+  background: lightyellow;
+  position: absolute;
+  z-index: 999;
+  overflow: hidden;
+  box-shadow: 8px 8px 4px #bbb;
+  border: 3px solid #99f;
+}
+
+.salvus-completions select {
+  background: lightyellow;
+  outline: none;
+  border: none;
+  padding: 3;
+  margin: 3;
+  font-family: monospace;
+}

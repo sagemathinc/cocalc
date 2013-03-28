@@ -59,11 +59,11 @@ class Cell extends EventEmitter
             # whether or not to wrap lines in the code editor
             editor_line_wrapping  : true
             # undo depth for code editor
-            editor_undo_depth     : 50
+            editor_undo_depth     : 150
             # whether to do bracket matching in the code editor
             editor_match_brackets : true
             # css maximum height of code editor (scroll bars appear beyond this)
-            editor_max_height     : "30em"
+            editor_max_height     : undefined   # e.g., "10em"
             # theme
             editor_theme          : "solarized"  # see static/codemirror*/themes or head.html
 
@@ -81,7 +81,7 @@ class Cell extends EventEmitter
                 shift_tab         : "Shift-Tab"
 
             # maximum height of output (scroll bars appear beyond this)
-            output_max_height     : "40em"
+            output_max_height     : undefined    # e.g., "10em"
             # whether or not to wrap lines in the output; if not wrapped, scrollbars appear
             output_line_wrapping  : true
             # show output stopwatch during code evaluation.
@@ -235,7 +235,7 @@ class Cell extends EventEmitter
 
         $(@_editor.getWrapperElement()).addClass('salvus-cell-editor').css('height':'auto')
         $(@_editor.getScrollerElement()).css
-            #'max-height' : @opts.editor_max_height
+            'max-height' : @opts.editor_max_height
             'height'     : 'auto'
             'overflow-y' : 'hidden'
             'overflow-x' : 'auto'
@@ -256,7 +256,8 @@ class Cell extends EventEmitter
         @_output = @element.find(".salvus-cell-output")
 
         # Set max height of the output area
-        @_output.css('max-height', @opts.output_max_height)
+        if @opts.output_max_height?
+            @_output.css('max-height', @opts.output_max_height)
         # Whether or not to wrap output.
         if @opts.output_line_wrapping
             @_output_line_wrapping_on()

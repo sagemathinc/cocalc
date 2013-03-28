@@ -48,11 +48,11 @@ Sunday -- get prepared for my teaching on monday
 (0:30?)  [x] (0:40) show hidden files toggle (icon?) -- also fixed misc trash-can related bugs
          [x] (0:09) slight improvements to css of open files
 (0:30?)  [x] (0:14) error message when file doesn't load should not be *in* codemirror
---> (0:30?)  [ ] need a "save all open files" button somewhere (in editor's list of open files page)
-(1:00?)  [ ] file upload
+(0:30?)  [x] (0:18) need a "save all open files" button somewhere (in editor's list of open files page)
+(0:45?)  [x] (0:16) bug -- tab completion is now broken (actually underneath) worksheets...; also fix vertical resizing as options for worksheet cells
+(1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 (0:30?)  [ ] range selection -- need to also preserve that on sync.
 (1:00?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
-(0:45?)  [ ] bug -- tab completion is now broken (actually underneath) worksheets...
 (0:30?)  [ ] codemirror editor settings: whether or not lines wrap in codemirror. (apply for both files and worksheets)
 (0:30?)  [ ] codemirror editor settings: color scheme
 (0:30?)  [ ] codemirror editor settings: auto delete trailing whitespace should be an option in global settings

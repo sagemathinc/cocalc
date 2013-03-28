@@ -1243,8 +1243,8 @@ class Worksheet extends FileEditor
         if content.length > 0
             {title, description, content, session_uuid} = from_json(content)
         else
-            title = "Untitled"
-            description = "No description"
+            title = "Title"
+            description = "Description"
             content = undefined
             session_uuid = undefined
 
