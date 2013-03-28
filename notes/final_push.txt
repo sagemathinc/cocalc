@@ -74,9 +74,8 @@ With the following done, we will have 100% fixed the UI for now:
 (0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
 
 
-[ ] stacked cursors bug: how to replicate the stacked cursors/broadcast error:  try to open terminals that have died (because of local hub restart).
-    * Then (1) the global hub for some stupid reasons tries to reconnect to the local hub, throwing away existing working connection.
-    * the local hub then has multiple valid connections from same global hub.
+ (0:30?)  [ ] stacked cursors issue -- local hub should only allow global hub once as a client for given file.
+
 
 --------
 

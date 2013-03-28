@@ -1400,7 +1400,7 @@ class CodeMirrorSession
             #winston.debug("codemirror session sync -- AFTER='#{@diffsync_server.live}'; edit_stack='#{misc.to_json(@diffsync_server.edit_stack)}'")
             @_upstream_sync_lock = false
             if err
-                winston.debug("codemirror session sync -- ERROR pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub")
+                winston.debug("codemirror session sync -- ERROR pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub -- #{err}")
                 @reconnect(cb)
             else
                 winston.debug("codemirror session sync -- pushed edits, thus completing cycle")
@@ -1628,7 +1628,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             type         : required  # 'sage', 'console'
             params       : required
             project_id   : required
-            timeout      : 5
+            timeout      : 10
             cb           : required  # cb(err, socket)
         socket = @_sockets[opts.session_uuid]
         if socket?

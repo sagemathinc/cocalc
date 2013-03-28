@@ -60,6 +60,8 @@ read_token = () ->
 start_session = (socket, mesg) ->
     winston.info "start_session #{to_json(mesg)}"
 
+    if not mesg.params?  # for connecting to an existing session.
+        mesg.params = {}
     opts = defaults mesg.params,
         rows    : 24
         cols    : 80
