@@ -745,7 +745,7 @@ class CodeMirrorEditor extends FileEditor
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height = @codemirror.defaultTextHeight()
 
-        cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
+        cm_height = Math.floor((elem_height - button_bar_height - font_height/2)/font_height) * font_height
 
         @element.height(elem_height).show()
 
