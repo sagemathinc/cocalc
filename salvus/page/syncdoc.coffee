@@ -179,11 +179,14 @@ class SynchronizedDocument
         @init_cursorActivity_event()
         @init_chat()
 
+        @codemirror.setOption('readOnly', true)
+
         @connect (err, resp) =>
             if err
-                @editor._set(err)
-                alert_message(type:"error", message:err)
+                bootbox.alert "<h3>Unable to open '#{@filename}'</h3>", () =>
+                    @editor.editor.close(@filename)
             else
+                @codemirror.setOption('readOnly', false)
                 @ui_synced(true)
                 @editor.init_autosave()
                 @codemirror.on 'change', (instance, changeObj) =>
