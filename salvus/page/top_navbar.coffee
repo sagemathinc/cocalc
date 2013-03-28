@@ -41,10 +41,10 @@ class TopNavbar  extends EventEmitter
         divider = @divider_template.clone()
         if opts.pull_right
             @buttons_right.prepend(button)
-            button.before(divider)
+            #button.before(divider)
         else
             @buttons.append(button)
-            button.after(divider)
+            #button.after(divider)
         @pages[opts.id] =
             page    : opts.page
             button  : button

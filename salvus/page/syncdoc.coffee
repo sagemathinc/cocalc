@@ -88,46 +88,68 @@ class DiffSyncDoc
             # but it is harder to implement given that we'll have to dive into the details of his
             # patch_apply implementation.  This thing below took only a few minutes to implement.
             scroll = cm.getScrollInfo()
-            pos0 = cm.getCursor()
-            cursor = "\uFE10"   # chosen from http://billposer.org/Linguistics/Computation/UnicodeRanges.html
-                                # since it is (1) undefined, and (2) looks like a cursor..
-            cm.replaceRange(cursor, pos0)
-            t = misc.walltime()
-            s = @string()
-            #console.log(1, misc.walltime(t)); t = misc.walltime()
-            new_value = diffsync.dmp.patch_apply(p, s)[0]
-            #console.log(2, misc.walltime(t)); t = misc.walltime()
-            v = new_value.split('\n')
-            #console.log(3, misc.walltime(t)); t = misc.walltime()
-            line = pos0.line
-            line1 = undefined
-            # We first try an interval around the cursor, since that is where the cursor is most likely to be.
-            for k in [Math.max(0, line-10)...Math.max(0,Math.min(line-10, v.length))].concat([0...v.length])
-                ch = v[k].indexOf(cursor)
-                if ch != -1
-                    line1 = k
-                    break
 
-            if line1?
-                v[line1] = v[line1].slice(0,ch) + v[line1].slice(ch+1)
-                pos = {line:line1, ch:ch}
-                #console.log("Found cursor again at ", pos)
+            cursor_anchor = cm.getCursor('anchor')
+            cursor_head   = cm.getCursor('head')
+            range = not (cursor_anchor.line == cursor_head.line and cursor_anchor.ch == cursor_head.ch)
+
+            c_anchor = "\uFE10"   # chosen from http://billposer.org/Linguistics/Computation/UnicodeRanges.html
+                                # since it is (1) undefined, and (2) looks like a cursor..
+            if range
+                c_head   = "\uFE11"
+
+            cm.replaceRange(c_anchor, cursor_anchor)
+            if range
+                # Have to put the other symbol on the *outside* of the selection, which depends on
+                # on whether anchor is before or after head.
+                if cursor_head.line > cursor_anchor.line or (cursor_head.line == cursor_anchor.line and cursor_head.ch >= cursor_anchor.ch)
+                    cm.replaceRange(c_head, {line:cursor_head.line, ch:cursor_head.ch+1})
+                else
+                    cm.replaceRange(c_head, {line:cursor_head.line, ch:cursor_head.ch})
+
+            s = @string()
+            new_value = diffsync.dmp.patch_apply(p, s)[0]
+            v = new_value.split('\n')
+
+            find_cursor = (pos0, chr) ->
+                line  = pos0.line
+                B = 5
+                # We first try an interval around the cursor, since that is where the cursor is most likely to be.
+                for k in [Math.max(0, line-B)...Math.max(0,Math.min(line-B, v.length))].concat([0...v.length])
+                    ch = v[k].indexOf(chr)
+                    if ch != -1
+                        return pos:{line:k, ch:ch}, marker:true
+                return pos:pos0, marker:false
+
+            anchor_pos = find_cursor(cursor_anchor, c_anchor)
+            if range
+                head_pos   = find_cursor(cursor_head, c_head)
             else
-                pos = pos0
-                #console.log("LOST CURSOR!")
-            #console.log(4, misc.walltime(t)); t = misc.walltime()
+                head_pos = anchor_pos
+
             s = v.join('\n')
-            #console.log(5, misc.walltime(t)); t = misc.walltime()
             # Benchmarking reveals that this line 'cm.setValue(s)' is by far the dominant time taker.
             # This can be optimized by taking into account the patch itself (and maybe stuff returned
             # when applying it) to instead only change a small range of the editor.  This is TODO
             # for later though.  For reference, a 200,000 line doc on a Samsung chromebook takes < 1s still, and about .4 s
             # on a fast intel laptop.
             cm.setValue(s)
-            #console.log(6, misc.walltime(t)); t = misc.walltime()
-            cm.setCursor(pos)
+            cm.setSelection(anchor_pos.pos, head_pos.pos)
+            # Remove the markers: complicated since can't remove both simultaneously, and
+            # removing one impacts position of the other, when in same line.
+            pos = undefined
+            if anchor_pos.marker
+                pos = anchor_pos.pos
+                cm.replaceRange("", pos, {line:pos.line, ch:pos.ch+1})
+            if range and head_pos.marker
+                pos1 = head_pos.pos
+                if pos? and pos1.line == pos.line
+                    if pos1.ch > pos.ch
+                        pos1.ch -= 1
+                cm.replaceRange("", pos1, {line:pos1.line, ch:pos1.ch+1})
+
             cm.scrollTo(scroll.left, scroll.top)
-            cm.scrollIntoView(pos)  # just in case
+            cm.scrollIntoView(anchor_pos.pos)  # just in case
 
 
 codemirror_diffsync_client = (cm_session, content) ->

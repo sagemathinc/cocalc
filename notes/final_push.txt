@@ -84,8 +84,11 @@ With the following done, we will have 100% fixed the UI for now:
  (0:30?) [x] (0:30) when showing worksheet, need to call refresh on all cells in the worksheet
 
 
-(0:30?)  [ ] range selection -- need to also preserve that on sync.
+=================================================================================================================================
 
+(0:30?)  [x] (1:05) range selection -- need to also preserve that on sync.  (harder than I thought!)
+
+(0:20?) [ ] move signout to settings page and make settings just a gear.
 (0:30?) [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
 (1:00?) [ ] when a session has timed out, chat just doesn't work.
         typing once into the session and waiting... makes chat work.
@@ -99,11 +102,13 @@ With the following done, we will have 100% fixed the UI for now:
 (1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into hub
 (1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into local hub
 
+(0:45?) [ ] sync: global hub needs to also timeout inactive sync sessions.
 
 =======================
 
 (0:45?)  [ ] bug: worksheet -- default path is relative to home directory not project.
 (1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
+
 
 
 
