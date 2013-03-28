@@ -603,7 +603,7 @@ class CodeMirrorSession
         # one that just sent it to us.
         for id, ds_client of @diffsync_clients
             if socket.id != id
-                winston.debug("BROADCAST: sending message on to socket with id #{socket.id}")
+                winston.debug("BROADCAST: sending message from hub with socket.id=#{socket.id} to hub with socket.id = #{id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
 
         # If this is a chat message, save it.

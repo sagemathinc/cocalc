@@ -750,16 +750,13 @@ class CodeMirrorEditor extends FileEditor
 
         height = $(window).height()
 
-        #top_height = $("body").css('padding-top')
-        #top_height = parseInt(top_height.slice(0,top_height.length-2))
-
         top = @editor.editor_top_position()
         elem_height = height - top
 
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height = @codemirror.defaultTextHeight()
 
-        cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
+        cm_height = Math.floor((elem_height - button_bar_height)/font_height - 1) * font_height
 
         @element.height(elem_height).show()
 

@@ -2,19 +2,15 @@
     position: fixed;
     width: 90%;
     padding-left: 5%;
-    /*
     padding-top: 0;
     margin-top: 0;
-
     top: 40px;
-    left: 40px;
-    */
 }
-
 
 .project-file-listing-container {
     overflow-y: auto;
     overflow-x: hidden;
+
 }
 
 .project-file-listing-current_path {
@@ -172,10 +168,14 @@
 }
 
 .project-file-top-current-path-container {
-    max-width     : 30%;
+/*    max-width     : 30%;
     overflow      : hidden;
-    font-size     : 10pt;
     overflow-wrap : break-word;
+*/
+position: fixed;
+top: 36px;
+left: 0px;
+font-size: 11px;
 }
 
 .project-move-path-dialog-filename {

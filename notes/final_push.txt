@@ -63,15 +63,20 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:30?)  [x] (0:45) do not actually open a tab in editor unless the user explicitly selects it.  Make this lazy.  this was we can leave recent as is.
 
-(1:00?)  [ ] PLAN THIS: each open file *must* corr to a tab in the second line bar. Sorry.  Get rid of the path up there and put a big pull-ed right
+(1:00?)  [x] (0:50) PLAN THIS: each open file *must* corr to a tab in the second line bar. Sorry.  Get rid of the path up there and put a big pull-ed right
              tabbar up.  Shrink to accom. arbitrary many.
+(0:30?)  [x] (make project nav area full with
 
-(0:10?)  [ ] get rid of little upper right path
+(0:10?)  [x] (0:15) move little upper right path
+
 (0:10?)  [ ] make other standard tabs only icons; move search box to search page only
-(0:30?)  [ ] make project nav area full width
 (0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
 (0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
 
+
+[ ] stacked cursors bug: how to replicate the stacked cursors/broadcast error:  try to open terminals that have died (because of local hub restart).
+    * Then (1) the global hub for some stupid reasons tries to reconnect to the local hub, throwing away existing working connection.
+    * the local hub then has multiple valid connections from same global hub.
 
 --------
 
