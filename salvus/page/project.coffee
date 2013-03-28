@@ -149,6 +149,7 @@ class ProjectPage
 
         @init_new_file_tab()
 
+        @init_refresh_files()
         @init_hidden_files_icon()
         @init_trash_link()
 
@@ -1076,7 +1077,7 @@ class ProjectPage
 
         # Deleting a file
         b.find("a[href=#delete-file]").click () =>
-            @delete_file(fullname)
+            @trash_file(fullname)
             return false
 
         open = () =>
@@ -1158,11 +1159,15 @@ class ProjectPage
             dest  : required
             path  : undefined   # default to root of project
             cb    : undefined   # cb(true or false)
+            mv_args : undefined
             alert : true        # show alerts
+        args = [opts.src, opts.dest]
+        if opts.mv_args?
+            args = args.concat(opts.mv_args)
         salvus_client.exec
             project_id : @project.project_id
             command    : 'mv'
-            args       : [opts.src, opts.dest]
+            args       : args
             timeout    : 5  # move should be fast..., unless across file systems.
             network_timeout : 10
             err_on_exit : false
@@ -1252,6 +1257,11 @@ class ProjectPage
                     @current_path = ['.trash']
                     @update_file_list_tab()
 
+    init_refresh_files: () =>
+        @container.find("a[href=#refresh-listing]").click () =>
+            @update_file_list_tab()
+            return false
+
     init_hidden_files_icon: () =>
         elt = @container.find(".project-hidden-files")
         elt.find("a").click () =>
@@ -1282,13 +1292,12 @@ class ProjectPage
                                 @visit_trash()
             return false
 
-    delete_file: (path) =>
-        dest = '.trash/'+ (new Date()).toISOString().replace(/:/g,'') + '/'
+    trash_file: (path) =>
         async.series([
             (cb) =>
-                @ensure_directory_exists(path:dest, cb:cb)
+                @ensure_directory_exists(path:'.trash', cb:cb)
             (cb) =>
-                @move_file(src:path, dest:dest, cb:cb, alert:false)
+                @move_file(src:path, dest:'.trash', cb:cb, alert:false, mv_args:['--backup=numbered'])
         ], (err) => @update_file_list_tab(true))
 
     download_file: (path) =>
