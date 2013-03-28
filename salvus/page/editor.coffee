@@ -761,14 +761,6 @@ class CodeMirrorEditor extends FileEditor
         if not @codemirror?
             return
         @show()
-        ###
-        width = @element.width(); height = @element.height()
-        $(@codemirror.getWrapperElement()).css
-            'height' : '40em'
-            'width'  : width
-        scroller = $(@codemirror.getScrollerElement())
-        scroller.css('height':'40em')
-        ###
         if not IS_MOBILE
             @codemirror.focus()
         # @codemirror.refresh()

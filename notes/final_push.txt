@@ -52,6 +52,10 @@ Sunday -- get prepared for my teaching on monday
 (0:45?)  [x] (0:16) bug -- worksheet tab completion is now broken (actually underneath) worksheets...; also fix vertical resizing as options for worksheet cells
 (0:15?)  [x] (0:10) need to save worksheet on creation, so next load has a chance to work.
 
+(0:45?)  [ ] make it so the little project tab bar is *always* visible, just below the main nav bar.  Will require care about fullscreen size for each.
+(0:30?)  [ ] get rid of code that always switches to recent and vanishes editor on making tab -- just leave.
+(0:45?)  [ ] provide a true fullscreen move for each editor that covers everything...
+
 (1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 (0:30?)  [ ] range selection -- need to also preserve that on sync.
 (1:00?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc

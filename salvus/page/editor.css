@@ -6,7 +6,7 @@ Editor for files in a project
 
 .salvus-editor-content {
     position: fixed;
-    top: 40px;
+    top: 80px;
     left: 0;
     margin: 0;
     width: 100%;
