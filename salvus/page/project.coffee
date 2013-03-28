@@ -128,24 +128,6 @@ class ProjectPage
                 window.scrollTo(0, 0)
                 @focus()
 
-        # Initialize the close project button.
-        # # .tooltip(title:"Save files, then kill all processes and remove project from virtual machine.", placement:"bottom").
-        #@container.find("a[href='#close-project']").click () =>
-        #    @close_project(show_success_alert:true)
-        #    return false
-
-        # Initialize the save project button.
-        # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
-        #@container.find("a[href='#save-project']").click () =>
-        #    @save_project(show_success_alert:true)
-        #    return false
-
-        # Initialize the save project button.
-        # .tooltip(title:"Save a snapshot of all files.", placement:"bottom").
-        #@container.find("a[href='#download-project']").click () =>
-        #    @download_project()
-        #    return false
-
         # Initialize the search form.
         @init_search_form()
 
@@ -660,7 +642,6 @@ class ProjectPage
         @container.find(".project-editor").append(@editor.element)
 
     display_tab: (name) =>
-        scroll_top()
         for tab in @tabs
             if tab.name == name
                 @current_tab = tab

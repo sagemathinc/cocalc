@@ -223,20 +223,22 @@ class exports.Editor
     hide_editor_content: () =>
         @_editor_content_visible = false
         @element.find(".salvus-editor-content").hide()
-        $("a[href=#top-scroll]").addClass('disabled')
 
     show_editor_content: () =>
         @_editor_content_visible = true
         @element.find(".salvus-editor-content").show()
-        $("a[href=#top-scroll]").removeClass('disabled')
+        # temporary
+        for tab in @project_page.tabs
+            tab.label.removeClass('active')
+
+    # Used for resizing editor windows.
+    editor_top_position: () =>
+        return @element.find(".salvus-editor-content").position().top
 
     _window_resize_while_editing: () =>
         if not @active_tab? or not @_editor_content_visible
             return
-        navbar_height = $("body").css('padding-top')
-        @element.find(".salvus-editor-content").css('top':navbar_height)
         @active_tab.editor.show()
-
 
     init_close_all_tabs_button: () =>
         @element.find("a[href=#close-all-tabs]").click () =>
@@ -725,10 +727,11 @@ class CodeMirrorEditor extends FileEditor
 
         height = $(window).height()
 
-        top_height = $("body").css('padding-top')
-        top_height = parseInt(top_height.slice(0,top_height.length-2))
+        #top_height = $("body").css('padding-top')
+        #top_height = parseInt(top_height.slice(0,top_height.length-2))
 
-        elem_height = height-top_height
+        top = @editor.editor_top_position()
+        elem_height = height - top
 
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height = @codemirror.defaultTextHeight()
@@ -1150,10 +1153,9 @@ class Terminal extends FileEditor
         @element.show()
         if @console?
             e = $(@console.terminal.element)
-            top_height = top_navbar.height() + @element.find(".salvus-console-topbar").height()
-            e.height($(window).height() - top_height)
+            top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
+            e.height($(window).height() - top)
             @console.focus()
-            #window.scrollTo(0, document.body.scrollHeight); $(".salvus-top-scroll").show()
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -1271,8 +1273,10 @@ class Worksheet extends FileEditor
             return
         win = $(window)
         @element.width(win.width())
-        @element.height(win.height() - 40)
-        @element.find(".salvus-worksheet-worksheet").height(win.height()-40-64)
+        top = @editor.editor_top_position()
+        @element.height(win.height() - top)
+        bar_height = @element.find(".salvus-worksheet-controls").height()
+        @element.find(".salvus-worksheet-worksheet").height(win.height() - top - bar_height)
 
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->

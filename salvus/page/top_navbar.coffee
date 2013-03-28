@@ -7,8 +7,6 @@ top_view = () ->
     window.scrollTo(0, 0)
     return false
 
-$("a[href=#top-scroll]").click(top_view)
-
 $(document).on 'keydown', (ev) ->
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
         return false
@@ -200,7 +198,7 @@ $("#about").top_navbar
     #label   : "SageMathCloud&trade;"
     label : ''
     icon : 'icon-question-sign'
-    pull_right : true
+    #pull_right : true
     close   : false
 
 
