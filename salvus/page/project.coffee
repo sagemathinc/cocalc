@@ -124,9 +124,8 @@ class ProjectPage
             onclose : () =>
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
-            onshow: () =>
-                window.scrollTo(0, 0)
-                @focus()
+            #onshow: () =>
+            #    @focus()
 
         # Initialize the search form.
         @init_search_form()
@@ -1068,14 +1067,20 @@ class ProjectPage
             @delete_file(fullname)
             return false
 
-        # Clicking -- open the file
-        t.click () =>
+        open = () =>
             if isdir
                 @current_path.push(name)
                 @update_file_list_tab()
             else
                 @open_file(fullname)
             return false
+
+        # Opening a file
+        b.find("a[href=#open-file]").click open
+
+        # Clicking on link -- open the file
+        t.click open
+
 
         # Renaming a file
         rename_link = t.find('a[href=#rename]')

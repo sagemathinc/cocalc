@@ -52,8 +52,8 @@ Sunday -- get prepared for my teaching on monday
 (0:45?)  [x] (0:16) bug -- worksheet tab completion is now broken (actually underneath) worksheets...; also fix vertical resizing as options for worksheet cells
 (0:15?)  [x] (0:10) need to save worksheet on creation, so next load has a chance to work.
 
---> (0:45?)  [ ] make it so the little project tab bar is *always* visible, just below the main nav bar.  Will require care about fullscreen size for each.
-(0:30?)  [ ] get rid of code that always switches to recent and vanishes editor on making tab -- just leave as is.
+(0:45?)  [x] (1:06) make it so the little project tab bar is *always* visible, just below the main nav bar.  Will require care about fullscreen size for each.
+(0:30?)  [x] (0:27) get rid of code that always switches to recent and vanishes editor on selecting tab -- just leave as is; add "open file/folder" button
 (0:45?)  [ ] provide a true fullscreen move for each editor that covers everything...
 
 (0:15?)  [ ] file rename -- should have to click twice to activate?
