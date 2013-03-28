@@ -213,8 +213,16 @@ class exports.Editor
             for filename in opts.initial_files
                 @open(filename)
 
+        # TODO -- maybe neither of these get freed properly when project is closed.
+        # Also -- it's a bit weird to call them even if project not currently visible.
         # Add resize trigger
         $(window).resize(@_window_resize_while_editing)
+
+        $(document).on 'keyup', (ev) =>
+            if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
+                @focus()
+                return false
+
 
     focus: () =>
         @element.find(".salvus-editor-search-openfiles-input").focus()
@@ -227,9 +235,10 @@ class exports.Editor
     show_editor_content: () =>
         @_editor_content_visible = true
         @element.find(".salvus-editor-content").show()
-        # temporary
+        # temporary / ugly
         for tab in @project_page.tabs
             tab.label.removeClass('active')
+
 
     # Used for resizing editor windows.
     editor_top_position: () =>

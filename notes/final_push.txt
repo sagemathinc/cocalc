@@ -57,6 +57,8 @@ Sunday -- get prepared for my teaching on monday
 (0:20?)  [x] (0:42) list of files in file browser for project needs to be scrollable and have fixed height.
 (0:15?)  [x] (0:11) file rename -- should have to click twice to activate?
 
+(0:10?)  [x] (0:15) bug: control-o in editor to get to recent is broken
+
 (1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 (0:30?)  [ ] range selection -- need to also preserve that on sync.
 (1:00?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc

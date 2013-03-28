@@ -2,18 +2,8 @@
 # top_navbar -- the top level navbar
 #########################################################################
 
-top_view = () ->
-    top_navbar.switch_to_page()  # redisplay current page
-    window.scrollTo(0, 0)
-    return false
-
-$(document).on 'keydown', (ev) ->
+$(document).on 'keydown', (ev) =>
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
-        return false
-
-$(document).on 'keyup', (ev) ->
-    if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
-        top_view()
         return false
 
 misc = require("misc")
