@@ -49,7 +49,7 @@ Sunday -- get prepared for my teaching on monday
 
 (1:00?)  [ ] file upload
 (0:30?)  [ ] range selection -- need to also preserve that on sync.
-(0:30?)  [ ] show hidden files toggle (icon?)
+ --> (0:30?)  [ ] show hidden files toggle (icon?)
 (1:00?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
 (0:30?)  [ ] error message when file doesn't load should not be *in* codemirror
 (0:45?)  [ ] bug -- tab completion is now broken (actually underneath) worksheets...

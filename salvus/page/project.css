@@ -15,7 +15,7 @@
     padding-left:15px;
     padding-right:15px;
     padding-bottom:0px;
-    height:2em;
+    height:1.85em;
 }
 
 .project-file-link:hover {
@@ -49,7 +49,7 @@
     padding-left:15px;
     padding-right:15px;
     padding-bottom:0px;
-    height:2em;
+    height:1.85em;
 }
 
 .project-directory-link:hover {
@@ -89,7 +89,6 @@
 }
 
 .project-file-listing-file-list {
-    margin:2em;
 }
 
 .project-commits-branch {

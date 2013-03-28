@@ -165,6 +165,7 @@ class ProjectPage
 
         @init_new_file_tab()
 
+        @init_hidden_files_icon()
         @init_trash_link()
 
         # Set the project id
@@ -941,6 +942,7 @@ class ProjectPage
             project_id : @project.project_id
             path       : path
             time       : sort_by_time
+            hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
                 clearTimeout(timer)
                 spinner.spin(false).hide()
@@ -1245,15 +1247,21 @@ class ProjectPage
                     @current_path = ['.trash']
                     @update_file_list_tab()
 
+    init_hidden_files_icon: () =>
+        elt = @container.find(".project-hidden-files")
+        elt.find("a").click () =>
+            elt.find("a").toggle()
+            @update_file_list_tab()
+            return false
+
     init_trash_link: () =>
         @container.find("a[href=#trash]").click () =>
             @visit_trash()
             return false
 
         @container.find("a[href=#empty-trash]").click () =>
-            bootbox.confirm "<h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>You can't undo this.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='icon-trash pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>You can't undo this.</span>  ", (result) =>
                 if result == true
-                    alert_message(type:"info", message:"Deleting the contents of the trash...")
                     salvus_client.exec
                         project_id : @project.project_id
                         command    : "rm"
@@ -1270,8 +1278,7 @@ class ProjectPage
             return false
 
     delete_file: (path) =>
-        base_path = misc.path_split(path).head
-        dest = '.trash/'+base_path
+        dest = '.trash/'+ (new Date()).toISOString().replace(/:/g,'') + '/'
         async.series([
             (cb) =>
                 @ensure_directory_exists(path:dest, cb:cb)

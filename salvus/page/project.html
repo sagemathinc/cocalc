@@ -134,9 +134,15 @@
                     </div>
 
                     <!-- Trash can link -->
-                    <div class="project-trash-can pull-right" style="padding-top:4px">
-                        <a href="#trash" style="font-size:18pt"><i class="icon-trash"> </i></a>
-                        <a href="#empty-trash" class="hide btn btn-danger"><i class="icon-trash"> </i> Empty</a>
+                    <div class="project-trash-can pull-right" style="padding-top:4px; font-size:16pt">
+                        <a href="#trash"><i class="icon-trash"> </i></a>
+                        <a href="#empty-trash" class="hide btn btn-danger"><i class="icon-trash"></i>&nbsp;</a>
+                    </div>
+
+                    <!-- Hide/show hidden files -->
+                    <div class="project-hidden-files pull-right" style="padding-top:4px; font-size:16pt; margin-right:1ex;">
+                        <a href="#hide-hidden" class='hide'><i class="icon-eye-open"> </i></a>
+                        <a href="#show-hidden"><i class="icon-eye-close"> </i> </a>
                     </div>
                 </div>
                 <!-- List of files -->
@@ -320,8 +326,8 @@ in current location
                     </div>
                     <div class="span3">
                         <label  style="font-size:16px; margin-bottom:1ex;">
-                            <input type="checkbox" class="project-search-output-recursive">
-                            Include subdirectories
+                            <input type="checkbox" class="project-search-output-recursive" checked="checked">
+                            Subdirectories
                         </label>
                         <label  style="font-size:16px;">
                             <input type="checkbox" class="project-search-output-case-sensitive">
