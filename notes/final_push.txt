@@ -54,9 +54,9 @@ Sunday -- get prepared for my teaching on monday
 
 (0:45?)  [x] (1:06) make it so the little project tab bar is *always* visible, just below the main nav bar.  Will require care about fullscreen size for each.
 (0:30?)  [x] (0:27) get rid of code that always switches to recent and vanishes editor on selecting tab -- just leave as is; add "open file/folder" button
-(0:45?)  [ ] provide a true fullscreen move for each editor that covers everything...
+(0:20?)  [x] (0:42) list of files in file browser for project needs to be scrollable and have fixed height.
+(0:15?)  [x] (0:11) file rename -- should have to click twice to activate?
 
-(0:15?)  [ ] file rename -- should have to click twice to activate?
 (1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 (0:30?)  [ ] range selection -- need to also preserve that on sync.
 (1:00?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
@@ -89,6 +89,7 @@ Sunday -- get prepared for my teaching on monday
 (0:45?)  [ ] in settings: ask for money and give link to donate to Sage foundation.
                provide a checkbox that says "I have donated."  When they check it, it changes to a big thanks!
 (0:30?)  [ ] maybe nice if way to indicate which files (in recent) have unsaved changes??
+(0:45?)  [ ] provide a true fullscreen move for each editor that covers everything...
 
 = Accounts =
 

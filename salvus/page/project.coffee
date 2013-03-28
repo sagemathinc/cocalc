@@ -127,6 +127,9 @@ class ProjectPage
             #onshow: () =>
             #    @focus()
 
+        $(window).resize () => @window_resize()
+        @_update_file_listing_size()
+
         # Initialize the search form.
         @init_search_form()
 
@@ -244,6 +247,16 @@ class ProjectPage
             return false
 
         @init_file_sessions()
+
+
+
+    window_resize: () =>
+        if @current_tab.name == "project-file-listing"
+            @_update_file_listing_size()
+
+    _update_file_listing_size: () =>
+        elt = @container.find(".project-file-listing-container")
+        elt.height($(window).height() - elt.offset().top)
 
     ########################################
     # Launch open sessions
@@ -1089,6 +1102,13 @@ class ProjectPage
             return false
 
     click_to_rename_file: (path, link) =>
+        # First click changes CSS, second click makes it editable using contenteditable.
+        if not link.data('clicked')?
+            # change CSS
+            link.addClass('project-file-link-one-click')
+            link.data('clicked', true)
+            return
+
         if link.attr('contenteditable')
             # already done.
             return

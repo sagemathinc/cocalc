@@ -6,6 +6,12 @@
     left: 40px;
 }
 
+
+.project-file-listing-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 .project-file-listing-current_path {
     margin-top:4px;
 }
@@ -24,6 +30,12 @@
     padding-right:15px;
     padding-bottom:0px;
     height:1.85em;
+}
+
+.project-file-link-one-click {
+    border: 1px solid blue;
+    border-radius: 4px;
+    padding: 5px;
 }
 
 .project-file-link:hover {
