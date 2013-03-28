@@ -877,14 +877,43 @@ class ProjectPage
                 return false
 
 
+        @get_from_web_input = @new_file_tab.find(".project-import-from-web")
+        @new_file_tab.find("a[href=#import-from-web]").click () =>
+            url = $.trim(@get_from_web_input.val())
+            if url == ""
+                @get_from_web_input.focus()
+                return false
+            dest = @new_file_tab.find(".project-new-file-path").text()
+            long = () ->
+                alert_message(type:'info', message:"Launched recursive download of '#{url}' to '#{dest}', which may run for up to 15 seconds.")
+            timer = setTimeout(long, 3000)
+            @get_from_web
+                url     : url
+                dest    : dest
+                timeout : 15
+                alert   : true
+                cb      : (err) =>
+                    clearTimeout(timer)
+                    if not err
+                        alert_message(type:'info', message:"Finished downloading '#{url}' to '#{dest}'.")
+            return false
+
     show_new_file_tab: () =>
         # Update the path
         path = @current_pathname()
         if path != ""
             path += "/"
         @new_file_tab.find(".project-new-file-path").text(path)
+
+        elt = @new_file_tab.find(".project-new-file-hide-if-root")
+        if path == ''
+            elt.hide()
+        else
+            elt.show()
+
         # Clear the filename and focus on it
         @new_file_tab_input.val('').focus()
+        @get_from_web_input.val('')
 
 
     # Update the listing of files in the current_path, or display of the current file.
@@ -941,6 +970,7 @@ class ProjectPage
                 if that.current_path.length > 0
                     # Create special link to the parent directory
                     t = template_project_directory.clone()
+                    t.data('name', '..')
                     t.find(".project-directory-name").html("<i class='icon-reply'> </i> Parent Directory")
                     t.find("input").hide()  # hide checkbox, etc.
                     # Clicking to open the directory
@@ -1146,6 +1176,26 @@ class ProjectPage
                         opts.cb?(err or output.event == 'error')
         ], (err) -> opts.cb?(err))
 
+    get_from_web: (opts) =>
+        opts = defaults opts,
+            url     : required
+            dest    : undefined
+            timeout : 10
+            alert   : true
+            cb      : undefined     # cb(true or false, depending on error)
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : "wget"
+            timeout    : opts.timeout
+            path       : opts.dest
+            args       : [opts.url]
+            cb         : (err, result) =>
+                if opts.alert
+                    if err
+                        alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        alert_message(type:"error", message:result.error)
+                opts.cb?(err or output.event == 'error')
 
     delete_file: (path) =>
         base_path = misc.path_split(path).head
