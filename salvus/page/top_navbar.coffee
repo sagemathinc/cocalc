@@ -3,6 +3,7 @@
 #########################################################################
 
 $(document).on 'keydown', (ev) =>
+    #console.log(ev) 
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
         return false
 
