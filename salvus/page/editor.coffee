@@ -196,6 +196,7 @@ class exports.Editor
         @counter = opts.counter
 
         @project_page  = opts.project_page
+        @project_path = opts.project_page.project.location.path
         @project_id = opts.project_page.project.project_id
         @element = templates.find(".salvus-editor").clone().show()
         @nav_tabs = @element.find(".nav-pills")
@@ -764,10 +765,8 @@ class CodeMirrorEditor extends FileEditor
         scroller.css('height':cm_height)
 
         if @_chat_is_hidden? and not @_chat_is_hidden
-            console.log("chat not hidden")
             width = $(window).width() - @element.find(".salvus-editor-codemirror-chat-column").width()
         else
-            console.log("chat hidden")
             width = $(window).width()
 
         cm_wrapper = $(@codemirror.getWrapperElement())
@@ -1279,6 +1278,7 @@ class Worksheet extends FileEditor
                 path        : @filename
                 session     : @session
                 project_id  : @editor.project_id
+                cwd         : misc.path_split(@editor.project_path + '/' + @filename).head
 
             @worksheet = @element.data("worksheet")
             @worksheet.save(@filename)

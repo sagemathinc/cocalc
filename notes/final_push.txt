@@ -1,4 +1,95 @@
+--> (0:45?)  [ ] bug: worksheet -- default path is relative to home directory not project.
+
+(1:00?) [ ] Search page:    (similar function to https://github.com/explore)
+               * search = on project name and description (I will have to build indexes at some point...)
+               * place to show results
+
+(0:45?) [ ] clicking on a project in result list opens it (as usual) in read/write mode, if you have write access to it.
+(0:45?) [ ] write a "visitor" access project mode
+(1:00?) [ ] In project browser, any location should have a url which can be used as a shortcut to get back there.
+              https://cloud.sagemath.org/projects/project_id/path/in/filesystem
+            Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
+(0:45?) [ ] Add code to hub so that if user requests such a url, they get that project opened in the given location.
+
+
+(0:30?)  [ ] feature -- open new documents on creation.
+(0:15?)  [ ] bug -- "Results of searching" needs to be scrollable.
+
+(0:30?)  [ ] bug -- can have the same filename twice in recent files if you make new file; e.g., make "a" worksheet twice.
+
+
+====
+(1:00?) [ ] worksheet sessions: killing them doesn't work; interrupting doesn't work.
+(1:00?) [ ] worksheet sync: define code to diff two worksheets and make a patch
+(1:00?) [ ] worksheet sync: define code to apply a patch to a worksheet
+(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into client
+(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into hub
+(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into local hub
+(1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
+
+(0:10?)  [ ] make other standard tabs only icons; move search box to search page only
+(0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
+(0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
+
+(1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
+(0:45?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
+
+(1:00?)  [ ] change filename extensions to ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
+
+(0:45?)  [ ] editor buttons: search/replace/undo/redo/autoindent/split
+(0:30?)  [ ] if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
+(0:30?)  [ ] show quota info in project settings.
+(1:00?)  [ ] make note cells be markdown with $'s for math.  Codemirror editor with syntax highlighting.
+(0:45?)  [ ] interact plus moving cells bug: just add a data attribute to those cells so skipped
+(0:45?)  [ ] cells: move (control-arrow) should move all cells with checkbox checked.  (and control-arrow doesn't work on os x, right?)
+(1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
+(0:30?)  [ ] bug -- typing *while* first syncing moves editor display down one each character typed.
+(0:45?)  [ ] bug -- resizing terminal results in codes getting sprayed on the screen
+(0:45?)  [ ] bug -- delete directory containing a file being edited -- save *appears* to work, but doesn't.
+(0:20?)  [ ] bug -- download file with bad URL/failure gives useless error
+(0:30?)  [ ] in sign-up: explain that service it currently donation-supported.
+(0:45?)  [ ] in settings: ask for money and give link to donate to Sage foundation.
+               provide a checkbox that says "I have donated."  When they check it, it changes to a big thanks!
+(0:45?)  [ ] file listing pagination
+
+= Accounts =
+
+Each account will have a list of unix users associated to it, starting with one.
+These will be listed in the settings page.
+A unix user = username@host... such that hub can ssh in.
+Unix users can be shared with other users of SMC; if a user is shared, then both users of SMC have 100% access to everything.
+Database table that lists all projects for a given user.
+
+(1:00?)  [ ] When creating a new project, option to choose from a list of users if there is more than one user associated to an account.
+(1:00?)  [ ] admin.py -- write Python code to login, then sudo and configure accounts on a machine for users,
+               then record that this succeeded in the database.
+          admin.provision('03salvus-users', k, max_disk=4096)
+          # Makes it so the accounts of the form smc1, smc2, smc3,...,smck, exist, on that machine,
+          # with /home/smc[n] built from a template, and ssh-keys access setup
+          # Also they have the given disk quota.
+          Here the machine name is as listed in the the hosts file.
+(1:00?) [ ] hub -- when a user creates an account, assign them a unix user.
+(0:45?) [ ] Clone a project (under settings).
+
+= Deploy =
+(1:00?)  [ ] MINIFY actual page js
+(1:00?)  [ ] change any hard coded "salv.us" to cloud.sagemath.org
+(0:30?)  [ ] make sure email reset works with cloud.sagemath.org
+(1:00?)  [ ] build virtual machine that is up2date and has all necessary packages (including ghostview, etc.)
+(0:30?)  [ ] define topology file for deployment
+(0:30?)  [ ] get it running
+(1:00?)  [ ] get ssl cert setup for cloud.sagemath.org
+
+
+
+
+
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+(0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
+
+(0:30?) [x] Add a new tab at the top called "Explore" that is to the left of "Your Projects"
+
+
 FINAL TOP PRIORITY THIS WEEK TODO LIST;
 Tuesday   Mar 26    3pm - 11pm:    7
 Wednesday Mar 27    5am - 11pm:   16  (not counting food/shower)
@@ -96,96 +187,3 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:30?) [x] (1:10) download a project, etc.
 
-
-(1:00?) [ ] when a session has timed out, chat just doesn't work.
-            typing once into the session and waiting... makes chat work.
-(0:45?) [ ] worksheet sessions: killing them doesn't work; interrupting doesn't work.
-(1:00?) [ ] worksheet sync: define code to diff two worksheets and make a patch
-(1:00?) [ ] worksheet sync: define code to apply a patch to a worksheet
-(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into client
-(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into hub
-(1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into local hub
-(0:45?) [ ] sync: global hub needs to also timeout inactive sync sessions.
-
-=======================
-
-
-(0:45?)  [ ] bug: worksheet -- default path is relative to home directory not project.
-(1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
-
-(0:10?)  [ ] make other standard tabs only icons; move search box to search page only
-(0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
-(0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
-
-(1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
-(0:45?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
-
-(0:30?)  [ ] codemirror editor settings: whether or not lines wrap in codemirror. (apply for both files and worksheets)
-(0:20?)  [ ] codemirror editor settings: color scheme
-(0:20?)  [ ] codemirror editor settings: auto delete trailing whitespace should be an option in global settings
-
-(1:00?)  [ ] change filename extensions to ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
-
-(0:45?)  [ ] editor buttons: search/replace/undo/redo/autoindent/split
-(0:30?)  [ ] if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
-(0:30?)  [ ] show quota info in project settings.
-(1:00?)  [ ] make note cells be markdown with $'s for math.  Codemirror editor with syntax highlighting.
-(0:45?)  [ ] interact plus moving cells bug: just add a data attribute to those cells so skipped
-(0:45?)  [ ] cells: move (control-arrow) should move all cells with checkbox checked.  (and control-arrow doesn't work on os x, right?)
-(1:00?)  [ ] attach: implement the attach command for (backwards) compatibility.
-(1:00?)  [ ] option to completely delete a project, irrevocably.   (BIG RED SCARY SERIOUS -- type your name, etc.)
-(1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
-(0:30?)  [ ] bug -- typing *while* first syncing moves editor display down one each character typed.
-(0:45?)  [ ] bug -- resizing terminal results in codes getting sprayed on the screen
-(0:45?)  [ ] bug -- delete directory containing a file being edited -- save *appears* to work, but doesn't.
-(0:20?)  [ ] bug -- download file with bad URL/failure gives useless error
-(0:30?)  [ ] in sign-up: explain that service it currently donation-supported.
-(0:45?)  [ ] in settings: ask for money and give link to donate to Sage foundation.
-               provide a checkbox that says "I have donated."  When they check it, it changes to a big thanks!
-(0:45?)  [ ] file listing pagination
-
-= Accounts =
-
-Each account will have a list of unix users associated to it, starting with one.
-These will be listed in the settings page.
-A unix user = username@host... such that hub can ssh in.
-Unix users can be shared with other users of SMC; if a user is shared, then both users of SMC have 100% access to everything.
-Database table that lists all projects for a given user.
-
-(1:00?)  [ ] When creating a new project, option to choose from a list of users if there is more than one user associated to an account.
-(1:00?)  [ ] admin.py -- write Python code to login, then sudo and configure accounts on a machine for users,
-               then record that this succeeded in the database.
-          admin.provision('03salvus-users', k, max_disk=4096)
-          # Makes it so the accounts of the form smc1, smc2, smc3,...,smck, exist, on that machine,
-          # with /home/smc[n] built from a template, and ssh-keys access setup
-          # Also they have the given disk quota.
-          Here the machine name is as listed in the the hosts file.
-(1:00?) [ ] hub -- when a user creates an account, assign them a unix user.
-(0:45?) [ ] Clone a project (under settings).
-
-= Browse =
-
-(0:30?) [x] Add a new tab at the top called "Explore" that is to the left of "Your Projects"
-
-(1:00?) [ ] Search page:    (similar function to https://github.com/explore)
-               * search = on project name and description (I will have to build indexes at some point...)
-               * place to show results
-
-(0:45?) [ ] clicking on a project in result list opens it (as usual) in read/write mode, if you have write access to it.
-(0:45?) [ ] write a "visitor" access project mode
-(1:00?) [ ] In project browser, any location should have a url which can be used as a shortcut to get back there.
-              https://cloud.sagemath.org/projects/project_id/path/in/filesystem
-            Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
-(0:45?) [ ] Add code to hub so that if user requests such a url, they get that project opened in the given location.
-
-
-
-= Deploy =
-(0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
-(1:00?)  [ ] MINIFY actual page js
-(1:00?)  [ ] change any hard coded "salv.us" to cloud.sagemath.org
-(0:30?)  [ ] make sure email reset works with cloud.sagemath.org
-(1:00?)  [ ] build virtual machine that is up2date and has all necessary packages (including ghostview, etc.)
-(0:30?)  [ ] define topology file for deployment
-(0:30?)  [ ] get it running
-(1:00?)  [ ] get ssl cert setup for cloud.sagemath.org

@@ -43,7 +43,8 @@ class Worksheet extends EventEmitter
             content     : undefined  # If given, sets the cells/sections of the worksheet (see @to_obj()).
             cell_opts   : {}
             session     : undefined
-            path        : undefined  # If given, is the default filename of the worksheet; containing directory is chdir'd on startup.
+            path        : undefined  # If given, is the default filename of the worksheet
+            cwd         : undefined  # If given,  chdir'd on startup.
             project_id  : required
             latex_opts  : {'documentclass':'article', 'preamble':'', tableofcontents:true}
 
@@ -83,9 +84,8 @@ class Worksheet extends EventEmitter
             delete @opts.content
             @has_unsaved_changes(false)
 
-        if @opts.path?
-            # attempt to change to containing directory
-            @chdir(dirname(@opts.path))
+        if @opts.cwd?
+            @chdir(@opts.cwd)
 
         @_init_autosave()
 
