@@ -748,29 +748,46 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".salvus-editor-codemirror-filename").text(@filename)
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
-        @codemirror = CodeMirror.fromTextArea elt[0],
-            firstLineNumber : 1
-            autofocus       : false
-            mode            : opts.mode
-            lineNumbers     : opts.line_numbers
-            indentUnit      : opts.indent_unit
-            tabSize         : opts.tab_size
-            smartIndent     : opts.smart_indent
-            electricChars   : opts.electric_chars
-            undoDepth       : opts.undo_depth
-            matchBrackets   : opts.match_brackets
-            theme           : opts.theme
-            lineWrapping    : opts.line_wrapping
-            extraKeys       :
-                "Shift-Enter"  : (editor)   => @click_save_button()
-                "Ctrl-S"       : (editor)   => @click_save_button()
-                "Cmd-S"        : (editor)   => @click_save_button()
-                "Shift-Tab"    : (editor)   => editor.unindent_selection()
-                "Ctrl-Space"  : "indentAuto"
-                "Tab"          : (editor)   => @press_tab_key()
+
+        make_editor = (node) =>
+            return CodeMirror.fromTextArea node,
+                firstLineNumber : 1
+                autofocus       : false
+                mode            : opts.mode
+                lineNumbers     : opts.line_numbers
+                indentUnit      : opts.indent_unit
+                tabSize         : opts.tab_size
+                smartIndent     : opts.smart_indent
+                electricChars   : opts.electric_chars
+                undoDepth       : opts.undo_depth
+                matchBrackets   : opts.match_brackets
+                theme           : opts.theme
+                lineWrapping    : opts.line_wrapping
+                extraKeys       :
+                    "Shift-Enter"  : (editor)   => @click_save_button()
+                    "Ctrl-S"       : (editor)   => @click_save_button()
+                    "Cmd-S"        : (editor)   => @click_save_button()
+                    "Shift-Tab"    : (editor)   => editor.unindent_selection()
+                    "Ctrl-Space"  : "indentAuto"
+                    "Tab"          : (editor)   => @press_tab_key()
+
+        @codemirror = make_editor(elt[0])
+
+        elt1 = @element.find(".salvus-editor-codemirror-input-box-1").find("textarea")
+        console.log(elt1)
+
+        @codemirror1 = make_editor(elt1[0])
+        console.log(@codemirror1)
+
+        buf = @codemirror.linkedDoc(sharedHist: true)
+        @codemirror1.swapDoc(buf)
+        $(@codemirror1.getWrapperElement()).css('border-top':'2px solid #aaa', 'box-shadow': '#777 6px 6px 6px 6px')
+
         @init_save_button()
         @init_change_event()
         @init_edit_buttons()
+
+        @_split_view = false
 
     press_tab_key: () =>
         editor = @codemirror
@@ -783,7 +800,7 @@ class CodeMirrorEditor extends FileEditor
 
     init_edit_buttons: () =>
         that = @
-        for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent', 'shift-left', 'shift-right']
+        for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent', 'shift-left', 'shift-right', 'split-view']
             @element.find("a[href=##{name}]").data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
@@ -811,6 +828,9 @@ class CodeMirrorEditor extends FileEditor
                 cm.undo()
             when 'redo'
                 cm.redo()
+            when 'split-view'
+                @_split_view = not @_split_view
+                @show()
             when 'autoindent'
                 CodeMirror.commands.indentAuto(cm)
             when 'shift-left'
@@ -865,10 +885,13 @@ class CodeMirrorEditor extends FileEditor
         @element.show()
         @codemirror.refresh()
 
+        if @_split_view
+            @codemirror1.refresh()
+
         height = $(window).height()
 
         top = @editor.editor_top_position()
-        elem_height = height - top - 2
+        elem_height = height - top
 
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height = @codemirror.defaultTextHeight()
@@ -877,31 +900,32 @@ class CodeMirrorEditor extends FileEditor
 
         @element.height(elem_height).show()
 
-        scroller = $(@codemirror.getScrollerElement())
-        scroller.css('height':cm_height)
-
         if @_chat_is_hidden? and not @_chat_is_hidden
             width = $(window).width() - @element.find(".salvus-editor-codemirror-chat-column").width()
         else
             width = $(window).width()
 
-        cm_wrapper = $(@codemirror.getWrapperElement())
-        cm_wrapper.css
-            #'background-color':'#ffffe8'
-            'background-color':'#ffffff'
-            height : cm_height
-            width  : width
-
-        window.scrollTo(0, document.body.scrollHeight)
-        $(".salvus-top-scroll").show()
-
-        @codemirror.refresh()
+        if @_split_view
+            v = [@codemirror, @codemirror1]
+            ht = cm_height/2
+        else
+            v = [@codemirror]
+            ht = cm_height
+        for cm in v
+            scroller = $(cm.getScrollerElement())
+            scroller.css('height':ht)
+            cm_wrapper = $(cm.getWrapperElement())
+            cm_wrapper.css
+                #'background-color':'#ffffe8'
+                'background-color':'#ffffff'
+                height : ht
+                width  : width
+            cm.refresh()
 
         chat = @element.find(".salvus-editor-codemirror-chat")
         chat.height(cm_height)
         chat.width(0)
         output = chat.find(".salvus-editor-codemirror-chat-output")
-        output.scrollTop(output[0].scrollHeight)
 
     focus: () =>
         if not @codemirror?
@@ -909,8 +933,8 @@ class CodeMirrorEditor extends FileEditor
         @show()
         if not IS_MOBILE
             @codemirror.focus()
-        # @codemirror.refresh()
-
+            if @_split_view
+                @codemirror1.focus()
 
 codemirror_session_editor = (editor, filename, extra_opts) ->
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
