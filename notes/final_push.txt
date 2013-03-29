@@ -1,6 +1,6 @@
 UI:
 
-(0:30?)  [ ] tabs -- make them shrink as more are added.
+--> (0:30?)  [ ] tabs -- make them shrink as more are added.
 
 (0:15?)  [ ] bug -- making new consoles doesn't work.
 (1:00?)  [ ] change filename extensions: ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
