@@ -730,7 +730,7 @@ message
     id           : undefined
     project_id   : required
     path         : required
-    archive      : undefined
+    archive      : 'tar.bz2'
 
 # The file_read_from_project message is sent by the project_server
 # when it finishes reading the file from disk.
@@ -739,6 +739,7 @@ message
     event        : 'file_read_from_project'
     id           : required
     data_uuid    : required  # The project_server will send the raw data of the file as a blob with this uuid.
+    archive      : undefined  # if defined, means that file (or directory) was archived (tarred up) and this string was added to end of filename.
 
 
 # hub --> client

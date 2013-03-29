@@ -820,7 +820,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             timeout    : 10
-            archive    : undefined   # when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
+            archive    : 'tar.bz2'   # when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : required
         @call
             timeout : opts.timeout

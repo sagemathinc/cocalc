@@ -91,29 +91,25 @@ With the following done, we will have 100% fixed the UI for now:
 (0:30?)  [x] (1:20) make it so the chat window appears again.
 (0:45?) [x] re-enable (and test) automatic timeout of sync sessions in local_hub
 
-=================================================================================================================================
+ (0:45?)  [x] (0:37) bug in directory download -- need to name things sensibly; may require changes in hubs.
+
+
 
 (1:00?) [ ] when a session has timed out, chat just doesn't work.
             typing once into the session and waiting... makes chat work.
-
 (0:45?) [ ] worksheet sessions: killing them doesn't work; interrupting doesn't work.
 (1:00?) [ ] worksheet sync: define code to diff two worksheets and make a patch
 (1:00?) [ ] worksheet sync: define code to apply a patch to a worksheet
 (1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into client
 (1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into hub
 (1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into local hub
-
 (0:45?) [ ] sync: global hub needs to also timeout inactive sync sessions.
 
 =======================
 
+
 (0:45?)  [ ] bug: worksheet -- default path is relative to home directory not project.
 (1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
-
-
-
-
-
 
 (0:10?)  [ ] make other standard tabs only icons; move search box to search page only
 (0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
@@ -125,8 +121,6 @@ With the following done, we will have 100% fixed the UI for now:
 (0:30?)  [ ] codemirror editor settings: whether or not lines wrap in codemirror. (apply for both files and worksheets)
 (0:20?)  [ ] codemirror editor settings: color scheme
 (0:20?)  [ ] codemirror editor settings: auto delete trailing whitespace should be an option in global settings
-
-(0:45?)  [ ] bug in directory download -- need to name things sensibly; may require changes in hubs.
 
 (1:00?)  [ ] change filename extensions to ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
 

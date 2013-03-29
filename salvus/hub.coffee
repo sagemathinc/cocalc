@@ -916,7 +916,10 @@ class Client extends EventEmitter
                             if err
                                 @error_to_client(id:mesg.id, error:err)
                             else
-                                the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                                if content.archive?
+                                    the_url = "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                                else
+                                    the_url = "/blobs/#{mesg.path}?uuid=#{u}"
                                 @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
@@ -1942,15 +1945,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # from the project_server virtual machine.
     read_file: (opts) => # cb(err, content_of_file)
         {path, project_id, archive, cb} = defaults opts,
-            path    : required
+            path       : required
             project_id : required
-            archive : undefined   # for directories
-            cb      : required
+            archive    : 'tar.bz2'   # for directories; if directory, then the output object "data" has data.archive=actual extension used.
+            cb         : required
 
         socket    = undefined
         id        = uuid.v4()
         data      = undefined
         data_uuid = undefined
+        result_archive   = undefined
 
         async.series([
             # Get a socket connection to the local_hub.
@@ -1969,6 +1973,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                             cb(mesg.error)
                         when 'file_read_from_project'
                             data_uuid = mesg.data_uuid
+                            result_archive = mesg.archive
                             cb()
                         else
                             cb("Unknown mesg event '#{mesg.event}'")
@@ -1976,6 +1981,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             (cb) =>
                 socket.recv_mesg type: 'blob', id:data_uuid, timeout:10, cb:(_data) ->
                     data = _data
+                    data.archive = result_archive
                     cb()
 
         ], (err) ->

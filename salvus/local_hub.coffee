@@ -864,6 +864,7 @@ read_file_from_project = (socket, mesg) ->
     path   = abspath(mesg.path)
     is_dir = undefined
     id     = undefined
+    archive = undefined
     async.series([
         (cb) ->
             winston.debug("Determine whether the path is a directory or file.")
@@ -875,9 +876,14 @@ read_file_from_project = (socket, mesg) ->
                     cb()
         (cb) ->
             if is_dir
+                if mesg.archive != 'tar.bz2'
+                    cb("The only supported directory archive format is tar.bz2")
+                    return
                 winston.debug("It is a directory, so archive it to /tmp/, change path, and read that file")
-                target = temp.path(suffix:'.tar.bz2')
-                child_process.execFile 'tar', ['jcvf', target, path], (err, stdout, stderr) ->
+                target  = temp.path(suffix:'.' + mesg.archive)
+                archive = mesg.archive
+                split = misc.path_split(path)
+                child_process.execFile 'tar', ['jcvf', target, split.tail], {cwd:split.head}, (err, stdout, stderr) ->
                     if err
                         cb(err)
                     else
@@ -910,7 +916,7 @@ read_file_from_project = (socket, mesg) ->
 
         (cb) ->
             winston.debug("Finally, we send the file as a blob back to the hub.")
-            socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id)
+            socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id, archive:archive)
             socket.write_mesg 'blob', {uuid:id, blob:data}
             cb()
     ], (err) ->
@@ -920,7 +926,7 @@ read_file_from_project = (socket, mesg) ->
             fs.exists path, (exists) ->
                 if exists
                     winston.debug("It was a directory, so remove the temporary archive '#{path}'.")
-                    fs.unlink(path, cb)
+                    fs.unlink(path)
     )
 
 write_file_to_project = (socket, mesg) ->
