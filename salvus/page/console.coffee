@@ -408,6 +408,7 @@ class Console extends EventEmitter
                       @element.find(".salvus-console-textarea")]
 
         for paste_bin in paste_bins
+            paste_bin.tooltip(delay:{ show: 500, hide: 100 })
             paste_bin.live 'blur keyup paste', (evt) =>
                 for pb in paste_bins
                     data = pb.val()
