@@ -68,7 +68,7 @@
                 </li>
 
                 <!-- File editor -->
-                <li class="super-menu"><a href="#project-editor"><i class="icon-time"> </i> (<span class="project-editor-file-count">0</span>)</a></li>
+                <li class="super-menu"><a href="#project-editor"><i class="icon-time"> </i></a></li>
 
                 <!-- Create a new file (or, etc.)-->
                 <li class="super-menu"><a href="#project-new-file"><i class="icon-plus-sign"> </i> </a></li>
@@ -77,12 +77,7 @@
                 <li class="super-menu"><a href="#project-settings"><i class="icon-cog"> </i> </a></li>
 
                 <!-- Search -->
-                <li class="super-menu project-search-menu-item">
-                    <div style="margin-top:4px; margin-left:10px;">
-                        <a href="#project-search"><!-- <i class="icon-search"> </i> --> <input class="project-search-form-input search-query" type="text"
-                            placeholder="Search..."></a>
-                    </div>
-                </li>
+                <li class="super-menu project-search-menu-item"><a href="#project-search"> <i class="icon-search"> </i></a></li>
 
 
             </ul>
@@ -91,7 +86,9 @@
 
             <!-- List of all files in the project, which is browsable -->
             <div class="project-file-listing">
+                <h1>File Browser</h1>
                 <div class="row">
+
                     <div class="span2">
                         <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose file...">
                     </div>
@@ -139,72 +136,20 @@
 
             <!-- Open files in this project. -->
             <div class="project-editor hide">
+                <h1>
+                    <span class="project-editor-file-count">0</span> Recent Files
+                </h1>
+
+                <!-- the actual recent file UI gets inserted here dynamically! -->
+
             </div>
 
-            <!-- Consoles on this project (multiple tabs, of course) -->
-            <div class="project-consoles hide">
-            </div>
-
-
-            <!-- Chatroom/logs for this project -->
-            <div class="project-chats hide">
-                <b>Not yet implemented:</b> This will be basically a less
-                mutable worksheet that scrolls off the top of the screen
-                (loading old cells on demand), with each cell tagged by who
-                typed that input.
-            </div>
-
-            <!-- Publications of this project -->
-            <!--
-<div class="project-pubs hide">
-<b>Not yet implemented:</b> A publication is a specific
-state of the project, as defined by a commit in some branch,
-a choice of file as the "home page", and a user-specified
-name.  There is a url associated to the publication
-(https://salv.us/userid/name), a way to browse user
-publications, etc.  When a visitor requests the publication,
-a copy of the project (at the given state) is opened on some
-project server, and visitor can interact with the home page.
-This can enable browsing in the project, e.g., through the
-sections of a book.  The pages for pubs will displays
-statistics (like google analytics?) about visitors to the
-pub.  It will also allow for requiring login, a secret word,
-etc.  It will also allow for data collection, e.g., one type
-of pub can be a homework assignment for students in a
-course.
-</div>
--->
-
-            <!-- Git history log for this project -->
-            <div class="project-commits hide">
-                <div class="row">
-                    <div class="project-commits-list">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Git branches -->
-            <div class="project-branches hide">
-                Nothing implemented yet.
-                <!--	  <form>
-<input type="text">
-</form>
-<div class="project-branches-list"></div>
--->
-            </div>
-
-            <!--
-new file
-new folder
-worksheet
-terminal
-in current location
--->
             <!-- Create a new file -->
             <div class="project-new-file hide">
+                <h1>Create New File</h1>
                 <div class="row">
                     <div class="span11">
-                        <h3>Create or import new content <span class="project-new-file-hide-if-root">to</span>
+                        <h3>Path: <span class="project-new-file-hide-if-root">to</span>
                             <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a>
                         </h3>
                     </div>
@@ -255,7 +200,7 @@ in current location
 
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-
+                <h1>Project Settings</h1>
                 <div class="row">
 
                     <div class="well span12" style="margin-left:0em;">
@@ -294,10 +239,14 @@ in current location
 
             <!-- Search -->
             <div class="project-search hide">
+                <h1>Search in Files</h1>
                 <div class="project-search-spinner hide">
                 </div>
                 <div class="row well">
                     <div class="span8">
+
+                        <input class="project-search-form-input search-query" type="text" placeholder="Search files in the current directory...">
+
                         <div class="project-search-output-path-heading hide">
                             <span class="lighten"><a href="#project-file-listing">Navigate to a different folder</a> to search in it.</span>
                             <br><br>

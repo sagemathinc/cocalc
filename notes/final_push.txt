@@ -1,3 +1,7 @@
+ (0:45?) [x] (0:49) project UI: did something like this, but general cleanup instead --  combine the two search pages, with the file search in the right side of page.  (?)
+
+
+
 
 (1:00?) [ ] Search page:    (similar function to https://github.com/explore)
                * search = on project name and description (I will have to build indexes at some point...)
@@ -207,3 +211,5 @@ With the following done, we will have 100% fixed the UI for now:
 (0:45?) [x] (0:19) pdf preview doesn't work on ipad -- this is because no security cert yet, so this will go away!.  I figured this out using
             the awesome remote ipad dev console.
 (0:30?) [x] (1:00) evaluate button for cells in worksheet.
+
+[x] (1:30) worksheet timers, etc.
