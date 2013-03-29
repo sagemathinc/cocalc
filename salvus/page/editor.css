@@ -132,8 +132,6 @@ Editor for files in a project
     color     : #666;
     font-size : 18pt;
     font-weight: bold;
-    position: fixed;
-    right: 0;
 }
 
 .salvus-editor-codemirror-chat-output {

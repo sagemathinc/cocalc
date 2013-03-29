@@ -46,16 +46,19 @@ Editor for files in a project
     <!-- Template for the codemirror text editor -->
     <div class="salvus-editor-codemirror">
         <div class="row salvus-editor-codemirror-button-row">
-            <div class="span10">
+            <div class="salvus-editor-chat-title pull-right">
+                <i class="icon-caret-down salvus-editor-chat-hide"></i>
+                <i class="icon-caret-left hide salvus-editor-chat-show"></i>
+                <i class="icon-comments-alt salvus-editor-chat-new-chats hide"></i>
+                <i class="icon-comment"> </i>
+                &nbsp;
+            </div>
+            <div class="span14">
                 <a href="#save" class="btn btn-success disabled">
                     <i class="icon-save"></i>
                     <span>Save</span>
                     <i class="icon-spinner spinner"></i>
                 </a>
-                <!--<a href="#topbar" class="btn">
-                    <i class="icon-external-link"> </i>
-                    <span>Tab</span>
-                </a>-->
                 <span class="salvus-editor-codemirror-sync">
                     <span class="salvus-editor-codemirror-not-synced hide"><i class="icon-spinner icon-spin"></i> syncing...</span>
                     <span class="salvus-editor-codemirror-synced hide"><i class="icon-ok"></i></span>
@@ -65,15 +68,6 @@ Editor for files in a project
                 </span>
                 <span class="salvus-editor-codemirror-filename">
                 </span>
-            </div>
-            <div class="span2">
-                <div class="salvus-editor-chat-title pull-right">
-                    <i class="icon-caret-down salvus-editor-chat-hide"></i>
-                    <i class="icon-caret-left hide salvus-editor-chat-show"></i>
-                    <i class="icon-comments-alt salvus-editor-chat-new-chats hide"></i>
-                    <i class="icon-comment"> </i>
-                    &nbsp;
-                </div>
             </div>
         </div>
         <div class="row">
