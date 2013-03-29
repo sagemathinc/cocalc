@@ -1,7 +1,4 @@
- [x] just did a very quick proof-of-concept of editor pages being tabs... It really just needs polish,  but will work.  need to move... can move.  THIS IS AWESOME!
 
-(0:10?)  [ ] make other standard tabs only icons; move search box to search page only
-(0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
 (0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
 
 
@@ -199,3 +196,8 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:45?)  [x] (0:13) bug: worksheet -- default path is relative to home directory not project.
 (0:15?)  [x] bug -- "Results of searching" needs to be scrollable.
+
+ [x] just did a very quick proof-of-concept of editor pages being tabs... It really just needs polish,  but will work.  need to move... can move.  THIS IS AWESOME!
+
+(0:10?)  [x] make other standard tabs only icons; move search box to search page only
+(0:30?)  [x] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.

@@ -381,6 +381,7 @@ class exports.Editor
                     @create_opened_file_tab(filename)
                     return editor
             hide_editor: () -> editor?.hide()
+            editor_open : ()->editor?
 
         link.data('tab', @tabs[filename])
         link.draggable
@@ -429,28 +430,39 @@ class exports.Editor
 
     create_opened_file_tab: (filename) =>
         link = templates.find(".salvus-editor-filename-pill").clone()
+        link.data('name', filename)
 
         link_filename = link.find(".salvus-editor-tab-filename")
-        link_filename.text(trunc(filename,32))
+        i = filename.lastIndexOf('/')
+        display_name = trunc(filename.slice(i+1),16)
+        link_filename.text(display_name)
+        link.tooltip(title:filename, animation:false, delay: { show: 1000, hide: 100 })
+
+        open_file = (name) =>
+            console.log(name)
+            @project_page.set_current_path(misc.path_split(name).head)
+            @project_page.display_tab("project-editor")
+            @display_tab(name)
 
         link.find(".salvus-editor-close-button-x").click () =>
             if ignore_clicks
                 return false
+            link.tooltip('destroy')
             link.remove()
+            name = link.prev().data('name')
+            if name?
+                open_file(name)
+            if @tabs[filename]?.open_file_pill?
+                delete @tabs[filename].open_file_pill
             return false
 
-        containing_path = misc.path_split(filename).head
         ignore_clicks = false
         link.find("a").click () =>
             if ignore_clicks
                 return false
-            @display_tab(filename)
-            @project_page.container.find(".project-pages").children().removeClass('active')
-            link.addClass('active')
-            @project_page.set_current_path(containing_path)
+            open_file(filename)
             return false
 
-        @project_page.container.find(".project-search-menu-item").after(link)
         link.draggable
             zIndex      : 1000
             containment : "parent"
@@ -458,19 +470,30 @@ class exports.Editor
                 ignore_clicks = true
                 setTimeout( (() -> ignore_clicks=false), 100)
 
+        @tabs[filename].open_file_pill = link
+
+        #@project_page.container.find(".project-search-menu-item").after(link)
+        @project_page.container.find(".project-pages").append(link)
+
+    make_open_file_pill_active: (link) =>
+        @project_page.container.find(".project-pages").children().removeClass('active')
+        link.addClass('active')
+
     # Close this tab.
     close: (filename) =>
         tab = @tabs[filename]
         if not tab? # nothing to do -- tab isn't opened anymore
             return
 
-        # Do not auto_open this file on this browser next time.
+        # Do not show this file in "recent" next time.
         local_storage_delete(@project_id, filename, "auto_open")
 
         # Disconnect from remote session (if relevant)
-        tab.editor().disconnect_from_session()
+        if tab.editor_open()
+            tab.editor().disconnect_from_session()
+            tab.editor().remove()
+
         tab.link.remove()
-        tab.editor().remove()
         delete @tabs[filename]
         @update_counter()
 
@@ -510,6 +533,7 @@ class exports.Editor
     display_tab: (filename) =>
         if not @tabs[filename]?
             return
+
         @show_editor_content()
         prev_active_tab = @active_tab
         for name, tab of @tabs
@@ -517,8 +541,14 @@ class exports.Editor
                 @active_tab = tab
                 ed = tab.editor()
                 ed.show()
-                setTimeout((() -> ed.show(); ed.focus()), 200)
+                setTimeout((() -> ed.show(); ed.focus()), 100)
                 @element.find(".btn-group").children().removeClass('disabled')
+                top_link = @active_tab.open_file_pill
+                if top_link?
+                    @make_open_file_pill_active(top_link)
+                else
+                    @create_opened_file_tab(filename)
+                    @make_open_file_pill_active(@active_tab.open_file_pill)
             else
                 tab.hide_editor()
 
