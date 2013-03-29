@@ -356,7 +356,7 @@ class Client extends EventEmitter
         # e.g., users storing a multi-gigabyte worksheet title,
         # etc..., which would (and will) otherwise require care with
         # every single thing we store.
-        if data.length >= 10000000  # 10 MB
+        if data.length >= 100000000 # 10 MB
             @push_to_client(message.error(error:"Messages are limited to 10MB.", id:mesg.id))
 
         if data.length == 0
@@ -1967,7 +1967,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb()
             (cb) =>
                 socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:project_id, path:path, archive:archive)
-                socket.recv_mesg type:'json', id:id, timeout:10, cb:(mesg) =>
+                socket.recv_mesg type:'json', id:id, timeout:60, cb:(mesg) =>
                     switch mesg.event
                         when 'error'
                             cb(mesg.error)
@@ -1979,7 +1979,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                             cb("Unknown mesg event '#{mesg.event}'")
 
             (cb) =>
-                socket.recv_mesg type: 'blob', id:data_uuid, timeout:10, cb:(_data) ->
+                socket.recv_mesg type: 'blob', id:data_uuid, timeout:60, cb:(_data) ->
                     data = _data
                     data.archive = result_archive
                     cb()

@@ -8,7 +8,7 @@
 {top_navbar}    = require('top_navbar')
 {alert_message} = require('alerts')
 {misc}          = require('misc')
-{project_page, download_project, close_project}  = require('project')
+{project_page, close_project}  = require('project')
 {human_readable_size} = require('misc_page')
 
 top_navbar.on "switch_to_page-projects", () ->
@@ -122,11 +122,7 @@ create_project_item = (project) ->
         #catch e
         #    console.log(e)
         return false
-    item.find("a[href='#download-project']").click () ->
-        download_project
-            project_id : project.project_id
-            filename   : project.title
-        return false
+
 
     return item
 

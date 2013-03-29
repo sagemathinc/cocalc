@@ -152,6 +152,7 @@ class ProjectPage
         @init_refresh_files()
         @init_hidden_files_icon()
         @init_trash_link()
+        @init_project_download()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id.slice(0,8))
@@ -1057,13 +1058,23 @@ class ProjectPage
         t.hover( (() -> b.show()) ,  (() -> b.hide()))
 
         # Downloading a file
-        b.find("a[href=#download-file]").click () =>
-            @download_file(fullname)
+        dl = b.find("a[href=#download-file]")
+        dl.click () =>
+            dl.find(".spinner").show()
+            @download_file
+                path : fullname
+                cb   : () =>
+                    dl.find(".spinner").hide()
             return false
 
         # Deleting a file
-        b.find("a[href=#delete-file]").click () =>
-            @trash_file(fullname)
+        del = b.find("a[href=#delete-file]")
+        del.click () =>
+            del.find(".spinner").show()
+            @trash_file
+                path : fullname
+                cb   : () =>
+                    del.find(".spinner").hide()
             return false
 
         open = () =>
@@ -1133,11 +1144,6 @@ class ProjectPage
             cb   : (err) =>
                 if not err
                     @update_file_list_tab(true)
-
-    download_project: (opts={}) =>
-        download_project
-            project_id : @project.project_id
-            filename   : @project.title
 
     move_file: (opts) =>
         opts = defaults opts,
@@ -1255,6 +1261,18 @@ class ProjectPage
             @update_file_list_tab()
             return false
 
+    init_project_download: () =>
+        # Download entire project
+        link = @container.find("a[href=#download-project]")
+        link.click () =>
+            link.find(".spinner").show()
+            @download_file
+                path   : ""
+                prefix : 'project'
+                cb     : (err) =>
+                    link.find(".spinner").hide()
+            return false
+
     init_trash_link: () =>
         @container.find("a[href=#trash]").click () =>
             @visit_trash()
@@ -1278,23 +1296,39 @@ class ProjectPage
                                 @visit_trash()
             return false
 
-    trash_file: (path) =>
+    trash_file: (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : undefined
         async.series([
             (cb) =>
                 @ensure_directory_exists(path:'.trash', cb:cb)
             (cb) =>
-                @move_file(src:path, dest:'.trash', cb:cb, alert:false, mv_args:['--backup=numbered'])
-        ], (err) => @update_file_list_tab(true))
+                @move_file(src:opts.path, dest:'.trash', cb:cb, alert:false, mv_args:['--backup=numbered'])
+        ], (err) =>
+            opts.cb?(err)
+            @update_file_list_tab(true)
+        )
 
-    download_file: (path) =>
+    download_file: (opts) =>
+        opts = defaults opts,
+            path    : required
+            timeout : 45
+            prefix  : undefined   # prefix = added to front of filename
+            cb      : undefined   # cb(err) when file download from browser starts.
         salvus_client.read_file_from_project
             project_id : @project.project_id
-            path       : path
+            path       : opts.path
+            timeout    : opts.timeout
             cb         : (err, result) =>
+                opts.cb?(err)
                 if err
                     alert_message(type:"error", message:"#{err} -- #{misc.to_json(result)}")
                 else
                     url = result.url + "&download"
+                    if opts.prefix?
+                        i = url.lastIndexOf('/')
+                        url = url.slice(0,i+1) + opts.prefix + url.slice(i+1)
                     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                     setTimeout((() -> iframe.remove()), 1000)
 
@@ -1478,25 +1512,4 @@ project_page = exports.project_page = (project) ->
     project_pages[project.project_id] = p
     return p
 
-download_project = exports.download_project = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        filename   : required
-        archive    : undefined
-    if not opts.archive?
-        # TODO: take from settings
-        opts.archive = 'tar.bz2'
-
-    salvus_client.read_file_from_project
-        project_id : opts.project_id
-        path       : "/"
-        archive    : opts.archive
-        cb         : (err, result) =>
-            if err
-                alert_message(type:"error", message:"#{err} -- #{misc.to_json(result)}")
-            else
-                url = result.url + "&download"
-                url = url.replace('/?',  opts.filename + "." + opts.archive + '?')
-                iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-                setTimeout((() -> iframe.remove()), 1000)
 

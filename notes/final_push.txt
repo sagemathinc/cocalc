@@ -94,6 +94,8 @@ With the following done, we will have 100% fixed the UI for now:
  (0:45?)  [x] (0:37) bug in directory download -- need to name things sensibly; may require changes in hubs.
 
 
+(0:30?) [x] (1:10) download a project, etc.
+
 
 (1:00?) [ ] when a session has timed out, chat just doesn't work.
             typing once into the session and waiting... makes chat work.

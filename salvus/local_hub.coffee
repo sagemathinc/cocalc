@@ -867,7 +867,7 @@ read_file_from_project = (socket, mesg) ->
     archive = undefined
     async.series([
         (cb) ->
-            winston.debug("Determine whether the path is a directory or file.")
+            winston.debug("Determine whether the path '#{path}' is a directory or file.")
             fs.stat path, (err, stats) ->
                 if err
                     cb(err)
@@ -879,15 +879,19 @@ read_file_from_project = (socket, mesg) ->
                 if mesg.archive != 'tar.bz2'
                     cb("The only supported directory archive format is tar.bz2")
                     return
-                winston.debug("It is a directory, so archive it to /tmp/, change path, and read that file")
                 target  = temp.path(suffix:'.' + mesg.archive)
+                winston.debug("'#{path}' is a directory, so archive it to '#{target}', change path, and read that file")
                 archive = mesg.archive
+                if path[path.length-1] == '/'  # common nuisance with paths to directories
+                    path = path.slice(0,path.length-1)
                 split = misc.path_split(path)
-                child_process.execFile 'tar', ['jcvf', target, split.tail], {cwd:split.head}, (err, stdout, stderr) ->
+                path = target
+                winston.debug("tar #{misc.to_json(['jcf', target, split.tail, split.head])}...")
+                child_process.execFile 'tar', ['jcf', target, split.tail], {cwd:split.head}, (err, stdout, stderr) ->
                     if err
+                        winston.debug("Issue creating tarball: #{err}, #{stdout}, #{stderr}")
                         cb(err)
                     else
-                        path = target
                         cb()
             else
                 winston.debug("It is a file.")
