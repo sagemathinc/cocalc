@@ -1,8 +1,7 @@
 /* http://keith-wood.name/countdown.html
-   Countdown for jQuery v1.6.0.
+   Countdown for jQuery v1.6.1.
    Written by Keith Wood (kbwood{at}iinet.com.au) January 2008.
-   Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
-   MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
+   Available under the MIT (https://github.com/jquery/jquery/blob/master/MIT-LICENSE.txt) license. 
    Please attribute the author if you use it. */
 
 /* Display a countdown timer.
@@ -56,7 +55,11 @@ function Countdown() {
 	this._serverSyncs = [];
 	// Shared timer for all countdowns
 	function timerCallBack(timestamp) {
-		var drawStart = (timestamp || new Date().getTime());
+		var drawStart = (timestamp < 1e12 ? // New HTML5 high resolution timer
+			(drawStart = performance.now ?
+			(performance.now() + performance.timing.navigationStart) : Date.now()) :
+			// Integer milliseconds since unix epoch
+			timestamp || new Date().getTime());
 		if (drawStart - animationStartTime >= 1000) {
 			plugin._updateTargets();
 			animationStartTime = drawStart;
@@ -73,7 +76,9 @@ function Countdown() {
 		setInterval(function() { plugin._updateTargets(); }, 980); // Fall back to good old setInterval
 	}
 	else {
-		animationStartTime = window.mozAnimationStartTime || new Date().getTime();
+		animationStartTime = window.animationStartTime ||
+			window.webkitAnimationStartTime || window.mozAnimationStartTime ||
+			window.oAnimationStartTime || window.msAnimationStartTime || new Date().getTime();
 		requestAnimationFrame(timerCallBack);
 	}
 }
@@ -231,7 +236,7 @@ $.extend(Countdown.prototype, {
 		this._adjustSettings(target, inst);
 		var now = new Date();
 		if ((inst._since && inst._since < now) || (inst._until && inst._until > now)) {
-			this._addTarget(target);
+			this._addTarget(target[0]);
 		}
 		this._updateCountdown(target, inst);
 	},

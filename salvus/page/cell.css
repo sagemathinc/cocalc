@@ -11,7 +11,7 @@
     font-size        : 11pt;
     color            : #333;
     min-height       : 1.8em;
-    padding-left     : 3em;
+    padding-left     : 5em;
 }
 
 .salvus-cell-insert-above {
@@ -86,7 +86,7 @@
 
 .salvus-cell-checkbox {
     position:absolute;
-    margin-left:-1.1em;
+    margin-left:0em;
     margin-top:.1em;
 /*    border: 1px solid #white; */
 }
@@ -96,18 +96,17 @@
 }
 
 .salvus-cell-stopwatch {
-    margin-left : -13ex;
-    margin-top  : .5ex;
-    position    : absolute;
+    margin-left : 0em;
+    margin-top  : 0px;;
+    height      : 0px;
     font-size   : 10pt;
-    padding     : 1px;
-    color       : #222;
+    color       : #666;
     background-color : #ddd;
     opacity     : 0.5;
 }
 
 .salvus-cell-stopwatch-running {
-    background-color : red;
+    background-color : cfc;
 }
 
 .salvus-cell-stopwatch-waiting {

@@ -147,10 +147,18 @@ class Cell extends EventEmitter
         @_action_btns.find("a[href=#execute]").click () =>
             @execute()
             return false
-        if IS_MOBILE
-            @_action_btns.find("a[href=#tab]").click () =>
-                @_introspect()
-                return false
+        @_action_btns.find("a[href=#tab]").click () =>
+            @_introspect()
+            return false
+        @_action_btns.find("a[href=#interrupt]").click () =>
+            @_interrupt()
+            return false
+        @_action_btns.find("a[href=#move-up]").click () =>
+            @emit "move-cell-up"
+            return false
+        @_action_btns.find("a[href=#move-down]").click () =>
+            @emit "move-cell-down"
+            return false
 
     _initialize_checkbox: () =>
         @_checkbox = @element.find(".salvus-cell-checkbox").find("input")
@@ -296,9 +304,9 @@ class Cell extends EventEmitter
         @_output.removeClass('word-wrap overflow-wrap').css('white-space':'pre')
 
     _interrupt: =>
-        if @element.find('.salvus-cell-stopwatch').hasClass('salvus-cell-stopwatch-running')
+        if @_execute_running? and @_execute_running
             @opts.session.interrupt()
-            return false
+        return false
 
     _introspect: =>
         @_close_on_action()
@@ -933,23 +941,22 @@ class Cell extends EventEmitter
                 @_stopwatch_counter = 0
             @_stopwatch_counter += 1
             @element.find(".salvus-cell-stopwatch").hide()
-
-            elt = @element.find(".salvus-cell-stopwatch:first")
-            elt.removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running'
-            ).show().find('span').countdown('destroy').countdown(
+            elt = @element.find(".salvus-cell-stopwatch:first").show().click(@_interrupt).find('span')
+            elt.removeClass('salvus-cell-stopwatch-waiting').addClass('salvus-cell-stopwatch-running').show()
+            elt.countdown('destroy').countdown(
                 since   : new Date()
                 compact : true
                 layout  : '{hnn}{sep}{mnn}{sep}{snn}'
-            ).click(@_interrupt).tooltip('destroy').tooltip(title:"Time running; click to interrupt.")
+            )
             # CSS spinner effect -- cool but uses way too much CPU
-            # elt.find("i").removeClass('icon-time').addClass("icon-spinner icon-spin")
+            #elt.find("i").removeClass('icon-time').addClass("icon-spinner icon-spin")
 
     stop_stopwatch: () ->
         if @opts.stopwatch
             @_stopwatch_counter -= 1
             if @_stopwatch_counter <= 0 and @opts.stopwatch
                 elt = @element.find(".salvus-cell-stopwatch:first")
-                elt.removeClass('salvus-cell-stopwatch-running').tooltip('destroy').tooltip(delay:1000, title:"Time this took to run.").find('span').countdown('pause')
+                elt.removeClass('salvus-cell-stopwatch-running').find('span').countdown('pause')
                 # CSS spinner effect -- cool but uses way too much CPU
                 # elt.find("i").removeClass('icon-spin icon-spinner').addClass("icon-time")
 
@@ -988,7 +995,7 @@ class Cell extends EventEmitter
         else
             @_input.removeClass("salvus-cell-input-selected")
             # Hide on next tick, since this could be a button.
-            @_action_btns.fadeOut(duration:100)
+            @_action_btns.fadeOut(duration:250)
         return @
 
     component: (e) ->
@@ -1182,6 +1189,7 @@ class Cell extends EventEmitter
             preparse : true
             cb       : (mesg) =>
                 clearTimeout(s)
+                @_execute_running = true
                 @emit 'execute-running'
 
                 # I HAVEN'T DECIDED ON THE SEMANTICS FOR THIS:
@@ -1206,6 +1214,7 @@ class Cell extends EventEmitter
                 if mesg.done
                     @stop_stopwatch()
                     if mesg.id == @_last_execute_uuid
+                        @_execute_running = stop
                         @emit 'execute-done'
 
     # Remove this cell from the DOM
