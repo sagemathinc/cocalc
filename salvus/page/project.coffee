@@ -1055,7 +1055,8 @@ class ProjectPage
         b = t.find(".project-file-buttons")
 
         # Show project file buttons on hover only
-        t.hover( (() -> b.show()) ,  (() -> b.hide()))
+        if not IS_MOBILE
+            t.hover( (() -> b.show()) ,  (() -> b.hide()))
 
         # Downloading a file
         dl = b.find("a[href=#download-file]")
@@ -1093,10 +1094,11 @@ class ProjectPage
 
 
         # Renaming a file
-        rename_link = t.find('a[href=#rename]')
-        rename_link.click () =>
-            @click_to_rename_file(path, rename_link)
-            return false
+        if not IS_MOBILE
+            rename_link = t.find('a[href=#rename]')
+            rename_link.click () =>
+                @click_to_rename_file(path, rename_link)
+                return false
 
     click_to_rename_file: (path, link) =>
         # First click changes CSS, second click makes it editable using contenteditable.

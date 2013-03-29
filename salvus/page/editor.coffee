@@ -572,7 +572,8 @@ class exports.Editor
     onshow: () =>  # should be called when the editor is shown.
         #if @active_tab?
         #    @display_tab(@active_tab.filename)
-        @element.find(".salvus-editor-search-openfiles-input").focus()
+        if not IS_MOBILE
+            @element.find(".salvus-editor-search-openfiles-input").focus()
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -913,7 +914,7 @@ class PDF_Preview extends FileEditor
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
 
         @page_number = 1
-        @density = 300  # impacts the clarity
+        @density = 250  # impacts the clarity
 
         s = path_split(@filename)
         @path = s.head
@@ -1008,7 +1009,12 @@ class PDF_Preview extends FileEditor
                                         if n < children.length
                                             $(children[n]).attr('src', url)
                                         else
-                                            @output.append($("<img src='#{url}' class='salvus-editor-pdf-preview-image'>"))
+                                            img = templates.find(".salvus-editor-pdf-preview-image").clone()
+                                            img.attr('src', url)
+                                            # This gives a sort of "2-up" effect.  But this makes things unreadable
+                                            # on some screens :-(.
+                                            #img.css('width':@output.width()/2-100)
+                                            @output.append(img)
                                     # Delete any remaining pages from before (if doc got shorter)
                                     for n in [len(pages)...children.length]
                                         $(children[n]).remove()

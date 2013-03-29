@@ -1,6 +1,9 @@
 (0:20?) [x] (0:23) PDF preview is probably not correct height... I'm good at this now.
 
-[ ] PDF preview -- easy to make it 2-up?
+        [x] (0:12) PDF preview -- easy to make it 2-up? -- at least play for a moment
+
+(0:45?) [x] (0:19) pdf preview doesn't work on ipad -- this is because no security cert yet, so this will go away!.  I figured this out using
+            the awesome remote ipad dev console. 
 
 (1:00?) [ ] Search page:    (similar function to https://github.com/explore)
                * search = on project name and description (I will have to build indexes at some point...)
