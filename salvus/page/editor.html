@@ -54,20 +54,38 @@ Editor for files in a project
                 &nbsp;
             </div>
             <div class="span14">
+                <span class="btn-group">
+                    <a href="#undo" class="btn"  data-toggle="tooltip" data-placement="top" title="Undo"><i class="icon-undo"></i></a>
+                    <a href="#redo" class="btn"  data-toggle="tooltip" data-placement="top" title="Redo"><i class="icon-repeat"></i></a>
+                    <a href="#autoindent" class="btn"  data-toggle="tooltip" data-placement="top" title="Autoindent selected text"><i class="icon-align-left"></i></a>
+                    <a href="#shift-left" class="btn"  data-toggle="tooltip" data-placement="top" title="Shift selected text left"><i class="icon-indent-left"></i></a>
+                    <a href="#shift-right" class="btn"   data-toggle="tooltip" data-placement="top" title="Shift selected text right"><i class="icon-indent-right"></i></a>
+                    <a href="#search" class="btn" data-toggle="tooltip" data-placement="top" title="Search"><i class="icon-search"></i></a>
+                    <a href="#prev" class="btn" data-toggle="tooltip" data-placement="top" title="Previous"><i class="icon-chevron-up"></i></a>
+                    <a href="#next" class="btn" data-toggle="tooltip" data-placement="top" title="Next"><i class="icon-chevron-down"></i></a>
+                    <a href="#replace" class="btn"  data-toggle="tooltip" data-placement="top" title="Replace"><i class="icon-exchange"></i></a>
+                </span>
+
+                <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+
                 <a href="#save" class="btn btn-success disabled">
                     <i class="icon-save"></i>
                     <span>Save</span>
                     <i class="icon-spinner spinner"></i>
                 </a>
+
                 <span class="salvus-editor-codemirror-sync">
                     <span class="salvus-editor-codemirror-not-synced hide"><i class="icon-spinner icon-spin"></i> syncing...</span>
                     <span class="salvus-editor-codemirror-synced hide"><i class="icon-ok"></i></span>
                 </span>
+
                 <span class="salvus-editor-codemirror-loading">
                     <i class="icon-spinner icon-spin"></i> loading...
                 </span>
+
                 <span class="salvus-editor-codemirror-filename">
                 </span>
+
             </div>
         </div>
         <div class="row">
@@ -106,7 +124,7 @@ Editor for files in a project
     </div>
 
     <img class='salvus-editor-pdf-preview-image'>
-    
+
     <!-- Template for the LaTeX editor -->
     <div class="salvus-editor-latex">
         <div class="btn-group">

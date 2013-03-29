@@ -766,17 +766,57 @@ class CodeMirrorEditor extends FileEditor
                 "Cmd-S"        : (editor)   => @click_save_button()
                 "Shift-Tab"    : (editor)   => editor.unindent_selection()
                 "Ctrl-Space"  : "indentAuto"
-                "Tab"          : (editor)   =>
-                    c = editor.getCursor(); d = editor.getCursor(true)
-                    if c.line==d.line and c.ch == d.ch
-                        editor.tab_as_space()
-                    else
-                        CodeMirror.commands.defaultTab(editor)
+                "Tab"          : (editor)   => @press_tab_key()
         @init_save_button()
         @init_change_event()
-        #@element.find("a[href=#topbar]").click () =>
-        #    @editor.add_tab_to_navbar(@filename)
-        #    return false
+        @init_edit_buttons()
+
+    press_tab_key: () =>
+        editor = @codemirror
+        c = editor.getCursor(); d = editor.getCursor(true)
+        if c.line==d.line and c.ch == d.ch
+            editor.tab_as_space()
+        else
+            CodeMirror.commands.defaultTab(editor)
+
+
+    init_edit_buttons: () =>
+        that = @
+        for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent', 'shift-left', 'shift-right']
+            @element.find("a[href=##{name}]").data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
+                that.click_edit_button($(@).data('name'))
+                return false
+
+    click_edit_button: (name) =>
+        if not @codemirror?
+            return
+        cm = @codemirror
+        switch name
+            when 'search'
+                CodeMirror.commands.find(cm)
+            when 'next'
+                if cm._searchState?.query
+                    CodeMirror.commands.findNext(cm)
+                else
+                    CodeMirror.commands.goPageDown(cm)
+            when 'prev'
+                if cm._searchState?.query
+                    CodeMirror.commands.findPrev(cm)
+                else
+                    CodeMirror.commands.goPageUp(cm)
+            when 'replace'
+                CodeMirror.commands.replace(cm)
+            when 'undo'
+                cm.undo()
+            when 'redo'
+                cm.redo()
+            when 'autoindent'
+                CodeMirror.commands.indentAuto(cm)
+            when 'shift-left'
+                cm.unindent_selection()
+            when 'shift-right'
+                @press_tab_key()
+
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").click(@click_save_button)
@@ -827,12 +867,12 @@ class CodeMirrorEditor extends FileEditor
         height = $(window).height()
 
         top = @editor.editor_top_position()
-        elem_height = height - top
+        elem_height = height - top - 2
 
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height = @codemirror.defaultTextHeight()
 
-        cm_height = Math.floor((elem_height - button_bar_height)/font_height - 1) * font_height
+        cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
         @element.height(elem_height).show()
 

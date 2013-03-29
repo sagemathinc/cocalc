@@ -615,6 +615,7 @@ class ProjectPage
             target = t.find("a").attr('href')
             if not target?
                 continue
+            t.find('a').tooltip(delay:{ show: 500, hide: 100 })
             name = target.slice(1)
             tab = {label:t, name:name, target:@container.find(".#{name}")}
             @tabs.push(tab)
