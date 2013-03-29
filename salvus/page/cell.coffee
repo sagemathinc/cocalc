@@ -118,6 +118,7 @@ class Cell extends EventEmitter
         @_initialize_insert()
         @_initialize_note()
         @_initialize_input()
+        @_initialize_action_button()
 
         @element.data("cell", @)
         $(@opts.element).replaceWith(@element)
@@ -138,7 +139,20 @@ class Cell extends EventEmitter
     # Private Methods
     #######################################################################
 
-    _initialize_checkbox: () ->
+    _initialize_action_button: () =>
+        if IS_MOBILE
+            @_action_btns = @element.find(".salvus-cell-action-buttons-mobile")
+        else
+            @_action_btns = @element.find(".salvus-cell-action-buttons")
+        @_action_btns.find("a[href=#execute]").click () =>
+            @execute()
+            return false
+        if IS_MOBILE
+            @_action_btns.find("a[href=#tab]").click () =>
+                @_introspect()
+                return false
+
+    _initialize_checkbox: () =>
         @_checkbox = @element.find(".salvus-cell-checkbox").find("input")
         @_checkbox.click (event) =>
             @emit "checkbox-change", event.shiftKey
@@ -966,12 +980,15 @@ class Cell extends EventEmitter
         @_editor.focus()
         @_editor.refresh()
 
-    # Mark the cell as selected or not selected
+    # Mark the cell visibly as selected or not selected
     selected: (is_selected=true) ->
         if is_selected
             @_input.addClass("salvus-cell-input-selected")
+            @_action_btns.stop().show().animate(opacity:100)
         else
             @_input.removeClass("salvus-cell-input-selected")
+            # Hide on next tick, since this could be a button.
+            @_action_btns.fadeOut(duration:100)
         return @
 
     component: (e) ->

@@ -1262,7 +1262,7 @@ class Terminal extends FileEditor
             top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
             e.height($(window).height() - top)
             @console.focus()
-            setTimeout( (() => @console.focus()), 150) # failing to focus is infuriating. 
+            setTimeout( (() => @console.focus()), 150) # failing to focus is infuriating.
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
