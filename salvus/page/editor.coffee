@@ -577,13 +577,14 @@ class exports.Editor
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
-        if not filename?  # if filename not given, save all files
+        if not filename?  # if filename not given, save all *open* files
             tasks = []
-            for filename in keys(@tabs)
-                f = (c) =>
-                    @save(arguments.callee.filename, c)
-                f.filename = filename
-                tasks.push(f)
+            for filename, tab of @tabs
+                if tab.editor_open()
+                    f = (c) =>
+                        @save(arguments.callee.filename, c)
+                    f.filename = filename
+                    tasks.push(f)
             async.parallel(tasks, cb)
             return
 

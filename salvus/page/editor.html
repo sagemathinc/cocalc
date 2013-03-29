@@ -5,17 +5,15 @@ Editor for files in a project
 <span id="salvus-editor-templates" class="hide">
 
     <!-- Template for the entire editor, both tabs and the actual content -->
-    <div class="salvus-editor">
+    <div class="salvus-editor"  style="margin-left:3em;">
         <div class="salvus-editor-button-bar ">
             <div class="row">
-                <div class="span2">
-                    <a class='btn btn-success' href="#save-all"><i class="icon-save"> </i> Save all</a>
-                </div>
-                <div class="span5">
+                <a class='btn btn-success pull-right' href="#save-all"><i class="icon-save"> </i> Save all open files</a>
+                <div class="span7">
                     <input class="salvus-editor-search-openfiles-input search-query" type="text" placeholder="Choose file...">
                 </div>
                 <div class="span3 offset1">
-                    <a class='btn btn-danger' href="#close-all-tabs"><i class="icon-minus-sign"> </i> Clear list</a>
+                    <a class='btn btn-danger' href="#close-all-tabs"><i class="icon-minus-sign"> </i> Clear recent</a>
                     <a class='btn hide' href="#undo-close-all-tabs"><i class="icon-undo"> </i> Undo clear</a>
                 </div>
             </div>

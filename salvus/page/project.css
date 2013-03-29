@@ -92,6 +92,7 @@
     overflow-y       : auto;
     position         : absolute;
     height           : 100%;
+   margin-left       : 3em;
 }
 
 .project-search-output-command {
