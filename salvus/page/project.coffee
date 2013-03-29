@@ -613,6 +613,8 @@ class ProjectPage
         for item in @container.find(".project-pages").children()
             t = $(item)
             target = t.find("a").attr('href')
+            if not target?
+                continue
             name = target.slice(1)
             tab = {label:t, name:name, target:@container.find(".#{name}")}
             @tabs.push(tab)
