@@ -88,11 +88,12 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:30?)  [x] (1:05) range selection -- need to also preserve that on sync.  (harder than I thought!)
 
-        [ ] (0:22) make the trash can vastly more usable using move's amazing "backup" option; add file list refresh option.
+        [x] (0:22) make the trash can vastly more usable using move's amazing "backup" option; add file list refresh option.
 
-(0:30?) [ ] eliminate tracking and reporting of which docs/sessions/sage's are open -- just timeout stuff after a while, with some user control of this at some point.
+(0:30?)  [x] (1:06) make it so the chat window appears again.
+
 (1:00?) [ ] when a session has timed out, chat just doesn't work.
-        typing once into the session and waiting... makes chat work.
+            typing once into the session and waiting... makes chat work.
 
         [ ] worksheet sessions: killing them doesn't work; interrupting doesn't work.
 

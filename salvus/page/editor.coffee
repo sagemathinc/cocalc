@@ -763,11 +763,18 @@ class CodeMirrorEditor extends FileEditor
         scroller = $(@codemirror.getScrollerElement())
         scroller.css('height':cm_height)
 
+        if @_chat_is_hidden? and not @_chat_is_hidden
+            console.log("chat not hidden")
+            width = $(window).width() - @element.find(".salvus-editor-codemirror-chat-column").width()
+        else
+            console.log("chat hidden")
+            width = $(window).width()
+
         cm_wrapper = $(@codemirror.getWrapperElement())
         cm_wrapper.css
             'background-color':'#ffffe8'
             height : cm_height
-            width  : $(window).width()
+            width  : width
 
         window.scrollTo(0, document.body.scrollHeight)
         $(".salvus-top-scroll").show()

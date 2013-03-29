@@ -311,20 +311,6 @@ class ProjectPage
             if data.auto_open
                 tab = @editor.create_tab(filename : filename)
         cb?()
-        ###
-        console.log("initialize file sessions: ", sessions)
-        for session_uuid, obj of sessions
-            if obj.path?  #just in case
-                # The filename contains the path to the project...
-                filename = obj.path.slice(@project.location.path.length + 1)
-                auto_open = local_storage(@project.project_id, filename, 'auto_open')
-                if not auto_open? or auto_open
-                    # Now create the tab in which to edit the file.
-                    tab = @editor.create_tab(filename : filename)
-            else
-                log("GOT suspicious session -- sessions=#{misc.to_json(sessions)}")
-        cb?()
-        ###
 
     ########################################
     # Search

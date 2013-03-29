@@ -399,7 +399,7 @@ class SynchronizedDocument
     init_chat_toggle: () =>
         title = @element.find(".salvus-editor-chat-title")
         title.click () =>
-            if @_chat_is_hidden? and @_chat_is_hidden
+            if @editor._chat_is_hidden? and @editor._chat_is_hidden
                 @show_chat_window()
             else
                 @hide_chat_window()
@@ -407,29 +407,33 @@ class SynchronizedDocument
 
     show_chat_window: () =>
         # SHOW the chat window
-        @_chat_is_hidden = false
+        @editor._chat_is_hidden = false
         @element.find(".salvus-editor-chat-show").hide()
         @element.find(".salvus-editor-chat-hide").show()
         @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
         @element.find(".salvus-editor-codemirror-chat-column").show()
+        # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
+        # if you want to try to make this resizable
         output = @element.find(".salvus-editor-codemirror-chat-output")
         output.scrollTop(output[0].scrollHeight)
         @new_chat_indicator(false)
+        @editor.show()  # updates editor width
 
     hide_chat_window: () =>
         # HIDE the chat window
-        @_chat_is_hidden = true
+        @editor._chat_is_hidden = true
         @element.find(".salvus-editor-chat-hide").hide()
         @element.find(".salvus-editor-chat-show").show()
         @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
+        @editor.show()  # update size/display of editor (especially the width)
 
     new_chat_indicator: (new_chats) =>
         # Show a new chat indicator of the chat window is closed.
         # if new_chats, indicate that there are new chats
         # if new_chats, don't indicate new chats.
         elt = @element.find(".salvus-editor-chat-new-chats")
-        if new_chats and @_chat_is_hidden
+        if new_chats and @editor._chat_is_hidden
             elt.show()
         else
             elt.hide()
