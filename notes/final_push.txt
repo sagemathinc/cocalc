@@ -1,5 +1,8 @@
 UI:
-(0:45?)  [x] (1:07) editor buttons: search/replace/undo/redo/autoindent/shift left/shift right; plus tooltips.
+
+(0:10?)  [ ] bug -- save all should only save things that are already open
+(0:30?)  [ ] tabs -- make them shrink as more are added.
+(0:15?)  [ ] bug -- making new consoles doesn't work.
 (1:00?)  [ ] change filename extensions: ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
 (0:30?)  [ ] feature -- open new documents on creation.
 (0:30?)  [ ] bug -- can have the same filename twice in recent files if you make new file; e.g., make "a" worksheet twice.
@@ -177,3 +180,5 @@ With the following done, we will have 100% fixed the UI for now:
  (0:45?) [x] (0:49) project UI: did something like this, but general cleanup instead --  combine the two search pages, with the file search in the right side of page.  (?)
 
 
+(0:45?)  [x] (1:07) editor buttons: search/replace/undo/redo/autoindent/shift left/shift right; plus tooltips.
+(0:30?)  [x] (1:00) buttons in terminal: increase font, decrease font, paste spot, refresh, then title

@@ -12,14 +12,29 @@
 .salvus-console-topbar {
     padding: 0px;
     margin : 0px;
-    height : 40px;
+    height : 26px;
     overflow : hidden;
     border-bottom : 1px solid #aaa;
 }
 
+.salvus-console-filename {
+    padding       : 10px;
+    font-size     : 14pt;
+    font-weight   : bold;
+    overflow      : hidden;
+    color:#555;
+    max-width : 30%;
+    padding-top: 4px;
+}
+
 .salvus-console-title {
     padding       : 10px;
+    font-size     : 14pt;
+    font-weight   : bold;
     overflow      : hidden;
+    color:#555;
+    max-width : 30%;
+    padding-top: 4px;
 }
 
 .salvus-console-description {

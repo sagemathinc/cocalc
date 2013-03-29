@@ -36,9 +36,9 @@ Editor for files in a project
 
 .salvus-editor-codemirror-filename {
     margin-left:3em;
-    font-size: 20px;
+    font-size: 14pt;
     font-weight: bold;
-    color:#777;
+    color:#555;
 }
 
 .salvus-editor-codemirror-cursor {

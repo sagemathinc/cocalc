@@ -491,7 +491,7 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 180
-    terminal           : {font_size:14, color_scheme:'solarized-light'}
+    terminal           : {font_size:14, color_scheme:'default'}
 
 # client <--> hub
 message(

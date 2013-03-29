@@ -67,6 +67,7 @@ class Console extends EventEmitter
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             session     : undefined  # a console_session; use .set_session to set it later instead.
             title       : ""
+            filename    : ""
             rows        : 16
             cols        : 80
             resizable   : false
@@ -110,6 +111,8 @@ class Console extends EventEmitter
         # Set the initial title, though of course the term can change
         # this via certain escape codes.
         @set_title(@opts.title)
+
+        @set_filename(@opts.filename)
 
         # Create the new Terminal object -- this is defined in
         # static/term/term.js -- it's a nearly complete implementation of
@@ -362,6 +365,15 @@ class Console extends EventEmitter
     _init_buttons: () ->
         editor = @terminal.editor
 
+        @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
+
+        @element.find("a[href=#increase-font]").click () =>
+            @_increase_font_size()
+            return false
+        @element.find("a[href=#decrease-font]").click () =>
+            @_decrease_font_size()
+            return false
+
         @element.find("a[href=#refresh]").click () =>
             @resize()
             return false
@@ -497,7 +509,7 @@ class Console extends EventEmitter
         @opts.cols = new_cols
         @opts.rows = new_rows
 
-        # Refresh depends on correct @opts being set!        
+        # Refresh depends on correct @opts being set!
         @refresh()
 
     console_is_open: () =>  # not chainable
@@ -556,6 +568,9 @@ class Console extends EventEmitter
 
     set_title: (title) ->
         @element.find(".salvus-console-title").text(title)
+
+    set_filename: (filename) ->
+        @element.find(".salvus-console-filename").text(filename)
 
 
 exports.Console = Console

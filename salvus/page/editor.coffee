@@ -886,7 +886,8 @@ class CodeMirrorEditor extends FileEditor
 
         cm_wrapper = $(@codemirror.getWrapperElement())
         cm_wrapper.css
-            'background-color':'#ffffe8'
+            #'background-color':'#ffffe8'
+            'background-color':'#ffffff'
             height : cm_height
             width  : width
 
@@ -1247,6 +1248,7 @@ class Terminal extends FileEditor
                         cols         : 80
                     elt = @element.salvus_console
                         title   : "Terminal"
+                        filename : filename
                         cols    : @opts.cols
                         rows    : @opts.rows
                         resizable: false
