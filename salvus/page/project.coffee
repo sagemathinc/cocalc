@@ -434,13 +434,13 @@ class ProjectPage
             network_timeout : 10   # how long network call has until it must return something or get total error.
             max_output : max_output
             bash       : true
-            err_on_exit: false
+            err_on_exit: true
             path       : path
             cb         : (err, output) =>
                 clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err and not output?) or (output? and not output.stdout?)
-                    search_output.append($("<div>").text("Search failed -- #{err}"))
+                    search_output.append($("<div>").text("Search took too long; please try a more restrictive search."))
                     return
                 search_result = templates.find(".project-search-result")
                 num_results = 0

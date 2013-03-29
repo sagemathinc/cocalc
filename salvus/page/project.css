@@ -1,7 +1,7 @@
 .salvus-project {
     position: fixed;
-    width: 90%;
-    padding-left: 5%;
+    width: 96%;
+    padding-left: 2%;
     padding-top: 0;
     margin-top: 0;
     top: 40px;
@@ -83,12 +83,15 @@
 }
 
 .project-search-form-input {
-    width:8em;
+    width:5em;
 }
 
 .project-search-output  {
-    background-color:white;
-    font-family:monospace;
+    background-color : white;
+    font-family      : monospace;
+    overflow-y       : auto;
+    position         : absolute;
+    height           : 100%;
 }
 
 .project-search-output-command {

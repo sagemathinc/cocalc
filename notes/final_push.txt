@@ -1,4 +1,15 @@
---> (0:45?)  [ ] bug: worksheet -- default path is relative to home directory not project.
+ [x] just did a very quick proof-of-concept of editor pages being tabs... It really just needs polish,  but will work.  need to move... can move.  THIS IS AWESOME!
+
+(0:10?)  [ ] make other standard tabs only icons; move search box to search page only
+(0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
+(0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
+
+
+
+
+(0:20?) [ ] PDF preview is probably not correct height... I'm good at this now.
+
+-----------
 
 (1:00?) [ ] Search page:    (similar function to https://github.com/explore)
                * search = on project name and description (I will have to build indexes at some point...)
@@ -13,7 +24,6 @@
 
 
 (0:30?)  [ ] feature -- open new documents on creation.
-(0:15?)  [ ] bug -- "Results of searching" needs to be scrollable.
 
 (0:30?)  [ ] bug -- can have the same filename twice in recent files if you make new file; e.g., make "a" worksheet twice.
 
@@ -26,10 +36,6 @@
 (1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into hub
 (1:30?) [ ] worksheet sync: integrate code for using these other diff/patch functions into local hub
 (1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
-
-(0:10?)  [ ] make other standard tabs only icons; move search box to search page only
-(0:30?)  [ ] move editor tab placement to project code and tabs -- each open file is in a project tab; code will need to be refactored.
-(0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
 
 (1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 (0:45?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
@@ -53,6 +59,10 @@
 (0:45?)  [ ] file listing pagination
 
 = Accounts =
+
+Project:
+   - Unix user
+   - Tarball in cassandra db
 
 Each account will have a list of unix users associated to it, starting with one.
 These will be listed in the settings page.
@@ -187,3 +197,5 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:30?) [x] (1:10) download a project, etc.
 
+(0:45?)  [x] (0:13) bug: worksheet -- default path is relative to home directory not project.
+(0:15?)  [x] bug -- "Results of searching" needs to be scrollable.

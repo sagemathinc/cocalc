@@ -60,29 +60,30 @@
             <div class="project-file-top-current-path-container"><a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a></div>
 
             <!-- Tabs -- place where you click on them -->
-            <ul class="nav nav-tabs  project-pages">
+            <ul class="nav nav-pills  project-pages">
 
                 <!-- Browse through files in the project -->
                 <li class="super-menu">
-                    <a href="#project-file-listing"><i class="icon-folder-close-alt"></i> Files</a>
+                    <a href="#project-file-listing"><i class="icon-folder-close-alt"></i> </a>
                 </li>
 
                 <!-- File editor -->
-                <li class="super-menu"><a href="#project-editor"><i class="icon-time"> </i> Recent (<span class="project-editor-file-count">0</span>)</a></li>
+                <li class="super-menu"><a href="#project-editor"><i class="icon-time"> </i> (<span class="project-editor-file-count">0</span>)</a></li>
+
+                <!-- Create a new file (or, etc.)-->
+                <li class="super-menu"><a href="#project-new-file"><i class="icon-plus-sign"> </i> </a></li>
 
                 <!-- Settings specific to this project -->
-                <li class="super-menu"><a href="#project-new-file"><i class="icon-file"> </i> New</a></li>
-
-                <!-- Settings specific to this project -->
-                <li class="super-menu"><a href="#project-settings"><i class="icon-cog"> </i> Settings</a></li>
+                <li class="super-menu"><a href="#project-settings"><i class="icon-cog"> </i> </a></li>
 
                 <!-- Search -->
-                <li class="super-menu">
+                <li class="super-menu project-search-menu-item">
                     <div style="margin-top:4px; margin-left:10px;">
-                        <a href="#project-search"><i class="icon-search"> </i> <input class="project-search-form-input search-query" type="text"
-                            placeholder="Search in files..."></a>
+                        <a href="#project-search"><!-- <i class="icon-search"> </i> --> <input class="project-search-form-input search-query" type="text"
+                            placeholder="Search..."></a>
                     </div>
                 </li>
+
 
             </ul>
 
@@ -308,7 +309,7 @@ in current location
                     </div>
                     <div class="span3">
                         <label  style="font-size:16px; margin-bottom:1ex;">
-                            <input type="checkbox" class="project-search-output-recursive" checked="checked">
+                            <input type="checkbox" class="project-search-output-recursive">
                             Subdirectories
                         </label>
                         <label  style="font-size:16px;">

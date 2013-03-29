@@ -347,13 +347,18 @@ class exports.Editor
 
         link = templates.find(".salvus-editor-filename-pill").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
-        link_filename.text(trunc(filename,256))
+        link_filename.text(trunc(filename,64))
 
         link.find(".salvus-editor-close-button-x").click () =>
+            if ignore_clicks
+                return false
             @close(filename)
 
         containing_path = misc.path_split(filename).head
+        ignore_clicks = false
         link.find("a").click () =>
+            if ignore_clicks
+                return false
             @display_tab(link_filename.text())
             @project_page.set_current_path(containing_path)
 
@@ -373,12 +378,21 @@ class exports.Editor
                 else
                     editor = @create_editor(create_editor_opts)
                     @element.find(".salvus-editor-content").append(editor.element.hide())
+                    @create_opened_file_tab(filename)
                     return editor
             hide_editor: () -> editor?.hide()
 
         link.data('tab', @tabs[filename])
+        link.draggable
+            zIndex      : 1000
+            #containment : @element
+            stop        : () =>
+                ignore_clicks = true
+                setTimeout( (() -> ignore_clicks=false), 100)
+
 
         @nav_tabs.append(link)
+
         @update_counter()
         return @tabs[filename]
 
@@ -412,6 +426,37 @@ class exports.Editor
                 throw("Unknown editor type '#{editor_name}'")
 
         return editor
+
+    create_opened_file_tab: (filename) =>
+        link = templates.find(".salvus-editor-filename-pill").clone()
+
+        link_filename = link.find(".salvus-editor-tab-filename")
+        link_filename.text(trunc(filename,32))
+
+        link.find(".salvus-editor-close-button-x").click () =>
+            if ignore_clicks
+                return false
+            link.remove()
+            return false
+
+        containing_path = misc.path_split(filename).head
+        ignore_clicks = false
+        link.find("a").click () =>
+            if ignore_clicks
+                return false
+            @display_tab(filename)
+            @project_page.container.find(".project-pages").children().removeClass('active')
+            link.addClass('active')
+            @project_page.set_current_path(containing_path)
+            return false
+
+        @project_page.container.find(".project-search-menu-item").after(link)
+        link.draggable
+            zIndex      : 1000
+            containment : "parent"
+            stop        : () =>
+                ignore_clicks = true
+                setTimeout( (() -> ignore_clicks=false), 100)
 
     # Close this tab.
     close: (filename) =>
