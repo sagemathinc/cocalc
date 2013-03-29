@@ -1,12 +1,13 @@
 .salvus-worksheet {
     padding: 0px;
     margin: 0px;
-    background-color: #fdf6e3;
+    /* background-color: #fdf6e3; */
+    background-color: #fff;
     border-top: 2px solid grey;
 }
 
 .salvus-worksheet-controls {
-    background-color: #fff;
+    background-color: #fafafa;
 }
 
 .salvus-worksheet-running {
