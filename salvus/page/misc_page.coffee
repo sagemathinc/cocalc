@@ -148,6 +148,16 @@ $.fn.extend
             return t
 
 
+# Expand element to be vertically maximal in height, keeping its current top position.
+$.fn.maxheight = (opts) ->
+    @each ->
+        elt = $(this)
+        elt.height($(window).height() - elt.offset().top)
+    this
+
+
+
+
 ####################################
 # Codemirror Extensions
 ####################################

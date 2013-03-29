@@ -1,12 +1,6 @@
+(0:20?) [x] (0:23) PDF preview is probably not correct height... I'm good at this now.
 
-(0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
-
-
-
-
-(0:20?) [ ] PDF preview is probably not correct height... I'm good at this now.
-
------------
+[ ] PDF preview -- easy to make it 2-up?
 
 (1:00?) [ ] Search page:    (similar function to https://github.com/explore)
                * search = on project name and description (I will have to build indexes at some point...)
@@ -18,6 +12,12 @@
               https://cloud.sagemath.org/projects/project_id/path/in/filesystem
             Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
 (0:45?) [ ] Add code to hub so that if user requests such a url, they get that project opened in the given location.
+
+
+(0:30?)  [ ] make it so tab widths are proportional to number of tabs, so at most one row, ever.
+
+-----------
+
 
 
 (0:30?)  [ ] feature -- open new documents on creation.

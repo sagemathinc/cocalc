@@ -439,7 +439,6 @@ class exports.Editor
         link.tooltip(title:filename, animation:false, delay: { show: 1000, hide: 100 })
 
         open_file = (name) =>
-            console.log(name)
             @project_page.set_current_path(misc.path_split(name).head)
             @project_page.display_tab("project-editor")
             @display_tab(name)
@@ -927,12 +926,12 @@ class PDF_Preview extends FileEditor
         #@element.find("a[href=#zoom-in]").click(@zoom_in)
         #@element.find("a[href=#zoom-out]").click(@zoom_out)
 
-        @element.css('height':$(window).height()*.8)
+        @element.maxheight()
         @output = @element.find(".salvus-editor-pdf-preview-page")
-        @update () =>
-            @element.resizable(handles: "e,w,s,sw,se").on('resize', @focus)
+        @update()
 
     focus: () =>
+        @element.maxheight()
         @output.height(@element.height())
         @output.width(@element.width())
 
