@@ -1,6 +1,8 @@
 UI:
 
---> (0:30?)  [ ] bug: if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
+(0:15)   [ ] go to line in editor
+(0:15)   [ ] font size in editor
+(0:30?)  [x] bug: if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
 (1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
 (0:45?)  [ ] feature -- file browser listing pagination; lots of files.
 (0:08?)  [ ] pdf preview -- make resolution function of width?

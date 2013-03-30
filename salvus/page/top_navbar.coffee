@@ -3,7 +3,7 @@
 #########################################################################
 
 $(document).on 'keydown', (ev) =>
-    #console.log(ev) 
+    #console.log(ev)
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
         return false
 
@@ -188,7 +188,7 @@ $("#about").top_navbar
     id      : "about"
     #label   : "SageMathCloud&trade;"
     label : ''
-    icon : 'icon-question-sign'
+    icon : 'icon-cloud'
     #pull_right : true
     close   : false
 
@@ -203,7 +203,7 @@ $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
     label   : "Your Projects"
-    icon : 'icon-cloud'
+    icon : 'icon-tasks'
     close   : false
 
 $("#account").top_navbar
