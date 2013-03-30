@@ -647,6 +647,7 @@ class ProjectPage
         @container.find(".project-editor").append(@editor.element)
 
     display_tab: (name) =>
+        @container.find(".project-pages").children().removeClass('active')
         for tab in @tabs
             if tab.name == name
                 @current_tab = tab
@@ -655,8 +656,7 @@ class ProjectPage
                 tab.onshow?()
                 @focus()
             else
-                tab.target.hide()
-                tab.label.removeClass('active')
+                tab.target.hide()                
 
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
