@@ -116,8 +116,14 @@
 
                     <!-- Hide/show hidden files -->
                     <div class="project-hidden-files pull-right" style="padding-top:4px; font-size:16pt; margin-right:1ex;">
-                        <a href="#hide-hidden" class='hide'><i class="icon-eye-open"> </i></a>
-                        <a href="#show-hidden"><i class="icon-eye-close"> </i> </a>
+                        <a href="#hide-hidden" class='hide'  data-toggle="tooltip" data-placement="bottom" title="Toggle whether or not to show hidden files."><i class="icon-eye-open"> </i></a>
+                        <a href="#show-hidden"  data-toggle="tooltip" data-placement="bottom" title="Toggle whether or not to show hidden files."><i class="icon-eye-close"> </i> </a>
+                    </div>
+
+                    <!-- Sort by time or alphabetical -->
+                    <div class="project-sort-files pull-right" style="padding-top:4px; font-size:16pt; margin-right:1ex;">
+                        <a href="#sort-by-time" class='hide' data-toggle="tooltip" data-placement="bottom" title="Toggle whether files are sorted by time or filename."><i class="icon-time"> </i></a>
+                        <a href="#dont-sort-by-time"  data-toggle="tooltip" data-placement="bottom" title="Toggle whether files are sorted by time or filename."><i class="icon-reorder"> </i> </a>
                     </div>
 
                     <!-- Refresh listing of files -->

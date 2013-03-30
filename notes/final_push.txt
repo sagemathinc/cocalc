@@ -1,11 +1,12 @@
 UI:xxxx
 
-(0:15?)  [ ] ui improvement: put the "new file plus" in more places, e.g., in file browser screen.
+ [x] (0:21) make it so one can sort files by time or alphabetical
+--> (0:15?)  [ ] ui improvement: put the "new file plus" in more places, e.g., in file browser screen.
 
+(0:15?)  [ ] ui bug: when selecting any of the top five things on left, they should get active and nothing else.
 (0:30?)  [ ] bug: if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
 (1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
-(0:45?)  [ ] file browser listing pagination.
-
+(0:45?)  [ ] feature -- file browser listing pagination; lots of files.
 
 
 EXPLORE:

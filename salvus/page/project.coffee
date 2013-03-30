@@ -130,6 +130,8 @@ class ProjectPage
         $(window).resize () => @window_resize()
         @_update_file_listing_size()
 
+        @init_sort_files_icon()
+
         # Initialize the search form.
         @init_search_form()
 
@@ -915,15 +917,11 @@ class ProjectPage
 
         timer = setTimeout( (() -> spinner.show().spin()), 300 )
 
-        #sort_by_time = local_storage(@project.project_id, path, 'sort_by_time')
-        #if not sort_by_time?
-        sort_by_time = false
-
         path = @current_path.join('/')
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path
-            time       : sort_by_time
+            time       : @_sort_by_time
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
                 clearTimeout(timer)
@@ -1261,8 +1259,22 @@ class ProjectPage
 
     init_hidden_files_icon: () =>
         elt = @container.find(".project-hidden-files")
-        elt.find("a").click () =>
+        elt.find("a").tooltip().click () =>
             elt.find("a").toggle()
+            @update_file_list_tab()
+            return false
+
+    init_sort_files_icon: () =>
+        elt = @container.find(".project-sort-files")
+        @_sort_by_time = local_storage(@project.project_id, '', 'sort_by_time')
+        if not @_sort_by_time
+            @_sort_by_time = false
+        if @_sort_by_time
+            elt.find("a").toggle()
+        elt.find("a").tooltip().click () =>
+            elt.find("a").toggle()
+            @_sort_by_time = elt.find("a[href=#sort-by-time]").is(":visible")
+            local_storage(@project.project_id, '', 'sort_by_time', @_sort_by_time)
             @update_file_list_tab()
             return false
 
