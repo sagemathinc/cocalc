@@ -213,7 +213,7 @@ class ProjectPage
                             that.project.description = new_desc
 
         # Activate the command line
-        cmdline = @container.find(".project-command-line-input")
+        cmdline = @container.find(".project-command-line-input")delay:{ show: 500, hide: 100 }
         cmdline.keydown (evt) =>
             if evt.which == 13 # enter
                 try
@@ -320,7 +320,7 @@ class ProjectPage
     ########################################
 
     init_file_search: () =>
-        @_file_search_box = @container.find(".salvus-project-search-for-file-input")
+        @_file_search_box = @container.find(".salvus-project-search-for-file-input").tooltip(delay:{ show: 500, hide: 100 })
         @_file_search_box.keyup (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 @display_tab("project-editor")
@@ -656,7 +656,7 @@ class ProjectPage
                 tab.onshow?()
                 @focus()
             else
-                tab.target.hide()                
+                tab.target.hide()
 
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
@@ -927,8 +927,18 @@ class ProjectPage
                 clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err)
-                    alert_message(type:"error", message:err)
+                    console.log("error")
+                    if @_last_path_without_error != path
+                        console.log("using last path without error:  ", @_last_path_without_error)
+                        @set_current_path(@_last_path_without_error)
+                        @_last_path_without_error = undefined # avoid any chance of infinite loop
+                        @update_file_list_tab(no_focus)
+                    else
+                        alert_message(type:"error", message:"Error viewing files at '#{path}'")
+
                     return
+                # remember for later
+                @_last_path_without_error = path
 
                 if not listing?
                     return
@@ -1253,13 +1263,13 @@ class ProjectPage
                     @update_file_list_tab()
 
     init_refresh_files: () =>
-        @container.find("a[href=#refresh-listing]").click () =>
+        @container.find("a[href=#refresh-listing]")delay:{ show: 500, hide: 100 }.click () =>
             @update_file_list_tab()
             return false
 
     init_hidden_files_icon: () =>
         elt = @container.find(".project-hidden-files")
-        elt.find("a").tooltip().click () =>
+        elt.find("a")delay:{ show: 500, hide: 100 }.click () =>
             elt.find("a").toggle()
             @update_file_list_tab()
             return false
@@ -1271,7 +1281,7 @@ class ProjectPage
             @_sort_by_time = false
         if @_sort_by_time
             elt.find("a").toggle()
-        elt.find("a").tooltip().click () =>
+        elt.find("a")delay:{ show: 500, hide: 100 }.click () =>
             elt.find("a").toggle()
             @_sort_by_time = elt.find("a[href=#sort-by-time]").is(":visible")
             local_storage(@project.project_id, '', 'sort_by_time', @_sort_by_time)
@@ -1291,11 +1301,11 @@ class ProjectPage
             return false
 
     init_trash_link: () =>
-        @container.find("a[href=#trash]").click () =>
+        @container.find("a[href=#trash]")delay:{ show: 500, hide: 100 }.click () =>
             @visit_trash()
             return false
 
-        @container.find("a[href=#empty-trash]").click () =>
+        @container.find("a[href=#empty-trash]")delay:{ show: 500, hide: 100 }.click () =>
             bootbox.confirm "<h1><i class='icon-trash pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>You can't undo this.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
