@@ -833,7 +833,8 @@ class CodeMirrorEditor extends FileEditor
 
     init_edit_buttons: () =>
         that = @
-        for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent', 'shift-left', 'shift-right', 'split-view']
+        for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
+                     'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
             @element.find("a[href=##{name}]").data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
@@ -870,7 +871,29 @@ class CodeMirrorEditor extends FileEditor
                 cm.unindent_selection()
             when 'shift-right'
                 @press_tab_key(cm)
+            when 'increase-font'
+                @change_font_size(cm, +1)
+            when 'decrease-font'
+                @change_font_size(cm, -1)
+            when 'goto-line'
+                @goto_line(cm)
 
+    change_font_size: (cm, delta) =>
+        elt = $(cm.getWrapperElement())
+        s = elt.css('font-size')
+        new_size = parseInt(s.slice(0,s.length-2)) + delta
+        if new_size > 1
+            elt.css('font-size', new_size + 'px')
+
+    goto_line: (cm) =>
+        bootbox.prompt "Goto line...", (result) =>
+            if result == null
+                return
+            try
+                cm.setCursor({line:parseInt(result)-1, ch:0})
+                cm.focus()
+            catch e
+                return
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
