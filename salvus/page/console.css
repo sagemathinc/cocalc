@@ -12,7 +12,7 @@
 .salvus-console-topbar {
     padding: 0px;
     margin : 0px;
-    height : 26px;
+    height : 30px;
     overflow : hidden;
     border-bottom : 1px solid #aaa;
 }
@@ -49,7 +49,7 @@
 
 .salvus-console-terminal {
      font-family: Courier, "Courier New", monospace;
-     padding: 0px;
+     padding: 1ex;
      margin: 0px;
 }
 
@@ -112,9 +112,6 @@
 }
 
 .salvus-console-paste-bin {
-    height : 1.2em;
-    padding-top:-4px;
-    padding-bottom: 1px;
     width : 11em;
     overflow: hidden;
 }
