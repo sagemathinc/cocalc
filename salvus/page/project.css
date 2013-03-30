@@ -298,3 +298,7 @@ font-size: 11px;
     font-size:16pt;
     overflow-wrap: break-word;
 }
+
+.project-control-icon {
+    font-size: 20px;
+}
