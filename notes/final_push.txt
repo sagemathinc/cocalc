@@ -1,6 +1,6 @@
 UI:
 
---> (0:30?)  [ ] tabs -- make them shrink as more are added.
+(0:30?)  [ ] tabs -- make them shrink as more are added; also fix some serious bug/issues with split editing.
 
 (0:15?)  [ ] bug -- making new consoles doesn't work.
 (1:00?)  [ ] change filename extensions: ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
@@ -9,6 +9,8 @@ UI:
 (0:30?)  [ ] bug: if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
 (1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
 (0:45?)  [ ] file browser listing pagination.
+
+
 
 EXPLORE:
 (1:00?) [ ] Search page:    (similar function to https://github.com/explore)
@@ -31,6 +33,10 @@ WORKSHEETS:
 (1:30?) [ ] worksheet: integrate code for using these other diff/patch functions into local hub
 (1:00?) [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
 (0:45?) [ ] worksheet/ui: interact plus moving cells bug: just add a data attribute to those cells so skipped
+
+
+(0:30?)  [ ] synchronization and split docs aren't done -- cursor/selection in bottom doc gets messed up.
+             reasonable solution -- sync the window with focus.
 
 ACCOUNTS:
 

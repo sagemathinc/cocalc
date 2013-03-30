@@ -246,6 +246,7 @@ class exports.Editor
         return @element.find(".salvus-editor-content").position().top
 
     _window_resize_while_editing: () =>
+        @resize_open_file_tabs()
         if not @active_tab? or not @_editor_content_visible
             return
         @active_tab.editor().show()
@@ -382,6 +383,12 @@ class exports.Editor
                     return editor
             hide_editor: () -> editor?.hide()
             editor_open : ()->editor?
+            close_editor: () ->
+                if editor?
+                    editor.disconnect_from_session()
+                    editor.remove()
+                editor = undefined
+
 
         link.data('tab', @tabs[filename])
         link.draggable
@@ -434,7 +441,7 @@ class exports.Editor
 
         link_filename = link.find(".salvus-editor-tab-filename")
         i = filename.lastIndexOf('/')
-        display_name = trunc(filename.slice(i+1),16)
+        display_name = trunc(filename.slice(i+1),20)
         link_filename.text(display_name)
         link.tooltip(title:filename, animation:false, delay: { show: 1000, hide: 100 })
 
@@ -451,8 +458,11 @@ class exports.Editor
             name = link.prev().data('name')
             if name?
                 open_file(name)
-            if @tabs[filename]?.open_file_pill?
-                delete @tabs[filename].open_file_pill
+            tab = @tabs[filename]
+            if tab?
+                if tab.open_file_pill?
+                    delete tab.open_file_pill
+                tab.close_editor()
             return false
 
         ignore_clicks = false
@@ -471,8 +481,32 @@ class exports.Editor
 
         @tabs[filename].open_file_pill = link
 
-        #@project_page.container.find(".project-search-menu-item").after(link)
         @project_page.container.find(".project-pages").append(link)
+        @resize_open_file_tabs()
+
+    resize_open_file_tabs: () =>
+        # Make a list of the tabs after the search menu.
+        x = []
+        file_tabs = false
+        for a in @project_page.container.find(".project-pages").children()
+            t = $(a)
+            if t.hasClass("project-search-menu-item")
+                file_tabs = true
+                continue
+            if file_tabs
+                x.push(t)
+        if x.length == 0
+            return
+        start = x[0].offset().left
+        end   = x[0].parent().offset().left + x[0].parent().width()
+        width = (end - start)/x.length
+        for a in x
+            if not a.data('orig_width')?
+                a.data('orig_width', a.width())
+            if width < a.data('orig_width')
+                a.width(width)
+            else
+                a.width(a.data('orig_width'))
 
     make_open_file_pill_active: (link) =>
         @project_page.container.find(".project-pages").children().removeClass('active')
@@ -484,23 +518,16 @@ class exports.Editor
         if not tab? # nothing to do -- tab isn't opened anymore
             return
 
-        # Do not show this file in "recent" next time.
-        local_storage_delete(@project_id, filename, "auto_open")
-
         # Disconnect from remote session (if relevant)
         if tab.editor_open()
             tab.editor().disconnect_from_session()
             tab.editor().remove()
 
+        # Do not show this file in "recent" next time.
+        local_storage_delete(@project_id, filename, "auto_open")
         tab.link.remove()
         delete @tabs[filename]
         @update_counter()
-
-        # Display some other tab.
-        #names = keys(@tabs)
-        #if names.length > 0
-            # select new tab
-        #    @display_tab(names[0])
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -769,19 +796,23 @@ class CodeMirrorEditor extends FileEditor
                     "Cmd-S"        : (editor)   => @click_save_button()
                     "Shift-Tab"    : (editor)   => editor.unindent_selection()
                     "Ctrl-Space"  : "indentAuto"
-                    "Tab"          : (editor)   => @press_tab_key()
+                    "Tab"          : (editor)   => @press_tab_key(editor)
 
         @codemirror = make_editor(elt[0])
 
         elt1 = @element.find(".salvus-editor-codemirror-input-box-1").find("textarea")
-        console.log(elt1)
 
         @codemirror1 = make_editor(elt1[0])
-        console.log(@codemirror1)
 
         buf = @codemirror.linkedDoc(sharedHist: true)
         @codemirror1.swapDoc(buf)
         $(@codemirror1.getWrapperElement()).css('border-top':'2px solid #aaa', 'box-shadow': '#777 6px 6px 6px 6px')
+
+        @codemirror.on 'focus', () =>
+            @codemirror_with_last_focus = @codemirror
+
+        @codemirror1.on 'focus', () =>
+            @codemirror_with_last_focus = @codemirror1
 
         @init_save_button()
         @init_change_event()
@@ -789,10 +820,9 @@ class CodeMirrorEditor extends FileEditor
 
         @_split_view = false
 
-    press_tab_key: () =>
-        editor = @codemirror
+    press_tab_key: (editor) =>
         c = editor.getCursor(); d = editor.getCursor(true)
-        if c.line==d.line and c.ch == d.ch
+        if c.line == d.line and c.ch == d.ch
             editor.tab_as_space()
         else
             CodeMirror.commands.defaultTab(editor)
@@ -808,7 +838,7 @@ class CodeMirrorEditor extends FileEditor
     click_edit_button: (name) =>
         if not @codemirror?
             return
-        cm = @codemirror
+        cm = @codemirror_with_last_focus
         switch name
             when 'search'
                 CodeMirror.commands.find(cm)
@@ -836,11 +866,11 @@ class CodeMirrorEditor extends FileEditor
             when 'shift-left'
                 cm.unindent_selection()
             when 'shift-right'
-                @press_tab_key()
+                @press_tab_key(cm)
 
 
     init_save_button: () =>
-        @save_button = @element.find("a[href=#save]").click(@click_save_button)
+        @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
         @save_button.find(".spinner").hide()
 
     click_save_button: () =>
@@ -887,11 +917,14 @@ class CodeMirrorEditor extends FileEditor
 
         if @_split_view
             @codemirror1.refresh()
+            $(@codemirror1.getWrapperElement()).show()
+        else
+            $(@codemirror1.getWrapperElement()).hide()
 
         height = $(window).height()
 
         top = @editor.editor_top_position()
-        elem_height = height - top
+        elem_height = height - top - 5
 
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height = @codemirror.defaultTextHeight()

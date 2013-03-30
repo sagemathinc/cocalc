@@ -1,6 +1,5 @@
 (0:45?)  [ ] Clone a project (under settings).
 
-
 (1:00?)  [ ] When creating a new project, option to choose from a list of users if there is more than one user associated to an account.
 
 
