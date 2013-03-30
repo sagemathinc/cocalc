@@ -809,6 +809,7 @@ class ProjectPage
                 return false
             @display_tab("project-editor")
             tab = @editor.create_tab(filename:p, content:"")
+            @editor.display_tab(p)
             return false
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>
@@ -818,6 +819,7 @@ class ProjectPage
                 return false
             @display_tab("project-editor")
             tab = @editor.create_tab(filename:p, content:"")
+            @editor.display_tab(p)
             return false
 
         create_file = () =>
@@ -836,6 +838,7 @@ class ProjectPage
                         alert_message(type:"info", message:"Created new file '#{p}'")
                         @display_tab("project-editor")
                         tab = @editor.create_tab(filename:p, content:"")
+                        @editor.display_tab(p)
             return false
 
         create_folder = () =>

@@ -804,7 +804,7 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror1 = make_editor(elt1[0])
 
-        buf = @codemirror.linkedDoc(sharedHist: true)
+        buf = @codemirror.linkedDoc({sharedHist: true})
         @codemirror1.swapDoc(buf)
         $(@codemirror1.getWrapperElement()).css('border-top':'2px solid #aaa', 'box-shadow': '#777 6px 6px 6px 6px')
 

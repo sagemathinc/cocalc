@@ -1,3 +1,6 @@
+(1:00?) [ ] bug -- when view split, history isn't shared, which is CONFUSING; maybe has something to do with syncdoc since option is set correctly.  Not sure.
+
+
 (0:45?)  [ ] Clone a project (under settings).
 
 (1:00?)  [ ] When creating a new project, option to choose from a list of users if there is more than one user associated to an account.
