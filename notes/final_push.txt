@@ -19,6 +19,7 @@
 (0:30?) [ ] browserify version issue
 
 (0:30?) [ ] (0:16) restarting sage session bug
+(0:45?) [ ] worksheet: filename is a MESS
 (0:45?) [ ] worksheet: weird bug when starting to edit a file and loose something -- idea: instead of reseting sync session, just start it from scratch; should work, since this problem doesn't happen when freshly connecting!
 (1:00?) [ ] worksheet: define code to diff two worksheets and make a patch, and apply patch
 (1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into client

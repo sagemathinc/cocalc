@@ -991,11 +991,14 @@ class Cell extends EventEmitter
     selected: (is_selected=true) ->
         if is_selected
             @_input.addClass("salvus-cell-input-selected")
-            @_action_btns.stop().show().animate(opacity:100)
+            f = () =>
+                if @_input.hasClass("salvus-cell-input-selected")
+                    @_action_btns.show()
+            setTimeout(f, 250)
         else
             @_input.removeClass("salvus-cell-input-selected")
-            # Hide on next tick, since this could be a button.
-            @_action_btns.fadeOut(duration:250)
+            # Hide on next tick, since this could be a button press.
+            setTimeout( (() => @_action_btns.hide()), 250 )
         return @
 
     component: (e) ->

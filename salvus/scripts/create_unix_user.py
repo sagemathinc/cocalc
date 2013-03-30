@@ -29,6 +29,6 @@ def cmd(args, dry_run=False, ignore_errors=False):
         sys.exit(e)
     return {'stdout':stdout, 'stderr':stderr}
 
-username = 
+username =
 cmd(['useradd', '-m', '-U', '-k', 'skel', username])
 
